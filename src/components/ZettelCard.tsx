@@ -46,9 +46,9 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
   return (
     <Card className={cn(
       "bg-gradient-card shadow-card hover:shadow-hover transition-all duration-300 group",
-      "border-l-4 animate-float",
+      "border-l-4",
       className
-    )} 
+    )}
     style={{ 
       borderLeftColor: `hsl(var(--category-${categoryInfo.color}))` 
     }}>
