@@ -143,23 +143,23 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card shadow-sm">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-primary rounded-lg">
-                <Brain className="h-6 w-6 text-primary-foreground" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-gradient-primary rounded-lg">
+                <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                   ZettelWeave Nexus
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                   Intelligent knowledge management system
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 sm:gap-3">
               <ImportDialog 
                 existingCards={cards}
                 onImportCards={handleImportCards}
@@ -174,21 +174,21 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <TabsList className="grid w-fit grid-cols-3 bg-muted">
-              <TabsTrigger value="cards" className="flex items-center gap-2">
-                <Grid3X3 className="h-4 w-4" />
-                Cards ({cards.length})
+      <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <TabsList className="grid w-full sm:w-fit grid-cols-3 bg-muted">
+              <TabsTrigger value="cards" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Cards</span> ({cards.length})
               </TabsTrigger>
-              <TabsTrigger value="graph" className="flex items-center gap-2">
-                <Network className="h-4 w-4" />
-                Graph View
+              <TabsTrigger value="graph" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Network className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Graph</span>
               </TabsTrigger>
-              <TabsTrigger value="stats" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Statistics
+              <TabsTrigger value="stats" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Stats</span>
               </TabsTrigger>
             </TabsList>
             
@@ -196,7 +196,7 @@ const Index = () => {
               <SearchBar 
                 cards={cards}
                 onSearchResults={setFilteredCards}
-                className="max-w-md"
+                className="w-full sm:max-w-md"
               />
             )}
           </div>
@@ -225,7 +225,7 @@ const Index = () => {
                 />
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {filteredCards.map((card) => (
                   <ZettelCard
                     key={card.id}
@@ -239,14 +239,14 @@ const Index = () => {
           </TabsContent>
 
           {/* Graph View */}
-          <TabsContent value="graph" className="space-y-6">
-            <Card className="h-[600px] p-6">
-              <CardHeader className="px-0 pt-0">
-                <CardTitle className="flex items-center gap-2">
-                  <Network className="h-5 w-5" />
+          <TabsContent value="graph" className="space-y-4 sm:space-y-6">
+            <Card className="h-[400px] sm:h-[600px] p-3 sm:p-6">
+              <CardHeader className="px-0 pt-0 pb-2 sm:pb-4">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Network className="h-4 w-4 sm:h-5 sm:w-5" />
                   Knowledge Graph
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Visual representation of your cards and their connections. Click nodes to focus on them.
                 </p>
               </CardHeader>
@@ -257,8 +257,8 @@ const Index = () => {
           </TabsContent>
 
           {/* Statistics View */}
-          <TabsContent value="stats" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <TabsContent value="stats" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
