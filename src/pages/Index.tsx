@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Grid3X3, Network, Plus, BookOpen, BarChart3 } from "lucide-react";
+import { Brain, Grid3X3, Network, Plus, BookOpen, BarChart3, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { generateZettelNumber, categorizeContent, extractKeywords } from "@/utils/deweySystem";
 
 const Index = () => {
+  const { theme, setTheme } = useTheme();
   const [cards, setCards] = useState<ZettelCardType[]>([]);
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
   const [selectedWord, setSelectedWord] = useState<{
@@ -160,6 +162,16 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-1 sm:gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="h-8 w-8 sm:h-9 sm:w-9"
+              >
+                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
               <ImportDialog 
                 existingCards={cards}
                 onImportCards={handleImportCards}
@@ -180,15 +192,13 @@ const Index = () => {
             <TabsList className="grid w-full sm:w-fit grid-cols-3 bg-muted">
               <TabsTrigger value="cards" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Cards</span> ({cards.length})
+                <span className="hidden xs:inline">{cards.length}</span>
               </TabsTrigger>
               <TabsTrigger value="graph" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <Network className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Graph</span>
               </TabsTrigger>
               <TabsTrigger value="stats" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Stats</span>
               </TabsTrigger>
             </TabsList>
             
@@ -209,8 +219,8 @@ const Index = () => {
                 <h3 className="text-lg font-semibold mb-2">No cards found</h3>
                 <p className="text-muted-foreground mb-4">
                   {cards.length === 0 
-                    ? "Start building your knowledge base by creating your first card."
-                    : "Try adjusting your search or filters."
+                    ? "Start building your knowledge base"
+                    : "Try adjusting your search"
                   }
                 </p>
                 <CreateCardDialog 
@@ -219,7 +229,7 @@ const Index = () => {
                   trigger={
                     <Button variant="outline">
                       <Plus className="h-4 w-4 mr-2" />
-                      Create First Card
+                      Create
                     </Button>
                   }
                 />
@@ -244,10 +254,10 @@ const Index = () => {
               <CardHeader className="px-0 pt-0 pb-2 sm:pb-4">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <Network className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Knowledge Graph
+                  Graph
                 </CardTitle>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Visual representation of your cards and their connections. Click nodes to focus on them.
+                  Visual connections between cards
                 </p>
               </CardHeader>
               <CardContent className="px-0 pb-0 h-full">
@@ -262,7 +272,7 @@ const Index = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Cards
+                    Cards
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -273,7 +283,7 @@ const Index = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Links
+                    Links
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -286,7 +296,7 @@ const Index = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Categories Used
+                    Categories
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -299,7 +309,7 @@ const Index = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Avg. Links per Card
+                    Avg Links
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -315,9 +325,9 @@ const Index = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Category Distribution</CardTitle>
+                <CardTitle>Categories</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Number of cards in each Dewey Decimal category
+                  Dewey Decimal distribution
                 </p>
               </CardHeader>
               <CardContent>

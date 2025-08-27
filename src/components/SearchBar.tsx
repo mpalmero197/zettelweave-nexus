@@ -107,7 +107,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
             <Input
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search cards by title, content, tags, category..."
+              placeholder="Search..."
               className="pl-10 pr-20 bg-card shadow-sm"
             />
             {query && (
@@ -155,7 +155,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
       
       {query && (
         <div className="mt-2 text-sm text-muted-foreground">
-          Showing results for "{query}" • {cards.length} cards found
+          "{query}" • {cards.length} found
         </div>
       )}
     </div>

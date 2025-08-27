@@ -90,13 +90,13 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
         {trigger || (
           <Button className="bg-gradient-primary hover:bg-primary-hover transition-all">
             <Plus className="h-4 w-4 mr-2" />
-            Create Card
+            Create
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Create New Zettel Card</DialogTitle>
+          <DialogTitle className="text-xl">Create Card</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -205,7 +205,7 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
               className="bg-gradient-accent hover:bg-accent-hover"
             >
               <Wand2 className="h-4 w-4 mr-2" />
-              Auto-Generate
+              Generate
             </Button>
             
             <div className="flex gap-2">
@@ -213,7 +213,7 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
                 Cancel
               </Button>
               <Button onClick={handleSubmit} disabled={!title || !content}>
-                Create Card
+                Create
               </Button>
             </div>
           </div>
