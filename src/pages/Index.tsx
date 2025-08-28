@@ -6,16 +6,19 @@ import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { SearchBar } from "@/components/SearchBar";
 import { GraphView } from "@/components/GraphView";
 import { ImportDialog } from "@/components/ImportDialog";
+import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Grid3X3, Network, Plus, BookOpen, BarChart3, Moon, Sun } from "lucide-react";
+import { Brain, Grid3X3, Network, Plus, BookOpen, BarChart3, Moon, Sun, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { generateZettelNumber, categorizeContent, extractKeywords } from "@/utils/deweySystem";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const [cards, setCards] = useState<ZettelCardType[]>([]);
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
   const [selectedWord, setSelectedWord] = useState<{
@@ -23,6 +26,7 @@ const Index = () => {
     position: { x: number; y: number };
   } | null>(null);
   const [activeTab, setActiveTab] = useState("cards");
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   // Initialize with some sample cards
   useEffect(() => {
@@ -98,6 +102,24 @@ const Index = () => {
     setFilteredCards(updatedCards);
   };
 
+  const addRecommendedCards = (newCards: Omit<ZettelCardType, 'id' | 'number' | 'created' | 'linkedCards'>[]) => {
+    const cardsWithMetadata: ZettelCardType[] = newCards.map((card, index) => ({
+      ...card,
+      id: Date.now().toString() + index,
+      number: `${cards.length + index + 1}`.padStart(3, '0') + '.001',
+      created: new Date(),
+      linkedCards: []
+    }));
+    
+    setCards(prev => [...prev, ...cardsWithMetadata]);
+    setFilteredCards(prev => [...prev, ...cardsWithMetadata]);
+    
+    toast({
+      title: "Cards Added",
+      description: `${newCards.length} recommended cards have been added to your collection.`,
+    });
+  };
+
   const handleWordHover = (word: string, element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
     setSelectedWord({
@@ -165,6 +187,16 @@ const Index = () => {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() => setShowRecommendations(!showRecommendations)}
+                className="h-8 w-8 sm:h-9 sm:w-9"
+                title="AI Recommendations"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="h-8 w-8 sm:h-9 sm:w-9"
               >
@@ -172,10 +204,12 @@ const Index = () => {
                 <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">Toggle theme</span>
               </Button>
+              
               <ImportDialog 
                 existingCards={cards}
                 onImportCards={handleImportCards}
               />
+              
               <CreateCardDialog 
                 existingCards={cards}
                 onCreateCard={handleCreateCard}
@@ -373,6 +407,14 @@ const Index = () => {
           onCreateCard={handleCreateCardFromWord}
         />
       )}
+
+      {/* AI Recommendations Sidebar */}
+      <RecommendationSidebar
+        existingCards={cards}
+        onAddCards={addRecommendedCards}
+        isOpen={showRecommendations}
+        onClose={() => setShowRecommendations(false)}
+      />
     </div>
   );
 };
