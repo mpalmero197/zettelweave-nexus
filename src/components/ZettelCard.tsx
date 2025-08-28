@@ -44,14 +44,17 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
   };
 
   return (
-    <Card className={cn(
-      "bg-gradient-card shadow-card hover:shadow-hover transition-all duration-300 group",
-      "border-l-4",
-      className
-    )}
-    style={{ 
-      borderLeftColor: `hsl(var(--category-${categoryInfo.color}))` 
-    }}>
+    <Card
+      className={cn(
+        "group rounded-xl bg-card shadow-card hover:shadow-hover transition-shadow animate-fade-in",
+        "border border-border/60 dark:border-border/50",
+        "hover-scale",
+        className
+      )}
+      style={{
+        borderLeft: `4px solid hsl(var(--category-${categoryInfo.color}))`
+      }}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -70,21 +73,21 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
                 {categoryInfo.name}
               </Badge>
             </div>
-            <CardTitle className="text-lg leading-tight mb-1">
+            <CardTitle className="text-xl md:text-2xl leading-snug mb-1 text-foreground">
               {card.title}
             </CardTitle>
             {card.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
+              <p className="text-sm md:text-base text-muted-foreground line-clamp-3">
                 {card.description}
               </p>
             )}
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="sm" onClick={() => onEdit?.(card)}>
-              <Edit3 className="h-3 w-3" />
+          <div className="flex gap-1 text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={() => onEdit?.(card)} aria-label="Edit card" className="hover:text-foreground">
+              <Edit3 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => onLink?.(card)}>
-              <Link2 className="h-3 w-3" />
+            <Button variant="ghost" size="sm" onClick={() => onLink?.(card)} aria-label="Link card" className="hover:text-foreground">
+              <Link2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -92,7 +95,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
       
       <CardContent className="space-y-3">
         <div 
-          className="text-sm leading-relaxed prose prose-sm max-w-none"
+          className="text-[0.95rem] leading-7 text-foreground/90 line-clamp-6"
           onMouseMove={handleWordHover}
         >
           {renderContentWithHoverWords(card.content)}
