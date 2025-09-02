@@ -1,1 +1,4 @@
 project_id = "sckglgjydlbztxjupbsk"
+
+[functions.ai-edit-card]
+verify_jwt = false

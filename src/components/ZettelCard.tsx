@@ -3,18 +3,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CardActionsMenu } from "./CardActionsMenu";
 
 interface ZettelCardProps {
   card: ZettelCardType;
   onEdit?: (card: ZettelCardType) => void;
   onLink?: (card: ZettelCardType) => void;
   onWordHover?: (word: string, element: HTMLElement) => void;
+  onDelete?: (card: ZettelCardType) => void;
+  onUpdate?: (card: ZettelCardType) => void;
   className?: string;
 }
 
-export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: ZettelCardProps) {
+export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpdate, className }: ZettelCardProps) {
   const categoryInfo = getCategoryInfo(card.category);
 
   const handleWordHover = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -45,6 +48,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
 
   return (
     <Card
+      data-card-id={card.id}
       className={cn(
         "group rounded-xl bg-card shadow-card hover:shadow-hover transition-shadow animate-fade-in",
         "border border-border/60 dark:border-border/50",
@@ -89,6 +93,12 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
             <Button variant="ghost" size="sm" onClick={() => onLink?.(card)} aria-label="Link card" className="hover:text-foreground">
               <Link2 className="h-4 w-4" />
             </Button>
+            <CardActionsMenu
+              card={card}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+            />
           </div>
         </div>
       </CardHeader>
@@ -100,6 +110,26 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, className }: Zet
         >
           {renderContentWithHoverWords(card.content)}
         </div>
+        
+        {/* Media display */}
+        {(card.imageUrl || card.videoUrl) && (
+          <div className="space-y-2">
+            {card.imageUrl && (
+              <img 
+                src={card.imageUrl} 
+                alt="Card image" 
+                className="w-full max-h-48 object-cover rounded-md border"
+              />
+            )}
+            {card.videoUrl && (
+              <video 
+                src={card.videoUrl} 
+                controls 
+                className="w-full max-h-48 object-cover rounded-md border"
+              />
+            )}
+          </div>
+        )}
         
         {card.tags.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">

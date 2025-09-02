@@ -1,420 +1,329 @@
 import { useState, useEffect } from "react";
-import { ZettelCard as ZettelCardType, WordDefinition } from "@/types/zettel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/SearchBar";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
-import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
-import { SearchBar } from "@/components/SearchBar";
-import { GraphView } from "@/components/GraphView";
 import { ImportDialog } from "@/components/ImportDialog";
+import { GraphView } from "@/components/GraphView";
+import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Grid3X3, Network, Plus, BookOpen, BarChart3, Moon, Sun, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useZettelCards } from "@/hooks/useZettelCards";
+import { ZettelCard as ZettelCardType } from "@/types/zettel";
+import { DEWEY_CATEGORIES } from "@/types/zettel";
+import { exportToPDF, printCards } from "@/utils/exportUtils";
+import { 
+  Brain, 
+  Plus, 
+  Upload, 
+  BarChart3, 
+  Sun, 
+  Moon, 
+  Download, 
+  Printer, 
+  Bot,
+  LogOut,
+  User,
+  Settings,
+  Lightbulb,
+  Grid3X3
+} from "lucide-react";
 import { useTheme } from "next-themes";
-import { generateZettelNumber, categorizeContent, extractKeywords } from "@/utils/deweySystem";
-import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const Index = () => {
+  const { user, signOut } = useAuth();
+  const { cards, isLoading, createCard, updateCard, deleteCard } = useZettelCards();
   const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
-  const [cards, setCards] = useState<ZettelCardType[]>([]);
+  
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
-  const [selectedWord, setSelectedWord] = useState<{
-    word: string;
-    position: { x: number; y: number };
-  } | null>(null);
+  const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("cards");
   const [showRecommendations, setShowRecommendations] = useState(false);
 
-  // Initialize with some sample cards
   useEffect(() => {
-    const sampleCards: ZettelCardType[] = [
-      {
-        id: "1",
-        number: "000.1",
-        title: "Knowledge Management Systems",
-        content: "Knowledge management systems are designed to capture, store, and organize information in a way that makes it easily retrievable and useful. The Zettelkasten method, originated by sociologist Niklas Luhmann, represents one of the most effective approaches to personal knowledge management.",
-        description: "Overview of knowledge management systems and the Zettelkasten method",
-        tags: ["knowledge", "systems", "zettelkasten", "information"],
-        category: "000",
-        created: new Date("2024-01-15"),
-        modified: new Date("2024-01-15"),
-        linkedCards: ["2"],
-        author: "System"
-      },
-      {
-        id: "2", 
-        number: "100.1",
-        title: "The Philosophy of Note-Taking",
-        content: "Note-taking is not merely about recording information, but about creating a dialogue with ideas. When we write notes, we engage in a process of thinking that transforms raw information into knowledge. This process involves selection, interpretation, and connection-making.",
-        description: "Exploring the philosophical foundations of effective note-taking",
-        tags: ["philosophy", "note-taking", "thinking", "learning"],
-        category: "100",
-        created: new Date("2024-01-16"),
-        modified: new Date("2024-01-16"),
-        linkedCards: ["1", "3"],
-        author: "System"
-      },
-      {
-        id: "3",
-        number: "300.1", 
-        title: "Information Society and Digital Learning",
-        content: "We live in an information society where the ability to process, synthesize, and create knowledge from vast amounts of data has become crucial. Digital tools enable new forms of learning and knowledge creation, but they also require new literacies and approaches to information management.",
-        description: "The impact of digitalization on learning and knowledge work",
-        tags: ["digital", "society", "learning", "technology"],
-        category: "300",
-        created: new Date("2024-01-17"),
-        modified: new Date("2024-01-17"),
-        linkedCards: ["1", "2"],
-        author: "System"
-      }
-    ];
-    
-    setCards(sampleCards);
-    setFilteredCards(sampleCards);
-  }, []);
+    setFilteredCards(cards);
+  }, [cards]);
 
-  const handleCreateCard = (cardData: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => {
-    const newCard: ZettelCardType = {
-      ...cardData,
-      id: Date.now().toString(),
-      created: new Date(),
-      modified: new Date()
-    };
-    
-    const updatedCards = [...cards, newCard];
-    setCards(updatedCards);
-    setFilteredCards(updatedCards);
+  const handleCreateCard = (newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => {
+    createCard(newCard);
   };
 
-  const handleImportCards = (importedCards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => {
-    const newCards = importedCards.map(cardData => ({
-      ...cardData,
-      id: Date.now().toString() + Math.random().toString(),
-      created: new Date(),
-      modified: new Date()
-    }));
-    
-    const updatedCards = [...cards, ...newCards];
-    setCards(updatedCards);
-    setFilteredCards(updatedCards);
+  const handleUpdateCard = (updatedCard: ZettelCardType) => {
+    updateCard(updatedCard);
   };
 
-  const addRecommendedCards = (newCards: Omit<ZettelCardType, 'id' | 'number' | 'created' | 'linkedCards'>[]) => {
-    const cardsWithMetadata: ZettelCardType[] = newCards.map((card, index) => ({
+  const handleDeleteCard = (card: ZettelCardType) => {
+    if (confirm(`Are you sure you want to delete "${card.title}"?`)) {
+      deleteCard(card.id);
+    }
+  };
+
+  const handleImportCards = (newCards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => {
+    newCards.forEach(card => createCard(card));
+    toast(`Successfully imported ${newCards.length} cards!`);
+  };
+
+  const addRecommendedCards = (recommendedCards: Omit<ZettelCardType, 'id' | 'number' | 'created' | 'linkedCards'>[]) => {
+    const cardsWithMetadata = recommendedCards.map(card => ({
       ...card,
-      id: Date.now().toString() + index,
-      number: `${cards.length + index + 1}`.padStart(3, '0') + '.001',
-      created: new Date(),
-      linkedCards: []
+      number: "",
+      linkedCards: [] as string[]
     }));
-    
-    setCards(prev => [...prev, ...cardsWithMetadata]);
-    setFilteredCards(prev => [...prev, ...cardsWithMetadata]);
-    
-    toast({
-      title: "Cards Added",
-      description: `${newCards.length} recommended cards have been added to your collection.`,
-    });
+    cardsWithMetadata.forEach(card => createCard(card));
+    toast(`Added ${recommendedCards.length} recommended cards!`);
   };
 
   const handleWordHover = (word: string, element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
     setSelectedWord({
       word,
-      position: { x: rect.left, y: rect.bottom }
+      position: { x: rect.left + rect.width / 2, y: rect.top }
     });
   };
 
-  const handleCreateCardFromWord = (word: string, definition: WordDefinition) => {
-    const category = categorizeContent(definition.definition, word);
-    const number = generateZettelNumber(category, cards.map(c => c.number));
-    const tags = extractKeywords(word + " " + definition.definition);
-    
-    const newCard: ZettelCardType = {
-      id: Date.now().toString(),
-      number,
-      title: word.charAt(0).toUpperCase() + word.slice(1),
-      content: `**Definition**: ${definition.definition}\n\n**Part of Speech**: ${definition.partOfSpeech}${definition.examples ? `\n\n**Examples**:\n${definition.examples.map(ex => `- ${ex}`).join('\n')}` : ''}`,
-      description: definition.definition,
-      tags: [definition.partOfSpeech, ...tags],
-      category,
-      created: new Date(),
-      modified: new Date(),
-      linkedCards: [],
-      author: "Dictionary"
+  const handleCreateCardFromWord = (definition: any) => {
+    const newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'> = {
+      title: `Definition: ${definition.word}`,
+      content: `${definition.definition}\n\nPart of speech: ${definition.partOfSpeech}${
+        definition.examples ? `\n\nExamples:\n${definition.examples.join('\n')}` : ''
+      }`,
+      description: `Definition and usage of the word "${definition.word}"`,
+      category: "400", // Language category
+      number: "", // Will be auto-generated
+      tags: ["definition", "language", definition.partOfSpeech],
+      linkedCards: []
     };
-    
-    const updatedCards = [...cards, newCard];
-    setCards(updatedCards);
-    setFilteredCards(updatedCards);
+
+    createCard(newCard);
+    setSelectedWord(null);
   };
 
-  const getCategoryStats = () => {
-    const stats: Record<string, number> = {};
-    cards.forEach(card => {
-      const mainCategory = card.category.substring(0, 1) + "00";
-      stats[mainCategory] = (stats[mainCategory] || 0) + 1;
-    });
-    return stats;
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast(`Sign out failed: ${error.message}`);
+    }
   };
 
-  const categoryStats = getCategoryStats();
+  const handleExportPDF = () => {
+    exportToPDF(filteredCards, "My Zettel Cards");
+  };
+
+  const handlePrint = () => {
+    printCards(filteredCards);
+  };
+
+  // Calculate statistics
+  const totalCards = cards.length;
+  const categoryCounts = DEWEY_CATEGORIES.map(category => ({
+    ...category,
+    count: cards.filter(card => {
+      const categoryStart = parseInt(category.range.split('-')[0]);
+      const categoryEnd = parseInt(category.range.split('-')[1]);
+      const cardCategory = parseInt(card.category);
+      return cardCategory >= categoryStart && cardCategory <= categoryEnd;
+    }).length
+  }));
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
+          <p>Loading your knowledge...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-gradient-primary rounded-lg">
-                <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  ZettelWeave Nexus
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                  Intelligent knowledge management system
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-1 sm:gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowRecommendations(!showRecommendations)}
-                className="h-8 w-8 sm:h-9 sm:w-9"
-                title="AI Recommendations"
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="h-8 w-8 sm:h-9 sm:w-9"
-              >
-                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-              
-              <ImportDialog 
-                existingCards={cards}
-                onImportCards={handleImportCards}
-              />
-              
-              <CreateCardDialog 
-                existingCards={cards}
-                onCreateCard={handleCreateCard}
-              />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <header className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Brain className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                ZettelWeave
+              </h1>
+              <p className="text-sm text-muted-foreground">Welcome back, {user?.email}</p>
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <TabsList className="grid w-full sm:w-fit grid-cols-3 bg-muted">
-              <TabsTrigger value="cards" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">{cards.length}</span>
-              </TabsTrigger>
-              <TabsTrigger value="graph" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                <Network className="h-3 w-3 sm:h-4 sm:w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="stats" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-              </TabsTrigger>
-            </TabsList>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
             
-            {activeTab === "cards" && (
-              <SearchBar 
-                cards={cards}
-                onSearchResults={setFilteredCards}
-                className="w-full sm:max-w-md"
-              />
-            )}
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRecommendations(!showRecommendations)}
+            >
+              <Lightbulb className="h-4 w-4 mr-2" />
+              AI Suggestions
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <User className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem disabled>
+                  <User className="mr-2 h-4 w-4" />
+                  {user?.email}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        </header>
 
-          {/* Cards View */}
-          <TabsContent value="cards" className="space-y-6">
-            {filteredCards.length === 0 ? (
-              <Card className="p-12 text-center bg-gradient-card">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">No cards found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {cards.length === 0 
-                    ? "Start building your knowledge base"
-                    : "Try adjusting your search"
-                  }
-                </p>
-                <CreateCardDialog 
-                  existingCards={cards}
-                  onCreateCard={handleCreateCard}
-                  trigger={
-                    <Button variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create
-                    </Button>
-                  }
-                />
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {filteredCards.map((card) => (
-                  <ZettelCard
-                    key={card.id}
-                    card={card}
-                    onWordHover={handleWordHover}
-                    className="hover:scale-[1.02] transition-transform"
-                  />
-                ))}
+        <div className="flex gap-6">
+          {/* Main Content */}
+          <div className={`${showRecommendations ? 'flex-1' : 'w-full'} transition-all duration-300`}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <div className="flex items-center justify-between">
+                <TabsList className="grid w-auto grid-cols-3 lg:grid-cols-3">
+                  <TabsTrigger value="cards" className="flex items-center gap-2">
+                    <Grid3X3 className="h-4 w-4" />
+                    Cards ({totalCards})
+                  </TabsTrigger>
+                  <TabsTrigger value="graph" className="flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    Graph
+                  </TabsTrigger>
+                  <TabsTrigger value="stats" className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Stats
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className="flex gap-2">
+                  <CreateCardDialog existingCards={cards} onCreateCard={handleCreateCard} />
+                  <ImportDialog existingCards={cards} onImportCards={handleImportCards} />
+                </div>
               </div>
-            )}
-          </TabsContent>
 
-          {/* Graph View */}
-          <TabsContent value="graph" className="space-y-4 sm:space-y-6">
-            <Card className="h-[400px] sm:h-[600px] p-3 sm:p-6">
-              <CardHeader className="px-0 pt-0 pb-2 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Network className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Graph
-                </CardTitle>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Visual connections between cards
-                </p>
-              </CardHeader>
-              <CardContent className="px-0 pb-0 h-full">
-                <GraphView cards={cards} className="h-full" />
-              </CardContent>
-            </Card>
-          </TabsContent>
+              <TabsContent value="cards" className="space-y-6">
+                <SearchBar cards={cards} onSearchResults={setFilteredCards} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredCards.map((card) => (
+                    <ZettelCard
+                      key={card.id}
+                      card={card}
+                      onEdit={handleUpdateCard}
+                      onDelete={handleDeleteCard}
+                      onUpdate={handleUpdateCard}
+                      onWordHover={handleWordHover}
+                    />
+                  ))}
+                </div>
 
-          {/* Statistics View */}
-          <TabsContent value="stats" className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Cards
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{cards.length}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Links
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {cards.reduce((sum, card) => sum + card.linkedCards.length, 0)}
+                {filteredCards.length === 0 && (
+                  <div className="text-center py-12">
+                    <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">No cards found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {cards.length === 0 
+                        ? "Start building your knowledge base by creating your first card."
+                        : "Try adjusting your search or filters."
+                      }
+                    </p>
+                    {cards.length === 0 && (
+                      <CreateCardDialog 
+                        existingCards={cards} 
+                        onCreateCard={handleCreateCard}
+                        trigger={
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Your First Card
+                          </Button>
+                        }
+                      />
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Categories
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {Object.keys(categoryStats).length}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Avg Links
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {cards.length > 0 
-                      ? (cards.reduce((sum, card) => sum + card.linkedCards.length, 0) / cards.length).toFixed(1)
-                      : "0"
-                    }
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </TabsContent>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Categories</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Dewey Decimal distribution
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(categoryStats).map(([category, count]) => (
-                    <div key={category} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Badge 
-                          variant="outline"
-                          style={{ borderColor: `hsl(var(--category-${category}))` }}
-                        >
-                          {category}
-                        </Badge>
-                        <span className="text-sm">
-                          {category === "000" && "Knowledge & Computer Science"}
-                          {category === "100" && "Philosophy & Psychology"}
-                          {category === "200" && "Religion & Theology"}
-                          {category === "300" && "Social Sciences"}
-                          {category === "400" && "Language & Linguistics"}
-                          {category === "500" && "Pure Sciences"}
-                          {category === "600" && "Applied Sciences"}
-                          {category === "700" && "Arts & Recreation"}
-                          {category === "800" && "Literature"}
-                          {category === "900" && "History & Geography"}
-                        </span>
+              <TabsContent value="graph">
+                <GraphView cards={filteredCards} />
+              </TabsContent>
+
+              <TabsContent value="stats" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categoryCounts.map((category) => (
+                    <div
+                      key={category.range}
+                      className="p-6 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium text-sm text-muted-foreground">
+                          {category.range}
+                        </h3>
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: `hsl(var(--category-${category.color}))` }}
+                        />
                       </div>
-                      <span className="font-medium">{count}</span>
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-foreground">{category.name}</h4>
+                        <p className="text-2xl font-bold text-primary">{category.count}</p>
+                        <p className="text-xs text-muted-foreground">{category.description}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
+              </TabsContent>
+            </Tabs>
+          </div>
 
-      {/* Word Definition Popover */}
-      {selectedWord && (
-        <WordDefinitionPopover
-          word={selectedWord.word}
-          position={selectedWord.position}
-          onClose={() => setSelectedWord(null)}
-          onCreateCard={handleCreateCardFromWord}
-        />
-      )}
+          {/* Recommendation Sidebar */}
+          {showRecommendations && (
+            <RecommendationSidebar
+              existingCards={cards}
+              onAddCards={addRecommendedCards}
+              isOpen={showRecommendations}
+              onClose={() => setShowRecommendations(false)}
+            />
+          )}
+        </div>
 
-      {/* AI Recommendations Sidebar */}
-      <RecommendationSidebar
-        existingCards={cards}
-        onAddCards={addRecommendedCards}
-        isOpen={showRecommendations}
-        onClose={() => setShowRecommendations(false)}
-      />
+        {/* Word Definition Popover */}
+        {selectedWord && (
+          <WordDefinitionPopover
+            word={selectedWord.word}
+            position={selectedWord.position}
+            onClose={() => setSelectedWord(null)}
+            onCreateCard={handleCreateCardFromWord}
+          />
+        )}
+      </div>
     </div>
   );
 };

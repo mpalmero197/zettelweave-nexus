@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Wand2, X } from "lucide-react";
 import { ZettelCard } from "@/types/zettel";
 import { categorizeContent, generateZettelNumber, extractKeywords, getCategoryInfo } from "@/utils/deweySystem";
+import { MediaUpload } from "./MediaUpload";
 
 interface CreateCardDialogProps {
   existingCards: ZettelCard[];
@@ -24,6 +25,8 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
   const [newTag, setNewTag] = useState("");
   const [category, setCategory] = useState("");
   const [number, setNumber] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
 
   const handleAutoGenerate = () => {
     if (!title && !content) return;
@@ -68,7 +71,9 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
       category: finalCategory,
       number: finalNumber,
       linkedCards: [],
-      author: "User"
+      author: "User",
+      imageUrl: imageUrl || undefined,
+      videoUrl: videoUrl || undefined
     });
 
     // Reset form
@@ -79,6 +84,8 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
     setNewTag("");
     setCategory("");
     setNumber("");
+    setImageUrl("");
+    setVideoUrl("");
     setOpen(false);
   };
 
@@ -196,6 +203,13 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
               </div>
             </div>
           </div>
+
+          <MediaUpload 
+            onImageUpload={setImageUrl}
+            onVideoUpload={setVideoUrl}
+            existingImageUrl={imageUrl}
+            existingVideoUrl={videoUrl}
+          />
 
           <div className="flex justify-between pt-4">
             <Button
