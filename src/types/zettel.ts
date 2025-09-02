@@ -10,6 +10,8 @@ export interface ZettelCard {
   linkedCards: string[]; // IDs of linked cards
   description?: string;
   author?: string;
+  imageUrl?: string;
+  videoUrl?: string;
 }
 
 export interface CategoryDefinition {
