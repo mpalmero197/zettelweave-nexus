@@ -10,8 +10,10 @@ import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useZettelCards } from "@/hooks/useZettelCards";
-import { ZettelCard as ZettelCardType } from "@/types/zettel";
-import { DEWEY_CATEGORIES } from "@/types/zettel";
+import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
+import { DEWEY_CATEGORIES, ORGANIZATION_METHODS } from "@/types/zettel";
+import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
+import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { 
   Brain, 
@@ -35,13 +37,14 @@ import { toast } from "sonner";
 
 const Index = () => {
   const { user, signOut } = useAuth();
-  const { cards, isLoading, createCard, updateCard, deleteCard } = useZettelCards();
+  const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
   const { theme, setTheme } = useTheme();
   
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("cards");
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>("dewey");
 
   useEffect(() => {
     setFilteredCards(cards);
@@ -164,6 +167,17 @@ const Index = () => {
               <Printer className="h-4 w-4 mr-2" />
               Print
             </Button>
+            
+            <DeleteAllCardsDialog 
+              onDeleteAll={deleteAllCards}
+              cardCount={totalCards}
+              isDeleting={isDeletingAll}
+            />
+            
+            <OrganizationMethodDialog
+              currentMethod={organizationMethod}
+              onMethodChange={setOrganizationMethod}
+            />
             
             <Button
               variant="outline"

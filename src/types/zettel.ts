@@ -28,6 +28,47 @@ export interface WordDefinition {
   examples?: string[];
 }
 
+export type OrganizationMethod = "dewey" | "luhmann" | "folgezettel" | "thematic";
+
+export interface OrganizationMethodDefinition {
+  id: OrganizationMethod;
+  name: string;
+  description: string;
+  numbering: string;
+  example: string;
+}
+
+export const ORGANIZATION_METHODS: OrganizationMethodDefinition[] = [
+  {
+    id: "dewey",
+    name: "Dewey Decimal",
+    description: "Hierarchical classification system based on subject areas",
+    numbering: "000-999 with subdivisions",
+    example: "150.1 (Psychology - Theory)"
+  },
+  {
+    id: "luhmann",
+    name: "Luhmann System",
+    description: "Niklas Luhmann's alphanumeric branching system",
+    numbering: "Alphanumeric branching (1, 1a, 1a1, 1b, etc.)",
+    example: "1a3b2 (Branching sequence)"
+  },
+  {
+    id: "folgezettel",
+    name: "Folgezettel",
+    description: "Sequential numbering with connections",
+    numbering: "Sequential with decimal subdivisions",
+    example: "21.3.4 (Sequential branching)"
+  },
+  {
+    id: "thematic",
+    name: "Thematic",
+    description: "Organization by themes and topics",
+    numbering: "Theme-based prefixes",
+    example: "PHIL-001 (Philosophy theme)"
+  }
+];
+
 export const DEWEY_CATEGORIES: CategoryDefinition[] = [
   { range: "000-099", name: "Computer Science & Knowledge", description: "Information, knowledge, systems", color: "000" },
   { range: "100-199", name: "Philosophy & Psychology", description: "Logic, ethics, psychology", color: "100" },

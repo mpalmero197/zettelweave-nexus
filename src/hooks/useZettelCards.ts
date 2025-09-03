@@ -140,6 +140,30 @@ export const useZettelCards = () => {
     }
   });
 
+  const deleteAllCardsMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('zettel_cards')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
+      toast({ title: 'All cards deleted successfully!' });
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error deleting cards', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
   return {
     cards,
     isLoading,
@@ -147,8 +171,10 @@ export const useZettelCards = () => {
     createCard: createCardMutation.mutate,
     updateCard: updateCardMutation.mutate,
     deleteCard: deleteCardMutation.mutate,
+    deleteAllCards: deleteAllCardsMutation.mutate,
     isCreating: createCardMutation.isPending,
     isUpdating: updateCardMutation.isPending,
-    isDeleting: deleteCardMutation.isPending
+    isDeleting: deleteCardMutation.isPending,
+    isDeletingAll: deleteAllCardsMutation.isPending
   };
 };
