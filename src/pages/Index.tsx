@@ -29,8 +29,15 @@ import {
   User,
   Settings,
   Lightbulb,
-  Grid3X3
+  Grid3X3,
+  FileText,
+  Palette,
+  StickyNote
 } from "lucide-react";
+import { ScratchPad } from "@/components/ScratchPad";
+import { BulletJournal } from "@/components/BulletJournal";
+import { InfiniteWhiteboard } from "@/components/InfiniteWhiteboard";
+import { StickyNotes } from "@/components/StickyNotes";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
@@ -222,7 +229,7 @@ const Index = () => {
           <div className={`${showRecommendations ? 'flex-1' : 'w-full'} transition-all duration-300`}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <div className="flex items-center justify-between">
-                <TabsList className="grid w-auto grid-cols-3 lg:grid-cols-3">
+                <TabsList className="grid w-auto grid-cols-7 lg:grid-cols-7">
                   <TabsTrigger value="cards" className="flex items-center gap-2">
                     <Grid3X3 className="h-4 w-4" />
                     Cards ({totalCards})
@@ -234,6 +241,22 @@ const Index = () => {
                   <TabsTrigger value="stats" className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
                     Stats
+                  </TabsTrigger>
+                  <TabsTrigger value="scratch" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Scratch
+                  </TabsTrigger>
+                  <TabsTrigger value="journal" className="flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4" />
+                    Journal
+                  </TabsTrigger>
+                  <TabsTrigger value="whiteboard" className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Board
+                  </TabsTrigger>
+                  <TabsTrigger value="sticky" className="flex items-center gap-2">
+                    <StickyNote className="h-4 w-4" />
+                    Sticky
                   </TabsTrigger>
                 </TabsList>
 
@@ -313,6 +336,22 @@ const Index = () => {
                     </div>
                   ))}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="scratch">
+                <ScratchPad onCreateCard={handleCreateCard} />
+              </TabsContent>
+
+              <TabsContent value="journal">
+                <BulletJournal onCreateCard={handleCreateCard} />
+              </TabsContent>
+
+              <TabsContent value="whiteboard">
+                <InfiniteWhiteboard onCreateCard={handleCreateCard} />
+              </TabsContent>
+
+              <TabsContent value="sticky">
+                <StickyNotes onCreateCard={handleCreateCard} />
               </TabsContent>
             </Tabs>
           </div>
