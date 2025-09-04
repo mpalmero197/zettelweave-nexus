@@ -29,20 +29,32 @@ const colors = [
 
 export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
   const [activeColor, setActiveColor] = useState("#000000");
   const [isDrawing, setIsDrawing] = useState(false);
+  const isPanningRef = useRef(false);
+  const spacePressedRef = useRef(false);
+  const saveTimeoutRef = useRef<number | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const STORAGE_KEY = "whiteboard:state:v1";
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 1200,
-      height: 800,
+    // Determine initial size from container (render only visible portion)
+    const parent = containerRef.current ?? canvasRef.current.parentElement;
+    const width = parent ? (parent as HTMLElement).clientWidth : 1200;
+    const height = parent ? (parent as HTMLElement).clientHeight : 800;
+
+    const canvas = new FabricCanvas(canvasRef.current!, {
+      width,
+      height,
       backgroundColor: "#ffffff",
     });
 
+    // Initialize the free drawing brush
     canvas.freeDrawingBrush.color = activeColor;
     canvas.freeDrawingBrush.width = 2;
 
@@ -64,6 +76,125 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       fabricCanvas.freeDrawingBrush.width = 2;
     }
   }, [activeTool, activeColor, fabricCanvas]);
+
+  // Persistence, pan/zoom, and responsive sizing
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    // Attempt to restore previous session
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { json: any; vt?: number[] };
+        fabricCanvas.loadFromJSON(parsed.json, () => {
+          if (parsed.vt && Array.isArray(parsed.vt)) {
+            fabricCanvas.setViewportTransform(parsed.vt as any);
+          }
+          fabricCanvas.renderAll();
+          toast("Whiteboard restored");
+        });
+      }
+    } catch (e) {
+      // ignore corrupted state
+    }
+
+    // Debounced saver
+    const saveState = () => {
+      const state = {
+        json: fabricCanvas.toJSON(),
+        vt: fabricCanvas.viewportTransform,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    };
+    const debouncedSave = () => {
+      if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = window.setTimeout(saveState, 500) as unknown as number;
+    };
+
+    // Save on object changes
+    const objectEvents = ["object:added", "object:modified", "object:removed", "path:created"] as const;
+    objectEvents.forEach((ev) => fabricCanvas.on(ev as any, debouncedSave));
+
+    // Pan with Space + drag
+    const onMouseDown = (opt: any) => {
+      if (spacePressedRef.current) {
+        isPanningRef.current = true;
+        fabricCanvas.setCursor("grab");
+      }
+    };
+    const onMouseMove = (opt: any) => {
+      if (isPanningRef.current && opt?.e) {
+        const vpt = fabricCanvas.viewportTransform;
+        if (!vpt) return;
+        vpt[4] += opt.e.movementX;
+        vpt[5] += opt.e.movementY;
+        fabricCanvas.requestRenderAll();
+      }
+    };
+    const onMouseUp = () => {
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        fabricCanvas.setCursor("default");
+        debouncedSave();
+      }
+    };
+    fabricCanvas.on("mouse:down", onMouseDown);
+    fabricCanvas.on("mouse:move", onMouseMove);
+    fabricCanvas.on("mouse:up", onMouseUp);
+
+    // Zoom with mouse wheel
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY;
+      let zoom = (fabricCanvas.getZoom?.() as number) ?? (fabricCanvas.viewportTransform?.[0] ?? 1);
+      zoom *= Math.pow(0.999, delta);
+      zoom = Math.min(4, Math.max(0.2, zoom));
+      const point = { x: e.offsetX, y: e.offsetY } as any;
+      (fabricCanvas as any).zoomToPoint(point, zoom);
+      debouncedSave();
+    };
+    const canvasEl = canvasRef.current;
+    canvasEl?.addEventListener("wheel", handleWheel, { passive: false });
+
+    // Keyboard handlers for Space
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") spacePressedRef.current = true;
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        spacePressedRef.current = false;
+        isPanningRef.current = false;
+        fabricCanvas.setCursor("default");
+        fabricCanvas.requestRenderAll();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+
+    // ResizeObserver to keep canvas sized to visible container
+    if (containerRef.current) {
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const cr = entry.contentRect;
+          fabricCanvas.setDimensions({ width: cr.width, height: cr.height } as any);
+          fabricCanvas.renderAll();
+        }
+      });
+      ro.observe(containerRef.current);
+      resizeObserverRef.current = ro;
+    }
+
+    return () => {
+      objectEvents.forEach((ev) => fabricCanvas.off(ev as any, debouncedSave));
+      fabricCanvas.off("mouse:down", onMouseDown);
+      fabricCanvas.off("mouse:move", onMouseMove);
+      fabricCanvas.off("mouse:up", onMouseUp);
+      if (canvasEl) canvasEl.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      resizeObserverRef.current?.disconnect();
+    };
+  }, [fabricCanvas]);
 
   const handleToolClick = (tool: Tool) => {
     setActiveTool(tool);
@@ -217,10 +348,10 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
             </div>
           </div>
           
-          <div className="border rounded-lg overflow-hidden bg-white">
+          <div ref={containerRef} className="border rounded-lg overflow-hidden bg-background h-[70vh]">
             <canvas 
               ref={canvasRef} 
-              className="block max-w-full"
+              className="block w-full h-full"
               style={{ cursor: activeTool === "draw" ? "crosshair" : "default" }}
             />
           </div>
