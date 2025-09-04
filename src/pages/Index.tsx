@@ -51,11 +51,18 @@ const Index = () => {
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("cards");
   const [showRecommendations, setShowRecommendations] = useState(false);
-  const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>("dewey");
+  const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>(() => {
+    const stored = localStorage.getItem('zettelweave-organization-method');
+    return (stored as OrganizationMethod) || "dewey";
+  });
 
   useEffect(() => {
     setFilteredCards(cards);
   }, [cards]);
+
+  useEffect(() => {
+    localStorage.setItem('zettelweave-organization-method', organizationMethod);
+  }, [organizationMethod]);
 
   const handleCreateCard = (newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => {
     createCard(newCard);
@@ -126,17 +133,79 @@ const Index = () => {
     printCards(filteredCards);
   };
 
-  // Calculate statistics
+  // Calculate statistics based on organization method
   const totalCards = cards.length;
-  const categoryCounts = DEWEY_CATEGORIES.map(category => ({
-    ...category,
-    count: cards.filter(card => {
-      const categoryStart = parseInt(category.range.split('-')[0]);
-      const categoryEnd = parseInt(category.range.split('-')[1]);
-      const cardCategory = parseInt(card.category);
-      return cardCategory >= categoryStart && cardCategory <= categoryEnd;
-    }).length
-  }));
+  
+  const getStatsForMethod = () => {
+    switch (organizationMethod) {
+      case "dewey":
+        return DEWEY_CATEGORIES.map(category => ({
+          ...category,
+          count: cards.filter(card => {
+            const categoryStart = parseInt(category.range.split('-')[0]);
+            const categoryEnd = parseInt(category.range.split('-')[1]);
+            const cardCategory = parseInt(card.category);
+            return cardCategory >= categoryStart && cardCategory <= categoryEnd;
+          }).length
+        }));
+      
+      case "luhmann":
+        // Group by first character of number for Luhmann system
+        const luhmannGroups = cards.reduce((acc, card) => {
+          const firstChar = card.number.charAt(0) || '1';
+          if (!acc[firstChar]) acc[firstChar] = 0;
+          acc[firstChar]++;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        return Object.entries(luhmannGroups).map(([key, count]) => ({
+          range: `${key}*`,
+          name: `Branch ${key}`,
+          description: `Cards in the ${key} branch sequence`,
+          color: Math.abs(key.charCodeAt(0) - 48) % 10 * 100,
+          count
+        }));
+      
+      case "folgezettel":
+        // Group by main number (before first decimal)
+        const folgezettelGroups = cards.reduce((acc, card) => {
+          const mainNum = card.number.split('.')[0] || '1';
+          if (!acc[mainNum]) acc[mainNum] = 0;
+          acc[mainNum]++;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        return Object.entries(folgezettelGroups).map(([key, count]) => ({
+          range: `${key}.*`,
+          name: `Sequence ${key}`,
+          description: `Cards in sequence ${key} and its subdivisions`,
+          color: (parseInt(key) % 10) * 100,
+          count
+        }));
+      
+      case "thematic":
+        // Group by theme prefix
+        const thematicGroups = cards.reduce((acc, card) => {
+          const theme = card.number.split('-')[0] || 'MISC';
+          if (!acc[theme]) acc[theme] = 0;
+          acc[theme]++;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        return Object.entries(thematicGroups).map(([key, count]) => ({
+          range: `${key}-*`,
+          name: key,
+          description: `Cards with ${key} theme`,
+          color: Math.abs(key.charCodeAt(0) - 65) % 10 * 100,
+          count
+        }));
+      
+      default:
+        return DEWEY_CATEGORIES.map(category => ({ ...category, count: 0 }));
+    }
+  };
+  
+  const categoryCounts = getStatsForMethod();
 
   if (isLoading) {
     return (
@@ -152,113 +221,156 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
       <div className="container mx-auto px-4 py-6">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-8">
+        {/* Header - Mobile First Design */}
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 sm:p-0">
           <div className="flex items-center gap-3">
-            <Brain className="h-8 w-8 text-primary" />
+            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 ZettelWeave
               </h1>
-              <p className="text-sm text-muted-foreground">Welcome back, {user?.email}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
+                Welcome back, {user?.email}
+              </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportPDF}>
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
+          {/* Mobile action buttons */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 order-2 sm:order-1">
+              <Button variant="outline" size="sm" onClick={handleExportPDF} className="hidden sm:flex">
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+              
+              <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              
+              {/* Mobile compact buttons */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild className="sm:hidden">
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handlePrint}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <DeleteAllCardsDialog 
+                onDeleteAll={deleteAllCards}
+                cardCount={totalCards}
+                isDeleting={isDeletingAll}
+              />
+            </div>
             
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-            
-            <DeleteAllCardsDialog 
-              onDeleteAll={deleteAllCards}
-              cardCount={totalCards}
-              isDeleting={isDeletingAll}
-            />
-            
-            <OrganizationMethodDialog
-              currentMethod={organizationMethod}
-              onMethodChange={setOrganizationMethod}
-            />
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowRecommendations(!showRecommendations)}
-            >
-              <Lightbulb className="h-4 w-4 mr-2" />
-              AI Suggestions
-            </Button>
+            <div className="flex items-center gap-2 order-1 sm:order-2">
+              <OrganizationMethodDialog
+                currentMethod={organizationMethod}
+                onMethodChange={setOrganizationMethod}
+              />
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRecommendations(!showRecommendations)}
+                className="hidden sm:flex"
+              >
+                <Lightbulb className="h-4 w-4 mr-2" />
+                AI Suggestions
+              </Button>
+              
+              {/* Mobile AI button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRecommendations(!showRecommendations)}
+                className="sm:hidden"
+              >
+                <Lightbulb className="h-4 w-4" />
+              </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled>
-                  <User className="mr-2 h-4 w-4" />
-                  {user?.email}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled>
+                    <User className="mr-2 h-4 w-4" />
+                    <span className="truncate max-w-[150px]">{user?.email}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Main Content */}
           <div className={`${showRecommendations ? 'flex-1' : 'w-full'} transition-all duration-300`}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <div className="flex items-center justify-between">
-                <TabsList className="grid w-auto grid-cols-7 lg:grid-cols-7">
-                  <TabsTrigger value="cards" className="flex items-center gap-2">
-                    <Grid3X3 className="h-4 w-4" />
-                    Cards ({totalCards})
-                  </TabsTrigger>
-                  <TabsTrigger value="graph" className="flex items-center gap-2">
-                    <Bot className="h-4 w-4" />
-                    Graph
-                  </TabsTrigger>
-                  <TabsTrigger value="stats" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Stats
-                  </TabsTrigger>
-                  <TabsTrigger value="scratch" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Scratch
-                  </TabsTrigger>
-                  <TabsTrigger value="journal" className="flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4" />
-                    Journal
-                  </TabsTrigger>
-                  <TabsTrigger value="whiteboard" className="flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    Board
-                  </TabsTrigger>
-                  <TabsTrigger value="sticky" className="flex items-center gap-2">
-                    <StickyNote className="h-4 w-4" />
-                    Sticky
-                  </TabsTrigger>
-                </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                {/* Mobile-first tab navigation */}
+                <div className="w-full overflow-x-auto">
+                  <TabsList className="grid w-full min-w-max grid-cols-7 h-auto p-1">
+                    <TabsTrigger value="cards" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Cards</span>
+                      <span className="sm:hidden">({totalCards})</span>
+                      <span className="hidden sm:inline">({totalCards})</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="graph" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Graph</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="stats" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Stats</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="scratch" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Scratch</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="journal" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Journal</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="whiteboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <Palette className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Whiteboard</span>
+                      <span className="sm:hidden">Board</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="sticky" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
+                      <StickyNote className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Sticky</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 <div className="flex gap-2">
                   <CreateCardDialog existingCards={cards} onCreateCard={handleCreateCard} />
@@ -312,30 +424,53 @@ const Index = () => {
                 <GraphView cards={filteredCards} />
               </TabsContent>
 
-              <TabsContent value="stats" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {categoryCounts.map((category) => (
+              <TabsContent value="stats" className="space-y-4 lg:space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl lg:text-2xl font-bold text-foreground">Statistics</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Organized by {ORGANIZATION_METHODS.find(m => m.id === organizationMethod)?.name} method
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl lg:text-3xl font-bold text-primary">{totalCards}</p>
+                    <p className="text-xs lg:text-sm text-muted-foreground">Total Cards</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+                  {categoryCounts.map((category, index) => (
                     <div
-                      key={category.range}
-                      className="p-6 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow"
+                      key={category.range || index}
+                      className="group p-4 lg:p-6 rounded-xl bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm hover:shadow-lg hover:border-primary/20 transition-all duration-300 hover:scale-[1.02]"
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-sm text-muted-foreground">
+                        <h3 className="font-medium text-xs lg:text-sm text-muted-foreground truncate flex-1 mr-2">
                           {category.range}
                         </h3>
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 lg:w-4 lg:h-4 rounded-full ring-2 ring-background group-hover:ring-primary/30 transition-all"
                           style={{ backgroundColor: `hsl(var(--category-${category.color}))` }}
                         />
                       </div>
-                      <div className="space-y-1">
-                        <h4 className="font-semibold text-foreground">{category.name}</h4>
-                        <p className="text-2xl font-bold text-primary">{category.count}</p>
-                        <p className="text-xs text-muted-foreground">{category.description}</p>
+                      <div className="space-y-1 lg:space-y-2">
+                        <h4 className="font-semibold text-sm lg:text-base text-foreground line-clamp-2">{category.name}</h4>
+                        <p className="text-xl lg:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">{category.count}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{category.description}</p>
                       </div>
                     </div>
                   ))}
                 </div>
+                
+                {categoryCounts.length === 0 && (
+                  <div className="text-center py-12">
+                    <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">No statistics available</h3>
+                    <p className="text-muted-foreground">
+                      Create some cards to see statistics for your {ORGANIZATION_METHODS.find(m => m.id === organizationMethod)?.name} organization.
+                    </p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="scratch">
