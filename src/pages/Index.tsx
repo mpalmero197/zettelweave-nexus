@@ -137,6 +137,8 @@ const Index = () => {
   const totalCards = cards.length;
   
   const getStatsForMethod = () => {
+    if (cards.length === 0) return [];
+    
     switch (organizationMethod) {
       case "dewey":
         return DEWEY_CATEGORIES.map(category => ({
@@ -147,58 +149,68 @@ const Index = () => {
             const cardCategory = parseInt(card.category);
             return cardCategory >= categoryStart && cardCategory <= categoryEnd;
           }).length
-        }));
+        })).filter(cat => cat.count > 0 || organizationMethod === "dewey");
       
       case "luhmann":
-        // Group by first character of number for Luhmann system
+        // Group by first character/number of Luhmann sequences
         const luhmannGroups = cards.reduce((acc, card) => {
-          const firstChar = card.number.charAt(0) || '1';
-          if (!acc[firstChar]) acc[firstChar] = 0;
-          acc[firstChar]++;
+          const number = card.number || '1';
+          // Extract the root sequence (e.g., "1" from "1a3b2", "2" from "2b1")
+          const rootSequence = number.match(/^(\d+)/)?.[1] || number.charAt(0) || '1';
+          if (!acc[rootSequence]) acc[rootSequence] = 0;
+          acc[rootSequence]++;
           return acc;
         }, {} as Record<string, number>);
         
-        return Object.entries(luhmannGroups).map(([key, count]) => ({
-          range: `${key}*`,
-          name: `Branch ${key}`,
-          description: `Cards in the ${key} branch sequence`,
-          color: Math.abs(key.charCodeAt(0) - 48) % 10 * 100,
-          count
-        }));
+        return Object.entries(luhmannGroups)
+          .sort(([a], [b]) => parseInt(a) - parseInt(b))
+          .map(([key, count]) => ({
+            range: `${key}*`,
+            name: `Main Branch ${key}`,
+            description: `Cards in sequence ${key} and its sub-branches`,
+            color: (parseInt(key) % 10) * 100,
+            count
+          }));
       
       case "folgezettel":
-        // Group by main number (before first decimal)
+        // Group by main sequence number (before first decimal)
         const folgezettelGroups = cards.reduce((acc, card) => {
-          const mainNum = card.number.split('.')[0] || '1';
+          const number = card.number || '1';
+          const mainNum = number.split('.')[0] || '1';
           if (!acc[mainNum]) acc[mainNum] = 0;
           acc[mainNum]++;
           return acc;
         }, {} as Record<string, number>);
         
-        return Object.entries(folgezettelGroups).map(([key, count]) => ({
-          range: `${key}.*`,
-          name: `Sequence ${key}`,
-          description: `Cards in sequence ${key} and its subdivisions`,
-          color: (parseInt(key) % 10) * 100,
-          count
-        }));
+        return Object.entries(folgezettelGroups)
+          .sort(([a], [b]) => parseInt(a) - parseInt(b))
+          .map(([key, count]) => ({
+            range: `${key}.*`,
+            name: `Main Sequence ${key}`,
+            description: `Cards in main sequence ${key} and sub-sequences`,
+            color: (parseInt(key) % 10) * 100,
+            count
+          }));
       
       case "thematic":
-        // Group by theme prefix
+        // Group by theme prefix (before hyphen)
         const thematicGroups = cards.reduce((acc, card) => {
-          const theme = card.number.split('-')[0] || 'MISC';
+          const number = card.number || 'MISC-001';
+          const theme = number.split('-')[0] || 'MISC';
           if (!acc[theme]) acc[theme] = 0;
           acc[theme]++;
           return acc;
         }, {} as Record<string, number>);
         
-        return Object.entries(thematicGroups).map(([key, count]) => ({
-          range: `${key}-*`,
-          name: key,
-          description: `Cards with ${key} theme`,
-          color: Math.abs(key.charCodeAt(0) - 65) % 10 * 100,
-          count
-        }));
+        return Object.entries(thematicGroups)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, count]) => ({
+            range: `${key}-*`,
+            name: `${key} Theme`,
+            description: `Cards organized under the ${key} thematic category`,
+            color: Math.abs(key.charCodeAt(0) - 65) % 10 * 100,
+            count
+          }));
       
       default:
         return DEWEY_CATEGORIES.map(category => ({ ...category, count: 0 }));
