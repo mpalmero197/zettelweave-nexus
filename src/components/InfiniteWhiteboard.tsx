@@ -54,9 +54,11 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       backgroundColor: "#ffffff",
     });
 
-    // Initialize the free drawing brush
-    canvas.freeDrawingBrush.color = activeColor;
-    canvas.freeDrawingBrush.width = 2;
+    // Initialize the free drawing brush safely
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeColor;
+      canvas.freeDrawingBrush.width = 2;
+    }
 
     setFabricCanvas(canvas);
     toast("Whiteboard ready!");
