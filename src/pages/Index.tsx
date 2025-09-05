@@ -14,6 +14,7 @@ import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel
 import { DEWEY_CATEGORIES, ORGANIZATION_METHODS } from "@/types/zettel";
 import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
 import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
+import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { 
   Brain, 
@@ -55,6 +56,7 @@ const Index = () => {
     const stored = localStorage.getItem('zettelweave-organization-method');
     return (stored as OrganizationMethod) || "dewey";
   });
+  const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
 
   useEffect(() => {
     setFilteredCards(cards);
@@ -394,11 +396,11 @@ const Index = () => {
                 <SearchBar cards={cards} onSearchResults={setFilteredCards} />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCards.map((card) => (
+                   {filteredCards.map((card) => (
                     <ZettelCard
                       key={card.id}
                       card={card}
-                      onEdit={handleUpdateCard}
+                      onEdit={setEditingCard}
                       onDelete={handleDeleteCard}
                       onUpdate={handleUpdateCard}
                       onWordHover={handleWordHover}
@@ -521,6 +523,15 @@ const Index = () => {
             position={selectedWord.position}
             onClose={() => setSelectedWord(null)}
             onCreateCard={handleCreateCardFromWord}
+          />
+        )}
+        
+        {editingCard && (
+          <EditCardDialog
+            card={editingCard}
+            isOpen={!!editingCard}
+            onClose={() => setEditingCard(null)}
+            onSave={handleUpdateCard}
           />
         )}
       </div>
