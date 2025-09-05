@@ -41,24 +41,25 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   const STORAGE_KEY = "whiteboard:state:v1";
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !containerRef.current) return;
 
-    // Determine initial size from container (render only visible portion)
-    const parent = containerRef.current ?? canvasRef.current.parentElement;
-    const width = parent ? (parent as HTMLElement).clientWidth : 1200;
-    const height = parent ? (parent as HTMLElement).clientHeight : 800;
+    // Get dimensions from container
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
 
-    const canvas = new FabricCanvas(canvasRef.current!, {
+    const canvas = new FabricCanvas(canvasRef.current, {
       width,
       height,
       backgroundColor: "#ffffff",
+      selection: true,
     });
 
-    // Initialize the free drawing brush safely
-    if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = activeColor;
-      canvas.freeDrawingBrush.width = 2;
-    }
+    // Properly initialize the free drawing brush
+    canvas.freeDrawingBrush.color = activeColor;
+    canvas.freeDrawingBrush.width = 2;
+    
+    // Enable drawing mode initially if draw tool is selected
+    canvas.isDrawingMode = activeTool === "draw";
 
     setFabricCanvas(canvas);
     toast("Whiteboard ready!");
@@ -71,11 +72,20 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   useEffect(() => {
     if (!fabricCanvas) return;
 
+    // Set drawing mode and brush properties
     fabricCanvas.isDrawingMode = activeTool === "draw";
     
-    if (activeTool === "draw" && fabricCanvas.freeDrawingBrush) {
+    // Always ensure brush exists and configure it
+    if (fabricCanvas.freeDrawingBrush) {
       fabricCanvas.freeDrawingBrush.color = activeColor;
-      fabricCanvas.freeDrawingBrush.width = 2;
+      fabricCanvas.freeDrawingBrush.width = 3;
+    }
+    
+    // Update cursor based on tool
+    if (activeTool === "draw") {
+      fabricCanvas.setCursor("crosshair");
+    } else {
+      fabricCanvas.setCursor("default");
     }
   }, [activeTool, activeColor, fabricCanvas]);
 
