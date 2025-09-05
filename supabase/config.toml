@@ -2,3 +2,6 @@ project_id = "sckglgjydlbztxjupbsk"
 
 [functions.ai-edit-card]
 verify_jwt = false
+
+[functions.ai-reorganize-cards]
+verify_jwt = false

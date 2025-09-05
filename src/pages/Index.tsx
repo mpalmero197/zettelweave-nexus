@@ -42,6 +42,7 @@ import { StickyNotes } from "@/components/StickyNotes";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -83,6 +84,33 @@ const Index = () => {
   const handleImportCards = (newCards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => {
     newCards.forEach(card => createCard(card));
     toast(`Successfully imported ${newCards.length} cards!`);
+  };
+
+  const handleReorganizeCards = async (fromMethod: OrganizationMethod, toMethod: OrganizationMethod) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-reorganize-cards', {
+        body: {
+          cards,
+          fromMethod,
+          toMethod
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Update each card with the reorganized data
+      const { reorganizedCards } = data;
+      for (const reorganizedCard of reorganizedCards) {
+        await updateCard(reorganizedCard);
+      }
+
+      toast(`Successfully reorganized ${reorganizedCards.length} cards to ${toMethod} system!`);
+    } catch (error) {
+      console.error('Error reorganizing cards:', error);
+      throw error;
+    }
   };
 
   const addRecommendedCards = (recommendedCards: Omit<ZettelCardType, 'id' | 'number' | 'created' | 'linkedCards'>[]) => {
@@ -292,6 +320,8 @@ const Index = () => {
               <OrganizationMethodDialog
                 currentMethod={organizationMethod}
                 onMethodChange={setOrganizationMethod}
+                onReorganizeCards={handleReorganizeCards}
+                cardCount={totalCards}
               />
               
               <Button
