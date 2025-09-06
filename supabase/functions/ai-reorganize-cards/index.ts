@@ -70,8 +70,7 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 4000,
-        temperature: 0.3,
+        max_completion_tokens: 4000,
       }),
     });
 
