@@ -5,8 +5,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ZettelCard } from '@/types/zettel';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Bot, Loader2 } from 'lucide-react';
+import { aiRequestLimiter, sanitizeCardInput } from '@/utils/security';
 
 interface AIEditDialogProps {
   card: ZettelCard;
@@ -19,12 +21,23 @@ export function AIEditDialog({ card, onCardUpdate, trigger }: AIEditDialogProps)
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleAIEdit = async () => {
-    if (!prompt.trim()) {
+    if (!prompt.trim() || !user) {
       toast({
         title: 'Error',
-        description: 'Please enter a prompt for AI editing',
+        description: !user ? 'Authentication required' : 'Please enter a prompt for AI editing',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Rate limiting for AI requests
+    if (!aiRequestLimiter.isAllowed(user.id)) {
+      toast({
+        title: 'Rate Limited',
+        description: 'Please wait before making more AI requests',
         variant: 'destructive'
       });
       return;
@@ -33,28 +46,33 @@ export function AIEditDialog({ card, onCardUpdate, trigger }: AIEditDialogProps)
     setIsProcessing(true);
 
     try {
+      // Sanitize inputs
+      const sanitizedPrompt = sanitizeCardInput(prompt);
+      const sanitizedCard = {
+        title: sanitizeCardInput(card.title),
+        description: sanitizeCardInput(card.description || ''),
+        content: sanitizeCardInput(card.content),
+        category: card.category,
+        tags: card.tags
+      };
+
       const { data, error } = await supabase.functions.invoke('ai-edit-card', {
         body: {
-          card: {
-            title: card.title,
-            description: card.description,
-            content: card.content,
-            category: card.category,
-            tags: card.tags
-          },
-          prompt
+          card: sanitizedCard,
+          prompt: sanitizedPrompt
         }
       });
 
       if (error) throw error;
 
+      // Sanitize AI response
       const updatedCard: ZettelCard = {
         ...card,
-        title: data.title,
-        description: data.description,
-        content: data.content,
-        category: data.category,
-        tags: data.tags,
+        title: sanitizeCardInput(data.title || card.title),
+        description: sanitizeCardInput(data.description || card.description || ''),
+        content: sanitizeCardInput(data.content || card.content),
+        category: data.category || card.category,
+        tags: Array.isArray(data.tags) ? data.tags : card.tags,
         modified: new Date()
       };
 

@@ -39,6 +39,7 @@ import { ScratchPad } from "@/components/ScratchPad";
 import { BulletJournal } from "@/components/BulletJournal";
 import { InfiniteWhiteboard } from "@/components/InfiniteWhiteboard";
 import { StickyNotes } from "@/components/StickyNotes";
+import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
@@ -263,6 +264,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
       <div className="container mx-auto px-4 py-6">
+        <SecurityNotice />
         {/* Header - Mobile First Design */}
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 sm:p-0">
           <div className="flex items-center gap-3">

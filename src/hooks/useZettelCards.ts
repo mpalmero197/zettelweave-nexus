@@ -5,6 +5,7 @@ import { ZettelCard, ORGANIZATION_METHODS } from '@/types/zettel';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { generateZettelNumber, categorizeContent } from '@/utils/deweySystem';
+import { sanitizeCardInput, validateZettelCard, createCardLimiter } from '@/utils/security';
 
 export const useZettelCards = () => {
   const { user } = useAuth();
@@ -49,17 +50,36 @@ export const useZettelCards = () => {
     mutationFn: async (newCard: Omit<ZettelCard, 'id' | 'created' | 'modified'>) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Rate limiting
+      if (!createCardLimiter.isAllowed(user.id)) {
+        throw new Error('Rate limit exceeded. Please wait before creating more cards.');
+      }
+
+      // Validate and sanitize input
+      const validation = validateZettelCard(newCard);
+      if (!validation.valid) {
+        throw new Error(`Invalid card data: ${validation.errors.join(', ')}`);
+      }
+
+      // Sanitize content to prevent XSS
+      const sanitizedCard = {
+        ...newCard,
+        title: sanitizeCardInput(newCard.title),
+        content: sanitizeCardInput(newCard.content),
+        description: sanitizeCardInput(newCard.description || ''),
+      };
+
       // Generate a unique number if not provided
-      let cardNumber = newCard.number;
+      let cardNumber = sanitizedCard.number;
       if (!cardNumber || cardNumber.trim() === '') {
         const existingNumbers = cards.map(c => c.number);
-        cardNumber = generateNumberForMethod(organizationMethod, newCard.category, existingNumbers);
+        cardNumber = generateNumberForMethod(organizationMethod, sanitizedCard.category, existingNumbers);
       }
 
       // Auto-categorize if category is default or empty
-      let category = newCard.category;
+      let category = sanitizedCard.category;
       if (!category || category === '000') {
-        category = categorizeContent(newCard.content, newCard.title);
+        category = categorizeContent(sanitizedCard.content, sanitizedCard.title);
       }
 
       const { data, error } = await supabase
@@ -67,14 +87,14 @@ export const useZettelCards = () => {
         .insert({
           user_id: user.id,
           number: cardNumber,
-          title: newCard.title,
-          description: newCard.description,
-          content: newCard.content,
+          title: sanitizedCard.title,
+          description: sanitizedCard.description,
+          content: sanitizedCard.content,
           category: category,
-          tags: newCard.tags,
-          linked_cards: newCard.linkedCards,
-          image_url: newCard.imageUrl,
-          video_url: newCard.videoUrl
+          tags: sanitizedCard.tags || [],
+          linked_cards: sanitizedCard.linkedCards || [],
+          image_url: sanitizedCard.imageUrl,
+          video_url: sanitizedCard.videoUrl
         })
         .select()
         .single();
@@ -99,17 +119,31 @@ export const useZettelCards = () => {
     mutationFn: async (updatedCard: ZettelCard) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Validate and sanitize input
+      const validation = validateZettelCard(updatedCard);
+      if (!validation.valid) {
+        throw new Error(`Invalid card data: ${validation.errors.join(', ')}`);
+      }
+
+      // Sanitize content to prevent XSS
+      const sanitizedCard = {
+        ...updatedCard,
+        title: sanitizeCardInput(updatedCard.title),
+        content: sanitizeCardInput(updatedCard.content),
+        description: sanitizeCardInput(updatedCard.description || ''),
+      };
+
       const { data, error } = await supabase
         .from('zettel_cards')
         .update({
-          title: updatedCard.title,
-          description: updatedCard.description,
-          content: updatedCard.content,
-          category: updatedCard.category,
-          tags: updatedCard.tags,
-          linked_cards: updatedCard.linkedCards,
-          image_url: updatedCard.imageUrl,
-          video_url: updatedCard.videoUrl
+          title: sanitizedCard.title,
+          description: sanitizedCard.description,
+          content: sanitizedCard.content,
+          category: sanitizedCard.category,
+          tags: sanitizedCard.tags || [],
+          linked_cards: sanitizedCard.linkedCards || [],
+          image_url: sanitizedCard.imageUrl,
+          video_url: sanitizedCard.videoUrl
         })
         .eq('id', updatedCard.id)
         .eq('user_id', user.id)
