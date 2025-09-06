@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ZettelCard } from '@/types/zettel';
+import { ZettelCard, ORGANIZATION_METHODS } from '@/types/zettel';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { generateZettelNumber, categorizeContent } from '@/utils/deweySystem';
 
 export const useZettelCards = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [organizationMethod, setOrganizationMethod] = useState<string>(() => {
+    return localStorage.getItem('zettel-organization-method') || 'dewey';
+  });
 
   const { data: cards = [], isLoading, error } = useQuery({
     queryKey: ['zettel-cards', user?.id],
@@ -45,15 +49,28 @@ export const useZettelCards = () => {
     mutationFn: async (newCard: Omit<ZettelCard, 'id' | 'created' | 'modified'>) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Generate a unique number if not provided
+      let cardNumber = newCard.number;
+      if (!cardNumber || cardNumber.trim() === '') {
+        const existingNumbers = cards.map(c => c.number);
+        cardNumber = generateNumberForMethod(organizationMethod, newCard.category, existingNumbers);
+      }
+
+      // Auto-categorize if category is default or empty
+      let category = newCard.category;
+      if (!category || category === '000') {
+        category = categorizeContent(newCard.content, newCard.title);
+      }
+
       const { data, error } = await supabase
         .from('zettel_cards')
         .insert({
           user_id: user.id,
-          number: newCard.number,
+          number: cardNumber,
           title: newCard.title,
           description: newCard.description,
           content: newCard.content,
-          category: newCard.category,
+          category: category,
           tags: newCard.tags,
           linked_cards: newCard.linkedCards,
           image_url: newCard.imageUrl,
@@ -164,10 +181,50 @@ export const useZettelCards = () => {
     }
   });
 
+  // Helper function to generate numbers based on organization method
+  const generateNumberForMethod = (method: string, category: string, existingNumbers: string[]): string => {
+    switch (method) {
+      case 'dewey':
+        return generateZettelNumber(category, existingNumbers);
+      case 'luhmann':
+        const nextNumber = existingNumbers.length + 1;
+        return nextNumber.toString();
+      case 'folgezettel':
+        const lastNumber = existingNumbers
+          .filter(n => n.includes('.'))
+          .map(n => parseFloat(n))
+          .filter(n => !isNaN(n))
+          .sort((a, b) => b - a)[0] || 0;
+        return (Math.floor(lastNumber) + 1) + '.1';
+      case 'thematic':
+        const themeMap: Record<string, string> = {
+          '000': 'COMP', '100': 'PHIL', '200': 'RELI', '300': 'SOCI',
+          '400': 'LANG', '500': 'SCIE', '600': 'TECH', '700': 'ARTS',
+          '800': 'LITE', '900': 'HIST'
+        };
+        const prefix = themeMap[category] || 'MISC';
+        const themeNumbers = existingNumbers
+          .filter(n => n.startsWith(prefix))
+          .map(n => parseInt(n.split('-')[1]) || 0)
+          .filter(n => !isNaN(n));
+        const nextThemeNumber = themeNumbers.length > 0 ? Math.max(...themeNumbers) + 1 : 1;
+        return `${prefix}-${nextThemeNumber.toString().padStart(3, '0')}`;
+      default:
+        return `${Date.now()}`;
+    }
+  };
+
+  const updateOrganizationMethod = (method: string) => {
+    setOrganizationMethod(method);
+    localStorage.setItem('zettel-organization-method', method);
+  };
+
   return {
     cards,
     isLoading,
     error,
+    organizationMethod,
+    updateOrganizationMethod,
     createCard: createCardMutation.mutate,
     updateCard: updateCardMutation.mutate,
     deleteCard: deleteCardMutation.mutate,
