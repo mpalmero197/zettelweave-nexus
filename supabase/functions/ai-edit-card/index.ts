@@ -55,6 +55,7 @@ User's request: ${prompt}
 Please improve this card according to the user's request and return the result as JSON.`
           }
         ],
+        max_tokens: 1000,
       }),
     });
 

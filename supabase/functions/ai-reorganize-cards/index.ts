@@ -65,12 +65,13 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 4000,
+        max_tokens: 4000,
+        temperature: 0.3,
       }),
     });
 

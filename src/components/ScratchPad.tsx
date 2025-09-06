@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Save, FileText } from "lucide-react";
+import { Plus, Save, FileText, Trash2 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 
@@ -10,9 +10,37 @@ interface ScratchPadProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
+const STORAGE_KEY = "scratchpad:notes:v1";
+
 export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const [content, setContent] = useState("");
   const [savedNotes, setSavedNotes] = useState<{ id: string; content: string; timestamp: Date }[]>([]);
+
+  // Load notes from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsedNotes = JSON.parse(saved);
+        const notesWithDates = parsedNotes.map((note: any) => ({
+          ...note,
+          timestamp: new Date(note.timestamp)
+        }));
+        setSavedNotes(notesWithDates);
+      }
+    } catch (error) {
+      console.error("Failed to load scratch notes:", error);
+    }
+  }, []);
+
+  // Save notes to localStorage whenever notes change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedNotes));
+    } catch (error) {
+      console.error("Failed to save scratch notes:", error);
+    }
+  }, [savedNotes]);
 
   const handleSave = () => {
     if (!content.trim()) return;
@@ -105,15 +133,18 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
                         size="sm"
                         variant="outline"
                         onClick={() => handleCreateCard(note.content)}
+                        title="Convert to Zettel Card"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3 w-3 mr-1" />
+                        Card
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDeleteNote(note.id)}
+                        title="Delete Note"
                       >
-                        ×
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
