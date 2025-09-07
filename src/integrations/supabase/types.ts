@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          created_at: string | null
+          event_details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       zettel_cards: {
         Row: {
           category: string
@@ -94,7 +124,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_audit_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      log_security_event: {
+        Args: {
+          p_event_details?: Json
+          p_event_type: string
+          p_ip_address?: unknown
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
