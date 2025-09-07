@@ -19,18 +19,24 @@ serve(async (req) => {
 
     console.log('AI Edit Request:', { card: card.title, prompt });
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: `You are an AI assistant that helps improve Zettelkasten cards. Given a card and a user's editing request, return an improved version of the card in JSON format.
+    // Retry with exponential backoff for rate limits
+    let retries = 3;
+    let delay = 1000; // Start with 1 second delay
+    let response;
+    
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { 
+              role: 'system', 
+              content: `You are an AI assistant that helps improve Zettelkasten cards. Given a card and a user's editing request, return an improved version of the card in JSON format.
 
 The response must be a valid JSON object with these exact fields:
 - title: string
@@ -40,10 +46,10 @@ The response must be a valid JSON object with these exact fields:
 - tags: array of strings
 
 Keep the essence of the original card while applying the user's requested changes. Be concise but informative.`
-          },
-          { 
-            role: 'user', 
-            content: `Original card:
+            },
+            { 
+              role: 'user', 
+              content: `Original card:
 Title: ${card.title}
 Description: ${card.description || ''}
 Content: ${card.content}
@@ -53,13 +59,27 @@ Tags: ${card.tags.join(', ')}
 User's request: ${prompt}
 
 Please improve this card according to the user's request and return the result as JSON.`
-          }
-        ],
-        max_tokens: 1000,
-      }),
-    });
+            }
+          ],
+          max_tokens: 1000,
+        }),
+      });
 
-    if (!response.ok) {
+      if (response.ok) {
+        break; // Success, exit retry loop
+      }
+
+      if (response.status === 429 && attempt < retries) {
+        console.log(`Rate limited (attempt ${attempt + 1}/${retries + 1}), waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+        continue;
+      }
+
+      if (response.status === 429) {
+        throw new Error('OpenAI API rate limit exceeded. Please wait a few minutes and try again.');
+      }
+
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
