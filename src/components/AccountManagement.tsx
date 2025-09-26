@@ -10,9 +10,10 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { exportCodebase } from '@/utils/codebaseExport';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -33,7 +34,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   
@@ -241,10 +242,32 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     }
   };
 
+  const handleExportBackup = async () => {
+    if (!user?.email) return;
+    
+    setIsLoading(true);
+    try {
+      await exportCodebase(user.email);
+      toast({
+        title: "Backup exported successfully",
+        description: "Your complete codebase has been downloaded as a ZIP file.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export failed",
+        description: error.message || "Failed to export backup",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'appearance', label: 'Appearance', icon: Palette },
+    ...(user?.email === 'mpalmero197@gmail.com' ? [{ id: 'backup', label: 'Backup', icon: Download }] : []),
   ];
 
   return (
@@ -513,6 +536,52 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       </Card>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'backup' && user?.email === 'mpalmero197@gmail.com' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Codebase Backup</h3>
+                  
+                  <Card className="p-6 mb-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-primary/10 rounded-lg">
+                          <Download className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-lg mb-2">Export Complete Codebase</h4>
+                          <p className="text-muted-foreground mb-4">
+                            Download a complete backup of your application including all source code, 
+                            configuration files, and setup instructions. This backup can be deployed 
+                            independently of Lovable.
+                          </p>
+                          
+                          <div className="bg-muted/30 rounded-lg p-4 mb-4">
+                            <h5 className="font-medium mb-2">What's included:</h5>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                              <li>• Complete React TypeScript application</li>
+                              <li>• All components and utilities</li>
+                              <li>• Configuration files (package.json, etc.)</li>
+                              <li>• Setup and deployment instructions</li>
+                              <li>• Environment variable templates</li>
+                            </ul>
+                          </div>
+
+                          <Button
+                            onClick={handleExportBackup}
+                            disabled={isLoading}
+                            className="gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            {isLoading ? 'Generating Backup...' : 'Export Codebase'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 </div>
               </div>
             )}
