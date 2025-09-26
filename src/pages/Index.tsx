@@ -213,69 +213,67 @@ const Index = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <MaterialTabBar value={activeTab} onValueChange={setActiveTab} />
           
-          <div className="mt-4">
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Sidebar */}
-              <div className="lg:w-80 space-y-4">
-                {activeTab === "cards" && (
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-4 space-y-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold text-primary">Knowledge Cards</h2>
-                      <div className="flex items-center space-x-2">
-                        <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
-                        <VaultImportDialog onImportCards={handleImportCards} />
-                      </div>
-                    </div>
-                    
-                    <SearchBar 
-                      cards={cards} 
-                      onSearchResults={setFilteredCards}
-                    />
-                    
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => exportToPDF(filteredCards)}
-                        className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
-                      >
-                        <Download className="h-4 w-4" />
-                        PDF
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => printCards(filteredCards)}
-                        className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
-                      >
-                        <Printer className="h-4 w-4" />
-                        Print
-                      </Button>
-                      <OrganizationMethodDialog
-                        currentMethod={organizationMethod}
-                        onMethodChange={handleReorganizeCards}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowRecommendations(!showRecommendations)}
-                        className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
-                      >
-                        <Lightbulb className="h-4 w-4" />
-                        AI
-                      </Button>
-                      <DeleteAllCardsDialog 
-                        onDeleteAll={deleteAllCards}
-                        isDeleting={isDeletingAll}
-                        cardCount={cards.length}
-                      />
+          <div className="mt-4 w-full">
+            <div className="w-full space-y-4">
+              {/* Sidebar - Mobile: Full width, Desktop: Side panel */}
+              {activeTab === "cards" && (
+                <div className="w-full lg:w-80 lg:fixed lg:left-4 lg:top-20 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-4 space-y-4 shadow-sm z-40">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-primary">Knowledge Cards</h2>
+                    <div className="flex items-center space-x-2">
+                      <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
+                      <VaultImportDialog onImportCards={handleImportCards} />
                     </div>
                   </div>
-                )}
-              </div>
+                  
+                  <SearchBar 
+                    cards={cards} 
+                    onSearchResults={setFilteredCards}
+                  />
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => exportToPDF(filteredCards)}
+                      className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
+                    >
+                      <Download className="h-4 w-4" />
+                      PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => printCards(filteredCards)}
+                      className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Print
+                    </Button>
+                    <OrganizationMethodDialog
+                      currentMethod={organizationMethod}
+                      onMethodChange={handleReorganizeCards}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowRecommendations(!showRecommendations)}
+                      className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
+                    >
+                      <Lightbulb className="h-4 w-4" />
+                      AI
+                    </Button>
+                    <DeleteAllCardsDialog 
+                      onDeleteAll={deleteAllCards}
+                      isDeleting={isDeletingAll}
+                      cardCount={cards.length}
+                    />
+                  </div>
+                </div>
+              )}
 
-              {/* Main Content Area */}
-              <div className="flex-1 min-h-[600px]">
+              {/* Main Content Area - Full width with proper padding for sidebar on desktop */}
+              <div className={`w-full min-h-[600px] ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
@@ -385,7 +383,7 @@ const Index = () => {
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
               {activeTab === "cards" && showRecommendations && (
-                <div className="lg:w-80">
+                <div className="lg:w-80 lg:fixed lg:right-4 lg:top-20 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto z-40">
                   <RecommendationSidebar
                     existingCards={cards}
                     onAddCards={(newCards) => newCards.forEach(card => {
