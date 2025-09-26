@@ -166,10 +166,18 @@ export const MobileWhiteboard = () => {
 
   const drawOnCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.log('drawOnCanvas: Canvas ref not available');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('drawOnCanvas: Could not get 2D context');
+      return;
+    }
+
+    console.log('Drawing on canvas, size:', canvas.width, canvas.height);
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -774,24 +782,36 @@ export const MobileWhiteboard = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.log('Canvas ref not available');
+      return;
+    }
 
     const updateCanvasSize = () => {
       const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        console.log('Canvas has zero dimensions, retrying...');
+        setTimeout(updateCanvasSize, 100);
+        return;
+      }
+      
+      console.log('Setting canvas size:', rect.width, rect.height);
       canvas.width = rect.width * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
       
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        drawOnCanvas(); // Redraw after resizing
       }
     };
 
-    updateCanvasSize();
+    // Initial size setup with delay to ensure DOM is ready
+    setTimeout(updateCanvasSize, 100);
     window.addEventListener('resize', updateCanvasSize);
     
     return () => window.removeEventListener('resize', updateCanvasSize);
-  }, []);
+  }, [drawOnCanvas]);
 
   return (
     <div className="flex flex-col h-full bg-background">

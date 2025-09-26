@@ -39,6 +39,7 @@ import {
   StickyNote
 } from "lucide-react";
 import { ScratchPad } from "@/components/ScratchPad";
+import HabitTracker from "@/components/HabitTracker";
 
 // Lazy load heavy components for better performance
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
@@ -320,6 +321,12 @@ const Index = () => {
                     <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
                       <BulletJournal onCreateCard={handleCreateCard} />
                     </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="habits" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <HabitTracker />
                   </div>
                 </TabsContent>
 
