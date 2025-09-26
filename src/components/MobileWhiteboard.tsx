@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { MousePointer2, Pen, Eraser, Combine, Edit, Move, RotateCcw, Download, Upload, Trash2, Palette, ImageIcon, FileText } from "lucide-react";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { HexColorPicker } from "react-colorful";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
@@ -885,9 +886,18 @@ export const MobileWhiteboard = () => {
             <Button variant="outline" size="sm" onClick={exportCanvas} className="h-8 px-2">
               <Download className="h-3 w-3" />
             </Button>
-            <Button variant="outline" size="sm" onClick={clearCanvas} className="h-8 px-2">
-              <Trash2 className="h-3 w-3" />
-            </Button>
+            <ConfirmDialog
+              trigger={
+                <Button variant="outline" size="sm" className="h-8 px-2 text-destructive">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              }
+              title="Clear Canvas"
+              description="Are you sure you want to clear all drawings? This action cannot be undone."
+              onConfirm={clearCanvas}
+              confirmText="Clear All"
+              variant="destructive"
+            />
           </div>
         </div>
 

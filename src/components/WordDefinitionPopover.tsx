@@ -13,8 +13,8 @@ interface WordDefinitionPopoverProps {
   cards?: any[];
 }
 
-// Enhanced definition lookup with primary card search
-const getMockDefinition = async (word: string, cards: any[] = []): Promise<WordDefinition> => {
+// Real dictionary API lookup with card search fallback
+const getDefinition = async (word: string, cards: any[] = []): Promise<WordDefinition> => {
   // First check if there's a primary card with this title
   const primaryCard = cards.find(card => 
     card.title.toLowerCase() === word.toLowerCase() ||
@@ -31,7 +31,33 @@ const getMockDefinition = async (word: string, cards: any[] = []): Promise<WordD
     };
   }
 
-  // Enhanced dictionary definitions
+  // Try Free Dictionary API first
+  try {
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      const entry = data[0];
+      
+      if (entry && entry.meanings && entry.meanings.length > 0) {
+        const meaning = entry.meanings[0];
+        const definition = meaning.definitions[0];
+        
+        return {
+          word: entry.word,
+          definition: definition.definition,
+          partOfSpeech: meaning.partOfSpeech || "unknown",
+          examples: definition.example ? [definition.example] : [],
+          etymology: entry.origin,
+          phonetic: entry.phonetic
+        };
+      }
+    }
+  } catch (error) {
+    console.log('Dictionary API failed, using fallback');
+  }
+
+  // Fallback to enhanced local definitions
   const definitions: Record<string, WordDefinition> = {
     "halcyon": {
       word: "halcyon",
@@ -67,7 +93,7 @@ const getMockDefinition = async (word: string, cards: any[] = []): Promise<WordD
 
   return definitions[word.toLowerCase()] || {
     word,
-    definition: `Definition for "${word}" - A concept or term that may benefit from further exploration and note-taking.`,
+    definition: `"${word}" - A term that may benefit from further exploration and note-taking in your knowledge system.`,
     partOfSpeech: "unknown",
     examples: []
   };
@@ -82,7 +108,7 @@ export function WordDefinitionPopover({ word, position, onClose, onCreateCard, c
       setLoading(true);
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 300));
-      const def = await getMockDefinition(word, cards);
+      const def = await getDefinition(word, cards);
       setDefinition(def);
       setLoading(false);
     };

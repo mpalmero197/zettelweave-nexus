@@ -415,67 +415,56 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           size={2}
         />
         
-        {/* Mobile-First Enhanced Controls Panel */}
-        <Panel position="top-left" className="space-y-2 p-3 bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-lg max-w-[280px] md:max-w-sm">
-          <div className="flex items-center justify-between">
-            <Button
-              variant={is3D ? "default" : "outline"}
-              size="sm"
-              onClick={() => setIs3D(!is3D)}
-              className="h-9 px-3 flex items-center gap-2"
-              title="Toggle 3D View"
-            >
-              <Box className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs">
-                {is3D ? '3D' : '2D'}
-              </span>
-            </Button>
-            <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-              {filteredCards.length} cards
+        {/* Clean Controls Sidebar */}
+        <Panel position="top-right" className="space-y-3 p-4 bg-card/98 backdrop-blur-md border border-border/50 rounded-2xl shadow-lg min-w-[240px] max-w-[280px]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-foreground">Graph Controls</h3>
+            <Badge variant="secondary" className="text-xs px-2 py-1">
+              {filteredCards.length}
+            </Badge>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search cards..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="h-9 pl-10 text-sm bg-background/60 border-border/40 focus:border-primary/60 transition-all duration-200"
+              />
             </div>
-          </div>
-          
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search cards..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="h-10 pl-10 text-sm bg-background/80 border-border/60 focus:border-primary transition-colors"
-            />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
-              <SelectTrigger className="h-10 text-sm bg-background/80 border-border/60">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
-                <SelectItem value="force">🌊 Force</SelectItem>
-                <SelectItem value="circular">⭕ Circular</SelectItem>
-                <SelectItem value="hierarchical">📊 Hierarchical</SelectItem>
-                <SelectItem value="category">🏷️ Category</SelectItem>
-              </SelectContent>
-            </Select>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetLayout}
-              className="h-10 px-3 bg-background/80 hover:bg-primary/10 transition-colors"
-              title="Reset View"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
+                <SelectTrigger className="h-9 text-sm bg-background/60 border-border/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
+                  <SelectItem value="force">Force</SelectItem>
+                  <SelectItem value="circular">Circular</SelectItem>
+                  <SelectItem value="hierarchical">Hierarchical</SelectItem>
+                  <SelectItem value="category">Category</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetLayout}
+                className="h-9 px-2 bg-background/60 hover:bg-primary/10 transition-colors"
+                title="Reset View"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+            
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-10 text-sm bg-background/80 border-border/60">
+              <SelectTrigger className="h-9 text-sm bg-background/60 border-border/40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
-                <SelectItem value="all">🌟 All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>
                     {getCategoryInfo(cat).name}
@@ -484,38 +473,46 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
               </SelectContent>
             </Select>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCategoryEdges(!showCategoryEdges)}
-              className="h-10 px-3 bg-background/80 hover:bg-primary/10 transition-colors"
-              title={showCategoryEdges ? "Hide Category Links" : "Show Category Links"}
-            >
-              {showCategoryEdges ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            </Button>
-          </div>
+            <div className="flex items-center justify-between">
+              <Button
+                variant={is3D ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIs3D(!is3D)}
+                className="h-9 px-3 flex items-center gap-2"
+                title="Toggle 3D View"
+              >
+                <Box className="h-4 w-4" />
+                {is3D ? '3D' : '2D'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCategoryEdges(!showCategoryEdges)}
+                className={`h-9 px-2 transition-colors ${
+                  showCategoryEdges 
+                    ? 'bg-primary/10 border-primary/30' 
+                    : 'bg-background/60 hover:bg-muted/50'
+                }`}
+                title={showCategoryEdges ? "Hide Connections" : "Show Connections"}
+              >
+                {showCategoryEdges ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+           </div>
           
-        </Panel>
-
-        {/* Mobile-Optimized Stats Panel */}
-        <Panel position="top-right" className="p-3 bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-lg">
-          <div className="text-sm font-medium mb-2 text-primary">📊 Graph Stats</div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-muted/50 rounded-md p-2">
-              <div className="font-medium text-foreground">{nodes.length}</div>
-              <div className="text-muted-foreground">Nodes</div>
-            </div>
-            <div className="bg-muted/50 rounded-md p-2">
-              <div className="font-medium text-foreground">{edges.length}</div>
-              <div className="text-muted-foreground">Edges</div>
-            </div>
-            <div className="bg-primary/10 rounded-md p-2">
-              <div className="font-medium text-primary">{edges.filter(e => e.id.startsWith('direct-')).length}</div>
-              <div className="text-primary/70">Direct</div>
-            </div>
-            <div className="bg-secondary/20 rounded-md p-2">
-              <div className="font-medium text-secondary-foreground">{edges.filter(e => e.id.startsWith('category-')).length}</div>
-              <div className="text-muted-foreground">Category</div>
+          <div className="pt-2 border-t border-border/30">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div className="flex justify-between">
+                <span>Connections:</span>
+                <span>{initialEdges.length}</span>
+              </div>
+              {highlightedNodes.size > 0 && (
+                <div className="flex justify-between text-primary">
+                  <span>Highlighted:</span>
+                  <span>{highlightedNodes.size}</span>
+                </div>
+              )}
             </div>
           </div>
         </Panel>
