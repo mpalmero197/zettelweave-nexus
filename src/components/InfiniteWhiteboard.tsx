@@ -574,3 +574,5 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     </div>
   );
 };
+
+export default InfiniteWhiteboard;

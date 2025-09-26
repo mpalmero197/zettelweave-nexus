@@ -442,6 +442,19 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           </div>
         </div>
       )}
+
+      {/* No cards fallback */}
+      {!filteredCards.length && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center p-6">
+            <div className="p-4 bg-muted/20 rounded-full mb-4 mx-auto w-fit">
+              <Box className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No Data to Visualize</h3>
+            <p className="text-muted-foreground">Create some cards to see your knowledge graph</p>
+          </div>
+        </div>
+      )}
       
       <ReactFlow
         nodes={nodes}

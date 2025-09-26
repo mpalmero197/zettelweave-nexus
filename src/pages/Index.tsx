@@ -48,7 +48,7 @@ import HabitTracker from "@/components/HabitTracker";
 
 // Lazy load heavy components for better performance
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
-const MobileWhiteboard = lazy(() => import("@/components/MobileWhiteboard"));
+const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"));
 const StickyNotesEnhanced = lazy(() => import("@/components/StickyNotesEnhanced"));
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
@@ -338,7 +338,7 @@ const Index = () => {
                 <TabsContent value="whiteboard" className="mt-0">
                   <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
                     <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
-                      <MobileWhiteboard />
+                      <InfiniteWhiteboard onCreateCard={handleCreateCard} />
                     </Suspense>
                   </div>
                 </TabsContent>
