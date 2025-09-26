@@ -156,6 +156,15 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     // Apply theme immediately
     const root = document.documentElement;
     
+    // First reset all custom properties to prevent overrides
+    root.style.removeProperty('--background');
+    root.style.removeProperty('--card');
+    root.style.removeProperty('--primary');
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--foreground');
+    root.style.removeProperty('--muted');
+    root.style.removeProperty('--border');
+    
     switch (theme) {
       case 'light':
         root.classList.remove('dark');
@@ -167,6 +176,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         root.classList.add('dark');
         root.style.setProperty('--background', '0 0% 0%');
         root.style.setProperty('--card', '0 0% 5%');
+        root.style.setProperty('--foreground', '0 0% 98%');
+        root.style.setProperty('--muted', '0 0% 10%');
+        root.style.setProperty('--border', '0 0% 15%');
         break;
       case 'ocean':
         root.classList.add('dark');

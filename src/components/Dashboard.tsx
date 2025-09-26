@@ -171,6 +171,7 @@ export function Dashboard({ onCreateCard }: DashboardProps = {}) {
                 <Button 
                   size="lg" 
                   className="bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  onClick={onCreateCard}
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Quick Create

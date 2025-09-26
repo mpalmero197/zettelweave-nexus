@@ -44,6 +44,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
   const [showCategoryEdges, setShowCategoryEdges] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+  const { fitView } = useReactFlow();
 
   // Get unique categories for filtering
   const categories = useMemo(() => {
@@ -361,7 +362,6 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   // Update nodes and edges when data changes
   useEffect(() => {
