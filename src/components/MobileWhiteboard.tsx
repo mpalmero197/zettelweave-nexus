@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { 
   Pen, 
   Square, 
@@ -17,7 +18,10 @@ import {
   ZoomOut,
   Edit3,
   Check,
-  X
+  X,
+  Image,
+  Combine,
+  Upload
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -26,7 +30,7 @@ interface MobileWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "draw" | "erase" | "select" | "pan" | "edit";
+type Tool = "draw" | "erase" | "select" | "pan" | "edit" | "combine";
 
 interface Point {
   x: number;
@@ -41,9 +45,19 @@ interface Path {
   tool: string;
 }
 
+interface ImageElement {
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface DrawingObject {
   id: string;
   paths: Path[];
+  images: ImageElement[];
   bounds: { x: number; y: number; width: number; height: number };
   position: { x: number; y: number };
   selected: boolean;
@@ -52,6 +66,7 @@ interface DrawingObject {
 
 interface DrawingState {
   objects: DrawingObject[];
+  images: { [key: string]: HTMLImageElement };
   currentPath: Point[];
   currentObject: DrawingObject | null;
   scale: number;
@@ -81,6 +96,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
   
   const [drawingState, setDrawingState] = useState<DrawingState>({
     objects: [],
+    images: {},
     currentPath: [],
     currentObject: null,
     scale: 1,
@@ -96,9 +112,9 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
   // Generate unique ID for objects
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  // Calculate bounding box for paths
-  const calculateBounds = (paths: Path[]) => {
-    if (paths.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+  // Calculate bounding box for paths and images
+  const calculateBounds = (paths: Path[], images: ImageElement[] = []) => {
+    if (paths.length === 0 && images.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
     
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     
@@ -109,6 +125,13 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         maxX = Math.max(maxX, point.x);
         maxY = Math.max(maxY, point.y);
       });
+    });
+
+    images.forEach(img => {
+      minX = Math.min(minX, img.x);
+      minY = Math.min(minY, img.y);
+      maxX = Math.max(maxX, img.x + img.width);
+      maxY = Math.max(maxY, img.y + img.height);
     });
     
     const padding = 10;
@@ -214,7 +237,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       ctx.save();
       ctx.translate(obj.position.x, obj.position.y);
       
-      // Draw object paths
+      // Draw object paths and images
       obj.paths.forEach(path => {
         if (path.points.length < 2) return;
         
@@ -232,6 +255,20 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         }
         
         ctx.stroke();
+      });
+
+      // Draw images
+      obj.images.forEach(imgElement => {
+        const img = drawingState.images[imgElement.id];
+        if (img && img.complete) {
+          ctx.drawImage(
+            img,
+            imgElement.x - obj.bounds.x,
+            imgElement.y - obj.bounds.y,
+            imgElement.width,
+            imgElement.height
+          );
+        }
       });
       
       // Draw selection/edit outline
@@ -334,6 +371,16 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           ...prev,
           objects: prev.objects.map(obj => ({ ...obj, selected: false, editing: false }))
         }));
+      }
+      return;
+    }
+
+    if (activeTool === "combine") {
+      const selectedObjects = drawingState.objects.filter(obj => obj.selected);
+      if (selectedObjects.length >= 2) {
+        combineSelectedObjects();
+      } else {
+        toast("Select at least 2 objects to combine");
       }
       return;
     }
@@ -449,7 +496,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
             // Recalculate bounds for the edited object
             const editedObj = updatedObjects.find(obj => obj.id === prev.currentObject!.id);
             if (editedObj) {
-              const newBounds = calculateBounds(editedObj.paths);
+              const newBounds = calculateBounds(editedObj.paths, editedObj.images);
               const deltaX = newBounds.x - editedObj.bounds.x;
               const deltaY = newBounds.y - editedObj.bounds.y;
               
@@ -482,6 +529,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           const newObject: DrawingObject = {
             id: generateId(),
             paths: [newPath],
+            images: [],
             bounds,
             position: { x: bounds.x, y: bounds.y },
             selected: false,
@@ -503,6 +551,109 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         }));
       }
     }
+  };
+
+  const combineSelectedObjects = () => {
+    const selectedObjects = drawingState.objects.filter(obj => obj.selected);
+    if (selectedObjects.length < 2) return;
+
+    // Combine all paths and images
+    const allPaths: Path[] = [];
+    const allImages: ImageElement[] = [];
+
+    selectedObjects.forEach(obj => {
+      // Adjust paths to global coordinates
+      const adjustedPaths = obj.paths.map(path => ({
+        ...path,
+        points: path.points.map(point => ({
+          ...point,
+          x: point.x + obj.position.x - obj.bounds.x,
+          y: point.y + obj.position.y - obj.bounds.y
+        }))
+      }));
+      
+      // Adjust images to global coordinates
+      const adjustedImages = obj.images.map(img => ({
+        ...img,
+        x: img.x + obj.position.x - obj.bounds.x,
+        y: img.y + obj.position.y - obj.bounds.y
+      }));
+
+      allPaths.push(...adjustedPaths);
+      allImages.push(...adjustedImages);
+    });
+
+    // Create combined object
+    const bounds = calculateBounds(allPaths, allImages);
+    const combinedObject: DrawingObject = {
+      id: generateId(),
+      paths: allPaths,
+      images: allImages,
+      bounds,
+      position: { x: bounds.x, y: bounds.y },
+      selected: true,
+      editing: false
+    };
+
+    setDrawingState(prev => ({
+      ...prev,
+      objects: [
+        ...prev.objects.filter(obj => !obj.selected),
+        combinedObject
+      ]
+    }));
+
+    saveToHistory();
+    toast("Objects combined successfully!");
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast("Please select an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const imgId = generateId();
+        const imgElement: ImageElement = {
+          id: imgId,
+          src: e.target?.result as string,
+          x: 100,
+          y: 100,
+          width: Math.min(img.width, 300),
+          height: Math.min(img.height, 300)
+        };
+
+        // Create new object with image
+        const bounds = calculateBounds([], [imgElement]);
+        const newObject: DrawingObject = {
+          id: generateId(),
+          paths: [],
+          images: [imgElement],
+          bounds,
+          position: { x: bounds.x, y: bounds.y },
+          selected: true,
+          editing: false
+        };
+
+        setDrawingState(prev => ({
+          ...prev,
+          objects: [...prev.objects, newObject],
+          images: { ...prev.images, [imgId]: img }
+        }));
+
+        saveToHistory();
+        toast("Image added to whiteboard!");
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const finishEditing = () => {
@@ -539,6 +690,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     setDrawingState(prev => ({
       ...prev,
       objects: [],
+      images: {},
       currentPath: [],
       currentObject: null
     }));
@@ -613,6 +765,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     { tool: "erase" as const, label: "Erase", icon: Trash2 },
     { tool: "select" as const, label: "Select", icon: Move },
     { tool: "edit" as const, label: "Edit", icon: Edit3 },
+    { tool: "combine" as const, label: "Combine", icon: Combine },
     { tool: "pan" as const, label: "Pan", icon: Square },
   ];
 
@@ -733,6 +886,23 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           </div>
 
           <div className="flex gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+              id="image-upload"
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => document.getElementById('image-upload')?.click()}
+              className="flex-1"
+              disabled={isEditing}
+            >
+              <Image className="h-4 w-4 mr-1" />
+              Add Image
+            </Button>
             <Button variant="outline" size="sm" onClick={handleCreateCard} className="flex-1" disabled={isEditing}>
               <Plus className="h-4 w-4 mr-1" />
               Create Card
@@ -770,8 +940,8 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Draw to create objects. Use Select to move them. Use Edit to modify existing objects.</p>
-            <p>In Edit mode, draw to add to the object, then click the check mark to finish.</p>
+            <p>Draw to create objects. Select multiple and use Combine to merge them.</p>
+            <p>Use Add Image to import pictures. Use Edit to modify existing objects.</p>
           </div>
         </CardContent>
       </Card>

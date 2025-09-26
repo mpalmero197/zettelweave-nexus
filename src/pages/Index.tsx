@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
-import { ImportDialog } from "@/components/ImportDialog";
+import { VaultImportDialog } from "@/components/VaultImportDialog";
 import { GraphView } from "@/components/GraphView";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
@@ -429,7 +429,7 @@ const Index = () => {
 
                 <div className="flex gap-2">
                   <CreateCardDialog existingCards={cards} onCreateCard={handleCreateCard} />
-                  <ImportDialog existingCards={cards} onImportCards={handleImportCards} />
+                  <VaultImportDialog onImportCards={handleImportCards} />
                 </div>
               </div>
 
