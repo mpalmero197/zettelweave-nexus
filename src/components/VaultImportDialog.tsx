@@ -229,7 +229,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         <DialogHeader>
           <DialogTitle>Import Knowledge Vault</DialogTitle>
           <DialogDescription>
-            Import your entire Obsidian vault or Notion export into ZettelWeave
+            Import your entire Obsidian vault or Notion export into PendragonX
           </DialogDescription>
         </DialogHeader>
         

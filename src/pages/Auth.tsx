@@ -114,7 +114,7 @@ export default function Auth() {
           <div className="flex items-center justify-center gap-2">
             <Brain className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              ZettelWeave
+              PendragonX
             </h1>
           </div>
           <p className="text-muted-foreground">

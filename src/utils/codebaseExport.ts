@@ -267,7 +267,7 @@ const getCoreFiles = (): FileEntry[] => [
   // README
   {
     path: 'README.md',
-    content: `# ZettelWeave Nexus - Complete Zettelkasten Knowledge System
+    content: `# PendragonX - Advanced Knowledge Management System
 
 A comprehensive, production-ready knowledge management system built with React, TypeScript, and Supabase.
 
@@ -535,7 +535,7 @@ export const exportCodebase = async (userEmail: string): Promise<void> => {
     // Generate and download zip
     const blob = await zip.generateAsync({ type: 'blob' });
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    saveAs(blob, `zettelweave-nexus-complete-${timestamp}.zip`);
+    saveAs(blob, `pendragonx-complete-${timestamp}.zip`);
     
     console.log('Codebase export completed successfully');
     

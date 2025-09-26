@@ -20,6 +20,15 @@ interface ZettelCardProps {
 export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpdate, className }: ZettelCardProps) {
   const categoryInfo = getCategoryInfo(card.category);
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent click when clicking on buttons or interactive elements
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    // Trigger the onEdit callback to open the card viewer
+    onEdit?.(card);
+  };
+
   const handleWordHover = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'SPAN' && target.dataset.word) {
@@ -49,10 +58,11 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
   return (
     <Card
       data-card-id={card.id}
+      onClick={handleCardClick}
       className={cn(
-        "group rounded-xl bg-card shadow-card hover:shadow-hover transition-shadow animate-fade-in",
+        "group rounded-xl bg-card shadow-card hover:shadow-hover transition-all duration-200 animate-fade-in cursor-pointer",
         "border border-border/60 dark:border-border/50",
-        "hover-scale",
+        "hover:scale-[1.02] hover:shadow-glow",
         className
       )}
       style={{

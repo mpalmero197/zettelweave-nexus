@@ -5,7 +5,8 @@ import { SearchBar } from "@/components/SearchBar";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
 import { VaultImportDialog } from "@/components/VaultImportDialog";
-import { GraphView } from "@/components/GraphView";
+import { GraphView } from "@/components/GraphViewNew";
+import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
@@ -67,10 +68,11 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>(() => {
-    const stored = localStorage.getItem('zettelweave-organization-method');
+    const stored = localStorage.getItem('pendragonx-organization-method');
     return (stored as OrganizationMethod) || "dewey";
   });
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
+  const [viewingCard, setViewingCard] = useState<ZettelCardType | null>(null);
   const [showAccountManagement, setShowAccountManagement] = useState(false);
 
   useEffect(() => {
@@ -80,7 +82,7 @@ const Index = () => {
   }, [cards, filteredCards]);
 
   useEffect(() => {
-    localStorage.setItem('zettelweave-organization-method', organizationMethod);
+    localStorage.setItem('pendragonx-organization-method', organizationMethod);
   }, [organizationMethod]);
 
   const handleCreateCard = (newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => {
@@ -164,8 +166,8 @@ const Index = () => {
                 <Brain className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">ZettelWeave</h1>
-                <p className="text-xs text-muted-foreground">Neural Knowledge System</p>
+                <h1 className="text-lg font-bold text-foreground">PendragonX</h1>
+                <p className="text-xs text-muted-foreground">Advanced Knowledge System</p>
               </div>
             </div>
             
@@ -314,7 +316,7 @@ const Index = () => {
                           <ZettelCard
                             key={card.id}
                             card={card}
-                            onEdit={setEditingCard}
+                            onEdit={setViewingCard}
                             onDelete={handleDeleteCard}
                             onWordHover={handleWordHover}
                           />
@@ -328,9 +330,7 @@ const Index = () => {
                   <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
                     <GraphView 
                       cards={filteredCards} 
-                      onCardSelect={(card) => {
-                        setEditingCard(card);
-                      }}
+                      onCardSelect={setViewingCard}
                       className="h-[550px]"
                     />
                   </div>
@@ -402,6 +402,15 @@ const Index = () => {
       {showAccountManagement && (
         <AccountManagement onClose={() => setShowAccountManagement(false)} />
       )}
+
+      <CardViewer
+        card={viewingCard}
+        isOpen={!!viewingCard}
+        onClose={() => setViewingCard(null)}
+        onEdit={setEditingCard}
+        onUpdate={handleUpdateCard}
+        onDelete={handleDeleteCard}
+      />
 
       {editingCard && (
         <EditCardDialog
