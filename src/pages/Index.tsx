@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { ScratchPad } from "@/components/ScratchPad";
 import { BulletJournal } from "@/components/BulletJournal";
-import { InfiniteWhiteboard } from "@/components/InfiniteWhiteboard";
+import { MobileWhiteboard } from "@/components/MobileWhiteboard";
 import { StickyNotesEnhanced } from "@/components/StickyNotesEnhanced";
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
@@ -537,7 +537,7 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="whiteboard">
-                <InfiniteWhiteboard onCreateCard={handleCreateCard} />
+                <MobileWhiteboard onCreateCard={handleCreateCard} />
               </TabsContent>
 
               <TabsContent value="sticky">
