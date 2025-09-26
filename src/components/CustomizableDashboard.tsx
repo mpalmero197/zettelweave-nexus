@@ -34,13 +34,10 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
   const renderWidget = (widget: DashboardWidget) => {
     if (!widget.isVisible) return null;
 
-    const commonProps = {
-      key: widget.id,
-      style: {
-        gridColumn: `span ${widget.position.w}`,
-        gridRow: `span ${widget.position.h}`,
-        minHeight: `${widget.position.h * 120}px`
-      }
+    const widgetStyle = {
+      gridColumn: `span ${widget.position.w}`,
+      gridRow: `span ${widget.position.h}`,
+      minHeight: `${widget.position.h * 120}px`
     };
 
     const handleRemoveWidget = (e: React.MouseEvent) => {
@@ -182,7 +179,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
     })();
 
     return (
-      <div {...commonProps} className="relative group">
+      <div key={widget.id} style={widgetStyle} className="relative group">
         {/* Widget Controls */}
         <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
           <Button
@@ -219,19 +216,19 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
   const visibleWidgets = widgets.filter(w => w.isVisible);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="w-full max-w-none p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Header with customization */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">Customize your workspace to fit your workflow</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Customize your workspace to fit your workflow</p>
           </div>
           <DashboardCustomizer />
         </div>
 
         {/* Responsive grid layout */}
-        <div className="grid grid-cols-12 gap-6 auto-rows-min">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 sm:gap-6 auto-rows-min">
           {visibleWidgets
             .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
             .map(renderWidget)}
