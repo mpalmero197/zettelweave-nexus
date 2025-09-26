@@ -57,8 +57,8 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
           case 'category':
             return card.category.includes(query) || card.number.includes(query);
           case 'date':
-            return card.created.toLocaleDateString().includes(query) ||
-                   card.modified.toLocaleDateString().includes(query);
+            return new Date(card.created).toLocaleDateString().includes(query) ||
+                   new Date(card.modified).toLocaleDateString().includes(query);
           default:
             return false;
         }

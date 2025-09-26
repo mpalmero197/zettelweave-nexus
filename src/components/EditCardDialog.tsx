@@ -57,7 +57,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
       tags: formData.tags,
       number: formData.number,
       linkedCards: formData.linkedCards,
-      modified: new Date()
+      modified: new Date().toISOString()
     };
     onSave(updatedCard);
     onClose();

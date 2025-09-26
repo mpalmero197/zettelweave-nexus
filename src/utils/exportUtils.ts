@@ -77,7 +77,7 @@ export const exportToPDF = (cards: ZettelCard[], title: string = "Zettel Cards")
       yPosition += lineHeight / 2;
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Created: ${card.created.toLocaleDateString()} | Modified: ${card.modified.toLocaleDateString()}`, margin, yPosition);
+      doc.text(`Created: ${new Date(card.created).toLocaleDateString()} | Modified: ${new Date(card.modified).toLocaleDateString()}`, margin, yPosition);
       yPosition += lineHeight * 2;
 
       // Separator line
@@ -138,8 +138,8 @@ export const exportToMarkdown = (cards: ZettelCard[], filename: string = "zettel
         markdown += `**Linked Cards:** ${card.linkedCards.join(', ')}\n\n`;
       }
       
-      markdown += `**Created:** ${card.created.toLocaleDateString()}\n\n`;
-      markdown += `**Modified:** ${card.modified.toLocaleDateString()}\n\n`;
+      markdown += `**Created:** ${new Date(card.created).toLocaleDateString()}\n\n`;
+      markdown += `**Modified:** ${new Date(card.modified).toLocaleDateString()}\n\n`;
       
       if (index < cards.length - 1) {
         markdown += `---\n\n`;
@@ -188,8 +188,8 @@ export const exportToTXT = (cards: ZettelCard[], filename: string = "zettel_card
         text += `Linked Cards: ${card.linkedCards.join(', ')}\n\n`;
       }
       
-      text += `Created: ${card.created.toLocaleDateString()}\n`;
-      text += `Modified: ${card.modified.toLocaleDateString()}\n\n`;
+      text += `Created: ${new Date(card.created).toLocaleDateString()}\n`;
+      text += `Modified: ${new Date(card.modified).toLocaleDateString()}\n\n`;
     });
 
     const dataBlob = new Blob([text], { type: 'text/plain' });
@@ -280,8 +280,8 @@ export const printCards = (cards: ZettelCard[]) => {
                 `<div class="card-meta">Linked Cards: ${card.linkedCards.join(', ')}</div>` : ''
               }
               <div class="card-footer">
-                Created: ${card.created.toLocaleDateString()} | 
-                Modified: ${card.modified.toLocaleDateString()}
+                Created: ${new Date(card.created).toLocaleDateString()} | 
+                Modified: ${new Date(card.modified).toLocaleDateString()}
               </div>
             </div>
           `).join('')}

@@ -192,7 +192,7 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
         content: rec.content,
         category: rec.category,
         tags: rec.tags,
-        modified: new Date(),
+        modified: new Date().toISOString(),
         author: "AI Recommendation"
       }));
 

@@ -39,8 +39,8 @@ export const useZettelCards = () => {
         linkedCards: card.linked_cards || [],
         imageUrl: card.image_url,
         videoUrl: card.video_url,
-        created: new Date(card.created_at),
-        modified: new Date(card.updated_at)
+        created: card.created_at,
+        modified: card.updated_at
       })) as ZettelCard[];
     },
     enabled: !!user,

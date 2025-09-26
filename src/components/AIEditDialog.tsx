@@ -73,7 +73,7 @@ export function AIEditDialog({ card, onCardUpdate, trigger }: AIEditDialogProps)
         content: sanitizeCardInput(data.content || card.content),
         category: data.category || card.category,
         tags: Array.isArray(data.tags) ? data.tags : card.tags,
-        modified: new Date()
+        modified: new Date().toISOString()
       };
 
       onCardUpdate(updatedCard);
