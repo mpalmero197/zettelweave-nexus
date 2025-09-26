@@ -14,7 +14,10 @@ import {
   Undo,
   Redo,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Edit3,
+  Check,
+  X
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -23,15 +26,7 @@ interface MobileWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "draw" | "erase" | "select" | "pan";
-
-interface DrawingState {
-  paths: Path[];
-  currentPath: Point[];
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-}
+type Tool = "draw" | "erase" | "select" | "pan" | "edit";
 
 interface Point {
   x: number;
@@ -44,6 +39,24 @@ interface Path {
   color: string;
   width: number;
   tool: string;
+}
+
+interface DrawingObject {
+  id: string;
+  paths: Path[];
+  bounds: { x: number; y: number; width: number; height: number };
+  position: { x: number; y: number };
+  selected: boolean;
+  editing: boolean;
+}
+
+interface DrawingState {
+  objects: DrawingObject[];
+  currentPath: Point[];
+  currentObject: DrawingObject | null;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 const colors = [
@@ -63,10 +76,13 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
   const [brushSize, setBrushSize] = useState(4);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<Point | null>(null);
   
   const [drawingState, setDrawingState] = useState<DrawingState>({
-    paths: [],
+    objects: [],
     currentPath: [],
+    currentObject: null,
     scale: 1,
     offsetX: 0,
     offsetY: 0
@@ -75,7 +91,49 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
   const [history, setHistory] = useState<DrawingState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  const STORAGE_KEY = "mobile-whiteboard:state:v1";
+  const STORAGE_KEY = "mobile-whiteboard:state:v2";
+
+  // Generate unique ID for objects
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  // Calculate bounding box for paths
+  const calculateBounds = (paths: Path[]) => {
+    if (paths.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    paths.forEach(path => {
+      path.points.forEach(point => {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      });
+    });
+    
+    const padding = 10;
+    return {
+      x: minX - padding,
+      y: minY - padding,
+      width: maxX - minX + padding * 2,
+      height: maxY - minY + padding * 2
+    };
+  };
+
+  // Check if point is inside object bounds
+  const isPointInObject = (point: Point, obj: DrawingObject): boolean => {
+    const bounds = {
+      x: obj.position.x,
+      y: obj.position.y,
+      width: obj.bounds.width,
+      height: obj.bounds.height
+    };
+    
+    return point.x >= bounds.x && 
+           point.x <= bounds.x + bounds.width &&
+           point.y >= bounds.y && 
+           point.y <= bounds.y + bounds.height;
+  };
 
   // Initialize canvas
   useEffect(() => {
@@ -88,7 +146,6 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
 
     ctxRef.current = ctx;
 
-    // Set canvas size
     const updateCanvasSize = () => {
       const rect = container.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
@@ -135,8 +192,8 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
   const saveToHistory = useCallback(() => {
     setHistory(prev => {
       const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push({ ...drawingState });
-      return newHistory.slice(-20); // Keep last 20 states
+      newHistory.push(JSON.parse(JSON.stringify(drawingState)));
+      return newHistory.slice(-20);
     });
     setHistoryIndex(prev => Math.min(prev + 1, 19));
   }, [drawingState, historyIndex]);
@@ -152,26 +209,54 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     ctx.translate(drawingState.offsetX, drawingState.offsetY);
     ctx.scale(drawingState.scale, drawingState.scale);
 
-    // Draw all paths
-    drawingState.paths.forEach(path => {
-      if (path.points.length < 2) return;
+    // Draw all objects
+    drawingState.objects.forEach(obj => {
+      ctx.save();
+      ctx.translate(obj.position.x, obj.position.y);
       
-      ctx.strokeStyle = path.color;
-      ctx.lineWidth = path.width;
-      ctx.globalCompositeOperation = path.tool === 'erase' ? 'destination-out' : 'source-over';
+      // Draw object paths
+      obj.paths.forEach(path => {
+        if (path.points.length < 2) return;
+        
+        ctx.strokeStyle = path.color;
+        ctx.lineWidth = path.width;
+        ctx.globalCompositeOperation = path.tool === 'erase' ? 'destination-out' : 'source-over';
+        
+        ctx.beginPath();
+        const firstPoint = path.points[0];
+        ctx.moveTo(firstPoint.x - obj.bounds.x, firstPoint.y - obj.bounds.y);
+        
+        for (let i = 1; i < path.points.length; i++) {
+          const point = path.points[i];
+          ctx.lineTo(point.x - obj.bounds.x, point.y - obj.bounds.y);
+        }
+        
+        ctx.stroke();
+      });
       
-      ctx.beginPath();
-      ctx.moveTo(path.points[0].x, path.points[0].y);
-      
-      for (let i = 1; i < path.points.length; i++) {
-        const point = path.points[i];
-        ctx.lineTo(point.x, point.y);
+      // Draw selection/edit outline
+      if (obj.selected || obj.editing) {
+        ctx.strokeStyle = obj.editing ? "#00ff00" : "#0066ff";
+        ctx.lineWidth = 2 / drawingState.scale;
+        ctx.setLineDash([5, 5]);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeRect(0, 0, obj.bounds.width, obj.bounds.height);
+        ctx.setLineDash([]);
+        
+        // Draw edit indicator
+        if (obj.editing) {
+          ctx.fillStyle = "#00ff00";
+          ctx.fillRect(obj.bounds.width - 15, -15, 15, 15);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "10px Arial";
+          ctx.fillText("✓", obj.bounds.width - 12, -5);
+        }
       }
       
-      ctx.stroke();
+      ctx.restore();
     });
 
-    // Draw current path
+    // Draw current path while drawing
     if (drawingState.currentPath.length > 1) {
       ctx.strokeStyle = activeColor;
       ctx.lineWidth = brushSize;
@@ -220,35 +305,105 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
 
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     e.preventDefault();
+    const point = getEventPoint(e);
     
     if (activeTool === "pan" || ('touches' in e && e.touches.length === 2)) {
       setIsPanning(true);
       return;
     }
 
+    if (activeTool === "select") {
+      // Check if clicking on an object
+      const clickedObject = drawingState.objects.find(obj => isPointInObject(point, obj));
+      
+      if (clickedObject) {
+        // Select object and start dragging
+        setDrawingState(prev => ({
+          ...prev,
+          objects: prev.objects.map(obj => ({
+            ...obj,
+            selected: obj.id === clickedObject.id,
+            editing: false
+          }))
+        }));
+        setIsDragging(true);
+        setDragStart(point);
+      } else {
+        // Deselect all objects
+        setDrawingState(prev => ({
+          ...prev,
+          objects: prev.objects.map(obj => ({ ...obj, selected: false, editing: false }))
+        }));
+      }
+      return;
+    }
+
+    if (activeTool === "edit") {
+      const clickedObject = drawingState.objects.find(obj => isPointInObject(point, obj));
+      
+      if (clickedObject) {
+        // Enter edit mode
+        setDrawingState(prev => ({
+          ...prev,
+          objects: prev.objects.map(obj => ({
+            ...obj,
+            selected: false,
+            editing: obj.id === clickedObject.id
+          })),
+          currentObject: clickedObject
+        }));
+        setActiveTool("draw");
+        toast("Edit mode: Draw to modify object. Click check to finish.");
+      }
+      return;
+    }
+
     if (activeTool === "draw" || activeTool === "erase") {
       setIsDrawing(true);
-      const point = getEventPoint(e);
-      setDrawingState(prev => ({
-        ...prev,
-        currentPath: [point]
-      }));
+      
+      // Check if drawing in edit mode
+      if (drawingState.currentObject && drawingState.currentObject.editing) {
+        setDrawingState(prev => ({
+          ...prev,
+          currentPath: [point]
+        }));
+      } else {
+        setDrawingState(prev => ({
+          ...prev,
+          currentPath: [point]
+        }));
+      }
     }
   };
 
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
     e.preventDefault();
+    const point = getEventPoint(e);
 
     if (isPanning && 'touches' in e && e.touches.length === 2) {
       // Handle pinch zoom
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      // Implement pinch zoom logic here
+      return;
+    }
+
+    if (isDragging && dragStart) {
+      // Move selected object
+      const deltaX = point.x - dragStart.x;
+      const deltaY = point.y - dragStart.y;
+      
+      setDrawingState(prev => ({
+        ...prev,
+        objects: prev.objects.map(obj => 
+          obj.selected 
+            ? { ...obj, position: { x: obj.position.x + deltaX, y: obj.position.y + deltaY } }
+            : obj
+        )
+      }));
+      
+      setDragStart(point);
       return;
     }
 
     if (isDrawing && (activeTool === "draw" || activeTool === "erase")) {
-      const point = getEventPoint(e);
       setDrawingState(prev => ({
         ...prev,
         currentPath: [...prev.currentPath, point]
@@ -264,6 +419,13 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       return;
     }
 
+    if (isDragging) {
+      setIsDragging(false);
+      setDragStart(null);
+      saveToHistory();
+      return;
+    }
+
     if (isDrawing) {
       setIsDrawing(false);
       
@@ -275,11 +437,63 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           tool: activeTool
         };
 
-        setDrawingState(prev => ({
-          ...prev,
-          paths: [...prev.paths, newPath],
-          currentPath: []
-        }));
+        if (drawingState.currentObject && drawingState.currentObject.editing) {
+          // Add path to existing object being edited
+          setDrawingState(prev => {
+            const updatedObjects = prev.objects.map(obj => 
+              obj.id === prev.currentObject!.id 
+                ? { ...obj, paths: [...obj.paths, newPath] }
+                : obj
+            );
+            
+            // Recalculate bounds for the edited object
+            const editedObj = updatedObjects.find(obj => obj.id === prev.currentObject!.id);
+            if (editedObj) {
+              const newBounds = calculateBounds(editedObj.paths);
+              const deltaX = newBounds.x - editedObj.bounds.x;
+              const deltaY = newBounds.y - editedObj.bounds.y;
+              
+              editedObj.bounds = newBounds;
+              editedObj.position = {
+                x: editedObj.position.x + deltaX,
+                y: editedObj.position.y + deltaY
+              };
+              
+              // Adjust all path points relative to new bounds
+              editedObj.paths = editedObj.paths.map(path => ({
+                ...path,
+                points: path.points.map(point => ({
+                  ...point,
+                  x: point.x - deltaX,
+                  y: point.y - deltaY
+                }))
+              }));
+            }
+            
+            return {
+              ...prev,
+              objects: updatedObjects,
+              currentPath: []
+            };
+          });
+        } else {
+          // Create new object
+          const bounds = calculateBounds([newPath]);
+          const newObject: DrawingObject = {
+            id: generateId(),
+            paths: [newPath],
+            bounds,
+            position: { x: bounds.x, y: bounds.y },
+            selected: false,
+            editing: false
+          };
+
+          setDrawingState(prev => ({
+            ...prev,
+            objects: [...prev.objects, newObject],
+            currentPath: []
+          }));
+        }
 
         saveToHistory();
       } else {
@@ -291,11 +505,42 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     }
   };
 
+  const finishEditing = () => {
+    setDrawingState(prev => ({
+      ...prev,
+      objects: prev.objects.map(obj => ({ ...obj, editing: false })),
+      currentObject: null
+    }));
+    setActiveTool("select");
+    saveToHistory();
+    toast("Edit complete!");
+  };
+
+  const cancelEditing = () => {
+    setDrawingState(prev => ({
+      ...prev,
+      objects: prev.objects.map(obj => ({ ...obj, editing: false })),
+      currentObject: null
+    }));
+    setActiveTool("select");
+    toast("Edit cancelled");
+  };
+
+  const deleteSelected = () => {
+    setDrawingState(prev => ({
+      ...prev,
+      objects: prev.objects.filter(obj => !obj.selected)
+    }));
+    saveToHistory();
+    toast("Object deleted");
+  };
+
   const handleClear = () => {
     setDrawingState(prev => ({
       ...prev,
-      paths: [],
-      currentPath: []
+      objects: [],
+      currentPath: [],
+      currentObject: null
     }));
     saveToHistory();
     toast("Whiteboard cleared!");
@@ -366,8 +611,13 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
   const tools = [
     { tool: "draw" as const, label: "Draw", icon: Pen },
     { tool: "erase" as const, label: "Erase", icon: Trash2 },
-    { tool: "pan" as const, label: "Pan", icon: Move },
+    { tool: "select" as const, label: "Select", icon: Move },
+    { tool: "edit" as const, label: "Edit", icon: Edit3 },
+    { tool: "pan" as const, label: "Pan", icon: Square },
   ];
+
+  const isEditing = drawingState.objects.some(obj => obj.editing);
+  const hasSelected = drawingState.objects.some(obj => obj.selected);
 
   return (
     <div className="space-y-4">
@@ -376,6 +626,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           <CardTitle className="flex items-center gap-2 text-lg">
             <Palette className="h-5 w-5" />
             Mobile Whiteboard
+            {isEditing && <span className="text-sm text-green-600">(Editing)</span>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -388,12 +639,37 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
                 size="sm"
                 onClick={() => setActiveTool(tool)}
                 className="flex-shrink-0"
+                disabled={isEditing && tool !== "draw" && tool !== "erase"}
               >
                 <Icon className="h-4 w-4 mr-1" />
                 {label}
               </Button>
             ))}
           </div>
+
+          {/* Edit Mode Controls */}
+          {isEditing && (
+            <div className="flex gap-2 p-2 bg-green-50 rounded-lg">
+              <Button size="sm" onClick={finishEditing} className="flex-1">
+                <Check className="h-4 w-4 mr-1" />
+                Finish Edit
+              </Button>
+              <Button variant="outline" size="sm" onClick={cancelEditing}>
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+            </div>
+          )}
+
+          {/* Selection Controls */}
+          {hasSelected && !isEditing && (
+            <div className="flex gap-2 p-2 bg-blue-50 rounded-lg">
+              <Button variant="destructive" size="sm" onClick={deleteSelected}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Selected
+              </Button>
+            </div>
+          )}
 
           {/* Colors */}
           <div className="space-y-2">
@@ -407,6 +683,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
                   }`}
                   style={{ backgroundColor: color }}
                   onClick={() => setActiveColor(color)}
+                  disabled={isEditing && activeTool !== "draw" && activeTool !== "erase"}
                 />
               ))}
             </div>
@@ -423,6 +700,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
                   size="sm"
                   onClick={() => setBrushSize(size)}
                   className="min-w-12"
+                  disabled={isEditing && activeTool !== "draw" && activeTool !== "erase"}
                 >
                   {size}px
                 </Button>
@@ -432,34 +710,34 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
 
           {/* Action Buttons */}
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={handleUndo}>
+            <Button variant="outline" size="sm" onClick={handleUndo} disabled={isEditing}>
               <Undo className="h-4 w-4 mr-1" />
               Undo
             </Button>
-            <Button variant="outline" size="sm" onClick={handleRedo}>
+            <Button variant="outline" size="sm" onClick={handleRedo} disabled={isEditing}>
               <Redo className="h-4 w-4 mr-1" />
               Redo
             </Button>
-            <Button variant="outline" size="sm" onClick={handleZoomIn}>
+            <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={isEditing}>
               <ZoomIn className="h-4 w-4 mr-1" />
               Zoom+
             </Button>
-            <Button variant="outline" size="sm" onClick={handleZoomOut}>
+            <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={isEditing}>
               <ZoomOut className="h-4 w-4 mr-1" />
               Zoom-
             </Button>
-            <Button variant="outline" size="sm" onClick={handleClear}>
+            <Button variant="outline" size="sm" onClick={handleClear} disabled={isEditing}>
               <Trash2 className="h-4 w-4 mr-1" />
               Clear
             </Button>
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleCreateCard} className="flex-1">
+            <Button variant="outline" size="sm" onClick={handleCreateCard} className="flex-1" disabled={isEditing}>
               <Plus className="h-4 w-4 mr-1" />
               Create Card
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} className="flex-1">
+            <Button variant="outline" size="sm" onClick={handleExport} className="flex-1" disabled={isEditing}>
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
@@ -473,7 +751,7 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           >
             <canvas
               ref={canvasRef}
-              className="w-full h-full cursor-crosshair"
+              className="w-full h-full"
               onTouchStart={handleStart}
               onTouchMove={handleMove}
               onTouchEnd={handleEnd}
@@ -481,13 +759,19 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
               onMouseMove={handleMove}
               onMouseUp={handleEnd}
               onMouseLeave={handleEnd}
-              style={{ touchAction: 'none' }}
+              style={{ 
+                touchAction: 'none',
+                cursor: activeTool === "draw" ? "crosshair" : 
+                       activeTool === "erase" ? "grab" :
+                       activeTool === "select" ? "pointer" :
+                       activeTool === "edit" ? "pointer" : "move"
+              }}
             />
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Touch to draw, pinch to zoom, use pan tool to move around.</p>
-            <p>All changes are automatically saved locally.</p>
+            <p>Draw to create objects. Use Select to move them. Use Edit to modify existing objects.</p>
+            <p>In Edit mode, draw to add to the object, then click the check mark to finish.</p>
           </div>
         </CardContent>
       </Card>
