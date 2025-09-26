@@ -52,19 +52,22 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       height,
       backgroundColor: "#ffffff",
       selection: true,
+      // Enhanced mobile settings
+      allowTouchScrolling: false,
+      stopContextMenu: true,
     });
 
-    // Enhanced brush initialization with error handling
+    // Enhanced brush initialization with mobile-specific settings
     try {
       canvas.freeDrawingBrush.color = activeColor;
-      canvas.freeDrawingBrush.width = 2;
+      canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2; // Thicker brush on mobile
     } catch (error) {
       console.warn('Brush initialization warning:', error);
       // Fallback initialization
       setTimeout(() => {
         if (canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush.color = activeColor;
-          canvas.freeDrawingBrush.width = 2;
+          canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
         }
       }, 100);
     }
@@ -87,20 +90,27 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Robust tool and brush configuration
+    // Robust tool and brush configuration with mobile optimizations
     try {
+      const isMobile = window.innerWidth < 768;
       fabricCanvas.isDrawingMode = activeTool === "draw";
       
       // Always ensure brush exists and configure it
       if (fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush.color = activeColor;
-        fabricCanvas.freeDrawingBrush.width = 3;
+        fabricCanvas.freeDrawingBrush.width = isMobile ? 4 : 3; // Thicker on mobile
+        
+        // Mobile-specific brush settings
+        if (isMobile) {
+          fabricCanvas.freeDrawingBrush.strokeLineCap = 'round';
+          fabricCanvas.freeDrawingBrush.strokeLineJoin = 'round';
+        }
       } else {
         // Force brush creation if it doesn't exist
         fabricCanvas.isDrawingMode = true;
         if (fabricCanvas.freeDrawingBrush) {
           fabricCanvas.freeDrawingBrush.color = activeColor;
-          fabricCanvas.freeDrawingBrush.width = 3;
+          fabricCanvas.freeDrawingBrush.width = isMobile ? 4 : 3;
         }
         fabricCanvas.isDrawingMode = activeTool === "draw";
       }
@@ -155,9 +165,10 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     const objectEvents = ["object:added", "object:modified", "object:removed", "path:created"] as const;
     objectEvents.forEach((ev) => fabricCanvas.on(ev as any, debouncedSave));
 
-    // Enhanced touch and mouse event handling for mobile
+    // Enhanced mobile touch handling - prioritize drawing over panning on mobile
     let lastPanPoint: { x: number; y: number } | null = null;
     let initialPinchDistance: number | null = null;
+    let touchStartTime: number = 0;
 
     const getEventPoint = (e: any) => {
       if (e.touches && e.touches.length > 0) {
@@ -166,13 +177,17 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       return { x: e.clientX || e.e?.clientX || 0, y: e.clientY || e.e?.clientY || 0 };
     };
 
+    const isMobile = () => window.innerWidth < 768;
+
     const onPointerDown = (opt: any) => {
+      touchStartTime = Date.now();
       const point = getEventPoint(opt.e || opt);
       
-      // Check if we should start panning (space key or two-finger touch)
-      const shouldPan = spacePressedRef.current || 
+      // On mobile, only pan with two fingers or if explicitly in select mode and no object
+      // For desktop, allow space key panning
+      const shouldPan = (!isMobile() && spacePressedRef.current) || 
                        (opt.e?.touches && opt.e.touches.length === 2) ||
-                       (activeTool === "select" && !fabricCanvas.getActiveObject());
+                       (activeTool === "select" && !fabricCanvas.getActiveObject() && isMobile());
       
       if (shouldPan) {
         isPanningRef.current = true;
@@ -206,6 +221,7 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
         fabricCanvas.setCursor("default");
         debouncedSave();
       }
+      touchStartTime = 0;
     };
 
     // Bind enhanced events
@@ -316,13 +332,20 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
-    // ResizeObserver to keep canvas sized to visible container
+    // Enhanced ResizeObserver with better error handling
     if (containerRef.current) {
       const ro = new ResizeObserver((entries) => {
         for (const entry of entries) {
           const cr = entry.contentRect;
-          fabricCanvas.setDimensions({ width: cr.width, height: cr.height } as any);
-          fabricCanvas.renderAll();
+          try {
+            // Check if canvas is still valid before setting dimensions
+            if (fabricCanvas && fabricCanvas.getElement && fabricCanvas.getElement()) {
+              fabricCanvas.setDimensions({ width: cr.width, height: cr.height } as any);
+              fabricCanvas.renderAll();
+            }
+          } catch (error) {
+            console.warn('ResizeObserver dimension setting failed:', error);
+          }
         }
       });
       ro.observe(containerRef.current);
