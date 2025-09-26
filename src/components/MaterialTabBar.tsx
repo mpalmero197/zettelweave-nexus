@@ -6,7 +6,8 @@ import {
   StickyNote, 
   Target, 
   Grid3X3,
-  Home
+  Home,
+  Mic
 } from "lucide-react";
 
 interface MaterialTabBarProps {
@@ -19,6 +20,7 @@ export function MaterialTabBar({ value, onValueChange }: MaterialTabBarProps) {
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "cards", label: "Cards", icon: FileText },
     { id: "graph", label: "Graph", icon: BarChart3 },
+    { id: "recorder", label: "Recorder", icon: Mic },
     { id: "whiteboard", label: "Board", icon: Palette },
     { id: "journal", label: "Journal", icon: StickyNote },
     { id: "habits", label: "Habits", icon: Target },

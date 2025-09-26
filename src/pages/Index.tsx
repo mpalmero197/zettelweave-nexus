@@ -50,6 +50,7 @@ import HabitTracker from "@/components/HabitTracker";
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
 const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"));
 const StickyNotesEnhanced = lazy(() => import("@/components/StickyNotesEnhanced"));
+const MeetingRecorder = lazy(() => import("@/components/MeetingRecorder"));
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -361,6 +362,14 @@ const Index = () => {
                   <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
                     <Suspense fallback={<FastLoadingFallback message="Loading sticky notes..." icon={<Grid3X3 className="h-6 w-6 animate-pulse" />} />}>
                       <StickyNotesEnhanced onCreateCard={handleCreateCard} />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="recorder" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <Suspense fallback={<FastLoadingFallback message="Loading meeting recorder..." />}>
+                      <MeetingRecorder />
                     </Suspense>
                   </div>
                 </TabsContent>
