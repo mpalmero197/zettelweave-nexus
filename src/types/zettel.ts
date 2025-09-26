@@ -26,6 +26,7 @@ export interface WordDefinition {
   definition: string;
   partOfSpeech: string;
   examples?: string[];
+  cardReference?: ZettelCard;
 }
 
 export type OrganizationMethod = "dewey" | "luhmann" | "folgezettel" | "thematic";

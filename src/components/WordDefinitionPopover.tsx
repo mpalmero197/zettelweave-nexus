@@ -10,11 +10,35 @@ interface WordDefinitionPopoverProps {
   position: { x: number; y: number };
   onClose: () => void;
   onCreateCard: (word: string, definition: WordDefinition) => void;
+  cards?: any[];
 }
 
-// Mock dictionary API - in real implementation, use a proper dictionary API
-const getMockDefinition = (word: string): WordDefinition => {
+// Enhanced definition lookup with primary card search
+const getMockDefinition = async (word: string, cards: any[] = []): Promise<WordDefinition> => {
+  // First check if there's a primary card with this title
+  const primaryCard = cards.find(card => 
+    card.title.toLowerCase() === word.toLowerCase() ||
+    card.title.toLowerCase().includes(word.toLowerCase())
+  );
+
+  if (primaryCard) {
+    return {
+      word,
+      definition: primaryCard.content.substring(0, 200) + (primaryCard.content.length > 200 ? "..." : ""),
+      partOfSpeech: "reference",
+      examples: [`From your card: "${primaryCard.title}"`],
+      cardReference: primaryCard
+    };
+  }
+
+  // Enhanced dictionary definitions
   const definitions: Record<string, WordDefinition> = {
+    "halcyon": {
+      word: "halcyon",
+      definition: "Denoting a period of time in the past that was idyllically happy and peaceful. Often refers to a mythical bird that was said to charm the wind and waves into calmness.",
+      partOfSpeech: "adjective",
+      examples: ["Those were the halcyon days of summer.", "She recalled the halcyon period of her youth."]
+    },
     "knowledge": {
       word: "knowledge",
       definition: "Facts, information, and skills acquired by a person through experience or education; the theoretical or practical understanding of a subject.",
@@ -32,6 +56,12 @@ const getMockDefinition = (word: string): WordDefinition => {
       definition: "A set of connected things or parts forming a complex whole; an organized scheme or method.",
       partOfSpeech: "noun",
       examples: ["The education system", "A computer system"]
+    },
+    "zettel": {
+      word: "zettel",
+      definition: "German word meaning 'slip of paper' or 'note'. In knowledge management, refers to individual notes in a zettelkasten system.",
+      partOfSpeech: "noun",
+      examples: ["Each zettel should contain one main idea.", "Connect related zettel to build knowledge networks."]
     }
   };
 
@@ -43,7 +73,7 @@ const getMockDefinition = (word: string): WordDefinition => {
   };
 };
 
-export function WordDefinitionPopover({ word, position, onClose, onCreateCard }: WordDefinitionPopoverProps) {
+export function WordDefinitionPopover({ word, position, onClose, onCreateCard, cards = [] }: WordDefinitionPopoverProps) {
   const [definition, setDefinition] = useState<WordDefinition | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,13 +82,13 @@ export function WordDefinitionPopover({ word, position, onClose, onCreateCard }:
       setLoading(true);
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 300));
-      const def = getMockDefinition(word);
+      const def = await getMockDefinition(word, cards);
       setDefinition(def);
       setLoading(false);
     };
 
     fetchDefinition();
-  }, [word]);
+  }, [word, cards]);
 
   const handleCreateCard = () => {
     if (definition) {

@@ -38,7 +38,7 @@ import {
 import { ScratchPad } from "@/components/ScratchPad";
 import { BulletJournal } from "@/components/BulletJournal";
 import { InfiniteWhiteboard } from "@/components/InfiniteWhiteboard";
-import { StickyNotes } from "@/components/StickyNotes";
+import { StickyNotesEnhanced } from "@/components/StickyNotesEnhanced";
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -157,11 +157,21 @@ const Index = () => {
   };
 
   const handleExportPDF = () => {
-    exportToPDF(filteredCards, "My Zettel Cards");
+    try {
+      exportToPDF(filteredCards, "My Zettel Cards");
+      toast("PDF exported successfully!");
+    } catch (error) {
+      toast("Failed to export PDF");
+    }
   };
 
   const handlePrint = () => {
-    printCards(filteredCards);
+    try {
+      printCards(filteredCards);
+      toast("Print dialog opened");
+    } catch (error) {
+      toast("Failed to print cards");
+    }
   };
 
   // Calculate statistics based on organization method
@@ -532,7 +542,7 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="sticky">
-                <StickyNotes onCreateCard={handleCreateCard} />
+                <StickyNotesEnhanced onCreateCard={handleCreateCard} />
               </TabsContent>
             </Tabs>
           </div>
@@ -555,6 +565,7 @@ const Index = () => {
             position={selectedWord.position}
             onClose={() => setSelectedWord(null)}
             onCreateCard={handleCreateCardFromWord}
+            cards={cards}
           />
         )}
         
@@ -564,6 +575,8 @@ const Index = () => {
             isOpen={!!editingCard}
             onClose={() => setEditingCard(null)}
             onSave={handleUpdateCard}
+            organizationMethod={organizationMethod}
+            availableCategories={cards.map(c => c.category).filter((v, i, a) => a.indexOf(v) === i)}
           />
         )}
       </div>

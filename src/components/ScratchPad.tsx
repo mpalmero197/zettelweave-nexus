@@ -56,13 +56,19 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     toast("Note saved to scratch pad");
   };
 
-  const handleCreateCard = (noteContent: string) => {
-    const lines = noteContent.split('\n');
+  const handleCreateCard = (noteContent?: string) => {
+    const contentToUse = noteContent || content;
+    if (!contentToUse.trim()) {
+      toast("Cannot create card from empty content");
+      return;
+    }
+    
+    const lines = contentToUse.split('\n');
     const title = lines[0]?.trim() || "Scratch Note";
     
     const newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'> = {
       title: title.length > 50 ? title.substring(0, 50) + "..." : title,
-      content: noteContent,
+      content: contentToUse,
       description: "Created from scratch pad",
       category: "000",
       number: "",
@@ -72,6 +78,11 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     
     onCreateCard(newCard);
     toast("Created zettel card from scratch note");
+    
+    // Clear current content if creating from current input
+    if (!noteContent) {
+      setContent("");
+    }
   };
 
   const handleDeleteNote = (id: string) => {

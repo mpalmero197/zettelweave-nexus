@@ -2,108 +2,300 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ZettelCard } from '@/types/zettel';
 
-export const exportToPDF = async (cards: ZettelCard[], title: string = 'Zettel Cards') => {
-  const pdf = new jsPDF();
-  const pageHeight = pdf.internal.pageSize.height;
-  let currentY = 20;
+export const exportToPDF = (cards: ZettelCard[], title: string = "Zettel Cards") => {
+  try {
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+    const lineHeight = 7;
+    let yPosition = margin;
 
-  // Add title
-  pdf.setFontSize(20);
-  pdf.text(title, 20, currentY);
-  currentY += 20;
+    // Title
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, margin, yPosition);
+    yPosition += lineHeight * 2;
 
-  cards.forEach((card, index) => {
-    // Check if we need a new page
-    if (currentY > pageHeight - 60) {
-      pdf.addPage();
-      currentY = 20;
-    }
+    // Date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, yPosition);
+    yPosition += lineHeight * 2;
 
-    // Card header
-    pdf.setFontSize(14);
-    pdf.setFont(undefined, 'bold');
-    pdf.text(`${card.number}: ${card.title}`, 20, currentY);
-    currentY += 10;
+    cards.forEach((card, index) => {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 50) {
+        doc.addPage();
+        yPosition = margin;
+      }
 
-    // Category and tags
-    pdf.setFontSize(10);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(`Category: ${card.category}`, 20, currentY);
-    currentY += 7;
+      // Card number and title
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      const cardHeader = `${card.number ? `[${card.number}] ` : ''}${card.title}`;
+      doc.text(cardHeader, margin, yPosition);
+      yPosition += lineHeight;
+
+      // Category and tags
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      const metadata = `Category: ${card.category} | Tags: ${card.tags.join(', ')}`;
+      doc.text(metadata, margin, yPosition);
+      yPosition += lineHeight;
+
+      // Description
+      if (card.description) {
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Description: ${card.description}`, margin, yPosition);
+        yPosition += lineHeight;
+      }
+
+      // Content
+      doc.setFont('helvetica', 'normal');
+      const content = card.content.replace(/\n/g, ' ');
+      const splitContent = doc.splitTextToSize(content, pageWidth - 2 * margin);
+      
+      splitContent.forEach((line: string) => {
+        if (yPosition > pageHeight - margin) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += lineHeight;
+      });
+
+      // Linked cards
+      if (card.linkedCards && card.linkedCards.length > 0) {
+        yPosition += lineHeight / 2;
+        doc.setFont('helvetica', 'italic');
+        doc.text(`Linked Cards: ${card.linkedCards.join(', ')}`, margin, yPosition);
+        yPosition += lineHeight;
+      }
+
+      // Dates
+      yPosition += lineHeight / 2;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Created: ${card.created.toLocaleDateString()} | Modified: ${card.modified.toLocaleDateString()}`, margin, yPosition);
+      yPosition += lineHeight * 2;
+
+      // Separator line
+      if (index < cards.length - 1) {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += lineHeight;
+      }
+    });
+
+    // Save the PDF
+    doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw new Error('Failed to generate PDF');
+  }
+};
+
+export const exportToJSON = (cards: ZettelCard[], filename: string = "zettel_cards") => {
+  try {
+    const dataStr = JSON.stringify(cards, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
     
-    if (card.tags.length > 0) {
-      pdf.text(`Tags: ${card.tags.join(', ')}`, 20, currentY);
-      currentY += 7;
-    }
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting to JSON:', error);
+    throw new Error('Failed to export to JSON');
+  }
+};
 
-    // Description
-    if (card.description) {
-      pdf.setFontSize(11);
-      const descLines = pdf.splitTextToSize(card.description, 170);
-      pdf.text(descLines, 20, currentY);
-      currentY += descLines.length * 5;
-    }
+export const exportToMarkdown = (cards: ZettelCard[], filename: string = "zettel_cards") => {
+  try {
+    let markdown = `# Zettel Cards Export\n\n`;
+    markdown += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+    markdown += `Total Cards: ${cards.length}\n\n---\n\n`;
 
-    // Content
-    pdf.setFontSize(10);
-    const contentLines = pdf.splitTextToSize(card.content, 170);
-    pdf.text(contentLines, 20, currentY);
-    currentY += contentLines.length * 4 + 15;
+    cards.forEach((card, index) => {
+      markdown += `## ${card.number ? `[${card.number}] ` : ''}${card.title}\n\n`;
+      
+      if (card.description) {
+        markdown += `**Description:** ${card.description}\n\n`;
+      }
+      
+      markdown += `**Category:** ${card.category}\n\n`;
+      markdown += `**Tags:** ${card.tags.join(', ')}\n\n`;
+      
+      markdown += `### Content\n\n${card.content}\n\n`;
+      
+      if (card.linkedCards && card.linkedCards.length > 0) {
+        markdown += `**Linked Cards:** ${card.linkedCards.join(', ')}\n\n`;
+      }
+      
+      markdown += `**Created:** ${card.created.toLocaleDateString()}\n\n`;
+      markdown += `**Modified:** ${card.modified.toLocaleDateString()}\n\n`;
+      
+      if (index < cards.length - 1) {
+        markdown += `---\n\n`;
+      }
+    });
 
-    // Add separator line
-    if (index < cards.length - 1) {
-      pdf.line(20, currentY - 5, 190, currentY - 5);
-      currentY += 5;
-    }
-  });
+    const dataBlob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting to Markdown:', error);
+    throw new Error('Failed to export to Markdown');
+  }
+};
 
-  pdf.save(`${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+export const exportToTXT = (cards: ZettelCard[], filename: string = "zettel_cards") => {
+  try {
+    let text = `ZETTEL CARDS EXPORT\n`;
+    text += `===================\n\n`;
+    text += `Generated on: ${new Date().toLocaleDateString()}\n`;
+    text += `Total Cards: ${cards.length}\n\n`;
+
+    cards.forEach((card, index) => {
+      text += `${'-'.repeat(50)}\n`;
+      text += `${card.number ? `[${card.number}] ` : ''}${card.title}\n`;
+      text += `${'-'.repeat(50)}\n\n`;
+      
+      if (card.description) {
+        text += `Description: ${card.description}\n\n`;
+      }
+      
+      text += `Category: ${card.category}\n`;
+      text += `Tags: ${card.tags.join(', ')}\n\n`;
+      
+      text += `Content:\n${card.content}\n\n`;
+      
+      if (card.linkedCards && card.linkedCards.length > 0) {
+        text += `Linked Cards: ${card.linkedCards.join(', ')}\n\n`;
+      }
+      
+      text += `Created: ${card.created.toLocaleDateString()}\n`;
+      text += `Modified: ${card.modified.toLocaleDateString()}\n\n`;
+    });
+
+    const dataBlob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting to TXT:', error);
+    throw new Error('Failed to export to TXT');
+  }
 };
 
 export const printCards = (cards: ZettelCard[]) => {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
+  try {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error('Could not open print window');
+    }
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Zettel Cards</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .card { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        .card-header { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-        .card-meta { font-size: 14px; color: #666; margin-bottom: 15px; }
-        .card-content { line-height: 1.6; }
-        .tags { margin-top: 10px; }
-        .tag { display: inline-block; background: #f0f0f0; padding: 2px 6px; margin: 2px; border-radius: 4px; font-size: 12px; }
-        @media print { .card { page-break-inside: avoid; } }
-      </style>
-    </head>
-    <body>
-      <h1>Zettel Cards</h1>
-      ${cards.map(card => `
-        <div class="card">
-          <div class="card-header">${card.number}: ${card.title}</div>
-          <div class="card-meta">
-            Category: ${card.category} | Created: ${card.created.toLocaleDateString()}
-          </div>
-          ${card.description ? `<div class="card-description"><strong>Description:</strong> ${card.description}</div>` : ''}
-          <div class="card-content">${card.content}</div>
-          ${card.tags.length > 0 ? `
-            <div class="tags">
-              ${card.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Zettel Cards - Print</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              line-height: 1.6;
+            }
+            .card {
+              border: 1px solid #ccc;
+              margin-bottom: 20px;
+              padding: 15px;
+              border-radius: 5px;
+              page-break-inside: avoid;
+            }
+            .card-header {
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 10px;
+              color: #333;
+            }
+            .card-meta {
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 10px;
+            }
+            .card-content {
+              margin-bottom: 10px;
+              white-space: pre-wrap;
+            }
+            .card-footer {
+              font-size: 10px;
+              color: #999;
+              border-top: 1px solid #eee;
+              padding-top: 5px;
+            }
+            @media print {
+              body { margin: 0; }
+              .card { margin-bottom: 15px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Zettel Cards</h1>
+          <p>Generated on: ${new Date().toLocaleDateString()}</p>
+          <p>Total Cards: ${cards.length}</p>
+          <hr>
+          ${cards.map(card => `
+            <div class="card">
+              <div class="card-header">
+                ${card.number ? `[${card.number}] ` : ''}${card.title}
+              </div>
+              <div class="card-meta">
+                Category: ${card.category} | Tags: ${card.tags.join(', ')}
+                ${card.description ? `<br>Description: ${card.description}` : ''}
+              </div>
+              <div class="card-content">${card.content}</div>
+              ${card.linkedCards && card.linkedCards.length > 0 ? 
+                `<div class="card-meta">Linked Cards: ${card.linkedCards.join(', ')}</div>` : ''
+              }
+              <div class="card-footer">
+                Created: ${card.created.toLocaleDateString()} | 
+                Modified: ${card.modified.toLocaleDateString()}
+              </div>
             </div>
-          ` : ''}
-        </div>
-      `).join('')}
-    </body>
-    </html>
-  `;
+          `).join('')}
+        </body>
+      </html>
+    `;
 
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-  printWindow.print();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+  } catch (error) {
+    console.error('Error printing cards:', error);
+    throw new Error('Failed to print cards');
+  }
 };
 
 export const shareToSocial = async (card: ZettelCard, platform: 'twitter' | 'linkedin' | 'facebook') => {
