@@ -183,9 +183,9 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           number: "",
           tags: [...tags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
           linkedCards: [],
-          imageUrl: file.type === 'image' ? file.content : undefined
+          imageUrl: undefined
         });
-      } else if (type === 'image') {
+      } else if (file.type === 'image') {
         // Create card for standalone images
         cards.push({
           title: `Image: ${file.name}`,
