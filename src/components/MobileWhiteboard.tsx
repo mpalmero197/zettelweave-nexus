@@ -6,7 +6,7 @@ import { MousePointer2, Pen, Eraser, Combine, Edit, Move, RotateCcw, Download, U
 import { HexColorPicker } from "react-colorful";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { MediaUpload } from "./MediaUpload";
+import { FileUploadDialog } from "./FileUploadDialog";
 import { DocumentViewer } from "./DocumentViewer";
 
 interface Point {
@@ -910,8 +910,9 @@ export const MobileWhiteboard = () => {
       </div>
 
       {showImageUpload && (
-        <MediaUpload
-          multiple={false}
+        <FileUploadDialog
+          title="Upload Image"
+          accept="image/*"
           onUpload={(files) => {
             if (files.length > 0) {
               addImageToCanvas(files[0]);
@@ -923,8 +924,9 @@ export const MobileWhiteboard = () => {
       )}
 
       {showDocumentUpload && (
-        <MediaUpload
-          multiple={false}
+        <FileUploadDialog
+          title="Upload Document"
+          accept=".pdf,.doc,.docx,.txt,.md,.rtf"
           onUpload={(files) => {
             if (files.length > 0) {
               addDocumentToCanvas(files[0]);

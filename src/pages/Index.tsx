@@ -537,7 +537,7 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="whiteboard">
-                <MobileWhiteboard onCreateCard={handleCreateCard} />
+                <MobileWhiteboard />
               </TabsContent>
 
               <TabsContent value="sticky">
