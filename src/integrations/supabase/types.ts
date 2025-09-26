@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      attachments: {
+        Row: {
+          created_at: string
+          duration: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          mime_type: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          mime_type: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           created_at: string
@@ -85,6 +124,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          attachments: string[] | null
           content: string
           created_at: string
           id: string
@@ -96,6 +136,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: string[] | null
           content?: string
           created_at?: string
           id?: string
@@ -107,6 +148,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: string[] | null
           content?: string
           created_at?: string
           id?: string
@@ -186,6 +228,7 @@ export type Database = {
       }
       zettel_cards: {
         Row: {
+          attachments: string[] | null
           category: string
           content: string
           created_at: string
@@ -203,6 +246,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          attachments?: string[] | null
           category: string
           content: string
           created_at?: string
@@ -220,6 +264,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          attachments?: string[] | null
           category?: string
           content?: string
           created_at?: string
