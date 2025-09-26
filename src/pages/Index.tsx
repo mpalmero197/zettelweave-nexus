@@ -12,6 +12,7 @@ import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MaterialTabBar } from "@/components/MaterialTabBar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { useAuth } from "@/hooks/useAuth";
+import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
 import { DEWEY_CATEGORIES, ORGANIZATION_METHODS } from "@/types/zettel";
@@ -65,6 +66,7 @@ const Index = () => {
     return (stored as OrganizationMethod) || "dewey";
   });
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
+  const [showAccountManagement, setShowAccountManagement] = useState(false);
 
   useEffect(() => {
     if (JSON.stringify(filteredCards) !== JSON.stringify(cards)) {
@@ -181,6 +183,11 @@ const Index = () => {
                 <DropdownMenuContent align="end" className="bg-card/95 backdrop-blur-sm border-border/60">
                   <DropdownMenuItem disabled className="text-xs">
                     {user?.email}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowAccountManagement(true)}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Account Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -369,6 +376,10 @@ const Index = () => {
       </main>
 
       {/* Dialogs and Popovers */}
+      {showAccountManagement && (
+        <AccountManagement onClose={() => setShowAccountManagement(false)} />
+      )}
+
       {editingCard && (
         <EditCardDialog
           card={editingCard}

@@ -87,6 +87,7 @@ export const MobileWhiteboard = () => {
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<{ file: File; element: DocumentElement } | null>(null);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   const [drawingState, setDrawingState] = useState<DrawingState>({
     objects: [],
@@ -886,18 +887,14 @@ export const MobileWhiteboard = () => {
             <Button variant="outline" size="sm" onClick={exportCanvas} className="h-8 px-2">
               <Download className="h-3 w-3" />
             </Button>
-            <ConfirmDialog
-              trigger={
-                <Button variant="outline" size="sm" className="h-8 px-2 text-destructive">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              }
-              title="Clear Canvas"
-              description="Are you sure you want to clear all drawings? This action cannot be undone."
-              onConfirm={clearCanvas}
-              confirmText="Clear All"
-              variant="destructive"
-            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 px-2 text-destructive"
+              onClick={() => setShowClearDialog(true)}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
           </div>
         </div>
 
@@ -982,6 +979,16 @@ export const MobileWhiteboard = () => {
           }}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showClearDialog}
+        onClose={() => setShowClearDialog(false)}
+        onConfirm={clearCanvas}
+        title="Clear Canvas"
+        description="Are you sure you want to clear all drawings? This action cannot be undone."
+        confirmText="Clear All"
+        variant="destructive"
+      />
     </div>
   );
 };
