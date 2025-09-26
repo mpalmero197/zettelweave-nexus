@@ -28,11 +28,8 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
   };
 
   return (
-    <div className="relative h-full">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-50" />
-      <Card className="relative h-full bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-        <CardHeader className="relative">
+    <Card className="h-full bg-card border border-border rounded-xl overflow-hidden">
+        <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Brain className="h-5 w-5 text-primary" />
@@ -40,7 +37,7 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
             Recent Zettel Cards
           </CardTitle>
         </CardHeader>
-        <CardContent className="relative space-y-3 overflow-y-auto max-h-80">
+        <CardContent className="space-y-3 overflow-y-auto max-h-80">
           {recentCards.length > 0 ? (
             recentCards.map((card) => (
               <div 
@@ -67,6 +64,5 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
           )}
         </CardContent>
       </Card>
-    </div>
   );
 }
