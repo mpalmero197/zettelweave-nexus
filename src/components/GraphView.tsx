@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect, lazy, Suspense } from 'react';
+import { useCallback, useMemo, useState, useEffect, Suspense } from 'react';
 import { 
   ReactFlow, 
   ReactFlowProvider,
@@ -11,7 +11,6 @@ import {
   Background, 
   MiniMap,
   ConnectionMode,
-  Position,
   Panel,
   useReactFlow
 } from '@xyflow/react';
@@ -22,10 +21,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RotateCcw, Maximize2, Filter, Eye, EyeOff, Box, Loader2 } from 'lucide-react';
-
-// Lazy load the 3D component to improve initial loading
-const Graph3D = lazy(() => import('./Graph3D').then(module => ({ default: module.Graph3D })));
+import { Search, RotateCcw, Eye, EyeOff, Box } from 'lucide-react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { Graph3D } from '@/components/Graph3D';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -393,16 +391,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
 
   // Render 3D view if enabled
   if (is3D) {
-    return (
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading 3D view...</span>
-        </div>
-      }>
-        <Graph3D cards={filteredCards} onCardSelect={onCardSelect} className={className} />
-      </Suspense>
-    );
+    return <Graph3D cards={filteredCards} onCardSelect={onCardSelect} className={className} />;
   }
 
   return (
@@ -426,43 +415,46 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           size={2}
         />
         
-        {/* Enhanced Controls Panel */}
-        <Panel position="top-left" className="space-y-3 p-4 bg-card border border-border rounded-lg shadow-card max-w-sm">
-          <div className="flex items-center gap-2">
+        {/* Mobile-First Enhanced Controls Panel */}
+        <Panel position="top-left" className="space-y-2 p-3 bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-lg max-w-[280px] md:max-w-sm">
+          <div className="flex items-center justify-between">
             <Button
               variant={is3D ? "default" : "outline"}
               size="sm"
               onClick={() => setIs3D(!is3D)}
-              className="h-8 px-2"
+              className="h-9 px-3 flex items-center gap-2"
               title="Toggle 3D View"
             >
-              <Box className="h-3 w-3" />
+              <Box className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">
+                {is3D ? '3D' : '2D'}
+              </span>
             </Button>
-            <span className="text-xs text-muted-foreground">
-              {is3D ? '3D' : '2D'} View
-            </span>
+            <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+              {filteredCards.length} cards
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search cards..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="h-8 text-sm"
+              className="h-10 pl-10 text-sm bg-background/80 border-border/60 focus:border-primary transition-colors"
             />
           </div>
           
           <div className="flex items-center gap-2">
             <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
-              <SelectTrigger className="h-8 text-sm">
+              <SelectTrigger className="h-10 text-sm bg-background/80 border-border/60">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="force">Force Layout</SelectItem>
-                <SelectItem value="circular">Circular</SelectItem>
-                <SelectItem value="hierarchical">Hierarchical</SelectItem>
-                <SelectItem value="category">By Category</SelectItem>
+              <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
+                <SelectItem value="force">🌊 Force</SelectItem>
+                <SelectItem value="circular">⭕ Circular</SelectItem>
+                <SelectItem value="hierarchical">📊 Hierarchical</SelectItem>
+                <SelectItem value="category">🏷️ Category</SelectItem>
               </SelectContent>
             </Select>
             
@@ -470,19 +462,20 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
               variant="outline"
               size="sm"
               onClick={resetLayout}
-              className="h-8 px-2"
+              className="h-10 px-3 bg-background/80 hover:bg-primary/10 transition-colors"
+              title="Reset View"
             >
-              <RotateCcw className="h-3 w-3" />
+              <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
           
           <div className="flex items-center gap-2">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-8 text-sm">
+              <SelectTrigger className="h-10 text-sm bg-background/80 border-border/60">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+              <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
+                <SelectItem value="all">🌟 All Categories</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>
                     {getCategoryInfo(cat).name}
@@ -495,25 +488,35 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
               variant="outline"
               size="sm"
               onClick={() => setShowCategoryEdges(!showCategoryEdges)}
-              className="h-8 px-2"
+              className="h-10 px-3 bg-background/80 hover:bg-primary/10 transition-colors"
+              title={showCategoryEdges ? "Hide Category Links" : "Show Category Links"}
             >
-              {showCategoryEdges ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              {showCategoryEdges ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
           </div>
           
-          <div className="text-xs text-muted-foreground">
-            Showing {filteredCards.length} of {cards.length} cards
-          </div>
         </Panel>
 
-        {/* Stats Panel */}
-        <Panel position="top-right" className="p-3 bg-card border border-border rounded-lg shadow-card">
-          <div className="text-sm font-medium mb-2">Graph Stats</div>
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <div>Nodes: {nodes.length}</div>
-            <div>Edges: {edges.length}</div>
-            <div>Direct Links: {edges.filter(e => e.id.startsWith('direct-')).length}</div>
-            <div>Category Links: {edges.filter(e => e.id.startsWith('category-')).length}</div>
+        {/* Mobile-Optimized Stats Panel */}
+        <Panel position="top-right" className="p-3 bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-lg">
+          <div className="text-sm font-medium mb-2 text-primary">📊 Graph Stats</div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-muted/50 rounded-md p-2">
+              <div className="font-medium text-foreground">{nodes.length}</div>
+              <div className="text-muted-foreground">Nodes</div>
+            </div>
+            <div className="bg-muted/50 rounded-md p-2">
+              <div className="font-medium text-foreground">{edges.length}</div>
+              <div className="text-muted-foreground">Edges</div>
+            </div>
+            <div className="bg-primary/10 rounded-md p-2">
+              <div className="font-medium text-primary">{edges.filter(e => e.id.startsWith('direct-')).length}</div>
+              <div className="text-primary/70">Direct</div>
+            </div>
+            <div className="bg-secondary/20 rounded-md p-2">
+              <div className="font-medium text-secondary-foreground">{edges.filter(e => e.id.startsWith('category-')).length}</div>
+              <div className="text-muted-foreground">Category</div>
+            </div>
           </div>
         </Panel>
 

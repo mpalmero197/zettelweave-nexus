@@ -17,7 +17,7 @@ interface BulletItem {
 }
 
 interface BulletJournalProps {
-  onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
+  onCreateCard?: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
 const BulletIcon = ({ type, completed }: { type: BulletItem["type"]; completed?: boolean }) => {
@@ -238,3 +238,5 @@ export const BulletJournal = ({ onCreateCard }: BulletJournalProps) => {
     </div>
   );
 };
+
+export default BulletJournal;

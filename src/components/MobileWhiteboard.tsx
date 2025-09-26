@@ -955,3 +955,5 @@ export const MobileWhiteboard = () => {
     </div>
   );
 };
+
+export default MobileWhiteboard;

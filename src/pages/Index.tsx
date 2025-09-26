@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
 import { ZettelCard } from "@/components/ZettelCard";
@@ -8,6 +8,9 @@ import { VaultImportDialog } from "@/components/VaultImportDialog";
 import { GraphView } from "@/components/GraphView";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
+import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
+import { MaterialTabBar } from "@/components/MaterialTabBar";
+import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { useAuth } from "@/hooks/useAuth";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
@@ -33,15 +36,14 @@ import {
   Grid3X3,
   FileText,
   Palette,
-  StickyNote,
-  Loader2
+  StickyNote
 } from "lucide-react";
 import { ScratchPad } from "@/components/ScratchPad";
 
 // Lazy load heavy components for better performance
-const BulletJournal = lazy(() => import("@/components/BulletJournal").then(module => ({ default: module.BulletJournal })));
-const MobileWhiteboard = lazy(() => import("@/components/MobileWhiteboard").then(module => ({ default: module.MobileWhiteboard })));
-const StickyNotesEnhanced = lazy(() => import("@/components/StickyNotesEnhanced").then(module => ({ default: module.StickyNotesEnhanced })));
+const BulletJournal = lazy(() => import("@/components/BulletJournal"));
+const MobileWhiteboard = lazy(() => import("@/components/MobileWhiteboard"));
+const StickyNotesEnhanced = lazy(() => import("@/components/StickyNotesEnhanced"));
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -102,493 +104,265 @@ const Index = () => {
         }
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw error;
 
-      // Update each card with the reorganized data
-      const { reorganizedCards } = data;
-      for (const reorganizedCard of reorganizedCards) {
-        await updateCard(reorganizedCard);
+      if (data?.reorganizedCards) {
+        // Update all cards with new organization
+        data.reorganizedCards.forEach((reorganizedCard: ZettelCardType) => {
+          updateCard(reorganizedCard);
+        });
+        
+        setOrganizationMethod(toMethod);
+        toast(`Successfully reorganized ${data.reorganizedCards.length} cards to ${toMethod} system!`);
       }
-
-      toast(`Successfully reorganized ${reorganizedCards.length} cards to ${toMethod} system!`);
     } catch (error) {
       console.error('Error reorganizing cards:', error);
-      throw error;
+      toast("Failed to reorganize cards. Please try again.");
     }
-  };
-
-  const addRecommendedCards = (recommendedCards: Omit<ZettelCardType, 'id' | 'number' | 'created' | 'linkedCards'>[]) => {
-    const cardsWithMetadata = recommendedCards.map(card => ({
-      ...card,
-      number: "",
-      linkedCards: [] as string[]
-    }));
-    cardsWithMetadata.forEach(card => createCard(card));
-    toast(`Added ${recommendedCards.length} recommended cards!`);
-  };
-
-  const handleWordHover = (word: string, element: HTMLElement) => {
-    const rect = element.getBoundingClientRect();
-    setSelectedWord({
-      word,
-      position: { x: rect.left + rect.width / 2, y: rect.top }
-    });
-  };
-
-  const handleCreateCardFromWord = (definition: any) => {
-    const newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'> = {
-      title: `Definition: ${definition.word}`,
-      content: `${definition.definition}\n\nPart of speech: ${definition.partOfSpeech}${
-        definition.examples ? `\n\nExamples:\n${definition.examples.join('\n')}` : ''
-      }`,
-      description: `Definition and usage of the word "${definition.word}"`,
-      category: "400", // Language category
-      number: "", // Will be auto-generated
-      tags: ["definition", "language", definition.partOfSpeech],
-      linkedCards: []
-    };
-
-    createCard(newCard);
-    setSelectedWord(null);
   };
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast(`Sign out failed: ${error.message}`);
-    }
-  };
-
-  const handleExportPDF = () => {
     try {
-      exportToPDF(filteredCards, "My Zettel Cards");
-      toast("PDF exported successfully!");
+      await signOut();
+      toast("Signed out successfully");
     } catch (error) {
-      toast("Failed to export PDF");
+      console.error('Error signing out:', error);
+      toast("Error signing out");
     }
   };
 
-  const handlePrint = () => {
-    try {
-      printCards(filteredCards);
-      toast("Print dialog opened");
-    } catch (error) {
-      toast("Failed to print cards");
-    }
-  };
-
-  // Calculate statistics based on organization method
-  const totalCards = cards.length;
-  
-  const getStatsForMethod = () => {
-    if (cards.length === 0) return [];
-    
-    switch (organizationMethod) {
-      case "dewey":
-        return DEWEY_CATEGORIES.map(category => ({
-          ...category,
-          count: cards.filter(card => {
-            const categoryStart = parseInt(category.range.split('-')[0]);
-            const categoryEnd = parseInt(category.range.split('-')[1]);
-            const cardCategory = parseInt(card.category);
-            return cardCategory >= categoryStart && cardCategory <= categoryEnd;
-          }).length
-        })).filter(cat => cat.count > 0 || organizationMethod === "dewey");
-      
-      case "luhmann":
-        // Group by first character/number of Luhmann sequences
-        const luhmannGroups = cards.reduce((acc, card) => {
-          const number = card.number || '1';
-          // Extract the root sequence (e.g., "1" from "1a3b2", "2" from "2b1")
-          const rootSequence = number.match(/^(\d+)/)?.[1] || number.charAt(0) || '1';
-          if (!acc[rootSequence]) acc[rootSequence] = 0;
-          acc[rootSequence]++;
-          return acc;
-        }, {} as Record<string, number>);
-        
-        return Object.entries(luhmannGroups)
-          .sort(([a], [b]) => parseInt(a) - parseInt(b))
-          .map(([key, count]) => ({
-            range: `${key}*`,
-            name: `Main Branch ${key}`,
-            description: `Cards in sequence ${key} and its sub-branches`,
-            color: (parseInt(key) % 10) * 100,
-            count
-          }));
-      
-      case "folgezettel":
-        // Group by main sequence number (before first decimal)
-        const folgezettelGroups = cards.reduce((acc, card) => {
-          const number = card.number || '1';
-          const mainNum = number.split('.')[0] || '1';
-          if (!acc[mainNum]) acc[mainNum] = 0;
-          acc[mainNum]++;
-          return acc;
-        }, {} as Record<string, number>);
-        
-        return Object.entries(folgezettelGroups)
-          .sort(([a], [b]) => parseInt(a) - parseInt(b))
-          .map(([key, count]) => ({
-            range: `${key}.*`,
-            name: `Main Sequence ${key}`,
-            description: `Cards in main sequence ${key} and sub-sequences`,
-            color: (parseInt(key) % 10) * 100,
-            count
-          }));
-      
-      case "thematic":
-        // Group by theme prefix (before hyphen)
-        const thematicGroups = cards.reduce((acc, card) => {
-          const number = card.number || 'MISC-001';
-          const theme = number.split('-')[0] || 'MISC';
-          if (!acc[theme]) acc[theme] = 0;
-          acc[theme]++;
-          return acc;
-        }, {} as Record<string, number>);
-        
-        return Object.entries(thematicGroups)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([key, count]) => ({
-            range: `${key}-*`,
-            name: `${key} Theme`,
-            description: `Cards organized under the ${key} thematic category`,
-            color: Math.abs(key.charCodeAt(0) - 65) % 10 * 100,
-            count
-          }));
-      
-      default:
-        return DEWEY_CATEGORIES.map(category => ({ ...category, count: 0 }));
-    }
-  };
-  
-  const categoryCounts = getStatsForMethod();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Brain className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
-          <p>Loading your knowledge...</p>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
-        <SecurityNotice />
-        {/* Header - Mobile First Design */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 p-2 sm:p-0">
-          <div className="flex items-center gap-3">
-            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                ZettelWeave
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
-                Welcome back, {user?.email}
-              </p>
-            </div>
-          </div>
-          
-          {/* Mobile action buttons */}
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <div className="flex items-center gap-2 order-2 sm:order-1">
-              <Button variant="outline" size="sm" onClick={handleExportPDF} className="hidden sm:flex">
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
-              
-              {/* Mobile compact buttons */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild className="sm:hidden">
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleExportPDF}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handlePrint}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <DeleteAllCardsDialog 
-                onDeleteAll={deleteAllCards}
-                cardCount={totalCards}
-                isDeleting={isDeletingAll}
-              />
+    <MobileOptimizedLayout>
+      <SecurityNotice />
+      
+      {/* Material Design Header */}
+      <header className="bg-card/90 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 rounded-b-2xl shadow-sm">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <Brain className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-foreground">ZettelWeave</h1>
+                <p className="text-xs text-muted-foreground">Neural Knowledge System</p>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2 order-1 sm:order-2">
-              <OrganizationMethodDialog
-                currentMethod={organizationMethod}
-                onMethodChange={setOrganizationMethod}
-                onReorganizeCards={handleReorganizeCards}
-                cardCount={totalCards}
-              />
-              
+            <div className="flex items-center space-x-2">
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowRecommendations(!showRecommendations)}
-                className="hidden sm:flex"
-              >
-                <Lightbulb className="h-4 w-4 mr-2" />
-                AI Suggestions
-              </Button>
-              
-              {/* Mobile AI button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowRecommendations(!showRecommendations)}
-                className="sm:hidden"
-              >
-                <Lightbulb className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="h-10 w-10 p-0 rounded-xl hover:bg-muted/50 transition-colors"
               >
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
-
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-muted/50 transition-colors">
                     <User className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem disabled>
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="truncate max-w-[150px]">{user?.email}</span>
+                <DropdownMenuContent align="end" className="bg-card/95 backdrop-blur-sm border-border/60">
+                  <DropdownMenuItem disabled className="text-xs">
+                    {user?.email}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-          {/* Main Content */}
-          <div className={`${showRecommendations ? 'flex-1' : 'w-full'} transition-all duration-300`}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                {/* Mobile-first tab navigation with horizontal scroll */}
-                <div className="w-full overflow-x-auto scrollbar-hide">
-                  <TabsList className="inline-flex min-w-max h-auto p-1 gap-1">
-                    <TabsTrigger value="cards" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <Grid3X3 className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Cards ({totalCards})</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="graph" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <Bot className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Graph</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="stats" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <BarChart3 className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Stats</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="scratch" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <FileText className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Scratch</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="journal" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <Lightbulb className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Journal</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="whiteboard" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <Palette className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Whiteboard</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="sticky" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
-                      <StickyNote className="h-4 w-4" />
-                      <span className="whitespace-nowrap">Sticky</span>
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <div className="flex gap-2">
-                  <CreateCardDialog existingCards={cards} onCreateCard={handleCreateCard} />
-                  <VaultImportDialog onImportCards={handleImportCards} />
-                </div>
-              </div>
-
-              <TabsContent value="cards" className="space-y-6">
-                <SearchBar cards={cards} onSearchResults={setFilteredCards} />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {filteredCards.map((card) => (
-                    <ZettelCard
-                      key={card.id}
-                      card={card}
-                      onEdit={setEditingCard}
-                      onDelete={handleDeleteCard}
-                      onUpdate={handleUpdateCard}
-                      onWordHover={handleWordHover}
-                    />
-                  ))}
-                </div>
-
-                {filteredCards.length === 0 && (
-                  <div className="text-center py-12">
-                    <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <h3 className="text-lg font-medium mb-2">No cards found</h3>
-                    <p className="text-muted-foreground mb-4">
-                      {cards.length === 0 
-                        ? "Start building your knowledge base by creating your first card."
-                        : "Try adjusting your search or filters."
-                      }
-                    </p>
-                    {cards.length === 0 && (
-                      <CreateCardDialog 
-                        existingCards={cards} 
-                        onCreateCard={handleCreateCard}
-                        trigger={
-                          <Button>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Your First Card
-                          </Button>
-                        }
-                      />
-                    )}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="graph">
-                <GraphView cards={filteredCards} />
-              </TabsContent>
-
-              <TabsContent value="stats" className="space-y-4 lg:space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                  <div>
-                    <h2 className="text-xl lg:text-2xl font-bold text-foreground">Statistics</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Organized by {ORGANIZATION_METHODS.find(m => m.id === organizationMethod)?.name} method
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl lg:text-3xl font-bold text-primary">{totalCards}</p>
-                    <p className="text-xs lg:text-sm text-muted-foreground">Total Cards</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-                  {categoryCounts.map((category, index) => (
-                    <div
-                      key={category.range || index}
-                      className="group p-4 lg:p-6 rounded-xl bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm hover:shadow-lg hover:border-primary/20 transition-all duration-300 hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-xs lg:text-sm text-muted-foreground truncate flex-1 mr-2">
-                          {category.range}
-                        </h3>
-                        <div
-                          className="w-3 h-3 lg:w-4 lg:h-4 rounded-full ring-2 ring-background group-hover:ring-primary/30 transition-all"
-                          style={{ backgroundColor: `hsl(var(--category-${category.color}))` }}
-                        />
-                      </div>
-                      <div className="space-y-1 lg:space-y-2">
-                        <h4 className="font-semibold text-sm lg:text-base text-foreground line-clamp-2">{category.name}</h4>
-                        <p className="text-xl lg:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">{category.count}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{category.description}</p>
+      {/* Main Content */}
+      <main className="py-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <MaterialTabBar value={activeTab} onValueChange={setActiveTab} />
+          
+          <div className="mt-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Sidebar */}
+              <div className="lg:w-80 space-y-4">
+                {activeTab === "cards" && (
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-4 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-primary">Knowledge Cards</h2>
+                      <div className="flex items-center space-x-2">
+                        <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
+                        <VaultImportDialog onImportCards={handleImportCards} />
                       </div>
                     </div>
-                  ))}
-                </div>
-                
-                {categoryCounts.length === 0 && (
-                  <div className="text-center py-12">
-                    <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <h3 className="text-lg font-medium mb-2">No statistics available</h3>
-                    <p className="text-muted-foreground">
-                      Create some cards to see statistics for your {ORGANIZATION_METHODS.find(m => m.id === organizationMethod)?.name} organization.
-                    </p>
+                    
+                    <SearchBar 
+                      cards={cards} 
+                      onFilterChange={setFilteredCards}
+                      organizationMethod={organizationMethod}
+                    />
+                    
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportToPDF(filteredCards)}
+                        className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        PDF
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => printCards(filteredCards)}
+                        className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Print
+                      </Button>
+                      <OrganizationMethodDialog
+                        currentMethod={organizationMethod}
+                        onMethodChange={handleReorganizeCards}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowRecommendations(!showRecommendations)}
+                        className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
+                      >
+                        <Lightbulb className="h-4 w-4" />
+                        AI
+                      </Button>
+                      <DeleteAllCardsDialog 
+                        onDeleteAll={deleteAllCards}
+                        isDeleting={isDeletingAll}
+                        cardCount={cards.length}
+                      />
+                    </div>
                   </div>
                 )}
-              </TabsContent>
+              </div>
 
-              <TabsContent value="scratch">
-                <ScratchPad onCreateCard={handleCreateCard} />
-              </TabsContent>
+              {/* Main Content Area */}
+              <div className="flex-1 min-h-[600px]">
+                <TabsContent value="cards" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    {isLoading ? (
+                      <FastLoadingFallback message="Loading your knowledge cards..." />
+                    ) : filteredCards.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-96 text-center">
+                        <div className="p-6 bg-primary/5 rounded-full mb-6">
+                          <FileText className="h-16 w-16 text-primary" />
+                        </div>
+                        <h3 className="text-xl font-semibold mb-2">No cards found</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md">
+                          {cards.length === 0 
+                            ? "Start building your knowledge base by creating your first card"
+                            : "Try adjusting your search terms or filters"
+                          }
+                        </p>
+                        <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {filteredCards.map((card) => (
+                          <ZettelCard
+                            key={card.id}
+                            card={card}
+                            onEdit={setEditingCard}
+                            onDelete={handleDeleteCard}
+                            onWordSelect={setSelectedWord}
+                            organizationMethod={organizationMethod}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
 
-              <TabsContent value="journal">
-                <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading journal...</span></div>}>
-                  <BulletJournal onCreateCard={handleCreateCard} />
-                </Suspense>
-              </TabsContent>
+                <TabsContent value="graph" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <GraphView 
+                      cards={filteredCards} 
+                      onCardSelect={(card) => {
+                        setEditingCard(card);
+                      }}
+                      className="h-[550px]"
+                    />
+                  </div>
+                </TabsContent>
 
-              <TabsContent value="whiteboard">
-                <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading whiteboard...</span></div>}>
-                  <MobileWhiteboard />
-                </Suspense>
-              </TabsContent>
+                <TabsContent value="whiteboard" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
+                      <MobileWhiteboard />
+                    </Suspense>
+                  </div>
+                </TabsContent>
 
-              <TabsContent value="sticky">
-                <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading sticky notes...</span></div>}>
-                  <StickyNotesEnhanced onCreateCard={handleCreateCard} />
-                </Suspense>
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="journal" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
+                      <BulletJournal onCreateCard={handleCreateCard} />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ai" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <ScratchPad onCreateCard={handleCreateCard} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="sticky" className="mt-0">
+                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                    <Suspense fallback={<FastLoadingFallback message="Loading sticky notes..." icon={<Grid3X3 className="h-6 w-6 animate-pulse" />} />}>
+                      <StickyNotesEnhanced onCreateCard={handleCreateCard} />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+              </div>
+
+              {/* Right Sidebar - Only show on cards tab and larger screens */}
+              {activeTab === "cards" && showRecommendations && (
+                <div className="lg:w-80">
+                  <RecommendationSidebar
+                    cards={cards}
+                    onClose={() => setShowRecommendations(false)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
+        </Tabs>
+      </main>
 
-          {/* Recommendation Sidebar */}
-          {showRecommendations && (
-            <RecommendationSidebar
-              existingCards={cards}
-              onAddCards={addRecommendedCards}
-              isOpen={showRecommendations}
-              onClose={() => setShowRecommendations(false)}
-            />
-          )}
-        </div>
+      {/* Dialogs and Popovers */}
+      {editingCard && (
+        <EditCardDialog
+          card={editingCard}
+          onSave={handleUpdateCard}
+          onClose={() => setEditingCard(null)}
+        />
+      )}
 
-        {/* Word Definition Popover */}
-        {selectedWord && (
-          <WordDefinitionPopover
-            word={selectedWord.word}
-            position={selectedWord.position}
-            onClose={() => setSelectedWord(null)}
-            onCreateCard={handleCreateCardFromWord}
-            cards={cards}
-          />
-        )}
-        
-        {editingCard && (
-          <EditCardDialog
-            card={editingCard}
-            isOpen={!!editingCard}
-            onClose={() => setEditingCard(null)}
-            onSave={handleUpdateCard}
-            organizationMethod={organizationMethod}
-            availableCategories={cards.map(c => c.category).filter((v, i, a) => a.indexOf(v) === i)}
-          />
-        )}
-      </div>
-    </div>
+      {selectedWord && (
+        <WordDefinitionPopover
+          word={selectedWord.word}
+          position={selectedWord.position}
+          onClose={() => setSelectedWord(null)}
+        />
+      )}
+    </MobileOptimizedLayout>
   );
 };
 

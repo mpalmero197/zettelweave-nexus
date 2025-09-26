@@ -389,3 +389,5 @@ export const StickyNotesEnhanced = ({ onCreateCard, isFloating = false }: Sticky
     </div>
   );
 };
+
+export default StickyNotesEnhanced;
