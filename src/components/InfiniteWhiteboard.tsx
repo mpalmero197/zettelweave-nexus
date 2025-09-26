@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, FabricText, Group } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -38,42 +38,55 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
-    // Get dimensions from container
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
+    // Wait for container to be properly sized
+    const initCanvas = () => {
+      const width = containerRef.current!.clientWidth;
+      const height = containerRef.current!.clientHeight;
+      
+      if (width === 0 || height === 0) {
+        // Container not ready, try again
+        setTimeout(initCanvas, 100);
+        return;
+      }
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width,
-      height,
-      backgroundColor: "#ffffff",
-      selection: true,
-      allowTouchScrolling: false,
-      stopContextMenu: true,
-    });
+      const canvas = new FabricCanvas(canvasRef.current, {
+        width,
+        height,
+        backgroundColor: "#ffffff",
+        selection: true,
+        allowTouchScrolling: false,
+        stopContextMenu: true,
+      });
 
-    // Set up drawing mode immediately
-    canvas.isDrawingMode = true;
-    
-    // Configure brush settings
-    if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = activeColor;
-      canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
-      canvas.freeDrawingBrush.strokeLineCap = 'round';
-      canvas.freeDrawingBrush.strokeLineJoin = 'round';
-    }
+      // Initialize brush right after canvas creation
+      canvas.isDrawingMode = true;
+      
+      // Configure brush settings with proper initialization
+      const brush = canvas.freeDrawingBrush;
+      if (brush) {
+        brush.color = activeColor;
+        brush.width = window.innerWidth < 768 ? 4 : 2;
+        brush.strokeLineCap = 'round';
+        brush.strokeLineJoin = 'round';
+      }
 
-    setFabricCanvas(canvas);
-    setIsReady(true);
-    console.log('Whiteboard initialized successfully');
+      setFabricCanvas(canvas);
+      setIsReady(true);
+      console.log('Whiteboard initialized successfully');
+    };
+
+    initCanvas();
 
     return () => {
-      try {
-        canvas.dispose();
-      } catch (error) {
-        console.warn('Canvas dispose warning:', error);
+      if (fabricCanvas) {
+        try {
+          fabricCanvas.dispose();
+        } catch (error) {
+          console.warn('Canvas dispose warning:', error);
+        }
       }
     };
-  }, []);
+  }, [activeColor]);
 
   useEffect(() => {
     if (!fabricCanvas || !isReady) return;
@@ -104,6 +117,8 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     setActiveTool(tool);
     if (!fabricCanvas) return;
 
+    fabricCanvas.isDrawingMode = tool === "draw";
+
     if (tool === "rectangle") {
       const rect = new Rect({
         left: 100,
@@ -116,6 +131,7 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       });
       fabricCanvas.add(rect);
       fabricCanvas.setActiveObject(rect);
+      fabricCanvas.renderAll();
     } else if (tool === "circle") {
       const circle = new Circle({
         left: 100,
@@ -127,6 +143,7 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       });
       fabricCanvas.add(circle);
       fabricCanvas.setActiveObject(circle);
+      fabricCanvas.renderAll();
     } else if (tool === "text") {
       const text = new FabricText("Double click to edit", {
         left: 100,
@@ -136,7 +153,36 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       });
       fabricCanvas.add(text);
       fabricCanvas.setActiveObject(text);
+      fabricCanvas.renderAll();
     }
+  };
+
+  const handleDeleteSelected = () => {
+    if (!fabricCanvas) return;
+    const activeObjects = fabricCanvas.getActiveObjects();
+    if (activeObjects.length > 0) {
+      fabricCanvas.remove(...activeObjects);
+      fabricCanvas.discardActiveObject();
+      fabricCanvas.renderAll();
+      toast.success("Deleted selected objects");
+    }
+  };
+
+  const handleCombineShapes = () => {
+    if (!fabricCanvas) return;
+    const activeObjects = fabricCanvas.getActiveObjects();
+    if (activeObjects.length < 2) {
+      toast.error("Select at least 2 objects to combine");
+      return;
+    }
+    
+    // Simple grouping for now
+    const group = new Group(activeObjects);
+    fabricCanvas.remove(...activeObjects);
+    fabricCanvas.add(group);
+    fabricCanvas.setActiveObject(group);
+    fabricCanvas.renderAll();
+    toast.success("Combined selected objects");
   };
 
   const handleClear = () => {
@@ -246,9 +292,17 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
               </div>
               
               <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={handleDeleteSelected}>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCombineShapes}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Combine
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleClear}>
                   <Trash2 className="h-4 w-4 mr-1" />
-                  Clear
+                  Clear All
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleExport}>
                   <Download className="h-4 w-4 mr-1" />

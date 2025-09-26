@@ -23,7 +23,7 @@ serve(async (req) => {
       toMethod 
     });
 
-    const organizationMethodDescriptions = {
+    const organizationMethodDescriptions: Record<string, string> = {
       dewey: "Dewey Decimal Classification (000-999): Knowledge organized by subject areas like 000-Computer Science, 100-Philosophy, 200-Religion, 300-Social Sciences, 400-Language, 500-Science, 600-Technology, 700-Arts, 800-Literature, 900-History",
       luhmann: "Luhmann System: Alphanumeric branching (1, 1a, 1a1, 1a2, 1b, 2, 2a, etc.) where each card builds on or relates to its parent, creating organic knowledge trees",
       folgezettel: "Folgezettel System: Sequential decimal numbering (1.1, 1.2, 1.2.1, 1.2.2, 2.1, etc.) where numbers indicate hierarchical relationships and topic development",
@@ -122,8 +122,9 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
 
   } catch (error) {
     console.error('Error in ai-reorganize-cards function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to reorganize cards';
     return new Response(JSON.stringify({ 
-      error: error.message || 'Failed to reorganize cards'
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

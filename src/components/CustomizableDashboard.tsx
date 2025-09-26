@@ -1,5 +1,6 @@
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 import { DashboardCustomizer } from "./DashboardCustomizer";
+import { DashboardWidgetSidebar } from "./DashboardWidgetSidebar";
 import { WelcomeWidget } from "./widgets/WelcomeWidget";
 import { StatsWidget } from "./widgets/StatsWidget";
 import { RecentCardsWidget } from "./widgets/RecentCardsWidget";
@@ -224,7 +225,10 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Customize your workspace to fit your workflow</p>
           </div>
-          <DashboardCustomizer />
+          <div className="flex gap-2">
+            <DashboardWidgetSidebar />
+            <DashboardCustomizer />
+          </div>
         </div>
 
         {/* Responsive grid layout */}
@@ -241,7 +245,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
               <h3 className="text-lg font-semibold text-foreground mb-2">No widgets to display</h3>
               <p className="text-muted-foreground">Use the customize button to add widgets to your dashboard</p>
             </div>
-            <DashboardCustomizer />
+            <DashboardWidgetSidebar />
           </div>
         )}
       </div>

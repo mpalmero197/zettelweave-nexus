@@ -99,7 +99,7 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 max-h-[60vh]">
             <div className="p-8 space-y-8">
               {/* Main Content */}
               <div className="prose prose-lg max-w-none">

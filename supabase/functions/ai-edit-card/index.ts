@@ -22,7 +22,7 @@ serve(async (req) => {
     // Retry with exponential backoff for rate limits
     let retries = 3;
     let delay = 1000; // Start with 1 second delay
-    let response;
+    let response: Response | undefined;
     
     for (let attempt = 0; attempt <= retries; attempt++) {
       response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -83,6 +83,10 @@ Please improve this card according to the user's request and return the result a
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
+    if (!response) {
+      throw new Error('No response received from OpenAI API');
+    }
+
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
@@ -111,8 +115,9 @@ Please improve this card according to the user's request and return the result a
 
   } catch (error) {
     console.error('Error in ai-edit-card function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process AI edit request';
     return new Response(JSON.stringify({ 
-      error: error.message || 'Failed to process AI edit request'
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
