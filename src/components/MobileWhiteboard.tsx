@@ -191,7 +191,17 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        setDrawingState(parsed);
+        // Ensure the parsed state has the correct structure
+        const validState: DrawingState = {
+          objects: parsed.objects || [],
+          images: parsed.images || {},
+          currentPath: parsed.currentPath || [],
+          currentObject: parsed.currentObject || null,
+          scale: parsed.scale || 1,
+          offsetX: parsed.offsetX || 0,
+          offsetY: parsed.offsetY || 0
+        };
+        setDrawingState(validState);
         toast("Whiteboard restored!");
       }
     } catch (e) {
@@ -232,13 +242,15 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     ctx.translate(drawingState.offsetX, drawingState.offsetY);
     ctx.scale(drawingState.scale, drawingState.scale);
 
-    // Draw all objects
-    drawingState.objects.forEach(obj => {
-      ctx.save();
-      ctx.translate(obj.position.x, obj.position.y);
+    // Draw all objects - add safety check
+    if (drawingState.objects && Array.isArray(drawingState.objects)) {
+      drawingState.objects.forEach(obj => {
+        ctx.save();
+        ctx.translate(obj.position.x, obj.position.y);
       
-      // Draw object paths and images
-      obj.paths.forEach(path => {
+        // Draw object paths and images - add safety checks
+        if (obj.paths && Array.isArray(obj.paths)) {
+          obj.paths.forEach(path => {
         if (path.points.length < 2) return;
         
         ctx.strokeStyle = path.color;
@@ -255,10 +267,12 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         }
         
         ctx.stroke();
-      });
+          });
+        }
 
-      // Draw images
-      obj.images.forEach(imgElement => {
+        // Draw images - add safety check
+        if (obj.images && Array.isArray(obj.images)) {
+          obj.images.forEach(imgElement => {
         const img = drawingState.images[imgElement.id];
         if (img && img.complete) {
           ctx.drawImage(
@@ -269,7 +283,8 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
             imgElement.height
           );
         }
-      });
+          });
+        }
       
       // Draw selection/edit outline
       if (obj.selected || obj.editing) {
@@ -289,9 +304,10 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
           ctx.fillText("✓", obj.bounds.width - 12, -5);
         }
       }
-      
-      ctx.restore();
-    });
+        
+        ctx.restore();
+      });
+    }
 
     // Draw current path while drawing
     if (drawingState.currentPath.length > 1) {
