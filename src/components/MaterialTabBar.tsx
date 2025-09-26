@@ -16,6 +16,7 @@ interface MaterialTabBarProps {
 
 export function MaterialTabBar({ value, onValueChange }: MaterialTabBarProps) {
   const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "cards", label: "Cards", icon: FileText },
     { id: "graph", label: "Graph", icon: BarChart3 },
     { id: "whiteboard", label: "Board", icon: Palette },

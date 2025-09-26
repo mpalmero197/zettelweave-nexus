@@ -274,7 +274,7 @@ const Index = () => {
               {/* Main Content Area */}
               <div className="flex-1 min-h-[600px]">
                 <TabsContent value="dashboard" className="mt-0">
-                  <Dashboard />
+                  <Dashboard onCreateCard={handleCreateCard} />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">

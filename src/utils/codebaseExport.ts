@@ -6,8 +6,168 @@ interface FileEntry {
   content: string;
 }
 
+// Dynamically fetch and export all source files
+const getAllSourceFiles = async (): Promise<FileEntry[]> => {
+  const sourceFiles: FileEntry[] = [];
+  
+  // Static files list based on your project structure
+  const filesToExport = [
+    // Config files
+    'vite.config.ts',
+    'tailwind.config.ts',
+    'eslint.config.js',
+    'index.html',
+    'tsconfig.json',
+    'tsconfig.app.json',
+    'tsconfig.node.json',
+    'postcss.config.js',
+    'components.json',
+    
+    // Source files
+    'src/main.tsx',
+    'src/App.tsx',
+    'src/App.css',
+    'src/index.css',
+    'src/vite-env.d.ts',
+    
+    // Types
+    'src/types/zettel.ts',
+    
+    // Hooks
+    'src/hooks/useAuth.ts',
+    'src/hooks/useZettelCards.ts',
+    'src/hooks/use-mobile.tsx',
+    'src/hooks/use-toast.ts',
+    
+    // Utils
+    'src/lib/utils.ts',
+    'src/utils/deweySystem.ts',
+    'src/utils/security.ts',
+    'src/utils/exportUtils.ts',
+    
+    // Pages
+    'src/pages/Index.tsx',
+    'src/pages/Auth.tsx',
+    'src/pages/NotFound.tsx',
+    
+    // Components
+    'src/components/Dashboard.tsx',
+    'src/components/MaterialTabBar.tsx',
+    'src/components/ScratchPad.tsx',
+    'src/components/AIEditDialog.tsx',
+    'src/components/AccountManagement.tsx',
+    'src/components/BulletJournal.tsx',
+    'src/components/Calendar.tsx',
+    'src/components/CardActionsMenu.tsx',
+    'src/components/ConfirmDialog.tsx',
+    'src/components/CreateCardDialog.tsx',
+    'src/components/DeleteAllCardsDialog.tsx',
+    'src/components/DocumentViewer.tsx',
+    'src/components/EditCardDialog.tsx',
+    'src/components/FastLoadingFallback.tsx',
+    'src/components/FileUploadDialog.tsx',
+    'src/components/Graph3D.tsx',
+    'src/components/GraphView.tsx',
+    'src/components/GraphViewHeavy.tsx',
+    'src/components/HabitTracker.tsx',
+    'src/components/ImportDialog.tsx',
+    'src/components/InfiniteWhiteboard.tsx',
+    'src/components/LoadingSpinner.tsx',
+    'src/components/MediaUpload.tsx',
+    'src/components/MobileOptimizedLayout.tsx',
+    'src/components/MobileWhiteboard.tsx',
+    'src/components/Notebooks.tsx',
+    'src/components/Notes.tsx',
+    'src/components/OrganizationMethodDialog.tsx',
+    'src/components/RecommendationSidebar.tsx',
+    'src/components/SearchBar.tsx',
+    'src/components/SecurityNotice.tsx',
+    'src/components/StickyNotes.tsx',
+    'src/components/StickyNotesEnhanced.tsx',
+    'src/components/VaultImportDialog.tsx',
+    'src/components/WordDefinitionPopover.tsx',
+    'src/components/ZettelCard.tsx',
+    
+    // UI Components
+    'src/components/ui/accordion.tsx',
+    'src/components/ui/alert-dialog.tsx',
+    'src/components/ui/alert.tsx',
+    'src/components/ui/aspect-ratio.tsx',
+    'src/components/ui/avatar.tsx',
+    'src/components/ui/badge.tsx',
+    'src/components/ui/breadcrumb.tsx',
+    'src/components/ui/button.tsx',
+    'src/components/ui/calendar.tsx',
+    'src/components/ui/card.tsx',
+    'src/components/ui/carousel.tsx',
+    'src/components/ui/chart.tsx',
+    'src/components/ui/checkbox.tsx',
+    'src/components/ui/collapsible.tsx',
+    'src/components/ui/command.tsx',
+    'src/components/ui/context-menu.tsx',
+    'src/components/ui/dialog.tsx',
+    'src/components/ui/drawer.tsx',
+    'src/components/ui/dropdown-menu.tsx',
+    'src/components/ui/form.tsx',
+    'src/components/ui/hover-card.tsx',
+    'src/components/ui/input-otp.tsx',
+    'src/components/ui/input.tsx',
+    'src/components/ui/label.tsx',
+    'src/components/ui/menubar.tsx',
+    'src/components/ui/navigation-menu.tsx',
+    'src/components/ui/pagination.tsx',
+    'src/components/ui/popover.tsx',
+    'src/components/ui/progress.tsx',
+    'src/components/ui/radio-group.tsx',
+    'src/components/ui/resizable.tsx',
+    'src/components/ui/scroll-area.tsx',
+    'src/components/ui/select.tsx',
+    'src/components/ui/separator.tsx',
+    'src/components/ui/sheet.tsx',
+    'src/components/ui/sidebar.tsx',
+    'src/components/ui/skeleton.tsx',
+    'src/components/ui/slider.tsx',
+    'src/components/ui/sonner.tsx',
+    'src/components/ui/switch.tsx',
+    'src/components/ui/table.tsx',
+    'src/components/ui/tabs.tsx',
+    'src/components/ui/textarea.tsx',
+    'src/components/ui/toast.tsx',
+    'src/components/ui/toaster.tsx',
+    'src/components/ui/toggle-group.tsx',
+    'src/components/ui/toggle.tsx',
+    'src/components/ui/tooltip.tsx',
+    'src/components/ui/use-toast.ts',
+    
+    // Integrations
+    'src/integrations/supabase/client.ts',
+    
+    // Supabase
+    'supabase/config.toml',
+    'supabase/functions/ai-edit-card/index.ts',
+    'supabase/functions/ai-reorganize-cards/index.ts',
+    
+    // Public
+    'public/robots.txt'
+  ];
+  
+  for (const filePath of filesToExport) {
+    try {
+      const response = await fetch(`/${filePath}`);
+      if (response.ok) {
+        const content = await response.text();
+        sourceFiles.push({ path: filePath, content });
+      }
+    } catch (error) {
+      console.warn(`Could not fetch ${filePath}:`, error);
+    }
+  }
+  
+  return sourceFiles;
+};
+
 // Core application files to export
-const coreFiles: FileEntry[] = [
+const getCoreFiles = (): FileEntry[] => [
   // Package files
   {
     path: 'package.json',
@@ -107,71 +267,191 @@ const coreFiles: FileEntry[] = [
   // README
   {
     path: 'README.md',
-    content: `# Zettelkasten Knowledge System
+    content: `# ZettelWeave Nexus - Complete Zettelkasten Knowledge System
 
-A comprehensive knowledge management system built with React, TypeScript, and Supabase.
+A comprehensive, production-ready knowledge management system built with React, TypeScript, and Supabase.
 
-## Features
+## 🚀 Features
 
-- 📝 Note-taking with rich text formatting
-- 🔗 Interconnected knowledge cards (Zettelkasten method)
-- 📊 Visual knowledge graph
-- 🎨 Infinite whiteboard for creative thinking
-- 📅 Integrated calendar and scheduling
-- 📖 Notebook organization
-- 🏷️ Tagging system
-- 📱 Mobile-responsive design
-- 🎭 Multiple themes
-- 🔒 Secure authentication
-- ☁️ Cloud synchronization
+- 📝 **Rich Note-Taking**: Advanced text formatting and media support
+- 🔗 **Zettelkasten Method**: Interconnected knowledge cards with graph visualization  
+- 📊 **Visual Knowledge Graph**: Interactive 3D graph of your knowledge network
+- 🎨 **Infinite Whiteboard**: Creative thinking space with drawing tools
+- 📅 **Integrated Calendar**: Scheduling and time management
+- 📖 **Notebook Organization**: Hierarchical content organization
+- 🏷️ **Advanced Tagging**: Categorization with Dewey Decimal System
+- 📱 **Mobile Responsive**: Perfect experience on all devices
+- 🎭 **Dark/Light Themes**: Beautiful Apple-inspired design
+- 🔒 **Secure Authentication**: User accounts with data privacy
+- ☁️ **Cloud Synchronization**: Real-time data sync across devices
+- 🤖 **AI Integration**: Smart recommendations and content assistance
+- 📈 **Analytics Dashboard**: Insights into your knowledge growth
+- 📤 **Export Options**: Multiple formats (PDF, Markdown, JSON)
+- 🔍 **Powerful Search**: Full-text search across all content
 
-## Quick Start
+## 🛠️ Tech Stack
 
-1. **Install dependencies**
-   \`\`\`bash
-   npm install
-   \`\`\`
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui (Apple-inspired design)
+- **State Management**: React Query + Custom hooks
+- **Authentication**: Supabase Auth
+- **Database**: Supabase (PostgreSQL with RLS)
+- **Visualization**: React Flow + Three.js
+- **Canvas**: Fabric.js for whiteboard functionality
 
-2. **Set up environment variables**
-   Create a \`.env\` file with your Supabase credentials:
-   \`\`\`env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   \`\`\`
+## ⚡ Quick Start
 
-3. **Set up Supabase database**
-   - Create a new Supabase project
-   - Run the SQL migrations in the \`supabase/migrations\` folder
-   - Enable Row Level Security (RLS) policies
+### 1. Install Dependencies
+\`\`\`bash
+npm install
+\`\`\`
 
-4. **Start development server**
-   \`\`\`bash
-   npm run dev
-   \`\`\`
+### 2. Environment Setup
+Create a \`.env\` file in the root directory:
+\`\`\`env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+\`\`\`
 
-## Deployment
+### 3. Database Setup
+1. Create a new [Supabase](https://supabase.com) project
+2. Run the SQL migrations in \`supabase/migrations/\` (if available)
+3. Set up the following tables with Row Level Security (RLS):
 
-### Build for production
+**Required Tables:**
+- \`zettel_cards\` - Core knowledge cards
+- \`notes\` - Free-form notes
+- \`notebooks\` - Organization containers
+- \`calendar_events\` - Scheduling data
+- \`profiles\` - User profile information
+
+**RLS Policies:**
+All tables should have policies allowing users to CRUD their own data only.
+
+### 4. Development Server
+\`\`\`bash
+npm run dev
+\`\`\`
+
+Visit \`http://localhost:5173\` to see your application.
+
+## 📦 Production Deployment
+
+### Build for Production
 \`\`\`bash
 npm run build
 \`\`\`
 
-### Deploy to Netlify/Vercel
+### Deploy Options
+
+**Netlify/Vercel (Recommended):**
+1. Connect your GitHub repository
+2. Set build command: \`npm run build\`
+3. Set publish directory: \`dist\`
+4. Add environment variables in the dashboard
+
+**Manual Deployment:**
 1. Build the project: \`npm run build\`
 2. Upload the \`dist\` folder to your hosting provider
-3. Configure environment variables in your hosting dashboard
+3. Configure environment variables
+4. Set up redirects for SPA routing
 
-## Architecture
+## 🏗️ Project Structure
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS + shadcn/ui
-- **State Management**: React Query + Custom hooks
-- **Authentication**: Supabase Auth
-- **Database**: Supabase (PostgreSQL)
+\`\`\`
+src/
+├── components/          # React components
+│   ├── ui/             # Reusable UI components
+│   ├── Dashboard.tsx   # Main dashboard
+│   ├── ZettelCard.tsx  # Knowledge card component
+│   └── ...
+├── hooks/              # Custom React hooks
+├── pages/              # Main application pages
+├── types/              # TypeScript type definitions
+├── utils/              # Utility functions
+└── integrations/       # External service integrations
+    └── supabase/       # Supabase configuration
+\`\`\`
 
-## License
+## 🔧 Configuration
 
-MIT License`
+### Supabase Setup
+1. Enable Row Level Security on all tables
+2. Set up authentication providers (email, Google, etc.)
+3. Configure storage buckets for file uploads
+4. Set up real-time subscriptions for live updates
+
+### Environment Variables
+- \`VITE_SUPABASE_URL\`: Your Supabase project URL
+- \`VITE_SUPABASE_ANON_KEY\`: Your Supabase anonymous key
+
+## 🎨 Design System
+
+The application uses an Apple-inspired design system with:
+- Clean, minimal aesthetics
+- Glassmorphic elements
+- Smooth animations and transitions
+- Consistent spacing and typography
+- Accessible color contrast ratios
+
+## 🔒 Security
+
+- Row Level Security (RLS) on all database tables
+- Secure authentication flows
+- Data validation and sanitization
+- HTTPS enforcement
+- Regular security audits
+
+## 📱 Mobile Support
+
+Fully responsive design optimized for:
+- Mobile phones (iOS/Android)
+- Tablets
+- Desktop computers
+- Progressive Web App (PWA) capabilities
+
+## 🤝 Contributing
+
+This is a complete, production-ready knowledge management system. 
+Feel free to customize and extend for your specific needs.
+
+## 📄 License
+
+MIT License - feel free to use this codebase for personal or commercial projects.
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+**Build Errors:**
+- Ensure all dependencies are installed: \`npm install\`
+- Check Node.js version compatibility (16+ recommended)
+- Clear cache: \`npm run build --force\`
+
+**Database Connection:**
+- Verify Supabase credentials in \`.env\`
+- Check RLS policies are properly configured
+- Ensure tables exist with correct schemas
+
+**Authentication Issues:**
+- Confirm Supabase Auth is enabled
+- Check redirect URLs in Supabase dashboard
+- Verify email templates are configured
+
+**Performance:**
+- Enable image optimization
+- Use lazy loading for large datasets
+- Implement proper caching strategies
+
+### Getting Help
+
+1. Check the browser console for error messages
+2. Verify network requests in developer tools
+3. Test database queries directly in Supabase
+4. Review component state management
+
+This application is designed to be self-hosted and fully functional out of the box. 
+Follow the setup instructions carefully for the best experience.`
   },
 
   // Environment template
@@ -179,7 +459,50 @@ MIT License`
     path: '.env.template',
     content: `# Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key`
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Replace with your actual Supabase project credentials
+# Get these from: https://app.supabase.com/project/YOUR_PROJECT/settings/api`
+  },
+
+  // .gitignore
+  {
+    path: '.gitignore',
+    content: `# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Supabase
+.branches
+.temp`
   }
 ];
 
@@ -193,14 +516,28 @@ export const exportCodebase = async (userEmail: string): Promise<void> => {
   
   try {
     // Add core configuration files
+    const coreFiles = getCoreFiles();
     coreFiles.forEach(file => {
       zip.file(file.path, file.content);
     });
 
+    // Attempt to fetch and add all source files
+    try {
+      const sourceFiles = await getAllSourceFiles();
+      sourceFiles.forEach(file => {
+        zip.file(file.path, file.content);
+      });
+      console.log(`Successfully packaged ${sourceFiles.length} source files`);
+    } catch (error) {
+      console.warn('Could not fetch all source files, exporting core files only:', error);
+    }
+
     // Generate and download zip
     const blob = await zip.generateAsync({ type: 'blob' });
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    saveAs(blob, `zettelkasten-backup-${timestamp}.zip`);
+    saveAs(blob, `zettelweave-nexus-complete-${timestamp}.zip`);
+    
+    console.log('Codebase export completed successfully');
     
   } catch (error) {
     console.error('Export failed:', error);

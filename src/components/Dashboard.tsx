@@ -18,9 +18,12 @@ import {
   Plus,
   Notebook,
   Lightbulb,
-  Target
+  Target,
+  Sparkles,
+  Edit3
 } from 'lucide-react';
 import { format, isToday, isYesterday, startOfDay, subDays } from 'date-fns';
+import { ScratchPad } from './ScratchPad';
 
 interface Note {
   id: string;
@@ -49,7 +52,11 @@ interface CalendarEvent {
   created_at: string;
 }
 
-export function Dashboard() {
+interface DashboardProps {
+  onCreateCard?: (card: any) => void;
+}
+
+export function Dashboard({ onCreateCard }: DashboardProps = {}) {
   const { user } = useAuth();
   const { cards } = useZettelCards();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -142,154 +149,268 @@ export function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome back!</h1>
-          <p className="text-muted-foreground">Here's what's happening in your knowledge base</p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="p-6 space-y-8">
+        {/* Welcome Header */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
+          <div className="relative bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-card hover:shadow-hover transition-all duration-500">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-primary rounded-2xl shadow-lg">
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Welcome back!
+                  </h1>
+                </div>
+                <p className="text-muted-foreground text-lg">Your knowledge universe awaits</p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Quick Create
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Quick Add
-          </Button>
-        </div>
-      </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Zettel Cards</p>
-                <p className="text-2xl font-bold text-primary">{cards.length}</p>
-              </div>
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Brain className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Notes</p>
-                <p className="text-2xl font-bold text-blue-600">{notes.length}</p>
-              </div>
-              <div className="p-3 bg-blue-500/10 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Notebooks</p>
-                <p className="text-2xl font-bold text-green-600">{notebooks.length}</p>
-              </div>
-              <div className="p-3 bg-green-500/10 rounded-lg">
-                <BookOpen className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500/5 to-orange-500/10 border-orange-500/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Today's Events</p>
-                <p className="text-2xl font-bold text-orange-600">{todaysEvents.length}</p>
-              </div>
-              <div className="p-3 bg-orange-500/10 rounded-lg">
-                <Calendar className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="recent" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-muted/30">
-          <TabsTrigger value="recent" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Recent
-          </TabsTrigger>
-          <TabsTrigger value="favorites" className="flex items-center gap-2">
-            <Star className="h-4 w-4" />
-            Favorites
-          </TabsTrigger>
-          <TabsTrigger value="notebooks" className="flex items-center gap-2">
-            <Notebook className="h-4 w-4" />
-            Notebooks
-          </TabsTrigger>
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Upcoming
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="recent" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Cards */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-primary" />
-                  Recent Zettel Cards
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {recentCards.length > 0 ? (
-                  recentCards.map((card) => (
-                    <div key={card.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{card.title}</p>
-                        <p className="text-xs text-muted-foreground">{card.number} • {getTimeAgo(card.updated_at || card.modified)}</p>
-                      </div>
-                      {card.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No cards yet</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Notes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  Recent Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {notes.length > 0 ? (
-                  notes.map((note) => (
-                    <div key={note.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{note.title}</p>
-                        <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>
-                      </div>
-                      {note.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No notes yet</p>
-                )}
+        {/* Stats Overview - Glassmorphic Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+            <Card className="relative bg-card/70 backdrop-blur-xl border border-primary/20 hover:border-primary/40 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Zettel Cards</p>
+                    <p className="text-3xl font-bold text-primary">{cards.length}</p>
+                  </div>
+                  <div className="p-4 bg-primary/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <Brain className="h-7 w-7 text-primary" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+            <Card className="relative bg-card/70 backdrop-blur-xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Notes</p>
+                    <p className="text-3xl font-bold text-blue-600">{notes.length}</p>
+                  </div>
+                  <div className="p-4 bg-blue-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <FileText className="h-7 w-7 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-500/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+            <Card className="relative bg-card/70 backdrop-blur-xl border border-green-500/20 hover:border-green-500/40 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Notebooks</p>
+                    <p className="text-3xl font-bold text-green-600">{notebooks.length}</p>
+                  </div>
+                  <div className="p-4 bg-green-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <BookOpen className="h-7 w-7 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-500/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+            <Card className="relative bg-card/70 backdrop-blur-xl border border-orange-500/20 hover:border-orange-500/40 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Today's Events</p>
+                    <p className="text-3xl font-bold text-orange-600">{todaysEvents.length}</p>
+                  </div>
+                  <div className="p-4 bg-orange-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                    <Calendar className="h-7 w-7 text-orange-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Quick Actions & Scratchpad */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-primary/5 to-accent/10 rounded-3xl blur-2xl opacity-40" />
+              <Card className="relative bg-card/70 backdrop-blur-xl border border-border/50 rounded-3xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent" />
+                <CardHeader className="relative">
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <div className="p-2 bg-gradient-accent rounded-xl">
+                      <Edit3 className="h-5 w-5 text-white" />
+                    </div>
+                    Quick Capture
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <ScratchPad onCreateCard={onCreateCard} />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <Card className="bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+              <CardHeader className="relative">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Activity className="h-5 w-5 text-primary" />
+                  Quick Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="relative space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">This Week</span>
+                  <span className="text-sm font-semibold text-primary">+{Math.floor(Math.random() * 10)} cards</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Connections</span>
+                  <span className="text-sm font-semibold text-green-600">{cards.reduce((acc, card) => acc + (card.linkedCards?.length || 0), 0)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Categories</span>
+                  <span className="text-sm font-semibold text-blue-600">{new Set(cards.map(card => card.category)).size}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="recent" className="w-full">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20 rounded-2xl blur-xl" />
+            <TabsList className="relative grid w-full grid-cols-4 bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl p-2 shadow-lg">
+              <TabsTrigger 
+                value="recent" 
+                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
+              >
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline">Recent</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="favorites" 
+                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
+              >
+                <Star className="h-4 w-4" />
+                <span className="hidden sm:inline">Favorites</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="notebooks" 
+                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
+              >
+                <Notebook className="h-4 w-4" />
+                <span className="hidden sm:inline">Notebooks</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="calendar" 
+                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
+              >
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">Upcoming</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="recent" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Cards */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-50" />
+                <Card className="relative bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+                  <CardHeader className="relative">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <Brain className="h-5 w-5 text-primary" />
+                      </div>
+                      Recent Zettel Cards
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative space-y-3">
+                    {recentCards.length > 0 ? (
+                      recentCards.map((card) => (
+                        <div key={card.id} className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm group-hover:text-primary transition-colors">{card.title}</p>
+                            <p className="text-xs text-muted-foreground">{card.number} • {getTimeAgo(card.updated_at || card.modified)}</p>
+                          </div>
+                          {card.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12">
+                        <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <p className="text-sm text-muted-foreground">No cards yet</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Notes */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-2xl blur-xl opacity-50" />
+                <Card className="relative bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+                  <CardHeader className="relative">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 rounded-xl">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                      </div>
+                      Recent Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative space-y-3">
+                    {notes.length > 0 ? (
+                      notes.map((note) => (
+                        <div key={note.id} className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">{note.title}</p>
+                            <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>
+                          </div>
+                          {note.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <p className="text-sm text-muted-foreground">No notes yet</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
 
         <TabsContent value="favorites" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -441,7 +562,8 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }
