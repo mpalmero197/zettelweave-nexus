@@ -1,72 +1,69 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { 
-  Pen, 
-  Square, 
-  Circle as CircleIcon, 
-  Type, 
-  Move, 
-  Trash2, 
-  Download,
-  Plus,
-  Palette,
-  Undo,
-  Redo,
-  ZoomIn,
-  ZoomOut,
-  Edit3,
-  Check,
-  X,
-  Image,
-  Combine,
-  Upload
-} from "lucide-react";
-import { ZettelCard as ZettelCardType } from "@/types/zettel";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { MousePointer2, Pen, Eraser, Combine, Edit, Move, RotateCcw, Download, Upload, Trash2, Palette, ImageIcon, FileText } from "lucide-react";
+import { HexColorPicker } from "react-colorful";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-
-interface MobileWhiteboardProps {
-  onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
-}
-
-type Tool = "draw" | "erase" | "select" | "pan" | "edit" | "combine";
+import { MediaUpload } from "./MediaUpload";
+import { DocumentViewer } from "./DocumentViewer";
 
 interface Point {
   x: number;
   y: number;
-  pressure?: number;
 }
 
-interface Path {
+interface DrawingTool {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+}
+
+interface SelectionBox {
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+}
+
+interface DrawingPath {
+  id: string;
   points: Point[];
   color: string;
   width: number;
-  tool: string;
 }
 
 interface ImageElement {
   id: string;
-  src: string;
-  x: number;
-  y: number;
+  position: Point;
+  width: number;
+  height: number;
+}
+
+interface DocumentElement {
+  id: string;
+  file: File;
+  position: Point;
   width: number;
   height: number;
 }
 
 interface DrawingObject {
   id: string;
-  paths: Path[];
+  paths: DrawingPath[];
   images: ImageElement[];
+  documents: DocumentElement[];
+  position: Point;
   bounds: { x: number; y: number; width: number; height: number };
-  position: { x: number; y: number };
   selected: boolean;
   editing: boolean;
 }
 
 interface DrawingState {
   objects: DrawingObject[];
-  images: { [key: string]: HTMLImageElement };
+  images: Record<string, HTMLImageElement>;
+  documents: Record<string, File>;
   currentPath: Point[];
   currentObject: DrawingObject | null;
   scale: number;
@@ -74,29 +71,26 @@ interface DrawingState {
   offsetY: number;
 }
 
-const colors = [
-  "#000000", "#ff0000", "#0066ff", "#00cc00", 
-  "#ff6600", "#9900cc", "#00cccc", "#ffcc00"
-];
-
-const brushSizes = [2, 4, 8, 12, 16];
-
-export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
+export const MobileWhiteboard = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  
-  const [activeTool, setActiveTool] = useState<Tool>("draw");
+  const [activeTool, setActiveTool] = useState<"select" | "draw" | "erase" | "combine" | "edit" | "pan">("draw");
   const [activeColor, setActiveColor] = useState("#000000");
-  const [brushSize, setBrushSize] = useState(4);
+  const [brushSize, setBrushSize] = useState(2);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<Point | null>(null);
-  
+  const [dragStart, setDragStart] = useState<Point>({ x: 0, y: 0 });
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [isMultiSelecting, setIsMultiSelecting] = useState(false);
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState<{ file: File; element: DocumentElement } | null>(null);
+
   const [drawingState, setDrawingState] = useState<DrawingState>({
     objects: [],
     images: {},
+    documents: {},
     currentPath: [],
     currentObject: null,
     scale: 1,
@@ -104,17 +98,52 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     offsetY: 0
   });
 
-  const [history, setHistory] = useState<DrawingState[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  const tools: DrawingTool[] = [
+    { id: "select", name: "Select", icon: <MousePointer2 className="h-4 w-4" /> },
+    { id: "draw", name: "Draw", icon: <Pen className="h-4 w-4" /> },
+    { id: "erase", name: "Erase", icon: <Eraser className="h-4 w-4" /> },
+    { id: "combine", name: "Combine", icon: <Combine className="h-4 w-4" /> },
+    { id: "edit", name: "Edit", icon: <Edit className="h-4 w-4" /> },
+    { id: "pan", name: "Pan", icon: <Move className="h-4 w-4" /> },
+  ];
 
-  const STORAGE_KEY = "mobile-whiteboard:state:v2";
+  const STORAGE_KEY = "whiteboard-data";
 
-  // Generate unique ID for objects
-  const generateId = () => Math.random().toString(36).substr(2, 9);
+  // Save state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(drawingState));
+    } catch (e) {
+      console.warn('Failed to save to localStorage:', e);
+    }
+  }, [drawingState]);
 
-  // Calculate bounding box for paths and images
-  const calculateBounds = (paths: Path[], images: ImageElement[] = []) => {
-    if (paths.length === 0 && images.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+  // Load state from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const validState: DrawingState = {
+          objects: parsed.objects || [],
+          images: parsed.images || {},
+          documents: parsed.documents || {},
+          currentPath: parsed.currentPath || [],
+          currentObject: parsed.currentObject || null,
+          scale: parsed.scale || 1,
+          offsetX: parsed.offsetX || 0,
+          offsetY: parsed.offsetY || 0
+        };
+        setDrawingState(validState);
+        toast("Whiteboard restored!");
+      }
+    } catch (e) {
+      console.warn('Failed to load from localStorage:', e);
+    }
+  }, []);
+
+  const calculateBounds = (paths: DrawingPath[]) => {
+    if (paths.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
     
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     
@@ -126,118 +155,26 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         maxY = Math.max(maxY, point.y);
       });
     });
-
-    images.forEach(img => {
-      minX = Math.min(minX, img.x);
-      minY = Math.min(minY, img.y);
-      maxX = Math.max(maxX, img.x + img.width);
-      maxY = Math.max(maxY, img.y + img.height);
-    });
     
-    const padding = 10;
     return {
-      x: minX - padding,
-      y: minY - padding,
-      width: maxX - minX + padding * 2,
-      height: maxY - minY + padding * 2
+      x: minX - 10,
+      y: minY - 10,
+      width: maxX - minX + 20,
+      height: maxY - minY + 20
     };
   };
 
-  // Check if point is inside object bounds
-  const isPointInObject = (point: Point, obj: DrawingObject): boolean => {
-    const bounds = {
-      x: obj.position.x,
-      y: obj.position.y,
-      width: obj.bounds.width,
-      height: obj.bounds.height
-    };
-    
-    return point.x >= bounds.x && 
-           point.x <= bounds.x + bounds.width &&
-           point.y >= bounds.y && 
-           point.y <= bounds.y + bounds.height;
-  };
-
-  // Initialize canvas
-  useEffect(() => {
+  const drawOnCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctxRef.current = ctx;
-
-    const updateCanvasSize = () => {
-      const rect = container.getBoundingClientRect();
-      canvas.width = rect.width * window.devicePixelRatio;
-      canvas.height = rect.height * window.devicePixelRatio;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-      
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      redrawCanvas();
-    };
-
-    updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
-
-    // Load saved state
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Ensure the parsed state has the correct structure
-        const validState: DrawingState = {
-          objects: parsed.objects || [],
-          images: parsed.images || {},
-          currentPath: parsed.currentPath || [],
-          currentObject: parsed.currentObject || null,
-          scale: parsed.scale || 1,
-          offsetX: parsed.offsetX || 0,
-          offsetY: parsed.offsetY || 0
-        };
-        setDrawingState(validState);
-        toast("Whiteboard restored!");
-      }
-    } catch (e) {
-      console.warn('Failed to load whiteboard state');
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateCanvasSize);
-    };
-  }, []);
-
-  // Save state to localStorage
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(drawingState));
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [drawingState]);
-
-  const saveToHistory = useCallback(() => {
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(JSON.parse(JSON.stringify(drawingState)));
-      return newHistory.slice(-20);
-    });
-    setHistoryIndex(prev => Math.min(prev + 1, 19));
-  }, [drawingState, historyIndex]);
-
-  const redrawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = ctxRef.current;
-    if (!canvas || !ctx) return;
-
+    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Apply transformations
     ctx.save();
     ctx.translate(drawingState.offsetX, drawingState.offsetY);
     ctx.scale(drawingState.scale, drawingState.scale);
@@ -255,15 +192,14 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         
         ctx.strokeStyle = path.color;
         ctx.lineWidth = path.width;
-        ctx.globalCompositeOperation = path.tool === 'erase' ? 'destination-out' : 'source-over';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         
         ctx.beginPath();
-        const firstPoint = path.points[0];
-        ctx.moveTo(firstPoint.x - obj.bounds.x, firstPoint.y - obj.bounds.y);
+        ctx.moveTo(path.points[0].x, path.points[0].y);
         
         for (let i = 1; i < path.points.length; i++) {
-          const point = path.points[i];
-          ctx.lineTo(point.x - obj.bounds.x, point.y - obj.bounds.y);
+          ctx.lineTo(path.points[i].x, path.points[i].y);
         }
         
         ctx.stroke();
@@ -277,30 +213,63 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
         if (img && img.complete) {
           ctx.drawImage(
             img,
-            imgElement.x - obj.bounds.x,
-            imgElement.y - obj.bounds.y,
+            imgElement.position.x,
+            imgElement.position.y,
             imgElement.width,
             imgElement.height
           );
         }
           });
         }
+
+        // Draw document icons - add safety check
+        if (obj.documents && Array.isArray(obj.documents)) {
+          obj.documents.forEach(docElement => {
+            const iconSize = 48;
+            const x = docElement.position.x;
+            const y = docElement.position.y;
+            
+            // Draw document icon background
+            ctx.fillStyle = 'hsl(var(--card))';
+            ctx.fillRect(x, y, iconSize, iconSize);
+            ctx.strokeStyle = 'hsl(var(--border))';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, iconSize, iconSize);
+            
+            // Draw document icon
+            ctx.fillStyle = 'hsl(var(--muted-foreground))';
+            ctx.font = '24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('📄', x + iconSize/2, y + iconSize/2 + 8);
+            
+            // Draw filename
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = 'hsl(var(--foreground))';
+            const maxWidth = iconSize + 20;
+            const fileName = docElement.file.name.length > 12 ? 
+              docElement.file.name.substring(0, 12) + '...' : 
+              docElement.file.name;
+            ctx.fillText(fileName, x + iconSize/2, y + iconSize + 12);
+          });
+        }
       
       // Draw selection/edit outline
       if (obj.selected || obj.editing) {
-        ctx.strokeStyle = obj.editing ? "#00ff00" : "#0066ff";
-        ctx.lineWidth = 2 / drawingState.scale;
+        ctx.strokeStyle = obj.editing ? '#10b981' : '#3b82f6';
+        ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeRect(0, 0, obj.bounds.width, obj.bounds.height);
+        ctx.strokeRect(
+          obj.bounds.x - 5,
+          obj.bounds.y - 5,
+          obj.bounds.width + 10,
+          obj.bounds.height + 10
+        );
         ctx.setLineDash([]);
         
-        // Draw edit indicator
+        // Draw editing indicator
         if (obj.editing) {
-          ctx.fillStyle = "#00ff00";
-          ctx.fillRect(obj.bounds.width - 15, -15, 15, 15);
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "10px Arial";
+          ctx.fillStyle = '#10b981';
+          ctx.font = '16px sans-serif';
           ctx.fillText("✓", obj.bounds.width - 12, -5);
         }
       }
@@ -309,44 +278,73 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       });
     }
 
+    // Draw marquee selection box
+    if (isMultiSelecting && selectionBox) {
+      const box = selectionBox;
+      const x = Math.min(box.startX, box.endX);
+      const y = Math.min(box.startY, box.endY);
+      const width = Math.abs(box.endX - box.startX);
+      const height = Math.abs(box.endY - box.startY);
+      
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.strokeStyle = 'hsl(var(--primary))';
+      ctx.fillStyle = 'hsl(var(--primary) / 0.1)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      
+      const screenX = x * drawingState.scale + drawingState.offsetX;
+      const screenY = y * drawingState.scale + drawingState.offsetY;
+      const screenWidth = width * drawingState.scale;
+      const screenHeight = height * drawingState.scale;
+      
+      ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
+      ctx.strokeRect(screenX, screenY, screenWidth, screenHeight);
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
     // Draw current path while drawing
     if (drawingState.currentPath.length > 1) {
       ctx.strokeStyle = activeColor;
       ctx.lineWidth = brushSize;
-      ctx.globalCompositeOperation = activeTool === 'erase' ? 'destination-out' : 'source-over';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       
       ctx.beginPath();
       ctx.moveTo(drawingState.currentPath[0].x, drawingState.currentPath[0].y);
       
       for (let i = 1; i < drawingState.currentPath.length; i++) {
-        const point = drawingState.currentPath[i];
-        ctx.lineTo(point.x, point.y);
+        ctx.lineTo(drawingState.currentPath[i].x, drawingState.currentPath[i].y);
       }
       
       ctx.stroke();
     }
 
     ctx.restore();
-  }, [drawingState, activeColor, brushSize, activeTool]);
+  }, [drawingState, activeColor, brushSize, isMultiSelecting, selectionBox]);
 
   useEffect(() => {
-    redrawCanvas();
-  }, [redrawCanvas]);
+    drawOnCanvas();
+  }, [drawOnCanvas]);
 
-  const getEventPoint = (e: React.TouchEvent | React.MouseEvent | TouchEvent | MouseEvent): Point => {
+  const getEventPoint = (e: React.TouchEvent | React.MouseEvent): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
     let clientX, clientY;
 
-    if ('touches' in e && e.touches.length > 0) {
+    if ('touches' in e) {
+      if (e.touches.length === 0) return { x: 0, y: 0 };
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
-    } else if ('clientX' in e) {
+    } else {
       clientX = e.clientX;
       clientY = e.clientY;
-    } else {
+    }
+
+    if (!rect) {
       return { x: 0, y: 0 };
     }
 
@@ -354,6 +352,27 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       x: (clientX - rect.left - drawingState.offsetX) / drawingState.scale,
       y: (clientY - rect.top - drawingState.offsetY) / drawingState.scale
     };
+  };
+
+  const isPointInObject = (point: Point, obj: DrawingObject): boolean => {
+    const objBounds = {
+      x: obj.position.x + obj.bounds.x,
+      y: obj.position.y + obj.bounds.y,
+      width: obj.bounds.width,
+      height: obj.bounds.height
+    };
+
+    if (obj.documents) {
+      for (const doc of obj.documents) {
+        if (point.x >= doc.position.x && point.x <= doc.position.x + doc.width &&
+            point.y >= doc.position.y && point.y <= doc.position.y + doc.height) {
+          return true;
+        }
+      }
+    }
+
+    return point.x >= objBounds.x && point.x <= objBounds.x + objBounds.width &&
+           point.y >= objBounds.y && point.y <= objBounds.y + objBounds.height;
   };
 
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -366,27 +385,40 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     }
 
     if (activeTool === "select") {
-      // Check if clicking on an object
       const clickedObject = drawingState.objects.find(obj => isPointInObject(point, obj));
       
       if (clickedObject) {
-        // Select object and start dragging
+        const clickedDoc = clickedObject.documents?.find(doc => 
+          point.x >= doc.position.x && point.x <= doc.position.x + doc.width &&
+          point.y >= doc.position.y && point.y <= doc.position.y + doc.height
+        );
+        
+        if (clickedDoc) {
+          setViewingDocument({ file: clickedDoc.file, element: clickedDoc });
+          return;
+        }
+        
+        const isAlreadySelected = clickedObject.selected;
+        
         setDrawingState(prev => ({
           ...prev,
           objects: prev.objects.map(obj => ({
             ...obj,
-            selected: obj.id === clickedObject.id,
+            selected: obj.id === clickedObject.id || (isAlreadySelected && obj.selected),
             editing: false
           }))
         }));
         setIsDragging(true);
         setDragStart(point);
       } else {
-        // Deselect all objects
-        setDrawingState(prev => ({
-          ...prev,
-          objects: prev.objects.map(obj => ({ ...obj, selected: false, editing: false }))
-        }));
+        setIsMultiSelecting(true);
+        setSelectionBox({
+          startX: point.x,
+          startY: point.y,
+          endX: point.x,
+          endY: point.y
+        });
+        setDragStart(point);
       }
       return;
     }
@@ -405,7 +437,6 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       const clickedObject = drawingState.objects.find(obj => isPointInObject(point, obj));
       
       if (clickedObject) {
-        // Enter edit mode
         setDrawingState(prev => ({
           ...prev,
           objects: prev.objects.map(obj => ({
@@ -424,7 +455,6 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     if (activeTool === "draw" || activeTool === "erase") {
       setIsDrawing(true);
       
-      // Check if drawing in edit mode
       if (drawingState.currentObject && drawingState.currentObject.editing) {
         setDrawingState(prev => ({
           ...prev,
@@ -444,21 +474,62 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     const point = getEventPoint(e);
 
     if (isPanning && 'touches' in e && e.touches.length === 2) {
-      // Handle pinch zoom
       return;
     }
 
-    if (isDragging && dragStart) {
-      // Move selected object
+    if (isPanning && lastTouchDistance && 'touches' in e && e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentDistance = Math.sqrt(
+        Math.pow(touch1.clientX - touch2.clientX, 2) + 
+        Math.pow(touch1.clientY - touch2.clientY, 2)
+      );
+      
+      const scale = currentDistance / lastTouchDistance;
+      setDrawingState(prev => ({
+        ...prev,
+        scale: Math.min(Math.max(prev.scale * scale, 0.5), 3)
+      }));
+      
+      setLastTouchDistance(currentDistance);
+      return;
+    }
+
+    if (isMultiSelecting && selectionBox) {
+      setSelectionBox(prev => prev ? {
+        ...prev,
+        endX: point.x,
+        endY: point.y
+      } : null);
+      return;
+    }
+
+    if (isPanning) {
+      const deltaX = point.x - dragStart.x;
+      const deltaY = point.y - dragStart.y;
+      
+      setDrawingState(prev => ({
+        ...prev,
+        offsetX: prev.offsetX + deltaX * drawingState.scale,
+        offsetY: prev.offsetY + deltaY * drawingState.scale
+      }));
+      return;
+    }
+
+    if (isDragging && activeTool === "select") {
       const deltaX = point.x - dragStart.x;
       const deltaY = point.y - dragStart.y;
       
       setDrawingState(prev => ({
         ...prev,
         objects: prev.objects.map(obj => 
-          obj.selected 
-            ? { ...obj, position: { x: obj.position.x + deltaX, y: obj.position.y + deltaY } }
-            : obj
+          obj.selected ? {
+            ...obj,
+            position: {
+              x: obj.position.x + deltaX,
+              y: obj.position.y + deltaY
+            }
+          } : obj
         )
       }));
       
@@ -474,95 +545,71 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     }
   };
 
-  const handleEnd = (e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault();
-
-    if (isPanning) {
-      setIsPanning(false);
-      return;
-    }
-
-    if (isDragging) {
-      setIsDragging(false);
-      setDragStart(null);
-      saveToHistory();
-      return;
-    }
-
-    if (isDrawing) {
-      setIsDrawing(false);
+  const handleEnd = () => {
+    setIsDrawing(false);
+    setIsPanning(false);
+    setIsDragging(false);
+    setLastTouchDistance(null);
+    
+    if (isMultiSelecting && selectionBox) {
+      const box = selectionBox;
+      const minX = Math.min(box.startX, box.endX);
+      const maxX = Math.max(box.startX, box.endX);
+      const minY = Math.min(box.startY, box.endY);
+      const maxY = Math.max(box.startY, box.endY);
       
-      if (drawingState.currentPath.length > 1) {
-        const newPath: Path = {
-          points: drawingState.currentPath,
-          color: activeColor,
-          width: brushSize,
-          tool: activeTool
-        };
+      setDrawingState(prev => ({
+        ...prev,
+        objects: prev.objects.map(obj => ({
+          ...obj,
+          selected: (
+            obj.position.x + obj.bounds.x >= minX &&
+            obj.position.x + obj.bounds.x + obj.bounds.width <= maxX &&
+            obj.position.y + obj.bounds.y >= minY &&
+            obj.position.y + obj.bounds.y + obj.bounds.height <= maxY
+          ) || obj.selected,
+          editing: false
+        }))
+      }));
+      
+      setIsMultiSelecting(false);
+      setSelectionBox(null);
+      return;
+    }
+    
+    if (drawingState.currentPath.length > 1) {
+      const newPath: DrawingPath = {
+        id: Date.now().toString(),
+        points: [...drawingState.currentPath],
+        color: activeColor,
+        width: brushSize
+      };
 
-        if (drawingState.currentObject && drawingState.currentObject.editing) {
-          // Add path to existing object being edited
-          setDrawingState(prev => {
-            const updatedObjects = prev.objects.map(obj => 
-              obj.id === prev.currentObject!.id 
-                ? { ...obj, paths: [...obj.paths, newPath] }
-                : obj
-            );
-            
-            // Recalculate bounds for the edited object
-            const editedObj = updatedObjects.find(obj => obj.id === prev.currentObject!.id);
-            if (editedObj) {
-              const newBounds = calculateBounds(editedObj.paths, editedObj.images);
-              const deltaX = newBounds.x - editedObj.bounds.x;
-              const deltaY = newBounds.y - editedObj.bounds.y;
-              
-              editedObj.bounds = newBounds;
-              editedObj.position = {
-                x: editedObj.position.x + deltaX,
-                y: editedObj.position.y + deltaY
-              };
-              
-              // Adjust all path points relative to new bounds
-              editedObj.paths = editedObj.paths.map(path => ({
-                ...path,
-                points: path.points.map(point => ({
-                  ...point,
-                  x: point.x - deltaX,
-                  y: point.y - deltaY
-                }))
-              }));
-            }
-            
-            return {
-              ...prev,
-              objects: updatedObjects,
-              currentPath: []
-            };
-          });
-        } else {
-          // Create new object
-          const bounds = calculateBounds([newPath]);
-          const newObject: DrawingObject = {
-            id: generateId(),
-            paths: [newPath],
-            images: [],
-            bounds,
-            position: { x: bounds.x, y: bounds.y },
-            selected: false,
-            editing: false
-          };
-
-          setDrawingState(prev => ({
-            ...prev,
-            objects: [...prev.objects, newObject],
-            currentPath: []
-          }));
-        }
-
-        saveToHistory();
-      } else {
+      if (drawingState.currentObject && drawingState.currentObject.editing) {
         setDrawingState(prev => ({
           ...prev,
+          objects: prev.objects.map(obj => 
+            obj.id === prev.currentObject?.id 
+              ? { ...obj, paths: [...obj.paths, newPath] }
+              : obj
+          ),
+          currentPath: []
+        }));
+      } else {
+        const newObject: DrawingObject = {
+          id: Date.now().toString(),
+          paths: [newPath],
+          images: [],
+          documents: [],
+          position: { x: 0, y: 0 },
+          bounds: calculateBounds([newPath]),
+          selected: false,
+          editing: false
+        };
+
+        setDrawingState(prev => ({
+          ...prev,
+          objects: [...prev.objects, newObject],
           currentPath: []
         }));
       }
@@ -573,40 +620,17 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
     const selectedObjects = drawingState.objects.filter(obj => obj.selected);
     if (selectedObjects.length < 2) return;
 
-    // Combine all paths and images
-    const allPaths: Path[] = [];
-    const allImages: ImageElement[] = [];
-
-    selectedObjects.forEach(obj => {
-      // Adjust paths to global coordinates
-      const adjustedPaths = obj.paths.map(path => ({
-        ...path,
-        points: path.points.map(point => ({
-          ...point,
-          x: point.x + obj.position.x - obj.bounds.x,
-          y: point.y + obj.position.y - obj.bounds.y
-        }))
-      }));
-      
-      // Adjust images to global coordinates
-      const adjustedImages = obj.images.map(img => ({
-        ...img,
-        x: img.x + obj.position.x - obj.bounds.x,
-        y: img.y + obj.position.y - obj.bounds.y
-      }));
-
-      allPaths.push(...adjustedPaths);
-      allImages.push(...adjustedImages);
-    });
-
-    // Create combined object
-    const bounds = calculateBounds(allPaths, allImages);
-    const combinedObject: DrawingObject = {
-      id: generateId(),
+    const allPaths = selectedObjects.flatMap(obj => obj.paths);
+    const allImages = selectedObjects.flatMap(obj => obj.images);
+    const allDocuments = selectedObjects.flatMap(obj => obj.documents || []);
+    
+    const mergedObject: DrawingObject = {
+      id: Date.now().toString(),
       paths: allPaths,
       images: allImages,
-      bounds,
-      position: { x: bounds.x, y: bounds.y },
+      documents: allDocuments,
+      position: { x: 0, y: 0 },
+      bounds: calculateBounds(allPaths),
       selected: true,
       editing: false
     };
@@ -615,61 +639,127 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       ...prev,
       objects: [
         ...prev.objects.filter(obj => !obj.selected),
-        combinedObject
+        mergedObject
       ]
     }));
 
-    saveToHistory();
-    toast("Objects combined successfully!");
+    toast("Objects combined!");
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const addImageToCanvas = (file: File) => {
+    const img = new Image();
+    const imageId = Date.now().toString();
+    
+    img.onload = () => {
+      const imageElement: ImageElement = {
+        id: imageId,
+        position: { x: 50, y: 50 },
+        width: Math.min(img.width, 200),
+        height: Math.min(img.height, 200)
+      };
 
-    if (!file.type.startsWith('image/')) {
-      toast("Please select an image file");
-      return;
-    }
+      const newObject: DrawingObject = {
+        id: Date.now().toString(),
+        paths: [],
+        images: [imageElement],
+        documents: [],
+        position: { x: 0, y: 0 },
+        bounds: { 
+          x: imageElement.position.x, 
+          y: imageElement.position.y, 
+          width: imageElement.width, 
+          height: imageElement.height 
+        },
+        selected: false,
+        editing: false
+      };
+
+      setDrawingState(prev => ({
+        ...prev,
+        objects: [...prev.objects, newObject],
+        images: { ...prev.images, [imageId]: img }
+      }));
+
+      toast("Image added to canvas!");
+    };
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const imgId = generateId();
-        const imgElement: ImageElement = {
-          id: imgId,
-          src: e.target?.result as string,
-          x: 100,
-          y: 100,
-          width: Math.min(img.width, 300),
-          height: Math.min(img.height, 300)
-        };
-
-        // Create new object with image
-        const bounds = calculateBounds([], [imgElement]);
-        const newObject: DrawingObject = {
-          id: generateId(),
-          paths: [],
-          images: [imgElement],
-          bounds,
-          position: { x: bounds.x, y: bounds.y },
-          selected: true,
-          editing: false
-        };
-
-        setDrawingState(prev => ({
-          ...prev,
-          objects: [...prev.objects, newObject],
-          images: { ...prev.images, [imgId]: img }
-        }));
-
-        saveToHistory();
-        toast("Image added to whiteboard!");
-      };
       img.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  const addDocumentToCanvas = (file: File) => {
+    const documentId = Date.now().toString();
+    const iconSize = 48;
+    
+    const documentElement: DocumentElement = {
+      id: documentId,
+      file,
+      position: { x: 50, y: 50 },
+      width: iconSize,
+      height: iconSize
+    };
+
+    const newObject: DrawingObject = {
+      id: Date.now().toString(),
+      paths: [],
+      images: [],
+      documents: [documentElement],
+      position: { x: 0, y: 0 },
+      bounds: { 
+        x: documentElement.position.x, 
+        y: documentElement.position.y, 
+        width: documentElement.width, 
+        height: documentElement.height 
+      },
+      selected: false,
+      editing: false
+    };
+
+    setDrawingState(prev => ({
+      ...prev,
+      objects: [...prev.objects, newObject],
+      documents: { ...prev.documents, [documentId]: file }
+    }));
+
+    toast("Document added to canvas!");
+  };
+
+  const exportCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.download = 'whiteboard.png';
+    link.href = canvas.toDataURL();
+    link.click();
+    toast("Canvas exported!");
+  };
+
+  const clearCanvas = () => {
+    setDrawingState({
+      objects: [],
+      images: {},
+      documents: {},
+      currentPath: [],
+      currentObject: null,
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0
+    });
+    toast("Canvas cleared!");
+  };
+
+  const resetView = () => {
+    setDrawingState(prev => ({
+      ...prev,
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0
+    }));
+    toast("View reset!");
   };
 
   const finishEditing = () => {
@@ -679,288 +769,187 @@ export const MobileWhiteboard = ({ onCreateCard }: MobileWhiteboardProps) => {
       currentObject: null
     }));
     setActiveTool("select");
-    saveToHistory();
-    toast("Edit complete!");
+    toast("Editing finished!");
   };
 
-  const cancelEditing = () => {
-    setDrawingState(prev => ({
-      ...prev,
-      objects: prev.objects.map(obj => ({ ...obj, editing: false })),
-      currentObject: null
-    }));
-    setActiveTool("select");
-    toast("Edit cancelled");
-  };
-
-  const deleteSelected = () => {
-    setDrawingState(prev => ({
-      ...prev,
-      objects: prev.objects.filter(obj => !obj.selected)
-    }));
-    saveToHistory();
-    toast("Object deleted");
-  };
-
-  const handleClear = () => {
-    setDrawingState(prev => ({
-      ...prev,
-      objects: [],
-      images: {},
-      currentPath: [],
-      currentObject: null
-    }));
-    saveToHistory();
-    toast("Whiteboard cleared!");
-  };
-
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1);
-      setDrawingState(history[historyIndex - 1]);
-    }
-  };
-
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(prev => prev + 1);
-      setDrawingState(history[historyIndex + 1]);
-    }
-  };
-
-  const handleZoomIn = () => {
-    setDrawingState(prev => ({
-      ...prev,
-      scale: Math.min(prev.scale * 1.5, 4)
-    }));
-  };
-
-  const handleZoomOut = () => {
-    setDrawingState(prev => ({
-      ...prev,
-      scale: Math.max(prev.scale / 1.5, 0.25)
-    }));
-  };
-
-  const handleExport = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const dataURL = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = 'whiteboard.png';
-    link.href = dataURL;
-    link.click();
-    
-    toast("Whiteboard exported!");
-  };
-
-  const handleCreateCard = () => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dataURL = canvas.toDataURL('image/png');
-
-    const newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'> = {
-      title: `Whiteboard Sketch - ${new Date().toLocaleDateString()}`,
-      content: "Visual notes and sketches from mobile whiteboard",
-      description: "Created from mobile whiteboard session",
-      category: "700",
-      number: "",
-      tags: ["whiteboard", "visual", "sketch", "mobile"],
-      linkedCards: [],
-      imageUrl: dataURL
+    const updateCanvasSize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      }
     };
 
-    onCreateCard(newCard);
-    toast("Created zettel card from whiteboard!");
-  };
-
-  const tools = [
-    { tool: "draw" as const, label: "Draw", icon: Pen },
-    { tool: "erase" as const, label: "Erase", icon: Trash2 },
-    { tool: "select" as const, label: "Select", icon: Move },
-    { tool: "edit" as const, label: "Edit", icon: Edit3 },
-    { tool: "combine" as const, label: "Combine", icon: Combine },
-    { tool: "pan" as const, label: "Pan", icon: Square },
-  ];
-
-  const isEditing = drawingState.objects.some(obj => obj.editing);
-  const hasSelected = drawingState.objects.some(obj => obj.selected);
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Palette className="h-5 w-5" />
-            Mobile Whiteboard
-            {isEditing && <span className="text-sm text-green-600">(Editing)</span>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Tools */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {tools.map(({ tool, label, icon: Icon }) => (
-              <Button
-                key={tool}
-                variant={activeTool === tool ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveTool(tool)}
-                className="flex-shrink-0"
-                disabled={isEditing && tool !== "draw" && tool !== "erase"}
-              >
-                <Icon className="h-4 w-4 mr-1" />
-                {label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Edit Mode Controls */}
-          {isEditing && (
-            <div className="flex gap-2 p-2 bg-green-50 rounded-lg">
-              <Button size="sm" onClick={finishEditing} className="flex-1">
-                <Check className="h-4 w-4 mr-1" />
-                Finish Edit
-              </Button>
-              <Button variant="outline" size="sm" onClick={cancelEditing}>
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </Button>
-            </div>
-          )}
-
-          {/* Selection Controls */}
-          {hasSelected && !isEditing && (
-            <div className="flex gap-2 p-2 bg-blue-50 rounded-lg">
-              <Button variant="destructive" size="sm" onClick={deleteSelected}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete Selected
-              </Button>
-            </div>
-          )}
-
-          {/* Colors */}
-          <div className="space-y-2">
-            <span className="text-sm font-medium">Colors:</span>
-            <div className="flex gap-2 flex-wrap">
-              {colors.map((color) => (
-                <button
-                  key={color}
-                  className={`w-10 h-10 rounded-full border-4 touch-manipulation ${
-                    activeColor === color ? "border-primary" : "border-border"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setActiveColor(color)}
-                  disabled={isEditing && activeTool !== "draw" && activeTool !== "erase"}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Brush Size */}
-          <div className="space-y-2">
-            <span className="text-sm font-medium">Brush Size:</span>
-            <div className="flex gap-2 flex-wrap">
-              {brushSizes.map((size) => (
-                <Button
-                  key={size}
-                  variant={brushSize === size ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setBrushSize(size)}
-                  className="min-w-12"
-                  disabled={isEditing && activeTool !== "draw" && activeTool !== "erase"}
-                >
-                  {size}px
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={handleUndo} disabled={isEditing}>
-              <Undo className="h-4 w-4 mr-1" />
-              Undo
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleRedo} disabled={isEditing}>
-              <Redo className="h-4 w-4 mr-1" />
-              Redo
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={isEditing}>
-              <ZoomIn className="h-4 w-4 mr-1" />
-              Zoom+
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={isEditing}>
-              <ZoomOut className="h-4 w-4 mr-1" />
-              Zoom-
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleClear} disabled={isEditing}>
-              <Trash2 className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-              id="image-upload"
-            />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => document.getElementById('image-upload')?.click()}
-              className="flex-1"
-              disabled={isEditing}
-            >
-              <Image className="h-4 w-4 mr-1" />
-              Add Image
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCreateCard} className="flex-1" disabled={isEditing}>
-              <Plus className="h-4 w-4 mr-1" />
-              Create Card
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} className="flex-1" disabled={isEditing}>
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
-          </div>
-
-          {/* Canvas */}
-          <div 
-            ref={containerRef}
-            className="border-2 border-border rounded-lg overflow-hidden bg-white"
-            style={{ height: '60vh', touchAction: 'none' }}
+    <div className="flex flex-col h-full bg-background">
+      <div className="flex-1 relative overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
+          style={{ cursor: activeTool === "pan" ? "grab" : "crosshair" }}
+          onMouseDown={handleStart}
+          onMouseMove={handleMove}
+          onMouseUp={handleEnd}
+          onTouchStart={handleStart}
+          onTouchMove={handleMove}
+          onTouchEnd={handleEnd}
+        />
+        
+        {drawingState.objects.some(obj => obj.editing) && (
+          <Button
+            className="absolute top-4 right-4 z-10"
+            onClick={finishEditing}
+            size="sm"
           >
-            <canvas
-              ref={canvasRef}
-              className="w-full h-full"
-              onTouchStart={handleStart}
-              onTouchMove={handleMove}
-              onTouchEnd={handleEnd}
-              onMouseDown={handleStart}
-              onMouseMove={handleMove}
-              onMouseUp={handleEnd}
-              onMouseLeave={handleEnd}
-              style={{ 
-                touchAction: 'none',
-                cursor: activeTool === "draw" ? "crosshair" : 
-                       activeTool === "erase" ? "grab" :
-                       activeTool === "select" ? "pointer" :
-                       activeTool === "edit" ? "pointer" : "move"
-              }}
-            />
+            ✓ Finish Edit
+          </Button>
+        )}
+        
+        <div className="absolute top-4 left-4 z-10">
+          <div className="text-xs text-muted-foreground bg-card px-2 py-1 rounded border">
+            Zoom: {Math.round(drawingState.scale * 100)}%
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border bg-card">
+        <div className="flex items-center justify-between p-2">
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <div 
+                    className="w-4 h-4 rounded border" 
+                    style={{ backgroundColor: activeColor }}
+                  />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3">
+                <HexColorPicker color={activeColor} onChange={setActiveColor} />
+              </PopoverContent>
+            </Popover>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Size:</span>
+              <div className="w-20">
+                <Slider
+                  value={[brushSize]}
+                  onValueChange={(values) => setBrushSize(values[0])}
+                  max={20}
+                  min={1}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+              <span className="text-xs text-muted-foreground w-6">{brushSize}</span>
+            </div>
           </div>
 
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>Draw to create objects. Select multiple and use Combine to merge them.</p>
-            <p>Use Add Image to import pictures. Use Edit to modify existing objects.</p>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" onClick={resetView} className="h-8 px-2">
+              <RotateCcw className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCanvas} className="h-8 px-2">
+              <Download className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearCanvas} className="h-8 px-2">
+              <Trash2 className="h-3 w-3" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Separator />
+        
+        <div className="flex flex-wrap gap-2 p-4 bg-card border-t border-border">
+          {tools.map((tool) => (
+            <Button
+              key={tool.id}
+              variant={activeTool === tool.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTool(tool.id as any)}
+              className="h-10 min-w-[60px]"
+            >
+              {tool.icon}
+              <span className="ml-1 text-xs">{tool.name}</span>
+            </Button>
+          ))}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowImageUpload(true)}
+            className="h-10 min-w-[60px]"
+          >
+            <ImageIcon className="h-4 w-4" />
+            <span className="ml-1 text-xs">Image</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDocumentUpload(true)}
+            className="h-10 min-w-[60px]"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="ml-1 text-xs">Doc</span>
+          </Button>
+        </div>
+      </div>
+
+      {showImageUpload && (
+        <MediaUpload
+          multiple={false}
+          onUpload={(files) => {
+            if (files.length > 0) {
+              addImageToCanvas(files[0]);
+            }
+            setShowImageUpload(false);
+          }}
+          onClose={() => setShowImageUpload(false)}
+        />
+      )}
+
+      {showDocumentUpload && (
+        <MediaUpload
+          multiple={false}
+          onUpload={(files) => {
+            if (files.length > 0) {
+              addDocumentToCanvas(files[0]);
+            }
+            setShowDocumentUpload(false);
+          }}
+          onClose={() => setShowDocumentUpload(false)}
+        />
+      )}
+
+      {viewingDocument && (
+        <DocumentViewer
+          file={viewingDocument.file}
+          onClose={() => setViewingDocument(null)}
+          onSave={(content) => {
+            const blob = new Blob([content], { type: viewingDocument.file.type });
+            const updatedFile = new File([blob], viewingDocument.file.name, { type: viewingDocument.file.type });
+            
+            setDrawingState(prev => ({
+              ...prev,
+              documents: { ...prev.documents, [viewingDocument.element.id]: updatedFile }
+            }));
+          }}
+        />
+      )}
     </div>
   );
 };

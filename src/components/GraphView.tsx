@@ -22,7 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RotateCcw, Maximize2, Filter, Eye, EyeOff } from 'lucide-react';
+import { Search, RotateCcw, Maximize2, Filter, Eye, EyeOff, Box } from 'lucide-react';
+import { Graph3D } from './Graph3D';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -30,8 +31,13 @@ interface GraphViewProps {
   className?: string;
 }
 
+interface GraphViewInnerProps extends GraphViewProps {
+  is3D: boolean;
+  setIs3D: (value: boolean) => void;
+}
+
 // Inner component that uses React Flow hooks
-function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
+function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: GraphViewInnerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'circular' | 'force' | 'hierarchical' | 'category'>('force');
   const [showCategoryEdges, setShowCategoryEdges] = useState(true);
@@ -388,6 +394,11 @@ function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
     return 'transition-all duration-200 hover:shadow-hover cursor-pointer';
   }, []);
 
+  // Render 3D view if enabled
+  if (is3D) {
+    return <Graph3D cards={filteredCards} onCardSelect={onCardSelect} className={className} />;
+  }
+
   return (
     <div className={`h-full w-full relative ${className}`}>
       <ReactFlow
@@ -411,6 +422,20 @@ function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
         
         {/* Enhanced Controls Panel */}
         <Panel position="top-left" className="space-y-3 p-4 bg-card border border-border rounded-lg shadow-card max-w-sm">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={is3D ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIs3D(!is3D)}
+              className="h-8 px-2"
+              title="Toggle 3D View"
+            >
+              <Box className="h-3 w-3" />
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {is3D ? '3D' : '2D'} View
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
@@ -501,9 +526,11 @@ function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
 
 // Main exported component wrapped with ReactFlowProvider
 export function GraphView(props: GraphViewProps) {
+  const [is3D, setIs3D] = useState(false);
+  
   return (
     <ReactFlowProvider>
-      <GraphViewInner {...props} />
+      <GraphViewInner {...props} is3D={is3D} setIs3D={setIs3D} />
     </ReactFlowProvider>
   );
 }
