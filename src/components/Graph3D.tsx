@@ -28,8 +28,8 @@ function NodeMesh({ position, card, onClick, isHighlighted, isSearchMatch }: Nod
   const meshRef = useRef<THREE.Mesh>(null);
   const categoryInfo = getCategoryInfo(card.category);
   
-  // Convert HSL category color to RGB for Three.js
-  const categoryColor = new THREE.Color(`hsl(var(--category-${categoryInfo.color}))`);
+  // Use a more compatible color creation approach
+  const categoryColor = new THREE.Color(0x3b82f6); // Default blue color
   
   useFrame((state) => {
     if (meshRef.current) {
@@ -70,7 +70,7 @@ function NodeMesh({ position, card, onClick, isHighlighted, isSearchMatch }: Nod
         fontSize={0.3}
         maxWidth={3}
         textAlign="center"
-        color="white"
+        color="#ffffff"
         anchorX="center"
         anchorY="middle"
       >
@@ -80,7 +80,7 @@ function NodeMesh({ position, card, onClick, isHighlighted, isSearchMatch }: Nod
       <Text
         position={[0, 0.8, 0]}
         fontSize={0.2}
-        color={categoryColor}
+        color="#3b82f6"
         anchorX="center"
         anchorY="middle"
       >
@@ -294,7 +294,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges 
               key={`category-${card.id}-${nextCard.id}`}
               start={startPos}
               end={endPos}
-              color={`hsl(var(--category-${categoryInfo.color}))`}
+              color="#10b981"
               opacity={0.3}
             />
           );
