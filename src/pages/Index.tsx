@@ -61,8 +61,10 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
 
   useEffect(() => {
-    setFilteredCards(cards);
-  }, [cards]);
+    if (JSON.stringify(filteredCards) !== JSON.stringify(cards)) {
+      setFilteredCards(cards);
+    }
+  }, [cards, filteredCards]);
 
   useEffect(() => {
     localStorage.setItem('zettelweave-organization-method', organizationMethod);

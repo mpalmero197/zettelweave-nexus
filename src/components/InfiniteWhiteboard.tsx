@@ -54,9 +54,20 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       selection: true,
     });
 
-    // Properly initialize the free drawing brush
-    canvas.freeDrawingBrush.color = activeColor;
-    canvas.freeDrawingBrush.width = 2;
+    // Enhanced brush initialization with error handling
+    try {
+      canvas.freeDrawingBrush.color = activeColor;
+      canvas.freeDrawingBrush.width = 2;
+    } catch (error) {
+      console.warn('Brush initialization warning:', error);
+      // Fallback initialization
+      setTimeout(() => {
+        if (canvas.freeDrawingBrush) {
+          canvas.freeDrawingBrush.color = activeColor;
+          canvas.freeDrawingBrush.width = 2;
+        }
+      }, 100);
+    }
     
     // Enable drawing mode initially if draw tool is selected
     canvas.isDrawingMode = activeTool === "draw";
@@ -65,27 +76,44 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     toast("Whiteboard ready!");
 
     return () => {
-      canvas.dispose();
+      try {
+        canvas.dispose();
+      } catch (error) {
+        console.warn('Canvas dispose warning:', error);
+      }
     };
-  }, []);
+  }, [activeColor, activeTool]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Set drawing mode and brush properties
-    fabricCanvas.isDrawingMode = activeTool === "draw";
-    
-    // Always ensure brush exists and configure it
-    if (fabricCanvas.freeDrawingBrush) {
-      fabricCanvas.freeDrawingBrush.color = activeColor;
-      fabricCanvas.freeDrawingBrush.width = 3;
-    }
-    
-    // Update cursor based on tool
-    if (activeTool === "draw") {
-      fabricCanvas.setCursor("crosshair");
-    } else {
-      fabricCanvas.setCursor("default");
+    // Robust tool and brush configuration
+    try {
+      fabricCanvas.isDrawingMode = activeTool === "draw";
+      
+      // Always ensure brush exists and configure it
+      if (fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush.color = activeColor;
+        fabricCanvas.freeDrawingBrush.width = 3;
+      } else {
+        // Force brush creation if it doesn't exist
+        fabricCanvas.isDrawingMode = true;
+        if (fabricCanvas.freeDrawingBrush) {
+          fabricCanvas.freeDrawingBrush.color = activeColor;
+          fabricCanvas.freeDrawingBrush.width = 3;
+        }
+        fabricCanvas.isDrawingMode = activeTool === "draw";
+      }
+      
+      // Update cursor based on tool
+      if (activeTool === "draw") {
+        fabricCanvas.setCursor("crosshair");
+      } else {
+        fabricCanvas.setCursor("default");
+      }
+    } catch (error) {
+      console.warn('Tool configuration warning:', error);
+      toast("Drawing tool may not be fully initialized. Try switching tools.");
     }
   }, [activeTool, activeColor, fabricCanvas]);
 

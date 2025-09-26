@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { 
   ReactFlow, 
+  ReactFlowProvider,
   Node, 
   Edge, 
   addEdge, 
@@ -29,7 +30,8 @@ interface GraphViewProps {
   className?: string;
 }
 
-export function GraphView({ cards, onCardSelect, className }: GraphViewProps) {
+// Inner component that uses React Flow hooks
+function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'circular' | 'force' | 'hierarchical' | 'category'>('force');
   const [showCategoryEdges, setShowCategoryEdges] = useState(true);
@@ -315,9 +317,18 @@ export function GraphView({ cards, onCardSelect, className }: GraphViewProps) {
     return edges;
   }, [filteredCards, showCategoryEdges, highlightedNodes]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, zoomIn, zoomOut } = useReactFlow();
+
+  // Update nodes and edges when data changes
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
 
   const onConnect = useCallback(
     (params: any) => setEdges((eds) => addEdge(params, eds)),
@@ -485,5 +496,14 @@ export function GraphView({ cards, onCardSelect, className }: GraphViewProps) {
         />
       </ReactFlow>
     </div>
+  );
+}
+
+// Main exported component wrapped with ReactFlowProvider
+export function GraphView(props: GraphViewProps) {
+  return (
+    <ReactFlowProvider>
+      <GraphViewInner {...props} />
+    </ReactFlowProvider>
   );
 }
