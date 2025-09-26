@@ -117,7 +117,7 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     }
   }, [activeTool, activeColor, fabricCanvas]);
 
-  // Persistence, pan/zoom, and responsive sizing
+  // Enhanced mobile-friendly persistence, pan/zoom, and responsive sizing
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -155,50 +155,155 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     const objectEvents = ["object:added", "object:modified", "object:removed", "path:created"] as const;
     objectEvents.forEach((ev) => fabricCanvas.on(ev as any, debouncedSave));
 
-    // Pan with Space + drag
-    const onMouseDown = (opt: any) => {
-      if (spacePressedRef.current) {
+    // Enhanced touch and mouse event handling for mobile
+    let lastPanPoint: { x: number; y: number } | null = null;
+    let initialPinchDistance: number | null = null;
+
+    const getEventPoint = (e: any) => {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: e.clientX || e.e?.clientX || 0, y: e.clientY || e.e?.clientY || 0 };
+    };
+
+    const onPointerDown = (opt: any) => {
+      const point = getEventPoint(opt.e || opt);
+      
+      // Check if we should start panning (space key or two-finger touch)
+      const shouldPan = spacePressedRef.current || 
+                       (opt.e?.touches && opt.e.touches.length === 2) ||
+                       (activeTool === "select" && !fabricCanvas.getActiveObject());
+      
+      if (shouldPan) {
         isPanningRef.current = true;
+        lastPanPoint = point;
         fabricCanvas.setCursor("grab");
+        opt.e?.preventDefault?.();
       }
     };
-    const onMouseMove = (opt: any) => {
-      if (isPanningRef.current && opt?.e) {
+
+    const onPointerMove = (opt: any) => {
+      if (isPanningRef.current && lastPanPoint) {
+        const point = getEventPoint(opt.e || opt);
         const vpt = fabricCanvas.viewportTransform;
         if (!vpt) return;
-        vpt[4] += opt.e.movementX;
-        vpt[5] += opt.e.movementY;
+        
+        const deltaX = point.x - lastPanPoint.x;
+        const deltaY = point.y - lastPanPoint.y;
+        
+        vpt[4] += deltaX;
+        vpt[5] += deltaY;
+        lastPanPoint = point;
         fabricCanvas.requestRenderAll();
+        opt.e?.preventDefault?.();
       }
     };
-    const onMouseUp = () => {
+
+    const onPointerUp = () => {
       if (isPanningRef.current) {
         isPanningRef.current = false;
+        lastPanPoint = null;
         fabricCanvas.setCursor("default");
         debouncedSave();
       }
     };
-    fabricCanvas.on("mouse:down", onMouseDown);
-    fabricCanvas.on("mouse:move", onMouseMove);
-    fabricCanvas.on("mouse:up", onMouseUp);
 
-    // Zoom with mouse wheel
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY;
-      let zoom = (fabricCanvas.getZoom?.() as number) ?? (fabricCanvas.viewportTransform?.[0] ?? 1);
-      zoom *= Math.pow(0.999, delta);
-      zoom = Math.min(4, Math.max(0.2, zoom));
-      const point = { x: e.offsetX, y: e.offsetY } as any;
-      (fabricCanvas as any).zoomToPoint(point, zoom);
-      debouncedSave();
-    };
+    // Bind enhanced events
+    fabricCanvas.on("mouse:down", onPointerDown);
+    fabricCanvas.on("mouse:move", onPointerMove);
+    fabricCanvas.on("mouse:up", onPointerUp);
+
+    // Touch-specific events for better mobile support
     const canvasEl = canvasRef.current;
-    canvasEl?.addEventListener("wheel", handleWheel, { passive: false });
+    if (canvasEl) {
+      const onTouchStart = (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          const touch1 = e.touches[0];
+          const touch2 = e.touches[1];
+          initialPinchDistance = Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) + 
+            Math.pow(touch2.clientY - touch1.clientY, 2)
+          );
+          onPointerDown({ e });
+        }
+      };
 
-    // Keyboard handlers for Space
+      const onTouchMove = (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          
+          // Handle pinch zoom
+          const touch1 = e.touches[0];
+          const touch2 = e.touches[1];
+          const currentDistance = Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) + 
+            Math.pow(touch2.clientY - touch1.clientY, 2)
+          );
+          
+          if (initialPinchDistance) {
+            const scale = currentDistance / initialPinchDistance;
+            const rect = canvasEl.getBoundingClientRect();
+            const point = {
+              x: ((touch1.clientX + touch2.clientX) / 2) - rect.left,
+              y: ((touch1.clientY + touch2.clientY) / 2) - rect.top
+            };
+            
+            let zoom = (fabricCanvas.getZoom?.() as number) ?? 1;
+            zoom = Math.min(4, Math.max(0.2, zoom * scale));
+            (fabricCanvas as any).zoomToPoint(point, zoom);
+            
+            initialPinchDistance = currentDistance;
+            debouncedSave();
+          }
+          
+          // Handle pan if panning is active
+          if (isPanningRef.current) {
+            onPointerMove({ e });
+          }
+        }
+      };
+
+      const onTouchEnd = (e: TouchEvent) => {
+        if (e.touches.length < 2) {
+          initialPinchDistance = null;
+          onPointerUp();
+        }
+      };
+
+      canvasEl.addEventListener("touchstart", onTouchStart, { passive: false });
+      canvasEl.addEventListener("touchmove", onTouchMove, { passive: false });
+      canvasEl.addEventListener("touchend", onTouchEnd);
+
+      // Enhanced zoom handling for mouse wheel
+      const handleWheel = (e: WheelEvent) => {
+        e.preventDefault();
+        const delta = e.deltaY;
+        let zoom = (fabricCanvas.getZoom?.() as number) ?? (fabricCanvas.viewportTransform?.[0] ?? 1);
+        zoom *= Math.pow(0.999, delta);
+        zoom = Math.min(4, Math.max(0.2, zoom));
+        const point = { x: e.offsetX, y: e.offsetY } as any;
+        (fabricCanvas as any).zoomToPoint(point, zoom);
+        debouncedSave();
+      };
+
+      canvasEl.addEventListener("wheel", handleWheel, { passive: false });
+
+      // Cleanup function for canvas-specific events
+      var canvasCleanup = () => {
+        canvasEl.removeEventListener("touchstart", onTouchStart);
+        canvasEl.removeEventListener("touchmove", onTouchMove);
+        canvasEl.removeEventListener("touchend", onTouchEnd);
+        canvasEl.removeEventListener("wheel", handleWheel);
+      };
+    }
+
+    // Keyboard handlers for desktop space key panning
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space") spacePressedRef.current = true;
+      if (e.code === "Space" && !e.repeat) {
+        spacePressedRef.current = true;
+        e.preventDefault();
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") {
@@ -226,15 +331,17 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
 
     return () => {
       objectEvents.forEach((ev) => fabricCanvas.off(ev as any, debouncedSave));
-      fabricCanvas.off("mouse:down", onMouseDown);
-      fabricCanvas.off("mouse:move", onMouseMove);
-      fabricCanvas.off("mouse:up", onMouseUp);
-      if (canvasEl) canvasEl.removeEventListener("wheel", handleWheel);
+      fabricCanvas.off("mouse:down", onPointerDown);
+      fabricCanvas.off("mouse:move", onPointerMove);
+      fabricCanvas.off("mouse:up", onPointerUp);
+      
+      if (canvasCleanup) canvasCleanup();
+      
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       resizeObserverRef.current?.disconnect();
     };
-  }, [fabricCanvas]);
+  }, [fabricCanvas, activeTool]);
 
   const handleToolClick = (tool: Tool) => {
     setActiveTool(tool);
@@ -343,63 +450,102 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tools.map(({ tool, label, icon: Icon }) => (
-              <Button
-                key={tool}
-                variant={activeTool === tool ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleToolClick(tool)}
-              >
-                <Icon className="h-4 w-4 mr-1" />
-                {label}
-              </Button>
-            ))}
-            
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-sm">Color:</span>
-              <div className="flex gap-1">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    className={`w-6 h-6 rounded border-2 ${
-                      activeColor === color ? "border-primary" : "border-border"
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setActiveColor(color)}
-                  />
-                ))}
-              </div>
+          {/* Mobile-first toolbar */}
+          <div className="space-y-4 mb-4">
+            {/* Tools row */}
+            <div className="flex flex-wrap gap-2">
+              {tools.map(({ tool, label, icon: Icon }) => (
+                <Button
+                  key={tool}
+                  variant={activeTool === tool ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleToolClick(tool)}
+                  className="flex-1 sm:flex-none min-w-0"
+                >
+                  <Icon className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline ml-1">{label}</span>
+                </Button>
+              ))}
             </div>
             
-            <div className="flex gap-2 ml-auto">
-              <Button variant="outline" size="sm" onClick={handleCreateCard}>
-                <Plus className="h-4 w-4 mr-1" />
-                Create Card
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleClear}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
+            {/* Color and actions row */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm whitespace-nowrap">Color:</span>
+                <div className="flex gap-1 flex-wrap">
+                  {colors.map((color) => (
+                    <button
+                      key={color}
+                      className={`w-8 h-8 sm:w-6 sm:h-6 rounded border-2 touch-manipulation ${
+                        activeColor === color ? "border-primary" : "border-border"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setActiveColor(color)}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex gap-2 flex-wrap sm:ml-auto w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCreateCard}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Plus className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline ml-1">Create Card</span>
+                  <span className="sm:hidden">Card</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleExport}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Download className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline ml-1">Export</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleClear}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Trash2 className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline ml-1">Clear</span>
+                </Button>
+              </div>
             </div>
           </div>
           
-          <div ref={containerRef} className="border rounded-lg overflow-hidden bg-background h-[70vh]">
+          {/* Canvas container with mobile-optimized dimensions */}
+          <div 
+            ref={containerRef} 
+            className="border rounded-lg overflow-hidden bg-background"
+            style={{ 
+              height: typeof window !== 'undefined' && window.innerWidth < 768 ? '60vh' : '70vh',
+              touchAction: 'none' // Prevent default touch behaviors
+            }}
+          >
             <canvas 
               ref={canvasRef} 
               className="block w-full h-full"
-              style={{ cursor: activeTool === "draw" ? "crosshair" : "default" }}
+              style={{ 
+                cursor: activeTool === "draw" ? "crosshair" : "default",
+                touchAction: 'none'
+              }}
             />
           </div>
           
-          <p className="text-sm text-muted-foreground mt-2">
-            Use the tools above to draw, add shapes, and create visual notes. 
-            Convert your work to zettel cards for permanent storage.
-          </p>
+          <div className="text-sm text-muted-foreground mt-2 space-y-1">
+            <p>Use tools to draw, add shapes, and create visual notes.</p>
+            <p className="text-xs">
+              <span className="hidden sm:inline">Desktop: Space + drag to pan, scroll to zoom. </span>
+              <span className="sm:hidden">Mobile: Two fingers to pan/zoom. </span>
+              Convert your work to zettel cards for permanent storage.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

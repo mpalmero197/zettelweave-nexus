@@ -275,10 +275,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-accent/5">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <SecurityNotice />
         {/* Header - Mobile First Design */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 sm:p-0">
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 p-2 sm:p-0">
           <div className="flex items-center gap-3">
             <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             <div>
@@ -393,39 +393,36 @@ const Index = () => {
           <div className={`${showRecommendations ? 'flex-1' : 'w-full'} transition-all duration-300`}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                {/* Mobile-first tab navigation */}
-                <div className="w-full overflow-x-auto">
-                  <TabsList className="grid w-full min-w-max grid-cols-7 h-auto p-1">
-                    <TabsTrigger value="cards" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Cards</span>
-                      <span className="sm:hidden">({totalCards})</span>
-                      <span className="hidden sm:inline">({totalCards})</span>
+                {/* Mobile-first tab navigation with horizontal scroll */}
+                <div className="w-full overflow-x-auto scrollbar-hide">
+                  <TabsList className="inline-flex min-w-max h-auto p-1 gap-1">
+                    <TabsTrigger value="cards" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <Grid3X3 className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Cards ({totalCards})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="graph" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span>Graph</span>
+                    <TabsTrigger value="graph" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <Bot className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Graph</span>
                     </TabsTrigger>
-                    <TabsTrigger value="stats" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span>Stats</span>
+                    <TabsTrigger value="stats" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <BarChart3 className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Stats</span>
                     </TabsTrigger>
-                    <TabsTrigger value="scratch" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span>Scratch</span>
+                    <TabsTrigger value="scratch" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <FileText className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Scratch</span>
                     </TabsTrigger>
-                    <TabsTrigger value="journal" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span>Journal</span>
+                    <TabsTrigger value="journal" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <Lightbulb className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Journal</span>
                     </TabsTrigger>
-                    <TabsTrigger value="whiteboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <Palette className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Whiteboard</span>
-                      <span className="sm:hidden">Board</span>
+                    <TabsTrigger value="whiteboard" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <Palette className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Whiteboard</span>
                     </TabsTrigger>
-                    <TabsTrigger value="sticky" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2">
-                      <StickyNote className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span>Sticky</span>
+                    <TabsTrigger value="sticky" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm px-3 py-2 min-w-fit">
+                      <StickyNote className="h-4 w-4" />
+                      <span className="whitespace-nowrap">Sticky</span>
                     </TabsTrigger>
                   </TabsList>
                 </div>
