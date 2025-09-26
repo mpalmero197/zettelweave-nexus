@@ -54,9 +54,11 @@ interface CalendarEvent {
 
 interface DashboardProps {
   onCreateCard?: (card: any) => void;
+  onEdit?: (item: any) => void;
+  onOpenNote?: (note: Note) => void;
 }
 
-export function Dashboard({ onCreateCard }: DashboardProps = {}) {
+export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps = {}) {
   const { user } = useAuth();
   const { cards } = useZettelCards();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -359,7 +361,15 @@ export function Dashboard({ onCreateCard }: DashboardProps = {}) {
                   <CardContent className="relative space-y-3">
                     {recentCards.length > 0 ? (
                       recentCards.map((card) => (
-                        <div key={card.id} className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                        <div 
+                          key={card.id} 
+                          className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+                          onClick={() => onEdit?.(card)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && onEdit?.(card)}
+                          aria-label={`Open card: ${card.title}`}
+                        >
                           <div className="flex-1">
                             <p className="font-medium text-sm group-hover:text-primary transition-colors">{card.title}</p>
                             <p className="text-xs text-muted-foreground">{card.number} • {getTimeAgo(card.updated_at || card.modified)}</p>
@@ -393,7 +403,15 @@ export function Dashboard({ onCreateCard }: DashboardProps = {}) {
                   <CardContent className="relative space-y-3">
                     {notes.length > 0 ? (
                       notes.map((note) => (
-                        <div key={note.id} className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                        <div 
+                          key={note.id} 
+                          className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+                          onClick={() => onOpenNote?.(note)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && onOpenNote?.(note)}
+                          aria-label={`Open note: ${note.title}`}
+                        >
                           <div className="flex-1">
                             <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">{note.title}</p>
                             <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>

@@ -277,7 +277,15 @@ const Index = () => {
               {/* Main Content Area */}
               <div className="flex-1 min-h-[600px]">
                 <TabsContent value="dashboard" className="mt-0">
-                  <Dashboard onCreateCard={handleCreateCard} />
+                  <Dashboard 
+                    onCreateCard={handleCreateCard} 
+                    onEdit={(card) => setViewingCard(card)}
+                    onOpenNote={(note) => {
+                      // Navigate to notes tab and focus on this note
+                      setActiveTab("notes");
+                      toast.success(`Opening note: ${note.title}`);
+                    }}
+                  />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">

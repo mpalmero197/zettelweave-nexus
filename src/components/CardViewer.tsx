@@ -54,14 +54,14 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
   return (
     <>
       <Dialog open={isOpen && !isEditing} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-gradient-card border-none shadow-hover">
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border border-border shadow-hover">
           {/* Header */}
-          <div className="flex items-start justify-between p-8 pb-6 border-b border-border/20 bg-gradient-glass backdrop-blur-xl">
+          <div className="flex items-start justify-between p-8 pb-6 border-b border-border/20 bg-muted/30 backdrop-blur-sm">
             <div className="flex-1 space-y-4">
               <div className="flex items-center gap-3">
                 <Badge 
                   variant="outline" 
-                  className="text-sm font-mono px-3 py-1 border-2"
+                  className="text-sm font-mono px-3 py-1 border-2 bg-background"
                   style={{ 
                     borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                     color: `hsl(var(--category-${categoryInfo.color}))`
@@ -69,12 +69,12 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
                 >
                   {card.number}
                 </Badge>
-                <Badge variant="secondary" className="text-sm px-3 py-1">
+                <Badge variant="secondary" className="text-sm px-3 py-1 bg-secondary text-secondary-foreground">
                   {categoryInfo.name}
                 </Badge>
               </div>
               
-              <h1 className="text-4xl font-bold leading-tight text-foreground bg-gradient-primary bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold leading-tight text-foreground">
                 {card.title}
               </h1>
               
@@ -86,13 +86,13 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
             </div>
             
             <div className="flex items-center gap-2 ml-6">
-              <Button variant="ghost" size="sm" onClick={handleShare} className="hover:bg-primary/10">
+              <Button variant="ghost" size="sm" onClick={handleShare} className="hover:bg-primary/10 text-muted-foreground hover:text-primary">
                 <Share2 className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleEdit} className="hover:bg-primary/10">
+              <Button variant="ghost" size="sm" onClick={handleEdit} className="hover:bg-primary/10 text-muted-foreground hover:text-primary">
                 <Edit3 className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-destructive/10">
+              <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -103,7 +103,7 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
             <div className="p-8 space-y-8">
               {/* Main Content */}
               <div className="prose prose-lg max-w-none">
-                <div className="text-foreground/90 leading-8 whitespace-pre-wrap">
+                <div className="text-foreground leading-8 whitespace-pre-wrap">
                   {card.content}
                 </div>
               </div>
@@ -114,7 +114,7 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
                   <h3 className="text-xl font-semibold text-foreground">Media</h3>
                   <div className="grid gap-4">
                     {card.imageUrl && (
-                      <div className="rounded-xl overflow-hidden border border-border/20 shadow-card">
+                      <div className="rounded-xl overflow-hidden border border-border shadow-sm">
                         <img 
                           src={card.imageUrl} 
                           alt="Card media" 
@@ -123,7 +123,7 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
                       </div>
                     )}
                     {card.videoUrl && (
-                      <div className="rounded-xl overflow-hidden border border-border/20 shadow-card">
+                      <div className="rounded-xl overflow-hidden border border-border shadow-sm">
                         <video 
                           src={card.videoUrl} 
                           controls 
@@ -145,7 +145,7 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
                   <div className="flex items-center gap-2 flex-wrap">
                     <Tag className="h-4 w-4 text-muted-foreground" />
                     {card.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-sm hover:bg-primary/10 transition-colors">
+                      <Badge key={index} variant="outline" className="text-sm hover:bg-primary/10 transition-colors bg-background">
                         {tag}
                       </Badge>
                     ))}
