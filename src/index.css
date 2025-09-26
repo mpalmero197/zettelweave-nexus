@@ -2,41 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Zettelkasten Design System - Scholarly & Intelligent */
+/* Apple-Inspired Design System - Beautiful & Minimal */
 
 @layer base {
   :root {
-    /* Core scholarly palette */
-    --background: 220 20% 98%;
-    --foreground: 220 15% 15%;
+    /* Apple-inspired light theme */
+    --background: 0 0% 99%;
+    --foreground: 0 0% 9%;
 
-    /* Card system */
+    /* Card system - subtle elevation */
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
-    --card-shadow: 220 20% 20%;
+    --card-foreground: 0 0% 9%;
+    --card-shadow: 0 0% 0%;
 
     /* Navigation and UI */
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover-foreground: 0 0% 9%;
 
-    /* Primary scholarly blue */
-    --primary: 220 60% 35%;
+    /* Apple blue - accessible and vibrant */
+    --primary: 212 100% 47%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 220 65% 30%;
+    --primary-hover: 212 100% 42%;
 
-    /* Secondary warm gray */
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 220 15% 25%;
-    --secondary-hover: 220 15% 90%;
+    /* Subtle gray surfaces */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 20%;
+    --secondary-hover: 0 0% 92%;
 
-    /* Muted text and surfaces */
-    --muted: 220 15% 96%;
-    --muted-foreground: 220 10% 45%;
+    /* Muted text and backgrounds */
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 45%;
 
-    /* Accent for highlights */
-    --accent: 35 85% 60%;
+    /* Orange accent - Apple style */
+    --accent: 28 100% 50%;
     --accent-foreground: 0 0% 100%;
-    --accent-hover: 35 90% 55%;
+    --accent-hover: 28 100% 45%;
 
     /* Categories (Dewey-inspired) */
     --category-000: 240 75% 65%; /* Philosophy & Psychology */
@@ -58,19 +58,19 @@
     --input: 220 15% 96%;
     --ring: 220 60% 35%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 60% 35%), hsl(220 65% 45%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 15% 98%));
-    --gradient-accent: linear-gradient(135deg, hsl(35 85% 60%), hsl(45 90% 65%));
+    /* Apple-style gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(212 100% 47%), hsl(212 100% 52%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-accent: linear-gradient(135deg, hsl(28 100% 50%), hsl(28 100% 55%));
 
-    /* Shadows */
-    --shadow-card: 0 4px 20px -2px hsl(var(--card-shadow) / 0.1);
-    --shadow-hover: 0 8px 30px -4px hsl(var(--card-shadow) / 0.15);
-    --shadow-active: 0 2px 10px -1px hsl(var(--card-shadow) / 0.1);
+    /* Apple-style shadows - subtle and refined */
+    --shadow-card: 0 1px 3px 0 hsl(var(--card-shadow) / 0.1), 0 1px 2px 0 hsl(var(--card-shadow) / 0.06);
+    --shadow-hover: 0 4px 6px -1px hsl(var(--card-shadow) / 0.1), 0 2px 4px -1px hsl(var(--card-shadow) / 0.06);
+    --shadow-active: 0 1px 2px 0 hsl(var(--card-shadow) / 0.05);
 
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* Apple-style animations - smooth and natural */
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     --radius: 0.5rem;
 

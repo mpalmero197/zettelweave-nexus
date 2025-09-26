@@ -4,7 +4,8 @@ import {
   BarChart3, 
   Palette, 
   StickyNote, 
-  Brain, 
+  Target, 
+  Edit3, 
   Grid3X3 
 } from "lucide-react";
 
@@ -19,8 +20,8 @@ export function MaterialTabBar({ value, onValueChange }: MaterialTabBarProps) {
     { id: "graph", label: "Graph", icon: BarChart3 },
     { id: "whiteboard", label: "Board", icon: Palette },
     { id: "journal", label: "Journal", icon: StickyNote },
-    { id: "habits", label: "Habits", icon: BarChart3 },
-    { id: "ai", label: "AI", icon: Brain },
+    { id: "habits", label: "Habits", icon: Target },
+    { id: "ai", label: "Scratchpad", icon: Edit3 },
     { id: "sticky", label: "Notes", icon: Grid3X3 },
   ];
 
