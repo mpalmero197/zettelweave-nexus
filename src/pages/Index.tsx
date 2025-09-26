@@ -94,13 +94,13 @@ const Index = () => {
     toast(`Successfully imported ${newCards.length} cards!`);
   };
 
-  const handleReorganizeCards = async (fromMethod: OrganizationMethod, toMethod: OrganizationMethod) => {
+  const handleReorganizeCards = async (method: OrganizationMethod) => {
     try {
       const { data, error } = await supabase.functions.invoke('ai-reorganize-cards', {
         body: {
           cards,
-          fromMethod,
-          toMethod
+          fromMethod: organizationMethod,
+          toMethod: method
         }
       });
 
@@ -112,8 +112,8 @@ const Index = () => {
           updateCard(reorganizedCard);
         });
         
-        setOrganizationMethod(toMethod);
-        toast(`Successfully reorganized ${data.reorganizedCards.length} cards to ${toMethod} system!`);
+        setOrganizationMethod(method);
+        toast(`Successfully reorganized ${data.reorganizedCards.length} cards to ${method} system!`);
       }
     } catch (error) {
       console.error('Error reorganizing cards:', error);
@@ -129,6 +129,14 @@ const Index = () => {
       console.error('Error signing out:', error);
       toast("Error signing out");
     }
+  };
+
+  const handleWordHover = (word: string, element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    setSelectedWord({
+      word,
+      position: { x: rect.left, y: rect.top }
+    });
   };
 
   if (!user) {
@@ -206,8 +214,7 @@ const Index = () => {
                     
                     <SearchBar 
                       cards={cards} 
-                      onFilterChange={setFilteredCards}
-                      organizationMethod={organizationMethod}
+                      onSearchResults={setFilteredCards}
                     />
                     
                     <div className="flex flex-wrap gap-2">
@@ -280,8 +287,7 @@ const Index = () => {
                             card={card}
                             onEdit={setEditingCard}
                             onDelete={handleDeleteCard}
-                            onWordSelect={setSelectedWord}
-                            organizationMethod={organizationMethod}
+                            onWordHover={handleWordHover}
                           />
                         ))}
                       </div>
@@ -336,7 +342,16 @@ const Index = () => {
               {activeTab === "cards" && showRecommendations && (
                 <div className="lg:w-80">
                   <RecommendationSidebar
-                    cards={cards}
+                    existingCards={cards}
+                    onAddCards={(newCards) => newCards.forEach(card => {
+                      const cardWithDefaults = {
+                        ...card,
+                        number: "000.1", // Add default number since it's omitted from the type
+                        linkedCards: [] as string[] // Add default linkedCards since it's omitted from the type
+                      };
+                      handleCreateCard(cardWithDefaults);
+                    })}
+                    isOpen={showRecommendations}
                     onClose={() => setShowRecommendations(false)}
                   />
                 </div>
@@ -350,6 +365,7 @@ const Index = () => {
       {editingCard && (
         <EditCardDialog
           card={editingCard}
+          isOpen={!!editingCard}
           onSave={handleUpdateCard}
           onClose={() => setEditingCard(null)}
         />
@@ -360,6 +376,17 @@ const Index = () => {
           word={selectedWord.word}
           position={selectedWord.position}
           onClose={() => setSelectedWord(null)}
+          onCreateCard={(word, definition) => {
+            handleCreateCard({
+              number: "000.1",
+              title: word,
+              content: definition.definition || `Definition of ${word}`,
+              category: "000",
+              tags: [word],
+              linkedCards: []
+            });
+          }}
+          cards={cards}
         />
       )}
     </MobileOptimizedLayout>
