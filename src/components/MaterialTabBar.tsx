@@ -5,8 +5,8 @@ import {
   Palette, 
   StickyNote, 
   Target, 
-  Edit3, 
-  Grid3X3 
+  Grid3X3,
+  Home
 } from "lucide-react";
 
 interface MaterialTabBarProps {
@@ -16,13 +16,12 @@ interface MaterialTabBarProps {
 
 export function MaterialTabBar({ value, onValueChange }: MaterialTabBarProps) {
   const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "cards", label: "Cards", icon: FileText },
     { id: "graph", label: "Graph", icon: BarChart3 },
     { id: "whiteboard", label: "Board", icon: Palette },
     { id: "journal", label: "Journal", icon: StickyNote },
     { id: "habits", label: "Habits", icon: Target },
-    { id: "ai", label: "Scratchpad", icon: Edit3 },
     { id: "sticky", label: "Notes", icon: Grid3X3 },
   ];
 
