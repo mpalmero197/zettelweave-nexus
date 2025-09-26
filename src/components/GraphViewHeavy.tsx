@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect, lazy, Suspense } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { 
   ReactFlow, 
   ReactFlowProvider,
@@ -22,10 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RotateCcw, Maximize2, Filter, Eye, EyeOff, Box, Loader2 } from 'lucide-react';
-
-// Lazy load the 3D component to improve initial loading
-const Graph3D = lazy(() => import('./Graph3D').then(module => ({ default: module.Graph3D })));
+import { Search, RotateCcw, Maximize2, Filter, Eye, EyeOff, Box } from 'lucide-react';
+import { Graph3D } from './Graph3D';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -109,6 +107,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         break;
 
       case 'category':
+        const categoryColors = ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
         const catGroups: Record<string, ZettelCard[]> = {};
         cards.forEach(card => {
           const mainCategory = card.category.substring(0, 1) + '00';
@@ -391,18 +390,13 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
     }
   }, [filteredCards]);
 
+  const nodeClassName = useCallback((node: Node) => {
+    return 'transition-all duration-200 hover:shadow-hover cursor-pointer';
+  }, []);
+
   // Render 3D view if enabled
   if (is3D) {
-    return (
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading 3D view...</span>
-        </div>
-      }>
-        <Graph3D cards={filteredCards} onCardSelect={onCardSelect} className={className} />
-      </Suspense>
-    );
+    return <Graph3D cards={filteredCards} onCardSelect={onCardSelect} className={className} />;
   }
 
   return (
@@ -442,7 +436,6 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
               {is3D ? '3D' : '2D'} View
             </span>
           </div>
-          
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
@@ -517,11 +510,13 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           </div>
         </Panel>
 
-        <Controls className="bg-card border border-border" />
+        <Controls className="bg-card border border-border rounded-lg shadow-card" />
+        
         <MiniMap 
-          className="bg-card border border-border" 
-          nodeColor="hsl(var(--primary))"
+          nodeClassName={nodeClassName}
+          className="bg-card border border-border rounded-lg shadow-card"
           maskColor="hsl(var(--background) / 0.8)"
+          pannable
           zoomable
         />
       </ReactFlow>
@@ -529,7 +524,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
   );
 }
 
-// Main GraphView component that provides ReactFlowProvider
+// Main exported component wrapped with ReactFlowProvider
 export function GraphView(props: GraphViewProps) {
   const [is3D, setIs3D] = useState(false);
   

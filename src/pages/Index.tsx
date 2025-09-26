@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
@@ -33,12 +33,15 @@ import {
   Grid3X3,
   FileText,
   Palette,
-  StickyNote
+  StickyNote,
+  Loader2
 } from "lucide-react";
 import { ScratchPad } from "@/components/ScratchPad";
-import { BulletJournal } from "@/components/BulletJournal";
-import { MobileWhiteboard } from "@/components/MobileWhiteboard";
-import { StickyNotesEnhanced } from "@/components/StickyNotesEnhanced";
+
+// Lazy load heavy components for better performance
+const BulletJournal = lazy(() => import("@/components/BulletJournal").then(module => ({ default: module.BulletJournal })));
+const MobileWhiteboard = lazy(() => import("@/components/MobileWhiteboard").then(module => ({ default: module.MobileWhiteboard })));
+const StickyNotesEnhanced = lazy(() => import("@/components/StickyNotesEnhanced").then(module => ({ default: module.StickyNotesEnhanced })));
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -533,15 +536,21 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="journal">
-                <BulletJournal onCreateCard={handleCreateCard} />
+                <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading journal...</span></div>}>
+                  <BulletJournal onCreateCard={handleCreateCard} />
+                </Suspense>
               </TabsContent>
 
               <TabsContent value="whiteboard">
-                <MobileWhiteboard />
+                <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading whiteboard...</span></div>}>
+                  <MobileWhiteboard />
+                </Suspense>
               </TabsContent>
 
               <TabsContent value="sticky">
-                <StickyNotesEnhanced onCreateCard={handleCreateCard} />
+                <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Loading sticky notes...</span></div>}>
+                  <StickyNotesEnhanced onCreateCard={handleCreateCard} />
+                </Suspense>
               </TabsContent>
             </Tabs>
           </div>
