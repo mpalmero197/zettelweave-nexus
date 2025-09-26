@@ -230,7 +230,6 @@ const Index = () => {
                     cards={cards} 
                     onSearchResults={setFilteredCards}
                   />
-                  
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"

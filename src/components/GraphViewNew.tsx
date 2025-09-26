@@ -11,6 +11,8 @@ import {
   MiniMap,
   BackgroundVariant,
   Panel,
+  ConnectionLineType,
+  addEdge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
@@ -21,14 +23,16 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface GraphViewProps {
   cards: ZettelCard[];
   onCardSelect?: (card: ZettelCard) => void;
+  onCardUpdate?: (card: ZettelCard) => void;
   className?: string;
 }
 
-function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
+function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'force' | 'circular' | 'hierarchical' | 'category'>('force');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -209,6 +213,32 @@ function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
     }
   }, [filteredCards, onCardSelect]);
 
+  const onConnect = useCallback((params: any) => {
+    const sourceCard = filteredCards.find(c => c.id === params.source);
+    const targetCard = filteredCards.find(c => c.id === params.target);
+    
+    if (sourceCard && targetCard && onCardUpdate) {
+      // Update source card to include link to target
+      const updatedSourceCard = {
+        ...sourceCard,
+        linkedCards: [...(sourceCard.linkedCards || []), targetCard.id]
+      };
+      
+      // Update target card to include link to source
+      const updatedTargetCard = {
+        ...targetCard,
+        linkedCards: [...(targetCard.linkedCards || []), sourceCard.id]
+      };
+      
+      onCardUpdate(updatedSourceCard);
+      onCardUpdate(updatedTargetCard);
+      
+      toast(`Linked "${sourceCard.title}" with "${targetCard.title}"`);
+    }
+    
+    setEdges((eds) => addEdge(params, eds));
+  }, [filteredCards, onCardUpdate, setEdges]);
+
   const resetLayout = useCallback(() => {
     const positions = getNodePositions(filteredCards);
     setNodes((nds) =>
@@ -231,11 +261,13 @@ function GraphViewInner({ cards, onCardSelect, className }: GraphViewProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        onConnect={onConnect}
         fitView
         fitViewOptions={{ padding: 0.1 }}
         minZoom={0.1}
         maxZoom={2}
         className="bg-background"
+        connectionLineType={ConnectionLineType.SmoothStep}
       >
         <Background 
           variant={BackgroundVariant.Dots} 

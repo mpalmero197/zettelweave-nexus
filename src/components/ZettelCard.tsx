@@ -3,9 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, MoreHorizontal } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CardActionsMenu } from "./CardActionsMenu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ZettelCardProps {
   card: ZettelCardType;
@@ -17,8 +18,19 @@ interface ZettelCardProps {
   className?: string;
 }
 
+const cardColors = [
+  { name: "Blue", value: "210", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-900" },
+  { name: "Green", value: "142", bg: "bg-green-50", border: "border-green-200", text: "text-green-900" },
+  { name: "Purple", value: "280", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-900" },
+  { name: "Orange", value: "25", bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-900" },
+  { name: "Pink", value: "320", bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-900" },
+  { name: "Teal", value: "180", bg: "bg-teal-50", border: "border-teal-200", text: "text-teal-900" },
+  { name: "Default", value: "", bg: "", border: "", text: "" }
+];
+
 export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpdate, className }: ZettelCardProps) {
   const categoryInfo = getCategoryInfo(card.category);
+  const currentColor = cardColors.find(c => c.value === (card as any).cardColor) || cardColors[6];
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent click when clicking on buttons or interactive elements
@@ -33,6 +45,15 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
     const target = e.target as HTMLElement;
     if (target.tagName === 'SPAN' && target.dataset.word) {
       onWordHover?.(target.dataset.word, target);
+    }
+  };
+
+  const changeCardColor = (colorValue: string) => {
+    if (onUpdate) {
+      onUpdate({
+        ...card,
+        cardColor: colorValue
+      } as any);
     }
   };
 
@@ -63,11 +84,13 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
         "group rounded-xl bg-card shadow-card hover:shadow-hover transition-all duration-200 animate-fade-in cursor-pointer",
         "border border-border/60 dark:border-border/50",
         "hover:scale-[1.02] hover:shadow-glow",
+        currentColor.bg,
+        currentColor.border && `border-l-4 ${currentColor.border}`,
         className
       )}
-      style={{
+      style={!currentColor.bg ? {
         borderLeft: `4px solid hsl(var(--category-${categoryInfo.color}))`
-      }}
+      } : undefined}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -75,11 +98,11 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             <div className="flex items-center gap-2 mb-2">
               <Badge 
                 variant="outline" 
-                className="text-xs font-mono"
-                style={{ 
+                className={cn("text-xs font-mono", currentColor.text)}
+                style={!currentColor.text ? { 
                   borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                   color: `hsl(var(--category-${categoryInfo.color}))`
-                }}
+                } : undefined}
               >
                 {card.number}
               </Badge>
@@ -87,11 +110,11 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
                 {categoryInfo.name}
               </Badge>
             </div>
-            <CardTitle className="text-xl md:text-2xl leading-snug mb-1 text-foreground">
+            <CardTitle className={cn("text-xl md:text-2xl leading-snug mb-1", currentColor.text || "text-foreground")}>
               {card.title}
             </CardTitle>
             {card.description && (
-              <p className="text-sm md:text-base text-muted-foreground line-clamp-3">
+              <p className={cn("text-sm md:text-base line-clamp-3", currentColor.text || "text-muted-foreground")}>
                 {card.description}
               </p>
             )}
@@ -103,6 +126,28 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             <Button variant="ghost" size="sm" onClick={() => onLink?.(card)} aria-label="Link card" className="hover:text-foreground">
               <Link2 className="h-4 w-4" />
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" aria-label="Change card color">
+                  <Palette className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {cardColors.map((color) => (
+                  <DropdownMenuItem
+                    key={color.name}
+                    onClick={() => changeCardColor(color.value)}
+                    className="flex items-center gap-2"
+                  >
+                    <div 
+                      className={cn("w-4 h-4 rounded border", color.bg, color.border)}
+                      style={color.value ? undefined : { backgroundColor: `hsl(var(--category-${categoryInfo.color}))` }}
+                    />
+                    {color.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <CardActionsMenu
               card={card}
               onEdit={onEdit}
@@ -115,7 +160,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       
       <CardContent className="space-y-3">
         <div 
-          className="text-[0.95rem] leading-7 text-foreground/90 line-clamp-6"
+          className={cn("text-[0.95rem] leading-7 line-clamp-6", currentColor.text || "text-foreground/90")}
           onMouseMove={handleWordHover}
         >
           {renderContentWithHoverWords(card.content)}

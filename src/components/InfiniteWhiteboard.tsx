@@ -51,30 +51,20 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       stopContextMenu: true,
     });
 
-    // Wait for canvas to be fully ready, then initialize brush
-    canvas.on('after:render', () => {
-      if (!isReady) {
-        setTimeout(() => {
-          try {
-            if (canvas.freeDrawingBrush) {
-              canvas.freeDrawingBrush.color = activeColor;
-              canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
-              canvas.freeDrawingBrush.strokeLineCap = 'round';
-              canvas.freeDrawingBrush.strokeLineJoin = 'round';
-              setIsReady(true);
-              console.log('Whiteboard brush initialized successfully');
-            }
-          } catch (error) {
-            console.warn('Brush initialization failed:', error);
-          }
-        }, 50);
-      }
-    });
-
-    // Enable drawing mode by default
+    // Set up drawing mode immediately
     canvas.isDrawingMode = true;
+    
+    // Configure brush settings
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeColor;
+      canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
+      canvas.freeDrawingBrush.strokeLineCap = 'round';
+      canvas.freeDrawingBrush.strokeLineJoin = 'round';
+    }
+
     setFabricCanvas(canvas);
-    toast("Whiteboard ready! Start drawing with the pen tool.");
+    setIsReady(true);
+    console.log('Whiteboard initialized successfully');
 
     return () => {
       try {

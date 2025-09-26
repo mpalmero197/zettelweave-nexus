@@ -51,12 +51,12 @@ const colors = [
 ];
 
 const textColors = [
+  { name: "Dark", value: "#374151" },
   { name: "Black", value: "#000000" },
   { name: "Red", value: "#dc2626" },
   { name: "Blue", value: "#2563eb" },
   { name: "Green", value: "#16a34a" },
-  { name: "Purple", value: "#9333ea" },
-  { name: "Orange", value: "#ea580c" }
+  { name: "Purple", value: "#9333ea" }
 ];
 
 const STORAGE_KEY = "enhanced-sticky-notes:v1";
@@ -222,10 +222,17 @@ export const StickyNotesEnhanced = ({ onCreateCard, isFloating = false }: Sticky
             }}
           >
             {/* Drag handle and controls */}
-            <div className="drag-handle flex items-center justify-between p-2 bg-black/5 cursor-move border-b border-border/20">
+            <div className="drag-handle flex items-center justify-between p-2 bg-black/10 cursor-move border-b border-border/20" style={{ 
+              backgroundColor: `rgba(0, 0, 0, 0.1)`,
+              color: note.textColor
+            }}>
               <div className="flex items-center gap-1">
-                <Move className="h-3 w-3 text-muted-foreground" />
-                <Badge variant="outline" className="text-xs px-1 py-0">
+                <Move className="h-3 w-3" style={{ color: note.textColor }} />
+                <Badge variant="outline" className="text-xs px-1 py-0" style={{ 
+                  borderColor: note.textColor, 
+                  color: note.textColor,
+                  backgroundColor: 'transparent'
+                }}>
                   {note.created.toLocaleDateString()}
                 </Badge>
               </div>
