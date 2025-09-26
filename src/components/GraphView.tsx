@@ -12,7 +12,8 @@ import {
   MiniMap,
   ConnectionMode,
   Panel,
-  useReactFlow
+  useReactFlow,
+  Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
@@ -175,15 +176,34 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         id: card.id,
         type: 'default',
         position: positions[card.id] || { x: 0, y: 0 },
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
         data: {
           label: (
-            <div className={`text-center max-w-[200px] transition-all duration-200 ${
-              isSearchMatch ? 'ring-2 ring-accent' : ''
-            }`}>
-              <div className="flex items-center justify-between mb-1">
+            <div className={`group relative p-3 bg-gradient-to-br from-card via-card/95 to-card/90 
+              border-2 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl
+              ${isHighlighted 
+                ? 'scale-105 shadow-2xl border-primary/60 bg-gradient-to-br from-primary/5 to-primary/10' 
+                : isSearchMatch 
+                  ? 'ring-2 ring-accent/50 border-accent' 
+                  : 'border-border/40 hover:border-primary/30'
+              }`}
+              style={{
+                borderColor: isHighlighted 
+                  ? `hsl(var(--primary))` 
+                  : isSearchMatch 
+                    ? `hsl(var(--accent))` 
+                    : `hsl(var(--category-${categoryInfo.color}) / 0.6)`,
+                opacity: searchTerm && !isSearchMatch ? 0.4 : 1,
+                minWidth: '200px',
+                maxWidth: '250px'
+              }}
+            >
+              {/* Header with number and connections */}
+              <div className="flex items-center justify-between mb-2">
                 <Badge 
                   variant="outline" 
-                  className="text-xs font-mono px-1 py-0"
+                  className="text-xs font-mono px-2 py-1 bg-background/50 backdrop-blur-sm"
                   style={{ 
                     borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                     color: `hsl(var(--category-${categoryInfo.color}))`
@@ -192,49 +212,53 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
                   {card.number}
                 </Badge>
                 {card.linkedCards.length > 0 && (
-                  <Badge variant="secondary" className="text-xs px-1 py-0">
-                    {card.linkedCards.length}
+                  <Badge 
+                    variant="secondary" 
+                    className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20"
+                  >
+                    🔗 {card.linkedCards.length}
                   </Badge>
                 )}
               </div>
-              <div className="font-medium text-sm leading-tight mb-1 line-clamp-2">
+              
+              {/* Title */}
+              <div className="font-semibold text-sm leading-snug mb-2 text-foreground group-hover:text-primary transition-colors">
                 {card.title}
               </div>
+              
+              {/* Content preview */}
+              <div className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
+                {card.content.slice(0, 80)}...
+              </div>
+              
+              {/* Tags */}
               {card.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 justify-center">
+                <div className="flex flex-wrap gap-1">
                   {card.tags.slice(0, 3).map((tag, i) => (
-                    <Badge key={i} variant="outline" className="text-xs px-1 py-0">
+                    <Badge key={i} variant="outline" className="text-xs px-1.5 py-0.5 bg-muted/30">
                       {tag}
                     </Badge>
                   ))}
                   {card.tags.length > 3 && (
-                    <Badge variant="outline" className="text-xs px-1 py-0">
+                    <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-muted/30">
                       +{card.tags.length - 3}
                     </Badge>
                   )}
                 </div>
               )}
+              
+              {/* Hover indicator */}
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           ),
           card
         },
         style: {
-          background: `linear-gradient(135deg, hsl(var(--card)), hsl(var(--category-${categoryInfo.color}) / 0.1))`,
-          border: `2px solid hsl(var(--category-${categoryInfo.color}))`,
-          borderRadius: '12px',
-          padding: '12px',
-          minWidth: '180px',
-          fontSize: '12px',
-          boxShadow: isHighlighted 
-            ? 'var(--shadow-hover)' 
-            : isSearchMatch 
-              ? '0 0 20px hsl(var(--accent) / 0.3)'
-              : 'var(--shadow-card)',
-          transform: isHighlighted ? 'scale(1.05)' : 'scale(1)',
-          opacity: searchTerm && !isSearchMatch ? 0.4 : 1,
-          transition: 'all 0.2s ease-in-out'
+          background: 'transparent',
+          border: 'none',
+          padding: 0
         },
-        className: 'cursor-pointer hover:shadow-hover'
+        className: 'cursor-pointer'
       };
     });
   }, [filteredCards, layoutType, getNodePositions, highlightedNodes, searchTerm]);
@@ -256,17 +280,29 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
             type: 'smoothstep',
             animated: isHighlighted,
             style: {
-              stroke: 'hsl(var(--primary))',
-              strokeWidth: isHighlighted ? 3 : 2,
-              strokeOpacity: isHighlighted ? 0.9 : 0.7
+              stroke: isHighlighted 
+                ? 'hsl(var(--primary))' 
+                : 'hsl(var(--primary) / 0.8)',
+              strokeWidth: isHighlighted ? 4 : 2.5,
+              strokeOpacity: isHighlighted ? 1 : 0.7,
+              strokeDasharray: isHighlighted ? '0' : '5,5'
             },
-            label: '🔗',
+            markerEnd: {
+              type: 'arrowclosed',
+              color: isHighlighted 
+                ? 'hsl(var(--primary))' 
+                : 'hsl(var(--primary) / 0.8)',
+              width: 20,
+              height: 20
+            },
+            labelBgStyle: {
+              fill: 'hsl(var(--card))',
+              fillOpacity: 0.9
+            },
             labelStyle: {
-              fontSize: '12px',
-              background: 'hsl(var(--background))',
-              padding: '2px 4px',
-              borderRadius: '4px',
-              border: '1px solid hsl(var(--border))'
+              fontSize: '10px',
+              fontWeight: '500',
+              fill: 'hsl(var(--primary))'
             }
           });
         }
@@ -286,33 +322,34 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
 
       Object.values(categoryGroups).forEach(group => {
         if (group.length > 1) {
-          for (let i = 0; i < group.length - 1; i++) {
-            for (let j = i + 1; j < Math.min(i + 2, group.length); j++) {
-              const sourceCard = group[i];
-              const targetCard = group[j];
-              
-              // Only add if not already explicitly linked
-              const explicitLink = edges.find(e => 
-                (e.source === sourceCard.id && e.target === targetCard.id) ||
-                (e.source === targetCard.id && e.target === sourceCard.id)
-              );
-              
-              if (!explicitLink) {
-                const categoryInfo = getCategoryInfo(sourceCard.category);
-                edges.push({
-                  id: `category-${sourceCard.id}-${targetCard.id}`,
-                  source: sourceCard.id,
-                  target: targetCard.id,
-                  type: 'smoothstep',
-                  animated: false,
-                  style: {
-                    stroke: `hsl(var(--category-${categoryInfo.color}))`,
-                    strokeWidth: 1,
-                    strokeOpacity: 0.3,
-                    strokeDasharray: '3,3'
-                  }
-                });
-              }
+          // Create a more intelligent category connection pattern
+          for (let i = 0; i < group.length; i++) {
+            const sourceCard = group[i];
+            // Connect to next card in group (circular)
+            const targetCard = group[(i + 1) % group.length];
+            
+            // Only add if not already explicitly linked
+            const explicitLink = edges.find(e => 
+              (e.source === sourceCard.id && e.target === targetCard.id) ||
+              (e.source === targetCard.id && e.target === sourceCard.id)
+            );
+            
+            if (!explicitLink) {
+              const categoryInfo = getCategoryInfo(sourceCard.category);
+              edges.push({
+                id: `category-${sourceCard.id}-${targetCard.id}`,
+                source: sourceCard.id,
+                target: targetCard.id,
+                type: 'straight',
+                animated: false,
+                style: {
+                  stroke: `hsl(var(--category-${categoryInfo.color}) / 0.4)`,
+                  strokeWidth: 1.5,
+                  strokeOpacity: 0.4,
+                  strokeDasharray: '2,4'
+                },
+                className: 'category-edge'
+              });
             }
           }
         }
@@ -395,7 +432,17 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
   }
 
   return (
-    <div className={`h-full w-full relative ${className}`}>
+    <div className={`h-full w-full relative overflow-hidden ${className}`}>
+      {/* Graph loading state */}
+      {!nodes.length && filteredCards.length > 0 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
+          <div className="text-center p-6">
+            <LoadingSpinner />
+            <p className="text-sm text-muted-foreground mt-2">Building knowledge graph...</p>
+          </div>
+        </div>
+      )}
+      
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -407,122 +454,166 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         onNodeMouseLeave={onNodeMouseLeave}
         connectionMode={ConnectionMode.Loose}
         fitView
-        className="bg-background"
+        fitViewOptions={{
+          padding: 0.1,
+          includeHiddenNodes: false,
+          duration: 800
+        }}
+        className="bg-gradient-to-br from-background via-background/95 to-muted/10"
+        proOptions={{ hideAttribution: true }}
       >
         <Background 
-          color="hsl(var(--border))" 
-          gap={20} 
-          size={2}
+          color="hsl(var(--border) / 0.3)" 
+          gap={24} 
+          size={1}
         />
         
-        {/* Clean Controls Sidebar */}
-        <Panel position="top-right" className="space-y-3 p-4 bg-card/98 backdrop-blur-md border border-border/50 rounded-2xl shadow-lg min-w-[240px] max-w-[280px]">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-foreground">Graph Controls</h3>
-            <Badge variant="secondary" className="text-xs px-2 py-1">
-              {filteredCards.length}
-            </Badge>
-          </div>
-          
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search cards..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="h-9 pl-10 text-sm bg-background/60 border-border/40 focus:border-primary/60 transition-all duration-200"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
-                <SelectTrigger className="h-9 text-sm bg-background/60 border-border/40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
-                  <SelectItem value="force">Force</SelectItem>
-                  <SelectItem value="circular">Circular</SelectItem>
-                  <SelectItem value="hierarchical">Hierarchical</SelectItem>
-                  <SelectItem value="category">Category</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetLayout}
-                className="h-9 px-2 bg-background/60 hover:bg-primary/10 transition-colors"
-                title="Reset View"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-9 text-sm bg-background/60 border-border/40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60">
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>
-                    {getCategoryInfo(cat).name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <div className="flex items-center justify-between">
-              <Button
-                variant={is3D ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIs3D(!is3D)}
-                className="h-9 px-3 flex items-center gap-2"
-                title="Toggle 3D View"
-              >
-                <Box className="h-4 w-4" />
-                {is3D ? '3D' : '2D'}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCategoryEdges(!showCategoryEdges)}
-                className={`h-9 px-2 transition-colors ${
-                  showCategoryEdges 
-                    ? 'bg-primary/10 border-primary/30' 
-                    : 'bg-background/60 hover:bg-muted/50'
-                }`}
-                title={showCategoryEdges ? "Hide Connections" : "Show Connections"}
-              >
-                {showCategoryEdges ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-           </div>
-          
-          <div className="pt-2 border-t border-border/30">
-            <div className="text-xs text-muted-foreground space-y-1">
-              <div className="flex justify-between">
-                <span>Connections:</span>
-                <span>{initialEdges.length}</span>
-              </div>
-              {highlightedNodes.size > 0 && (
-                <div className="flex justify-between text-primary">
-                  <span>Highlighted:</span>
-                  <span>{highlightedNodes.size}</span>
+        {/* Enhanced Controls Panel */}
+        <Panel position="top-right" className="m-4">
+          <div className="bg-card/95 backdrop-blur-lg border border-border/60 rounded-3xl shadow-2xl overflow-hidden">
+            <div className="p-5 space-y-4 min-w-[280px] max-w-[320px]">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-border/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <h3 className="text-sm font-semibold text-foreground">Knowledge Graph</h3>
                 </div>
-              )}
+                <Badge variant="secondary" className="text-xs px-3 py-1 bg-primary/10 text-primary">
+                  {filteredCards.length} nodes
+                </Badge>
+              </div>
+              
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search knowledge..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="h-10 pl-10 text-sm bg-background/80 border-border/50 focus:border-primary/60 rounded-xl transition-all duration-200"
+                />
+                {searchTerm && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Badge variant="outline" className="text-xs">
+                      {filteredCards.filter(card => 
+                        card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        card.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        card.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+                      ).length}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              
+              {/* Layout Controls */}
+              <div className="space-y-3">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Layout</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
+                    <SelectTrigger className="h-9 text-sm bg-background/80 border-border/50 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60 rounded-xl">
+                      <SelectItem value="force">🌐 Force</SelectItem>
+                      <SelectItem value="circular">⭕ Circular</SelectItem>
+                      <SelectItem value="hierarchical">🏗️ Hierarchy</SelectItem>
+                      <SelectItem value="category">📂 Category</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetLayout}
+                    className="h-9 px-3 bg-background/80 hover:bg-primary/10 border-border/50 rounded-xl transition-all duration-200"
+                    title="Reset View"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Category Filter */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Filter</label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="h-9 text-sm bg-background/80 border-border/50 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60 rounded-xl">
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {getCategoryInfo(cat).name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* View Options */}
+              <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <Button
+                  variant={is3D ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIs3D(!is3D)}
+                  className="h-9 px-4 flex items-center gap-2 rounded-xl transition-all duration-200"
+                  title="Toggle 3D View"
+                >
+                  <Box className="h-4 w-4" />
+                  <span className="text-xs font-medium">{is3D ? '3D' : '2D'}</span>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCategoryEdges(!showCategoryEdges)}
+                  className={`h-9 px-3 rounded-xl transition-all duration-200 ${
+                    showCategoryEdges 
+                      ? 'bg-primary/10 border-primary/30 text-primary' 
+                      : 'bg-background/80 hover:bg-muted/50 border-border/50'
+                  }`}
+                  title={showCategoryEdges ? "Hide Category Links" : "Show Category Links"}
+                >
+                  {showCategoryEdges ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              
+              {/* Stats */}
+              <div className="pt-3 border-t border-border/30">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-muted/30 rounded-lg p-2">
+                    <div className="text-muted-foreground">Connections</div>
+                    <div className="font-semibold text-foreground">{initialEdges.length}</div>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-2">
+                    <div className="text-muted-foreground">Highlighted</div>
+                    <div className="font-semibold text-primary">{highlightedNodes.size || 0}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Panel>
 
-        <Controls className="bg-card border border-border" />
+        <Controls 
+          className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg" 
+          position="bottom-left"
+        />
         <MiniMap 
-          className="bg-card border border-border" 
-          nodeColor="hsl(var(--primary))"
-          maskColor="hsl(var(--background) / 0.8)"
+          className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg overflow-hidden" 
+          nodeColor={(node) => {
+            const card = filteredCards.find(c => c.id === node.id);
+            if (card) {
+              const categoryInfo = getCategoryInfo(card.category);
+              return `hsl(var(--category-${categoryInfo.color}))`;
+            }
+            return 'hsl(var(--primary))';
+          }}
+          maskColor="hsl(var(--background) / 0.9)"
+          pannable
           zoomable
+          position="bottom-right"
         />
       </ReactFlow>
     </div>
