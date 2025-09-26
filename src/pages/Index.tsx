@@ -12,7 +12,7 @@ import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MaterialTabBar } from "@/components/MaterialTabBar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
-import { Dashboard } from "@/components/Dashboard";
+import { CustomizableDashboard } from "@/components/CustomizableDashboard";
 import { Notes } from "@/components/Notes";
 import { Notebooks } from "@/components/Notebooks";
 import { Calendar } from "@/components/Calendar";
@@ -277,7 +277,7 @@ const Index = () => {
               {/* Main Content Area */}
               <div className="flex-1 min-h-[600px]">
                 <TabsContent value="dashboard" className="mt-0">
-                  <Dashboard 
+                  <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
                     onEdit={(card) => setViewingCard(card)}
                     onOpenNote={(note) => {
