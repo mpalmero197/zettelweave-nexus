@@ -11,6 +11,10 @@ import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MaterialTabBar } from "@/components/MaterialTabBar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
+import { Dashboard } from "@/components/Dashboard";
+import { Notes } from "@/components/Notes";
+import { Notebooks } from "@/components/Notebooks";
+import { Calendar } from "@/components/Calendar";
 import { useAuth } from "@/hooks/useAuth";
 import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
@@ -59,7 +63,7 @@ const Index = () => {
   
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
-  const [activeTab, setActiveTab] = useState("cards");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>(() => {
     const stored = localStorage.getItem('zettelweave-organization-method');
@@ -269,6 +273,22 @@ const Index = () => {
 
               {/* Main Content Area */}
               <div className="flex-1 min-h-[600px]">
+                <TabsContent value="dashboard" className="mt-0">
+                  <Dashboard />
+                </TabsContent>
+
+                <TabsContent value="notes" className="mt-0">
+                  <Notes />
+                </TabsContent>
+
+                <TabsContent value="notebooks" className="mt-0">
+                  <Notebooks />
+                </TabsContent>
+
+                <TabsContent value="calendar" className="mt-0">
+                  <Calendar />
+                </TabsContent>
+
                 <TabsContent value="cards" className="mt-0">
                   <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
                     {isLoading ? (

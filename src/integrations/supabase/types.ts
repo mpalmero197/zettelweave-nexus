@@ -14,6 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          source_id: string
+          source_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          source_id: string
+          source_type: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          source_id?: string
+          source_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notebooks: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_favorite: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_favorite: boolean | null
+          notebook_id: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          notebook_id?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          notebook_id?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -79,7 +192,9 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_favorite: boolean | null
           linked_cards: string[] | null
+          notebook_id: string | null
           number: string
           tags: string[] | null
           title: string
@@ -94,7 +209,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_favorite?: boolean | null
           linked_cards?: string[] | null
+          notebook_id?: string | null
           number: string
           tags?: string[] | null
           title: string
@@ -109,7 +226,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_favorite?: boolean | null
           linked_cards?: string[] | null
+          notebook_id?: string | null
           number?: string
           tags?: string[] | null
           title?: string
@@ -117,7 +236,15 @@ export type Database = {
           user_id?: string
           video_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "zettel_cards_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

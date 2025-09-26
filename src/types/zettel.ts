@@ -5,13 +5,19 @@ export interface ZettelCard {
   content: string;
   tags: string[];
   category: string;
-  created: Date;
-  modified: Date;
+  created: string; // Changed from Date to string for compatibility
+  modified: string; // Changed from Date to string for compatibility
   linkedCards: string[]; // IDs of linked cards
   description?: string;
   author?: string;
   imageUrl?: string;
   videoUrl?: string;
+  image_url?: string; // Alternative naming for compatibility
+  video_url?: string; // Alternative naming for compatibility
+  notebook_id?: string; // For notebook organization
+  is_favorite?: boolean; // For marking favorites
+  created_at?: string; // For Supabase compatibility
+  updated_at?: string; // For Supabase compatibility
 }
 
 export interface CategoryDefinition {
