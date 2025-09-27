@@ -26,7 +26,9 @@ export type WidgetType =
   | 'habit-tracker'
   | 'weather'
   | 'quotes'
-  | 'custom-note';
+  | 'custom-note'
+  | 'content-summarizer'
+  | 'task-manager';
 
 export interface DashboardLayout {
   id: string;

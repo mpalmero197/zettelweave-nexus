@@ -202,6 +202,32 @@
     z-index: 1;
   }
   
+  /* Firefox-specific fixes for overlapping elements */
+  @-moz-document url-prefix() {
+    .sticky-note {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    
+    .widget-container {
+      position: relative;
+      z-index: auto;
+      transform: translateZ(0);
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      z-index: 9999;
+      transform: translateZ(0);
+    }
+    
+    .popover-content {
+      position: absolute;
+      z-index: 1000;
+      transform: translateZ(0);
+    }
+  }
+  
   /* Mobile-friendly spacing */
   body.mobile {
     --header-height: 3rem;

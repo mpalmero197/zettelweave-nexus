@@ -10,10 +10,11 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check, Download } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
+import { DebugLogger } from '@/components/DebugLogger';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -34,9 +35,10 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup' | 'debug'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [showDebugLogger, setShowDebugLogger] = useState(false);
   
   // Profile states
   const [displayName, setDisplayName] = useState('');
@@ -279,6 +281,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'debug', label: 'Debug Logs', icon: Bug },
     ...(user?.email === 'mpalmero197@gmail.com' ? [{ id: 'backup', label: 'Backup', icon: Download }] : []),
   ];
 
@@ -491,60 +494,28 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Appearance & Themes</h3>
                   
-                  <div className="grid gap-4">
+                  <div className="grid gap-3 max-w-md">
                     {themes.map((theme) => (
-                      <Card
+                      <Card 
                         key={theme.id}
-                        className={`p-4 cursor-pointer transition-all duration-200 ${
-                          selectedTheme === theme.id
-                            ? 'ring-2 ring-primary bg-primary/5'
-                            : 'hover:bg-muted/50'
+                        className={`cursor-pointer transition-all hover:shadow-md ${
+                          selectedTheme === theme.id ? 'ring-2 ring-primary' : ''
                         }`}
                         onClick={() => handleThemeChange(theme.id)}
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
                               <h4 className="font-medium">{theme.name}</h4>
-                              {selectedTheme === theme.id && (
-                                <Badge variant="default" className="text-xs">
-                                  <Check className="h-3 w-3 mr-1" />
-                                  Active
-                                </Badge>
-                              )}
+                              <p className="text-sm text-muted-foreground">
+                                {theme.description}
+                              </p>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {theme.description}
-                            </p>
-                          </div>
-                          
-                          <div className="flex gap-1">
-                            {theme.id === 'light' && (
-                              <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-300"></div>
-                            )}
-                            {theme.id === 'dark' && (
-                              <div className="w-6 h-6 rounded-full bg-gray-900 border-2 border-gray-600"></div>
-                            )}
-                            {theme.id === 'midnight' && (
-                              <div className="w-6 h-6 rounded-full bg-black border-2 border-gray-800"></div>
-                            )}
-                            {theme.id === 'ocean' && (
-                              <div className="w-6 h-6 rounded-full bg-blue-600 border-2 border-blue-400"></div>
-                            )}
-                            {theme.id === 'forest' && (
-                              <div className="w-6 h-6 rounded-full bg-green-600 border-2 border-green-400"></div>
-                            )}
-                            {theme.id === 'sunset' && (
-                              <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-orange-300"></div>
-                            )}
-                            {theme.id === 'lavender' && (
-                              <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-purple-300"></div>
-                            )}
-                            {theme.id === 'system' && (
-                              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-white to-gray-900 border-2 border-gray-400"></div>
+                            {selectedTheme === theme.id && (
+                              <Check className="h-5 w-5 text-primary" />
                             )}
                           </div>
-                        </div>
+                        </CardContent>
                       </Card>
                     ))}
                   </div>
@@ -552,46 +523,73 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
               </div>
             )}
 
-            {activeTab === 'backup' && user?.email === 'mpalmero197@gmail.com' && (
+            {activeTab === 'debug' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Codebase Backup</h3>
+                  <h3 className="text-lg font-medium mb-4">Debug & Error Logs</h3>
                   
-                  <Card className="p-6 mb-6">
+                  <Card className="p-4">
                     <div className="space-y-4">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg">
-                          <Download className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-lg mb-2">Export Complete Codebase</h4>
-                          <p className="text-muted-foreground mb-4">
-                            Download a complete backup of your application including all source code, 
-                            configuration files, and setup instructions. This backup can be deployed 
-                            independently of Lovable.
-                          </p>
-                          
-                          <div className="bg-muted/30 rounded-lg p-4 mb-4">
-                            <h5 className="font-medium mb-2">What's included:</h5>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>• Complete React TypeScript application</li>
-                              <li>• All components and utilities</li>
-                              <li>• Configuration files (package.json, etc.)</li>
-                              <li>• Setup and deployment instructions</li>
-                              <li>• Environment variable templates</li>
-                            </ul>
-                          </div>
-
-                          <Button
-                            onClick={handleExportBackup}
-                            disabled={isLoading}
-                            className="gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            {isLoading ? 'Generating Backup...' : 'Export Codebase'}
-                          </Button>
-                        </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Error Logging System</h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          This system automatically captures all JavaScript errors, console logs, and unhandled exceptions. 
+                          Use this to debug issues or share error information with support.
+                        </p>
                       </div>
+                      
+                      <Button
+                        onClick={() => setShowDebugLogger(true)}
+                        className="gap-2"
+                      >
+                        <Bug className="h-4 w-4" />
+                        Open Debug Logger
+                      </Button>
+                      
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>• All console errors and warnings are automatically captured</p>
+                        <p>• Unhandled JavaScript exceptions are logged with stack traces</p>
+                        <p>• Export logs as JSON or copy to clipboard for support</p>
+                        <p>• Logs include timestamps, user agent, and current URL context</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'backup' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Data Backup & Export</h3>
+                  
+                  <Card className="p-6 space-y-4">
+                    <div>
+                      <h4 className="font-medium text-lg mb-2">Complete Codebase Export</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Export your entire ZettelWeave application as a downloadable ZIP file. 
+                        This includes all source code, configurations, and setup instructions.
+                      </p>
+                      
+                      <div className="bg-muted p-4 rounded-lg mb-4">
+                        <h5 className="font-medium mb-2">Export includes:</h5>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Complete React TypeScript application</li>
+                          <li>• All components and utilities</li>
+                          <li>• Configuration files (package.json, etc.)</li>
+                          <li>• Setup and deployment instructions</li>
+                          <li>• Environment variable templates</li>
+                        </ul>
+                      </div>
+
+                      <Button
+                        onClick={handleExportBackup}
+                        disabled={isLoading}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        {isLoading ? 'Generating Backup...' : 'Export Codebase'}
+                      </Button>
                     </div>
                   </Card>
                 </div>
@@ -600,6 +598,10 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
           </div>
         </div>
       </Card>
+      
+      {showDebugLogger && (
+        <DebugLogger onClose={() => setShowDebugLogger(false)} />
+      )}
     </div>
   );
 }

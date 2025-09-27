@@ -140,6 +140,24 @@ const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     defaultSize: { w: 2, h: 2 },
     minSize: { w: 1, h: 1 },
     maxSize: { w: 4, h: 4 }
+  },
+  {
+    type: 'content-summarizer',
+    name: 'Content Summarizer',
+    description: 'AI-powered content summarization tool',
+    icon: Brain,
+    defaultSize: { w: 3, h: 3 },
+    minSize: { w: 2, h: 2 },
+    maxSize: { w: 4, h: 4 }
+  },
+  {
+    type: 'task-manager',
+    name: 'Task Manager',
+    description: 'Advanced task management with time tracking',
+    icon: CheckSquare,
+    defaultSize: { w: 3, h: 3 },
+    minSize: { w: 2, h: 2 },
+    maxSize: { w: 4, h: 4 }
   }
 ];
 

@@ -31,41 +31,52 @@ const getDefinition = async (word: string, cards: any[] = []): Promise<WordDefin
     };
   }
 
-  // Try Free Dictionary API first
+  // Try Free Dictionary API first with enhanced error handling
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced to 3 second timeout
     
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`, {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      }
+      },
+      mode: 'cors' // Explicitly set CORS mode
     });
     
     clearTimeout(timeoutId);
     
-    if (response.ok) {
+    if (response.ok && response.status === 200) {
       const data = await response.json();
-      const entry = data[0];
       
-      if (entry && entry.meanings && entry.meanings.length > 0) {
-        const meaning = entry.meanings[0];
-        const definition = meaning.definitions[0];
+      if (Array.isArray(data) && data.length > 0) {
+        const entry = data[0];
         
-        return {
-          word: entry.word,
-          definition: definition.definition,
-          partOfSpeech: meaning.partOfSpeech || "unknown",
-          examples: definition.example ? [definition.example] : [],
-          etymology: entry.origin,
-          phonetic: entry.phonetic
-        };
+        if (entry && entry.meanings && Array.isArray(entry.meanings) && entry.meanings.length > 0) {
+          const meaning = entry.meanings[0];
+          const definition = meaning.definitions && meaning.definitions[0];
+          
+          if (definition && definition.definition) {
+            return {
+              word: entry.word || word,
+              definition: definition.definition,
+              partOfSpeech: meaning.partOfSpeech || "unknown",
+              examples: definition.example ? [definition.example] : [],
+              etymology: entry.origin,
+              phonetic: entry.phonetic || entry.phonetics?.[0]?.text
+            };
+          }
+        }
       }
     }
   } catch (error) {
-    console.log('Dictionary API failed, using fallback');
+    // Silently handle errors and fall back to local definitions
+    if (error.name === 'AbortError') {
+      console.log('Dictionary API request timed out, using fallback');
+    } else {
+      console.log('Dictionary API failed, using fallback:', error.message);
+    }
   }
 
   // Fallback to enhanced local definitions
