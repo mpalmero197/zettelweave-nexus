@@ -30,17 +30,25 @@ export function ResizableGrid({
 
   // Convert widgets to grid layout format
   const convertWidgetsToLayout = useCallback((widgets: DashboardWidget[]): Layout[] => {
-    return widgets.map(widget => ({
-      i: widget.id,
-      x: widget.position.x,
-      y: widget.position.y,
-      w: widget.position.w,
-      h: widget.position.h,
-      minW: 1,
-      minH: 1,
-      maxW: 12,
-      maxH: 6,
-    }));
+    return widgets.map(widget => {
+      // Set minimum sizes based on widget type for better readability
+      const minW = widget.type === 'welcome' || widget.type === 'stats' ? 4 : 
+                   widget.type === 'quick-capture' ? 6 : 3;
+      const minH = widget.type === 'welcome' ? 3 : 
+                   widget.type === 'quick-capture' ? 4 : 3;
+      
+      return {
+        i: widget.id,
+        x: widget.position.x,
+        y: widget.position.y,
+        w: Math.max(widget.position.w, minW),
+        h: Math.max(widget.position.h, minH),
+        minW,
+        minH,
+        maxW: 12,
+        maxH: 8,
+      };
+    });
   }, []);
 
   // Convert grid layout back to widgets
@@ -89,19 +97,30 @@ export function ResizableGrid({
   };
 
   const resetLayout = () => {
-    // Reset to default positions
-    const resetWidgets = widgets.map((widget, index) => ({
-      ...widget,
-      position: {
-        x: (index % 6) * 2,
-        y: Math.floor(index / 6) * 3,
-        w: 2,
-        h: 3,
-      }
-    }));
+    // Reset to default positions with better spacing
+    const resetWidgets = widgets.map((widget, index) => {
+      const positions = [
+        { x: 0, y: 0, w: 6, h: 3 }, // welcome
+        { x: 6, y: 0, w: 6, h: 3 }, // stats  
+        { x: 0, y: 3, w: 8, h: 4 }, // quick-capture
+        { x: 8, y: 3, w: 4, h: 4 }, // recent-cards
+        { x: 0, y: 7, w: 4, h: 4 }, // recent-notes
+        { x: 4, y: 7, w: 4, h: 4 }, // additional widgets
+        { x: 8, y: 7, w: 4, h: 4 },
+        { x: 0, y: 11, w: 6, h: 3 },
+        { x: 6, y: 11, w: 6, h: 3 },
+      ];
+      
+      const defaultPos = positions[index] || { x: (index % 4) * 3, y: Math.floor(index / 4) * 4, w: 3, h: 4 };
+      
+      return {
+        ...widget,
+        position: defaultPos
+      };
+    });
     
     onLayoutChange(resetWidgets);
-    toast.success('Layout reset to default positions');
+    toast.success('Layout reset to spacious default positions');
   };
 
   const visibleWidgets = widgets.filter(w => w.isVisible);
@@ -141,13 +160,13 @@ export function ResizableGrid({
         layouts={layouts}
         onLayoutChange={handleLayoutChange}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={60}
+        cols={{ lg: 12, md: 12, sm: 8, xs: 6, xxs: 4 }}
+        rowHeight={80}
         isDraggable={isDraggable && !isLocked}
         isResizable={isResizable && !isLocked}
         compactType="vertical"
         preventCollision={false}
-        margin={[16, 16]}
+        margin={[20, 20]}
         containerPadding={[0, 0]}
         useCSSTransforms={true}
         transformScale={1}

@@ -85,24 +85,29 @@ export function StatsWidget() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
-      {statItems.map((stat, index) => (
-        <div key={stat.label} className="group relative">
-          <div className={`absolute inset-0 bg-gradient-to-br from-${stat.gradientFrom} to-${stat.gradientTo} rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500`} />
-          <Card className={`relative h-full bg-card/70 backdrop-blur-xl border border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/20 hover:border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/40 transition-all duration-500 overflow-hidden`}>
-            <div className={`absolute inset-0 bg-gradient-to-br from-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/5 to-transparent`} />
-            <CardContent className="relative p-6 h-full flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                <p className={`text-3xl font-bold text-${stat.color}`}>{stat.value}</p>
+    <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+      <CardContent className="p-6 h-full">
+        <div className="grid grid-cols-2 gap-4 h-full">
+          {statItems.map((stat, index) => (
+            <div key={stat.label} className="group relative">
+              <div className={`absolute inset-0 bg-gradient-to-br from-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/10 to-transparent rounded-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500`} />
+              <div className={`relative h-full p-4 rounded-xl border border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/20 bg-background/50 backdrop-blur-sm transition-all duration-300 hover:border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/40`}>
+                <div className="flex items-center justify-between h-full">
+                  <div className="space-y-2">
+                    <div className={`p-2 bg-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/10 rounded-lg group-hover:scale-105 transition-transform duration-300 w-fit`}>
+                      <stat.icon className={`h-5 w-5 text-${stat.color}`} />
+                    </div>
+                    <div>
+                      <p className={`text-2xl font-bold text-${stat.color}`}>{stat.value}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className={`p-4 bg-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/10 rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
-                <stat.icon className={`h-7 w-7 text-${stat.color}`} />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
