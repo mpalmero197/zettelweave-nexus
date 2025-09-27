@@ -62,7 +62,7 @@ export function useDashboardLayout() {
         .from('dashboard_layouts')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);

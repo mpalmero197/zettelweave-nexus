@@ -257,11 +257,22 @@ function MeetingRecorder() {
               description: `Successfully transcribed ${formatTime(recordingTime)} of audio${data.speakerCount > 1 ? ` with ${data.speakerCount} speakers detected` : ''}.`
             });
           }
-        } catch (transcriptionError) {
+        } catch (transcriptionError: any) {
           console.error('Transcription error:', transcriptionError);
+          
+          let errorMessage = "Unable to transcribe audio. Please try again.";
+          
+          // Check for specific OpenAI quota error
+          if (transcriptionError?.message?.includes('insufficient_quota') || 
+              transcriptionError?.message?.includes('quota')) {
+            errorMessage = "OpenAI API quota exceeded. Please check your billing settings.";
+          } else if (transcriptionError?.message?.includes('non-2xx status code')) {
+            errorMessage = "Transcription service is temporarily unavailable.";
+          }
+          
           toast({
             title: "Transcription failed",
-            description: "Unable to transcribe audio. Please try again.",
+            description: errorMessage,
             variant: "destructive"
           });
         }
@@ -317,10 +328,17 @@ function MeetingRecorder() {
     setIsCreatingSnippet(true);
     
     try {
+      // Check if we have the original audio blob stored
+      if (audioChunksRef.current.length === 0) {
+        throw new Error('No audio data available for snippet creation');
+      }
+
       // Create audio context to slice the audio
       const audioContext = new AudioContext();
-      const response = await fetch(recordedAudioUrl);
-      const arrayBuffer = await response.arrayBuffer();
+      
+      // Use the original audio chunks instead of fetching from blob URL
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const arrayBuffer = await audioBlob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
       const sampleRate = audioBuffer.sampleRate;
