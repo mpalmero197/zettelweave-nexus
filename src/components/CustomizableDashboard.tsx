@@ -1,18 +1,29 @@
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 import { DashboardCustomizer } from "./DashboardCustomizer";
 import { DashboardWidgetSidebar } from "./DashboardWidgetSidebar";
+import { ResizableGrid } from "./ResizableGrid";
 import { WelcomeWidget } from "./widgets/WelcomeWidget";
 import { StatsWidget } from "./widgets/StatsWidget";
 import { RecentCardsWidget } from "./widgets/RecentCardsWidget";
 import { RecentNotesWidget } from "./widgets/RecentNotesWidget";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
 import { HabitTrackerWidget } from "./widgets/HabitTrackerWidget";
+import { TaskManagerWidget } from "./widgets/TaskManagerWidget";
+import { ContentSummarizerWidget } from "./widgets/ContentSummarizerWidget";
+import { ActivityFeedWidget } from "./widgets/ActivityFeedWidget";
+import { NotebookListWidget } from "./widgets/NotebookListWidget";
+import { WeatherWidget } from "./widgets/WeatherWidget";
+import { QuotesWidget } from "./widgets/QuotesWidget";
+import { CustomNoteWidget } from "./widgets/CustomNoteWidget";
+import { FavoritesWidget } from "./widgets/FavoritesWidget";
+import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
+import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { DashboardWidget, WidgetType } from "@/types/dashboard";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
-import { Brain, FileText, Calendar, Activity, CheckSquare, Sun, Quote, StickyNote, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Brain, Eye, EyeOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface CustomizableDashboardProps {
@@ -31,7 +42,7 @@ interface Note {
 }
 
 export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: CustomizableDashboardProps) {
-  const { widgets, isLoading, removeWidget, updateWidget } = useDashboardLayout();
+  const { widgets, isLoading, removeWidget, updateWidget, saveLayout } = useDashboardLayout();
 
   const renderWidget = (widget: DashboardWidget) => {
     if (!widget.isVisible) return null;
@@ -71,99 +82,45 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
           return <QuickCaptureWidget onCreateCard={onCreateCard} />;
         
         case 'calendar-events':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Calendar events coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <CalendarEventsWidget />;
         
         case 'activity-feed':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Activity feed coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <ActivityFeedWidget />;
         
         case 'favorites':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Favorites coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <FavoritesWidget />;
+        
+        case 'notebook-list':
+          return <NotebookListWidget />;
         
         case 'task-tracker':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Task tracker coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <TaskTrackerWidget />;
         
         case 'habit-tracker':
           return <HabitTrackerWidget />;
         
         case 'weather':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Sun className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Weather coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <WeatherWidget />;
         
         case 'quotes':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Quote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Daily quotes coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <QuotesWidget />;
         
         case 'custom-note':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <StickyNote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Custom note coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <CustomNoteWidget />;
+        
+        case 'content-summarizer':
+          return <ContentSummarizerWidget />;
+        
+        case 'task-manager':
+          return <TaskManagerWidget />;
         
         default:
           return (
             <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
               <CardContent className="p-6 h-full flex items-center justify-center">
                 <div className="text-center">
-                  <StickyNote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Unknown widget type</p>
+                  <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-sm text-muted-foreground">Unknown widget type: {widget.type}</p>
                 </div>
               </CardContent>
             </Card>
@@ -172,7 +129,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
     })();
 
     return (
-      <div key={widget.id} style={widgetStyle} className="relative group">
+      <div className="relative group h-full">
         {/* Widget Controls */}
         <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
           <Button
@@ -223,14 +180,16 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
           </div>
         </div>
 
-        {/* Responsive grid layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 sm:gap-6 auto-rows-min">
-          {visibleWidgets
-            .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
-            .map(renderWidget)}
-        </div>
-
-        {visibleWidgets.length === 0 && (
+        {/* Resizable Grid Layout */}
+        {visibleWidgets.length > 0 ? (
+          <ResizableGrid
+            widgets={visibleWidgets}
+            onLayoutChange={saveLayout}
+            className="min-h-[600px]"
+          >
+            {renderWidget}
+          </ResizableGrid>
+        ) : (
           <div className="text-center py-20">
             <div className="mb-4">
               <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
