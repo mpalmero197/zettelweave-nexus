@@ -73,11 +73,18 @@ export function useDashboardLayout() {
       if (data && data.layout_data) {
         try {
           const layoutData = data.layout_data as unknown as DashboardWidget[];
+          console.log('Loading dashboard layout:', layoutData);
           setWidgets(layoutData);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
           console.error('Error parsing layout data:', errorMessage, error);
+          // Fall back to default widgets if parsing fails
+          setWidgets(DEFAULT_WIDGETS);
         }
+      } else {
+        // No saved layout found, use defaults
+        console.log('No saved layout found, using defaults');
+        setWidgets(DEFAULT_WIDGETS);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
@@ -105,7 +112,12 @@ export function useDashboardLayout() {
         throw error;
       }
 
+      // Update local state after successful save
       setWidgets(newWidgets);
+      
+      // Reload from database to ensure sync
+      await loadLayout();
+      
       toast.success('Dashboard layout saved');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
