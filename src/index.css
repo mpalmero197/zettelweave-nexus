@@ -187,4 +187,34 @@
     padding-right: env(safe-area-inset-right);
     padding-bottom: env(safe-area-inset-bottom);
   }
+  
+  /* Responsive breakpoints */
+  .mobile-optimized {
+    @media (max-width: 767px) {
+      padding: 0.5rem;
+      font-size: 0.875rem;
+    }
+  }
+  
+  /* Prevent overlap by ensuring proper z-indexing */
+  .prevent-overlap {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Mobile-friendly spacing */
+  body.mobile {
+    --header-height: 3rem;
+    --mobile-padding: 1rem;
+  }
+  
+  body.tablet {
+    --header-height: 3.5rem;
+    --mobile-padding: 1.5rem;
+  }
+  
+  body.desktop {
+    --header-height: 4rem;
+    --mobile-padding: 2rem;
+  }
 }

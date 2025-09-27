@@ -21,8 +21,10 @@ import {
   Trash2,
   TrendingUp,
   Clock,
-  Zap
+  Zap,
+  Timer
 } from "lucide-react";
+import { PomodoroTimer } from "./PomodoroTimer";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +68,7 @@ export default function HabitTracker() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [view, setView] = useState<'today' | 'calendar' | 'stats' | 'all'>('today');
+  const [view, setView] = useState<'today' | 'calendar' | 'stats' | 'all' | 'pomodoro'>('today');
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
   // Load habits from localStorage
@@ -557,6 +559,7 @@ export default function HabitTracker() {
       <div className="flex flex-wrap gap-2">
         {[
           { id: 'today', label: 'Today', icon: Clock },
+          { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
           { id: 'stats', label: 'Statistics', icon: BarChart3 },
           { id: 'all', label: 'All Habits', icon: Target }
         ].map(({ id, label, icon: Icon }) => (
@@ -577,6 +580,7 @@ export default function HabitTracker() {
 
       {/* Views */}
       {view === 'today' && <TodayView />}
+      {view === 'pomodoro' && <PomodoroTimer habits={habits} />}
       {view === 'stats' && <StatsView />}
       {view === 'all' && <AllHabitsView />}
 

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { X, Plus, Palette, Pin, PinOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface StickyNote {
   id: string;
@@ -30,6 +31,7 @@ export const StickyNotesSimple: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const nodeRef = useRef(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const savedNotes = localStorage.getItem('stickyNotes');
@@ -144,12 +146,13 @@ export const StickyNotesSimple: React.FC = () => {
             defaultPosition={note.position}
             onStop={(_, data) => updateNotePosition(note.id, { x: data.x, y: data.y })}
             nodeRef={nodeRef}
+            disabled={isMobile}
           >
             <Card
               ref={nodeRef}
-              className={`absolute w-64 h-48 shadow-lg cursor-move border-0 transition-all duration-200 hover:shadow-xl ${
+              className={`absolute shadow-lg border-0 transition-all duration-200 hover:shadow-xl ${
                 note.alwaysOnTop ? 'z-50' : 'z-10'
-              }`}
+              } ${isMobile ? 'w-72 h-40 cursor-default' : 'w-64 h-48 cursor-move'}`}
               style={{ 
                 backgroundColor: note.color,
                 color: getTextColor(note.color)
@@ -214,7 +217,7 @@ export const StickyNotesSimple: React.FC = () => {
 
         <Button
           onClick={addNote}
-          className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-lg z-50"
+          className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-14 w-14 shadow-lg z-50`}
         >
           <Plus className="h-6 w-6" />
         </Button>

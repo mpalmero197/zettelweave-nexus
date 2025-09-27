@@ -10,6 +10,7 @@ import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
+import { MobileDetector } from "@/components/MobileDetector";
 import { MaterialTabBar } from "@/components/MaterialTabBar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
@@ -157,7 +158,8 @@ const Index = () => {
   }
 
   return (
-    <MobileOptimizedLayout>
+    <MobileDetector>
+      <MobileOptimizedLayout>
       <SecurityNotice />
       
       {/* Material Design Header */}
@@ -446,8 +448,10 @@ const Index = () => {
           cards={cards}
         />
       )}
-    </MobileOptimizedLayout>
+      </MobileOptimizedLayout>
+    </MobileDetector>
   );
+
 };
 
 export default Index;

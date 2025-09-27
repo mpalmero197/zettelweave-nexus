@@ -170,8 +170,8 @@ export function DashboardWidgetSidebar() {
         title: definition.name,
         position: {
           x: 0,
-          y: 0,
-          w: definition.defaultSize.w,
+          y: widgets.length, // Stack vertically
+          w: Math.min(definition.defaultSize.w, 2), // Limit width for mobile
           h: definition.defaultSize.h
         },
         isVisible: true

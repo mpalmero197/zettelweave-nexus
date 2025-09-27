@@ -33,7 +33,18 @@ const getDefinition = async (word: string, cards: any[] = []): Promise<WordDefin
 
   // Try Free Dictionary API first
   try {
-    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    clearTimeout(timeoutId);
     
     if (response.ok) {
       const data = await response.json();

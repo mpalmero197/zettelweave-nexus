@@ -6,6 +6,7 @@ import { StatsWidget } from "./widgets/StatsWidget";
 import { RecentCardsWidget } from "./widgets/RecentCardsWidget";
 import { RecentNotesWidget } from "./widgets/RecentNotesWidget";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
+import { HabitTrackerWidget } from "./widgets/HabitTrackerWidget";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -118,16 +119,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
           );
         
         case 'habit-tracker':
-          return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Habit tracker coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
+          return <HabitTrackerWidget />;
         
         case 'weather':
           return (
