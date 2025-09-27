@@ -62,16 +62,23 @@ export function Calendar() {
     if (!user) return;
 
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('calendar_events')
         .select('*')
         .eq('user_id', user.id)
         .order('event_date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Calendar events fetch error:', error);
+        throw error;
+      }
+      
+      console.log('Calendar events loaded:', data?.length || 0);
       setEvents(data || []);
     } catch (error) {
       console.error('Error fetching calendar events:', error);
+      setEvents([]); // Reset to empty array on error
     } finally {
       setLoading(false);
     }

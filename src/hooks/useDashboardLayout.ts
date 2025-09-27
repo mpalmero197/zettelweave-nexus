@@ -98,31 +98,42 @@ export function useDashboardLayout() {
     if (!user || isSaving) return;
 
     setIsSaving(true);
+    console.log('Saving dashboard layout:', newWidgets.length, 'widgets');
+    
     try {
+      // First update local state immediately for responsiveness
+      setWidgets(newWidgets);
+      
       const { error } = await supabase
         .from('dashboard_layouts')
-        .upsert({
+        .upsert([{
           user_id: user.id,
-          layout_data: newWidgets as any
-        }, {
+          layout_data: newWidgets as any,
+          updated_at: new Date().toISOString()
+        }], {
           onConflict: 'user_id'
         });
 
       if (error) {
+        console.error('Dashboard layout save error:', error);
         throw error;
       }
 
-      // Update local state after successful save
-      setWidgets(newWidgets);
-      
-      // Reload from database to ensure sync
-      await loadLayout();
-      
+      console.log('Dashboard layout saved successfully');
       toast.success('Dashboard layout saved');
+      
+      // Verify the save by reloading
+      setTimeout(() => {
+        loadLayout();
+      }, 100);
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       console.error('Error saving dashboard layout:', errorMessage, error);
       toast.error(`Failed to save dashboard layout: ${errorMessage}`);
+      
+      // Reload to get the correct state from database
+      await loadLayout();
     } finally {
       setIsSaving(false);
     }

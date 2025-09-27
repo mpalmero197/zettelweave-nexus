@@ -127,10 +127,41 @@ class DebugLoggerService {
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       url: window.location.href,
+      summary: this.generateLovableFriendlySummary(),
       logs: this.logs
     };
     
     return JSON.stringify(exportData, null, 2);
+  }
+
+  private generateLovableFriendlySummary(): string {
+    const errors = this.logs.filter(l => l.level === 'error');
+    const warnings = this.logs.filter(l => l.level === 'warn');
+    
+    let summary = `=== LOVABLE DEBUG REPORT ===\n`;
+    summary += `Total Errors: ${errors.length}\n`;
+    summary += `Total Warnings: ${warnings.length}\n\n`;
+    
+    if (errors.length > 0) {
+      summary += `CRITICAL ERRORS:\n`;
+      errors.slice(0, 5).forEach((error, i) => {
+        summary += `${i + 1}. ${error.message}\n`;
+        if (error.stack) {
+          const stackLines = error.stack.split('\n').slice(0, 3);
+          summary += `   Stack: ${stackLines.join(' -> ')}\n`;
+        }
+      });
+      summary += `\n`;
+    }
+    
+    if (warnings.length > 0) {
+      summary += `WARNINGS:\n`;
+      warnings.slice(0, 3).forEach((warning, i) => {
+        summary += `${i + 1}. ${warning.message}\n`;
+      });
+    }
+    
+    return summary;
   }
 }
 

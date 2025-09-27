@@ -49,30 +49,41 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
         return;
       }
 
-      const canvas = new FabricCanvas(canvasRef.current, {
-        width,
-        height,
-        backgroundColor: "#ffffff",
-        selection: true,
-        allowTouchScrolling: false,
-        stopContextMenu: true,
-      });
+      try {
+        const canvas = new FabricCanvas(canvasRef.current, {
+          width,
+          height,
+          backgroundColor: "#ffffff",
+          selection: true,
+          allowTouchScrolling: false,
+          stopContextMenu: true,
+        });
 
-      // Initialize brush right after canvas creation
-      canvas.isDrawingMode = true;
-      
-      // Configure brush settings with proper initialization
-      const brush = canvas.freeDrawingBrush;
-      if (brush) {
-        brush.color = activeColor;
-        brush.width = window.innerWidth < 768 ? 4 : 2;
-        brush.strokeLineCap = 'round';
-        brush.strokeLineJoin = 'round';
+        // Wait for canvas to be ready before setting up drawing
+        canvas.on('after:render', () => {
+          if (!canvas.freeDrawingBrush) {
+            console.warn('FreeDrawingBrush not ready, initializing...');
+            return;
+          }
+          
+          // Configure brush settings with proper initialization
+          canvas.freeDrawingBrush.color = activeColor;
+          canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
+          canvas.freeDrawingBrush.strokeLineCap = 'round';
+          canvas.freeDrawingBrush.strokeLineJoin = 'round';
+        });
+
+        // Set drawing mode based on active tool
+        canvas.isDrawingMode = activeTool === "draw";
+        
+        setFabricCanvas(canvas);
+        setIsReady(true);
+        console.log('Whiteboard initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize whiteboard:', error);
+        // Retry initialization
+        setTimeout(initCanvas, 500);
       }
-
-      setFabricCanvas(canvas);
-      setIsReady(true);
-      console.log('Whiteboard initialized successfully');
     };
 
     initCanvas();

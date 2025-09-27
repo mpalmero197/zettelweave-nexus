@@ -143,12 +143,13 @@ export const useZettelCards = () => {
           tags: sanitizedCard.tags || [],
           linked_cards: sanitizedCard.linkedCards || [],
           image_url: sanitizedCard.imageUrl,
-          video_url: sanitizedCard.videoUrl
+          video_url: sanitizedCard.videoUrl,
+          updated_at: new Date().toISOString()
         })
         .eq('id', updatedCard.id)
         .eq('user_id', user.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
