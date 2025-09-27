@@ -65,7 +65,8 @@ export function useDashboardLayout() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading dashboard layout:', error);
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+        console.error('Error loading dashboard layout:', errorMessage, error);
         return;
       }
 
@@ -74,11 +75,13 @@ export function useDashboardLayout() {
           const layoutData = data.layout_data as unknown as DashboardWidget[];
           setWidgets(layoutData);
         } catch (error) {
-          console.error('Error parsing layout data:', error);
+          const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+          console.error('Error parsing layout data:', errorMessage, error);
         }
       }
     } catch (error) {
-      console.error('Error loading dashboard layout:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('Error loading dashboard layout:', errorMessage, error);
     } finally {
       setIsLoading(false);
     }
@@ -105,8 +108,9 @@ export function useDashboardLayout() {
       setWidgets(newWidgets);
       toast.success('Dashboard layout saved');
     } catch (error) {
-      console.error('Error saving dashboard layout:', error);
-      toast.error('Failed to save dashboard layout');
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('Error saving dashboard layout:', errorMessage, error);
+      toast.error(`Failed to save dashboard layout: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }
