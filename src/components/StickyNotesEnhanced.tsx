@@ -213,6 +213,7 @@ export const StickyNotesEnhanced = ({ onCreateCard, isFloating = false }: Sticky
           onStop={(e, data) => updatePosition(note.id, { x: data.x, y: data.y })}
           handle=".drag-handle"
           bounds={isFloating ? "parent" : undefined}
+          disabled={window.innerWidth < 768} // Disable dragging on mobile
         >
           <div 
             className={`${isFloating ? 'absolute pointer-events-auto' : 'relative'} w-64 shadow-lg rounded-lg border border-border/50 transition-all hover:shadow-xl resize-none overflow-hidden`}

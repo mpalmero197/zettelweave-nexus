@@ -321,7 +321,7 @@ const Index = () => {
                         <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
                         {filteredCards.map((card) => (
                           <ZettelCard
                             key={card.id}
@@ -329,6 +329,7 @@ const Index = () => {
                             onEdit={setViewingCard}
                             onDelete={handleDeleteCard}
                             onWordHover={handleWordHover}
+                            className="h-fit"
                           />
                         ))}
                       </div>

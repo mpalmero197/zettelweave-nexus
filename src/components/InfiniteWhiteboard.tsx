@@ -59,18 +59,28 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
           stopContextMenu: true,
         });
 
-        // Wait for canvas to be ready before setting up drawing
-        canvas.on('after:render', () => {
-          if (!canvas.freeDrawingBrush) {
-            console.warn('FreeDrawingBrush not ready, initializing...');
-            return;
-          }
-          
-          // Configure brush settings with proper initialization
+        // Initialize drawing brush immediately
+        if (canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush.color = activeColor;
           canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
           canvas.freeDrawingBrush.strokeLineCap = 'round';
           canvas.freeDrawingBrush.strokeLineJoin = 'round';
+        }
+
+        // Wait for canvas to be ready before setting up drawing
+        canvas.on('after:render', () => {
+          if (!canvas.freeDrawingBrush) {
+            console.warn('FreeDrawingBrush not ready, retrying initialization...');
+            // Canvas is ready, set up drawing mode
+            canvas.isDrawingMode = true;
+            canvas.isDrawingMode = false; // Reset to force initialization
+            if (canvas.freeDrawingBrush) {
+              canvas.freeDrawingBrush.color = activeColor;
+              canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
+              canvas.freeDrawingBrush.strokeLineCap = 'round';
+              canvas.freeDrawingBrush.strokeLineJoin = 'round';
+            }
+          }
         });
 
         // Set drawing mode based on active tool
