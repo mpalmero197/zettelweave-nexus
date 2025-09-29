@@ -29,6 +29,7 @@ import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
 import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
+import { Link } from "react-router-dom";
 import { 
   Brain, 
   Plus, 
@@ -42,6 +43,7 @@ import {
   LogOut,
   User,
   Settings,
+  Shield,
   Lightbulb,
   Grid3X3,
   FileText,
@@ -71,6 +73,7 @@ const Index = () => {
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>(() => {
     const stored = localStorage.getItem('pendragonx-organization-method');
     return (stored as OrganizationMethod) || "dewey";
@@ -78,6 +81,30 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
   const [viewingCard, setViewingCard] = useState<ZettelCardType | null>(null);
   const [showAccountManagement, setShowAccountManagement] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user && user.email === 'mpalmero197@gmail.com') {
+        setIsAdmin(true);
+      } else if (user) {
+        try {
+          const { data } = await supabase.rpc('has_role', { 
+            _user_id: user.id, 
+            _role: 'admin' 
+          });
+          setIsAdmin(data);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   useEffect(() => {
     if (JSON.stringify(filteredCards) !== JSON.stringify(cards)) {
@@ -201,6 +228,17 @@ const Index = () => {
                     <Settings className="h-4 w-4 mr-2" />
                     Account Settings
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="w-full flex items-center">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
