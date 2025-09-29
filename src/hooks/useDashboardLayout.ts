@@ -23,21 +23,21 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     id: 'quick-capture',
     type: 'quick-capture',
     title: 'Quick Capture',
-    position: { x: 0, y: 3, w: 8, h: 4 },
+    position: { x: 0, y: 3, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'recent-cards',
     type: 'recent-cards',
     title: 'Recent Cards',
-    position: { x: 8, y: 3, w: 4, h: 4 },
+    position: { x: 6, y: 3, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'recent-notes',
     type: 'recent-notes',
     title: 'Recent Notes',
-    position: { x: 0, y: 7, w: 4, h: 4 },
+    position: { x: 0, y: 7, w: 6, h: 4 },
     isVisible: true
   }
 ];
