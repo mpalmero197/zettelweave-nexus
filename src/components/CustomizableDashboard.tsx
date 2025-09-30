@@ -1,5 +1,4 @@
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
-import { DashboardCustomizer } from "./DashboardCustomizer";
 import { DashboardWidgetSidebar } from "./DashboardWidgetSidebar";
 import { ResizableGrid } from "./ResizableGrid";
 import { WelcomeWidget } from "./widgets/WelcomeWidget";
@@ -168,16 +167,13 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
       <div className="w-full max-w-none p-4 sm:p-6 lg:p-8 space-y-6">
-        {/* Header with customization */}
+        {/* Header with widget toolbox */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Customize your workspace to fit your workflow</p>
           </div>
-          <div className="flex gap-2">
-            <DashboardWidgetSidebar />
-            <DashboardCustomizer />
-          </div>
+          <DashboardWidgetSidebar />
         </div>
 
         {/* Resizable Grid Layout */}

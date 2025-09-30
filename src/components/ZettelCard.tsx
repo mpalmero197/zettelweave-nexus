@@ -19,18 +19,20 @@ interface ZettelCardProps {
 }
 
 const cardColors = [
-  { name: "Blue", value: "210", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-900" },
-  { name: "Green", value: "142", bg: "bg-green-50", border: "border-green-200", text: "text-green-900" },
-  { name: "Purple", value: "280", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-900" },
-  { name: "Orange", value: "25", bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-900" },
-  { name: "Pink", value: "320", bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-900" },
-  { name: "Teal", value: "180", bg: "bg-teal-50", border: "border-teal-200", text: "text-teal-900" },
+  { name: "Blue", value: "210", bg: "bg-blue-500", border: "border-blue-600", text: "text-white" },
+  { name: "Green", value: "142", bg: "bg-green-500", border: "border-green-600", text: "text-white" },
+  { name: "Purple", value: "280", bg: "bg-purple-500", border: "border-purple-600", text: "text-white" },
+  { name: "Orange", value: "25", bg: "bg-orange-500", border: "border-orange-600", text: "text-white" },
+  { name: "Pink", value: "320", bg: "bg-pink-500", border: "border-pink-600", text: "text-white" },
+  { name: "Teal", value: "180", bg: "bg-teal-500", border: "border-teal-600", text: "text-white" },
+  { name: "Red", value: "0", bg: "bg-red-500", border: "border-red-600", text: "text-white" },
+  { name: "Yellow", value: "60", bg: "bg-yellow-500", border: "border-yellow-600", text: "text-gray-900" },
   { name: "Default", value: "", bg: "", border: "", text: "" }
 ];
 
 export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpdate, className }: ZettelCardProps) {
   const categoryInfo = getCategoryInfo(card.category);
-  const currentColor = cardColors.find(c => c.value === (card as any).cardColor) || cardColors[6];
+  const currentColor = cardColors.find(c => c.value === card.cardColor) || cardColors[cardColors.length - 1];
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent click when clicking on buttons or interactive elements
@@ -53,7 +55,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       onUpdate({
         ...card,
         cardColor: colorValue
-      } as any);
+      });
     }
   };
 
@@ -81,10 +83,10 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       data-card-id={card.id}
       onClick={handleCardClick}
       className={cn(
-        "group rounded-xl bg-card shadow-card hover:shadow-hover transition-all duration-200 animate-fade-in cursor-pointer",
+        "group rounded-xl shadow-card hover:shadow-hover transition-all duration-200 animate-fade-in cursor-pointer",
         "border border-border/60 dark:border-border/50",
         "hover:scale-[1.02] hover:shadow-glow",
-        currentColor.bg,
+        currentColor.bg || "bg-card",
         currentColor.border && `border-l-4 ${currentColor.border}`,
         className
       )}
@@ -98,7 +100,10 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             <div className="flex items-center gap-2 mb-2">
               <Badge 
                 variant="outline" 
-                className={cn("text-xs font-mono", currentColor.text)}
+                className={cn(
+                  "text-xs font-mono",
+                  currentColor.text && "border-white/30 bg-white/10"
+                )}
                 style={!currentColor.text ? { 
                   borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                   color: `hsl(var(--category-${categoryInfo.color}))`
@@ -106,7 +111,17 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
               >
                 {card.number}
               </Badge>
-              <Badge variant="secondary" className="text-xs">
+              <Badge 
+                variant="secondary" 
+                className={cn(
+                  "text-xs",
+                  currentColor.text && "border-white/30 bg-white/20"
+                )}
+                style={!currentColor.bg ? {
+                  backgroundColor: `hsl(var(--category-${categoryInfo.color}) / 0.15)`,
+                  color: `hsl(var(--category-${categoryInfo.color}))`
+                } : undefined}
+              >
                 {categoryInfo.name}
               </Badge>
             </div>
@@ -119,24 +134,27 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
               </p>
             )}
           </div>
-          <div className="flex gap-1 text-muted-foreground">
-            <Button variant="ghost" size="sm" onClick={() => onEdit?.(card)} aria-label="Edit card" className="hover:text-foreground">
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit?.(card); }} aria-label="Edit card" className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground hover:text-foreground")}>
               <Edit3 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => onLink?.(card)} aria-label="Link card" className="hover:text-foreground">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLink?.(card); }} aria-label="Link card" className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground hover:text-foreground")}>
               <Link2 className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" aria-label="Change card color">
+                <Button variant="ghost" size="sm" aria-label="Change card color" onClick={(e) => e.stopPropagation()} className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground")}>
                   <Palette className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end"  className="z-50 bg-popover/95 backdrop-blur-sm"  onClick={(e) => e.stopPropagation()}>
                 {cardColors.map((color) => (
                   <DropdownMenuItem
                     key={color.name}
-                    onClick={() => changeCardColor(color.value)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      changeCardColor(color.value);
+                    }}
                     className="flex items-center gap-2"
                   >
                     <div 
@@ -188,16 +206,16 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
         
         {card.tags.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
-            <Tag className="h-3 w-3 text-muted-foreground" />
+            <Tag className={cn("h-3 w-3", currentColor.text ? "opacity-80" : "text-muted-foreground")} />
             {card.tags.map((tag, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
+              <Badge key={index} variant="outline" className={cn("text-xs", currentColor.text && "border-white/30 bg-white/10")}>
                 {tag}
               </Badge>
             ))}
           </div>
         )}
         
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+        <div className={cn("flex items-center justify-between text-xs pt-2 border-t", currentColor.text ? "border-white/20 opacity-80" : "text-muted-foreground border-border/50")}>
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {new Date(card.created).toLocaleDateString()}

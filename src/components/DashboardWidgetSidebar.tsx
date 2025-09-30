@@ -267,24 +267,16 @@ export function DashboardWidgetSidebar() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-2">
-                          {exists && (
-                            <Switch 
-                              checked={isVisible}
-                              onCheckedChange={() => handleToggleWidget(definition)}
-                            />
-                          )}
-                          {!exists && (
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAddWidget(definition)}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add
-                            </Button>
-                          )}
-                        </div>
+                        <Switch 
+                          checked={exists && isVisible}
+                          onCheckedChange={() => {
+                            if (exists) {
+                              handleToggleWidget(definition);
+                            } else {
+                              handleAddWidget(definition);
+                            }
+                          }}
+                        />
                       </div>
                     </CardHeader>
                     

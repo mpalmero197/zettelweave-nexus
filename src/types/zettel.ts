@@ -18,6 +18,7 @@ export interface ZettelCard {
   is_favorite?: boolean; // For marking favorites
   created_at?: string; // For Supabase compatibility
   updated_at?: string; // For Supabase compatibility
+  cardColor?: string; // For card color customization
 }
 
 export interface CategoryDefinition {
