@@ -11,7 +11,8 @@ import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MobileDetector } from "@/components/MobileDetector";
-import { MaterialTabBar } from "@/components/MaterialTabBar";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
 import { Notes } from "@/components/Notes";
@@ -29,23 +30,11 @@ import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
 import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
-import { Link } from "react-router-dom";
 import { 
-  Brain, 
   Plus, 
-  Upload, 
-  BarChart3, 
-  Sun, 
-  Moon, 
   Download, 
   Printer, 
-  Bot,
-  LogOut,
-  User,
-  Settings,
-  Shield,
   Lightbulb,
-  Grid3X3,
   FileText,
   Palette,
   StickyNote
@@ -59,15 +48,12 @@ const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"))
 
 const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 import { SecurityNotice } from "@/components/SecurityNotice";
-import { useTheme } from "next-themes";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
-  const { theme, setTheme } = useTheme();
   
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
@@ -189,73 +175,22 @@ const Index = () => {
       <MobileOptimizedLayout>
       <SecurityNotice />
       
-      {/* Material Design Header */}
-      <header className="bg-card/90 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 rounded-b-2xl shadow-sm">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <Brain className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-foreground">PendragonX</h1>
-                <p className="text-xs text-muted-foreground">Advanced Knowledge System</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="h-10 w-10 p-0 rounded-xl hover:bg-muted/50 transition-colors"
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-muted/50 transition-colors">
-                    <User className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-card/95 backdrop-blur-sm border-border/60">
-                  <DropdownMenuItem disabled className="text-xs">
-                    {user?.email}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowAccountManagement(true)}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Account Settings
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin" className="w-full flex items-center">
-                          <Shield className="h-4 w-4 mr-2" />
-                          Admin Panel
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Unified Header with Navigation */}
+      <UnifiedHeader
+        user={user}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSignOut={handleSignOut}
+        onAccountSettings={() => setShowAccountManagement(true)}
+        isAdmin={isAdmin}
+      />
+
+      {/* Right Sidebar */}
+      <RightSidebar onCreateCard={handleCreateCard} />
 
       {/* Main Content */}
-      <main className="py-2">
+      <main className="py-2 pr-80">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <MaterialTabBar value={activeTab} onValueChange={setActiveTab} />
-          
           <div className="mt-4 w-full">
             <div className="w-full space-y-4">
               {/* Sidebar - Mobile: Full width, Desktop: Side panel */}
