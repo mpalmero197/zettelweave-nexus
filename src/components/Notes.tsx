@@ -283,12 +283,15 @@ export function Notes() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Notebook</label>
-                  <Select value={newNote.notebook_id} onValueChange={(value) => setNewNote(prev => ({ ...prev, notebook_id: value }))}>
+                  <Select 
+                    value={newNote.notebook_id || 'no-notebook'} 
+                    onValueChange={(value) => setNewNote(prev => ({ ...prev, notebook_id: value === 'no-notebook' ? undefined : value }))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select notebook" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Notebook</SelectItem>
+                      <SelectItem value="no-notebook">No Notebook</SelectItem>
                       {notebooks.map(notebook => (
                         <SelectItem key={notebook.id} value={notebook.id}>
                           <div className="flex items-center gap-2">
@@ -485,14 +488,14 @@ export function Notes() {
                 <div>
                   <label className="text-sm font-medium">Notebook</label>
                   <Select 
-                    value={editingNote.notebook_id || ''} 
-                    onValueChange={(value) => setEditingNote(prev => prev ? { ...prev, notebook_id: value || undefined } : null)}
+                    value={editingNote.notebook_id || 'no-notebook'} 
+                    onValueChange={(value) => setEditingNote(prev => prev ? { ...prev, notebook_id: value === 'no-notebook' ? undefined : value } : null)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select notebook" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Notebook</SelectItem>
+                      <SelectItem value="no-notebook">No Notebook</SelectItem>
                       {notebooks.map(notebook => (
                         <SelectItem key={notebook.id} value={notebook.id}>
                           <div className="flex items-center gap-2">

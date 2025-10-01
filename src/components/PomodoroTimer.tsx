@@ -183,12 +183,15 @@ export function PomodoroTimer({ habits = [], onSessionComplete }: PomodoroTimerP
 
           {/* Habit selector */}
           {mode === 'work' && habits.length > 0 && (
-            <Select value={selectedHabit} onValueChange={setSelectedHabit}>
+            <Select 
+              value={selectedHabit || 'no-habit'} 
+              onValueChange={(value) => setSelectedHabit(value === 'no-habit' ? '' : value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a habit to work on" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific habit</SelectItem>
+                <SelectItem value="no-habit">No specific habit</SelectItem>
                 {habits.map(habit => (
                   <SelectItem key={habit.id} value={habit.id}>
                     <div className="flex items-center gap-2">
