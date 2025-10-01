@@ -191,64 +191,64 @@ const Index = () => {
       {/* Main Content */}
       <main className="py-2 pr-80">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="mt-4 w-full">
-            <div className="w-full space-y-4">
-              {/* Sidebar - Mobile: Full width, Desktop: Side panel */}
-              {activeTab === "cards" && (
-                <div className="w-full lg:w-80 lg:fixed lg:left-4 lg:top-20 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-4 space-y-4 shadow-sm z-40">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-primary">Knowledge Cards</h2>
-                    <div className="flex items-center space-x-2">
-                      <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
-                      <VaultImportDialog onImportCards={handleImportCards} />
-                    </div>
-                  </div>
-                  
+          {/* Cards Menu Bar - Below Header */}
+          {activeTab === "cards" && (
+            <div className="sticky top-16 z-30 bg-card/95 backdrop-blur-sm border-b border-border/50 px-4 py-3">
+              <div className="flex items-center justify-between max-w-7xl mx-auto gap-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
+                  <VaultImportDialog onImportCards={handleImportCards} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportToPDF(filteredCards)}
+                    className="flex items-center gap-2"
+                    aria-label="Export to PDF"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">PDF</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => printCards(filteredCards)}
+                    className="flex items-center gap-2"
+                    aria-label="Print cards"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span className="hidden sm:inline">Print</span>
+                  </Button>
+                  <OrganizationMethodDialog
+                    currentMethod={organizationMethod}
+                    onMethodChange={handleReorganizeCards}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowRecommendations(!showRecommendations)}
+                    className="flex items-center gap-2"
+                    aria-label="AI Recommendations"
+                  >
+                    <Lightbulb className="h-4 w-4" />
+                    <span className="hidden sm:inline">AI</span>
+                  </Button>
+                  <DeleteAllCardsDialog 
+                    onDeleteAll={deleteAllCards}
+                    isDeleting={isDeletingAll}
+                    cardCount={cards.length}
+                  />
+                </div>
+                <div className="flex-1 max-w-md">
                   <SearchBar 
                     cards={cards} 
                     onSearchResults={setFilteredCards}
                   />
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => exportToPDF(filteredCards)}
-                      className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
-                    >
-                      <Download className="h-4 w-4" />
-                      PDF
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => printCards(filteredCards)}
-                      className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
-                    >
-                      <Printer className="h-4 w-4" />
-                      Print
-                    </Button>
-                    <OrganizationMethodDialog
-                      currentMethod={organizationMethod}
-                      onMethodChange={handleReorganizeCards}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowRecommendations(!showRecommendations)}
-                      className="flex items-center gap-2 h-9 bg-background/80 hover:bg-primary/10 transition-colors"
-                    >
-                      <Lightbulb className="h-4 w-4" />
-                      AI
-                    </Button>
-                    <DeleteAllCardsDialog 
-                      onDeleteAll={deleteAllCards}
-                      isDeleting={isDeletingAll}
-                      cardCount={cards.length}
-                    />
-                  </div>
                 </div>
-              )}
-
+              </div>
+            </div>
+          )}
+          <div className="mt-4 w-full">
+            <div className="w-full space-y-4">
               {/* Main Content Area - Full width with proper padding for sidebar on desktop */}
               <div className={`w-full min-h-[600px] ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
                 <TabsContent value="dashboard" className="mt-0">

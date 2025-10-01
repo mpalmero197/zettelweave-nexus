@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +104,9 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">Create Card</DialogTitle>
+          <DialogDescription>
+            Create a new knowledge card to add to your collection. Fill in the details below.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

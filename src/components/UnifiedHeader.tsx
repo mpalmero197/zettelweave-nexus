@@ -48,17 +48,17 @@ export function UnifiedHeader({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "cards", label: "Cards", icon: FileText },
-    { id: "notes", label: "Notes", icon: BookOpen },
-    { id: "notebooks", label: "Notebooks", icon: Grid3X3 },
-    { id: "calendar", label: "Calendar", icon: CalendarIcon },
-    { id: "graph", label: "Graph", icon: BarChart3 },
-    { id: "recorder", label: "Recorder", icon: Mic },
-    { id: "whiteboard", label: "Board", icon: Palette },
-    { id: "journal", label: "Journal", icon: StickyNote },
-    { id: "habits", label: "Habits", icon: Target },
-    { id: "sticky", label: "Sticky", icon: Grid3X3 },
+    { id: "dashboard", icon: Home },
+    { id: "cards", icon: FileText },
+    { id: "notes", icon: BookOpen },
+    { id: "notebooks", icon: Grid3X3 },
+    { id: "calendar", icon: CalendarIcon },
+    { id: "graph", icon: BarChart3 },
+    { id: "recorder", icon: Mic },
+    { id: "whiteboard", icon: Palette },
+    { id: "journal", icon: StickyNote },
+    { id: "habits", icon: Target },
+    { id: "stickynotes", icon: StickyNote },
   ];
 
   return (
@@ -80,16 +80,16 @@ export function UnifiedHeader({
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-            {navItems.map(({ id, label, icon: Icon }) => (
+            {navItems.map(({ id, icon: Icon }) => (
               <Button
                 key={id}
                 variant={activeTab === id ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onTabChange(id)}
-                className="flex items-center gap-2 rounded-lg transition-all"
+                className="h-9 w-9 p-0 rounded-lg transition-all"
+                aria-label={id.charAt(0).toUpperCase() + id.slice(1)}
               >
                 <Icon className="h-4 w-4" />
-                <span className="text-sm">{label}</span>
               </Button>
             ))}
           </nav>
@@ -166,7 +166,7 @@ export function UnifiedHeader({
               </SheetTrigger>
               <SheetContent side="right" className="w-72">
                 <div className="flex flex-col space-y-2 mt-4">
-                  {navItems.map(({ id, label, icon: Icon }) => (
+                  {navItems.map(({ id, icon: Icon }) => (
                     <Button
                       key={id}
                       variant={activeTab === id ? "default" : "ghost"}
@@ -174,10 +174,10 @@ export function UnifiedHeader({
                         onTabChange(id);
                         setMobileMenuOpen(false);
                       }}
-                      className="w-full justify-start"
+                      className="w-full justify-start gap-2"
                     >
-                      <Icon className="h-4 w-4 mr-2" />
-                      {label}
+                      <Icon className="h-4 w-4" />
+                      <span className="capitalize">{id}</span>
                     </Button>
                   ))}
                 </div>

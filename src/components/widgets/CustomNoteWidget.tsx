@@ -175,17 +175,17 @@ export function CustomNoteWidget() {
       style={{ backgroundColor: currentNote.color }}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-sm">
+        <CardTitle className="flex items-center justify-between text-sm text-foreground">
           <div className="flex items-center gap-2">
-            <StickyNote className="h-4 w-4" />
+            <StickyNote className="h-4 w-4 text-foreground" />
             {isEditing ? (
               <Input
                 value={editedNote.title || ''}
                 onChange={(e) => setEditedNote(prev => ({ ...prev, title: e.target.value }))}
-                className="h-6 text-sm bg-transparent border-none p-0 font-semibold"
+                className="h-6 text-sm bg-transparent border-none p-0 font-semibold text-foreground"
               />
             ) : (
-              <span className="truncate">{currentNote.title}</span>
+              <span className="truncate text-foreground">{currentNote.title}</span>
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -285,11 +285,11 @@ export function CustomNoteWidget() {
           <Textarea
             value={editedNote.content || ''}
             onChange={(e) => setEditedNote(prev => ({ ...prev, content: e.target.value }))}
-            className="min-h-[100px] bg-transparent border-none p-0 resize-none text-sm"
+            className="min-h-[100px] bg-transparent border-none p-0 resize-none text-sm text-foreground"
             placeholder="Write your note content..."
           />
         ) : (
-          <div className="text-sm whitespace-pre-wrap leading-relaxed">
+          <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
             {currentNote.content}
           </div>
         )}

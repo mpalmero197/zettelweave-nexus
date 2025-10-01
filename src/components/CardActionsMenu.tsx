@@ -83,11 +83,16 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <AIEditDialog
-        card={card}
-        onCardUpdate={(updatedCard) => onUpdate?.(updatedCard)}
-        trigger={null}
-      />
+      {showAIEdit && (
+        <AIEditDialog
+          card={card}
+          onCardUpdate={(updatedCard) => {
+            onUpdate?.(updatedCard);
+            setShowAIEdit(false);
+          }}
+          trigger={null}
+        />
+      )}
     </>
   );
 }
