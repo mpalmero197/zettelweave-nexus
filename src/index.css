@@ -20,9 +20,9 @@
     --popover-foreground: 0 0% 9%;
 
     /* Apple blue - accessible and vibrant */
-    --primary: 212 100% 47%;
+    --primary: 212 100% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 212 100% 42%;
+    --primary-hover: 212 100% 37%;
 
     /* Subtle gray surfaces */
     --secondary: 0 0% 96%;
@@ -59,7 +59,7 @@
     --ring: 220 60% 35%;
 
     /* Apple-style gradients with enhanced glassmorphism */
-    --gradient-primary: linear-gradient(135deg, hsl(212 100% 47%), hsl(212 100% 52%));
+    --gradient-primary: linear-gradient(135deg, hsl(212 100% 42%), hsl(212 100% 47%));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(0 0% 98% / 0.9));
     --gradient-accent: linear-gradient(135deg, hsl(28 100% 50%), hsl(28 100% 55%));
     --gradient-glass: linear-gradient(145deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
@@ -68,7 +68,7 @@
     --shadow-card: 0 4px 16px 0 hsl(var(--card-shadow) / 0.1), 0 1px 3px 0 hsl(var(--card-shadow) / 0.08);
     --shadow-hover: 0 8px 32px -4px hsl(var(--card-shadow) / 0.15), 0 4px 16px -2px hsl(var(--card-shadow) / 0.1);
     --shadow-active: 0 2px 8px 0 hsl(var(--card-shadow) / 0.08);
-    --shadow-glow: 0 0 24px hsl(212 100% 47% / 0.3);
+    --shadow-glow: 0 0 24px hsl(212 100% 42% / 0.3);
 
     /* Apple-style animations - smooth and natural */
     --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
