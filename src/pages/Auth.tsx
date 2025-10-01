@@ -124,7 +124,7 @@ export default function Auth() {
 
         <Card className="shadow-lg border-border/50">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Welcome</CardTitle>
+            <h2 className="text-2xl font-semibold leading-none tracking-tight text-center">Welcome</h2>
             <CardDescription className="text-center">
               Sign in to your account or create a new one
             </CardDescription>
