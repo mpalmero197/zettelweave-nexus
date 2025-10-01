@@ -99,9 +99,9 @@
     --popover: 0 0% 9%;              /* Slightly darker than cards */
     --popover-foreground: 0 0% 98%;
 
-    --primary: 212 100% 50%;         /* Apple blue - accessible */
+    --primary: 212 100% 42%;         /* Apple blue - accessible */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 212 100% 45%;
+    --primary-hover: 212 100% 37%;
 
     --secondary: 0 0% 15%;           /* Dark gray secondary */
     --secondary-foreground: 0 0% 90%;
@@ -131,7 +131,7 @@
 
     --border: 0 0% 18%;              /* Subtle borders */
     --input: 0 0% 13%;               /* Input backgrounds */
-    --ring: 212 100% 50%;            /* Focus ring matches primary */
+    --ring: 212 100% 42%;            /* Focus ring matches primary */
 
     /* Dark sidebar variables */
     --sidebar-background: 240 5.9% 10%;
