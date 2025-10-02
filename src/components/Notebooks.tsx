@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -18,7 +19,9 @@ import {
   FileText,
   Brain,
   Palette,
-  StarOff
+  StarOff,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,6 +38,8 @@ interface Notebook {
 interface NotebookWithCounts extends Notebook {
   notes_count: number;
   cards_count: number;
+  notes?: any[];
+  cards?: any[];
 }
 
 const colorOptions = [
@@ -59,6 +64,7 @@ export function Notebooks() {
   const [editingNotebook, setEditingNotebook] = useState<Notebook | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFavorites, setShowFavorites] = useState(false);
+  const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set());
 
   const [newNotebook, setNewNotebook] = useState({
     name: '',
@@ -89,25 +95,31 @@ export function Notebooks() {
 
       if (notebooksError) throw notebooksError;
 
-      // Get counts for each notebook
+      // Get counts and items for each notebook
       const notebooksWithCounts = await Promise.all(
         (notebooksData || []).map(async (notebook) => {
-          // Count notes
-          const { count: notesCount } = await supabase
+          // Fetch notes
+          const { data: notes, count: notesCount } = await supabase
             .from('notes')
-            .select('*', { count: 'exact', head: true })
-            .eq('notebook_id', notebook.id);
+            .select('id, title, created_at', { count: 'exact' })
+            .eq('notebook_id', notebook.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
 
-          // Count zettel cards
-          const { count: cardsCount } = await supabase
+          // Fetch zettel cards
+          const { data: cards, count: cardsCount } = await supabase
             .from('zettel_cards')
-            .select('*', { count: 'exact', head: true })
-            .eq('notebook_id', notebook.id);
+            .select('id, title, number, created_at', { count: 'exact' })
+            .eq('notebook_id', notebook.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
 
           return {
             ...notebook,
             notes_count: notesCount || 0,
-            cards_count: cardsCount || 0
+            cards_count: cardsCount || 0,
+            notes: notes || [],
+            cards: cards || []
           };
         })
       );
@@ -328,8 +340,22 @@ export function Notebooks() {
       {/* Notebooks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredNotebooks.length > 0 ? (
-          filteredNotebooks.map((notebook) => (
-            <Card key={notebook.id} className="group hover:shadow-md transition-all duration-200 relative overflow-hidden">
+          filteredNotebooks.map((notebook) => {
+            const isExpanded = expandedNotebooks.has(notebook.id);
+            return (
+            <Collapsible 
+              key={notebook.id}
+              open={isExpanded}
+              onOpenChange={(open) => {
+                setExpandedNotebooks(prev => {
+                  const next = new Set(prev);
+                  if (open) next.add(notebook.id);
+                  else next.delete(notebook.id);
+                  return next;
+                });
+              }}
+            >
+            <Card className="group hover:shadow-md transition-all duration-200 relative overflow-hidden">
               {/* Color Strip */}
               <div 
                 className="absolute top-0 left-0 right-0 h-1" 
@@ -407,14 +433,44 @@ export function Notebooks() {
 
                 {/* Stats */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/50">
-                  <span>
-                    {notebook.notes_count + notebook.cards_count} total items
-                  </span>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                      {isExpanded ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+                      {notebook.notes_count + notebook.cards_count} items
+                    </Button>
+                  </CollapsibleTrigger>
                   <span>{format(new Date(notebook.updated_at), 'MMM d')}</span>
                 </div>
+
+                {/* Expandable Content */}
+                <CollapsibleContent className="mt-3 pt-3 border-t border-border/50 space-y-2">
+                  {notebook.notes && notebook.notes.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-muted-foreground mb-1">Notes</div>
+                      {notebook.notes.map((note: any) => (
+                        <div key={note.id} className="text-xs py-1 px-2 rounded bg-muted/50 truncate">
+                          {note.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {notebook.cards && notebook.cards.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-muted-foreground mb-1">Cards</div>
+                      {notebook.cards.map((card: any) => (
+                        <div key={card.id} className="text-xs py-1 px-2 rounded bg-muted/50 truncate flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] px-1">{card.number}</Badge>
+                          {card.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CollapsibleContent>
               </CardContent>
             </Card>
-          ))
+            </Collapsible>
+          );
+        })
         ) : (
           <div className="col-span-full text-center py-12">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

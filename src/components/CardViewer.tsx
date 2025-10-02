@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, X, Share2 } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, X, Share2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AttachmentDisplay } from "./AttachmentDisplay";
 import { EditCardDialog } from "./EditCardDialog";
+import { supabase } from "@/integrations/supabase/client";
+
+interface LinkedCardInfo {
+  id: string;
+  number: string;
+  title: string;
+  category: string;
+}
 
 interface CardViewerProps {
   card: ZettelCardType | null;
@@ -16,10 +24,43 @@ interface CardViewerProps {
   onEdit?: (card: ZettelCardType) => void;
   onUpdate?: (card: ZettelCardType) => void;
   onDelete?: (card: ZettelCardType) => void;
+  onNavigateToCard?: (cardId: string) => void;
 }
 
-export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }: CardViewerProps) {
+export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete, onNavigateToCard }: CardViewerProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [linkedCardsInfo, setLinkedCardsInfo] = useState<LinkedCardInfo[]>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  
+  useEffect(() => {
+    const fetchLinkedCards = async () => {
+      if (!card || !card.linkedCards || card.linkedCards.length === 0) {
+        setLinkedCardsInfo([]);
+        return;
+      }
+
+      setLoadingLinks(true);
+      try {
+        const { data, error } = await supabase
+          .from('zettel_cards')
+          .select('id, number, title, category')
+          .in('id', card.linkedCards);
+
+        if (error) throw error;
+        
+        setLinkedCardsInfo(data || []);
+      } catch (error) {
+        console.error('Error fetching linked cards:', error);
+        setLinkedCardsInfo([]);
+      } finally {
+        setLoadingLinks(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchLinkedCards();
+    }
+  }, [card, isOpen]);
   
   if (!card) return null;
 
@@ -156,11 +197,49 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete }
               {/* Linked Cards */}
               {card.linkedCards.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-foreground">Linked Cards</h3>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Link2 className="h-4 w-4" />
-                    <span>{card.linkedCards.length} connections</span>
-                  </div>
+                  <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Link2 className="h-5 w-5" />
+                    Linked Cards ({card.linkedCards.length})
+                  </h3>
+                  {loadingLinks ? (
+                    <div className="text-sm text-muted-foreground">Loading linked cards...</div>
+                  ) : linkedCardsInfo.length > 0 ? (
+                    <div className="grid gap-3">
+                      {linkedCardsInfo.map((linkedCard) => {
+                        const linkedCategoryInfo = getCategoryInfo(linkedCard.category);
+                        return (
+                          <button
+                            key={linkedCard.id}
+                            onClick={() => onNavigateToCard?.(linkedCard.id)}
+                            className="flex items-start gap-3 p-4 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 text-left group"
+                            aria-label={`Navigate to linked card: ${linkedCard.title}`}
+                          >
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs font-mono mt-0.5 group-hover:border-primary/70"
+                              style={{ 
+                                borderColor: `hsl(var(--category-${linkedCategoryInfo.color}))`,
+                                color: `hsl(var(--category-${linkedCategoryInfo.color}))`
+                              }}
+                            >
+                              {linkedCard.number}
+                            </Badge>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                                {linkedCard.title}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {linkedCategoryInfo.name}
+                              </div>
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No linked cards found</div>
+                  )}
                 </div>
               )}
 

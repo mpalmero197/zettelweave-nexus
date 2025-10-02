@@ -166,6 +166,15 @@ const Index = () => {
     });
   };
 
+  const handleNavigateToCard = (cardId: string) => {
+    const card = cards.find(c => c.id === cardId);
+    if (card) {
+      setViewingCard(card);
+    } else {
+      toast("Card not found");
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -393,6 +402,7 @@ const Index = () => {
         onEdit={setEditingCard}
         onUpdate={handleUpdateCard}
         onDelete={handleDeleteCard}
+        onNavigateToCard={handleNavigateToCard}
       />
 
       {editingCard && (
