@@ -8,7 +8,7 @@ import { HexColorPicker } from "react-colorful";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { FileUploadDialog } from "./FileUploadDialog";
-import { DocumentViewer } from "./DocumentViewer";
+import { DocumentViewer } from "./DocumentViewerLegacy";
 
 interface Point {
   x: number;

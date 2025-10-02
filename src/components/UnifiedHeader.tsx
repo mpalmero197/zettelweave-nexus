@@ -25,6 +25,7 @@ import {
   Shield,
   BookOpen,
   Calendar as CalendarIcon,
+  FolderOpen,
 } from "lucide-react";
 
 interface UnifiedHeaderProps {
@@ -53,6 +54,7 @@ export function UnifiedHeader({
     { id: "notes", icon: BookOpen },
     { id: "notebooks", icon: Grid3X3 },
     { id: "calendar", icon: CalendarIcon },
+    { id: "files", icon: FolderOpen },
     { id: "graph", icon: BarChart3 },
     { id: "recorder", icon: Mic },
     { id: "whiteboard", icon: Palette },
