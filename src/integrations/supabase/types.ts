@@ -116,36 +116,42 @@ export type Database = {
       files: {
         Row: {
           created_at: string
+          deleted_at: string | null
           file_name: string
           file_size: number
           file_type: string
           id: string
           metadata: Json | null
           mime_type: string
+          permanent_delete_at: string | null
           storage_path: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           file_name: string
           file_size: number
           file_type: string
           id?: string
           metadata?: Json | null
           mime_type: string
+          permanent_delete_at?: string | null
           storage_path: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           file_name?: string
           file_size?: number
           file_type?: string
           id?: string
           metadata?: Json | null
           mime_type?: string
+          permanent_delete_at?: string | null
           storage_path?: string
           updated_at?: string
           user_id?: string
@@ -190,9 +196,11 @@ export type Database = {
           attachments: string[] | null
           content: string
           created_at: string
+          deleted_at: string | null
           id: string
           is_favorite: boolean | null
           notebook_id: string | null
+          permanent_delete_at: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -202,9 +210,11 @@ export type Database = {
           attachments?: string[] | null
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_favorite?: boolean | null
           notebook_id?: string | null
+          permanent_delete_at?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -214,9 +224,11 @@ export type Database = {
           attachments?: string[] | null
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_favorite?: boolean | null
           notebook_id?: string | null
+          permanent_delete_at?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -289,6 +301,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          auto_delete_days: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_delete_days?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_delete_days?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -319,6 +355,7 @@ export type Database = {
           category: string
           content: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           image_url: string | null
@@ -326,6 +363,7 @@ export type Database = {
           linked_cards: string[] | null
           notebook_id: string | null
           number: string
+          permanent_delete_at: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -337,6 +375,7 @@ export type Database = {
           category: string
           content: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -344,6 +383,7 @@ export type Database = {
           linked_cards?: string[] | null
           notebook_id?: string | null
           number: string
+          permanent_delete_at?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -355,6 +395,7 @@ export type Database = {
           category?: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -362,6 +403,7 @@ export type Database = {
           linked_cards?: string[] | null
           notebook_id?: string | null
           number?: string
+          permanent_delete_at?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -383,6 +425,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_delete_expired_items: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_old_audit_logs: {
         Args: Record<PropertyKey, never>
         Returns: undefined

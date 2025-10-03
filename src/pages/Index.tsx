@@ -22,6 +22,7 @@ import { StickyNotesSimple } from "@/components/StickyNotesSimple";
 import { Notebooks } from "@/components/Notebooks";
 import { Calendar } from "@/components/Calendar";
 import { FileManager } from "@/components/FileManager";
+import { RecycleBin } from "@/components/RecycleBin";
 import { useAuth } from "@/hooks/useAuth";
 import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
@@ -287,6 +288,10 @@ const Index = () => {
 
                 <TabsContent value="files" className="mt-0">
                   <FileManager />
+                </TabsContent>
+
+                <TabsContent value="recycle" className="mt-0">
+                  <RecycleBin />
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">

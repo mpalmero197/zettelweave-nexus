@@ -26,6 +26,7 @@ import {
   BookOpen,
   Calendar as CalendarIcon,
   FolderOpen,
+  Trash2,
 } from "lucide-react";
 
 interface UnifiedHeaderProps {
@@ -55,6 +56,7 @@ export function UnifiedHeader({
     { id: "notebooks", icon: Grid3X3 },
     { id: "calendar", icon: CalendarIcon },
     { id: "files", icon: FolderOpen },
+    { id: "recycle", icon: Trash2 },
     { id: "graph", icon: BarChart3 },
     { id: "recorder", icon: Mic },
     { id: "whiteboard", icon: Palette },

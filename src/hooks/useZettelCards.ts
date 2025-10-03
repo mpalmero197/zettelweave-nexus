@@ -24,6 +24,7 @@ export const useZettelCards = () => {
         .from('zettel_cards')
         .select('*')
         .eq('user_id', user.id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -171,9 +172,23 @@ export const useZettelCards = () => {
     mutationFn: async (cardId: string) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Get user preferences for auto-delete days
+      let { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('auto_delete_days')
+        .eq('user_id', user.id)
+        .single();
+
+      const deleteDays = prefs?.auto_delete_days || 30;
+      const permanentDeleteAt = new Date();
+      permanentDeleteAt.setDate(permanentDeleteAt.getDate() + deleteDays);
+
       const { error } = await supabase
         .from('zettel_cards')
-        .delete()
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          permanent_delete_at: permanentDeleteAt.toISOString()
+        })
         .eq('id', cardId)
         .eq('user_id', user.id);
 
@@ -181,7 +196,7 @@ export const useZettelCards = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
-      toast({ title: 'Card deleted successfully!' });
+      toast({ title: 'Card moved to recycle bin' });
     },
     onError: (error) => {
       toast({ 
