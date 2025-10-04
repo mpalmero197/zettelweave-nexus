@@ -1,50 +1,74 @@
-import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText, Group } from "fabric";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow } from "fabric";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { 
-  Pen, 
-  Square, 
-  Circle as CircleIcon, 
-  Type, 
-  Move, 
-  Trash2, 
+  MousePointer2,
+  Pen,
+  Highlighter,
+  Eraser,
+  Square,
+  Circle as CircleIcon,
+  Minus,
+  ArrowRight,
+  Type,
+  StickyNote,
+  Image as ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Trash2,
   Download,
-  Plus,
-  Palette
+  Palette,
+  Grid3x3,
+  Maximize2
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface InfiniteWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "draw" | "rectangle" | "circle" | "text";
+type Tool = "select" | "pen" | "highlighter" | "eraser" | "rectangle" | "circle" | "line" | "arrow" | "text" | "sticky" | "image";
 
-const colors = [
-  "#000000", "#ff0000", "#00ff00", "#0000ff", 
-  "#ffff00", "#ff00ff", "#00ffff", "#ffa500"
+const penColors = [
+  { name: "Black", value: "#000000" },
+  { name: "Red", value: "#E74C3C" },
+  { name: "Blue", value: "#3498DB" },
+  { name: "Green", value: "#2ECC71" },
+  { name: "Yellow", value: "#F1C40F" },
+  { name: "Purple", value: "#9B59B6" },
+  { name: "Orange", value: "#E67E22" },
+  { name: "Pink", value: "#FF69B4" }
+];
+
+const stickyColors = [
+  "#FFF4A3", "#FFE4A3", "#FFD4A3", 
+  "#C4E4FF", "#D4F4DD", "#FFE4F4"
 ];
 
 export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
-  const [activeTool, setActiveTool] = useState<Tool>("draw");
-  const [activeColor, setActiveColor] = useState("#000000");
+  const [activeTool, setActiveTool] = useState<Tool>("pen");
+  const [penColor, setPenColor] = useState("#000000");
+  const [penSize, setPenSize] = useState(2);
+  const [zoom, setZoom] = useState(100);
+  const [showGrid, setShowGrid] = useState(true);
   const [isReady, setIsReady] = useState(false);
 
+  // Initialize canvas
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
-    // Wait for container to be properly sized
     const initCanvas = () => {
       const width = containerRef.current!.clientWidth;
       const height = containerRef.current!.clientHeight;
       
       if (width === 0 || height === 0) {
-        // Container not ready, try again
         setTimeout(initCanvas, 100);
         return;
       }
@@ -53,45 +77,27 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
         const canvas = new FabricCanvas(canvasRef.current, {
           width,
           height,
-          backgroundColor: "#ffffff",
+          backgroundColor: "#FAFAFA",
           selection: true,
-          allowTouchScrolling: false,
-          stopContextMenu: true,
         });
 
-        // Initialize drawing brush immediately
-        if (canvas.freeDrawingBrush) {
-          canvas.freeDrawingBrush.color = activeColor;
-          canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
-          canvas.freeDrawingBrush.strokeLineCap = 'round';
-          canvas.freeDrawingBrush.strokeLineJoin = 'round';
-        }
+        // Initialize drawing brush
+        const brush = new PencilBrush(canvas);
+        brush.color = penColor;
+        brush.width = penSize;
+        brush.strokeLineCap = 'round';
+        brush.strokeLineJoin = 'round';
+        canvas.freeDrawingBrush = brush;
 
-        // Wait for canvas to be ready before setting up drawing
-        canvas.on('after:render', () => {
-          if (!canvas.freeDrawingBrush) {
-            console.warn('FreeDrawingBrush not ready, retrying initialization...');
-            // Canvas is ready, set up drawing mode
-            canvas.isDrawingMode = true;
-            canvas.isDrawingMode = false; // Reset to force initialization
-            if (canvas.freeDrawingBrush) {
-              canvas.freeDrawingBrush.color = activeColor;
-              canvas.freeDrawingBrush.width = window.innerWidth < 768 ? 4 : 2;
-              canvas.freeDrawingBrush.strokeLineCap = 'round';
-              canvas.freeDrawingBrush.strokeLineJoin = 'round';
-            }
-          }
-        });
-
-        // Set drawing mode based on active tool
-        canvas.isDrawingMode = activeTool === "draw";
-        
         setFabricCanvas(canvas);
         setIsReady(true);
-        console.log('Whiteboard initialized successfully');
+        
+        // Add grid if enabled
+        if (showGrid) {
+          drawGrid(canvas);
+        }
       } catch (error) {
         console.error('Failed to initialize whiteboard:', error);
-        // Retry initialization
         setTimeout(initCanvas, 500);
       }
     };
@@ -100,80 +106,201 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
 
     return () => {
       if (fabricCanvas) {
-        try {
-          fabricCanvas.dispose();
-        } catch (error) {
-          console.warn('Canvas dispose warning:', error);
-        }
+        fabricCanvas.dispose();
       }
     };
-  }, [activeColor]);
+  }, []);
 
+  // Draw grid background
+  const drawGrid = useCallback((canvas: FabricCanvas) => {
+    const gridSize = 40;
+    const width = canvas.width || 0;
+    const height = canvas.height || 0;
+
+    // Remove old grid
+    const objects = canvas.getObjects();
+    objects.forEach(obj => {
+      if ((obj as any).isGrid) {
+        canvas.remove(obj);
+      }
+    });
+
+    // Draw vertical lines
+    for (let i = 0; i < width; i += gridSize) {
+      const line = new Line([i, 0, i, height], {
+        stroke: '#E5E5E5',
+        strokeWidth: 1,
+        selectable: false,
+        evented: false,
+      });
+      (line as any).isGrid = true;
+      canvas.add(line);
+      canvas.sendObjectToBack(line);
+    }
+
+    // Draw horizontal lines
+    for (let i = 0; i < height; i += gridSize) {
+      const line = new Line([0, i, width, i], {
+        stroke: '#E5E5E5',
+        strokeWidth: 1,
+        selectable: false,
+        evented: false,
+      });
+      (line as any).isGrid = true;
+      canvas.add(line);
+      canvas.sendObjectToBack(line);
+    }
+
+    canvas.renderAll();
+  }, []);
+
+  // Toggle grid
+  useEffect(() => {
+    if (!fabricCanvas || !isReady) return;
+    
+    if (showGrid) {
+      drawGrid(fabricCanvas);
+    } else {
+      const objects = fabricCanvas.getObjects();
+      objects.forEach(obj => {
+        if ((obj as any).isGrid) {
+          fabricCanvas.remove(obj);
+        }
+      });
+      fabricCanvas.renderAll();
+    }
+  }, [showGrid, fabricCanvas, isReady, drawGrid]);
+
+  // Update tool
   useEffect(() => {
     if (!fabricCanvas || !isReady) return;
 
-    try {
-      const isMobile = window.innerWidth < 768;
-      fabricCanvas.isDrawingMode = activeTool === "draw";
-      
-      if (fabricCanvas.freeDrawingBrush) {
-        fabricCanvas.freeDrawingBrush.color = activeColor;
-        fabricCanvas.freeDrawingBrush.width = isMobile ? 4 : 3;
-        fabricCanvas.freeDrawingBrush.strokeLineCap = 'round';
-        fabricCanvas.freeDrawingBrush.strokeLineJoin = 'round';
+    fabricCanvas.isDrawingMode = ["pen", "highlighter", "eraser"].includes(activeTool);
+    
+    if (fabricCanvas.freeDrawingBrush) {
+      if (activeTool === "pen") {
+        fabricCanvas.freeDrawingBrush.color = penColor;
+        fabricCanvas.freeDrawingBrush.width = penSize;
+      } else if (activeTool === "highlighter") {
+        fabricCanvas.freeDrawingBrush.color = penColor + "80"; // Semi-transparent
+        fabricCanvas.freeDrawingBrush.width = penSize * 3;
+      } else if (activeTool === "eraser") {
+        fabricCanvas.freeDrawingBrush.color = "#FAFAFA";
+        fabricCanvas.freeDrawingBrush.width = penSize * 4;
       }
-      
-      // Update cursor based on tool
-      if (activeTool === "draw") {
-        fabricCanvas.setCursor("crosshair");
-      } else {
-        fabricCanvas.setCursor("default");
-      }
-    } catch (error) {
-      console.warn('Tool configuration warning:', error);
     }
-  }, [activeTool, activeColor, fabricCanvas, isReady]);
+  }, [activeTool, penColor, penSize, fabricCanvas, isReady]);
 
   const handleToolClick = (tool: Tool) => {
     setActiveTool(tool);
     if (!fabricCanvas) return;
 
-    fabricCanvas.isDrawingMode = tool === "draw";
+    fabricCanvas.isDrawingMode = false;
 
     if (tool === "rectangle") {
       const rect = new Rect({
         left: 100,
         top: 100,
         fill: "transparent",
-        width: 100,
+        width: 150,
         height: 100,
-        stroke: activeColor,
+        stroke: penColor,
         strokeWidth: 2,
+        rx: 5,
+        ry: 5
       });
       fabricCanvas.add(rect);
       fabricCanvas.setActiveObject(rect);
       fabricCanvas.renderAll();
+      setActiveTool("select");
     } else if (tool === "circle") {
       const circle = new Circle({
         left: 100,
         top: 100,
         fill: "transparent",
-        radius: 50,
-        stroke: activeColor,
+        radius: 60,
+        stroke: penColor,
         strokeWidth: 2,
       });
       fabricCanvas.add(circle);
       fabricCanvas.setActiveObject(circle);
       fabricCanvas.renderAll();
+      setActiveTool("select");
+    } else if (tool === "line") {
+      const line = new Line([100, 100, 250, 100], {
+        stroke: penColor,
+        strokeWidth: 3,
+        strokeLineCap: 'round'
+      });
+      fabricCanvas.add(line);
+      fabricCanvas.setActiveObject(line);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
+    } else if (tool === "arrow") {
+      const arrowPath = new Path('M 0 0 L 150 0 L 140 -10 M 150 0 L 140 10', {
+        stroke: penColor,
+        strokeWidth: 2,
+        fill: '',
+        left: 100,
+        top: 100
+      });
+      fabricCanvas.add(arrowPath);
+      fabricCanvas.setActiveObject(arrowPath);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
     } else if (tool === "text") {
-      const text = new FabricText("Double click to edit", {
+      const text = new FabricText("Type here...", {
         left: 100,
         top: 100,
-        fill: activeColor,
-        fontSize: 20,
+        fill: penColor,
+        fontSize: 24,
+        fontFamily: 'Arial',
       });
       fabricCanvas.add(text);
       fabricCanvas.setActiveObject(text);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
+    } else if (tool === "sticky") {
+      const stickyColor = stickyColors[Math.floor(Math.random() * stickyColors.length)];
+      const sticky = new Rect({
+        left: 100,
+        top: 100,
+        fill: stickyColor,
+        width: 200,
+        height: 200,
+        stroke: '#DDD',
+        strokeWidth: 1,
+        shadow: new Shadow({ color: 'rgba(0,0,0,0.1)', blur: 10, offsetX: 0, offsetY: 5 })
+      });
+      const stickyText = new FabricText("Note...", {
+        left: 110,
+        top: 110,
+        fill: "#333",
+        fontSize: 16,
+        fontFamily: 'Arial',
+        width: 180
+      });
+      fabricCanvas.add(sticky, stickyText);
+      fabricCanvas.setActiveObject(stickyText);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
+    }
+  };
+
+  const handleZoom = (delta: number) => {
+    const newZoom = Math.max(25, Math.min(200, zoom + delta));
+    setZoom(newZoom);
+    if (fabricCanvas) {
+      fabricCanvas.setZoom(newZoom / 100);
+      fabricCanvas.renderAll();
+    }
+  };
+
+  const handleResetZoom = () => {
+    setZoom(100);
+    if (fabricCanvas) {
+      fabricCanvas.setZoom(1);
+      fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       fabricCanvas.renderAll();
     }
   };
@@ -189,29 +316,16 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     }
   };
 
-  const handleCombineShapes = () => {
-    if (!fabricCanvas) return;
-    const activeObjects = fabricCanvas.getActiveObjects();
-    if (activeObjects.length < 2) {
-      toast.error("Select at least 2 objects to combine");
-      return;
-    }
-    
-    // Simple grouping for now
-    const group = new Group(activeObjects);
-    fabricCanvas.remove(...activeObjects);
-    fabricCanvas.add(group);
-    fabricCanvas.setActiveObject(group);
-    fabricCanvas.renderAll();
-    toast.success("Combined selected objects");
-  };
-
   const handleClear = () => {
     if (!fabricCanvas) return;
-    fabricCanvas.clear();
-    fabricCanvas.backgroundColor = "#ffffff";
+    const objects = fabricCanvas.getObjects();
+    objects.forEach(obj => {
+      if (!(obj as any).isGrid) {
+        fabricCanvas.remove(obj);
+      }
+    });
     fabricCanvas.renderAll();
-    toast("Whiteboard cleared!");
+    toast.success("Whiteboard cleared");
   };
 
   const handleExport = () => {
@@ -224,11 +338,11 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     });
     
     const link = document.createElement("a");
-    link.download = "whiteboard.png";
+    link.download = `whiteboard-${Date.now()}.png`;
     link.href = dataURL;
     link.click();
     
-    toast("Whiteboard exported!");
+    toast.success("Whiteboard exported");
   };
 
   const handleCreateCard = () => {
@@ -241,129 +355,269 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     });
 
     const newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'> = {
-      title: `Whiteboard Sketch - ${new Date().toLocaleDateString()}`,
-      content: "Visual notes and sketches from infinite whiteboard",
-      description: "Created from whiteboard session",
-      category: "700", // Arts category
+      title: `Whiteboard - ${new Date().toLocaleDateString()}`,
+      content: "Visual brainstorming and sketches",
+      description: "Created from whiteboard",
+      category: "700",
       number: "",
-      tags: ["whiteboard", "visual", "sketch"],
+      tags: ["whiteboard", "visual"],
       linkedCards: [],
       imageUrl: dataURL
     };
 
     onCreateCard(newCard);
-    toast("Created zettel card from whiteboard!");
+    toast.success("Created card from whiteboard");
   };
 
   const tools = [
-    { tool: "select" as const, label: "Select", icon: Move },
-    { tool: "draw" as const, label: "Draw", icon: Pen },
+    { tool: "select" as const, label: "Select", icon: MousePointer2 },
+    { tool: "pen" as const, label: "Pen", icon: Pen },
+    { tool: "highlighter" as const, label: "Highlighter", icon: Highlighter },
+    { tool: "eraser" as const, label: "Eraser", icon: Eraser },
+  ];
+
+  const shapes = [
     { tool: "rectangle" as const, label: "Rectangle", icon: Square },
     { tool: "circle" as const, label: "Circle", icon: CircleIcon },
+    { tool: "line" as const, label: "Line", icon: Minus },
+    { tool: "arrow" as const, label: "Arrow", icon: ArrowRight },
+  ];
+
+  const insertTools = [
     { tool: "text" as const, label: "Text", icon: Type },
+    { tool: "sticky" as const, label: "Sticky Note", icon: StickyNote },
+    { tool: "image" as const, label: "Image", icon: ImageIcon },
   ];
 
   return (
-    <div className="w-full h-full space-y-4">
-      <Card className="w-full h-full">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
-            Infinite Whiteboard
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 h-full">
-          {/* Toolbar */}
-          <div className="space-y-4 mb-4">
-            {/* Tools row */}
-            <div className="flex flex-wrap gap-2">
-              {tools.map(({ tool, label, icon: Icon }) => (
-                <Button
-                  key={tool}
-                  variant={activeTool === tool ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleToolClick(tool)}
-                  className="flex-1 sm:flex-none min-w-0"
-                >
-                  <Icon className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden sm:inline ml-1">{label}</span>
-                </Button>
-              ))}
-            </div>
-            
-            {/* Color and actions row */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+    <div className="flex h-full w-full bg-background">
+      {/* Left Toolbar - Microsoft Whiteboard Style */}
+      <div className="flex flex-col w-16 bg-card border-r border-border shadow-sm">
+        {/* Drawing Tools */}
+        <div className="flex flex-col p-2 space-y-1">
+          {tools.map(({ tool, label, icon: Icon }) => (
+            <Button
+              key={tool}
+              variant={activeTool === tool ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setActiveTool(tool)}
+              title={label}
+              className={cn(
+                "h-12 w-12 rounded-lg",
+                activeTool === tool && "shadow-md"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+            </Button>
+          ))}
+        </div>
+
+        <Separator className="my-2" />
+
+        {/* Shapes */}
+        <div className="flex flex-col p-2 space-y-1">
+          {shapes.map(({ tool, label, icon: Icon }) => (
+            <Button
+              key={tool}
+              variant="ghost"
+              size="icon"
+              onClick={() => handleToolClick(tool)}
+              title={label}
+              className="h-12 w-12 rounded-lg"
+            >
+              <Icon className="h-5 w-5" />
+            </Button>
+          ))}
+        </div>
+
+        <Separator className="my-2" />
+
+        {/* Insert Tools */}
+        <div className="flex flex-col p-2 space-y-1">
+          {insertTools.map(({ tool, label, icon: Icon }) => (
+            <Button
+              key={tool}
+              variant="ghost"
+              size="icon"
+              onClick={() => handleToolClick(tool)}
+              title={label}
+              className="h-12 w-12 rounded-lg"
+            >
+              <Icon className="h-5 w-5" />
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Utility Actions */}
+        <div className="flex flex-col p-2 space-y-1 border-t border-border">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDeleteSelected}
+            title="Delete Selected"
+            className="h-12 w-12 rounded-lg"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Canvas Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Toolbar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shadow-sm">
+          <div className="flex items-center gap-4">
+            {/* Color Palette */}
+            {["pen", "highlighter", "text"].includes(activeTool) && (
               <div className="flex items-center gap-2">
-                <span className="text-sm whitespace-nowrap">Color:</span>
-                <div className="flex gap-1 flex-wrap">
-                  {colors.map((color) => (
+                <Palette className="h-4 w-4 text-muted-foreground" />
+                <div className="flex gap-1">
+                  {penColors.map(({ name, value }) => (
                     <button
-                      key={color}
-                      onClick={() => setActiveColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${
-                        activeColor === color 
-                          ? "border-foreground scale-110" 
-                          : "border-border hover:scale-105"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
+                      key={value}
+                      onClick={() => setPenColor(value)}
+                      className={cn(
+                        "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
+                        penColor === value 
+                          ? "border-foreground scale-110 shadow-md" 
+                          : "border-border"
+                      )}
+                      style={{ backgroundColor: value }}
+                      title={name}
                     />
                   ))}
                 </div>
               </div>
-              
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" size="sm" onClick={handleDeleteSelected}>
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCombineShapes}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Combine
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleClear}>
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Clear All
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCreateCard}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create Card
-                </Button>
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Canvas Container */}
-          <div 
-            ref={containerRef}
-            className="relative w-full border border-border/50 rounded-xl overflow-hidden bg-white shadow-inner"
-            style={{ height: "calc(100vh - 400px)", minHeight: "400px" }}
-          >
-            <canvas ref={canvasRef} className="block" />
-            
-            {/* Instructions overlay */}
-            <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-70">
-              {window.innerWidth < 768 
-                ? "Draw with pen tool • Select shapes with select tool" 
-                : "Draw with pen tool • Space + Drag to pan • Mouse wheel to zoom"
-              }
-            </div>
-            
-            {!isReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                <div className="text-center">
-                  <Palette className="h-8 w-8 animate-pulse mx-auto mb-2" />
-                  <p className="text-sm">Initializing canvas...</p>
+            {/* Pen Size */}
+            {["pen", "highlighter", "eraser"].includes(activeTool) && (
+              <>
+                <Separator orientation="vertical" className="h-6" />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Size:</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 4, 6].map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setPenSize(size)}
+                        className={cn(
+                          "w-7 h-7 rounded flex items-center justify-center transition-all",
+                          penSize === size 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-muted hover:bg-muted/80"
+                        )}
+                      >
+                        <div 
+                          className="rounded-full bg-current"
+                          style={{ 
+                            width: `${size * 2}px`, 
+                            height: `${size * 2}px` 
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="flex items-center gap-2">
+            {/* Grid Toggle */}
+            <Button
+              variant={showGrid ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowGrid(!showGrid)}
+              className="gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              Grid
+            </Button>
+
+            {/* Zoom Controls */}
+            <Separator orientation="vertical" className="h-6" />
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleZoom(-25)}
+                disabled={zoom <= 25}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium w-12 text-center">
+                {zoom}%
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleZoom(25)}
+                disabled={zoom >= 200}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleResetZoom}
+                title="Reset Zoom"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* Actions */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClear}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Clear
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleCreateCard}
+              className="gap-2"
+            >
+              Save as Card
+            </Button>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div 
+          ref={containerRef}
+          className="flex-1 relative overflow-hidden"
+        >
+          <canvas ref={canvasRef} className="absolute inset-0" />
+          
+          {!isReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+              <div className="text-center space-y-2">
+                <Palette className="h-8 w-8 animate-pulse mx-auto text-primary" />
+                <p className="text-sm text-muted-foreground">Initializing whiteboard...</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
