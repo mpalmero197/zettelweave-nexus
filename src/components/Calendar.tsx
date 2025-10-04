@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isSameDay, parseISO } from 'date-fns';
@@ -182,6 +182,9 @@ export function Calendar() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Calendar Event</DialogTitle>
+              <DialogDescription>
+                Create a new calendar event with optional time and description
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>

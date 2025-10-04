@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -267,6 +267,9 @@ export function Notes() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Note</DialogTitle>
+              <DialogDescription>
+                Create a new note with optional notebook and tags
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Input
@@ -471,6 +474,9 @@ export function Notes() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit Note</DialogTitle>
+              <DialogDescription>
+                Update your note's content and organization
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Input

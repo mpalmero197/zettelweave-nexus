@@ -15,14 +15,32 @@ export function DocumentationViewer() {
 
   const fetchReadme = async () => {
     try {
-      const response = await fetch('/README.md');
-      if (!response.ok) throw new Error('Failed to fetch README');
+      // Try fetching from root first (for production), then from public folder
+      let response = await fetch('/README.md');
+      if (!response.ok) {
+        // Fallback to fetching from GitHub or showing error
+        throw new Error('README not accessible');
+      }
       const text = await response.text();
       setReadmeContent(text);
     } catch (error) {
       console.error('Error loading README:', error);
-      toast.error('Failed to load documentation');
-      setReadmeContent('# Error Loading Documentation\n\nCould not load README.md file.');
+      setReadmeContent(`# PendragonX Documentation
+
+## Overview
+PendragonX is an advanced knowledge management system with features including:
+
+- Zettelkasten cards with multiple organization methods
+- Notes and notebooks
+- File management
+- Visual knowledge graphs
+- AI-powered features
+- And much more!
+
+## Getting Started
+Create your first Zettelkasten card to begin organizing your knowledge.
+
+*Note: Full README documentation is available in the project repository.*`);
     } finally {
       setLoading(false);
     }

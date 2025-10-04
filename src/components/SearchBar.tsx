@@ -17,6 +17,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<SearchFilter[]>(['all']);
   const [showFilters, setShowFilters] = useState(false);
+  const [filteredCards, setFilteredCards] = useState<ZettelCard[]>(cards);
 
   const filterOptions: { value: SearchFilter; label: string; icon: React.ReactNode }[] = [
     { value: 'all', label: 'All Fields', icon: <Search className="h-3 w-3" /> },
@@ -29,6 +30,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
 
   const searchCards = (searchQuery: string, filters: SearchFilter[]) => {
     if (!searchQuery.trim()) {
+      setFilteredCards(cards);
       onSearchResults(cards);
       return;
     }
@@ -65,6 +67,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
       });
     });
 
+    setFilteredCards(results);
     onSearchResults(results);
   };
 
@@ -95,6 +98,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
   const clearSearch = () => {
     setQuery("");
     setActiveFilters(['all']);
+    setFilteredCards(cards);
     onSearchResults(cards);
   };
 
@@ -155,7 +159,7 @@ export function SearchBar({ cards, onSearchResults, className }: SearchBarProps)
       
       {query && (
         <div className="mt-2 text-sm text-muted-foreground">
-          "{query}" • {cards.length} found
+          Search results: {filteredCards.length} found
         </div>
       )}
     </div>

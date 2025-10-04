@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -271,6 +271,9 @@ export function Notebooks() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Notebook</DialogTitle>
+              <DialogDescription>
+                Create a new notebook to organize your notes and cards
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Input
@@ -496,6 +499,9 @@ export function Notebooks() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Notebook</DialogTitle>
+              <DialogDescription>
+                Update your notebook's name, description, and color
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Input

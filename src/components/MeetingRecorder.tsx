@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -725,6 +725,9 @@ function MeetingRecorder() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Audio Snippet</DialogTitle>
+            <DialogDescription>
+              Select the time range for your audio snippet
+            </DialogDescription>
           </DialogHeader>
           <SnippetForm
             startTime={snippetDialog.startTime}
