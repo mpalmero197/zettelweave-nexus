@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   MousePointer2,
   Pen,
@@ -21,7 +22,9 @@ import {
   Download,
   Palette,
   Grid3x3,
-  Maximize2
+  Maximize2,
+  Menu,
+  ChevronLeft
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -391,8 +394,118 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
 
   return (
     <div className="flex h-full w-full bg-background">
-      {/* Left Toolbar - Microsoft Whiteboard Style */}
-      <div className="flex flex-col w-16 bg-card border-r border-border shadow-sm">
+      {/* Mobile Toolbar - Sheet Drawer */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="default"
+            size="icon"
+            className="fixed left-4 top-20 z-50 md:hidden shadow-lg"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-72 p-4">
+          <div className="space-y-4">
+            <h3 className="font-semibold">Drawing Tools</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {tools.map(({ tool, label, icon: Icon }) => (
+                <Button
+                  key={tool}
+                  variant={activeTool === tool ? "default" : "outline"}
+                  onClick={() => setActiveTool(tool)}
+                  className="justify-start gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Button>
+              ))}
+            </div>
+
+            <Separator />
+
+            <h3 className="font-semibold">Shapes</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {shapes.map(({ tool, label, icon: Icon }) => (
+                <Button
+                  key={tool}
+                  variant="outline"
+                  onClick={() => handleToolClick(tool)}
+                  className="justify-start gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Button>
+              ))}
+            </div>
+
+            <Separator />
+
+            <h3 className="font-semibold">Insert</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {insertTools.map(({ tool, label, icon: Icon }) => (
+                <Button
+                  key={tool}
+                  variant="outline"
+                  onClick={() => handleToolClick(tool)}
+                  className="justify-start gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Button>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Colors */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">Color</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {penColors.map(({ name, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => setPenColor(value)}
+                    className={cn(
+                      "w-full aspect-square rounded-lg border-2 transition-all",
+                      penColor === value 
+                        ? "border-foreground scale-110 shadow-md" 
+                        : "border-border hover:scale-105"
+                    )}
+                    style={{ backgroundColor: value }}
+                    title={name}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Actions */}
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                onClick={handleDeleteSelected}
+                className="w-full justify-start gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Selected
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClear}
+                className="w-full justify-start gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Clear All
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Left Toolbar */}
+      <div className="hidden md:flex flex-col w-16 bg-card border-r border-border shadow-sm">
         {/* Drawing Tools */}
         <div className="flex flex-col p-2 space-y-1">
           {tools.map(({ tool, label, icon: Icon }) => (
@@ -467,19 +580,19 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       {/* Main Canvas Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Toolbar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shadow-sm">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-2 md:px-4 py-2 md:py-3 bg-card border-b border-border shadow-sm overflow-x-auto">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             {/* Color Palette */}
             {["pen", "highlighter", "text"].includes(activeTool) && (
               <div className="flex items-center gap-2">
-                <Palette className="h-4 w-4 text-muted-foreground" />
+                <Palette className="h-4 w-4 text-muted-foreground hidden md:block" />
                 <div className="flex gap-1">
-                  {penColors.map(({ name, value }) => (
+                  {penColors.slice(0, 5).map(({ name, value }) => (
                     <button
                       key={value}
                       onClick={() => setPenColor(value)}
                       className={cn(
-                        "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
+                        "w-6 h-6 md:w-7 md:h-7 rounded-full border-2 transition-all hover:scale-110",
                         penColor === value 
                           ? "border-foreground scale-110 shadow-md" 
                           : "border-border"
@@ -492,11 +605,11 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
               </div>
             )}
 
-            {/* Pen Size */}
+            {/* Pen Size - Desktop only */}
             {["pen", "highlighter", "eraser"].includes(activeTool) && (
               <>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex items-center gap-2">
+                <Separator orientation="vertical" className="h-6 hidden md:block" />
+                <div className="hidden md:flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Size:</span>
                   <div className="flex gap-1">
                     {[1, 2, 4, 6].map((size) => (
@@ -525,78 +638,73 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             {/* Grid Toggle */}
             <Button
               variant={showGrid ? "default" : "outline"}
               size="sm"
               onClick={() => setShowGrid(!showGrid)}
-              className="gap-2"
+              className="gap-1 md:gap-2"
             >
               <Grid3x3 className="h-4 w-4" />
-              Grid
+              <span className="hidden sm:inline">Grid</span>
             </Button>
 
             {/* Zoom Controls */}
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 hidden md:block" />
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="icon"
+                className="h-8 w-8"
                 onClick={() => handleZoom(-25)}
                 disabled={zoom <= 25}
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium w-12 text-center">
+              <span className="text-xs md:text-sm font-medium w-10 md:w-12 text-center">
                 {zoom}%
               </span>
               <Button
                 variant="outline"
                 size="icon"
+                className="h-8 w-8"
                 onClick={() => handleZoom(25)}
                 disabled={zoom >= 200}
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleResetZoom}
-                title="Reset Zoom"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
             </div>
 
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 hidden md:block" />
 
             {/* Actions */}
             <Button
               variant="outline"
               size="sm"
               onClick={handleClear}
-              className="gap-2"
+              className="gap-1 md:gap-2 hidden md:flex"
             >
               <RotateCcw className="h-4 w-4" />
-              Clear
+              <span className="hidden lg:inline">Clear</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="gap-2"
+              className="gap-1 md:gap-2"
             >
               <Download className="h-4 w-4" />
-              Export
+              <span className="hidden sm:inline">Export</span>
             </Button>
             <Button
               variant="default"
               size="sm"
               onClick={handleCreateCard}
-              className="gap-2"
+              className="gap-1 md:gap-2"
             >
-              Save as Card
+              <span className="hidden sm:inline">Save as Card</span>
+              <span className="sm:hidden">Save</span>
             </Button>
           </div>
         </div>

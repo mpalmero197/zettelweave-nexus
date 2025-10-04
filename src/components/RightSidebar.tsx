@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Save, Plus, Trash2, X, Pin } from "lucide-react";
+import { FileText, Save, Plus, Trash2, X, Pin, ChevronRight, ChevronLeft } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface RightSidebarProps {
   onCreateCard: (
@@ -35,6 +36,7 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
   const [scratchContent, setScratchContent] = useState("");
   const [scratchNotes, setScratchNotes] = useState<ScratchNote[]>([]);
   const [pinnedNotes, setPinnedNotes] = useState<StickyNote[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Load scratch notes
   useEffect(() => {
@@ -174,7 +176,30 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
   };
 
   return (
-    <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 bg-card/95 backdrop-blur-md border-l border-border/50 shadow-lg z-40">
+    <>
+      {/* Collapse/Expand Toggle Button */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={cn(
+          "fixed top-20 z-50 shadow-lg transition-all duration-300",
+          isCollapsed ? "right-4" : "right-[21rem]",
+          "hidden md:flex"
+        )}
+        title={isCollapsed ? "Expand Scratchpad" : "Collapse Scratchpad"}
+      >
+        {isCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </Button>
+
+      {/* Sidebar */}
+      <div 
+        className={cn(
+          "fixed right-0 top-16 h-[calc(100vh-4rem)] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-lg z-40 transition-all duration-300",
+          isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-80 opacity-100",
+          "hidden md:block"
+        )}
+      >
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
           {/* Scratchpad */}
@@ -307,6 +332,7 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
           )}
         </div>
       </ScrollArea>
-    </div>
+      </div>
+    </>
   );
 }
