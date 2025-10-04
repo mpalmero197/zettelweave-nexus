@@ -218,22 +218,15 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     const targetCard = filteredCards.find(c => c.id === params.target);
     
     if (sourceCard && targetCard && onCardUpdate) {
-      // Update source card to include link to target
+      // Only update source card to include link to target (directional link)
       const updatedSourceCard = {
         ...sourceCard,
         linkedCards: [...(sourceCard.linkedCards || []), targetCard.id]
       };
       
-      // Update target card to include link to source
-      const updatedTargetCard = {
-        ...targetCard,
-        linkedCards: [...(targetCard.linkedCards || []), sourceCard.id]
-      };
-      
       onCardUpdate(updatedSourceCard);
-      onCardUpdate(updatedTargetCard);
       
-      toast(`Linked "${sourceCard.title}" with "${targetCard.title}"`);
+      toast(`Linked "${sourceCard.title}" → "${targetCard.title}"`);
     }
     
     setEdges((eds) => addEdge(params, eds));
