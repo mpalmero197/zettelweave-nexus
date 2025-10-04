@@ -101,31 +101,31 @@ export function CodeEditor() {
     setLoading(true);
 
     try {
-      // In a real implementation, this would fetch the actual file content
-      // For demo purposes, we'll show placeholder content
-      const content = `// File: ${filePath}
-// This is a placeholder for the actual file content
-// In a full implementation, this would show the real file contents
-
-export default function Component() {
-  return (
-    <div className="p-4">
-      <h1>File Editor</h1>
-      <p>This would contain the actual content of ${filePath}</p>
-    </div>
-  );
-}`;
-
+      // Fetch the actual file content from the server
+      const response = await fetch(`/${filePath}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      }
+      
+      const content = await response.text();
       setFileContent(content);
       
       toast({
         title: "File Loaded",
-        description: `Loaded ${filePath}`,
+        description: `Successfully loaded ${filePath}`,
       });
     } catch (error) {
+      console.error('Error loading file:', error);
+      setFileContent(`// Error loading file: ${filePath}
+// The file might not be accessible or doesn't exist.
+// 
+// Note: Only publicly accessible files can be viewed in this editor.
+// Some files may require backend access to view.`);
+      
       toast({
         title: "Error",
-        description: "Failed to load file",
+        description: `Failed to load ${filePath}`,
         variant: "destructive",
       });
     } finally {
@@ -133,23 +133,23 @@ export default function Component() {
     }
   };
 
-  const handleSaveFile = async () => {
-    if (!selectedFile) return;
+  const handleDownloadFile = () => {
+    if (!selectedFile || !fileContent) return;
 
-    try {
-      // In a real implementation, this would save the file content
-      toast({
-        title: "Feature Coming Soon",
-        description: "File saving functionality requires backend integration",
-        variant: "destructive",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save file",
-        variant: "destructive",
-      });
-    }
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = selectedFile.split('/').pop() || 'file.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "File Downloaded",
+      description: `Downloaded ${selectedFile}`,
+    });
   };
 
   const toggleFolder = (folderPath: string) => {
@@ -255,11 +255,7 @@ export default function Component() {
             </div>
             {selectedFile && (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleSaveFile}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleDownloadFile}>
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
@@ -280,13 +276,13 @@ export default function Component() {
                   <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <span className="text-sm text-muted-foreground">
-                      This is a demo editor. Full file editing requires backend integration.
+                      Read-only mode. File editing is disabled for safety. Use your preferred code editor for modifications.
                     </span>
                   </div>
                   <Textarea
                     value={fileContent}
-                    onChange={(e) => setFileContent(e.target.value)}
-                    className="font-mono text-sm min-h-[400px] resize-none"
+                    readOnly
+                    className="font-mono text-sm min-h-[400px] resize-none bg-muted/30"
                     placeholder="File content will appear here..."
                   />
                 </div>
