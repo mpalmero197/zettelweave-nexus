@@ -232,6 +232,28 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     setEdges((eds) => addEdge(params, eds));
   }, [filteredCards, onCardUpdate, setEdges]);
 
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    event.stopPropagation();
+    
+    const sourceCard = filteredCards.find(c => c.id === edge.source);
+    const targetCard = filteredCards.find(c => c.id === edge.target);
+    
+    if (sourceCard && targetCard && onCardUpdate) {
+      // Remove the link from source card
+      const updatedSourceCard = {
+        ...sourceCard,
+        linkedCards: (sourceCard.linkedCards || []).filter(id => id !== targetCard.id)
+      };
+      
+      onCardUpdate(updatedSourceCard);
+      
+      toast(`Unlinked "${sourceCard.title}" from "${targetCard.title}"`);
+      
+      // Remove the edge from the graph
+      setEdges((eds) => eds.filter(e => e.id !== edge.id));
+    }
+  }, [filteredCards, onCardUpdate, setEdges]);
+
   const resetLayout = useCallback(() => {
     const positions = getNodePositions(filteredCards);
     setNodes((nds) =>
@@ -254,6 +276,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onConnect={onConnect}
         fitView
         fitViewOptions={{ padding: 0.1 }}
