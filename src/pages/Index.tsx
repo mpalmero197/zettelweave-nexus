@@ -334,6 +334,7 @@ const Index = () => {
                     <GraphView 
                       cards={filteredCards} 
                       onCardSelect={setViewingCard}
+                      onCardUpdate={handleUpdateCard}
                       className="h-[550px]"
                     />
                   </div>
