@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
@@ -96,6 +96,8 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete, 
     <>
       <Dialog open={isOpen && !isEditing} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border border-border shadow-hover">
+          <DialogTitle className="sr-only">{card.title}</DialogTitle>
+          <DialogDescription className="sr-only">{card.description || 'Card details'}</DialogDescription>
           {/* Header */}
           <div className="flex items-start justify-between p-8 pb-6 border-b border-border/20 bg-muted/30 backdrop-blur-sm">
             <div className="flex-1 space-y-4">
