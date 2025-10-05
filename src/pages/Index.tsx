@@ -73,20 +73,26 @@ const Index = () => {
   // Check if user is admin
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (user && user.email === 'mpalmero197@gmail.com') {
-        setIsAdmin(true);
-      } else if (user) {
-        try {
-          const { data } = await supabase.rpc('has_role', { 
-            _user_id: user.id, 
-            _role: 'admin' 
-          });
-          setIsAdmin(data);
-        } catch (error) {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('has_role', { 
+          _user_id: user.id, 
+          _role: 'admin' 
+        });
+        
+        if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
+          return;
         }
-      } else {
+        
+        setIsAdmin(data === true);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
         setIsAdmin(false);
       }
     };
