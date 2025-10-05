@@ -183,7 +183,7 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
         size="icon"
         onClick={() => setIsCollapsed(!isCollapsed)}
         className={cn(
-          "fixed top-20 z-[101] shadow-lg transition-all duration-300",
+          "fixed top-20 z-[45] shadow-lg transition-all duration-300",
           isCollapsed ? "right-4" : "right-[21rem] md:right-[21rem]"
         )}
         title={isCollapsed ? "Expand Scratchpad" : "Collapse Scratchpad"}
@@ -194,7 +194,7 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
       {/* Sidebar */}
       <div 
         className={cn(
-          "fixed right-0 top-16 h-[calc(100vh-4rem)] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-lg z-[100] transition-all duration-300",
+          "fixed right-0 top-16 h-[calc(100vh-4rem)] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-lg z-40 transition-all duration-300",
           isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-80 opacity-100"
         )}
       >
