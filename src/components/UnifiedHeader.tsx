@@ -168,22 +168,24 @@ export function UnifiedHeader({
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72">
-                <div className="flex flex-col space-y-2 mt-4">
-                  {navItems.map(({ id, icon: Icon }) => (
-                    <Button
-                      key={id}
-                      variant={activeTab === id ? "default" : "ghost"}
-                      onClick={() => {
-                        onTabChange(id);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="capitalize">{id}</span>
-                    </Button>
-                  ))}
+              <SheetContent side="right" className="w-72 flex flex-col">
+                <div className="flex-1 overflow-y-auto">
+                  <div className="flex flex-col space-y-2 mt-4 pb-4">
+                    {navItems.map(({ id, icon: Icon }) => (
+                      <Button
+                        key={id}
+                        variant={activeTab === id ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange(id);
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="capitalize">{id}</span>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

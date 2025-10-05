@@ -200,7 +200,7 @@ const Index = () => {
       <RightSidebar onCreateCard={handleCreateCard} />
 
       {/* Main Content */}
-      <main className="py-2 pr-80">
+      <main className="py-2 px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Cards Menu Bar - Below Header */}
           {activeTab === "cards" && (

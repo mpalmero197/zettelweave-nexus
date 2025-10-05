@@ -195,9 +195,8 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
       {/* Sidebar */}
       <div 
         className={cn(
-          "fixed right-0 top-16 h-[calc(100vh-4rem)] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-lg z-40 transition-all duration-300",
-          isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-80 opacity-100",
-          "hidden md:block"
+          "fixed right-0 top-16 h-[calc(100vh-4rem)] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-lg z-[100] transition-all duration-300",
+          isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-80 opacity-100"
         )}
       >
       <ScrollArea className="h-full">
