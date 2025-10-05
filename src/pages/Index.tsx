@@ -362,7 +362,7 @@ const Index = () => {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="sticky" className="mt-0">
+                <TabsContent value="stickynotes" className="mt-0">
                   <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm relative">
                     <StickyNotesSimple />
                   </div>

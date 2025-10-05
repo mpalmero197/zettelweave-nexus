@@ -36,7 +36,7 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
   const [scratchContent, setScratchContent] = useState("");
   const [scratchNotes, setScratchNotes] = useState<ScratchNote[]>([]);
   const [pinnedNotes, setPinnedNotes] = useState<StickyNote[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Load scratch notes
   useEffect(() => {
@@ -177,15 +177,14 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
 
   return (
     <>
-      {/* Collapse/Expand Toggle Button */}
+      {/* Collapse/Expand Toggle Button - Desktop and Mobile */}
       <Button
         variant="outline"
         size="icon"
         onClick={() => setIsCollapsed(!isCollapsed)}
         className={cn(
-          "fixed top-20 z-50 shadow-lg transition-all duration-300",
-          isCollapsed ? "right-4" : "right-[21rem]",
-          "hidden md:flex"
+          "fixed top-20 z-[101] shadow-lg transition-all duration-300",
+          isCollapsed ? "right-4" : "right-[21rem] md:right-[21rem]"
         )}
         title={isCollapsed ? "Expand Scratchpad" : "Collapse Scratchpad"}
       >
