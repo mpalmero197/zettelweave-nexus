@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { CodeEditor } from '@/components/admin/CodeEditor';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
@@ -116,13 +117,24 @@ export default function Admin() {
     <div className="min-h-screen bg-background p-6">
       <div className="container mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            Admin Panel
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Manage users, system settings, and code editor
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Shield className="h-8 w-8 text-primary" />
+                Admin Panel
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Manage users, system settings, and code editor
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/'}
+              className="flex items-center gap-2"
+            >
+              Back to App
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
