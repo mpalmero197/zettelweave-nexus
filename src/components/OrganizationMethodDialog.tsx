@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Bot, AlertTriangle } from "lucide-react";
+import { Settings, Bot } from "lucide-react";
 import { OrganizationMethod, ORGANIZATION_METHODS } from "@/types/zettel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { toast } from "sonner";
 
 interface OrganizationMethodDialogProps {
@@ -24,7 +24,6 @@ export function OrganizationMethodDialog({
 }: OrganizationMethodDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<OrganizationMethod>(currentMethod);
-  const [shouldReorganize, setShouldReorganize] = useState(false);
   const [isReorganizing, setIsReorganizing] = useState(false);
 
   const handleSave = async () => {
@@ -36,30 +35,26 @@ export function OrganizationMethodDialog({
     try {
       setIsReorganizing(true);
       
-      // If reorganization is requested and we have cards
-      if (shouldReorganize && cardCount > 0 && onReorganizeCards) {
+      // Automatically reorganize if we have cards
+      if (cardCount > 0 && onReorganizeCards) {
         await onReorganizeCards(currentMethod, selectedMethod);
-      }
-      
-      // Always update the method
-      onMethodChange(selectedMethod);
-      setIsOpen(false);
-      
-      if (!shouldReorganize || cardCount === 0) {
+      } else {
+        // If no cards, just update the method
+        onMethodChange(selectedMethod);
         toast.success(`Organization method changed to ${ORGANIZATION_METHODS.find(m => m.id === selectedMethod)?.name}`);
       }
+      
+      setIsOpen(false);
     } catch (error) {
       console.error('Error changing organization method:', error);
       toast.error(`Failed to change organization method: ${error.message}`);
     } finally {
       setIsReorganizing(false);
-      setShouldReorganize(false);
     }
   };
 
   const handleCancel = () => {
     setSelectedMethod(currentMethod);
-    setShouldReorganize(false);
     setIsOpen(false);
   };
 
@@ -80,7 +75,7 @@ export function OrganizationMethodDialog({
           </DialogTitle>
           <DialogDescription>
             Choose how your Zettelkasten cards should be organized and numbered.
-            {cardCount > 0 && " You can optionally reorganize existing cards to match the new system."}
+            {cardCount > 0 && " Existing cards will be automatically reorganized to match the new system."}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,38 +120,21 @@ export function OrganizationMethodDialog({
             ))}
           </div>
 
-          {/* Reorganization option */}
+          {/* Reorganization notice */}
           {cardCount > 0 && selectedMethod !== currentMethod && (
             <Alert>
-              <AlertTriangle className="h-4 w-4" />
+              <Bot className="h-4 w-4" />
               <AlertDescription>
-                <div className="space-y-3">
+                <div className="space-y-2">
+                  <p className="font-medium">Automatic AI Reorganization</p>
                   <p>
-                    You have {cardCount} existing cards organized using the{" "}
-                    <strong>{ORGANIZATION_METHODS.find(m => m.id === currentMethod)?.name}</strong> system.
+                    Your {cardCount} existing cards will be automatically reorganized from{" "}
+                    <strong>{ORGANIZATION_METHODS.find(m => m.id === currentMethod)?.name}</strong> to{" "}
+                    <strong>{ORGANIZATION_METHODS.find(m => m.id === selectedMethod)?.name}</strong>.
                   </p>
-                  
-                  <div className="flex items-start space-x-2">
-                    <Checkbox 
-                      id="reorganize"
-                      checked={shouldReorganize}
-                      onCheckedChange={(checked) => setShouldReorganize(checked === true)}
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor="reorganize"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Bot className="h-4 w-4" />
-                          Reorganize existing cards with AI
-                        </div>
-                      </label>
-                      <p className="text-xs text-muted-foreground">
-                        AI will intelligently convert your cards to the new system, updating numbering and maintaining relationships.
-                      </p>
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    AI will analyze card content and intelligently assign new numbers and categories based on the selected method.
+                  </p>
                 </div>
               </AlertDescription>
             </Alert>
