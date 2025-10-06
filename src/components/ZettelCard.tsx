@@ -83,10 +83,10 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       data-card-id={card.id}
       onClick={handleCardClick}
       className={cn(
-        "group rounded-xl shadow-card hover:shadow-hover transition-all duration-200 animate-fade-in cursor-pointer",
+        "group rounded-xl shadow-card hover:shadow-hover transition-all duration-300 animate-fade-in-up cursor-pointer overflow-hidden",
         "border border-border/60 dark:border-border/50",
-        "hover:scale-[1.02] hover:shadow-glow",
-        currentColor.bg || "bg-card",
+        "hover:-translate-y-1 hover:shadow-glow backdrop-blur-sm",
+        currentColor.bg || "bg-card/80",
         currentColor.border && `border-l-4 ${currentColor.border}`,
         className
       )}

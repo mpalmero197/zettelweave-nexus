@@ -87,18 +87,20 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
-			boxShadow: {
-				'card': 'var(--shadow-card)',
-				'hover': 'var(--shadow-hover)',
-				'active': 'var(--shadow-active)',
-				'glow': 'var(--shadow-glow)'
-			},
-			backgroundImage: {
-				'gradient-primary': 'var(--gradient-primary)',
-				'gradient-card': 'var(--gradient-card)',
-				'gradient-accent': 'var(--gradient-accent)',
-				'gradient-glass': 'var(--gradient-glass)'
-			},
+		boxShadow: {
+			'card': 'var(--shadow-card)',
+			'hover': 'var(--shadow-hover)',
+			'active': 'var(--shadow-active)',
+			'glow': 'var(--shadow-glow)',
+			'glow-accent': 'var(--shadow-glow-accent)'
+		},
+		backgroundImage: {
+			'gradient-primary': 'var(--gradient-primary)',
+			'gradient-card': 'var(--gradient-card)',
+			'gradient-accent': 'var(--gradient-accent)',
+			'gradient-glass': 'var(--gradient-glass)',
+			'gradient-glow': 'var(--gradient-glow)'
+		},
 			backdropBlur: {
 				'xs': '2px',
 			},

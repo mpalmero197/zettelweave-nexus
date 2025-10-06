@@ -218,11 +218,14 @@ const Index = () => {
       <RightSidebar onCreateCard={handleCreateCard} />
 
       {/* Main Content */}
-      <main className="py-2 px-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <main className="py-2 px-4 relative">
+        {/* Subtle top glow effect */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-glow pointer-events-none opacity-50" />
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Below Header */}
           {activeTab === "cards" && (
-            <div className="sticky top-16 z-30 bg-card/95 backdrop-blur-sm border-b border-border/50 px-4 py-3">
+            <div className="sticky top-16 z-30 glass-card px-4 py-3 animate-fade-in-up">
               <div className="flex items-center justify-between max-w-7xl mx-auto gap-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
@@ -315,7 +318,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     {isLoading ? (
                       <FastLoadingFallback message="Loading your knowledge cards..." />
                     ) : filteredCards.length === 0 ? (
@@ -350,7 +353,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="graph" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <GraphView 
                       cards={filteredCards} 
                       onCardSelect={setViewingCard}
@@ -361,7 +364,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="whiteboard" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                       <InfiniteWhiteboard onCreateCard={handleCreateCard} />
                     </Suspense>
@@ -369,7 +372,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
                       <BulletJournal onCreateCard={handleCreateCard} />
                     </Suspense>
@@ -377,19 +380,19 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="habits" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <HabitTracker />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="stickynotes" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm relative">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 relative animate-fade-in-up">
                     <StickyNotesSimple />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="recorder" className="mt-0">
-                  <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 min-h-[600px] shadow-sm space-y-6">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 space-y-6 animate-fade-in-up">
                     <Suspense fallback={<FastLoadingFallback message="Loading meeting recorder..." />}>
                       <MeetingRecorderLazy />
                     </Suspense>
