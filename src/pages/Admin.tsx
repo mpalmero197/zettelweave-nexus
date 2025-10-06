@@ -5,9 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UserManagement } from '@/components/admin/UserManagement';
-import { CodeEditor } from '@/components/admin/CodeEditor';
+import { SystemSettings } from '@/components/admin/SystemSettings';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
-import { Shield, Users, Code, AlertTriangle, BookOpen } from 'lucide-react';
+import { Shield, Users, Settings, AlertTriangle, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Admin() {
@@ -124,9 +124,9 @@ export default function Admin() {
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
-            <TabsTrigger value="code" className="flex items-center gap-2">
-              <Code className="h-4 w-4" />
-              Code Editor
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              System Settings
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
@@ -138,8 +138,8 @@ export default function Admin() {
             <UserManagement />
           </TabsContent>
 
-          <TabsContent value="code">
-            <CodeEditor />
+          <TabsContent value="settings">
+            <SystemSettings />
           </TabsContent>
 
           <TabsContent value="docs">
