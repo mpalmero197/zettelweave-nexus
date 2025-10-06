@@ -34,20 +34,26 @@ export function OrganizationMethodDialog({
     }
 
     try {
+      setIsReorganizing(true);
+      
       // If reorganization is requested and we have cards
       if (shouldReorganize && cardCount > 0 && onReorganizeCards) {
-        setIsReorganizing(true);
         await onReorganizeCards(currentMethod, selectedMethod);
       }
       
+      // Always update the method
       onMethodChange(selectedMethod);
       setIsOpen(false);
-      toast(`Organization method changed to ${ORGANIZATION_METHODS.find(m => m.id === selectedMethod)?.name}`);
+      
+      if (!shouldReorganize || cardCount === 0) {
+        toast.success(`Organization method changed to ${ORGANIZATION_METHODS.find(m => m.id === selectedMethod)?.name}`);
+      }
     } catch (error) {
       console.error('Error changing organization method:', error);
-      toast(`Failed to change organization method: ${error.message}`);
+      toast.error(`Failed to change organization method: ${error.message}`);
     } finally {
       setIsReorganizing(false);
+      setShouldReorganize(false);
     }
   };
 

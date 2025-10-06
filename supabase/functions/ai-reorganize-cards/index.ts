@@ -24,7 +24,24 @@ serve(async (req) => {
     });
 
     const organizationMethodDescriptions: Record<string, string> = {
-      dewey: "Dewey Decimal Classification (000-999): Knowledge organized by subject areas like 000-Computer Science, 100-Philosophy, 200-Religion, 300-Social Sciences, 400-Language, 500-Science, 600-Technology, 700-Arts, 800-Literature, 900-History",
+      dewey: `Dewey Decimal Classification (000-999): Use the MOST SPECIFIC Dewey number possible (e.g., 973.4 for U.S. Constitutional Period, not just 900 or 970).
+      
+Main classes:
+000-099: Computer Science, Information & General Works (e.g., 004 Data processing, 020 Library science)
+100-199: Philosophy & Psychology (e.g., 150 Psychology, 170 Ethics, 180 Ancient philosophy)
+200-299: Religion (e.g., 220 Bible, 290 Other religions)
+300-399: Social Sciences (e.g., 320 Political science, 330 Economics, 370 Education)
+400-499: Language (e.g., 420 English, 430 German, 450 Italian)
+500-599: Science (e.g., 510 Mathematics, 530 Physics, 570 Biology)
+600-699: Technology (e.g., 610 Medicine, 630 Agriculture, 650 Management)
+700-799: Arts & Recreation (e.g., 720 Architecture, 750 Painting, 780 Music)
+800-899: Literature (e.g., 810 American literature, 820 English literature)
+900-999: History & Geography (e.g., 940 European history, 970 North American history, 973.4 U.S. Constitutional Period 1789-1809)
+
+CRITICAL: Analyze the content deeply and assign the most precise decimal number (3+ digits). For example:
+- "The Constitutional Period of the United States" → 973.4 (NOT 900 or 970)
+- "Cognitive Psychology Research" → 153 (NOT 100 or 150)
+- "Renaissance Art in Italy" → 709.024 or 945.05 (NOT 700 or 900)`,
       luhmann: "Luhmann System: Alphanumeric branching (1, 1a, 1a1, 1a2, 1b, 2, 2a, etc.) where each card builds on or relates to its parent, creating organic knowledge trees",
       folgezettel: "Folgezettel System: Sequential decimal numbering (1.1, 1.2, 1.2.1, 1.2.2, 2.1, etc.) where numbers indicate hierarchical relationships and topic development",
       thematic: "Thematic Organization: Topic-based prefixes (PHIL-001, HIST-001, SCI-001, etc.) where cards are grouped by thematic categories with sequential numbering within each theme"
@@ -46,10 +63,12 @@ RULES:
 6. Return EXACTLY the same number of cards as input
 
 NUMBERING GUIDELINES:
-- Dewey: Use appropriate 3-digit codes (000-999) based on content
+- Dewey: Analyze content CAREFULLY and use SPECIFIC decimal codes (e.g., 973.4, 153.42, 709.024). Go 3+ digits deep based on subject specificity. Include the category description.
 - Luhmann: Start with simple numbers (1, 2, 3) and branch (1a, 1b, 1a1) for related content
 - Folgezettel: Use decimal hierarchy (1.1, 1.2, 1.2.1) grouping related topics
 - Thematic: Use 4-letter theme codes + 3-digit sequence (PHIL-001, HIST-001)
+
+FOR DEWEY DECIMAL: Set the 'category' field to include both the number AND its meaning, like: "973.4 - U.S. History: Constitutional Period (1789-1809)" or "153 - Cognitive Psychology"
 
 OUTPUT: JSON array of reorganized cards with updated numbers, categories, and linkedCards.`;
 

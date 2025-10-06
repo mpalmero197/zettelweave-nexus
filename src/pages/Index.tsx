@@ -129,30 +129,39 @@ const Index = () => {
     toast(`Successfully imported ${newCards.length} cards!`);
   };
 
-  const handleReorganizeCards = async (method: OrganizationMethod) => {
+  const handleReorganizeCards = async (fromMethod: OrganizationMethod, toMethod: OrganizationMethod) => {
     try {
+      console.log('Starting reorganization:', { fromMethod, toMethod, cardCount: cards.length });
+      
       const { data, error } = await supabase.functions.invoke('ai-reorganize-cards', {
         body: {
           cards,
-          fromMethod: organizationMethod,
-          toMethod: method
+          fromMethod,
+          toMethod
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
       if (data?.reorganizedCards) {
-        // Update all cards with new organization
-        data.reorganizedCards.forEach((reorganizedCard: ZettelCardType) => {
-          updateCard(reorganizedCard);
-        });
+        console.log('Received reorganized cards:', data.reorganizedCards.length);
         
-        setOrganizationMethod(method);
-        toast(`Successfully reorganized ${data.reorganizedCards.length} cards to ${method} system!`);
+        // Update all cards with new organization
+        for (const reorganizedCard of data.reorganizedCards) {
+          await updateCard(reorganizedCard);
+        }
+        
+        toast.success(`Successfully reorganized ${data.reorganizedCards.length} cards to ${toMethod} system!`);
+      } else {
+        throw new Error('No reorganized cards received from AI');
       }
     } catch (error) {
       console.error('Error reorganizing cards:', error);
-      toast("Failed to reorganize cards. Please try again.");
+      toast.error(`Failed to reorganize cards: ${error.message}`);
+      throw error; // Re-throw to let the dialog handle it
     }
   };
 
@@ -240,7 +249,9 @@ const Index = () => {
                   </Button>
                   <OrganizationMethodDialog
                     currentMethod={organizationMethod}
-                    onMethodChange={handleReorganizeCards}
+                    onMethodChange={setOrganizationMethod}
+                    onReorganizeCards={handleReorganizeCards}
+                    cardCount={cards.length}
                   />
                   <Button
                     variant="outline"

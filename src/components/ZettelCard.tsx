@@ -97,33 +97,44 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-xs font-mono",
-                  currentColor.text && "border-white/30 bg-white/10"
-                )}
-                style={!currentColor.text ? { 
-                  borderColor: `hsl(var(--category-${categoryInfo.color}))`,
-                  color: `hsl(var(--category-${categoryInfo.color}))`
-                } : undefined}
-              >
-                {card.number}
-              </Badge>
-              <Badge 
-                variant="secondary" 
-                className={cn(
-                  "text-xs",
-                  currentColor.text && "border-white/30 bg-white/20"
-                )}
-                style={!currentColor.bg ? {
-                  backgroundColor: `hsl(var(--category-${categoryInfo.color}) / 0.15)`,
-                  color: `hsl(var(--category-${categoryInfo.color}))`
-                } : undefined}
-              >
-                {categoryInfo.name}
-              </Badge>
+            <div className="flex flex-col gap-1.5 mb-2">
+              <div className="flex items-center gap-2">
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "text-xs font-mono",
+                    currentColor.text && "border-white/30 bg-white/10"
+                  )}
+                  style={!currentColor.text ? { 
+                    borderColor: `hsl(var(--category-${categoryInfo.color}))`,
+                    color: `hsl(var(--category-${categoryInfo.color}))`
+                  } : undefined}
+                >
+                  {card.number}
+                </Badge>
+                <Badge 
+                  variant="secondary" 
+                  className={cn(
+                    "text-xs",
+                    currentColor.text && "border-white/30 bg-white/20"
+                  )}
+                  style={!currentColor.bg ? {
+                    backgroundColor: `hsl(var(--category-${categoryInfo.color}) / 0.15)`,
+                    color: `hsl(var(--category-${categoryInfo.color}))`
+                  } : undefined}
+                >
+                  {categoryInfo.name}
+                </Badge>
+              </div>
+              {/* Display detailed Dewey classification if available */}
+              {card.category && card.category.includes('-') && (
+                <p className={cn(
+                  "text-xs italic",
+                  currentColor.text ? `${currentColor.text} opacity-90` : "text-muted-foreground"
+                )}>
+                  {card.category}
+                </p>
+              )}
             </div>
             <CardTitle className={cn("text-xl md:text-2xl leading-snug mb-1", currentColor.text || "text-foreground")}>
               {card.title}
