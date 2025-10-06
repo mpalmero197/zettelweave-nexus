@@ -24,38 +24,19 @@ export default function Admin() {
       }
 
       try {
-        // Check if user is specifically mpalmero197@gmail.com or has admin role
-        if (user.email === 'mpalmero197@gmail.com') {
-          // Ensure this user has admin role in database
-          const { error } = await supabase
-            .from('user_roles')
-            .upsert({ 
-              user_id: user.id, 
-              role: 'admin' 
-            }, { 
-              onConflict: 'user_id,role' 
-            });
-          
-          if (error) {
-            console.error('Error setting admin role:', error);
-          }
-          
-          setIsAdmin(true);
+        // Check if user has admin role
+        const { data, error } = await supabase
+          .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+        
+        if (error) {
+          console.error('Error checking admin role:', error);
+          toast({
+            title: "Access Denied",
+            description: "Unable to verify admin privileges",
+            variant: "destructive",
+          });
         } else {
-          // Check if user has admin role
-          const { data, error } = await supabase
-            .rpc('has_role', { _user_id: user.id, _role: 'admin' });
-          
-          if (error) {
-            console.error('Error checking admin role:', error);
-            toast({
-              title: "Access Denied",
-              description: "Unable to verify admin privileges",
-              variant: "destructive",
-            });
-          } else {
-            setIsAdmin(data);
-          }
+          setIsAdmin(data);
         }
       } catch (error) {
         console.error('Error checking admin access:', error);
