@@ -11,7 +11,7 @@ import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MobileDetector } from "@/components/MobileDetector";
-import { UnifiedHeader } from "@/components/UnifiedHeader";
+import { NavigationBar } from "@/components/NavigationBar";
 import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
@@ -192,14 +192,17 @@ const Index = () => {
       <MobileOptimizedLayout>
       <SecurityNotice />
       
-      {/* Unified Header with Navigation */}
-      <UnifiedHeader
+      {/* Navigation Bar with Dropdowns */}
+      <NavigationBar
         user={user}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onSignOut={handleSignOut}
         onAccountSettings={() => setShowAccountManagement(true)}
         isAdmin={isAdmin}
+        onCreateNote={() => setActiveTab("notes")}
+        onCreateWhiteboard={() => setActiveTab("whiteboard")}
+        onStartRecording={() => setActiveTab("recorder")}
       />
 
       {/* Right Sidebar */}
