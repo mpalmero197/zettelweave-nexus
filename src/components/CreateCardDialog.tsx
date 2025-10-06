@@ -6,17 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Wand2, X } from "lucide-react";
-import { ZettelCard } from "@/types/zettel";
+import { ZettelCard, OrganizationMethod } from "@/types/zettel";
 import { categorizeContent, generateZettelNumber, extractKeywords, getCategoryInfo } from "@/utils/deweySystem";
 import { MediaUpload } from "./MediaUpload";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CreateCardDialogProps {
   existingCards: ZettelCard[];
   onCreateCard: (card: Omit<ZettelCard, 'id' | 'created' | 'modified'>) => void;
   trigger?: React.ReactNode;
+  organizationMethod?: OrganizationMethod;
 }
 
-export function CreateCardDialog({ existingCards, onCreateCard, trigger }: CreateCardDialogProps) {
+export function CreateCardDialog({ existingCards, onCreateCard, trigger, organizationMethod = "dewey" }: CreateCardDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -27,22 +30,52 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
   const [number, setNumber] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleAutoGenerate = () => {
+  const handleAutoGenerate = async () => {
     if (!title && !content) return;
     
-    const detectedCategory = categorizeContent(content, title);
-    const generatedNumber = generateZettelNumber(detectedCategory, existingCards.map(c => c.number));
-    const keywords = extractKeywords(title + " " + content);
-    
-    setCategory(detectedCategory);
-    setNumber(generatedNumber);
-    setTags(keywords);
-    
-    if (!description) {
-      // Generate a simple description from the first sentence
-      const firstSentence = content.split('.')[0] + '.';
-      setDescription(firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence);
+    setIsGenerating(true);
+    try {
+      // Use AI to categorize based on current organization method
+      const { data, error } = await supabase.functions.invoke('ai-categorize-card', {
+        body: {
+          title,
+          content,
+          method: organizationMethod,
+          existingNumbers: existingCards.map(c => c.number)
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.number && data?.category) {
+        setNumber(data.number);
+        setCategory(data.category);
+        toast.success(`Categorized using ${organizationMethod} system`);
+      }
+
+      // Generate keywords and description
+      const keywords = extractKeywords(title + " " + content);
+      setTags(keywords);
+      
+      if (!description) {
+        const firstSentence = content.split('.')[0] + '.';
+        setDescription(firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence);
+      }
+    } catch (error) {
+      console.error('Auto-generate error:', error);
+      toast.error('Failed to auto-categorize. Using fallback method.');
+      
+      // Fallback to old method for Dewey
+      if (organizationMethod === 'dewey') {
+        const detectedCategory = categorizeContent(content, title);
+        const generatedNumber = generateZettelNumber(detectedCategory, existingCards.map(c => c.number));
+        setCategory(detectedCategory);
+        setNumber(generatedNumber);
+      }
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -219,10 +252,11 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger }: Creat
               type="button"
               variant="outline"
               onClick={handleAutoGenerate}
+              disabled={isGenerating || (!title && !content)}
               className="bg-gradient-accent hover:bg-accent-hover"
             >
-              <Wand2 className="h-4 w-4 mr-2" />
-              Generate
+              <Wand2 className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? 'Generating...' : 'Auto-Generate'}
             </Button>
             
             <div className="flex gap-2">

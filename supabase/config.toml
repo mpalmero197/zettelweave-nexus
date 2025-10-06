@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.ai-reorganize-cards]
 verify_jwt = false
 
+[functions.ai-categorize-card]
+verify_jwt = false
+
 [functions.transcribe-audio]
 verify_jwt = false
 

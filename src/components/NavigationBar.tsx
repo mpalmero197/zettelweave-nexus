@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Brain, Sun, Moon, User, Plus, ChevronDown, Search } from "lucide-react";
+import { Brain, Sun, Moon, User, Plus, ChevronDown, Search, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +61,7 @@ export function NavigationBar({
 }: NavigationBarProps) {
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="bg-card/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm">
@@ -284,6 +286,150 @@ export function NavigationBar({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="lg:hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 rounded-xl"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 flex flex-col">
+                <div className="flex-1 overflow-y-auto">
+                  <div className="flex flex-col space-y-2 mt-4 pb-4">
+                    {/* Dashboard */}
+                    <Button
+                      variant={activeTab === "dashboard" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("dashboard");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Home className="h-4 w-4" />
+                      Dashboard
+                    </Button>
+
+                    {/* Knowledge Base Section */}
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground px-3 pb-2">Knowledge Base</p>
+                      <Button
+                        variant={activeTab === "cards" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("cards");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Cards
+                      </Button>
+                      <Button
+                        variant={activeTab === "graph" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("graph");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        Graph
+                      </Button>
+                      <Button
+                        variant={activeTab === "notes" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("notes");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <BookOpen className="h-4 w-4" />
+                        Notes
+                      </Button>
+                      <Button
+                        variant={activeTab === "notebooks" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("notebooks");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                        Notebooks
+                      </Button>
+                    </div>
+
+                    {/* Whiteboard */}
+                    <Button
+                      variant={activeTab === "whiteboard" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("whiteboard");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Palette className="h-4 w-4" />
+                      Whiteboard
+                    </Button>
+
+                    {/* Planner Section */}
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground px-3 pb-2">Planner</p>
+                      <Button
+                        variant={activeTab === "calendar" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("calendar");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                        Calendar
+                      </Button>
+                      <Button
+                        variant={activeTab === "journal" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("journal");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <StickyNote className="h-4 w-4" />
+                        Journal
+                      </Button>
+                      <Button
+                        variant={activeTab === "habits" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("habits");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Target className="h-4 w-4" />
+                        Habits
+                      </Button>
+                    </div>
+
+                    {/* Recorder */}
+                    <Button
+                      variant={activeTab === "recorder" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("recorder");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Mic className="h-4 w-4" />
+                      Recorder
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

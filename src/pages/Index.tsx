@@ -225,7 +225,7 @@ const Index = () => {
             <div className="sticky top-16 z-30 bg-card/95 backdrop-blur-sm border-b border-border/50 px-4 py-3">
               <div className="flex items-center justify-between max-w-7xl mx-auto gap-4">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
+                  <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                   <VaultImportDialog onImportCards={handleImportCards} />
                   <Button
                     variant="outline"
@@ -330,7 +330,7 @@ const Index = () => {
                             : "Try adjusting your search terms or filters"
                           }
                         </p>
-                        <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} />
+                        <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
