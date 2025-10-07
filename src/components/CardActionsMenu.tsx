@@ -3,8 +3,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from '@/components/ui/button';
 import { ZettelCard } from '@/types/zettel';
 import { exportCardAsImage, shareToSocial, printCards } from '@/utils/exportUtils';
-import { MoreHorizontal, Download, Share2, Printer, Bot, Trash2, Edit3 } from 'lucide-react';
+import { MoreHorizontal, Download, Share2, Printer, Bot, Trash2, Edit3, Copy } from 'lucide-react';
 import { AIEditDialog } from './AIEditDialog';
+import { SimilarContentDialog } from './SimilarContentDialog';
+import { useSimilarContent } from '@/hooks/useSimilarContent';
+import { toast } from 'sonner';
 
 interface CardActionsMenuProps {
   card: ZettelCard;
@@ -15,11 +18,30 @@ interface CardActionsMenuProps {
 
 export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardActionsMenuProps) {
   const [showAIEdit, setShowAIEdit] = useState(false);
+  const [showSimilarDialog, setShowSimilarDialog] = useState(false);
+  const { loading, similarItems, findSimilar, mergeContent } = useSimilarContent();
 
   const handleExportImage = async () => {
     const cardElement = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement;
     if (cardElement) {
       await exportCardAsImage(cardElement, `zettel-${card.number}`);
+    }
+  };
+
+  const handleFindSimilar = async () => {
+    const results = await findSimilar(card.id, 'zettel_card');
+    if (results.length > 0) {
+      setShowSimilarDialog(true);
+    }
+  };
+
+  const handleMerge = async (sourceId: string, destinationId: string, mergedContent: string) => {
+    await mergeContent(sourceId, destinationId, mergedContent, 'zettel_card');
+    toast.success('Content merged successfully');
+    // Trigger a refresh by calling onUpdate
+    if (onUpdate) {
+      const updatedCard = { ...card, content: mergedContent };
+      onUpdate(updatedCard);
     }
   };
 
@@ -40,6 +62,11 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
           <DropdownMenuItem onClick={() => setShowAIEdit(true)}>
             <Bot className="mr-2 h-4 w-4" />
             AI Edit
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={handleFindSimilar} disabled={loading}>
+            <Copy className="mr-2 h-4 w-4" />
+            {loading ? 'Searching...' : 'Find Similar'}
           </DropdownMenuItem>
           
           <DropdownMenuSeparator />
@@ -93,6 +120,20 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
           trigger={null}
         />
       )}
+
+      <SimilarContentDialog
+        open={showSimilarDialog}
+        onOpenChange={setShowSimilarDialog}
+        currentItem={{
+          id: card.id,
+          title: card.title,
+          content: card.content,
+          created_at: card.created,
+          type: 'zettel_card'
+        }}
+        similarItems={similarItems}
+        onMerge={handleMerge}
+      />
     </>
   );
 }

@@ -18,9 +18,12 @@ import {
   Trash2, 
   BookOpen,
   Filter,
-  StarOff
+  StarOff,
+  Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SimilarContentDialog } from './SimilarContentDialog';
+import { useSimilarContent } from '@/hooks/useSimilarContent';
 
 interface Note {
   id: string;
@@ -50,6 +53,8 @@ export function Notes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotebook, setSelectedNotebook] = useState<string>('all');
   const [showFavorites, setShowFavorites] = useState(false);
+  const [currentNoteForSimilar, setCurrentNoteForSimilar] = useState<Note | null>(null);
+  const { loading: similarLoading, similarItems, findSimilar, mergeContent, generateEmbedding } = useSimilarContent();
 
   const [newNote, setNewNote] = useState({
     title: '',
@@ -136,7 +141,7 @@ export function Notes() {
     if (!user || !newNote.title.trim()) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('notes')
         .insert({
           user_id: user.id,
@@ -144,9 +149,16 @@ export function Notes() {
           content: newNote.content,
           notebook_id: newNote.notebook_id || null,
           tags: newNote.tags
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Generate embedding for the new note
+      if (data) {
+        generateEmbedding(data.id, 'note', `${newNote.title} ${newNote.content}`);
+      }
 
       setNewNote({ title: '', content: '', notebook_id: '', tags: [] });
       setShowCreateDialog(false);
@@ -174,6 +186,9 @@ export function Notes() {
 
       if (error) throw error;
 
+      // Regenerate embedding for the updated note
+      generateEmbedding(editingNote.id, 'note', `${editingNote.title} ${editingNote.content}`);
+
       setEditingNote(null);
       fetchNotes();
       toast.success('Note updated successfully');
@@ -181,6 +196,19 @@ export function Notes() {
       console.error('Error updating note:', error);
       toast.error('Failed to update note');
     }
+  };
+
+  const handleFindSimilarNote = async (note: Note) => {
+    const results = await findSimilar(note.id, 'note');
+    if (results.length > 0) {
+      setCurrentNoteForSimilar(note);
+    }
+  };
+
+  const handleMergeNotes = async (sourceId: string, destinationId: string, mergedContent: string) => {
+    await mergeContent(sourceId, destinationId, mergedContent, 'note');
+    setCurrentNoteForSimilar(null);
+    fetchNotes();
   };
 
   const deleteNote = async (noteId: string) => {
@@ -410,6 +438,15 @@ export function Notes() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => handleFindSimilarNote(note)}
+                      disabled={similarLoading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => deleteNote(note.id)}
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                     >
@@ -536,6 +573,23 @@ export function Notes() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Similar Content Dialog */}
+      {currentNoteForSimilar && (
+        <SimilarContentDialog
+          open={!!currentNoteForSimilar}
+          onOpenChange={(open) => !open && setCurrentNoteForSimilar(null)}
+          currentItem={{
+            id: currentNoteForSimilar.id,
+            title: currentNoteForSimilar.title,
+            content: currentNoteForSimilar.content,
+            created_at: currentNoteForSimilar.created_at,
+            type: 'note'
+          }}
+          similarItems={similarItems}
+          onMerge={handleMergeNotes}
+        />
       )}
     </div>
   );

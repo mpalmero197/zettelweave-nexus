@@ -101,6 +101,18 @@ export const useZettelCards = () => {
         .single();
 
       if (error) throw error;
+
+      // Generate embedding for the new card
+      if (data) {
+        supabase.functions.invoke('generate-embedding', {
+          body: {
+            contentId: data.id,
+            contentType: 'zettel_card',
+            text: `${sanitizedCard.title} ${sanitizedCard.content}`
+          }
+        }).catch(err => console.error('Error generating embedding:', err));
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -153,6 +165,18 @@ export const useZettelCards = () => {
         .maybeSingle();
 
       if (error) throw error;
+
+      // Regenerate embedding for the updated card
+      if (data) {
+        supabase.functions.invoke('generate-embedding', {
+          body: {
+            contentId: data.id,
+            contentType: 'zettel_card',
+            text: `${sanitizedCard.title} ${sanitizedCard.content}`
+          }
+        }).catch(err => console.error('Error generating embedding:', err));
+      }
+
       return data;
     },
     onSuccess: () => {
