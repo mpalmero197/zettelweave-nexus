@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
 import { useSimilarContent } from '@/hooks/useSimilarContent';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Note {
   id: string;
@@ -44,6 +45,7 @@ interface Notebook {
 
 export function Notes() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [notes, setNotes] = useState<Note[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
@@ -414,7 +416,7 @@ export function Notes() {
                     />
                     <h3 className="font-semibold text-lg line-clamp-1">{note.title}</h3>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className={`flex items-center gap-1 transition-opacity ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                     <Button
                       variant="ghost"
                       size="sm"

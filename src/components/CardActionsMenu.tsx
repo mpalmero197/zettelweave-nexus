@@ -7,6 +7,7 @@ import { MoreHorizontal, Download, Share2, Printer, Bot, Trash2, Edit3, Copy } f
 import { AIEditDialog } from './AIEditDialog';
 import { SimilarContentDialog } from './SimilarContentDialog';
 import { useSimilarContent } from '@/hooks/useSimilarContent';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 interface CardActionsMenuProps {
@@ -17,6 +18,7 @@ interface CardActionsMenuProps {
 }
 
 export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardActionsMenuProps) {
+  const isMobile = useIsMobile();
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [showSimilarDialog, setShowSimilarDialog] = useState(false);
   const { loading, similarItems, findSimilar, mergeContent } = useSimilarContent();
@@ -53,7 +55,7 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-48" side={isMobile ? "bottom" : "left"}>
           <DropdownMenuItem onClick={() => onEdit?.(card)}>
             <Edit3 className="mr-2 h-4 w-4" />
             Edit Card
