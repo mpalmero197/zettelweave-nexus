@@ -6,151 +6,139 @@
 
 @layer base {
   :root {
-    /* Apple-inspired light theme */
-    --background: 0 0% 99%;
-    --foreground: 0 0% 9%;
-
-    /* Card system - subtle elevation */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-    --card-shadow: 0 0% 0%;
-
-    /* Navigation and UI */
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-
-    /* Apple blue - accessible and vibrant */
-    --primary: 212 100% 42%;
+    /* Futuristic Dark Theme - Purple/Pink Gradient Aesthetic */
+    --background: 237 28% 10%;          /* #1A1A2E - Very dark charcoal */
+    --foreground: 0 0% 88%;             /* #E0E0E0 - Off-white for text */
+    
+    /* Primary - Vibrant Purple */
+    --primary: 271 76% 53%;             /* #8A2BE2 - Vibrant purple */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 212 100% 37%;
-
-    /* Subtle gray surfaces */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 20%;
-    --secondary-hover: 0 0% 92%;
-
-    /* Muted text and backgrounds */
-    --muted: 0 0% 97%;
-    --muted-foreground: 0 0% 45%;
-
-    /* Orange accent - Apple style */
-    --accent: 28 100% 50%;
-    --accent-foreground: 0 0% 100%;
-    --accent-hover: 28 100% 45%;
-
-    /* Categories (Dewey-inspired) */
-    --category-000: 240 75% 65%; /* Philosophy & Psychology */
-    --category-100: 260 70% 60%; /* Religion */
-    --category-200: 280 75% 65%; /* Social Sciences */
-    --category-300: 300 70% 60%; /* Language */
-    --category-400: 320 75% 65%; /* Pure Sciences */
-    --category-500: 200 75% 65%; /* Applied Sciences */
-    --category-600: 180 70% 60%; /* Arts */
-    --category-700: 160 75% 65%; /* Literature */
-    --category-800: 140 70% 60%; /* History */
-    --category-900: 120 75% 65%; /* Geography */
-
-    /* System colors */
-    --destructive: 0 65% 50%;
+    --primary-hover: 271 76% 60%;
+    
+    /* Secondary - Hot Pink/Magenta */
+    --secondary: 346 60% 49%;           /* #C73866 - Hot pink */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 346 60% 55%;
+    
+    /* Accent - Purple tint */
+    --accent: 271 50% 25%;
+    --accent-foreground: 0 0% 88%;
+    --accent-hover: 271 50% 30%;
+    
+    /* Card - Slightly lighter than background */
+    --card: 237 28% 15%;                /* Lighter grey for cards */
+    --card-foreground: 0 0% 88%;
+    --card-shadow: 271 76% 53% / 0.3;
+    
+    /* Borders and inputs */
+    --border: 237 20% 25%;
+    --input: 237 20% 20%;
+    --ring: 271 76% 53%;
+    
+    /* Muted elements */
+    --muted: 237 20% 18%;
+    --muted-foreground: 0 0% 60%;
+    
+    /* Destructive */
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 220 15% 90%;
-    --input: 220 15% 96%;
-    --ring: 220 60% 35%;
-
-    /* 2025 Modern gradients with glow effects */
-    --gradient-primary: linear-gradient(135deg, hsl(212 100% 42%), hsl(212 100% 50%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.95), hsl(0 0% 98% / 0.98));
-    --gradient-accent: linear-gradient(135deg, hsl(28 100% 50%), hsl(28 100% 60%));
-    --gradient-glass: linear-gradient(145deg, hsl(0 0% 100% / 0.15), hsl(0 0% 100% / 0.08));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(212 100% 42% / 0.15), transparent 70%);
-
-    /* 2025 Glow shadows and depth */
-    --shadow-card: 0 4px 20px 0 hsl(var(--card-shadow) / 0.08), 0 1px 4px 0 hsl(var(--card-shadow) / 0.06);
-    --shadow-hover: 0 8px 40px -4px hsl(var(--card-shadow) / 0.12), 0 4px 20px -2px hsl(var(--card-shadow) / 0.08);
-    --shadow-active: 0 2px 10px 0 hsl(var(--card-shadow) / 0.1);
-    --shadow-glow: 0 0 30px hsl(212 100% 42% / 0.4), 0 0 60px hsl(212 100% 42% / 0.2);
-    --shadow-glow-accent: 0 0 25px hsl(28 100% 50% / 0.35), 0 0 50px hsl(28 100% 50% / 0.15);
-
-    /* Smooth micro-animations */
+    
+    /* Popover */
+    --popover: 237 28% 15%;
+    --popover-foreground: 0 0% 88%;
+    
+    /* Sidebar */
+    --sidebar-background: 237 28% 12%;
+    --sidebar-foreground: 0 0% 88%;
+    --sidebar-primary: 271 76% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 271 50% 25%;
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 237 20% 25%;
+    --sidebar-ring: 271 76% 53%;
+    
+    /* Category colors with purple/pink theme */
+    --category-000: 0 0% 70%;
+    --category-100: 271 76% 53%;
+    --category-200: 346 60% 49%;
+    --category-300: 290 70% 55%;
+    --category-400: 320 65% 52%;
+    --category-500: 271 60% 45%;
+    --category-600: 346 55% 42%;
+    --category-700: 290 65% 48%;
+    --category-800: 320 60% 45%;
+    --category-900: 271 70% 40%;
+    
+    /* Gradients - Purple to Pink */
+    --gradient-primary: linear-gradient(135deg, hsl(271 76% 53%), hsl(346 60% 49%));
+    --gradient-card: linear-gradient(180deg, hsl(237 28% 15%), hsl(237 28% 12%));
+    --gradient-accent: linear-gradient(135deg, hsl(271 50% 30%), hsl(346 50% 30%));
+    --gradient-glass: linear-gradient(135deg, hsl(271 76% 53% / 0.1), hsl(346 60% 49% / 0.1));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(271 76% 53% / 0.3), transparent 70%);
+    
+    /* Shadows with purple glow */
+    --shadow-card: 0 4px 20px hsl(271 76% 53% / 0.1);
+    --shadow-hover: 0 8px 30px hsl(271 76% 53% / 0.2);
+    --shadow-active: 0 2px 10px hsl(271 76% 53% / 0.15);
+    --shadow-glow: 0 0 40px hsl(271 76% 53% / 0.4);
+    --shadow-glow-accent: 0 0 40px hsl(346 60% 49% / 0.4);
+    
+    /* Border radius */
+    --radius: 0.75rem;
+    
+    /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    --transition-glow: box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
-
-    --radius: 0.5rem;
-
-    /* Sidebar variables for compatibility */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    /* Apple-inspired dark mode - WCAG AAA compliant */
-    --background: 0 0% 7%;           /* True black like Apple */
-    --foreground: 0 0% 98%;          /* Pure white text for maximum contrast */
-
-    --card: 0 0% 11%;                /* Subtle dark gray cards */
-    --card-foreground: 0 0% 98%;     /* High contrast text */
-    --card-shadow: 0 0% 0%;          /* Pure black shadows */
-
-    --popover: 0 0% 9%;              /* Slightly darker than cards */
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 212 100% 42%;         /* Apple blue - accessible */
+    /* Enhanced dark mode - even deeper with more glow */
+    --background: 237 35% 8%;
+    --foreground: 0 0% 92%;
+    
+    --primary: 271 80% 58%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 212 100% 37%;
-
-    --secondary: 0 0% 15%;           /* Dark gray secondary */
-    --secondary-foreground: 0 0% 90%;
-    --secondary-hover: 0 0% 18%;
-
-    --muted: 0 0% 13%;               /* Muted backgrounds */
-    --muted-foreground: 0 0% 65%;    /* WCAG AA compliant muted text */
-
-    --accent: 30 100% 50%;           /* Orange accent like Apple */
-    --accent-foreground: 0 0% 100%;
-    --accent-hover: 30 100% 45%;
-
-    /* Apple-style category colors - high contrast */
-    --category-000: 270 100% 70%;    /* Purple */
-    --category-100: 300 100% 70%;    /* Magenta */
-    --category-200: 330 100% 70%;    /* Pink */
-    --category-300: 0 100% 70%;      /* Red */
-    --category-400: 30 100% 70%;     /* Orange */
-    --category-500: 60 100% 70%;     /* Yellow */
-    --category-600: 120 100% 70%;    /* Green */
-    --category-700: 180 100% 70%;    /* Cyan */
-    --category-800: 210 100% 70%;    /* Blue */
-    --category-900: 240 100% 70%;    /* Indigo */
-
-    --destructive: 0 84% 60%;        /* Apple red - accessible */
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 18%;              /* Subtle borders */
-    --input: 0 0% 13%;               /* Input backgrounds */
-    --ring: 212 100% 42%;            /* Focus ring matches primary */
-
-    /* Dark sidebar variables */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --primary-hover: 271 80% 65%;
+    
+    --secondary: 346 65% 52%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 346 65% 58%;
+    
+    --accent: 271 55% 28%;
+    --accent-foreground: 0 0% 92%;
+    --accent-hover: 271 55% 33%;
+    
+    --card: 237 35% 12%;
+    --card-foreground: 0 0% 92%;
+    --card-shadow: 271 80% 58% / 0.4;
+    
+    --border: 237 25% 28%;
+    --input: 237 25% 22%;
+    --ring: 271 80% 58%;
+    
+    --muted: 237 25% 15%;
+    --muted-foreground: 0 0% 65%;
+    
+    --popover: 237 35% 12%;
+    --popover-foreground: 0 0% 92%;
+    
+    --sidebar-background: 237 35% 10%;
+    --sidebar-foreground: 0 0% 92%;
+    --sidebar-primary: 271 80% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 271 55% 28%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 237 25% 28%;
+    --sidebar-ring: 271 80% 58%;
+    
+    --shadow-glow: 0 0 50px hsl(271 80% 58% / 0.5);
+    --shadow-glow-accent: 0 0 50px hsl(346 65% 52% / 0.5);
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   body {

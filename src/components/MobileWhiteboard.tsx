@@ -790,44 +790,55 @@ export const MobileWhiteboard = () => {
     }
 
     const updateCanvasSize = () => {
-      const rect = canvas.getBoundingClientRect();
+      const container = canvas.parentElement;
+      if (!container) return;
+      
+      const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) {
-        console.log('Canvas has zero dimensions, retrying...');
+        console.log('Canvas container has zero dimensions, retrying...');
         setTimeout(updateCanvasSize, 100);
         return;
       }
       
       console.log('Setting canvas size:', rect.width, rect.height);
-      canvas.width = rect.width * window.devicePixelRatio;
-      canvas.height = rect.height * window.devicePixelRatio;
+      canvas.width = rect.width;
+      canvas.height = rect.height;
       
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        drawOnCanvas(); // Redraw after resizing
+        drawOnCanvas();
       }
     };
 
     // Initial size setup with delay to ensure DOM is ready
     setTimeout(updateCanvasSize, 100);
     window.addEventListener('resize', updateCanvasSize);
+    window.addEventListener('orientationchange', updateCanvasSize);
     
-    return () => window.removeEventListener('resize', updateCanvasSize);
+    return () => {
+      window.removeEventListener('resize', updateCanvasSize);
+      window.removeEventListener('orientationchange', updateCanvasSize);
+    };
   }, [drawOnCanvas]);
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="flex-1 relative overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-background">
+      <div className="flex-1 relative overflow-hidden touch-none">
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
-          style={{ cursor: activeTool === "pan" ? "grab" : "crosshair" }}
+          className="absolute inset-0 w-full h-full touch-none"
+          style={{ 
+            cursor: activeTool === "pan" ? "grab" : "crosshair",
+            touchAction: "none"
+          }}
           onMouseDown={handleStart}
           onMouseMove={handleMove}
           onMouseUp={handleEnd}
+          onMouseLeave={handleEnd}
           onTouchStart={handleStart}
           onTouchMove={handleMove}
           onTouchEnd={handleEnd}
+          onTouchCancel={handleEnd}
         />
         
         {drawingState.objects.some(obj => obj.editing) && (
