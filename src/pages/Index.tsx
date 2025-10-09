@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/SearchBar";
+import { AISearchBar } from "@/components/AISearchBar";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
 import { VaultImportDialog } from "@/components/VaultImportDialog";
@@ -273,7 +273,7 @@ const Index = () => {
                   />
                 </div>
                 <div className="flex-1 max-w-md">
-                  <SearchBar 
+                  <AISearchBar 
                     cards={cards} 
                     onSearchResults={setFilteredCards}
                   />

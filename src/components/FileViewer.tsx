@@ -77,6 +77,17 @@ export function FileViewer({ file, onClose }: FileViewerProps) {
     return mimeType.includes('pdf');
   };
 
+  const isOfficeDoc = (mimeType: string): boolean => {
+    return (
+      mimeType.includes('word') ||
+      mimeType.includes('document') ||
+      mimeType.includes('spreadsheet') ||
+      mimeType.includes('sheet') ||
+      mimeType.includes('presentation') ||
+      mimeType.includes('officedocument')
+    );
+  };
+
   const handleDownload = () => {
     const a = document.createElement('a');
     a.href = fileUrl;
@@ -132,6 +143,12 @@ export function FileViewer({ file, onClose }: FileViewerProps) {
                   ) : isPDF(file.mime_type) ? (
                     <iframe
                       src={fileUrl}
+                      className="w-full h-[60vh] border-0"
+                      title={file.file_name}
+                    />
+                  ) : isOfficeDoc(file.mime_type) ? (
+                    <iframe
+                      src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
                       className="w-full h-[60vh] border-0"
                       title={file.file_name}
                     />
