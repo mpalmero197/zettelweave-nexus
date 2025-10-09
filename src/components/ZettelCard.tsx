@@ -215,7 +215,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
           </div>
         )}
         
-        {card.tags.length > 0 && (
+        {card.tags && card.tags.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
             <Tag className={cn("h-3 w-3", currentColor.text ? "opacity-80" : "text-muted-foreground")} />
             {card.tags.map((tag, index) => (
@@ -231,7 +231,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             <Calendar className="h-3 w-3" />
             {new Date(card.created).toLocaleDateString()}
           </div>
-          {card.linkedCards.length > 0 && (
+          {card.linkedCards && card.linkedCards.length > 0 && (
             <div className="flex items-center gap-1">
               <Link2 className="h-3 w-3" />
               {card.linkedCards.length} links

@@ -43,10 +43,17 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
       if (error) throw error;
 
-      onSearchResults(data.cards || []);
+      // Ensure cards have required fields with defaults
+      const safeCards = (data.cards || []).map((card: any) => ({
+        ...card,
+        tags: card.tags || [],
+        linkedCards: card.linkedCards || card.linked_cards || [],
+      }));
+
+      onSearchResults(safeCards);
       setReasoning(data.reasoning || "");
       
-      toast.success(`Found ${data.cards?.length || 0} matching cards`, {
+      toast.success(`Found ${safeCards.length} matching cards`, {
         description: data.reasoning
       });
     } catch (error: any) {
