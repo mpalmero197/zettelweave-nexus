@@ -113,6 +113,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
               onKeyPress={handleKeyPress}
               placeholder="Search with AI (e.g., 'long-necked animal' → giraffe)"
               className="pl-10 pr-24 bg-card shadow-sm"
+              dir="ltr"
             />
             {query && (
               <Button

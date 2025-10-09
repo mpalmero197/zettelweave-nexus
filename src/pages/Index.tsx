@@ -100,11 +100,12 @@ const Index = () => {
     checkAdminStatus();
   }, [user]);
 
+  // Only sync filtered cards with all cards on initial load or when cards are empty
   useEffect(() => {
-    if (JSON.stringify(filteredCards) !== JSON.stringify(cards)) {
+    if (filteredCards.length === 0 && cards.length > 0) {
       setFilteredCards(cards);
     }
-  }, [cards, filteredCards]);
+  }, [cards]);
 
   useEffect(() => {
     localStorage.setItem('pendragonx-organization-method', organizationMethod);
