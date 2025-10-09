@@ -181,7 +181,7 @@ export function NavigationBar({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant={["calendar", "journal", "habits"].includes(activeTab) ? "secondary" : "ghost"}
+                        variant={["calendar", "journal", "habits", "stickynotes"].includes(activeTab) ? "secondary" : "ghost"}
                         size="sm"
                         className="h-9 px-3 gap-1"
                       >
@@ -202,6 +202,10 @@ export function NavigationBar({
                       <DropdownMenuItem onClick={() => onTabChange("habits")}>
                         <Target className="h-4 w-4 mr-2" />
                         Habits
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onTabChange("stickynotes")}>
+                        <StickyNote className="h-4 w-4 mr-2" />
+                        Sticky Notes
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -411,6 +415,17 @@ export function NavigationBar({
                       >
                         <Target className="h-4 w-4" />
                         Habits
+                      </Button>
+                      <Button
+                        variant={activeTab === "stickynotes" ? "default" : "ghost"}
+                        onClick={() => {
+                          onTabChange("stickynotes");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <StickyNote className="h-4 w-4" />
+                        Sticky Notes
                       </Button>
                     </div>
 
