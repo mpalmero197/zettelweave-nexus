@@ -215,6 +215,16 @@ const Index = () => {
         onStartRecording={() => setActiveTab("recorder")}
       />
 
+      {/* Global AI Search Bar - Below Nav */}
+      <div className="sticky top-16 z-40 glass-card px-4 py-3 mb-4">
+        <div className="max-w-3xl mx-auto">
+          <AISearchBar 
+            cards={cards} 
+            onSearchResults={setFilteredCards}
+          />
+        </div>
+      </div>
+
       {/* Right Sidebar */}
       <RightSidebar onCreateCard={handleCreateCard} />
 
@@ -224,61 +234,53 @@ const Index = () => {
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-glow pointer-events-none opacity-50" />
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
-          {/* Cards Menu Bar - Below Header */}
+          {/* Cards Menu Bar - Below Global Search */}
           {activeTab === "cards" && (
-            <div className="sticky top-16 z-30 glass-card px-4 py-3 animate-fade-in-up">
-              <div className="flex items-center justify-between max-w-7xl mx-auto gap-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
-                  <VaultImportDialog onImportCards={handleImportCards} />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportToPDF(filteredCards)}
-                    className="flex items-center gap-2"
-                    aria-label="Export to PDF"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="hidden sm:inline">PDF</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => printCards(filteredCards)}
-                    className="flex items-center gap-2"
-                    aria-label="Print cards"
-                  >
-                    <Printer className="h-4 w-4" />
-                    <span className="hidden sm:inline">Print</span>
-                  </Button>
-                  <OrganizationMethodDialog
-                    currentMethod={organizationMethod}
-                    onMethodChange={setOrganizationMethod}
-                    onReorganizeCards={handleReorganizeCards}
-                    cardCount={cards.length}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowRecommendations(!showRecommendations)}
-                    className="flex items-center gap-2"
-                    aria-label="AI Recommendations"
-                  >
-                    <Lightbulb className="h-4 w-4" />
-                    <span className="hidden sm:inline">AI</span>
-                  </Button>
-                  <DeleteAllCardsDialog 
-                    onDeleteAll={deleteAllCards}
-                    isDeleting={isDeletingAll}
-                    cardCount={cards.length}
-                  />
-                </div>
-                <div className="flex-1 max-w-md">
-                  <AISearchBar 
-                    cards={cards} 
-                    onSearchResults={setFilteredCards}
-                  />
-                </div>
+            <div className="sticky top-32 z-30 glass-card px-4 py-3 animate-fade-in-up">
+              <div className="flex items-center justify-center max-w-7xl mx-auto gap-4 flex-wrap">
+                <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                <VaultImportDialog onImportCards={handleImportCards} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => exportToPDF(filteredCards)}
+                  className="flex items-center gap-2"
+                  aria-label="Export to PDF"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => printCards(filteredCards)}
+                  className="flex items-center gap-2"
+                  aria-label="Print cards"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="hidden sm:inline">Print</span>
+                </Button>
+                <OrganizationMethodDialog
+                  currentMethod={organizationMethod}
+                  onMethodChange={setOrganizationMethod}
+                  onReorganizeCards={handleReorganizeCards}
+                  cardCount={cards.length}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRecommendations(!showRecommendations)}
+                  className="flex items-center gap-2"
+                  aria-label="AI Recommendations"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  <span className="hidden sm:inline">AI</span>
+                </Button>
+                <DeleteAllCardsDialog 
+                  onDeleteAll={deleteAllCards}
+                  isDeleting={isDeletingAll}
+                  cardCount={cards.length}
+                />
               </div>
             </div>
           )}

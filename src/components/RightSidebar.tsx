@@ -295,8 +295,16 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
                 {pinnedNotes.map((note) => (
                   <Card
                     key={note.id}
-                    className="border-0 shadow-sm"
+                    className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                     style={{ backgroundColor: note.color }}
+                    onClick={() => {
+                      // Navigate to sticky notes page
+                      const stickyNotesTab = document.querySelector('[value="stickynotes"]') as HTMLButtonElement;
+                      if (stickyNotesTab) {
+                        stickyNotesTab.click();
+                        toast.success("Navigating to sticky note");
+                      }
+                    }}
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start mb-2">
@@ -309,7 +317,10 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => unpinStickyNote(note.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unpinStickyNote(note.id);
+                          }}
                           className="h-5 w-5 p-0 hover:bg-white/20"
                           style={{ color: getTextColor(note.color) }}
                         >
@@ -317,7 +328,7 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
                         </Button>
                       </div>
                       <p
-                        className="text-sm whitespace-pre-wrap"
+                        className="text-sm whitespace-pre-wrap line-clamp-3"
                         style={{ color: getTextColor(note.color) }}
                       >
                         {note.content}

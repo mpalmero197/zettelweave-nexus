@@ -216,17 +216,6 @@ export function NavigationBar({
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Search Bar */}
-            <div className="hidden md:flex items-center relative">
-              <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-48 pl-9 bg-muted/50 border-border/50"
-              />
-            </div>
 
             {/* Theme Toggle */}
             <Button

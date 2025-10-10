@@ -91,8 +91,8 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6 h-full flex flex-col">
+      <Card className="flex-shrink-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -104,7 +104,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
             placeholder="Jot down quick thoughts, ideas, or notes..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-32 resize-none"
+            className="min-h-32 resize-y"
           />
           <div className="flex gap-2">
             <Button onClick={handleSave} disabled={!content.trim()}>
@@ -124,9 +124,9 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
       </Card>
 
       {savedNotes.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 overflow-y-auto">
           <h3 className="text-lg font-semibold">Saved Notes</h3>
-          <div className="grid gap-3">
+          <div className="grid gap-3 pb-4">
             {savedNotes.map((note) => (
               <Card key={note.id} className="border-l-4 border-l-accent">
                 <CardContent className="pt-4">

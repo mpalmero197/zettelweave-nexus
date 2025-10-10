@@ -6,82 +6,85 @@
 
 @layer base {
   :root {
-    /* Futuristic Dark Theme - Purple/Pink Gradient Aesthetic */
-    --background: 237 28% 10%;          /* #1A1A2E - Very dark charcoal */
-    --foreground: 0 0% 88%;             /* #E0E0E0 - Off-white for text */
+    /* Light Mode Base */
+    --background: 0 0% 100%;            /* White background */
+    --foreground: 0 0% 10%;             /* Dark text */
     
     /* Primary - Vibrant Purple */
-    --primary: 271 76% 53%;             /* #8A2BE2 - Vibrant purple */
+    --primary: 271 76% 53%;
     --primary-foreground: 0 0% 100%;
     --primary-hover: 271 76% 60%;
     
     /* Secondary - Hot Pink/Magenta */
-    --secondary: 346 60% 49%;           /* #C73866 - Hot pink */
+    --secondary: 346 60% 49%;
     --secondary-foreground: 0 0% 100%;
     --secondary-hover: 346 60% 55%;
     
     /* Accent - Purple tint */
-    --accent: 271 50% 25%;
-    --accent-foreground: 0 0% 88%;
-    --accent-hover: 271 50% 30%;
+    --accent: 271 50% 85%;
+    --accent-foreground: 0 0% 10%;
+    --accent-hover: 271 50% 80%;
     
-    /* Card - Slightly lighter than background */
-    --card: 237 28% 15%;                /* Lighter grey for cards */
-    --card-foreground: 0 0% 88%;
-    --card-shadow: 271 76% 53% / 0.3;
+    /* Card - Light mode cards */
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 10%;
+    --card-shadow: 271 76% 53% / 0.1;
     
     /* Borders and inputs */
-    --border: 237 20% 25%;
-    --input: 237 20% 20%;
+    --border: 0 0% 90%;
+    --input: 0 0% 95%;
     --ring: 271 76% 53%;
     
     /* Muted elements */
-    --muted: 237 20% 18%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
     
     /* Destructive */
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
     
     /* Popover */
-    --popover: 237 28% 15%;
-    --popover-foreground: 0 0% 88%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
     
     /* Sidebar */
-    --sidebar-background: 237 28% 12%;
-    --sidebar-foreground: 0 0% 88%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 10%;
     --sidebar-primary: 271 76% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 271 50% 25%;
-    --sidebar-accent-foreground: 0 0% 88%;
-    --sidebar-border: 237 20% 25%;
+    --sidebar-accent: 271 50% 85%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 90%;
     --sidebar-ring: 271 76% 53%;
     
-    /* Category colors with purple/pink theme */
+    /* Category colors - themed gradients */
     --category-000: 0 0% 70%;
-    --category-100: 271 76% 53%;
-    --category-200: 346 60% 49%;
-    --category-300: 290 70% 55%;
-    --category-400: 320 65% 52%;
-    --category-500: 271 60% 45%;
-    --category-600: 346 55% 42%;
-    --category-700: 290 65% 48%;
-    --category-800: 320 60% 45%;
-    --category-900: 271 70% 40%;
+    --category-100: 271 76% 53%;        /* Purple */
+    --category-200: 346 60% 49%;        /* Pink */
+    --category-300: 290 70% 55%;        /* Magenta */
+    --category-400: 320 65% 52%;        /* Rose */
+    --category-500: 130 50% 45%;        /* Forest Green */
+    --category-600: 25 70% 50%;         /* Forest Brown/Orange */
+    --category-700: 200 70% 48%;        /* Ocean Blue */
+    --category-800: 180 60% 45%;        /* Ocean Teal */
+    --category-900: 40 70% 50%;         /* Sunset Orange */
     
-    /* Gradients - Purple to Pink */
+    /* Themed Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(271 76% 53%), hsl(346 60% 49%));
-    --gradient-card: linear-gradient(180deg, hsl(237 28% 15%), hsl(237 28% 12%));
-    --gradient-accent: linear-gradient(135deg, hsl(271 50% 30%), hsl(346 50% 30%));
-    --gradient-glass: linear-gradient(135deg, hsl(271 76% 53% / 0.1), hsl(346 60% 49% / 0.1));
-    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(271 76% 53% / 0.3), transparent 70%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-accent: linear-gradient(135deg, hsl(271 50% 85%), hsl(346 50% 85%));
+    --gradient-glass: linear-gradient(135deg, hsl(271 76% 53% / 0.05), hsl(346 60% 49% / 0.05));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(271 76% 53% / 0.2), transparent 70%);
+    --gradient-forest: linear-gradient(135deg, hsl(130 50% 45%), hsl(25 70% 50%));
+    --gradient-ocean: linear-gradient(135deg, hsl(200 70% 48%), hsl(180 60% 45%));
+    --gradient-sunset: linear-gradient(135deg, hsl(40 70% 50%), hsl(346 60% 49%));
     
-    /* Shadows with purple glow */
-    --shadow-card: 0 4px 20px hsl(271 76% 53% / 0.1);
-    --shadow-hover: 0 8px 30px hsl(271 76% 53% / 0.2);
-    --shadow-active: 0 2px 10px hsl(271 76% 53% / 0.15);
-    --shadow-glow: 0 0 40px hsl(271 76% 53% / 0.4);
-    --shadow-glow-accent: 0 0 40px hsl(346 60% 49% / 0.4);
+    /* Shadows - light mode */
+    --shadow-card: 0 4px 20px hsl(271 76% 53% / 0.08);
+    --shadow-hover: 0 8px 30px hsl(271 76% 53% / 0.15);
+    --shadow-active: 0 2px 10px hsl(271 76% 53% / 0.1);
+    --shadow-glow: 0 0 40px hsl(271 76% 53% / 0.25);
+    --shadow-glow-accent: 0 0 40px hsl(346 60% 49% / 0.25);
     
     /* Border radius */
     --radius: 0.75rem;
@@ -91,9 +94,9 @@
   }
 
   .dark {
-    /* Enhanced dark mode - even deeper with more glow */
-    --background: 237 35% 8%;
-    --foreground: 0 0% 92%;
+    /* Dark Mode - Futuristic Dark Theme */
+    --background: 237 28% 10%;
+    --foreground: 0 0% 88%;
     
     --primary: 271 80% 58%;
     --primary-foreground: 0 0% 100%;
