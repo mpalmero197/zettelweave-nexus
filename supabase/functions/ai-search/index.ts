@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, userId } = await req.json();
+    const { query, userId, stickyNotes = [] } = await req.json();
     
     if (!query || !userId) {
       throw new Error('Query and userId are required');
@@ -51,6 +51,10 @@ serve(async (req) => {
         title: n.title,
         content: n.content.substring(0, 200),
         tags: n.tags
+      })),
+      stickyNotes: stickyNotes.map((sn: any) => ({
+        id: sn.id,
+        content: sn.content.substring(0, 200)
       }))
     };
 
@@ -74,6 +78,7 @@ Return ONLY a JSON object in this exact format:
 {
   "cardIds": ["id1", "id2"],
   "noteIds": ["id3", "id4"],
+  "stickyNoteIds": ["id5", "id6"],
   "reasoning": "brief explanation"
 }
 
@@ -89,7 +94,7 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
             type: "function",
             function: {
               name: "return_search_results",
-              description: "Return the IDs of matching cards and notes",
+              description: "Return the IDs of matching cards, notes, and sticky notes",
               parameters: {
                 type: "object",
                 properties: {
@@ -103,12 +108,17 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
                     items: { type: "string" },
                     description: "Array of matching note IDs"
                   },
+                  stickyNoteIds: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Array of matching sticky note IDs"
+                  },
                   reasoning: {
                     type: "string",
                     description: "Brief explanation of why these items match"
                   }
                 },
-                required: ["cardIds", "noteIds", "reasoning"],
+                required: ["cardIds", "noteIds", "stickyNoteIds", "reasoning"],
                 additionalProperties: false
               }
             }
@@ -139,16 +149,23 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
 
     // Extract results from tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    const results = toolCall?.function?.arguments ? JSON.parse(toolCall.function.arguments) : { cardIds: [], noteIds: [], reasoning: '' };
+    const results = toolCall?.function?.arguments ? JSON.parse(toolCall.function.arguments) : { 
+      cardIds: [], 
+      noteIds: [], 
+      stickyNoteIds: [],
+      reasoning: '' 
+    };
 
     // Get full data for matched items
     const matchedCards = cards.filter(c => results.cardIds.includes(c.id));
     const matchedNotes = notes.filter(n => results.noteIds.includes(n.id));
+    const matchedStickyNotes = stickyNotes.filter((sn: any) => results.stickyNoteIds.includes(sn.id));
 
     return new Response(
       JSON.stringify({
         cards: matchedCards,
         notes: matchedNotes,
+        stickyNotes: matchedStickyNotes,
         reasoning: results.reasoning
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

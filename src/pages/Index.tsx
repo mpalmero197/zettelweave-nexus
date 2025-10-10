@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense, lazy } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AISearchBar } from "@/components/AISearchBar";
+import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
 import { VaultImportDialog } from "@/components/VaultImportDialog";
@@ -58,6 +59,13 @@ const Index = () => {
   const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
   
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
+  const [searchResults, setSearchResults] = useState<{
+    cards: ZettelCardType[];
+    notes: any[];
+    stickyNotes: any[];
+    reasoning: string;
+    query: string;
+  } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -220,7 +228,15 @@ const Index = () => {
         <div className="max-w-3xl mx-auto">
           <AISearchBar 
             cards={cards} 
-            onSearchResults={setFilteredCards}
+            onSearchResults={(results) => {
+              if (results.query) {
+                setSearchResults(results);
+                setActiveTab('search');
+              } else {
+                setSearchResults(null);
+                setFilteredCards(results.cards);
+              }
+            }}
           />
         </div>
       </div>
@@ -298,6 +314,39 @@ const Index = () => {
                       toast.success(`Opening note: ${note.title}`);
                     }}
                   />
+                </TabsContent>
+
+                <TabsContent value="search" className="mt-0">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    {searchResults ? (
+                      <UnifiedSearchResults
+                        query={searchResults.query}
+                        cards={searchResults.cards}
+                        notes={searchResults.notes}
+                        stickyNotes={searchResults.stickyNotes}
+                        reasoning={searchResults.reasoning}
+                        onNavigateToCard={(cardId) => {
+                          const card = cards.find(c => c.id === cardId);
+                          if (card) {
+                            setViewingCard(card);
+                            setActiveTab('cards');
+                          }
+                        }}
+                        onNavigateToNote={(noteId) => {
+                          setActiveTab('notes');
+                          toast.success('Opening note');
+                        }}
+                        onNavigateToStickyNote={(noteId) => {
+                          setActiveTab('stickynotes');
+                          toast.success('Opening sticky note');
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-96 text-center">
+                        <p className="text-muted-foreground">Use the search bar above to find content across your notes, cards, and sticky notes.</p>
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">

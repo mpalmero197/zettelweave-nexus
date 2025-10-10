@@ -16,7 +16,7 @@ interface Note {
 
 interface AISearchBarProps {
   cards: ZettelCard[];
-  onSearchResults: (results: ZettelCard[]) => void;
+  onSearchResults: (results: { cards: ZettelCard[], notes: any[], stickyNotes: any[], reasoning: string, query: string }) => void;
   className?: string;
 }
 
@@ -27,7 +27,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
   const handleAISearch = async () => {
     if (!query.trim()) {
-      onSearchResults(cards);
+      onSearchResults({ cards, notes: [], stickyNotes: [], reasoning: "", query: "" });
       setReasoning("");
       return;
     }
@@ -37,23 +37,47 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get sticky notes from localStorage
+      const stickyNotesRaw = localStorage.getItem('stickyNotes');
+      const allStickyNotes = stickyNotesRaw ? JSON.parse(stickyNotesRaw) : [];
+
       const { data, error } = await supabase.functions.invoke('ai-search', {
-        body: { query, userId: user.id }
+        body: { 
+          query, 
+          userId: user.id,
+          stickyNotes: allStickyNotes.map((n: any) => ({
+            id: n.id,
+            content: n.content,
+            timestamp: n.timestamp
+          }))
+        }
       });
 
       if (error) throw error;
 
-      // Ensure cards have required fields with defaults
+      // Ensure all arrays exist with defaults
       const safeCards = (data.cards || []).map((card: any) => ({
         ...card,
         tags: card.tags || [],
         linkedCards: card.linkedCards || card.linked_cards || [],
       }));
+      
+      const safeNotes = data.notes || [];
+      const safeStickyNotes = (data.stickyNotes || []).map((sn: any) => 
+        allStickyNotes.find((n: any) => n.id === sn.id) || sn
+      );
 
-      onSearchResults(safeCards);
+      onSearchResults({ 
+        cards: safeCards, 
+        notes: safeNotes, 
+        stickyNotes: safeStickyNotes,
+        reasoning: data.reasoning || "",
+        query 
+      });
       setReasoning(data.reasoning || "");
       
-      toast.success(`Found ${safeCards.length} matching cards`, {
+      const total = safeCards.length + safeNotes.length + safeStickyNotes.length;
+      toast.success(`Found ${total} results`, {
         description: data.reasoning
       });
     } catch (error: any) {
@@ -70,13 +94,15 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
   const handleRegularSearch = (searchQuery: string) => {
     if (!searchQuery.trim()) {
-      onSearchResults(cards);
+      onSearchResults({ cards, notes: [], stickyNotes: [], reasoning: "", query: "" });
       setReasoning("");
       return;
     }
 
     const q = searchQuery.toLowerCase();
-    const results = cards.filter(card => 
+    
+    // Search cards
+    const matchedCards = cards.filter(card => 
       card.title.toLowerCase().includes(q) ||
       card.content.toLowerCase().includes(q) ||
       card.description?.toLowerCase().includes(q) ||
@@ -85,14 +111,28 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
       card.category.toLowerCase().includes(q)
     );
 
-    onSearchResults(results);
-    setReasoning(`Found ${results.length} exact matches`);
+    // Search sticky notes from localStorage
+    const stickyNotesRaw = localStorage.getItem('stickyNotes');
+    const allStickyNotes = stickyNotesRaw ? JSON.parse(stickyNotesRaw) : [];
+    const matchedStickyNotes = allStickyNotes.filter((note: any) =>
+      note.content.toLowerCase().includes(q)
+    );
+
+    const total = matchedCards.length + matchedStickyNotes.length;
+    onSearchResults({ 
+      cards: matchedCards, 
+      notes: [], 
+      stickyNotes: matchedStickyNotes,
+      reasoning: `Found ${total} exact matches`,
+      query: searchQuery
+    });
+    setReasoning(`Found ${total} exact matches`);
   };
 
   const clearSearch = () => {
     setQuery("");
     setReasoning("");
-    onSearchResults(cards);
+    onSearchResults({ cards, notes: [], stickyNotes: [], reasoning: "", query: "" });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
