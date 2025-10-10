@@ -135,6 +135,21 @@
     
     --shadow-glow: 0 0 50px hsl(271 80% 58% / 0.5);
     --shadow-glow-accent: 0 0 50px hsl(346 65% 52% / 0.5);
+    
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(271 80% 58%), hsl(346 65% 52%));
+    --gradient-card: linear-gradient(180deg, hsl(237 35% 12%), hsl(237 35% 10%));
+    --gradient-accent: linear-gradient(135deg, hsl(271 55% 33%), hsl(346 55% 33%));
+    --gradient-glass: linear-gradient(135deg, hsl(271 80% 58% / 0.1), hsl(346 65% 52% / 0.1));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(271 80% 58% / 0.3), transparent 70%);
+    --gradient-forest: linear-gradient(135deg, hsl(130 50% 45%), hsl(25 70% 50%));
+    --gradient-ocean: linear-gradient(135deg, hsl(200 70% 48%), hsl(180 60% 45%));
+    --gradient-sunset: linear-gradient(135deg, hsl(40 70% 50%), hsl(346 65% 52%));
+    
+    /* Dark mode shadows */
+    --shadow-card: 0 4px 20px hsl(271 80% 58% / 0.15);
+    --shadow-hover: 0 8px 30px hsl(271 80% 58% / 0.25);
+    --shadow-active: 0 2px 10px hsl(271 80% 58% / 0.2);
   }
 }
 
