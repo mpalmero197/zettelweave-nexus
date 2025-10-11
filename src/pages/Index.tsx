@@ -133,9 +133,16 @@ const Index = () => {
     }
   };
 
-  const handleImportCards = (newCards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => {
-    newCards.forEach(card => createCard(card));
-    toast(`Successfully imported ${newCards.length} cards!`);
+  const handleImportCards = async (newCards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => {
+    try {
+      for (const card of newCards) {
+        await createCard(card);
+      }
+      toast.success(`Successfully imported ${newCards.length} cards!`);
+    } catch (error) {
+      console.error('Error importing cards:', error);
+      toast.error('Failed to import some cards. Check console for details.');
+    }
   };
 
   const handleReorganizeCards = async (fromMethod: OrganizationMethod, toMethod: OrganizationMethod) => {
