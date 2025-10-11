@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow, Polygon, Triangle, Group, ActiveSelection, FabricObject } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
 import { 
   MousePointer2,
   Pen,
@@ -22,9 +23,22 @@ import {
   Download,
   Palette,
   Grid3x3,
-  Maximize2,
   Menu,
-  ChevronLeft
+  Move,
+  Group as GroupIcon,
+  Ungroup,
+  Copy,
+  Clipboard,
+  CornerUpLeft,
+  CornerUpRight,
+  Lock,
+  Unlock,
+  LayersIcon,
+  Star,
+  Pentagon,
+  Hexagon,
+  Triangle as TriangleIcon,
+  Hand
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -34,7 +48,7 @@ interface InfiniteWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "pen" | "highlighter" | "eraser" | "rectangle" | "circle" | "line" | "arrow" | "text" | "sticky" | "image";
+type Tool = "select" | "pen" | "highlighter" | "eraser" | "rectangle" | "circle" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "triangle" | "star" | "polygon";
 
 const penColors = [
   { name: "Black", value: "#000000" },
@@ -62,6 +76,11 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const [clipboard, setClipboard] = useState<FabricObject[]>([]);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Initialize canvas
   useEffect(() => {
@@ -91,6 +110,41 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
         brush.strokeLineCap = 'round';
         brush.strokeLineJoin = 'round';
         canvas.freeDrawingBrush = brush;
+
+        // Enable panning with mouse
+        canvas.on('mouse:down', (opt) => {
+          if (activeTool === 'pan') {
+            setIsPanning(true);
+            canvas.selection = false;
+            const pointer = opt.pointer;
+            if (pointer) {
+              lastPosRef.current = { x: pointer.x, y: pointer.y };
+            }
+          }
+        });
+
+        canvas.on('mouse:move', (opt) => {
+          if (isPanning && lastPosRef.current) {
+            const pointer = opt.pointer;
+            if (pointer) {
+              const vpt = canvas.viewportTransform;
+              if (vpt) {
+                vpt[4] += pointer.x - lastPosRef.current.x;
+                vpt[5] += pointer.y - lastPosRef.current.y;
+                canvas.requestRenderAll();
+                lastPosRef.current = { x: pointer.x, y: pointer.y };
+              }
+            }
+          }
+        });
+
+        canvas.on('mouse:up', () => {
+          if (isPanning) {
+            setIsPanning(false);
+            canvas.selection = true;
+            lastPosRef.current = null;
+          }
+        });
 
         setFabricCanvas(canvas);
         setIsReady(true);
@@ -194,6 +248,119 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
     }
   }, [activeTool, penColor, penSize, fabricCanvas, isReady]);
 
+  // History management
+  const saveHistory = useCallback((canvas: FabricCanvas) => {
+    const json = JSON.stringify(canvas.toJSON());
+    setHistory(prev => [...prev.slice(0, historyIndex + 1), json]);
+    setHistoryIndex(prev => prev + 1);
+  }, [historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0 && fabricCanvas) {
+      const newIndex = historyIndex - 1;
+      fabricCanvas.loadFromJSON(JSON.parse(history[newIndex]), () => {
+        fabricCanvas.renderAll();
+        setHistoryIndex(newIndex);
+      });
+    }
+  }, [fabricCanvas, history, historyIndex]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1 && fabricCanvas) {
+      const newIndex = historyIndex + 1;
+      fabricCanvas.loadFromJSON(JSON.parse(history[newIndex]), () => {
+        fabricCanvas.renderAll();
+        setHistoryIndex(newIndex);
+      });
+    }
+  }, [fabricCanvas, history, historyIndex]);
+
+  // Clipboard operations
+  const handleCopy = useCallback(() => {
+    if (!fabricCanvas) return;
+    const activeObjects = fabricCanvas.getActiveObjects();
+    if (activeObjects.length > 0) {
+      setClipboard(activeObjects.map(obj => obj.toObject()));
+      toast.success(`Copied ${activeObjects.length} object(s)`);
+    }
+  }, [fabricCanvas]);
+
+  const handlePaste = useCallback(() => {
+    if (!fabricCanvas || clipboard.length === 0) return;
+    
+    fabricCanvas.discardActiveObject();
+    clipboard.forEach((obj, index) => {
+      FabricObject.fromObject(obj).then((cloned: FabricObject) => {
+        cloned.set({
+          left: (cloned.left || 0) + 20 * (index + 1),
+          top: (cloned.top || 0) + 20 * (index + 1),
+        });
+        fabricCanvas.add(cloned);
+        if (index === clipboard.length - 1) {
+          fabricCanvas.setActiveObject(cloned);
+          fabricCanvas.renderAll();
+        }
+      });
+    });
+    toast.success(`Pasted ${clipboard.length} object(s)`);
+  }, [fabricCanvas, clipboard]);
+
+  // Group/Ungroup operations
+  const handleGroup = useCallback(() => {
+    if (!fabricCanvas) return;
+    const activeSelection = fabricCanvas.getActiveObject();
+    if (activeSelection && activeSelection.type === 'activeSelection') {
+      const selection = activeSelection as ActiveSelection;
+      const objects = selection.getObjects();
+      selection.removeAll();
+      const group = new Group(objects);
+      fabricCanvas.remove(activeSelection);
+      fabricCanvas.add(group);
+      fabricCanvas.setActiveObject(group);
+      fabricCanvas.renderAll();
+      toast.success("Objects grouped");
+    }
+  }, [fabricCanvas]);
+
+  const handleUngroup = useCallback(() => {
+    if (!fabricCanvas) return;
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject && activeObject.type === 'group') {
+      const group = activeObject as Group;
+      const objects = group.getObjects();
+      group.removeAll();
+      fabricCanvas.remove(group);
+      objects.forEach(obj => fabricCanvas.add(obj));
+      const selection = new ActiveSelection(objects, { canvas: fabricCanvas });
+      fabricCanvas.setActiveObject(selection);
+      fabricCanvas.renderAll();
+      toast.success("Group ungrouped");
+    }
+  }, [fabricCanvas]);
+
+  // Lock/Unlock
+  const handleLock = useCallback(() => {
+    if (!fabricCanvas) return;
+    const activeObjects = fabricCanvas.getActiveObjects();
+    activeObjects.forEach(obj => {
+      obj.set({ lockMovementX: true, lockMovementY: true, lockRotation: true, lockScalingX: true, lockScalingY: true, selectable: false });
+    });
+    fabricCanvas.discardActiveObject();
+    fabricCanvas.renderAll();
+    toast.success("Objects locked");
+  }, [fabricCanvas]);
+
+  const handleUnlock = useCallback(() => {
+    if (!fabricCanvas) return;
+    fabricCanvas.getObjects().forEach(obj => {
+      if (obj.lockMovementX) {
+        obj.set({ lockMovementX: false, lockMovementY: false, lockRotation: false, lockScalingX: false, lockScalingY: false, selectable: true });
+      }
+    });
+    fabricCanvas.renderAll();
+    toast.success("All objects unlocked");
+  }, [fabricCanvas]);
+
   const handleToolClick = (tool: Tool) => {
     setActiveTool(tool);
     if (!fabricCanvas) return;
@@ -227,6 +394,64 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       });
       fabricCanvas.add(circle);
       fabricCanvas.setActiveObject(circle);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
+    } else if (tool === "triangle") {
+      const triangle = new Triangle({
+        left: 100,
+        top: 100,
+        fill: "transparent",
+        width: 100,
+        height: 100,
+        stroke: penColor,
+        strokeWidth: 2,
+      });
+      fabricCanvas.add(triangle);
+      fabricCanvas.setActiveObject(triangle);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
+    } else if (tool === "star") {
+      const starPoints = [];
+      const outerRadius = 50;
+      const innerRadius = 25;
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (Math.PI / 5) * i;
+        starPoints.push({
+          x: radius * Math.sin(angle),
+          y: -radius * Math.cos(angle)
+        });
+      }
+      const star = new Polygon(starPoints, {
+        left: 100,
+        top: 100,
+        fill: "transparent",
+        stroke: penColor,
+        strokeWidth: 2,
+      });
+      fabricCanvas.add(star);
+      fabricCanvas.setActiveObject(star);
+      fabricCanvas.renderAll();
+      setActiveTool("select");
+    } else if (tool === "polygon") {
+      const hexPoints = [];
+      const radius = 50;
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        hexPoints.push({
+          x: radius * Math.cos(angle),
+          y: radius * Math.sin(angle)
+        });
+      }
+      const hexagon = new Polygon(hexPoints, {
+        left: 100,
+        top: 100,
+        fill: "transparent",
+        stroke: penColor,
+        strokeWidth: 2,
+      });
+      fabricCanvas.add(hexagon);
+      fabricCanvas.setActiveObject(hexagon);
       fabricCanvas.renderAll();
       setActiveTool("select");
     } else if (tool === "line") {
@@ -374,6 +599,7 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
 
   const tools = [
     { tool: "select" as const, label: "Select", icon: MousePointer2 },
+    { tool: "pan" as const, label: "Pan", icon: Hand },
     { tool: "pen" as const, label: "Pen", icon: Pen },
     { tool: "highlighter" as const, label: "Highlighter", icon: Highlighter },
     { tool: "eraser" as const, label: "Eraser", icon: Eraser },
@@ -382,6 +608,9 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   const shapes = [
     { tool: "rectangle" as const, label: "Rectangle", icon: Square },
     { tool: "circle" as const, label: "Circle", icon: CircleIcon },
+    { tool: "triangle" as const, label: "Triangle", icon: TriangleIcon },
+    { tool: "star" as const, label: "Star", icon: Star },
+    { tool: "polygon" as const, label: "Hexagon", icon: Hexagon },
     { tool: "line" as const, label: "Line", icon: Minus },
     { tool: "arrow" as const, label: "Arrow", icon: ArrowRight },
   ];
@@ -483,6 +712,74 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
 
             {/* Actions */}
             <div className="space-y-2">
+              <h3 className="font-semibold">Edit</h3>
+              <Button
+                variant="outline"
+                onClick={undo}
+                disabled={historyIndex <= 0}
+                className="w-full justify-start gap-2"
+              >
+                <CornerUpLeft className="h-4 w-4" />
+                Undo
+              </Button>
+              <Button
+                variant="outline"
+                onClick={redo}
+                disabled={historyIndex >= history.length - 1}
+                className="w-full justify-start gap-2"
+              >
+                <CornerUpRight className="h-4 w-4" />
+                Redo
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCopy}
+                className="w-full justify-start gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handlePaste}
+                disabled={clipboard.length === 0}
+                className="w-full justify-start gap-2"
+              >
+                <Clipboard className="h-4 w-4" />
+                Paste
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleGroup}
+                className="w-full justify-start gap-2"
+              >
+                <GroupIcon className="h-4 w-4" />
+                Group
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleUngroup}
+                className="w-full justify-start gap-2"
+              >
+                <Ungroup className="h-4 w-4" />
+                Ungroup
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLock}
+                className="w-full justify-start gap-2"
+              >
+                <Lock className="h-4 w-4" />
+                Lock
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleUnlock}
+                className="w-full justify-start gap-2"
+              >
+                <Unlock className="h-4 w-4" />
+                Unlock
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleDeleteSelected}
@@ -565,6 +862,63 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
 
         {/* Utility Actions */}
         <div className="flex flex-col p-2 space-y-1 border-t border-border">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={undo}
+            disabled={historyIndex <= 0}
+            title="Undo"
+            className="h-12 w-12 rounded-lg"
+          >
+            <CornerUpLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+            title="Redo"
+            className="h-12 w-12 rounded-lg"
+          >
+            <CornerUpRight className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleCopy}
+            title="Copy"
+            className="h-12 w-12 rounded-lg"
+          >
+            <Copy className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePaste}
+            disabled={clipboard.length === 0}
+            title="Paste"
+            className="h-12 w-12 rounded-lg"
+          >
+            <Clipboard className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleGroup}
+            title="Group Objects"
+            className="h-12 w-12 rounded-lg"
+          >
+            <GroupIcon className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleUngroup}
+            title="Ungroup Objects"
+            className="h-12 w-12 rounded-lg"
+          >
+            <Ungroup className="h-5 w-5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -679,6 +1033,37 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
             <Separator orientation="vertical" className="h-6 hidden md:block" />
 
             {/* Actions */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              title="Undo"
+              className="gap-1 md:gap-2 hidden md:flex"
+            >
+              <CornerUpLeft className="h-4 w-4" />
+              <span className="hidden lg:inline">Undo</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={redo}
+              disabled={historyIndex >= history.length - 1}
+              title="Redo"
+              className="gap-1 md:gap-2 hidden md:flex"
+            >
+              <CornerUpRight className="h-4 w-4" />
+              <span className="hidden lg:inline">Redo</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGroup}
+              className="gap-1 md:gap-2 hidden lg:flex"
+            >
+              <GroupIcon className="h-4 w-4" />
+              <span>Group</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
