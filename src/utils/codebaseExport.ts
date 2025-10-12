@@ -6,13 +6,13 @@ interface FileEntry {
   content: string;
 }
 
-// Dynamically fetch and export all source files
+// Comprehensive file export for full codebase conversion
 const getAllSourceFiles = async (): Promise<FileEntry[]> => {
   const sourceFiles: FileEntry[] = [];
   
-  // Static files list based on your project structure
+  // Comprehensive files list - ALL project files organized by category
   const filesToExport = [
-    // Config files
+    // ===== ROOT CONFIG FILES =====
     'vite.config.ts',
     'tailwind.config.ts',
     'eslint.config.js',
@@ -23,72 +23,128 @@ const getAllSourceFiles = async (): Promise<FileEntry[]> => {
     'postcss.config.js',
     'components.json',
     
-    // Source files
+    // ===== MAIN SOURCE FILES =====
     'src/main.tsx',
     'src/App.tsx',
     'src/App.css',
     'src/index.css',
     'src/vite-env.d.ts',
     
-    // Types
+    // ===== TYPES =====
     'src/types/zettel.ts',
+    'src/types/dashboard.ts',
     
-    // Hooks
+    // ===== CUSTOM HOOKS =====
     'src/hooks/useAuth.ts',
     'src/hooks/useZettelCards.ts',
+    'src/hooks/useSimilarContent.ts',
+    'src/hooks/useDashboardLayout.ts',
     'src/hooks/use-mobile.tsx',
     'src/hooks/use-toast.ts',
     
-    // Utils
+    // ===== UTILITIES =====
     'src/lib/utils.ts',
     'src/utils/deweySystem.ts',
     'src/utils/security.ts',
     'src/utils/exportUtils.ts',
+    'src/utils/codebaseExport.ts',
     
-    // Pages
+    // ===== PAGES =====
     'src/pages/Index.tsx',
     'src/pages/Auth.tsx',
+    'src/pages/Admin.tsx',
     'src/pages/NotFound.tsx',
     
-    // Components
-    'src/components/Dashboard.tsx',
-    'src/components/MaterialTabBar.tsx',
-    'src/components/ScratchPad.tsx',
-    'src/components/AIEditDialog.tsx',
+    // ===== MAIN COMPONENTS (alphabetical) =====
     'src/components/AccountManagement.tsx',
+    'src/components/AIEditDialog.tsx',
+    'src/components/AISearchBar.tsx',
+    'src/components/AttachmentDisplay.tsx',
+    'src/components/AttachmentSelector.tsx',
+    'src/components/AudioManager.tsx',
     'src/components/BulletJournal.tsx',
     'src/components/Calendar.tsx',
     'src/components/CardActionsMenu.tsx',
+    'src/components/CardViewer.tsx',
     'src/components/ConfirmDialog.tsx',
+    'src/components/ContentSummarizer.tsx',
     'src/components/CreateCardDialog.tsx',
+    'src/components/CustomizableDashboard.tsx',
+    'src/components/Dashboard.tsx',
+    'src/components/DashboardCustomizer.tsx',
+    'src/components/DashboardWidgetSidebar.tsx',
+    'src/components/DebugLogger.tsx',
     'src/components/DeleteAllCardsDialog.tsx',
-    'src/components/DocumentViewer.tsx',
+    'src/components/DocumentViewerLegacy.tsx',
     'src/components/EditCardDialog.tsx',
     'src/components/FastLoadingFallback.tsx',
+    'src/components/FileManager.tsx',
     'src/components/FileUploadDialog.tsx',
+    'src/components/FileViewer.tsx',
+    'src/components/Footer.tsx',
     'src/components/Graph3D.tsx',
     'src/components/GraphView.tsx',
     'src/components/GraphViewHeavy.tsx',
+    'src/components/GraphViewNew.tsx',
+    'src/components/GraphViewPremium.tsx',
     'src/components/HabitTracker.tsx',
     'src/components/ImportDialog.tsx',
     'src/components/InfiniteWhiteboard.tsx',
     'src/components/LoadingSpinner.tsx',
+    'src/components/MaterialTabBar.tsx',
     'src/components/MediaUpload.tsx',
+    'src/components/MeetingRecorder.tsx',
+    'src/components/MobileDetector.tsx',
     'src/components/MobileOptimizedLayout.tsx',
     'src/components/MobileWhiteboard.tsx',
+    'src/components/NavigationBar.tsx',
     'src/components/Notebooks.tsx',
     'src/components/Notes.tsx',
     'src/components/OrganizationMethodDialog.tsx',
+    'src/components/PomodoroTimer.tsx',
     'src/components/RecommendationSidebar.tsx',
+    'src/components/RecycleBin.tsx',
+    'src/components/ResizableGrid.tsx',
+    'src/components/RightSidebar.tsx',
+    'src/components/ScratchPad.tsx',
     'src/components/SearchBar.tsx',
     'src/components/SecurityNotice.tsx',
+    'src/components/SimilarContentDialog.tsx',
     'src/components/StickyNotes.tsx',
     'src/components/StickyNotesEnhanced.tsx',
+    'src/components/StickyNotesSimple.tsx',
+    'src/components/TaskManager.tsx',
+    'src/components/UnifiedHeader.tsx',
+    'src/components/UnifiedSearchResults.tsx',
     'src/components/VaultImportDialog.tsx',
     'src/components/WordDefinitionPopover.tsx',
     'src/components/ZettelCard.tsx',
     
-    // UI Components
+    // ===== ADMIN COMPONENTS =====
+    'src/components/admin/CodeEditor.tsx',
+    'src/components/admin/DocumentationViewer.tsx',
+    'src/components/admin/SystemSettings.tsx',
+    'src/components/admin/UserManagement.tsx',
+    
+    // ===== WIDGET COMPONENTS =====
+    'src/components/widgets/ActivityFeedWidget.tsx',
+    'src/components/widgets/CalendarEventsWidget.tsx',
+    'src/components/widgets/ContentSummarizerWidget.tsx',
+    'src/components/widgets/CustomNoteWidget.tsx',
+    'src/components/widgets/FavoritesWidget.tsx',
+    'src/components/widgets/HabitTrackerWidget.tsx',
+    'src/components/widgets/NotebookListWidget.tsx',
+    'src/components/widgets/QuickCaptureWidget.tsx',
+    'src/components/widgets/QuotesWidget.tsx',
+    'src/components/widgets/RecentCardsWidget.tsx',
+    'src/components/widgets/RecentNotesWidget.tsx',
+    'src/components/widgets/StatsWidget.tsx',
+    'src/components/widgets/TaskManagerWidget.tsx',
+    'src/components/widgets/TaskTrackerWidget.tsx',
+    'src/components/widgets/WeatherWidget.tsx',
+    'src/components/widgets/WelcomeWidget.tsx',
+    
+    // ===== UI COMPONENTS (shadcn/ui) =====
     'src/components/ui/accordion.tsx',
     'src/components/ui/alert-dialog.tsx',
     'src/components/ui/alert.tsx',
@@ -139,24 +195,37 @@ const getAllSourceFiles = async (): Promise<FileEntry[]> => {
     'src/components/ui/tooltip.tsx',
     'src/components/ui/use-toast.ts',
     
-    // Integrations
+    // ===== INTEGRATIONS =====
     'src/integrations/supabase/client.ts',
+    'src/integrations/supabase/types.ts',
     
-    // Supabase
+    // ===== SUPABASE BACKEND =====
     'supabase/config.toml',
+    'supabase/functions/ai-categorize-card/index.ts',
     'supabase/functions/ai-edit-card/index.ts',
     'supabase/functions/ai-reorganize-cards/index.ts',
+    'supabase/functions/ai-search/index.ts',
+    'supabase/functions/find-similar-content/index.ts',
+    'supabase/functions/generate-embedding/index.ts',
+    'supabase/functions/transcribe-audio/index.ts',
+    'supabase/functions/transcribe-audio-ai/index.ts',
     
-    // Public
+    // ===== STYLES =====
+    'src/styles/grid-layout.css',
+    
+    // ===== PUBLIC FILES =====
     'public/robots.txt'
   ];
   
+  // Fetch all files
   for (const filePath of filesToExport) {
     try {
       const response = await fetch(`/${filePath}`);
       if (response.ok) {
         const content = await response.text();
         sourceFiles.push({ path: filePath, content });
+      } else {
+        console.warn(`Could not fetch ${filePath}: ${response.status}`);
       }
     } catch (error) {
       console.warn(`Could not fetch ${filePath}:`, error);

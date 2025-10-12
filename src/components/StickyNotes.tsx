@@ -210,7 +210,7 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-black/10"
+                        className="h-6 w-6 p-0 hover:bg-black/10 text-gray-900"
                         onClick={() => convertToCard(note)}
                         title="Convert to Zettel Card"
                       >
@@ -218,13 +218,13 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
                       </Button>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-black/60">
+                      <span className="text-xs text-gray-900 font-medium">
                         {note.created.toLocaleDateString()}
                       </span>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-black/10"
+                        className="h-6 w-6 p-0 hover:bg-black/10 text-gray-900"
                         onClick={() => deleteNote(note.id)}
                         title="Delete Note"
                       >
@@ -238,7 +238,7 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
                     <Textarea
                       value={note.content}
                       onChange={(e) => updateNote(note.id, e.target.value)}
-                      className="w-full h-36 resize-none border-none bg-transparent p-0 text-sm focus:ring-0 placeholder:text-black/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="w-full h-36 resize-none border-none bg-transparent p-0 text-sm text-gray-900 focus:ring-0 placeholder:text-gray-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                       placeholder="Write your note here..."
                     />
                   </div>

@@ -51,6 +51,7 @@ const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"))
 
 const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 import { SecurityNotice } from "@/components/SecurityNotice";
+import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -395,17 +396,55 @@ const Index = () => {
                         <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
-                        {filteredCards.map((card) => (
-                          <ZettelCard
-                            key={card.id}
-                            card={card}
-                            onEdit={setViewingCard}
-                            onDelete={handleDeleteCard}
-                            onWordHover={handleWordHover}
-                            className="h-fit"
-                          />
-                        ))}
+                      <div className="space-y-8">
+                        {/* Favorites Section */}
+                        {filteredCards.some(card => card.is_favorite) && (
+                          <div>
+                            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                              <span className="text-yellow-500">★</span>
+                              Favorites
+                            </h2>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
+                              {filteredCards
+                                .filter(card => card.is_favorite)
+                                .map((card) => (
+                                  <ZettelCard
+                                    key={card.id}
+                                    card={card}
+                                    onEdit={setViewingCard}
+                                    onDelete={handleDeleteCard}
+                                    onUpdate={handleUpdateCard}
+                                    onWordHover={handleWordHover}
+                                    className="h-fit"
+                                  />
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* All Cards Section */}
+                        {filteredCards.some(card => !card.is_favorite) && (
+                          <div>
+                            {filteredCards.some(card => card.is_favorite) && (
+                              <h2 className="text-2xl font-bold mb-4">All Cards</h2>
+                            )}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
+                              {filteredCards
+                                .filter(card => !card.is_favorite)
+                                .map((card) => (
+                                  <ZettelCard
+                                    key={card.id}
+                                    card={card}
+                                    onEdit={setViewingCard}
+                                    onDelete={handleDeleteCard}
+                                    onUpdate={handleUpdateCard}
+                                    onWordHover={handleWordHover}
+                                    className="h-fit"
+                                  />
+                                ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -525,6 +564,8 @@ const Index = () => {
           cards={cards}
         />
       )}
+      
+      <Footer />
       </MobileOptimizedLayout>
     </MobileDetector>
   );

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CardActionsMenu } from "./CardActionsMenu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -55,6 +55,15 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       onUpdate({
         ...card,
         cardColor: colorValue
+      });
+    }
+  };
+
+  const toggleFavorite = () => {
+    if (onUpdate) {
+      onUpdate({
+        ...card,
+        is_favorite: !card.is_favorite
       });
     }
   };
@@ -146,6 +155,15 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             )}
           </div>
           <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} 
+              aria-label={card.is_favorite ? "Remove from favorites" : "Add to favorites"} 
+              className={cn("hover:bg-white/20", card.is_favorite ? "text-yellow-500" : (currentColor.text || "text-muted-foreground hover:text-foreground"))}
+            >
+              <Star className={cn("h-4 w-4", card.is_favorite && "fill-yellow-500")} />
+            </Button>
             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit?.(card); }} aria-label="Edit card" className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground hover:text-foreground")}>
               <Edit3 className="h-4 w-4" />
             </Button>
@@ -196,18 +214,18 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
         </div>
         
         {/* Media display */}
-        {(card.imageUrl || card.videoUrl) && (
+        {(card.image_url || card.video_url) && (
           <div className="space-y-2">
-            {card.imageUrl && (
+            {card.image_url && (
               <img 
-                src={card.imageUrl} 
+                src={card.image_url} 
                 alt="Card image" 
                 className="w-full max-h-48 object-cover rounded-md border"
               />
             )}
-            {card.videoUrl && (
+            {card.video_url && (
               <video 
-                src={card.videoUrl} 
+                src={card.video_url} 
                 controls 
                 className="w-full max-h-48 object-cover rounded-md border"
               />

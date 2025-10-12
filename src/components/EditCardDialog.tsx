@@ -28,7 +28,9 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
     category: card.category,
     tags: card.tags,
     number: card.number,
-    linkedCards: card.linkedCards || []
+    linkedCards: card.linkedCards || [],
+    image_url: card.image_url || "",
+    video_url: card.video_url || ""
   });
   const [newTag, setNewTag] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -42,7 +44,9 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
         category: card.category,
         tags: card.tags,
         number: card.number,
-        linkedCards: card.linkedCards || []
+        linkedCards: card.linkedCards || [],
+        image_url: card.image_url || "",
+        video_url: card.video_url || ""
       });
     }
   }, [card, isOpen]);
@@ -57,6 +61,8 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
       tags: formData.tags,
       number: formData.number,
       linkedCards: formData.linkedCards,
+      image_url: formData.image_url,
+      video_url: formData.video_url,
       modified: new Date().toISOString()
     };
     onSave(updatedCard);
@@ -283,6 +289,57 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
                   </Button>
                 </Badge>
               ))}
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Image URL</Label>
+            <div className="flex gap-2">
+              <Input
+                value={formData.image_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                placeholder="https://example.com/image.jpg"
+                className="flex-1"
+              />
+              {formData.image_url && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setFormData(prev => ({ ...prev, image_url: "" }))}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {formData.image_url && (
+              <img 
+                src={formData.image_url} 
+                alt="Preview" 
+                className="w-full max-h-48 object-cover rounded-md border mt-2"
+              />
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Video URL</Label>
+            <div className="flex gap-2">
+              <Input
+                value={formData.video_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, video_url: e.target.value }))}
+                placeholder="https://example.com/video.mp4"
+                className="flex-1"
+              />
+              {formData.video_url && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setFormData(prev => ({ ...prev, video_url: "" }))}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 

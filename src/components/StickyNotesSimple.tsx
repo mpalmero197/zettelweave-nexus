@@ -120,13 +120,13 @@ export const StickyNotesSimple: React.FC = () => {
   };
 
   const getTextColor = (bgColor: string) => {
-    // Always use dark text on these light pastel backgrounds for WCAG compliance
-    return 'hsl(var(--foreground))';
+    // Always use dark text on these light pastel backgrounds for WCAG AAA compliance (7:1 contrast ratio)
+    return 'hsl(0 0% 15%)'; // Very dark gray for excellent contrast on all pastel colors
   };
 
   const getToolsColor = (bgColor: string) => {
-    // Use slightly muted foreground for tools/timestamps
-    return 'hsl(var(--muted-foreground))';
+    // Use dark color for tools/timestamps for WCAG compliance
+    return 'hsl(0 0% 25%)'; // Dark gray for good contrast
   };
 
   return (
