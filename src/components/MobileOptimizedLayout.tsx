@@ -10,11 +10,14 @@ export function MobileOptimizedLayout({ children, className }: MobileOptimizedLa
   return (
     <div className={cn(
       "min-h-screen w-full bg-gradient-to-br from-background via-background to-background/95",
-      "touch-manipulation select-none",
+      "touch-manipulation",
       "supports-[height:100dvh]:min-h-[100dvh]",
+      // Performance optimizations
+      "will-change-auto",
+      "transform-gpu",
       className
     )}>
-      <div className="w-full min-h-screen">
+      <div className="w-full min-h-screen pb-16">
         {children}
       </div>
     </div>

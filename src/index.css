@@ -162,6 +162,17 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Performance optimizations for mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Smooth scrolling with momentum on mobile */
+  html {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
 }
 
 @layer utilities {
@@ -253,6 +264,12 @@
   .prevent-overlap {
     position: relative;
     z-index: 1;
+  }
+  
+  /* GPU acceleration for better mobile performance */
+  .transform-gpu {
+    transform: translateZ(0);
+    will-change: transform;
   }
   
   /* Firefox-specific fixes for overlapping elements */

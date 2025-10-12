@@ -231,8 +231,8 @@ const Index = () => {
         onStartRecording={() => setActiveTab("recorder")}
       />
 
-      {/* Global AI Search Bar - Below Nav */}
-      <div className="sticky top-16 z-40 glass-card px-4 py-3 mb-4">
+      {/* Global AI Search Bar - Below Nav with proper z-index */}
+      <div className="sticky top-16 z-[35] glass-card px-4 py-3 mb-4">
         <div className="max-w-3xl mx-auto">
           <AISearchBar 
             cards={cards} 
