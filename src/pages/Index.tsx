@@ -412,6 +412,10 @@ const Index = () => {
                                     key={card.id}
                                     card={card}
                                     onEdit={setViewingCard}
+                                    onLink={(card) => {
+                                      setEditingCard(card);
+                                      toast.success("Link card feature - select cards to link");
+                                    }}
                                     onDelete={handleDeleteCard}
                                     onUpdate={handleUpdateCard}
                                     onWordHover={handleWordHover}
@@ -436,6 +440,10 @@ const Index = () => {
                                     key={card.id}
                                     card={card}
                                     onEdit={setViewingCard}
+                                    onLink={(card) => {
+                                      setEditingCard(card);
+                                      toast.success("Link card feature - select cards to link");
+                                    }}
                                     onDelete={handleDeleteCard}
                                     onUpdate={handleUpdateCard}
                                     onWordHover={handleWordHover}
