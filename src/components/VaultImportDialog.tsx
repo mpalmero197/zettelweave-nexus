@@ -141,7 +141,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
   const convertToZettelCards = () => {
     const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
     
-    parsedFiles.forEach(file => {
+    parsedFiles.forEach((file, index) => {
       if (file.type === 'markdown') {
         // Extract title from filename or first heading
         let title = file.name.replace(/\.md$/, '');
@@ -180,7 +180,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           content: file.content,
           description: firstParagraph || "Imported from external source",
           category,
-          number: "",
+          number: `${category}.${String(index + 1).padStart(3, '0')}`,
           tags: [...tags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
           linkedCards: [],
           imageUrl: undefined
@@ -192,7 +192,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           content: `Imported image from ${activeTab} vault.`,
           description: `Image file: ${file.name}`,
           category: "700", // Arts category
-          number: "",
+          number: `700.${String(index + 1).padStart(3, '0')}`,
           tags: ["image", activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
           linkedCards: [],
           imageUrl: file.content

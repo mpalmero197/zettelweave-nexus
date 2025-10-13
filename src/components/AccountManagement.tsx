@@ -10,11 +10,12 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
 import { DebugLogger } from '@/components/DebugLogger';
+import { Switch } from '@/components/ui/switch';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -52,6 +53,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   
   // Appearance states
   const [selectedTheme, setSelectedTheme] = useState('system');
+  const [globalDictionaryEnabled, setGlobalDictionaryEnabled] = useState(true);
 
   const handleProfileUpdate = async () => {
     if (!user) return;
@@ -519,6 +521,42 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       </Card>
                     ))}
                   </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Dictionary Features</h3>
+                  
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                        <div>
+                          <h4 className="font-medium">Global Dictionary Hover</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Enable word definitions on hover for all cards
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={globalDictionaryEnabled}
+                        onCheckedChange={(checked) => {
+                          setGlobalDictionaryEnabled(checked);
+                          localStorage.setItem('globalDictionaryEnabled', String(checked));
+                          toast({
+                            title: checked ? "Dictionary enabled" : "Dictionary disabled",
+                            description: checked 
+                              ? "Hover over words in cards to see definitions" 
+                              : "Word hover definitions are now disabled",
+                          });
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      You can override this setting for individual cards using the book icon on each card.
+                    </p>
+                  </Card>
                 </div>
               </div>
             )}

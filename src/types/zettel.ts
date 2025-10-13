@@ -19,6 +19,7 @@ export interface ZettelCard {
   created_at?: string; // For Supabase compatibility
   updated_at?: string; // For Supabase compatibility
   cardColor?: string; // For card color customization
+  enable_dictionary?: boolean; // For dictionary hover feature
 }
 
 export interface CategoryDefinition {

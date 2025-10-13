@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CardActionsMenu } from "./CardActionsMenu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useState, useEffect } from "react";
 
 interface ZettelCardProps {
   card: ZettelCardType;
@@ -33,6 +34,14 @@ const cardColors = [
 export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpdate, className }: ZettelCardProps) {
   const categoryInfo = getCategoryInfo(card.category);
   const currentColor = cardColors.find(c => c.value === card.cardColor) || cardColors[cardColors.length - 1];
+  const [globalDictionaryEnabled, setGlobalDictionaryEnabled] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('globalDictionaryEnabled');
+    if (stored !== null) {
+      setGlobalDictionaryEnabled(stored === 'true');
+    }
+  }, []);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent click when clicking on buttons or interactive elements
@@ -66,6 +75,22 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
         is_favorite: !card.is_favorite
       });
     }
+  };
+
+  const toggleDictionary = () => {
+    if (onUpdate) {
+      onUpdate({
+        ...card,
+        enable_dictionary: card.enable_dictionary === undefined ? false : !card.enable_dictionary
+      });
+    }
+  };
+
+  const isDictionaryEnabled = () => {
+    if (card.enable_dictionary !== undefined) {
+      return card.enable_dictionary;
+    }
+    return globalDictionaryEnabled;
   };
 
   const renderContentWithHoverWords = (content: string) => {
@@ -164,6 +189,15 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             >
               <Star className={cn("h-4 w-4", card.is_favorite && "fill-yellow-500")} />
             </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); toggleDictionary(); }} 
+              aria-label={isDictionaryEnabled() ? "Disable dictionary" : "Enable dictionary"} 
+              className={cn("hover:bg-white/20", isDictionaryEnabled() ? "text-blue-500" : (currentColor.text || "text-muted-foreground hover:text-foreground"))}
+            >
+              <BookOpen className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit?.(card); }} aria-label="Edit card" className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground hover:text-foreground")}>
               <Edit3 className="h-4 w-4" />
             </Button>
@@ -208,9 +242,9 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
       <CardContent className="space-y-3">
         <div 
           className={cn("text-[0.95rem] leading-7 line-clamp-6", currentColor.text || "text-foreground/90")}
-          onMouseMove={handleWordHover}
+          onMouseMove={isDictionaryEnabled() ? handleWordHover : undefined}
         >
-          {renderContentWithHoverWords(card.content)}
+          {isDictionaryEnabled() ? renderContentWithHoverWords(card.content) : card.content}
         </div>
         
         {/* Media display */}
