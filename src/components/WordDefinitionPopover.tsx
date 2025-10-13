@@ -113,9 +113,13 @@ const getDefinition = async (word: string, cards: any[] = []): Promise<WordDefin
     }
   };
 
-  return definitions[word.toLowerCase()] || {
+  const localDef = definitions[word.toLowerCase()];
+  if (localDef) return localDef;
+  
+  // If not found anywhere, return null to indicate no definition available
+  return {
     word,
-    definition: `"${word}" - A term that may benefit from further exploration and note-taking in your knowledge system.`,
+    definition: `No definition found for "${word}". Consider creating a card to define this term in your knowledge system.`,
     partOfSpeech: "unknown",
     examples: []
   };

@@ -53,7 +53,10 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   
   // Appearance states
   const [selectedTheme, setSelectedTheme] = useState('system');
-  const [globalDictionaryEnabled, setGlobalDictionaryEnabled] = useState(true);
+  const [globalDictionaryEnabled, setGlobalDictionaryEnabled] = useState(() => {
+    const stored = localStorage.getItem('globalDictionaryEnabled');
+    return stored !== null ? stored === 'true' : true;
+  });
 
   const handleProfileUpdate = async () => {
     if (!user) return;
@@ -553,9 +556,6 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                         }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3">
-                      You can override this setting for individual cards using the book icon on each card.
-                    </p>
                   </Card>
                 </div>
               </div>
