@@ -140,14 +140,22 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
 
   const convertToZettelCards = () => {
     const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
+    const cardsByNumber = new Map<string, number>();
     
-    parsedFiles.forEach((file, index) => {
+    parsedFiles.forEach((file) => {
       if (file.type === 'markdown') {
         // Extract title from filename or first heading
         let title = file.name.replace(/\.md$/, '');
         const firstHeading = file.content.match(/^#\s+(.+)$/m);
         if (firstHeading) {
           title = firstHeading[1];
+        }
+        
+        // Extract card number from filename if it matches the custom format
+        let cardNumber = title;
+        const numberMatch = title.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
+        if (numberMatch) {
+          cardNumber = numberMatch[1];
         }
         
         // Extract tags from content
@@ -175,24 +183,42 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           .trim()
           .substring(0, 200);
         
+        // Extract wikilinks [[filename]] for auto-linking
+        const wikiLinkMatches = file.content.match(/\[\[([^\]]+)\]\]/g);
+        const linkedCardNumbers: string[] = [];
+        
+        if (wikiLinkMatches) {
+          wikiLinkMatches.forEach(link => {
+            const linkText = link.replace(/\[\[|\]\]/g, '');
+            const linkNumberMatch = linkText.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
+            if (linkNumberMatch) {
+              linkedCardNumbers.push(linkNumberMatch[1]);
+            }
+          });
+        }
+        
         cards.push({
           title,
           content: file.content,
           description: firstParagraph || "Imported from external source",
           category,
-          number: `${category}.${String(index + 1).padStart(3, '0')}`,
+          number: cardNumber,
           tags: [...tags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
-          linkedCards: [],
-          imageUrl: undefined
-        });
+          linkedCards: [], // Will be populated after all cards are created
+          imageUrl: undefined,
+          _linkedNumbers: linkedCardNumbers // Temporary field for linking
+        } as any);
+        
+        cardsByNumber.set(cardNumber, cards.length - 1);
       } else if (file.type === 'image') {
         // Create card for standalone images
+        const imgIndex = cardsByNumber.size;
         cards.push({
           title: `Image: ${file.name}`,
           content: `Imported image from ${activeTab} vault.`,
           description: `Image file: ${file.name}`,
           category: "700", // Arts category
-          number: `700.${String(index + 1).padStart(3, '0')}`,
+          number: `700.${String(imgIndex + 1).padStart(3, '0')}`,
           tags: ["image", activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
           linkedCards: [],
           imageUrl: file.content
@@ -200,10 +226,27 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
       }
     });
     
-    onImportCards(cards);
+    // Second pass: resolve links by card number
+    const finalCards = cards.map(card => {
+      if ((card as any)._linkedNumbers) {
+        const linkedIds: string[] = [];
+        (card as any)._linkedNumbers.forEach((linkedNumber: string) => {
+          const linkedIndex = cardsByNumber.get(linkedNumber);
+          if (linkedIndex !== undefined) {
+            // We'll use the index as a temporary ID, will be replaced with actual IDs after import
+            linkedIds.push(linkedNumber);
+          }
+        });
+        const { _linkedNumbers, ...cleanCard } = card as any;
+        return { ...cleanCard, _pendingLinks: linkedIds };
+      }
+      return card;
+    });
+    
+    onImportCards(finalCards);
     setIsOpen(false);
     setParsedFiles([]);
-    toast(`Successfully imported ${cards.length} cards!`);
+    toast(`Successfully imported ${cards.length} cards with auto-linking!`);
   };
 
   const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -389,8 +389,21 @@ export const MobileWhiteboard = () => {
     e.preventDefault();
     const point = getEventPoint(e);
     
-    if (activeTool === "pan" || ('touches' in e && e.touches.length === 2)) {
+    if (activeTool === "pan") {
       setIsPanning(true);
+      setDragStart(point);
+      return;
+    }
+    
+    if ('touches' in e && e.touches.length === 2) {
+      setIsPanning(true);
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.sqrt(
+        Math.pow(touch1.clientX - touch2.clientX, 2) + 
+        Math.pow(touch1.clientY - touch2.clientY, 2)
+      );
+      setLastTouchDistance(distance);
       return;
     }
 
@@ -483,11 +496,8 @@ export const MobileWhiteboard = () => {
     e.preventDefault();
     const point = getEventPoint(e);
 
-    if (isPanning && 'touches' in e && e.touches.length === 2) {
-      return;
-    }
-
-    if (isPanning && lastTouchDistance && 'touches' in e && e.touches.length === 2) {
+    // Handle pinch-to-zoom
+    if (isPanning && 'touches' in e && e.touches.length === 2 && lastTouchDistance) {
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
       const currentDistance = Math.sqrt(
@@ -498,10 +508,27 @@ export const MobileWhiteboard = () => {
       const scale = currentDistance / lastTouchDistance;
       setDrawingState(prev => ({
         ...prev,
-        scale: Math.min(Math.max(prev.scale * scale, 0.5), 3)
+        scale: Math.max(0.1, Math.min(5, prev.scale * scale))
       }));
-      
       setLastTouchDistance(currentDistance);
+      return;
+    }
+
+    // Handle panning
+    if (isPanning && activeTool === "pan") {
+      const dx = point.x - dragStart.x;
+      const dy = point.y - dragStart.y;
+      
+      setDrawingState(prev => ({
+        ...prev,
+        offsetX: prev.offsetX + dx * prev.scale,
+        offsetY: prev.offsetY + dy * prev.scale
+      }));
+      setDragStart(point);
+      return;
+    }
+
+    if (isPanning) {
       return;
     }
 
@@ -511,18 +538,6 @@ export const MobileWhiteboard = () => {
         endX: point.x,
         endY: point.y
       } : null);
-      return;
-    }
-
-    if (isPanning) {
-      const deltaX = point.x - dragStart.x;
-      const deltaY = point.y - dragStart.y;
-      
-      setDrawingState(prev => ({
-        ...prev,
-        offsetX: prev.offsetX + deltaX * drawingState.scale,
-        offsetY: prev.offsetY + deltaY * drawingState.scale
-      }));
       return;
     }
 

@@ -224,12 +224,24 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         linkedCards: [...(sourceCard.linkedCards || []), targetCard.id]
       };
       
+      // Immediately add edge to the graph
+      const newEdge = {
+        id: `${params.source}-${params.target}`,
+        source: params.source,
+        target: params.target,
+        type: 'default',
+        style: {
+          stroke: 'hsl(var(--primary))',
+          strokeWidth: 2,
+        },
+        animated: true,
+      };
+      
+      setEdges((eds) => [...eds, newEdge]);
       onCardUpdate(updatedSourceCard);
       
       toast(`Linked "${sourceCard.title}" → "${targetCard.title}"`);
     }
-    
-    setEdges((eds) => addEdge(params, eds));
   }, [filteredCards, onCardUpdate, setEdges]);
 
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {

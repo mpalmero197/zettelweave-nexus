@@ -111,38 +111,90 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
         brush.strokeLineJoin = 'round';
         canvas.freeDrawingBrush = brush;
 
-        // Enable panning with mouse
+        // Enable panning with mouse and touch
+        let isPanningLocal = false;
+        let lastPos: { x: number; y: number } | null = null;
+
         canvas.on('mouse:down', (opt) => {
           if (activeTool === 'pan') {
-            setIsPanning(true);
+            isPanningLocal = true;
             canvas.selection = false;
+            canvas.isDrawingMode = false;
             const pointer = opt.pointer;
             if (pointer) {
-              lastPosRef.current = { x: pointer.x, y: pointer.y };
+              lastPos = { x: pointer.x, y: pointer.y };
             }
+            opt.e.preventDefault();
+            opt.e.stopPropagation();
           }
         });
 
         canvas.on('mouse:move', (opt) => {
-          if (isPanning && lastPosRef.current) {
+          if (activeTool === 'pan' && isPanningLocal && lastPos) {
             const pointer = opt.pointer;
             if (pointer) {
               const vpt = canvas.viewportTransform;
               if (vpt) {
-                vpt[4] += pointer.x - lastPosRef.current.x;
-                vpt[5] += pointer.y - lastPosRef.current.y;
+                vpt[4] += pointer.x - lastPos.x;
+                vpt[5] += pointer.y - lastPos.y;
                 canvas.requestRenderAll();
-                lastPosRef.current = { x: pointer.x, y: pointer.y };
+                lastPos = { x: pointer.x, y: pointer.y };
               }
             }
+            opt.e.preventDefault();
+            opt.e.stopPropagation();
           }
         });
 
         canvas.on('mouse:up', () => {
-          if (isPanning) {
-            setIsPanning(false);
+          if (isPanningLocal) {
+            isPanningLocal = false;
             canvas.selection = true;
-            lastPosRef.current = null;
+            lastPos = null;
+          }
+        });
+
+        // Touch support for panning
+        const canvasElement = canvas.getElement();
+        let touchStartPos: { x: number; y: number } | null = null;
+        
+        canvasElement.addEventListener('touchstart', (e) => {
+          if (activeTool === 'pan' && e.touches.length === 1) {
+            const touch = e.touches[0];
+            const rect = canvasElement.getBoundingClientRect();
+            touchStartPos = {
+              x: touch.clientX - rect.left,
+              y: touch.clientY - rect.top
+            };
+            isPanningLocal = true;
+            e.preventDefault();
+          }
+        }, { passive: false });
+
+        canvasElement.addEventListener('touchmove', (e) => {
+          if (activeTool === 'pan' && isPanningLocal && touchStartPos && e.touches.length === 1) {
+            const touch = e.touches[0];
+            const rect = canvasElement.getBoundingClientRect();
+            const currentPos = {
+              x: touch.clientX - rect.left,
+              y: touch.clientY - rect.top
+            };
+            
+            const vpt = canvas.viewportTransform;
+            if (vpt) {
+              vpt[4] += currentPos.x - touchStartPos.x;
+              vpt[5] += currentPos.y - touchStartPos.y;
+              canvas.requestRenderAll();
+              touchStartPos = currentPos;
+            }
+            e.preventDefault();
+          }
+        }, { passive: false });
+
+        canvasElement.addEventListener('touchend', () => {
+          if (isPanningLocal) {
+            isPanningLocal = false;
+            touchStartPos = null;
           }
         });
 
