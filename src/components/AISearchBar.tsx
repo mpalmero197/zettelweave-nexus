@@ -43,8 +43,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
       const { data, error } = await supabase.functions.invoke('ai-search', {
         body: { 
-          query, 
-          userId: user.id,
+          query,
           stickyNotes: allStickyNotes.map((n: any) => ({
             id: n.id,
             content: n.content,

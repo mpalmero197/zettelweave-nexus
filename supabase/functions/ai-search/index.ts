@@ -12,10 +12,29 @@ serve(async (req) => {
   }
 
   try {
-    const { query, userId, stickyNotes = [] } = await req.json();
+    // Validate authentication from JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Unauthorized: No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !user) {
+      throw new Error('Unauthorized: Invalid token');
+    }
+
+    const userId = user.id; // Use authenticated user's ID
+
+    const { query, stickyNotes = [] } = await req.json();
     
-    if (!query || !userId) {
-      throw new Error('Query and userId are required');
+    if (!query) {
+      throw new Error('Query is required');
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -23,15 +42,10 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get all user's content
+    // Get all user's content (RLS will automatically filter by authenticated user)
     const [cardsResult, notesResult] = await Promise.all([
-      supabaseClient.from('zettel_cards').select('*').eq('user_id', userId).is('deleted_at', null),
-      supabaseClient.from('notes').select('*').eq('user_id', userId).is('deleted_at', null)
+      supabaseClient.from('zettel_cards').select('*').is('deleted_at', null),
+      supabaseClient.from('notes').select('*').is('deleted_at', null)
     ]);
 
     const cards = cardsResult.data || [];

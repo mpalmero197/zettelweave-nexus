@@ -12,15 +12,27 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication from JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Unauthorized: No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      throw new Error('Unauthorized: Invalid token');
+    }
+
     const { contentId, contentType, similarityThreshold = 0.85, maxResults = 5 } = await req.json();
     
     if (!contentId || !contentType) {
       throw new Error('Missing required fields: contentId, contentType');
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log(`Finding similar content for ${contentType} ${contentId}`);
 
