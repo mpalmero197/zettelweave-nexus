@@ -51,42 +51,59 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     
     const parsed: ParsedFile[] = [];
     const totalFiles = files.length;
+    let processedCount = 0;
+    let errorCount = 0;
+    
+    console.log(`Starting Obsidian vault import: ${totalFiles} files`);
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setProgress((i / totalFiles) * 100);
       
-      if (file.name.startsWith('.')) continue; // Skip hidden files
-      
-      let type: 'markdown' | 'image' | 'other' = 'other';
-      if (file.name.endsWith('.md')) type = 'markdown';
-      else if (file.type.startsWith('image/')) type = 'image';
-      
-      let content = '';
-      if (type === 'markdown') {
-        content = await file.text();
-      } else if (type === 'image') {
-        content = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(file);
+      try {
+        if (file.name.startsWith('.')) {
+          console.log(`Skipping hidden file: ${file.name}`);
+          continue;
+        }
+        
+        let type: 'markdown' | 'image' | 'other' = 'other';
+        if (file.name.endsWith('.md')) type = 'markdown';
+        else if (file.type.startsWith('image/')) type = 'image';
+        
+        let content = '';
+        if (type === 'markdown') {
+          content = await file.text();
+          console.log(`Processed markdown: ${file.name}`);
+        } else if (type === 'image') {
+          content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = (e) => reject(e);
+            reader.readAsDataURL(file);
+          });
+          console.log(`Processed image: ${file.name}`);
+        }
+        
+        parsed.push({
+          name: file.name,
+          content,
+          path: file.webkitRelativePath || file.name,
+          type,
+          size: file.size
         });
+        processedCount++;
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+        errorCount++;
       }
-      
-      parsed.push({
-        name: file.name,
-        content,
-        path: file.webkitRelativePath || file.name,
-        type,
-        size: file.size
-      });
     }
     
     setParsedFiles(parsed);
     setProgress(100);
     setIsProcessing(false);
     
-    toast(`Parsed ${parsed.length} files from Obsidian vault`);
+    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors`);
+    toast(`Parsed ${parsed.length} files from Obsidian vault (${errorCount} errors)`);
   };
 
   const processNotionExport = async (files: FileList) => {
@@ -95,54 +112,74 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     
     const parsed: ParsedFile[] = [];
     const totalFiles = files.length;
+    let processedCount = 0;
+    let errorCount = 0;
+    
+    console.log(`Starting Notion export import: ${totalFiles} files`);
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setProgress((i / totalFiles) * 100);
       
-      if (file.name.startsWith('.')) continue;
-      
-      let type: 'markdown' | 'image' | 'other' = 'other';
-      if (file.name.endsWith('.md') || file.name.endsWith('.txt')) type = 'markdown';
-      else if (file.type.startsWith('image/')) type = 'image';
-      
-      let content = '';
-      if (type === 'markdown') {
-        content = await file.text();
-        // Clean up Notion export formatting
-        content = content
-          .replace(/!\[.*?\]\((.*?)\)/g, '![]($1)') // Fix image links
-          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove internal links
-          .trim();
-      } else if (type === 'image') {
-        content = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(file);
+      try {
+        if (file.name.startsWith('.')) {
+          console.log(`Skipping hidden file: ${file.name}`);
+          continue;
+        }
+        
+        let type: 'markdown' | 'image' | 'other' = 'other';
+        if (file.name.endsWith('.md') || file.name.endsWith('.txt')) type = 'markdown';
+        else if (file.type.startsWith('image/')) type = 'image';
+        
+        let content = '';
+        if (type === 'markdown') {
+          content = await file.text();
+          // Clean up Notion export formatting
+          content = content
+            .replace(/!\[.*?\]\((.*?)\)/g, '![]($1)') // Fix image links
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove internal links
+            .trim();
+          console.log(`Processed markdown: ${file.name}`);
+        } else if (type === 'image') {
+          content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = (e) => reject(e);
+            reader.readAsDataURL(file);
+          });
+          console.log(`Processed image: ${file.name}`);
+        }
+        
+        parsed.push({
+          name: file.name,
+          content,
+          path: file.webkitRelativePath || file.name,
+          type,
+          size: file.size
         });
+        processedCount++;
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+        errorCount++;
       }
-      
-      parsed.push({
-        name: file.name,
-        content,
-        path: file.webkitRelativePath || file.name,
-        type,
-        size: file.size
-      });
     }
     
     setParsedFiles(parsed);
     setProgress(100);
     setIsProcessing(false);
     
-    toast(`Parsed ${parsed.length} files from Notion export`);
+    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors`);
+    toast(`Parsed ${parsed.length} files from Notion export (${errorCount} errors)`);
   };
 
   const convertToZettelCards = () => {
     const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
     const cardsByNumber = new Map<string, number>();
+    let convertedCount = 0;
     
-    parsedFiles.forEach((file) => {
+    console.log(`Converting ${parsedFiles.length} parsed files to cards...`);
+    
+    parsedFiles.forEach((file, index) => {
       if (file.type === 'markdown') {
         // Extract title from filename or first heading
         let title = file.name.replace(/\.md$/, '');
@@ -210,6 +247,8 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         } as any);
         
         cardsByNumber.set(cardNumber, cards.length - 1);
+        convertedCount++;
+        console.log(`Converted card ${convertedCount}: ${cardNumber} - ${title}`);
       } else if (file.type === 'image') {
         // Create card for standalone images
         const imgIndex = cardsByNumber.size;
@@ -242,6 +281,8 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
       }
       return card;
     });
+    
+    console.log(`Final card count: ${finalCards.length} cards ready for import`);
     
     onImportCards(finalCards);
     setIsOpen(false);
