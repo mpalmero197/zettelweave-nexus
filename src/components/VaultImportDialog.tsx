@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
+import { CardMergeDialog } from "./CardMergeDialog";
 
 interface VaultImportDialogProps {
   onImportCards: (cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => void;
@@ -44,6 +45,10 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
   const [progress, setProgress] = useState(0);
   const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
   const [activeTab, setActiveTab] = useState("obsidian");
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [duplicatePairs, setDuplicatePairs] = useState<Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}>>([]);
+  const [currentPairIndex, setCurrentPairIndex] = useState(0);
+  const [processedCards, setProcessedCards] = useState<Partial<ZettelCardType>[]>([]);
 
   const processObsidianVault = async (files: FileList) => {
     setIsProcessing(true);
@@ -284,10 +289,105 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     
     console.log(`Final card count: ${finalCards.length} cards ready for import`);
     
-    onImportCards(finalCards);
+    // Detect duplicates and similar cards
+    const duplicates = findDuplicatesAndSimilar(finalCards);
+    
+    if (duplicates.length > 0) {
+      console.log(`Found ${duplicates.length} duplicate/similar pairs`);
+      setDuplicatePairs(duplicates);
+      setProcessedCards(finalCards);
+      setCurrentPairIndex(0);
+      setMergeDialogOpen(true);
+      setIsProcessing(false);
+    } else {
+      onImportCards(finalCards);
+      setIsOpen(false);
+      setParsedFiles([]);
+      toast(`Successfully imported ${cards.length} cards with auto-linking!`);
+    }
+  };
+
+  const findDuplicatesAndSimilar = (cards: Partial<ZettelCardType>[]): Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}> => {
+    const pairs: Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}> = [];
+    const processed = new Set<number>();
+    
+    for (let i = 0; i < cards.length; i++) {
+      if (processed.has(i)) continue;
+      
+      for (let j = i + 1; j < cards.length; j++) {
+        if (processed.has(j)) continue;
+        
+        const similarity = calculateCardSimilarity(cards[i], cards[j]);
+        
+        // If cards are duplicates (>95% similar) or very similar (>75%)
+        if (similarity > 0.75) {
+          pairs.push({ card1: cards[i], card2: cards[j] });
+          processed.add(j); // Mark second card as processed
+          break; // Move to next card
+        }
+      }
+    }
+    
+    return pairs;
+  };
+
+  const calculateCardSimilarity = (card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>): number => {
+    const content1 = (card1.content || '').toLowerCase().trim();
+    const content2 = (card2.content || '').toLowerCase().trim();
+    
+    // Check for exact duplicates
+    if (content1 === content2) return 1;
+    
+    // Calculate word overlap
+    const words1 = new Set(content1.split(/\s+/).filter(w => w.length > 3));
+    const words2 = new Set(content2.split(/\s+/).filter(w => w.length > 3));
+    
+    if (words1.size === 0 || words2.size === 0) return 0;
+    
+    const intersection = new Set([...words1].filter(w => words2.has(w)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size;
+  };
+
+  const handleMerge = (mergedCard: Partial<ZettelCardType>) => {
+    const pair = duplicatePairs[currentPairIndex];
+    
+    // Remove both original cards and add merged card
+    const updatedCards = processedCards.filter(c => 
+      c.number !== pair.card1.number && c.number !== pair.card2.number
+    );
+    updatedCards.push(mergedCard);
+    
+    setProcessedCards(updatedCards);
+    
+    // Move to next pair or finish
+    if (currentPairIndex + 1 < duplicatePairs.length) {
+      setCurrentPairIndex(currentPairIndex + 1);
+    } else {
+      finishImport(updatedCards);
+    }
+  };
+
+  const handleSkipMerge = () => {
+    // Keep both cards, move to next pair
+    if (currentPairIndex + 1 < duplicatePairs.length) {
+      setCurrentPairIndex(currentPairIndex + 1);
+    } else {
+      finishImport(processedCards);
+    }
+  };
+
+  const finishImport = (cards: Partial<ZettelCardType>[]) => {
+    setMergeDialogOpen(false);
+    const validCards = cards.filter(c => c.number && c.title && c.content) as Omit<ZettelCardType, 'id' | 'created' | 'modified'>[];
+    onImportCards(validCards);
     setIsOpen(false);
     setParsedFiles([]);
-    toast(`Successfully imported ${cards.length} cards with auto-linking!`);
+    setDuplicatePairs([]);
+    setCurrentPairIndex(0);
+    setProcessedCards([]);
+    toast(`Successfully imported ${validCards.length} cards with ${duplicatePairs.length} duplicates resolved!`);
   };
 
   const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -467,6 +567,17 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           </Card>
         )}
       </DialogContent>
+      
+      {duplicatePairs.length > 0 && currentPairIndex < duplicatePairs.length && (
+        <CardMergeDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          card1={duplicatePairs[currentPairIndex].card1}
+          card2={duplicatePairs[currentPairIndex].card2}
+          onMerge={handleMerge}
+          onSkip={handleSkipMerge}
+        />
+      )}
     </Dialog>
   );
 };
