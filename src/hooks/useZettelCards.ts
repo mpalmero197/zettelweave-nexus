@@ -47,6 +47,24 @@ export const useZettelCards = () => {
     enabled: !!user,
   });
 
+  // Helper function to calculate similarity between two cards
+  const calculateCardSimilarity = (content1: string, content2: string): number => {
+    const c1 = content1.toLowerCase().trim();
+    const c2 = content2.toLowerCase().trim();
+    
+    if (c1 === c2) return 1;
+    
+    const words1 = new Set(c1.split(/\s+/).filter(w => w.length > 3));
+    const words2 = new Set(c2.split(/\s+/).filter(w => w.length > 3));
+    
+    if (words1.size === 0 || words2.size === 0) return 0;
+    
+    const intersection = new Set([...words1].filter(w => words2.has(w)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size;
+  };
+
   const createCardMutation = useMutation({
     mutationFn: async (newCard: Omit<ZettelCard, 'id' | 'created' | 'modified'>) => {
       if (!user) throw new Error('User not authenticated');
@@ -69,6 +87,60 @@ export const useZettelCards = () => {
         content: sanitizeCardInput(newCard.content),
         description: sanitizeCardInput(newCard.description || ''),
       };
+
+      // Check for duplicate cards automatically
+      const newContent = `${sanitizedCard.title} ${sanitizedCard.content}`;
+      let duplicateCard: ZettelCard | null = null;
+      let highestSimilarity = 0;
+      
+      for (const existingCard of cards) {
+        const existingContent = `${existingCard.title} ${existingCard.content}`;
+        const similarity = calculateCardSimilarity(newContent, existingContent);
+        
+        if (similarity > highestSimilarity) {
+          highestSimilarity = similarity;
+          if (similarity >= 0.95) {
+            duplicateCard = existingCard;
+          }
+        }
+      }
+      
+      // If duplicate found, merge automatically
+      if (duplicateCard) {
+        const mergedTags = [...new Set([...(duplicateCard.tags || []), ...(sanitizedCard.tags || [])])].slice(0, 50);
+        const mergedLinkedCards = [...new Set([...(duplicateCard.linkedCards || []), ...(sanitizedCard.linkedCards || [])])].slice(0, 100);
+        const useNewContent = (sanitizedCard.content || '').length > (duplicateCard.content || '').length;
+        
+        const { data, error } = await supabase
+          .from('zettel_cards')
+          .update({
+            content: useNewContent ? sanitizedCard.content : duplicateCard.content,
+            description: useNewContent ? sanitizedCard.description : duplicateCard.description,
+            tags: mergedTags,
+            linked_cards: mergedLinkedCards,
+            image_url: duplicateCard.image_url || sanitizedCard.imageUrl,
+            video_url: duplicateCard.video_url || sanitizedCard.videoUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', duplicateCard.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Generate embedding for the merged card
+        if (data) {
+          supabase.functions.invoke('generate-embedding', {
+            body: {
+              contentId: data.id,
+              contentType: 'zettel_card',
+              text: `${data.title} ${data.content}`
+            }
+          }).catch(err => console.error('Error generating embedding:', err));
+        }
+
+        return { data, merged: true, originalTitle: duplicateCard.title };
+      }
 
       // Generate a unique number if not provided
       let cardNumber = sanitizedCard.number;
@@ -113,11 +185,19 @@ export const useZettelCards = () => {
         }).catch(err => console.error('Error generating embedding:', err));
       }
 
-      return data;
+      return { data, merged: false };
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
-      toast({ title: 'Card created successfully!' });
+      
+      if (result.merged) {
+        toast({ 
+          title: 'Duplicate detected and merged!', 
+          description: `Card was automatically merged with "${result.originalTitle}"`,
+        });
+      } else {
+        toast({ title: 'Card created successfully!' });
+      }
     },
     onError: (error) => {
       toast({ 
