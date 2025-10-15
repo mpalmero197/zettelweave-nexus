@@ -19,6 +19,7 @@ import {
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { CardMergeDialog } from "./CardMergeDialog";
+import { sanitizeCardInput, validateZettelCard } from "@/utils/security";
 
 interface VaultImportDialogProps {
   onImportCards: (cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => void;
@@ -58,12 +59,29 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     const totalFiles = files.length;
     let processedCount = 0;
     let errorCount = 0;
+    let totalSize = 0;
+    
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+    const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total
     
     console.log(`Starting Obsidian vault import: ${totalFiles} files`);
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setProgress((i / totalFiles) * 100);
+      
+      // Check file size limits
+      if (file.size > MAX_FILE_SIZE) {
+        console.warn(`Skipping large file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB limit)`);
+        errorCount++;
+        continue;
+      }
+      
+      totalSize += file.size;
+      if (totalSize > MAX_TOTAL_SIZE) {
+        toast.error('Import size limit exceeded (50MB). Please import in smaller batches.');
+        break;
+      }
       
       try {
         if (file.name.startsWith('.')) {
@@ -107,7 +125,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     setProgress(100);
     setIsProcessing(false);
     
-    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors`);
+    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors, total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
     toast(`Parsed ${parsed.length} files from Obsidian vault (${errorCount} errors)`);
   };
 
@@ -119,12 +137,29 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     const totalFiles = files.length;
     let processedCount = 0;
     let errorCount = 0;
+    let totalSize = 0;
+    
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+    const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total
     
     console.log(`Starting Notion export import: ${totalFiles} files`);
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setProgress((i / totalFiles) * 100);
+      
+      // Check file size limits
+      if (file.size > MAX_FILE_SIZE) {
+        console.warn(`Skipping large file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB limit)`);
+        errorCount++;
+        continue;
+      }
+      
+      totalSize += file.size;
+      if (totalSize > MAX_TOTAL_SIZE) {
+        toast.error('Import size limit exceeded (50MB). Please import in smaller batches.');
+        break;
+      }
       
       try {
         if (file.name.startsWith('.')) {
@@ -173,7 +208,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     setProgress(100);
     setIsProcessing(false);
     
-    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors`);
+    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors, total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
     toast(`Parsed ${parsed.length} files from Notion export (${errorCount} errors)`);
   };
 
@@ -181,6 +216,10 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
     const cardsByNumber = new Map<string, number>();
     let convertedCount = 0;
+    let validationErrors = 0;
+    
+    const MAX_TAGS = 50;
+    const MAX_LINKS = 100;
     
     console.log(`Converting ${parsedFiles.length} parsed files to cards...`);
     
@@ -193,16 +232,22 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           title = firstHeading[1];
         }
         
+        // Sanitize title and content
+        const sanitizedTitle = sanitizeCardInput(title);
+        const sanitizedContent = sanitizeCardInput(file.content);
+        
         // Extract card number from filename if it matches the custom format
-        let cardNumber = title;
-        const numberMatch = title.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
+        let cardNumber = sanitizedTitle;
+        const numberMatch = sanitizedTitle.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
         if (numberMatch) {
           cardNumber = numberMatch[1];
         }
         
-        // Extract tags from content
+        // Extract tags from content with validation and limits
         const tagMatches = file.content.match(/#[\w-]+/g);
-        const tags = tagMatches ? tagMatches.map(tag => tag.slice(1)) : [];
+        const extractedTags = tagMatches ? tagMatches.map(tag => tag.slice(1).substring(0, 50)) : [];
+        const uniqueTags = [...new Set(extractedTags)].slice(0, MAX_TAGS - 2);
+        const tags = [...uniqueTags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"];
         
         // Determine category based on folder structure or content
         let category = "000"; // Default to General Knowledge
@@ -216,6 +261,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           else if (folder.includes('philosophy')) category = "100";
           else if (folder.includes('language')) category = "400";
         }
+        const sanitizedCategory = sanitizeCardInput(category);
         
         // Generate description from first paragraph
         const firstParagraph = file.content
@@ -224,49 +270,74 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           .split('\n\n')[0]
           .trim()
           .substring(0, 200);
+        const sanitizedDescription = sanitizeCardInput(firstParagraph || "Imported from external source");
         
-        // Extract wikilinks [[filename]] for auto-linking
+        // Extract wikilinks [[filename]] for auto-linking with validation
         const wikiLinkMatches = file.content.match(/\[\[([^\]]+)\]\]/g);
         const linkedCardNumbers: string[] = [];
         
         if (wikiLinkMatches) {
           wikiLinkMatches.forEach(link => {
             const linkText = link.replace(/\[\[|\]\]/g, '');
-            const linkNumberMatch = linkText.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
-            if (linkNumberMatch) {
-              linkedCardNumbers.push(linkNumberMatch[1]);
+            // Validate link text length and content
+            if (linkText.length > 0 && linkText.length <= 100) {
+              const linkNumberMatch = linkText.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
+              if (linkNumberMatch && linkedCardNumbers.length < MAX_LINKS) {
+                linkedCardNumbers.push(linkNumberMatch[1]);
+              }
             }
           });
         }
         
-        cards.push({
-          title,
-          content: file.content,
-          description: firstParagraph || "Imported from external source",
-          category,
+        const tempCard = {
+          title: sanitizedTitle,
+          content: sanitizedContent,
+          description: sanitizedDescription,
+          category: sanitizedCategory,
           number: cardNumber,
-          tags: [...tags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
+          tags,
           linkedCards: [], // Will be populated after all cards are created
           imageUrl: undefined,
           _linkedNumbers: linkedCardNumbers // Temporary field for linking
-        } as any);
+        } as any;
+        
+        // Validate card before adding
+        const validation = validateZettelCard(tempCard);
+        if (!validation.valid) {
+          console.error(`Skipping invalid card ${sanitizedTitle}: ${validation.errors.join(', ')}`);
+          validationErrors++;
+          return;
+        }
+        
+        cards.push(tempCard);
         
         cardsByNumber.set(cardNumber, cards.length - 1);
         convertedCount++;
-        console.log(`Converted card ${convertedCount}: ${cardNumber} - ${title}`);
+        console.log(`Converted card ${convertedCount}: ${cardNumber} - ${sanitizedTitle}`);
       } else if (file.type === 'image') {
         // Create card for standalone images
         const imgIndex = cardsByNumber.size;
-        cards.push({
-          title: `Image: ${file.name}`,
-          content: `Imported image from ${activeTab} vault.`,
-          description: `Image file: ${file.name}`,
+        const sanitizedName = sanitizeCardInput(file.name);
+        
+        const imageCard = {
+          title: `Image: ${sanitizedName}`,
+          content: sanitizeCardInput(`Imported image from ${activeTab} vault.`),
+          description: sanitizeCardInput(`Image file: ${file.name}`),
           category: "700", // Arts category
           number: `700.${String(imgIndex + 1).padStart(3, '0')}`,
           tags: ["image", activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
           linkedCards: [],
           imageUrl: file.content
-        });
+        };
+        
+        const validation = validateZettelCard(imageCard);
+        if (!validation.valid) {
+          console.error(`Skipping invalid image card ${sanitizedName}: ${validation.errors.join(', ')}`);
+          validationErrors++;
+          return;
+        }
+        
+        cards.push(imageCard);
       }
     });
     
@@ -287,7 +358,11 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
       return card;
     });
     
-    console.log(`Final card count: ${finalCards.length} cards ready for import`);
+    console.log(`Final card count: ${finalCards.length} cards ready for import, ${validationErrors} skipped due to validation errors`);
+    
+    if (validationErrors > 0) {
+      toast.warning(`${validationErrors} cards were skipped due to validation errors. Check console for details.`);
+    }
     
     // Detect duplicates and similar cards
     const duplicates = findDuplicatesAndSimilar(finalCards);

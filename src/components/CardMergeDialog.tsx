@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Check, X, AlertCircle } from "lucide-react";
 import { ZettelCard } from "@/types/zettel";
+import { sanitizeCardInput } from "@/utils/security";
 
 interface Difference {
   type: 'identical' | 'similar' | 'unique-card1' | 'unique-card2';
@@ -173,6 +174,9 @@ export const CardMergeDialog = ({
       mergedContent += '\n\n--- Alternative versions ---\n' + uniqueDifferences.join('\n');
     }
     
+    // Sanitize merged content
+    const sanitizedContent = sanitizeCardInput(mergedContent);
+    
     // Determine which card has more comprehensive information
     const card1WordCount = (card1.content || '').split(/\s+/).length;
     const card2WordCount = (card2.content || '').split(/\s+/).length;
@@ -180,10 +184,10 @@ export const CardMergeDialog = ({
     
     const mergedCard: Partial<ZettelCard> = {
       ...baseCard,
-      content: mergedContent,
-      title: card1.title || card2.title || 'Merged Card',
-      tags: [...new Set([...(card1.tags || []), ...(card2.tags || [])])],
-      linkedCards: [...new Set([...(card1.linkedCards || []), ...(card2.linkedCards || [])])]
+      content: sanitizedContent,
+      title: sanitizeCardInput(card1.title || card2.title || 'Merged Card'),
+      tags: [...new Set([...(card1.tags || []), ...(card2.tags || [])])].slice(0, 50),
+      linkedCards: [...new Set([...(card1.linkedCards || []), ...(card2.linkedCards || [])])].slice(0, 100)
     };
     
     onMerge(mergedCard);
