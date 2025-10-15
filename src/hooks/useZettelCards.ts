@@ -88,19 +88,28 @@ export const useZettelCards = () => {
         description: sanitizeCardInput(newCard.description || ''),
       };
 
-      // Check for duplicate cards automatically
+      // Check for duplicate cards automatically (only if title AND content match)
       const newContent = `${sanitizedCard.title} ${sanitizedCard.content}`;
       let duplicateCard: ZettelCard | null = null;
       let highestSimilarity = 0;
       
       for (const existingCard of cards) {
-        const existingContent = `${existingCard.title} ${existingCard.content}`;
-        const similarity = calculateCardSimilarity(newContent, existingContent);
+        // Check if titles are identical or very similar
+        const titleSimilarity = calculateCardSimilarity(
+          sanitizedCard.title.toLowerCase(), 
+          existingCard.title.toLowerCase()
+        );
         
-        if (similarity > highestSimilarity) {
-          highestSimilarity = similarity;
-          if (similarity >= 0.95) {
-            duplicateCard = existingCard;
+        // Only consider it a duplicate if titles are very similar (>=0.9)
+        if (titleSimilarity >= 0.9) {
+          const existingContent = `${existingCard.title} ${existingCard.content}`;
+          const similarity = calculateCardSimilarity(newContent, existingContent);
+          
+          if (similarity > highestSimilarity) {
+            highestSimilarity = similarity;
+            if (similarity >= 0.95) {
+              duplicateCard = existingCard;
+            }
           }
         }
       }
