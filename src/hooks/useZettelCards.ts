@@ -344,6 +344,92 @@ export const useZettelCards = () => {
     }
   });
 
+  const mergeDuplicateCardsMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const duplicatePairs: Array<{ original: ZettelCard; duplicate: ZettelCard }> = [];
+      
+      // Find duplicate pairs
+      for (let i = 0; i < cards.length; i++) {
+        for (let j = i + 1; j < cards.length; j++) {
+          const card1 = cards[i];
+          const card2 = cards[j];
+          
+          // Check title similarity first
+          const titleSimilarity = calculateCardSimilarity(
+            card1.title.toLowerCase(),
+            card2.title.toLowerCase()
+          );
+          
+          if (titleSimilarity >= 0.9) {
+            const content1 = `${card1.title} ${card1.content}`;
+            const content2 = `${card2.title} ${card2.content}`;
+            const contentSimilarity = calculateCardSimilarity(content1, content2);
+            
+            if (contentSimilarity >= 0.95) {
+              // Keep the one with longer content as original
+              const [original, duplicate] = (card1.content?.length || 0) >= (card2.content?.length || 0)
+                ? [card1, card2]
+                : [card2, card1];
+              
+              duplicatePairs.push({ original, duplicate });
+            }
+          }
+        }
+      }
+      
+      // Merge duplicates
+      for (const { original, duplicate } of duplicatePairs) {
+        const mergedTags = [...new Set([...(original.tags || []), ...(duplicate.tags || [])])].slice(0, 50);
+        const mergedLinkedCards = [...new Set([...(original.linkedCards || []), ...(duplicate.linkedCards || [])])].slice(0, 100);
+        
+        await supabase
+          .from('zettel_cards')
+          .update({
+            tags: mergedTags,
+            linked_cards: mergedLinkedCards,
+            image_url: original.imageUrl || duplicate.imageUrl,
+            video_url: original.videoUrl || duplicate.videoUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', original.id);
+        
+        // Delete the duplicate
+        await supabase
+          .from('zettel_cards')
+          .delete()
+          .eq('id', duplicate.id)
+          .eq('user_id', user.id);
+      }
+      
+      return duplicatePairs.length;
+    },
+    onSuccess: (mergedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
+      if (mergedCount > 0) {
+        toast({ 
+          title: `Merged ${mergedCount} duplicate card${mergedCount > 1 ? 's' : ''}!`,
+          description: 'Similar cards have been automatically combined.',
+        });
+      }
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error merging duplicates', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Auto-check for duplicates when cards load
+  useEffect(() => {
+    if (cards.length > 1 && !isLoading) {
+      mergeDuplicateCardsMutation.mutate();
+    }
+  }, [cards.length > 0 && !isLoading]);
+
   // Helper function to generate numbers based on organization method
   const generateNumberForMethod = (method: string, category: string, existingNumbers: string[]): string => {
     switch (method) {
@@ -392,9 +478,11 @@ export const useZettelCards = () => {
     updateCard: updateCardMutation.mutate,
     deleteCard: deleteCardMutation.mutate,
     deleteAllCards: deleteAllCardsMutation.mutate,
+    mergeDuplicates: mergeDuplicateCardsMutation.mutate,
     isCreating: createCardMutation.isPending,
     isUpdating: updateCardMutation.isPending,
     isDeleting: deleteCardMutation.isPending,
-    isDeletingAll: deleteAllCardsMutation.isPending
+    isDeletingAll: deleteAllCardsMutation.isPending,
+    isMergingDuplicates: mergeDuplicateCardsMutation.isPending
   };
 };
