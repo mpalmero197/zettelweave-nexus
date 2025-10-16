@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Brain, Sun, Moon, User, Menu, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import pendragonLogo from "@/assets/pendragon-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,9 +72,11 @@ export function UnifiedHeader({
         <div className="flex items-center justify-between">
           {/* Logo & Brand */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Brain className="h-6 w-6 text-primary" />
-            </div>
+            <img 
+              src={pendragonLogo} 
+              alt="Pendragon Logo" 
+              className="h-10 w-10 object-contain"
+            />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-foreground">PendragonX</h1>
               <p className="text-xs text-muted-foreground">
