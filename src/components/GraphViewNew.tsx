@@ -64,14 +64,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         break;
 
       case 'hierarchical':
-        const levels = Math.ceil(Math.sqrt(cards.length));
-        cards.forEach((card, index) => {
-          const level = Math.floor(index / levels);
-          const position = index % levels;
-          positions[card.id] = {
-            x: (position - levels / 2) * 200,
-            y: level * 150,
-          };
+        // Build a proper hierarchy based on card numbers
+        const cardsByLevel: { [level: number]: ZettelCard[] } = {};
+        const maxLevel = cards.reduce((max, card) => {
+          const level = card.number.split('.').length;
+          if (!cardsByLevel[level]) cardsByLevel[level] = [];
+          cardsByLevel[level].push(card);
+          return Math.max(max, level);
+        }, 0);
+
+        // Position cards: parents at top (y=0), children below
+        Object.entries(cardsByLevel).forEach(([levelStr, levelCards]) => {
+          const level = parseInt(levelStr);
+          const cardsInLevel = levelCards.length;
+          
+          levelCards.forEach((card, index) => {
+            positions[card.id] = {
+              x: (index - cardsInLevel / 2) * 250,
+              y: (level - 1) * 200, // Parents (level 1) at y=0, children below
+            };
+          });
         });
         break;
 
