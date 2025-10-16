@@ -554,19 +554,20 @@ export const useZettelCards = () => {
     }
   });
 
-  // Auto-check for duplicates when cards load
+  // Auto-check for duplicates and auto-link cards when they load
   useEffect(() => {
     if (cards.length > 1 && !isLoading) {
+      // Run merge duplicates first
       mergeDuplicateCardsMutation.mutate();
+      
+      // Then auto-link hierarchical cards after a short delay
+      const timer = setTimeout(() => {
+        autoLinkAllCardsMutation.mutate();
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
-  }, [cards.length > 0 && !isLoading]);
-
-  // Auto-link hierarchical cards when cards load
-  useEffect(() => {
-    if (cards.length > 1 && !isLoading) {
-      autoLinkAllCardsMutation.mutate();
-    }
-  }, [cards.length > 0 && !isLoading]);
+  }, [cards.length, isLoading]);
 
   // Helper function to generate numbers based on organization method
   const generateNumberForMethod = (method: string, category: string, existingNumbers: string[]): string => {
