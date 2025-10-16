@@ -48,6 +48,43 @@ export const useZettelCards = () => {
   });
 
   // Helper function to calculate similarity between two cards
+  // Helper function to get parent card number from hierarchical numbering
+  const getParentCardNumber = (cardNumber: string): string | null => {
+    // Examples: "0.1.A.2" -> "0.1.A", "0.1.A" -> "0.1", "0.1" -> null
+    const parts = cardNumber.split('.');
+    if (parts.length <= 1) return null;
+    return parts.slice(0, -1).join('.');
+  };
+
+  // Helper function to find card by number
+  const findCardByNumber = (cardNumber: string): ZettelCard | undefined => {
+    return cards.find(card => card.number === cardNumber);
+  };
+
+  // Helper function to auto-link hierarchical cards
+  const autoLinkHierarchicalCards = async (cardId: string, cardNumber: string, currentLinkedCards: string[]) => {
+    if (!user) return currentLinkedCards;
+
+    const parentNumber = getParentCardNumber(cardNumber);
+    if (!parentNumber) return currentLinkedCards;
+
+    const parentCard = findCardByNumber(parentNumber);
+    if (!parentCard) return currentLinkedCards;
+
+    // Add parent to this card's linked cards
+    const updatedLinkedCards = [...new Set([...currentLinkedCards, parentCard.id])];
+
+    // Also add this card to parent's linked cards
+    const parentLinkedCards = [...new Set([...(parentCard.linkedCards || []), cardId])];
+    await supabase
+      .from('zettel_cards')
+      .update({ linked_cards: parentLinkedCards })
+      .eq('id', parentCard.id)
+      .eq('user_id', user.id);
+
+    return updatedLinkedCards;
+  };
+
   const calculateCardSimilarity = (content1: string, content2: string): number => {
     const c1 = content1.toLowerCase().trim();
     const c2 = content2.toLowerCase().trim();
@@ -164,6 +201,13 @@ export const useZettelCards = () => {
         category = categorizeContent(sanitizedCard.content, sanitizedCard.title);
       }
 
+      // Auto-link hierarchical cards
+      const linkedCardsWithHierarchy = await autoLinkHierarchicalCards(
+        '', // Will be updated after insert
+        cardNumber,
+        sanitizedCard.linkedCards || []
+      );
+
       const { data, error } = await supabase
         .from('zettel_cards')
         .insert({
@@ -174,7 +218,7 @@ export const useZettelCards = () => {
           content: sanitizedCard.content,
           category: category,
           tags: sanitizedCard.tags || [],
-          linked_cards: sanitizedCard.linkedCards || [],
+          linked_cards: linkedCardsWithHierarchy,
           image_url: sanitizedCard.imageUrl,
           video_url: sanitizedCard.videoUrl
         })
@@ -183,8 +227,22 @@ export const useZettelCards = () => {
 
       if (error) throw error;
 
-      // Generate embedding for the new card
+      // Update the card with proper hierarchical links now that we have the ID
       if (data) {
+        const finalLinkedCards = await autoLinkHierarchicalCards(
+          data.id,
+          cardNumber,
+          linkedCardsWithHierarchy
+        );
+
+        if (finalLinkedCards.length !== linkedCardsWithHierarchy.length) {
+          await supabase
+            .from('zettel_cards')
+            .update({ linked_cards: finalLinkedCards })
+            .eq('id', data.id);
+        }
+
+        // Generate embedding for the new card
         supabase.functions.invoke('generate-embedding', {
           body: {
             contentId: data.id,
@@ -235,6 +293,13 @@ export const useZettelCards = () => {
         description: sanitizeCardInput(updatedCard.description || ''),
       };
 
+      // Auto-link hierarchical cards
+      const linkedCardsWithHierarchy = await autoLinkHierarchicalCards(
+        updatedCard.id,
+        updatedCard.number,
+        sanitizedCard.linkedCards || []
+      );
+
       const { data, error } = await supabase
         .from('zettel_cards')
         .update({
@@ -243,7 +308,7 @@ export const useZettelCards = () => {
           content: sanitizedCard.content,
           category: sanitizedCard.category,
           tags: sanitizedCard.tags || [],
-          linked_cards: sanitizedCard.linkedCards || [],
+          linked_cards: linkedCardsWithHierarchy,
           image_url: sanitizedCard.imageUrl,
           video_url: sanitizedCard.videoUrl,
           updated_at: new Date().toISOString()
