@@ -142,6 +142,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         id: card.id,
         type: 'default',
         position,
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
         data: {
           label: (
             <div className="p-3 bg-card border border-border rounded-lg shadow-card hover:shadow-hover transition-all duration-200 max-w-[200px]">
@@ -194,15 +196,13 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             id: `${card.id}-${linkedCardId}`,
             source: card.id,
             target: linkedCardId,
-            type: 'default',
-            sourceHandle: 'bottom',
-            targetHandle: 'top',
+            type: 'smoothstep',
             style: {
               stroke: 'hsl(var(--primary))',
               strokeWidth: 2,
             },
             animated: true,
-          } as Edge);
+          });
         }
       });
     });
@@ -246,15 +246,13 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         id: `${params.source}-${params.target}`,
         source: params.source,
         target: params.target,
-        type: 'default',
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
+        type: 'smoothstep',
         style: {
           stroke: 'hsl(var(--primary))',
           strokeWidth: 2,
         },
         animated: true,
-      } as Edge;
+      };
       
       setEdges((eds) => [...eds, newEdge]);
       onCardUpdate(updatedSourceCard);
