@@ -61,7 +61,7 @@ export const useZettelCards = () => {
     return cards.find(card => card.number === cardNumber);
   };
 
-  // Helper function to auto-link hierarchical cards
+  // Helper function to auto-link hierarchical cards (unidirectional: parent -> child)
   const autoLinkHierarchicalCards = async (cardId: string, cardNumber: string, currentLinkedCards: string[]) => {
     if (!user) return currentLinkedCards;
 
@@ -71,10 +71,7 @@ export const useZettelCards = () => {
     const parentCard = findCardByNumber(parentNumber);
     if (!parentCard) return currentLinkedCards;
 
-    // Add parent to this card's linked cards
-    const updatedLinkedCards = [...new Set([...currentLinkedCards, parentCard.id])];
-
-    // Also add this card to parent's linked cards
+    // Add this child card to parent's linked cards (unidirectional)
     const parentLinkedCards = [...new Set([...(parentCard.linkedCards || []), cardId])];
     await supabase
       .from('zettel_cards')
@@ -82,7 +79,8 @@ export const useZettelCards = () => {
       .eq('id', parentCard.id)
       .eq('user_id', user.id);
 
-    return updatedLinkedCards;
+    // Return unchanged linked cards for the child (no reciprocal link)
+    return currentLinkedCards;
   };
 
   const calculateCardSimilarity = (content1: string, content2: string): number => {
