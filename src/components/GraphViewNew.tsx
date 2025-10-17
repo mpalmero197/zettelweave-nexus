@@ -17,13 +17,14 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
-import { Search, Layout, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
+import { Search, Layout, RotateCcw, Maximize2, Minimize2, Link2Off, Link2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useZettelCards } from '@/hooks/useZettelCards';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -36,6 +37,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'force' | 'circular' | 'hierarchical' | 'category'>('force');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { autoLinkAll, clearAllLinks, isAutoLinking, isClearingLinks } = useZettelCards();
 
   // Filter cards based on search
   const filteredCards = useMemo(() => {
@@ -288,6 +290,14 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     );
   }, [filteredCards, getNodePositions, setNodes]);
 
+  const handleAutoLink = useCallback(() => {
+    autoLinkAll();
+  }, [autoLinkAll]);
+
+  const handleClearAllLinks = useCallback(() => {
+    clearAllLinks();
+  }, [clearAllLinks]);
+
   return (
     <div className={cn(
       "relative w-full h-full bg-background border border-border rounded-xl overflow-hidden shadow-card",
@@ -373,6 +383,30 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 className="bg-background/50"
               >
                 {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAutoLink}
+                disabled={isAutoLinking}
+                className="flex-1 bg-background/50"
+              >
+                <Link2 className="h-4 w-4 mr-2" />
+                Auto Link
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleClearAllLinks}
+                disabled={isClearingLinks}
+                className="flex-1 bg-background/50"
+              >
+                <Link2Off className="h-4 w-4 mr-2" />
+                Clear Links
               </Button>
             </div>
           </div>

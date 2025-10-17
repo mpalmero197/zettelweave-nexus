@@ -552,6 +552,36 @@ export const useZettelCards = () => {
     }
   });
 
+  const clearAllLinksMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      
+      // Clear linked_cards for all user's cards
+      const { error } = await supabase
+        .from('zettel_cards')
+        .update({ linked_cards: [] })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      return cards.length;
+    },
+    onSuccess: (cardCount) => {
+      queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
+      toast({ 
+        title: 'All links cleared!',
+        description: `Removed links from ${cardCount} card${cardCount !== 1 ? 's' : ''}.`,
+      });
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error clearing links', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
   // Auto-check for duplicates and auto-link cards when they load
   useEffect(() => {
     if (cards.length > 1 && !isLoading) {
@@ -617,11 +647,13 @@ export const useZettelCards = () => {
     deleteAllCards: deleteAllCardsMutation.mutate,
     mergeDuplicates: mergeDuplicateCardsMutation.mutate,
     autoLinkAll: autoLinkAllCardsMutation.mutate,
+    clearAllLinks: clearAllLinksMutation.mutate,
     isCreating: createCardMutation.isPending,
     isUpdating: updateCardMutation.isPending,
     isDeleting: deleteCardMutation.isPending,
     isDeletingAll: deleteAllCardsMutation.isPending,
     isMergingDuplicates: mergeDuplicateCardsMutation.isPending,
-    isAutoLinking: autoLinkAllCardsMutation.isPending
+    isAutoLinking: autoLinkAllCardsMutation.isPending,
+    isClearingLinks: clearAllLinksMutation.isPending
   };
 };
