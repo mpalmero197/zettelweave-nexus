@@ -13,6 +13,7 @@ import {
   Panel,
   ConnectionLineType,
   addEdge,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
@@ -194,12 +195,14 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             source: card.id,
             target: linkedCardId,
             type: 'default',
+            sourceHandle: 'bottom',
+            targetHandle: 'top',
             style: {
               stroke: 'hsl(var(--primary))',
               strokeWidth: 2,
             },
             animated: true,
-          });
+          } as Edge);
         }
       });
     });
@@ -244,12 +247,14 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         source: params.source,
         target: params.target,
         type: 'default',
+        sourceHandle: 'bottom',
+        targetHandle: 'top',
         style: {
           stroke: 'hsl(var(--primary))',
           strokeWidth: 2,
         },
         animated: true,
-      };
+      } as Edge;
       
       setEdges((eds) => [...eds, newEdge]);
       onCardUpdate(updatedSourceCard);
@@ -318,6 +323,9 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         maxZoom={2}
         className="bg-background"
         connectionLineType={ConnectionLineType.SmoothStep}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+        }}
       >
         <Background 
           variant={BackgroundVariant.Dots} 
