@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   Node,
@@ -18,7 +18,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
-import { Search, Layout, RotateCcw, Maximize2, Minimize2, Link2Off, Link2 } from 'lucide-react';
+import { Search, Layout, RotateCcw, Maximize2, Minimize2, Link2Off, Link2, Zap, ZapOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useZettelCards } from '@/hooks/useZettelCards';
+import * as d3Force from 'd3-force';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -38,7 +39,10 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'force' | 'circular' | 'hierarchical' | 'category'>('force');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [physicsEnabled, setPhysicsEnabled] = useState(false);
   const { autoLinkAll, clearAllLinks, isAutoLinking, isClearingLinks } = useZettelCards();
+  const simulationRef = useRef<d3Force.Simulation<any, any> | null>(null);
+  const animationFrameRef = useRef<number>();
 
   // Filter cards based on search
   const filteredCards = useMemo(() => {
@@ -118,7 +122,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         });
         break;
 
-      default: // force layout
+      default: // force layout (static initial positions)
         cards.forEach((card, index) => {
           positions[card.id] = {
             x: (Math.random() - 0.5) * 800,
@@ -215,10 +219,61 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update nodes when initialNodes change
+  // Physics simulation for Obsidian-style force layout
+  useEffect(() => {
+    if (physicsEnabled && layoutType === 'force' && nodes.length > 0) {
+      // Create force simulation
+      const simulation = d3Force.forceSimulation(nodes as any)
+        .force('charge', d3Force.forceManyBody().strength(-400)) // Nodes repel each other
+        .force('link', d3Force.forceLink(edges as any)
+          .id((d: any) => d.id)
+          .distance(150)
+          .strength(0.5)
+        )
+        .force('center', d3Force.forceCenter(0, 0)) // Center the graph
+        .force('collision', d3Force.forceCollide().radius(80)) // Prevent overlap
+        .alphaDecay(0.02) // Slower decay for smoother movement
+        .velocityDecay(0.3); // Damping factor
+
+      simulationRef.current = simulation;
+
+      // Update node positions on each tick
+      simulation.on('tick', () => {
+        setNodes((nds) =>
+          nds.map((node) => {
+            const simNode = simulation.nodes().find((n: any) => n.id === node.id);
+            if (simNode) {
+              return {
+                ...node,
+                position: { x: simNode.x || 0, y: simNode.y || 0 },
+              };
+            }
+            return node;
+          })
+        );
+      });
+
+      return () => {
+        simulation.stop();
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    } else {
+      // Stop simulation when physics is disabled
+      if (simulationRef.current) {
+        simulationRef.current.stop();
+        simulationRef.current = null;
+      }
+    }
+  }, [physicsEnabled, layoutType, nodes.length, edges, setNodes]);
+
+  // Update nodes when initialNodes change (only if physics is off)
   useMemo(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
+    if (!physicsEnabled) {
+      setNodes(initialNodes);
+    }
+  }, [initialNodes, setNodes, physicsEnabled]);
 
   // Update edges when initialEdges change
   useMemo(() => {
@@ -295,7 +350,11 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         position: positions[node.id] || { x: 0, y: 0 },
       }))
     );
-  }, [filteredCards, getNodePositions, setNodes]);
+    // Restart simulation if physics is enabled
+    if (physicsEnabled && simulationRef.current) {
+      simulationRef.current.alpha(1).restart();
+    }
+  }, [filteredCards, getNodePositions, setNodes, physicsEnabled]);
 
   const handleAutoLink = useCallback(() => {
     autoLinkAll();
@@ -328,6 +387,9 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         defaultEdgeOptions={{
           type: 'smoothstep',
         }}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        elementsSelectable={true}
       >
         <Background 
           variant={BackgroundVariant.Dots} 
@@ -374,6 +436,23 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 </SelectContent>
               </Select>
             </div>
+
+            {layoutType === 'force' && (
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={physicsEnabled ? "default" : "outline"}
+                  size="sm" 
+                  onClick={() => {
+                    setPhysicsEnabled(!physicsEnabled);
+                    toast(physicsEnabled ? "Physics disabled" : "Physics enabled - nodes now interact!");
+                  }}
+                  className="flex-1"
+                >
+                  {physicsEnabled ? <Zap className="h-4 w-4 mr-2" /> : <ZapOff className="h-4 w-4 mr-2" />}
+                  {physicsEnabled ? 'Physics On' : 'Physics Off'}
+                </Button>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <Button 
@@ -430,6 +509,11 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
               <div className="text-muted-foreground">
                 {filteredCards.length} cards • {initialEdges.length} connections
               </div>
+              {physicsEnabled && (
+                <div className="text-xs text-primary mt-1">
+                  ⚡ Physics Active
+                </div>
+              )}
             </div>
           </div>
         </Panel>
