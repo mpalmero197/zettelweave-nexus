@@ -48,13 +48,22 @@ serve(async (req) => {
     const embeddingData = await embeddingResponse.json();
     const embedding = embeddingData.data[0].embedding;
 
-    // Store embedding in database
+    // Store embedding in database using user's auth token (respects RLS)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authHeader = req.headers.get('Authorization');
+    
+    if (!authHeader) {
+      throw new Error('Authorization header missing');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
     const tableName = contentType === 'zettel_card' ? 'zettel_cards' : 'notes';
     
+    // RLS automatically enforces user_id match - only owner can update
     const { error: updateError } = await supabase
       .from(tableName)
       .update({ content_embedding: embedding })
