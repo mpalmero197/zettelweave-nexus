@@ -146,8 +146,6 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         id: card.id,
         type: 'default',
         position,
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
         data: {
           label: (
             <div className="p-3 bg-card border border-border rounded-lg shadow-card hover:shadow-hover transition-all duration-200 max-w-[200px]">
@@ -200,14 +198,12 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             id: `${card.id}-${linkedCardId}`,
             source: card.id,
             target: linkedCardId,
-            sourceHandle: 'bottom',
-            targetHandle: 'top',
             type: 'smoothstep',
             style: {
               stroke: 'hsl(var(--primary))',
               strokeWidth: 2,
             },
-            animated: true,
+            animated: false,
           });
         }
       });
@@ -222,18 +218,30 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   // Physics simulation for Obsidian-style force layout
   useEffect(() => {
     if (physicsEnabled && layoutType === 'force' && nodes.length > 0) {
+      // Convert edges to d3 link format
+      const d3Links = edges.map(edge => ({
+        source: edge.source,
+        target: edge.target,
+      }));
+
       // Create force simulation
       const simulation = d3Force.forceSimulation(nodes as any)
-        .force('charge', d3Force.forceManyBody().strength(-400)) // Nodes repel each other
-        .force('link', d3Force.forceLink(edges as any)
-          .id((d: any) => d.id)
-          .distance(150)
-          .strength(0.5)
+        .force('charge', d3Force.forceManyBody()
+          .strength(-800) // Stronger repulsion like Obsidian
+          .distanceMax(500)
         )
-        .force('center', d3Force.forceCenter(0, 0)) // Center the graph
-        .force('collision', d3Force.forceCollide().radius(80)) // Prevent overlap
-        .alphaDecay(0.02) // Slower decay for smoother movement
-        .velocityDecay(0.3); // Damping factor
+        .force('link', d3Force.forceLink(d3Links)
+          .id((d: any) => d.id)
+          .distance(100) // Shorter links for tighter connections
+          .strength(1) // Stronger link force
+        )
+        .force('center', d3Force.forceCenter(0, 0))
+        .force('collision', d3Force.forceCollide()
+          .radius(100) // Larger collision radius to prevent overlap
+          .strength(0.8)
+        )
+        .alphaDecay(0.015) // Even slower decay for smoother, longer animation
+        .velocityDecay(0.4); // More damping like Obsidian
 
       simulationRef.current = simulation;
 
@@ -303,14 +311,12 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         id: `${params.source}-${params.target}`,
         source: params.source,
         target: params.target,
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
         type: 'smoothstep',
         style: {
           stroke: 'hsl(var(--primary))',
           strokeWidth: 2,
         },
-        animated: true,
+        animated: false,
       };
       
       setEdges((eds) => [...eds, newEdge]);
@@ -386,10 +392,15 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'smoothstep',
+          animated: false,
         }}
         nodesDraggable={true}
         nodesConnectable={true}
         elementsSelectable={true}
+        selectNodesOnDrag={false}
+        panOnDrag={[1, 2]}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
       >
         <Background 
           variant={BackgroundVariant.Dots} 
