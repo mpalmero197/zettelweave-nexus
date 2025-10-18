@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Download, Edit3, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 
 interface DocumentViewerProps {
   file: File;
@@ -141,12 +142,9 @@ export function DocumentViewer({ file, onClose, onSave }: DocumentViewerProps) {
           ) : (
             <div className="bg-background border border-border rounded-md p-4 h-full overflow-auto">
               {file.name.endsWith('.md') ? (
-                <div 
-                  className="prose prose-sm max-w-none dark:prose-invert"
-                  dangerouslySetInnerHTML={{ 
-                    __html: content.replace(/\n/g, '<br>').replace(/^# (.+)$/gm, '<h1>$1</h1>').replace(/^## (.+)$/gm, '<h2>$1</h2>') 
-                  }}
-                />
+                <ReactMarkdown className="prose prose-sm max-w-none dark:prose-invert">
+                  {content}
+                </ReactMarkdown>
               ) : (
                 <pre className="whitespace-pre-wrap font-mono text-sm text-foreground">
                   {content}

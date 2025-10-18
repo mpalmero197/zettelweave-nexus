@@ -1,25 +1,25 @@
 project_id = "sckglgjydlbztxjupbsk"
 
 [functions.ai-edit-card]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-reorganize-cards]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-categorize-card]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcribe-audio]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcribe-audio-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-embedding]
-verify_jwt = false
+verify_jwt = true
 
 [functions.find-similar-content]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-search]
-verify_jwt = false
+verify_jwt = true
