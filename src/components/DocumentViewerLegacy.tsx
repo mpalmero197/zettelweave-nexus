@@ -142,9 +142,11 @@ export function DocumentViewer({ file, onClose, onSave }: DocumentViewerProps) {
           ) : (
             <div className="bg-background border border-border rounded-md p-4 h-full overflow-auto">
               {file.name.endsWith('.md') ? (
-                <ReactMarkdown className="prose prose-sm max-w-none dark:prose-invert">
-                  {content}
-                </ReactMarkdown>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>
+                    {content}
+                  </ReactMarkdown>
+                </div>
               ) : (
                 <pre className="whitespace-pre-wrap font-mono text-sm text-foreground">
                   {content}
