@@ -196,6 +196,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             id: `${card.id}-${linkedCardId}`,
             source: card.id,
             target: linkedCardId,
+            sourceHandle: 'bottom',
+            targetHandle: 'top',
             type: 'smoothstep',
             style: {
               stroke: 'hsl(var(--primary))',
@@ -246,6 +248,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         id: `${params.source}-${params.target}`,
         source: params.source,
         target: params.target,
+        sourceHandle: 'bottom',
+        targetHandle: 'top',
         type: 'smoothstep',
         style: {
           stroke: 'hsl(var(--primary))',
