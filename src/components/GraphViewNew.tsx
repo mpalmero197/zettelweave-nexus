@@ -122,66 +122,74 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         });
         break;
 
-      default: // force layout - parent-child centered with unlinked on outer circle
-        // Identify parents (cards that have children)
-        const parents = new Set<string>();
-        const children = new Set<string>();
-        const linkedCards = new Set<string>();
+      default: // force layout - Obsidian radial style: parent in center, children around it
+        // Identify all linked relationships
+        const linkMap = new Map<string, string[]>();
+        const allLinkedCards = new Set<string>();
         
         cards.forEach(card => {
           if (card.linkedCards && card.linkedCards.length > 0) {
-            parents.add(card.id);
-            linkedCards.add(card.id);
-            card.linkedCards.forEach(linkedId => {
-              children.add(linkedId);
-              linkedCards.add(linkedId);
-            });
+            linkMap.set(card.id, card.linkedCards);
+            allLinkedCards.add(card.id);
+            card.linkedCards.forEach(id => allLinkedCards.add(id));
           }
         });
 
-        // Cards that are only children (not parents)
-        const pureChildren = new Set([...children].filter(id => !parents.has(id)));
-        
-        // Cards with no links at all
-        const unlinkedCards = cards.filter(card => !linkedCards.has(card.id));
-        
-        // Position parent cards in center cluster
-        const parentCards = cards.filter(card => parents.has(card.id));
-        const parentRadius = Math.max(150, parentCards.length * 30);
-        parentCards.forEach((card, index) => {
-          const angle = (index * 2 * Math.PI) / Math.max(parentCards.length, 1);
-          positions[card.id] = {
-            x: Math.cos(angle) * parentRadius,
-            y: Math.sin(angle) * parentRadius,
-          };
+        // Find the card with most connections (main hub)
+        let mainHubId = '';
+        let maxConnections = 0;
+        linkMap.forEach((children, parentId) => {
+          if (children.length > maxConnections) {
+            maxConnections = children.length;
+            mainHubId = parentId;
+          }
         });
 
-        // Position child cards evenly around their parents
-        const childCards = cards.filter(card => pureChildren.has(card.id));
-        const processedChildren = new Set<string>();
-        
-        parentCards.forEach(parentCard => {
-          const childrenIds = parentCard.linkedCards || [];
-          const childrenToPosition = childrenIds.filter(id => 
-            !processedChildren.has(id) && cards.find(c => c.id === id)
-          );
+        // Position main hub in center
+        if (mainHubId) {
+          positions[mainHubId] = { x: 0, y: 0 };
           
-          childrenToPosition.forEach((childId, index) => {
-            const angle = (index * 2 * Math.PI) / childrenToPosition.length;
-            const childOffset = 250; // Fixed distance from parent
-            const parentPos = positions[parentCard.id];
-            
+          const children = linkMap.get(mainHubId) || [];
+          const childRadius = 300; // Distance from center
+          
+          // Evenly distribute children around the parent
+          children.forEach((childId, index) => {
+            const angle = (index * 2 * Math.PI) / children.length;
             positions[childId] = {
-              x: parentPos.x + Math.cos(angle) * childOffset,
-              y: parentPos.y + Math.sin(angle) * childOffset,
+              x: Math.cos(angle) * childRadius,
+              y: Math.sin(angle) * childRadius,
             };
-            
-            processedChildren.add(childId);
           });
-        });
+
+          // Position other parent cards (if any) in their own clusters
+          linkMap.forEach((children, parentId) => {
+            if (parentId !== mainHubId && !positions[parentId]) {
+              // Place in outer ring if not already positioned
+              const outerRadius = 600;
+              const angle = Math.random() * 2 * Math.PI;
+              positions[parentId] = {
+                x: Math.cos(angle) * outerRadius,
+                y: Math.sin(angle) * outerRadius,
+              };
+              
+              // Position their children around them
+              children.forEach((childId, index) => {
+                if (!positions[childId]) {
+                  const childAngle = (index * 2 * Math.PI) / children.length;
+                  const smallRadius = 200;
+                  positions[childId] = {
+                    x: positions[parentId].x + Math.cos(childAngle) * smallRadius,
+                    y: positions[parentId].y + Math.sin(childAngle) * smallRadius,
+                  };
+                }
+              });
+            }
+          });
+        }
 
         // Position unlinked cards on outer circle
-        const outerRadius = Math.max(500, parentCards.length * 50 + 300);
+        const unlinkedCards = cards.filter(card => !allLinkedCards.has(card.id));
+        const outerRadius = 800;
         unlinkedCards.forEach((card, index) => {
           const angle = (index * 2 * Math.PI) / Math.max(unlinkedCards.length, 1);
           positions[card.id] = {
@@ -189,6 +197,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             y: Math.sin(angle) * outerRadius,
           };
         });
+         break;
     }
 
     return positions;
@@ -198,9 +207,18 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const initialNodes = useMemo(() => {
     const positions = getNodePositions(filteredCards);
     
+    // Identify parent cards (cards with children)
+    const parentIds = new Set<string>();
+    filteredCards.forEach(card => {
+      if (card.linkedCards && card.linkedCards.length > 0) {
+        parentIds.add(card.id);
+      }
+    });
+    
     return filteredCards.map((card): Node => {
       const categoryInfo = getCategoryInfo(card.category);
       const position = positions[card.id] || { x: 0, y: 0 };
+      const isParent = parentIds.has(card.id);
 
       return {
         id: card.id,
@@ -208,11 +226,14 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         position,
         data: {
           label: (
-            <div className="p-3 bg-card border border-border rounded-lg shadow-card hover:shadow-hover transition-all duration-200 max-w-[200px]">
+            <div className={cn(
+              "p-3 bg-card border border-border rounded-lg shadow-card hover:shadow-hover transition-all duration-200",
+              isParent ? "max-w-[250px] scale-125" : "max-w-[180px]"
+            )}>
               <div className="flex items-center gap-2 mb-2">
                 <Badge 
                   variant="outline" 
-                  className="text-xs"
+                  className={cn("text-xs", isParent && "font-semibold")}
                   style={{ 
                     borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                     color: `hsl(var(--category-${categoryInfo.color}))`
@@ -221,7 +242,10 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                   {card.number}
                 </Badge>
               </div>
-              <div className="text-sm font-medium text-foreground mb-1 line-clamp-2">
+              <div className={cn(
+                "font-medium text-foreground mb-1 line-clamp-2",
+                isParent ? "text-base" : "text-sm"
+              )}>
                 {card.title}
               </div>
               <div className="text-xs text-muted-foreground line-clamp-2">
@@ -242,6 +266,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         style: {
           background: 'transparent',
           border: 'none',
+          zIndex: isParent ? 10 : 1,
         },
       };
     });
