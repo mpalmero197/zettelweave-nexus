@@ -122,11 +122,76 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         });
         break;
 
-      default: // force layout (static initial positions)
-        cards.forEach((card, index) => {
+      default: // force layout - parent-child centered with unlinked on outer circle
+        // Identify parents (cards that have children)
+        const parents = new Set<string>();
+        const children = new Set<string>();
+        const linkedCards = new Set<string>();
+        
+        cards.forEach(card => {
+          if (card.linkedCards && card.linkedCards.length > 0) {
+            parents.add(card.id);
+            linkedCards.add(card.id);
+            card.linkedCards.forEach(linkedId => {
+              children.add(linkedId);
+              linkedCards.add(linkedId);
+            });
+          }
+        });
+
+        // Cards that are only children (not parents)
+        const pureChildren = new Set([...children].filter(id => !parents.has(id)));
+        
+        // Cards with no links at all
+        const unlinkedCards = cards.filter(card => !linkedCards.has(card.id));
+        
+        // Position parent cards in center cluster
+        const parentCards = cards.filter(card => parents.has(card.id));
+        const parentRadius = Math.max(150, parentCards.length * 30);
+        parentCards.forEach((card, index) => {
+          const angle = (index * 2 * Math.PI) / Math.max(parentCards.length, 1);
           positions[card.id] = {
-            x: (Math.random() - 0.5) * 800,
-            y: (Math.random() - 0.5) * 600,
+            x: Math.cos(angle) * parentRadius,
+            y: Math.sin(angle) * parentRadius,
+          };
+        });
+
+        // Position child cards around their parents
+        const childCards = cards.filter(card => pureChildren.has(card.id));
+        childCards.forEach((child) => {
+          // Find which parent(s) link to this child
+          const parentCard = cards.find(card => 
+            card.linkedCards && card.linkedCards.includes(child.id)
+          );
+          
+          if (parentCard && positions[parentCard.id]) {
+            // Position around the parent
+            const parentPos = positions[parentCard.id];
+            const childrenOfParent = parentCard.linkedCards || [];
+            const childIndex = childrenOfParent.indexOf(child.id);
+            const angle = (childIndex * 2 * Math.PI) / childrenOfParent.length;
+            const childOffset = 200;
+            
+            positions[child.id] = {
+              x: parentPos.x + Math.cos(angle) * childOffset,
+              y: parentPos.y + Math.sin(angle) * childOffset,
+            };
+          } else {
+            // Fallback: random position
+            positions[child.id] = {
+              x: (Math.random() - 0.5) * 400,
+              y: (Math.random() - 0.5) * 400,
+            };
+          }
+        });
+
+        // Position unlinked cards on outer circle
+        const outerRadius = Math.max(500, parentCards.length * 50 + 300);
+        unlinkedCards.forEach((card, index) => {
+          const angle = (index * 2 * Math.PI) / Math.max(unlinkedCards.length, 1);
+          positions[card.id] = {
+            x: Math.cos(angle) * outerRadius,
+            y: Math.sin(angle) * outerRadius,
           };
         });
     }
