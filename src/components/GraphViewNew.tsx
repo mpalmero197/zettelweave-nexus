@@ -156,33 +156,28 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
           };
         });
 
-        // Position child cards around their parents
+        // Position child cards evenly around their parents
         const childCards = cards.filter(card => pureChildren.has(card.id));
-        childCards.forEach((child) => {
-          // Find which parent(s) link to this child
-          const parentCard = cards.find(card => 
-            card.linkedCards && card.linkedCards.includes(child.id)
+        const processedChildren = new Set<string>();
+        
+        parentCards.forEach(parentCard => {
+          const childrenIds = parentCard.linkedCards || [];
+          const childrenToPosition = childrenIds.filter(id => 
+            !processedChildren.has(id) && cards.find(c => c.id === id)
           );
           
-          if (parentCard && positions[parentCard.id]) {
-            // Position around the parent
+          childrenToPosition.forEach((childId, index) => {
+            const angle = (index * 2 * Math.PI) / childrenToPosition.length;
+            const childOffset = 250; // Fixed distance from parent
             const parentPos = positions[parentCard.id];
-            const childrenOfParent = parentCard.linkedCards || [];
-            const childIndex = childrenOfParent.indexOf(child.id);
-            const angle = (childIndex * 2 * Math.PI) / childrenOfParent.length;
-            const childOffset = 200;
             
-            positions[child.id] = {
+            positions[childId] = {
               x: parentPos.x + Math.cos(angle) * childOffset,
               y: parentPos.y + Math.sin(angle) * childOffset,
             };
-          } else {
-            // Fallback: random position
-            positions[child.id] = {
-              x: (Math.random() - 0.5) * 400,
-              y: (Math.random() - 0.5) * 400,
-            };
-          }
+            
+            processedChildren.add(childId);
+          });
         });
 
         // Position unlinked cards on outer circle
