@@ -97,30 +97,60 @@ export function ResizableGrid({
   };
 
   const resetLayout = () => {
-    // Reset to default positions with better spacing
-    const resetWidgets = widgets.map((widget, index) => {
-      const positions = [
-        { x: 0, y: 0, w: 6, h: 3 }, // welcome
-        { x: 6, y: 0, w: 6, h: 3 }, // stats  
-        { x: 0, y: 3, w: 8, h: 4 }, // quick-capture
-        { x: 8, y: 3, w: 4, h: 4 }, // recent-cards
-        { x: 0, y: 7, w: 4, h: 4 }, // recent-notes
-        { x: 4, y: 7, w: 4, h: 4 }, // additional widgets
-        { x: 8, y: 7, w: 4, h: 4 },
-        { x: 0, y: 11, w: 6, h: 3 },
-        { x: 6, y: 11, w: 6, h: 3 },
-      ];
+    // Auto-arrange to fill full width with optimized layout
+    const autoArrangeWidgets = () => {
+      const sorted = [...widgets].sort((a, b) => {
+        // Prioritize larger widgets first for better packing
+        const sizeA = (a.position?.w || 4) * (a.position?.h || 3);
+        const sizeB = (b.position?.w || 4) * (b.position?.h || 3);
+        return sizeB - sizeA;
+      });
+
+      const arranged: DashboardWidget[] = [];
+      const grid: boolean[][] = Array(100).fill(null).map(() => Array(12).fill(false));
       
-      const defaultPos = positions[index] || { x: (index % 4) * 3, y: Math.floor(index / 4) * 4, w: 3, h: 4 };
+      sorted.forEach(widget => {
+        const w = Math.max(widget.position?.w || 4, widget.type === 'welcome' || widget.type === 'stats' ? 4 : 3);
+        const h = Math.max(widget.position?.h || 3, widget.type === 'welcome' ? 3 : 3);
+        
+        // Find best position that fits
+        let placed = false;
+        for (let y = 0; y < 100 && !placed; y++) {
+          for (let x = 0; x <= 12 - w && !placed; x++) {
+            // Check if space is available
+            let canPlace = true;
+            for (let dy = 0; dy < h && canPlace; dy++) {
+              for (let dx = 0; dx < w && canPlace; dx++) {
+                if (grid[y + dy]?.[x + dx]) {
+                  canPlace = false;
+                }
+              }
+            }
+            
+            if (canPlace) {
+              // Mark space as occupied
+              for (let dy = 0; dy < h; dy++) {
+                for (let dx = 0; dx < w; dx++) {
+                  grid[y + dy][x + dx] = true;
+                }
+              }
+              
+              arranged.push({
+                ...widget,
+                position: { x, y, w, h }
+              });
+              placed = true;
+            }
+          }
+        }
+      });
       
-      return {
-        ...widget,
-        position: defaultPos
-      };
-    });
+      return arranged;
+    };
     
-    onLayoutChange(resetWidgets);
-    toast.success('Layout reset to spacious default positions');
+    const arrangedWidgets = autoArrangeWidgets();
+    onLayoutChange(arrangedWidgets);
+    toast.success('Layout auto-arranged to fill width');
   };
 
   const visibleWidgets = widgets.filter(w => w.isVisible);
@@ -164,7 +194,7 @@ export function ResizableGrid({
         rowHeight={80}
         isDraggable={isDraggable && !isLocked}
         isResizable={isResizable && !isLocked}
-        compactType="vertical"
+        compactType={null}
         preventCollision={false}
         margin={[20, 20]}
         containerPadding={[0, 0]}

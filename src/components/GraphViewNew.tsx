@@ -198,10 +198,10 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             id: `${card.id}-${linkedCardId}`,
             source: card.id,
             target: linkedCardId,
-            type: 'smoothstep',
+            type: 'straight',
             style: {
-              stroke: 'hsl(var(--primary))',
-              strokeWidth: 2,
+              stroke: 'hsl(var(--muted-foreground) / 0.2)',
+              strokeWidth: 1,
             },
             animated: false,
           });
@@ -224,24 +224,24 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         target: edge.target,
       }));
 
-      // Create force simulation
+      // Create force simulation - Obsidian-style with proper spacing
       const simulation = d3Force.forceSimulation(nodes as any)
         .force('charge', d3Force.forceManyBody()
-          .strength(-800) // Stronger repulsion like Obsidian
-          .distanceMax(500)
+          .strength(-1200) // Strong repulsion for spacing
+          .distanceMax(600)
         )
         .force('link', d3Force.forceLink(d3Links)
           .id((d: any) => d.id)
-          .distance(100) // Shorter links for tighter connections
-          .strength(1) // Stronger link force
+          .distance(150) // More space between connected nodes
+          .strength(0.3) // Gentler link force for organic layout
         )
-        .force('center', d3Force.forceCenter(0, 0))
+        .force('center', d3Force.forceCenter(0, 0).strength(0.05)) // Weak centering
         .force('collision', d3Force.forceCollide()
-          .radius(100) // Larger collision radius to prevent overlap
-          .strength(0.8)
+          .radius(120) // Prevent node overlap
+          .strength(1)
         )
-        .alphaDecay(0.015) // Even slower decay for smoother, longer animation
-        .velocityDecay(0.4); // More damping like Obsidian
+        .alphaDecay(0.01) // Slower decay for smooth settling
+        .velocityDecay(0.6); // Higher damping for stability
 
       simulationRef.current = simulation;
 
@@ -311,10 +311,10 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         id: `${params.source}-${params.target}`,
         source: params.source,
         target: params.target,
-        type: 'smoothstep',
+        type: 'straight',
         style: {
-          stroke: 'hsl(var(--primary))',
-          strokeWidth: 2,
+          stroke: 'hsl(var(--muted-foreground) / 0.2)',
+          strokeWidth: 1,
         },
         animated: false,
       };
@@ -389,10 +389,14 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         minZoom={0.1}
         maxZoom={2}
         className="bg-background"
-        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineType={ConnectionLineType.Straight}
         defaultEdgeOptions={{
-          type: 'smoothstep',
+          type: 'straight',
           animated: false,
+          style: {
+            stroke: 'hsl(var(--muted-foreground) / 0.2)',
+            strokeWidth: 1,
+          },
         }}
         nodesDraggable={true}
         nodesConnectable={true}
