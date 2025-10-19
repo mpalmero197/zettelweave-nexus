@@ -216,7 +216,6 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     });
     
     return filteredCards.map((card): Node => {
-      const categoryInfo = getCategoryInfo(card.category);
       const position = positions[card.id] || { x: 0, y: 0 };
       const isParent = parentIds.has(card.id);
 
@@ -226,47 +225,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         position,
         data: {
           label: (
-            <div className={cn(
-              "p-3 bg-card border border-border rounded-lg shadow-card hover:shadow-hover transition-all duration-200",
-              isParent ? "max-w-[250px] scale-125" : "max-w-[180px]"
-            )}>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-xs", isParent && "font-semibold")}
-                  style={{ 
-                    borderColor: `hsl(var(--category-${categoryInfo.color}))`,
-                    color: `hsl(var(--category-${categoryInfo.color}))`
-                  }}
-                >
-                  {card.number}
-                </Badge>
-              </div>
+            <div className="flex flex-col items-center gap-2">
               <div className={cn(
-                "font-medium text-foreground mb-1 line-clamp-2",
-                isParent ? "text-base" : "text-sm"
+                "text-foreground font-medium text-center whitespace-nowrap",
+                isParent ? "text-sm" : "text-xs"
               )}>
                 {card.title}
               </div>
-              <div className="text-xs text-muted-foreground line-clamp-2">
-                {card.description || card.content.substring(0, 60) + '...'}
-              </div>
-              {card.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {card.tags.slice(0, 2).map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <div 
+                className={cn(
+                  "rounded-full bg-muted-foreground/40 hover:bg-primary transition-colors",
+                  isParent ? "w-4 h-4" : "w-3 h-3"
+                )}
+              />
             </div>
           )
         },
         style: {
           background: 'transparent',
           border: 'none',
-          zIndex: isParent ? 10 : 1,
+          padding: 0,
         },
       };
     });
