@@ -500,26 +500,10 @@ export const useZettelCards = () => {
         const parentCard = findCardByNumber(parentNumber);
         if (!parentCard) continue;
         
-        // Check if link already exists
-        const cardAlreadyLinksToParent = (card.linkedCards || []).includes(parentCard.id);
+        // Check if parent already links to this child
         const parentAlreadyLinksToCard = (parentCard.linkedCards || []).includes(card.id);
         
-        let needsUpdate = false;
-        let needsParentUpdate = false;
-        
-        // Update this card to link to parent
-        if (!cardAlreadyLinksToParent) {
-          const updatedLinkedCards = [...new Set([...(card.linkedCards || []), parentCard.id])];
-          await supabase
-            .from('zettel_cards')
-            .update({ linked_cards: updatedLinkedCards })
-            .eq('id', card.id)
-            .eq('user_id', user.id);
-          needsUpdate = true;
-          linksCreated++;
-        }
-        
-        // Update parent to link to this card
+        // ONLY update parent to link to child (unidirectional: parent -> child)
         if (!parentAlreadyLinksToCard) {
           const updatedParentLinkedCards = [...new Set([...(parentCard.linkedCards || []), card.id])];
           await supabase
@@ -527,7 +511,6 @@ export const useZettelCards = () => {
             .update({ linked_cards: updatedParentLinkedCards })
             .eq('id', parentCard.id)
             .eq('user_id', user.id);
-          needsParentUpdate = true;
           linksCreated++;
         }
       }
