@@ -491,8 +491,12 @@ export const useZettelCards = () => {
       if (!user) throw new Error('User not authenticated');
       
       let linksCreated = 0;
+      const updates: { id: string; linkedCards: string[] }[] = [];
       
-      // Process each card to find and link to its parent
+      // Build a complete parent-child relationship map
+      const parentChildMap = new Map<string, Set<string>>();
+      
+      // Process each card to identify all parent-child relationships
       for (const card of cards) {
         const parentNumber = getParentCardNumber(card.number);
         if (!parentNumber) continue;
@@ -500,18 +504,30 @@ export const useZettelCards = () => {
         const parentCard = findCardByNumber(parentNumber);
         if (!parentCard) continue;
         
-        // Check if parent already links to this child
-        const parentAlreadyLinksToCard = (parentCard.linkedCards || []).includes(card.id);
+        // Add to parent-child map
+        if (!parentChildMap.has(parentCard.id)) {
+          parentChildMap.set(parentCard.id, new Set(parentCard.linkedCards || []));
+        }
+        parentChildMap.get(parentCard.id)!.add(card.id);
+      }
+      
+      // Update all parent cards with their complete set of children
+      for (const [parentId, childrenSet] of parentChildMap.entries()) {
+        const parentCard = cards.find(c => c.id === parentId);
+        if (!parentCard) continue;
         
-        // ONLY update parent to link to child (unidirectional: parent -> child)
-        if (!parentAlreadyLinksToCard) {
-          const updatedParentLinkedCards = [...new Set([...(parentCard.linkedCards || []), card.id])];
+        const currentLinks = new Set(parentCard.linkedCards || []);
+        const newChildren = Array.from(childrenSet).filter(childId => !currentLinks.has(childId));
+        
+        if (newChildren.length > 0) {
+          const updatedLinkedCards = Array.from(childrenSet);
           await supabase
             .from('zettel_cards')
-            .update({ linked_cards: updatedParentLinkedCards })
-            .eq('id', parentCard.id)
+            .update({ linked_cards: updatedLinkedCards })
+            .eq('id', parentId)
             .eq('user_id', user.id);
-          linksCreated++;
+          
+          linksCreated += newChildren.length;
         }
       }
       
