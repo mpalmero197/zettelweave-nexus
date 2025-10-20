@@ -539,15 +539,12 @@ export const useZettelCards = () => {
     mutationFn: async () => {
       if (!user) throw new Error('User not authenticated');
       
-      // Clear linked_cards for all user's cards
-      const { error } = await supabase
-        .from('zettel_cards')
-        .update({ linked_cards: [] })
-        .eq('user_id', user.id);
+      // Use the database function to clear all links
+      const { data, error } = await supabase.rpc('clear_all_card_links');
 
       if (error) throw error;
       
-      return cards.length;
+      return data || 0;
     },
     onSuccess: (cardCount) => {
       queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });

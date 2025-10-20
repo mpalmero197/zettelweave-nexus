@@ -443,6 +443,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      clear_all_card_links: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       find_similar_notes: {
         Args: {
           max_results?: number
