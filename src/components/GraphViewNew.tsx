@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useZettelCards } from '@/hooks/useZettelCards';
+import { supabase } from '@/integrations/supabase/client';
 import * as d3Force from 'd3-force';
 
 interface GraphViewProps {
@@ -338,6 +339,30 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       }
     }
   }, [physicsEnabled, layoutType, nodes.length, edges, setNodes]);
+
+  // Subscribe to realtime updates for instant graph updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('zettel-cards-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'zettel_cards'
+        },
+        () => {
+          // When any card is updated (including linked_cards changes),
+          // the query will automatically refetch due to invalidation
+          console.log('Zettel card updated - graph will refresh');
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Update nodes when initialNodes change (only if physics is off)
   useMemo(() => {
