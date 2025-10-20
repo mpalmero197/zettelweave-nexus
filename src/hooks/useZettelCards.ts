@@ -517,8 +517,9 @@ export const useZettelCards = () => {
       
       return linksCreated;
     },
-    onSuccess: (linksCreated) => {
-      queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
+    onSuccess: async (linksCreated) => {
+      // Immediately refetch to show updated links
+      await queryClient.refetchQueries({ queryKey: ['zettel-cards'] });
       if (linksCreated > 0) {
         toast({ 
           title: `Auto-linked ${linksCreated} card connection${linksCreated > 1 ? 's' : ''}!`,
@@ -546,8 +547,9 @@ export const useZettelCards = () => {
       
       return data || 0;
     },
-    onSuccess: (cardCount) => {
-      queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });
+    onSuccess: async (cardCount) => {
+      // Immediately refetch to show cleared links
+      await queryClient.refetchQueries({ queryKey: ['zettel-cards'] });
       toast({ 
         title: 'All links cleared!',
         description: `Removed links from ${cardCount} card${cardCount !== 1 ? 's' : ''}.`,
@@ -562,20 +564,17 @@ export const useZettelCards = () => {
     }
   });
 
-  // Auto-check for duplicates and auto-link cards when they load
-  useEffect(() => {
-    if (cards.length > 1 && !isLoading) {
-      // Run merge duplicates first
-      mergeDuplicateCardsMutation.mutate();
-      
-      // Then auto-link hierarchical cards after a short delay
-      const timer = setTimeout(() => {
-        autoLinkAllCardsMutation.mutate();
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [cards.length, isLoading]);
+  // Auto-check for duplicates and auto-link cards when they load (disabled by default)
+  // Users can manually trigger these actions via the UI buttons
+  // useEffect(() => {
+  //   if (cards.length > 1 && !isLoading) {
+  //     mergeDuplicateCardsMutation.mutate();
+  //     const timer = setTimeout(() => {
+  //       autoLinkAllCardsMutation.mutate();
+  //     }, 500);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [cards.length, isLoading]);
 
   // Helper function to generate numbers based on organization method
   const generateNumberForMethod = (method: string, category: string, existingNumbers: string[]): string => {
