@@ -492,48 +492,84 @@ export const useZettelCards = () => {
       
       let linksCreated = 0;
       
-      // Build a complete parent-child relationship map
-      // STRICTLY UNIDIRECTIONAL: Only parent -> child links
-      const parentChildMap = new Map<string, Set<string>>();
+      // CONTENT-BASED AUTOLINKING: Scan card content for mentions of other cards
+      const cardLinks = new Map<string, Set<string>>();
       
-      // Process each card to identify all parent-child relationships based on numbering
-      for (const card of cards) {
-        const parentNumber = getParentCardNumber(card.number);
-        if (!parentNumber) continue; // Skip root cards
+      // Helper function to detect if content mentions a card
+      const detectMentions = (content: string, targetCard: ZettelCard): boolean => {
+        const searchText = content.toLowerCase();
         
-        const parentCard = findCardByNumber(parentNumber);
-        if (!parentCard) continue; // Parent doesn't exist
+        // Check for explicit [[title]] wiki-style links
+        const wikiLinkPattern = new RegExp(`\\[\\[${targetCard.title.toLowerCase()}\\]\\]`);
+        if (wikiLinkPattern.test(searchText)) return true;
         
-        // Initialize parent entry if needed
-        if (!parentChildMap.has(parentCard.id)) {
-          // Start with existing manual links, then add auto-detected children
-          parentChildMap.set(parentCard.id, new Set(parentCard.linkedCards || []));
+        // Check for card number mentions (e.g., "see card 1.2.3" or "card #1.2.3")
+        const numberPattern = new RegExp(`(?:card\\s+#?|#)${targetCard.number.replace(/\./g, '\\.')}\\b`, 'i');
+        if (numberPattern.test(searchText)) return true;
+        
+        // Check for direct title mentions (whole word match)
+        const titlePattern = new RegExp(`\\b${targetCard.title.toLowerCase()}\\b`);
+        if (titlePattern.test(searchText)) return true;
+        
+        // Check for shared tags (at least 2 matching tags)
+        const sourceTags = new Set(content.match(/#\w+/g)?.map(t => t.toLowerCase()) || []);
+        const targetTags = new Set(targetCard.tags.map(t => t.toLowerCase()));
+        const commonTags = [...sourceTags].filter(tag => targetTags.has(tag));
+        if (commonTags.length >= 2) return true;
+        
+        return false;
+      };
+      
+      // Scan each card for mentions of other cards
+      for (const sourceCard of cards) {
+        const combinedContent = `${sourceCard.title} ${sourceCard.content} ${sourceCard.description || ''}`.toLowerCase();
+        const linkedCardIds = new Set(sourceCard.linkedCards || []);
+        
+        // Check against all other cards
+        for (const targetCard of cards) {
+          if (sourceCard.id === targetCard.id) continue; // Skip self
+          if (linkedCardIds.has(targetCard.id)) continue; // Already linked
+          
+          // Detect if this card mentions the target card
+          if (detectMentions(combinedContent, targetCard)) {
+            if (!cardLinks.has(sourceCard.id)) {
+              cardLinks.set(sourceCard.id, new Set(sourceCard.linkedCards || []));
+            }
+            cardLinks.get(sourceCard.id)!.add(targetCard.id);
+          }
         }
         
-        // Add this child to parent's children set
-        parentChildMap.get(parentCard.id)!.add(card.id);
+        // ALSO include hierarchical parent-child links (based on numbering)
+        const parentNumber = getParentCardNumber(sourceCard.number);
+        if (parentNumber) {
+          const parentCard = findCardByNumber(parentNumber);
+          if (parentCard && !linkedCardIds.has(parentCard.id)) {
+            // Add child to parent's links (parent -> child)
+            if (!cardLinks.has(parentCard.id)) {
+              cardLinks.set(parentCard.id, new Set(parentCard.linkedCards || []));
+            }
+            cardLinks.get(parentCard.id)!.add(sourceCard.id);
+          }
+        }
       }
       
-      // Update all parent cards with their complete set of children
-      // This ensures all hierarchical relationships are established
-      for (const [parentId, childrenSet] of parentChildMap.entries()) {
-        const parentCard = cards.find(c => c.id === parentId);
-        if (!parentCard) continue;
+      // Update all cards with detected links
+      for (const [cardId, linkedSet] of cardLinks.entries()) {
+        const card = cards.find(c => c.id === cardId);
+        if (!card) continue;
         
-        const currentLinks = new Set(parentCard.linkedCards || []);
-        const allChildren = Array.from(childrenSet);
+        const currentLinks = new Set(card.linkedCards || []);
+        const allLinks = Array.from(linkedSet);
+        const newLinks = allLinks.filter(linkId => !currentLinks.has(linkId));
         
-        // Only update if there are new children to add
-        const newChildren = allChildren.filter(childId => !currentLinks.has(childId));
-        
-        if (newChildren.length > 0) {
+        if (newLinks.length > 0) {
           await supabase
             .from('zettel_cards')
-            .update({ linked_cards: allChildren })
-            .eq('id', parentId)
+            .update({ linked_cards: allLinks })
+            .eq('id', cardId)
             .eq('user_id', user.id);
           
-          linksCreated += newChildren.length;
+          linksCreated += newLinks.length;
         }
       }
       
