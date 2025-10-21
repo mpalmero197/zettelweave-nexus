@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Brain, Shield, Eye, EyeOff } from 'lucide-react';
-import { setSecurityHeaders } from '@/utils/security';
-import { Turnstile } from '@marsidev/react-turnstile';
+import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Brain, Shield, Eye, EyeOff } from "lucide-react";
+import { setSecurityHeaders } from "@/utils/security";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function Auth() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: '' });
-  const [captchaToken, setCaptchaToken] = useState<string>('');
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: "" });
+  const [captchaToken, setCaptchaToken] = useState<string>("");
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
 
@@ -29,7 +29,7 @@ export default function Auth() {
   // Password strength checker
   const checkPasswordStrength = (pass: string) => {
     let score = 0;
-    let feedback = '';
+    let feedback = "";
 
     if (pass.length >= 8) score++;
     if (/[A-Z]/.test(pass)) score++;
@@ -40,19 +40,19 @@ export default function Auth() {
     switch (score) {
       case 0:
       case 1:
-        feedback = 'Very weak - add more characters';
+        feedback = "Very weak - add more characters";
         break;
       case 2:
-        feedback = 'Weak - needs uppercase, lowercase, numbers, and symbols';
+        feedback = "Weak - needs uppercase, lowercase, numbers, and symbols";
         break;
       case 3:
-        feedback = 'Fair - missing some character types';
+        feedback = "Fair - missing some character types";
         break;
       case 4:
-        feedback = 'Good - consider adding more complexity';
+        feedback = "Good - consider adding more complexity";
         break;
       case 5:
-        feedback = 'Strong password!';
+        feedback = "Strong password!";
         break;
     }
 
@@ -72,64 +72,64 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!captchaToken) {
       toast({
-        title: 'Captcha required',
-        description: 'Please complete the captcha verification',
-        variant: 'destructive',
+        title: "Captcha required",
+        description: "Please complete the captcha verification",
+        variant: "destructive",
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     const { error } = await signIn(email, password, captchaToken);
-    
+
     if (error) {
       toast({
-        title: 'Sign in failed',
+        title: "Sign in failed",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
       // Reset captcha on error
-      setCaptchaToken('');
+      setCaptchaToken("");
     }
-    
+
     setIsLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!captchaToken) {
       toast({
-        title: 'Captcha required',
-        description: 'Please complete the captcha verification',
-        variant: 'destructive',
+        title: "Captcha required",
+        description: "Please complete the captcha verification",
+        variant: "destructive",
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     const { error } = await signUp(email, password, captchaToken);
-    
+
     if (error) {
       toast({
-        title: 'Sign up failed',
+        title: "Sign up failed",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
       // Reset captcha on error
-      setCaptchaToken('');
+      setCaptchaToken("");
     } else {
       toast({
-        title: 'Check your email',
-        description: 'We sent you a confirmation link.',
+        title: "Check your email",
+        description: "We sent you a confirmation link.",
       });
     }
-    
+
     setIsLoading(false);
   };
 
@@ -143,17 +143,13 @@ export default function Auth() {
               PendragonX
             </h1>
           </div>
-          <p className="text-muted-foreground">
-            Your personal knowledge management system
-          </p>
+          <p className="text-muted-foreground">Your personal knowledge management system</p>
         </div>
 
         <Card className="shadow-lg border-border/50">
           <CardHeader className="space-y-1">
             <h2 className="text-2xl font-semibold leading-none tracking-tight text-center">Welcome</h2>
-            <CardDescription className="text-center">
-              Sign in to your account or create a new one
-            </CardDescription>
+            <CardDescription className="text-center">Sign in to your account or create a new one</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="space-y-4">
@@ -161,7 +157,7 @@ export default function Auth() {
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
@@ -197,27 +193,23 @@ export default function Auth() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-center">
                     <Turnstile
-                      siteKey="1x00000000000000000000AA"
+                      siteKey="0x4AAAAAAB7vMwxnSLcyaAaz"
                       onSuccess={(token) => setCaptchaToken(token)}
-                      onError={() => setCaptchaToken('')}
-                      onExpire={() => setCaptchaToken('')}
+                      onError={() => setCaptchaToken("")}
+                      onExpire={() => setCaptchaToken("")}
                     />
                   </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading || !captchaToken}
-                  >
+
+                  <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
@@ -263,42 +255,40 @@ export default function Auth() {
                               className={`h-1 w-full rounded ${
                                 level <= passwordStrength.score
                                   ? level <= 2
-                                    ? 'bg-red-500'
+                                    ? "bg-red-500"
                                     : level <= 3
-                                    ? 'bg-yellow-500'
-                                    : 'bg-green-500'
-                                  : 'bg-gray-200'
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
+                                  : "bg-gray-200"
                               }`}
                             />
                           ))}
                         </div>
-                        <p className={`text-xs ${
-                          passwordStrength.score <= 2
-                            ? 'text-red-600'
-                            : passwordStrength.score <= 3
-                            ? 'text-yellow-600'
-                            : 'text-green-600'
-                        }`}>
+                        <p
+                          className={`text-xs ${
+                            passwordStrength.score <= 2
+                              ? "text-red-600"
+                              : passwordStrength.score <= 3
+                                ? "text-yellow-600"
+                                : "text-green-600"
+                          }`}
+                        >
                           {passwordStrength.feedback}
                         </p>
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex justify-center">
                     <Turnstile
                       siteKey="1x00000000000000000000AA"
                       onSuccess={(token) => setCaptchaToken(token)}
-                      onError={() => setCaptchaToken('')}
-                      onExpire={() => setCaptchaToken('')}
+                      onError={() => setCaptchaToken("")}
+                      onExpire={() => setCaptchaToken("")}
                     />
                   </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading || !captchaToken}
-                  >
+
+                  <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account
                   </Button>
@@ -307,7 +297,7 @@ export default function Auth() {
             </Tabs>
           </CardContent>
         </Card>
-        
+
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
