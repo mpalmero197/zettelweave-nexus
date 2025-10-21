@@ -226,17 +226,17 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         position,
         data: {
           label: (
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-1">
               <div className={cn(
-                "text-foreground font-medium text-center whitespace-nowrap",
+                "text-foreground font-medium text-center max-w-[120px] truncate",
                 isParent ? "text-sm" : "text-xs"
               )}>
                 {card.title}
               </div>
               <div 
                 className={cn(
-                  "rounded-full bg-muted-foreground/40 hover:bg-primary transition-colors",
-                  isParent ? "w-4 h-4" : "w-3 h-3"
+                  "rounded-full border-2 border-muted-foreground/30 bg-background hover:border-primary hover:bg-primary/10 transition-all cursor-pointer shadow-sm",
+                  isParent ? "w-3 h-3" : "w-2.5 h-2.5"
                 )}
               />
             </div>
@@ -247,15 +247,17 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
           border: 'none',
           padding: 0,
         },
+        draggable: true,
       };
     });
   }, [filteredCards, getNodePositions]);
 
-  // Create edges from card links
+  // Create edges from card links - STRICTLY UNIDIRECTIONAL
   const initialEdges = useMemo(() => {
     const edges: Edge[] = [];
     
     filteredCards.forEach(card => {
+      // Only create edges from this card to its linked cards (parent -> child)
       card.linkedCards.forEach(linkedCardId => {
         if (filteredCards.find(c => c.id === linkedCardId)) {
           edges.push({
@@ -264,10 +266,11 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             target: linkedCardId,
             type: 'straight',
             style: {
-              stroke: 'hsl(var(--muted-foreground) / 0.2)',
-              strokeWidth: 1,
+              stroke: 'hsl(var(--muted-foreground) / 0.3)',
+              strokeWidth: 1.5,
             },
             animated: false,
+            markerEnd: undefined, // No arrow - cleaner Obsidian style
           });
         }
       });
@@ -288,24 +291,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         target: edge.target,
       }));
 
-      // Create force simulation - Obsidian-style with proper spacing
+      // Create force simulation - Obsidian-style physics with enhanced repulsion and collision
       const simulation = d3Force.forceSimulation(nodes as any)
         .force('charge', d3Force.forceManyBody()
-          .strength(-1200) // Strong repulsion for spacing
-          .distanceMax(600)
+          .strength(-2000) // Stronger repulsion for better spacing
+          .distanceMax(800)
         )
         .force('link', d3Force.forceLink(d3Links)
           .id((d: any) => d.id)
-          .distance(150) // More space between connected nodes
-          .strength(0.3) // Gentler link force for organic layout
+          .distance(200) // Spring-like attraction between linked nodes
+          .strength(0.5) // Stronger attraction for parent-child
         )
-        .force('center', d3Force.forceCenter(0, 0).strength(0.05)) // Weak centering
+        .force('center', d3Force.forceCenter(0, 0).strength(0.03)) // Gentle gravity to center
         .force('collision', d3Force.forceCollide()
-          .radius(120) // Prevent node overlap
-          .strength(1)
+          .radius(150) // Larger collision radius to prevent overlap
+          .strength(1.2) // Strong collision detection
         )
-        .alphaDecay(0.01) // Slower decay for smooth settling
-        .velocityDecay(0.6); // Higher damping for stability
+        .force('x', d3Force.forceX(0).strength(0.01)) // Weak horizontal centering
+        .force('y', d3Force.forceY(0).strength(0.01)) // Weak vertical centering
+        .alphaDecay(0.008) // Even slower decay for organic settling
+        .velocityDecay(0.4); // Lower damping for more natural movement
 
       simulationRef.current = simulation;
 
@@ -388,7 +393,14 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     const targetCard = filteredCards.find(c => c.id === params.target);
     
     if (sourceCard && targetCard && onCardUpdate) {
-      // Only update source card to include link to target (directional link)
+      // Prevent duplicate links
+      if ((sourceCard.linkedCards || []).includes(targetCard.id)) {
+        toast.error('Link already exists');
+        return;
+      }
+      
+      // STRICTLY UNIDIRECTIONAL: Only update source card to link to target
+      // This is a manual link, so it persists regardless of hierarchy
       const updatedSourceCard = {
         ...sourceCard,
         linkedCards: [...(sourceCard.linkedCards || []), targetCard.id]
@@ -401,8 +413,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         target: params.target,
         type: 'straight',
         style: {
-          stroke: 'hsl(var(--muted-foreground) / 0.2)',
-          strokeWidth: 1,
+          stroke: 'hsl(var(--muted-foreground) / 0.3)',
+          strokeWidth: 1.5,
         },
         animated: false,
       };
@@ -410,7 +422,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       setEdges((eds) => [...eds, newEdge]);
       onCardUpdate(updatedSourceCard);
       
-      toast(`Linked "${sourceCard.title}" → "${targetCard.title}"`);
+      toast.success(`Linked "${sourceCard.title}" → "${targetCard.title}"`);
     }
   }, [filteredCards, onCardUpdate, setEdges]);
 

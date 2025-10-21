@@ -491,39 +491,45 @@ export const useZettelCards = () => {
       if (!user) throw new Error('User not authenticated');
       
       let linksCreated = 0;
-      const updates: { id: string; linkedCards: string[] }[] = [];
       
       // Build a complete parent-child relationship map
+      // STRICTLY UNIDIRECTIONAL: Only parent -> child links
       const parentChildMap = new Map<string, Set<string>>();
       
-      // Process each card to identify all parent-child relationships
+      // Process each card to identify all parent-child relationships based on numbering
       for (const card of cards) {
         const parentNumber = getParentCardNumber(card.number);
-        if (!parentNumber) continue;
+        if (!parentNumber) continue; // Skip root cards
         
         const parentCard = findCardByNumber(parentNumber);
-        if (!parentCard) continue;
+        if (!parentCard) continue; // Parent doesn't exist
         
-        // Add to parent-child map
+        // Initialize parent entry if needed
         if (!parentChildMap.has(parentCard.id)) {
+          // Start with existing manual links, then add auto-detected children
           parentChildMap.set(parentCard.id, new Set(parentCard.linkedCards || []));
         }
+        
+        // Add this child to parent's children set
         parentChildMap.get(parentCard.id)!.add(card.id);
       }
       
       // Update all parent cards with their complete set of children
+      // This ensures all hierarchical relationships are established
       for (const [parentId, childrenSet] of parentChildMap.entries()) {
         const parentCard = cards.find(c => c.id === parentId);
         if (!parentCard) continue;
         
         const currentLinks = new Set(parentCard.linkedCards || []);
-        const newChildren = Array.from(childrenSet).filter(childId => !currentLinks.has(childId));
+        const allChildren = Array.from(childrenSet);
+        
+        // Only update if there are new children to add
+        const newChildren = allChildren.filter(childId => !currentLinks.has(childId));
         
         if (newChildren.length > 0) {
-          const updatedLinkedCards = Array.from(childrenSet);
           await supabase
             .from('zettel_cards')
-            .update({ linked_cards: updatedLinkedCards })
+            .update({ linked_cards: allChildren })
             .eq('id', parentId)
             .eq('user_id', user.id);
           
