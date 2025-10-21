@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Brain, Shield, Eye, EyeOff } from 'lucide-react';
 import { setSecurityHeaders } from '@/utils/security';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -16,6 +17,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: '' });
+  const [captchaToken, setCaptchaToken] = useState<string>('');
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
 
@@ -70,9 +72,19 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaToken) {
+      toast({
+        title: 'Captcha required',
+        description: 'Please complete the captcha verification',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email, password, captchaToken);
     
     if (error) {
       toast({
@@ -80,6 +92,8 @@ export default function Auth() {
         description: error.message,
         variant: 'destructive',
       });
+      // Reset captcha on error
+      setCaptchaToken('');
     }
     
     setIsLoading(false);
@@ -87,9 +101,19 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaToken) {
+      toast({
+        title: 'Captcha required',
+        description: 'Please complete the captcha verification',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, captchaToken);
     
     if (error) {
       toast({
@@ -97,6 +121,8 @@ export default function Auth() {
         description: error.message,
         variant: 'destructive',
       });
+      // Reset captcha on error
+      setCaptchaToken('');
     } else {
       toast({
         title: 'Check your email',
@@ -171,10 +197,20 @@ export default function Auth() {
                       </Button>
                     </div>
                   </div>
+                  
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey="1x00000000000000000000AA"
+                      onSuccess={(token) => setCaptchaToken(token)}
+                      onError={() => setCaptchaToken('')}
+                      onExpire={() => setCaptchaToken('')}
+                    />
+                  </div>
+                  
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || !captchaToken}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
@@ -248,10 +284,20 @@ export default function Auth() {
                       </div>
                     )}
                   </div>
+                  
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey="1x00000000000000000000AA"
+                      onSuccess={(token) => setCaptchaToken(token)}
+                      onError={() => setCaptchaToken('')}
+                      onExpire={() => setCaptchaToken('')}
+                    />
+                  </div>
+                  
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || !captchaToken}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account

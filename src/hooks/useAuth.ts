@@ -27,7 +27,7 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, captchaToken?: string) => {
     // Input validation
     if (!email || !password) {
       return { error: { message: 'Email and password are required' } };
@@ -36,11 +36,14 @@ export const useAuth = () => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        captchaToken,
+      }
     });
     return { error };
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, captchaToken?: string) => {
     // Input validation
     if (!email || !password) {
       return { error: { message: 'Email and password are required' } };
@@ -70,7 +73,8 @@ export const useAuth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        captchaToken,
       }
     });
     return { error };
