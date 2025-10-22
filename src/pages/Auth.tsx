@@ -20,6 +20,10 @@ export default function Auth() {
   const [captchaToken, setCaptchaToken] = useState<string>("");
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  
+  // Use test key if no environment variable is set
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+  const isTestKey = turnstileSiteKey === "1x00000000000000000000AA";
 
   // Set security headers on component mount
   useEffect(() => {
@@ -73,7 +77,7 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!captchaToken) {
+    if (!captchaToken && !isTestKey) {
       toast({
         title: "Captcha required",
         description: "Please complete the captcha verification",
@@ -102,7 +106,7 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!captchaToken) {
+    if (!captchaToken && !isTestKey) {
       toast({
         title: "Captcha required",
         description: "Please complete the captcha verification",
@@ -196,14 +200,14 @@ export default function Auth() {
 
                   <div className="flex justify-center">
                     <Turnstile
-                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                      siteKey={turnstileSiteKey}
                       onSuccess={(token) => setCaptchaToken(token)}
                       onError={() => setCaptchaToken("")}
                       onExpire={() => setCaptchaToken("")}
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
+                  <Button type="submit" className="w-full" disabled={isLoading || (!captchaToken && !isTestKey)}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
@@ -281,14 +285,14 @@ export default function Auth() {
 
                   <div className="flex justify-center">
                     <Turnstile
-                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                      siteKey={turnstileSiteKey}
                       onSuccess={(token) => setCaptchaToken(token)}
                       onError={() => setCaptchaToken("")}
                       onExpire={() => setCaptchaToken("")}
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
+                  <Button type="submit" className="w-full" disabled={isLoading || (!captchaToken && !isTestKey)}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account
                   </Button>
