@@ -77,15 +77,6 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!captchaToken && !isTestKey) {
-      toast({
-        title: "Captcha required",
-        description: "Please complete the captcha verification",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     const { error } = await signIn(email, password, captchaToken);
@@ -105,15 +96,6 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!captchaToken && !isTestKey) {
-      toast({
-        title: "Captcha required",
-        description: "Please complete the captcha verification",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsLoading(true);
 
@@ -198,16 +180,7 @@ export default function Auth() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center">
-                    <Turnstile
-                      siteKey={turnstileSiteKey}
-                      onSuccess={(token) => setCaptchaToken(token)}
-                      onError={() => setCaptchaToken("")}
-                      onExpire={() => setCaptchaToken("")}
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isLoading || (!captchaToken && !isTestKey)}>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
@@ -283,16 +256,7 @@ export default function Auth() {
                     )}
                   </div>
 
-                  <div className="flex justify-center">
-                    <Turnstile
-                      siteKey={turnstileSiteKey}
-                      onSuccess={(token) => setCaptchaToken(token)}
-                      onError={() => setCaptchaToken("")}
-                      onExpire={() => setCaptchaToken("")}
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isLoading || (!captchaToken && !isTestKey)}>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account
                   </Button>
