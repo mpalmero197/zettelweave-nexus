@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -8,13 +10,68 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MAX_REQUEST_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_CONTENT_LENGTH = 50000; // 50KB text
+
+const categorizeSchema = z.object({
+  title: z.string().max(500),
+  content: z.string().max(MAX_CONTENT_LENGTH),
+  method: z.enum(['dewey', 'luhmann', 'folgezettel', 'thematic']),
+  existingNumbers: z.array(z.string()).max(1000)
+});
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { title, content, method, existingNumbers } = await req.json();
+    // Check request size
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse and validate request
+    const requestData = await req.json();
+    const validation = categorizeSchema.safeParse(requestData);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request data', details: validation.error.issues }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { title, content, method, existingNumbers } = validation.data;
 
     console.log('AI Categorization Request:', { 
       title, 
@@ -106,7 +163,7 @@ Analyze and categorize this content using the ${method} system.`;
   } catch (error) {
     console.error('Error in ai-categorize-card:', error);
     return new Response(JSON.stringify({ 
-      error: error.message 
+      error: 'Failed to categorize card'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
