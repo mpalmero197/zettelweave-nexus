@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Brain, Shield, Eye, EyeOff } from "lucide-react";
 import { setSecurityHeaders } from "@/utils/security";
-import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -17,13 +16,8 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: "" });
-  const [captchaToken, setCaptchaToken] = useState<string>("");
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
-  
-  // Use test key if no environment variable is set
-  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
-  const isTestKey = turnstileSiteKey === "1x00000000000000000000AA";
 
   // Set security headers on component mount
   useEffect(() => {
@@ -79,7 +73,7 @@ export default function Auth() {
 
     setIsLoading(true);
 
-    const { error } = await signIn(email, password, captchaToken);
+    const { error } = await signIn(email, password);
 
     if (error) {
       toast({
@@ -87,8 +81,6 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
-      // Reset captcha on error
-      setCaptchaToken("");
     }
 
     setIsLoading(false);
@@ -99,7 +91,7 @@ export default function Auth() {
 
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, captchaToken);
+    const { error } = await signUp(email, password);
 
     if (error) {
       toast({
@@ -107,8 +99,6 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
-      // Reset captcha on error
-      setCaptchaToken("");
     } else {
       toast({
         title: "Check your email",
