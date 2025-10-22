@@ -1,10 +1,17 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const transcribeSchema = z.object({
+  audio: z.string().min(1).max(10485760), // Max ~10MB base64
+  enableSpeakerDiarization: z.boolean().optional().default(false),
+  language: z.string().max(10).optional().default('en')
+});
 
 // Simple speaker change detection based on text patterns
 function detectSpeakerChanges(text: string): Array<{ text: string; speaker: number }> {
@@ -48,7 +55,19 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, enableSpeakerDiarization = false, language = 'en' } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = transcribeSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid audio data or parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { audio, enableSpeakerDiarization, language } = validationResult.data;
     
     if (!audio) {
       throw new Error('No audio data provided');
@@ -122,20 +141,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in transcribe-audio-ai function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An error occurred during transcription';
-    const errorDetails = error instanceof Error ? error.toString() : String(error);
     
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: errorDetails
-      }),
-      {
+      JSON.stringify({ error: 'Failed to process audio transcription' }),
+      { 
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

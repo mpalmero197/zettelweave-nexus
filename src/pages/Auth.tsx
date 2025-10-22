@@ -196,7 +196,7 @@ export default function Auth() {
 
                   <div className="flex justify-center">
                     <Turnstile
-                      siteKey="0x4AAAAAAB7vMwxnSLcyaAaz"
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
                       onSuccess={(token) => setCaptchaToken(token)}
                       onError={() => setCaptchaToken("")}
                       onExpire={() => setCaptchaToken("")}
@@ -281,7 +281,7 @@ export default function Auth() {
 
                   <div className="flex justify-center">
                     <Turnstile
-                      siteKey="1x00000000000000000000AA"
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
                       onSuccess={(token) => setCaptchaToken(token)}
                       onError={() => setCaptchaToken("")}
                       onExpire={() => setCaptchaToken("")}

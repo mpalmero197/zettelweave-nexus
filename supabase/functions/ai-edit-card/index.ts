@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -8,6 +9,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const editCardSchema = z.object({
+  card: z.object({
+    id: z.string().uuid().optional(),
+    title: z.string().min(1).max(200),
+    content: z.string().min(1).max(10000),
+    description: z.string().max(500).optional(),
+    category: z.string().min(1).max(100),
+    tags: z.array(z.string().max(50)).max(20)
+  }),
+  prompt: z.string().min(1).max(1000)
+});
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -15,7 +28,19 @@ serve(async (req) => {
   }
 
   try {
-    const { card, prompt } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = editCardSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input data' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { card, prompt } = validationResult.data;
 
     console.log('AI Edit Request:', { card: card.title, prompt });
 

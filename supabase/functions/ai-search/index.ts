@@ -1,10 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const aiSearchSchema = z.object({
+  query: z.string().min(1).max(500),
+  stickyNotes: z.array(z.object({
+    id: z.string(),
+    content: z.string().max(5000)
+  })).max(100).optional()
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,7 +24,10 @@ serve(async (req) => {
     // Validate authentication from JWT token
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Unauthorized: No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -26,16 +38,27 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
-      throw new Error('Unauthorized: Invalid token');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const userId = user.id; // Use authenticated user's ID
 
-    const { query, stickyNotes = [] } = await req.json();
+    const body = await req.json();
     
-    if (!query) {
-      throw new Error('Query is required');
+    // Validate input
+    const validationResult = aiSearchSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid search parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+    
+    const { query, stickyNotes = [] } = validationResult.data;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -187,9 +210,26 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
 
   } catch (error) {
     console.error('Error in ai-search:', error);
+    
+    let status = 500;
+    let errorMessage = 'Failed to process search request';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('rate limit')) {
+        status = 429;
+        errorMessage = 'Rate limit exceeded. Please try again later.';
+      } else if (error.message.includes('payment')) {
+        status = 402;
+        errorMessage = 'Service temporarily unavailable. Please contact support.';
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: errorMessage }),
+      { 
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   }
 });

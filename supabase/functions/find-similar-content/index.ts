@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const similarContentSchema = z.object({
+  contentId: z.string().uuid(),
+  contentType: z.enum(['zettel_card', 'note']),
+  similarityThreshold: z.number().min(0).max(1).optional().default(0.85),
+  maxResults: z.number().int().min(1).max(50).optional().default(5)
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,7 +23,10 @@ serve(async (req) => {
     // Validate authentication from JWT token
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Unauthorized: No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -25,14 +36,25 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      throw new Error('Unauthorized: Invalid token');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const { contentId, contentType, similarityThreshold = 0.85, maxResults = 5 } = await req.json();
+    const body = await req.json();
     
-    if (!contentId || !contentType) {
-      throw new Error('Missing required fields: contentId, contentType');
+    // Validate input
+    const validationResult = similarContentSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+    
+    const { contentId, contentType, similarityThreshold, maxResults } = validationResult.data;
 
     console.log(`Finding similar content for ${contentType} ${contentId}`);
 
@@ -50,12 +72,18 @@ serve(async (req) => {
         max_results: maxResults
       });
     } else {
-      throw new Error(`Unsupported content type: ${contentType}`);
+      return new Response(
+        JSON.stringify({ error: 'Unsupported content type' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (result.error) {
       console.error('Database error:', result.error);
-      throw result.error;
+      return new Response(
+        JSON.stringify({ error: 'Failed to find similar content' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`Found ${result.data?.length || 0} similar items`);
@@ -67,7 +95,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in find-similar-content function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Failed to process request' }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
