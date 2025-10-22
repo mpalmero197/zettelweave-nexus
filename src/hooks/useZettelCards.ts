@@ -492,7 +492,7 @@ export const useZettelCards = () => {
       
       let linksCreated = 0;
       
-      // CONTENT-BASED AUTOLINKING: Scan card content for mentions of other cards
+      // UNIDIRECTIONAL CONTENT-BASED AUTOLINKING: Only the card that mentions another gets the link
       const cardLinks = new Map<string, Set<string>>();
       
       // Helper function to detect if content mentions a card
@@ -520,7 +520,7 @@ export const useZettelCards = () => {
         return false;
       };
       
-      // Scan each card for mentions of other cards
+      // Scan each card for mentions of other cards (unidirectional)
       for (const sourceCard of cards) {
         const combinedContent = `${sourceCard.title} ${sourceCard.content} ${sourceCard.description || ''}`.toLowerCase();
         const linkedCardIds = new Set(sourceCard.linkedCards || []);
@@ -530,7 +530,7 @@ export const useZettelCards = () => {
           if (sourceCard.id === targetCard.id) continue; // Skip self
           if (linkedCardIds.has(targetCard.id)) continue; // Already linked
           
-          // Detect if this card mentions the target card
+          // Detect if THIS card mentions the target card (unidirectional: source -> target)
           if (detectMentions(combinedContent, targetCard)) {
             if (!cardLinks.has(sourceCard.id)) {
               cardLinks.set(sourceCard.id, new Set(sourceCard.linkedCards || []));
@@ -539,16 +539,19 @@ export const useZettelCards = () => {
           }
         }
         
-        // ALSO include hierarchical parent-child links (based on numbering)
+        // HIERARCHICAL links: parent links to child (unidirectional: parent -> child)
         const parentNumber = getParentCardNumber(sourceCard.number);
         if (parentNumber) {
           const parentCard = findCardByNumber(parentNumber);
-          if (parentCard && !linkedCardIds.has(parentCard.id)) {
-            // Add child to parent's links (parent -> child)
-            if (!cardLinks.has(parentCard.id)) {
-              cardLinks.set(parentCard.id, new Set(parentCard.linkedCards || []));
+          if (parentCard) {
+            const parentLinkedIds = new Set(parentCard.linkedCards || []);
+            if (!parentLinkedIds.has(sourceCard.id)) {
+              // Add child to parent's links (parent -> child)
+              if (!cardLinks.has(parentCard.id)) {
+                cardLinks.set(parentCard.id, new Set(parentCard.linkedCards || []));
+              }
+              cardLinks.get(parentCard.id)!.add(sourceCard.id);
             }
-            cardLinks.get(parentCard.id)!.add(sourceCard.id);
           }
         }
       }
