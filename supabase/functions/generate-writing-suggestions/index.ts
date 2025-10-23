@@ -12,48 +12,39 @@ serve(async (req) => {
   }
 
   try {
-    const { notes, contentType, instructions } = await req.json();
+    const { text, type } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    if (!notes || !Array.isArray(notes) || notes.length === 0) {
+    if (!text || typeof text !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Notes array is required and must not be empty' }),
+        JSON.stringify({ error: 'Text is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Compile notes into a context for the AI
-    const notesContext = notes.map((note, index) => 
-      `Note ${index + 1} - ${note.title || 'Untitled'}:\n${note.content}`
-    ).join('\n\n---\n\n');
+    const promptMap: Record<string, string> = {
+      'outline': 'Generate a detailed outline with main sections and subsections for this topic. Be specific and structured.',
+      'brainstorm': 'Generate 10 creative ideas and angles to explore related to this topic. Think outside the box.',
+      'argument': 'Suggest 5 compelling arguments or key points that could be made about this topic.',
+      'transition': 'Suggest 3 ways to transition smoothly from the previous content to the next section.',
+      'expand': 'Suggest 3-4 ways to expand on this idea with examples, evidence, or deeper analysis.',
+      'critique': 'Provide constructive feedback on this writing. What works well? What could be improved?',
+    };
 
-    const contentTypePrompt = contentType === 'book' 
-      ? 'Write a comprehensive book chapter or section'
-      : contentType === 'essay'
-      ? 'Write a well-structured essay'
-      : contentType === 'thesis'
-      ? 'Write a detailed thesis section with academic rigor'
-      : contentType === 'dissertation'
-      ? 'Write a dissertation chapter with extensive analysis'
-      : 'Write comprehensive long-form content';
+    const systemPrompt = `You are a writing assistant that helps generate IDEAS and SUGGESTIONS, not full content. 
+Your role is to help writers think through their work, not to write it for them.
+Be concise, actionable, and thought-provoking.`;
 
-    const systemPrompt = `You are an expert writer helping to create ${contentType || 'long-form content'}. 
-Use the provided notes as source material to generate high-quality, cohesive, and well-structured content.
-The content should be thorough, well-researched based on the notes, and professionally written.
+    const userPrompt = `${promptMap[type] || 'Provide helpful writing suggestions for this content.'}
 
-${instructions ? `Additional instructions: ${instructions}` : ''}
+Content:
+${text}
 
-Format the output with proper headings, paragraphs, and structure.`;
-
-    const userPrompt = `${contentTypePrompt} based on the following notes:
-
-${notesContext}
-
-Create a comprehensive, well-structured piece that synthesizes these notes into a cohesive narrative.`;
+Provide clear, actionable suggestions that help the writer develop their own original work.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -67,7 +58,7 @@ Create a comprehensive, well-structured piece that synthesizes these notes into 
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 8000,
+        max_tokens: 1500,
       }),
     });
 
@@ -93,19 +84,19 @@ Create a comprehensive, well-structured piece that synthesizes these notes into 
     }
 
     const data = await response.json();
-    const generatedContent = data.choices?.[0]?.message?.content;
+    const suggestions = data.choices?.[0]?.message?.content;
 
-    if (!generatedContent) {
-      throw new Error('No content generated from AI');
+    if (!suggestions) {
+      throw new Error('No suggestions generated from AI');
     }
 
     return new Response(
-      JSON.stringify({ content: generatedContent }),
+      JSON.stringify({ suggestions }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in generate-long-form-content:', error);
+    console.error('Error in generate-writing-suggestions:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

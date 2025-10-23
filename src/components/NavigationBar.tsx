@@ -34,7 +34,7 @@ import {
   LogOut,
   Settings,
   Shield,
-  Sparkles,
+  Lightbulb,
 } from "lucide-react";
 
 interface NavigationBarProps {
@@ -212,16 +212,16 @@ export function NavigationBar({
                   </DropdownMenu>
                 </NavigationMenuItem>
 
-                {/* AI Generator - Direct Link */}
+                {/* Catalyst - Direct Link */}
                 <NavigationMenuItem>
-                  <Link to="/ai-generator">
+                  <Link to="/catalyst">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-9 px-3"
                     >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI Generator
+                      <Lightbulb className="h-4 w-4 mr-2" />
+                      Catalyst
                     </Button>
                   </Link>
                 </NavigationMenuItem>
@@ -446,15 +446,15 @@ export function NavigationBar({
                       Recorder
                     </Button>
 
-                    {/* AI Generator */}
-                    <Link to="/ai-generator" className="w-full">
+                    {/* Catalyst */}
+                    <Link to="/catalyst" className="w-full">
                       <Button
                         variant="ghost"
                         onClick={() => setMobileMenuOpen(false)}
                         className="w-full justify-start gap-2"
                       >
-                        <Sparkles className="h-4 w-4" />
-                        AI Generator
+                        <Lightbulb className="h-4 w-4" />
+                        Catalyst
                       </Button>
                     </Link>
                   </div>
