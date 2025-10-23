@@ -138,8 +138,8 @@ export function validateZettelCard(card: any): { valid: boolean; errors: string[
     errors.push('Title must be 200 characters or less');
   }
 
-  if (card.content && card.content.length > 10000) {
-    errors.push('Content must be 10,000 characters or less');
+  if (card.content && card.content.length > 30000) {
+    errors.push('Content must be 30,000 characters or less');
   }
 
   if (card.description && card.description.length > 500) {
