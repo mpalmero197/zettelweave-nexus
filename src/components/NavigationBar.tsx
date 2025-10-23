@@ -34,6 +34,7 @@ import {
   LogOut,
   Settings,
   Shield,
+  Sparkles,
 } from "lucide-react";
 
 interface NavigationBarProps {
@@ -209,6 +210,20 @@ export function NavigationBar({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                </NavigationMenuItem>
+
+                {/* AI Generator - Direct Link */}
+                <NavigationMenuItem>
+                  <Link to="/ai-generator">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI Generator
+                    </Button>
+                  </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
@@ -430,6 +445,18 @@ export function NavigationBar({
                       <Mic className="h-4 w-4" />
                       Recorder
                     </Button>
+
+                    {/* AI Generator */}
+                    <Link to="/ai-generator" className="w-full">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        AI Generator
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </SheetContent>
