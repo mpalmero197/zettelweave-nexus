@@ -314,20 +314,25 @@ export const useZettelCards = () => {
         .eq('id', updatedCard.id)
         .eq('user_id', user.id)
         .select()
-        .maybeSingle();
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update card error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Card not found or you do not have permission to update it');
+      }
 
       // Regenerate embedding for the updated card
-      if (data) {
-        supabase.functions.invoke('generate-embedding', {
-          body: {
-            contentId: data.id,
-            contentType: 'zettel_card',
-            text: `${sanitizedCard.title} ${sanitizedCard.content}`
-          }
-        }).catch(err => console.error('Error generating embedding:', err));
-      }
+      supabase.functions.invoke('generate-embedding', {
+        body: {
+          contentId: data.id,
+          contentType: 'zettel_card',
+          text: `${sanitizedCard.title} ${sanitizedCard.content}`
+        }
+      }).catch(err => console.error('Error generating embedding:', err));
 
       return data;
     },
