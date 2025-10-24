@@ -34,12 +34,6 @@ serve(async (req) => {
 
     const { cards, fromMethod, toMethod } = await req.json();
 
-    console.log('AI Reorganization Request:', { 
-      cardCount: cards.length, 
-      fromMethod, 
-      toMethod 
-    });
-
     const organizationMethodDescriptions: Record<string, string> = {
       dewey: `Dewey Decimal Classification (000-999): Use the MOST SPECIFIC Dewey number possible (e.g., 973.4 for U.S. Constitutional Period, not just 900 or 970).
       
@@ -118,8 +112,6 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    console.log('AI Reorganization Response:', aiResponse);
-
     // Parse the AI response as JSON
     let reorganizedCards;
     try {
@@ -128,8 +120,6 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
       reorganizedCards = JSON.parse(jsonStr);
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
-      console.error('Raw response:', aiResponse);
       throw new Error('AI returned invalid JSON format');
     }
 

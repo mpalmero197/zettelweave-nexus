@@ -42,7 +42,7 @@ serve(async (req) => {
     
     const { card, prompt } = validationResult.data;
 
-    console.log('AI Edit Request:', { card: card.title, prompt });
+    console.log('Processing AI edit for card:', card.id || 'new card');
 
     // Retry with exponential backoff for rate limits
     let retries = 3;
@@ -114,8 +114,6 @@ Please improve this card according to the user's request and return the result a
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
-
-    console.log('AI Response:', aiResponse);
 
     // Parse the AI response as JSON
     let parsedResponse;

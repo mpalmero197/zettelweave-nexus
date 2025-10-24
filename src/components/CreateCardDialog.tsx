@@ -64,9 +64,6 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
         setDescription(firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Auto-generate error:', error);
-      }
       toast.error('Failed to categorize card. Please try again.');
       
       // Fallback to old method for Dewey

@@ -56,8 +56,6 @@ serve(async (req) => {
     
     const { contentId, contentType, similarityThreshold, maxResults } = validationResult.data;
 
-    console.log(`Finding similar content for ${contentType} ${contentId}`);
-
     let result;
     if (contentType === 'zettel_card') {
       result = await supabase.rpc('find_similar_zettel_cards', {
@@ -85,8 +83,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log(`Found ${result.data?.length || 0} similar items`);
 
     return new Response(
       JSON.stringify({ similar: result.data || [] }),

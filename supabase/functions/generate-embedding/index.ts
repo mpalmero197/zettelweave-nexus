@@ -24,8 +24,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log(`Generating embedding for ${contentType} ${contentId}`);
-
     // Generate embedding using Lovable AI
     const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
       method: "POST",
@@ -73,8 +71,6 @@ serve(async (req) => {
       console.error('Database update error:', updateError);
       throw updateError;
     }
-
-    console.log(`Successfully generated and stored embedding for ${contentType} ${contentId}`);
 
     return new Response(
       JSON.stringify({ success: true, embedding }),

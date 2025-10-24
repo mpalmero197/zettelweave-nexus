@@ -182,7 +182,6 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
     }
 
     const aiData = await aiResponse.json();
-    console.log('AI Response:', JSON.stringify(aiData, null, 2));
 
     // Extract results from tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];

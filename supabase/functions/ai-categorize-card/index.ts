@@ -73,12 +73,6 @@ serve(async (req) => {
 
     const { title, content, method, existingNumbers } = validation.data;
 
-    console.log('AI Categorization Request:', { 
-      title, 
-      contentLength: content?.length, 
-      method 
-    });
-
     const methodDescriptions: Record<string, string> = {
       dewey: `Dewey Decimal Classification: Use the MOST SPECIFIC number possible (e.g., 973.4 for U.S. Constitutional Period, not just 900).
 
@@ -142,8 +136,6 @@ Analyze and categorize this content using the ${method} system.`;
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
-
-    console.log('AI Response:', aiResponse);
 
     // Parse JSON response
     let result;

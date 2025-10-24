@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 
 type ContentSource = 'cards' | 'notes';
 
@@ -43,6 +44,19 @@ interface PlagiarismResult {
   issues: string[];
   suggestions: string[];
 }
+
+// Validation schemas
+const MAX_CONTENT_LENGTH = 50000;
+
+const writingSuggestionSchema = z.object({
+  text: z.string().min(1, "Content is required").max(MAX_CONTENT_LENGTH, "Content must be less than 50,000 characters"),
+  type: z.enum(['outline', 'brainstorm', 'expand', 'critique'])
+});
+
+const plagiarismCheckSchema = z.object({
+  text: z.string().min(1, "Content is required").max(MAX_CONTENT_LENGTH, "Content must be less than 50,000 characters"),
+  referenceTexts: z.array(z.string()).nullable().optional()
+});
 
 export default function Catalyst() {
   const { cards } = useZettelCards();
@@ -122,6 +136,15 @@ export default function Catalyst() {
   };
 
   const handleEditorChange = (text: string) => {
+    // Enforce max length
+    if (text.length > MAX_CONTENT_LENGTH) {
+      toast({
+        title: 'Content too long',
+        description: `Content cannot exceed ${MAX_CONTENT_LENGTH.toLocaleString()} characters`,
+        variant: 'destructive',
+      });
+      return;
+    }
     setEditorContent(text);
     updateWordCount(text);
   };
@@ -136,12 +159,27 @@ export default function Catalyst() {
       return;
     }
 
+    // Validate input
+    const validation = writingSuggestionSchema.safeParse({ 
+      text: editorContent, 
+      type 
+    });
+
+    if (!validation.success) {
+      toast({
+        title: 'Validation error',
+        description: validation.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsGeneratingSuggestions(true);
     setSuggestions('');
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-writing-suggestions', {
-        body: { text: editorContent, type },
+        body: validation.data,
       });
 
       if (error) throw error;
@@ -152,7 +190,6 @@ export default function Catalyst() {
         description: 'Check the suggestions panel for ideas.',
       });
     } catch (error: any) {
-      console.error('Error generating suggestions:', error);
       toast({
         title: 'Failed to generate suggestions',
         description: error.message || 'Please try again.',
@@ -173,19 +210,31 @@ export default function Catalyst() {
       return;
     }
 
+    const selectedContent = contentItems
+      .filter(item => selectedItems.has(item.id))
+      .map(item => item.content);
+
+    // Validate input
+    const validation = plagiarismCheckSchema.safeParse({ 
+      text: editorContent,
+      referenceTexts: selectedContent.length > 0 ? selectedContent : null,
+    });
+
+    if (!validation.success) {
+      toast({
+        title: 'Validation error',
+        description: validation.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsCheckingPlagiarism(true);
     setPlagiarismResult(null);
 
     try {
-      const selectedContent = contentItems
-        .filter(item => selectedItems.has(item.id))
-        .map(item => item.content);
-
       const { data, error } = await supabase.functions.invoke('check-plagiarism', {
-        body: { 
-          text: editorContent,
-          referenceTexts: selectedContent.length > 0 ? selectedContent : null,
-        },
+        body: validation.data,
       });
 
       if (error) throw error;
@@ -205,7 +254,6 @@ export default function Catalyst() {
         });
       }
     } catch (error: any) {
-      console.error('Error checking plagiarism:', error);
       toast({
         title: 'Failed to check plagiarism',
         description: error.message || 'Please try again.',
@@ -331,6 +379,7 @@ export default function Catalyst() {
                   onChange={(e) => handleEditorChange(e.target.value)}
                   placeholder="Start writing your original content here. Use your knowledge base for reference and get AI suggestions for ideas..."
                   className="flex-1 min-h-[500px] resize-none font-mono text-sm"
+                  maxLength={MAX_CONTENT_LENGTH}
                 />
                 
                 <div className="grid grid-cols-2 gap-2 mt-4">
