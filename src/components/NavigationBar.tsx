@@ -214,16 +214,15 @@ export function NavigationBar({
 
                 {/* Catalyst - Direct Link */}
                 <NavigationMenuItem>
-                  <Link to="/catalyst">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-3"
-                    >
-                      <Lightbulb className="h-4 w-4 mr-2" />
-                      Catalyst
-                    </Button>
-                  </Link>
+                  <Button
+                    variant={activeTab === "catalyst" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => onTabChange("catalyst")}
+                    className="h-9 px-3"
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    Catalyst
+                  </Button>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
@@ -432,6 +431,19 @@ export function NavigationBar({
                         Sticky Notes
                       </Button>
                     </div>
+
+                    {/* Catalyst */}
+                    <Button
+                      variant={activeTab === "catalyst" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("catalyst");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Lightbulb className="h-4 w-4" />
+                      Catalyst
+                    </Button>
 
                     {/* Recorder */}
                     <Button

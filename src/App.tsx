@@ -11,7 +11,6 @@ import Auth from "./pages/Auth";
 // Lazy load heavy pages to reduce initial bundle size
 const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
-const Catalyst = lazy(() => import("./pages/Catalyst"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -50,13 +49,6 @@ const App = () => (
               <ProtectedRoute>
                 <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
                   <Admin />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/catalyst" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-                  <Catalyst />
                 </Suspense>
               </ProtectedRoute>
             } />

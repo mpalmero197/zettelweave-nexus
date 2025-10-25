@@ -89,6 +89,42 @@ export type Database = {
         }
         Relationships: []
       }
+      catalyst_documents: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          selected_items: Json | null
+          selected_source: string
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          selected_items?: Json | null
+          selected_source: string
+          title: string
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          selected_items?: Json | null
+          selected_source?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       dashboard_layouts: {
         Row: {
           created_at: string

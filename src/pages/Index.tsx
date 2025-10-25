@@ -19,6 +19,7 @@ import { CustomizableDashboard } from "@/components/CustomizableDashboard";
 import { Notes } from "@/components/Notes";
 import MeetingRecorder from "@/components/MeetingRecorder";
 import { AudioManager } from "@/components/AudioManager";
+import { Catalyst } from "@/components/Catalyst";
 import { StickyNotesSimple } from "@/components/StickyNotesSimple";
 import { Notebooks } from "@/components/Notebooks";
 import { Calendar } from "@/components/Calendar";
@@ -355,6 +356,10 @@ const Index = () => {
                       </div>
                     )}
                   </div>
+                </TabsContent>
+
+                <TabsContent value="catalyst" className="mt-0">
+                  <Catalyst />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
