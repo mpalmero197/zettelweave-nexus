@@ -307,31 +307,19 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load received requests with sender profile info
+      // Load received requests
       const { data: received, error: receivedError } = await supabase
         .from('friend_requests')
-        .select(`
-          *,
-          sender:profiles!friend_requests_sender_id_fkey(
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
 
       if (receivedError) throw receivedError;
 
-      // Load sent requests with receiver profile info
+      // Load sent requests
       const { data: sent, error: sentError } = await supabase
         .from('friend_requests')
-        .select(`
-          *,
-          receiver:profiles!friend_requests_receiver_id_fkey(
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('sender_id', user.id)
         .eq('status', 'pending');
 
@@ -374,6 +362,19 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check for existing request in either direction
+      const { data: existing } = await supabase
+        .from('friend_requests')
+        .select('id, status')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (existing) {
+        toast.error('A friend request already exists between you and this user');
+        return;
+      }
+
       const { error } = await supabase.from('friend_requests').insert({
         sender_id: user.id,
         receiver_id: receiverId,
@@ -385,9 +386,14 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       toast.success('Friend request sent!');
       searchUsers();
       loadAllUsers();
+      loadFriendRequests();
     } catch (error: any) {
       console.error('Error sending friend request:', error);
-      toast.error('Failed to send friend request');
+      if (error.code === '23505') {
+        toast.error('A friend request already exists');
+      } else {
+        toast.error('Failed to send friend request');
+      }
     }
   };
 
@@ -729,16 +735,9 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
                           <Card key={request.id} className="p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarImage src={request.receiver?.avatar_url} />
-                                  <AvatarFallback>
-                                    {request.receiver?.display_name?.substring(0, 2).toUpperCase() || 'U'}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <Clock className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                  <p className="text-sm font-medium">
-                                    {request.receiver?.display_name || 'User'}
-                                  </p>
+                                  <p className="text-sm font-medium">Request Pending</p>
                                   <p className="text-xs text-muted-foreground">
                                     Sent {new Date(request.created_at).toLocaleDateString()}
                                   </p>
