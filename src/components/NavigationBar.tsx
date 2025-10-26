@@ -480,6 +480,19 @@ export function NavigationBar({
                     Catalyst
                   </Button>
                 </NavigationMenuItem>
+
+                {/* Collab - Direct Link */}
+                <NavigationMenuItem>
+                  <Button
+                    variant={activeTab === "collab" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => onTabChange("collab")}
+                    className="h-9 px-3"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Collab
+                  </Button>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </nav>
