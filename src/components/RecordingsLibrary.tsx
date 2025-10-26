@@ -15,9 +15,29 @@ import {
   Trash2,
   Calendar,
   Clock,
-  HardDrive
+  HardDrive,
+  Share2,
+  Youtube,
+  Music,
+  Instagram
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { 
+  exportForYouTube, 
+  exportForPodcast, 
+  exportForSpotify, 
+  exportForInstagram,
+  exportForTikTok,
+  getExportRecommendation 
+} from '@/utils/mediaExportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Recording {
   id: string;
@@ -90,6 +110,51 @@ export function RecordingsLibrary() {
     } catch (error: any) {
       console.error('Error downloading recording:', error);
       toast.error('Failed to download recording');
+    }
+  };
+
+  const exportForPlatform = async (recording: Recording, platform: string) => {
+    try {
+      const [bucket, ...pathParts] = recording.storage_path.split('/');
+      const path = pathParts.join('/');
+
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .download(path);
+
+      if (error) throw error;
+
+      switch (platform) {
+        case 'youtube':
+          await exportForYouTube(data, recording.title);
+          toast.success('Exported for YouTube!', {
+            description: getExportRecommendation(recording.recording_type)
+          });
+          break;
+        case 'podcast':
+          await exportForPodcast(data, recording.title);
+          toast.success('Exported for Podcasts!', {
+            description: getExportRecommendation(recording.recording_type)
+          });
+          break;
+        case 'spotify':
+          await exportForSpotify(data, recording.title);
+          toast.success('Exported for Spotify!', {
+            description: getExportRecommendation(recording.recording_type)
+          });
+          break;
+        case 'instagram':
+          await exportForInstagram(data, recording.title);
+          toast.success('Exported for Instagram!');
+          break;
+        case 'tiktok':
+          await exportForTikTok(data, recording.title);
+          toast.success('Exported for TikTok!');
+          break;
+      }
+    } catch (error: any) {
+      console.error('Error exporting recording:', error);
+      toast.error('Failed to export recording');
     }
   };
 
@@ -247,13 +312,51 @@ export function RecordingsLibrary() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => downloadRecording(recording)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Share2 className="h-4 w-4 mr-1" />
+                                Export
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Export for Platform</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {(recording.recording_type === 'video' || recording.recording_type === 'screen' || recording.recording_type === 'screen_with_audio') && (
+                                <>
+                                  <DropdownMenuItem onClick={() => exportForPlatform(recording, 'youtube')}>
+                                    <Youtube className="h-4 w-4 mr-2" />
+                                    YouTube
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => exportForPlatform(recording, 'instagram')}>
+                                    <Instagram className="h-4 w-4 mr-2" />
+                                    Instagram
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => exportForPlatform(recording, 'tiktok')}>
+                                    <Video className="h-4 w-4 mr-2" />
+                                    TikTok
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {recording.recording_type === 'audio' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => exportForPlatform(recording, 'podcast')}>
+                                    <Music className="h-4 w-4 mr-2" />
+                                    Podcast
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => exportForPlatform(recording, 'spotify')}>
+                                    <Music className="h-4 w-4 mr-2" />
+                                    Spotify
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => downloadRecording(recording)}>
+                                <Download className="h-4 w-4 mr-2" />
+                                Download (WebM)
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button
                             size="sm"
                             variant="destructive"

@@ -26,6 +26,8 @@ import {
   FolderOpen,
   FileUp,
   Trash2,
+  Share2,
+  Globe
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
@@ -34,10 +36,29 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { exportCatalystToPDF, exportCatalystToDOCX, exportCatalystToEPUB, exportCatalystToKPF } from '@/utils/catalystExportUtils';
+import { 
+  exportToBlogHTML, 
+  exportToMedium, 
+  exportToWordPress, 
+  shareToTwitter, 
+  shareToFacebook, 
+  shareToLinkedIn, 
+  shareToPinterest,
+  exportForSubstack,
+  exportForGhost 
+} from '@/utils/catalystSocialExportUtils';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { CatalystEditor } from '@/components/CatalystEditor';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type ContentSource = 'cards' | 'notes';
 
@@ -727,22 +748,96 @@ export function Catalyst() {
 
           <div className="h-6 w-px bg-border mx-2" />
 
-          <Button onClick={() => handleExport('pdf')} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            PDF
-          </Button>
-          <Button onClick={() => handleExport('docx')} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            DOCX
-          </Button>
-          <Button onClick={() => handleExport('epub')} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            EPUB
-          </Button>
-          <Button onClick={() => handleExport('kpf')} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            KPF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Document Formats</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('docx')}>
+                <FileText className="h-4 w-4 mr-2" />
+                DOCX (Word)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('epub')}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                EPUB
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('kpf')}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Kindle (HTML)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Globe className="h-4 w-4 mr-2" />
+                Publish
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Blog Platforms</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => exportToBlogHTML(documentTitle, editorContent)}>
+                <Globe className="h-4 w-4 mr-2" />
+                HTML Blog Post
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToMedium(documentTitle, editorContent)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Medium (Markdown)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportForSubstack(documentTitle, editorContent)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Substack
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToWordPress(documentTitle, editorContent)}>
+                <FileText className="h-4 w-4 mr-2" />
+                WordPress
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportForGhost(documentTitle, editorContent)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Ghost
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Social Media</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => shareToTwitter(documentTitle, editorContent)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                X (Twitter)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => shareToFacebook(documentTitle)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Facebook
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => shareToLinkedIn(documentTitle, editorContent)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                LinkedIn
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => shareToPinterest(documentTitle)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Pinterest
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="h-6 w-px bg-border mx-2" />
 
