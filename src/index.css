@@ -363,9 +363,9 @@
       min-height: var(--touch-target);
     }
     
-    /* Add bottom padding to page content to prevent overlap with mobile nav */
+    /* Mobile main content padding */
     main, .main-content, [role="main"] {
-      padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
+      padding-bottom: env(safe-area-inset-bottom);
     }
     
     /* Mobile modals and dialogs */

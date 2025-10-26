@@ -17,7 +17,7 @@ export function MobileOptimizedLayout({ children, className }: MobileOptimizedLa
       "transform-gpu",
       className
     )}>
-      <div className="w-full min-h-screen pb-16">
+      <div className="w-full min-h-screen">
         {children}
       </div>
     </div>

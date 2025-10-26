@@ -9,8 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import { MobileDetector } from "@/components/MobileDetector";
 import { MobileTouchHandler } from "@/components/MobileTouchHandler";
-import { MobileNavigation } from "@/components/MobileNavigation";
-import { MobileHeader } from "@/components/MobileHeader";
 
 // Lazy load heavy pages to reduce initial bundle size
 const Index = lazy(() => import("./pages/Index"));
@@ -42,7 +40,6 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <MobileHeader />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/" element={
@@ -66,7 +63,6 @@ const App = () => (
                   </Suspense>
                 } />
               </Routes>
-              <MobileNavigation />
             </BrowserRouter>
           </MobileTouchHandler>
         </MobileDetector>
