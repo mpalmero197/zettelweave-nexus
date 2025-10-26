@@ -69,13 +69,8 @@ const stickyColors = [
 ];
 
 export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) => {
+  // ALL HOOKS MUST BE AT THE TOP - BEFORE ANY CONDITIONAL RETURNS
   const isMobile = useIsMobile();
-  
-  // Use mobile-optimized whiteboard on mobile devices
-  if (isMobile) {
-    return <MobileWhiteboard />;
-  }
-  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -91,6 +86,11 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  
+  // NOW it's safe to conditionally return - all hooks have been called
+  if (isMobile) {
+    return <MobileWhiteboard />;
+  }
 
   // Initialize canvas with proper mobile sizing
   useEffect(() => {
