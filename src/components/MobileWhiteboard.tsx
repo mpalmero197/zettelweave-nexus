@@ -21,6 +21,7 @@ const stickyColors = ["#FFF4A3", "#FFE4A3", "#FFD4A3", "#C4E4FF", "#D4F4DD", "#F
 
 type MobileTool = "pan" | "pen" | "rectangle" | "circle" | "text" | "sticky";
 
+// Mobile-optimized whiteboard component
 export function MobileWhiteboard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
