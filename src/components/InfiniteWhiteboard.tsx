@@ -529,39 +529,55 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
       fabricCanvas.renderAll();
       setActiveTool("select");
     } else if (tool === "text") {
-      const text = new FabricText("Type here...", {
+      const text = new FabricText("Double-click to edit", {
         left: 100,
         top: 100,
         fill: penColor,
         fontSize: 24,
         fontFamily: 'Arial',
       });
+      
       fabricCanvas.add(text);
       fabricCanvas.setActiveObject(text);
       fabricCanvas.renderAll();
       setActiveTool("select");
     } else if (tool === "sticky") {
       const stickyColor = stickyColors[Math.floor(Math.random() * stickyColors.length)];
+      
+      // Create sticky note background
       const sticky = new Rect({
-        left: 100,
-        top: 100,
+        left: 0,
+        top: 0,
         fill: stickyColor,
         width: 200,
         height: 200,
         stroke: '#DDD',
         strokeWidth: 1,
-        shadow: new Shadow({ color: 'rgba(0,0,0,0.1)', blur: 10, offsetX: 0, offsetY: 5 })
+        shadow: new Shadow({ color: 'rgba(0,0,0,0.1)', blur: 10, offsetX: 0, offsetY: 5 }),
+        rx: 4,
+        ry: 4
       });
-      const stickyText = new FabricText("Note...", {
-        left: 110,
-        top: 110,
+      
+      // Create editable text for sticky note
+      const stickyText = new FabricText("Double-click to edit note", {
+        left: 10,
+        top: 10,
         fill: "#333",
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: 'Arial',
-        width: 180
+        width: 180,
+        splitByGrapheme: true,
       });
-      fabricCanvas.add(sticky, stickyText);
-      fabricCanvas.setActiveObject(stickyText);
+      
+      // Group them together so they move as one
+      const stickyGroup = new Group([sticky, stickyText], {
+        left: 100,
+        top: 100,
+        subTargetCheck: true, // Allow clicking on objects inside group
+      });
+      
+      fabricCanvas.add(stickyGroup);
+      fabricCanvas.setActiveObject(stickyGroup);
       fabricCanvas.renderAll();
       setActiveTool("select");
     }
