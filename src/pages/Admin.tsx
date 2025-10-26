@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
-import { Shield, Users, Settings, AlertTriangle, BookOpen } from 'lucide-react';
+import { ActivityMonitor } from '@/components/admin/ActivityMonitor';
+import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Admin() {
@@ -105,7 +106,7 @@ export default function Admin() {
                 Admin Panel
               </h1>
               <p className="text-muted-foreground mt-2">
-                Manage users, system settings, and code editor
+                Complete control hub for PendragonX platform management
               </p>
             </div>
             <Button
@@ -118,21 +119,41 @@ export default function Admin() {
           </div>
         </div>
 
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              User Management
+              Users
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              System Settings
+              System
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Activity
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              Documentation
+              Docs
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Overview</CardTitle>
+                <CardDescription>Quick stats and system health at a glance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ActivityMonitor />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="users">
             <UserManagement />
@@ -140,6 +161,18 @@ export default function Admin() {
 
           <TabsContent value="settings">
             <SystemSettings />
+          </TabsContent>
+
+          <TabsContent value="activity">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Monitor user activity and system events</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ActivityMonitor />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="docs">

@@ -44,6 +44,7 @@ import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileWhiteboard } from "@/components/MobileWhiteboard";
 
 interface InfiniteWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
