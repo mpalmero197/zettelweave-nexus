@@ -457,18 +457,6 @@ export function NavigationBar({
                       <Mic className="h-4 w-4" />
                       Recorder
                     </Button>
-
-                    {/* Catalyst */}
-                    <Link to="/catalyst" className="w-full">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="w-full justify-start gap-2"
-                      >
-                        <Lightbulb className="h-4 w-4" />
-                        Catalyst
-                      </Button>
-                    </Link>
                   </div>
                 </div>
               </SheetContent>

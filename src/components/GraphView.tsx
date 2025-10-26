@@ -357,11 +357,11 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
               stroke: isHighlighted 
                 ? 'hsl(var(--primary))' 
                 : 'hsl(var(--primary) / 0.8)',
-              strokeWidth: isHighlighted ? 4 : 2.5,
-              strokeOpacity: isHighlighted ? 1 : 0.7,
+              strokeWidth: isMobile ? (isHighlighted ? 2 : 1) : (isHighlighted ? 4 : 2.5),
+              strokeOpacity: isHighlighted ? 1 : (isMobile ? 0.5 : 0.7),
               strokeDasharray: isHighlighted ? '0' : '5,5'
             },
-            markerEnd: {
+            markerEnd: isMobile ? undefined : {
               type: 'arrowclosed',
               color: isHighlighted 
                 ? 'hsl(var(--primary))' 
@@ -383,8 +383,8 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
       });
     });
 
-    // Category-based connections (only if enabled)
-    if (showCategoryEdges) {
+    // Category-based connections (only on desktop when enabled)
+    if (showCategoryEdges && !isMobile) {
       const categoryGroups: Record<string, ZettelCard[]> = {};
       filteredCards.forEach(card => {
         const mainCategory = card.category.substring(0, 1) + '00';
@@ -396,13 +396,10 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
 
       Object.values(categoryGroups).forEach(group => {
         if (group.length > 1) {
-          // Create a more intelligent category connection pattern
           for (let i = 0; i < group.length; i++) {
             const sourceCard = group[i];
-            // Connect to next card in group (circular)
             const targetCard = group[(i + 1) % group.length];
             
-            // Only add if not already explicitly linked
             const explicitLink = edges.find(e => 
               (e.source === sourceCard.id && e.target === targetCard.id) ||
               (e.source === targetCard.id && e.target === sourceCard.id)
@@ -431,7 +428,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
     }
 
     return edges;
-  }, [filteredCards, showCategoryEdges, highlightedNodes]);
+  }, [filteredCards, showCategoryEdges, highlightedNodes, isMobile]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
