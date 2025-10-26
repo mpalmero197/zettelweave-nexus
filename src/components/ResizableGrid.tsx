@@ -194,9 +194,9 @@ export function ResizableGrid({
         rowHeight={80}
         isDraggable={isDraggable && !isLocked}
         isResizable={isResizable && !isLocked}
-        compactType={null}
+        compactType="horizontal"
         preventCollision={false}
-        margin={[20, 20]}
+        margin={[12, 12]}
         containerPadding={[0, 0]}
         useCSSTransforms={true}
         transformScale={1}
