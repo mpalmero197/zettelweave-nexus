@@ -571,8 +571,11 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_visible: boolean | null
+          last_activity_at: string | null
           updated_at: string
           user_id: string
+          user_status: Database["public"]["Enums"]["user_status"] | null
         }
         Insert: {
           about_me?: string | null
@@ -580,8 +583,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_visible?: boolean | null
+          last_activity_at?: string | null
           updated_at?: string
           user_id: string
+          user_status?: Database["public"]["Enums"]["user_status"] | null
         }
         Update: {
           about_me?: string | null
@@ -589,8 +595,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_visible?: boolean | null
+          last_activity_at?: string | null
           updated_at?: string
           user_id?: string
+          user_status?: Database["public"]["Enums"]["user_status"] | null
         }
         Relationships: []
       }
@@ -880,6 +889,19 @@ export type Database = {
           roles: Database["public"]["Enums"]["app_role"][]
         }[]
       }
+      get_all_visible_users: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          display_name: string
+          email: string
+          has_pending_request: boolean
+          is_friend: boolean
+          last_activity_at: string
+          user_id: string
+          user_status: Database["public"]["Enums"]["user_status"]
+        }[]
+      }
       get_my_friends: {
         Args: never
         Returns: {
@@ -888,6 +910,8 @@ export type Database = {
           friend_email: string
           friend_user_id: string
           friendship_created_at: string
+          last_activity_at: string
+          user_status: Database["public"]["Enums"]["user_status"]
         }[]
       }
       has_role: {
@@ -916,7 +940,9 @@ export type Database = {
           email: string
           has_pending_request: boolean
           is_friend: boolean
+          last_activity_at: string
           user_id: string
+          user_status: Database["public"]["Enums"]["user_status"]
         }[]
       }
       update_user_role: {
@@ -941,6 +967,7 @@ export type Database = {
         | "stickynote"
         | "notebook"
       sharing_permission: "view" | "edit"
+      user_status: "online" | "busy" | "away" | "dnd" | "offline"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1078,6 +1105,7 @@ export const Constants = {
         "notebook",
       ],
       sharing_permission: ["view", "edit"],
+      user_status: ["online", "busy", "away", "dnd", "offline"],
     },
   },
 } as const

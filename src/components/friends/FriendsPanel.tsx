@@ -6,9 +6,36 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, UserPlus, Users, MessageCircle, Check, X, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Search, 
+  UserPlus, 
+  Users, 
+  MessageCircle, 
+  Check, 
+  X, 
+  Loader2,
+  Circle,
+  Clock,
+  Minus,
+  Moon,
+  Eye,
+  EyeOff,
+  Settings
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+type UserStatus = 'online' | 'busy' | 'away' | 'dnd' | 'offline';
 
 interface Friend {
   friend_user_id: string;
@@ -16,6 +43,8 @@ interface Friend {
   friend_display_name: string;
   friend_avatar_url: string;
   friendship_created_at: string;
+  user_status: UserStatus;
+  last_activity_at: string;
 }
 
 interface FriendRequest {
@@ -37,26 +66,186 @@ interface SearchResult {
   avatar_url: string;
   is_friend: boolean;
   has_pending_request: boolean;
+  user_status: UserStatus;
+  last_activity_at: string;
 }
 
 interface FriendsPanelProps {
   onOpenChat: (friendId: string, friendName: string) => void;
 }
 
+const getStatusColor = (status: UserStatus) => {
+  switch (status) {
+    case 'online': return 'bg-green-500';
+    case 'busy': return 'bg-yellow-500';
+    case 'away': return 'bg-orange-500';
+    case 'dnd': return 'bg-red-500';
+    case 'offline': return 'bg-gray-400';
+    default: return 'bg-gray-400';
+  }
+};
+
+const getStatusIcon = (status: UserStatus) => {
+  switch (status) {
+    case 'online': return <Circle className="h-3 w-3" />;
+    case 'busy': return <Minus className="h-3 w-3" />;
+    case 'away': return <Clock className="h-3 w-3" />;
+    case 'dnd': return <Moon className="h-3 w-3" />;
+    case 'offline': return <Circle className="h-3 w-3" />;
+    default: return <Circle className="h-3 w-3" />;
+  }
+};
+
+const getStatusLabel = (status: UserStatus) => {
+  switch (status) {
+    case 'online': return 'Online';
+    case 'busy': return 'Busy';
+    case 'away': return 'Away';
+    case 'dnd': return 'Do Not Disturb';
+    case 'offline': return 'Offline';
+    default: return 'Offline';
+  }
+};
+
 export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [allUsers, setAllUsers] = useState<SearchResult[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [myStatus, setMyStatus] = useState<UserStatus>('online');
+  const [isVisible, setIsVisible] = useState(true);
+  const [activityTimer, setActivityTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    loadFriends();
-    loadFriendRequests();
+    loadInitialData();
     subscribeToRealtime();
+    startActivityTracking();
+
+    return () => {
+      if (activityTimer) clearInterval(activityTimer);
+    };
   }, []);
+
+  const loadInitialData = async () => {
+    await Promise.all([
+      loadFriends(),
+      loadFriendRequests(),
+      loadAllUsers(),
+      loadMyProfile()
+    ]);
+    setIsLoading(false);
+  };
+
+  const loadMyProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_status, is_visible')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setMyStatus(data.user_status || 'online');
+        setIsVisible(data.is_visible ?? true);
+      }
+    } catch (error: any) {
+      console.error('Error loading profile:', error);
+    }
+  };
+
+  const startActivityTracking = () => {
+    // Update activity on user interactions
+    const updateActivity = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('profiles')
+        .update({ last_activity_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+    };
+
+    // Track mouse and keyboard activity
+    const events = ['mousemove', 'keypress', 'click', 'scroll'];
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity, { passive: true });
+    });
+
+    // Auto-away after 5 minutes
+    const timer = setInterval(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || myStatus !== 'online') return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('last_activity_at')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data?.last_activity_at) {
+        const lastActivity = new Date(data.last_activity_at);
+        const now = new Date();
+        const diff = (now.getTime() - lastActivity.getTime()) / 1000 / 60;
+        
+        if (diff >= 5) {
+          await updateUserStatus('away');
+        }
+      }
+    }, 30000); // Check every 30 seconds
+
+    setActivityTimer(timer);
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, updateActivity));
+      if (timer) clearInterval(timer);
+    };
+  };
+
+  const updateUserStatus = async (status: UserStatus) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ user_status: status })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setMyStatus(status);
+      toast.success(`Status set to ${getStatusLabel(status)}`);
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const updateVisibility = async (visible: boolean) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_visible: visible })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setIsVisible(visible);
+      toast.success(visible ? 'You are now visible to others' : 'You are now invisible');
+    } catch (error: any) {
+      console.error('Error updating visibility:', error);
+      toast.error('Failed to update visibility');
+    }
+  };
 
   const subscribeToRealtime = () => {
     const channel = supabase
@@ -75,6 +264,14 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
           loadFriends();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        () => {
+          loadFriends(); // Refresh to get updated statuses
+          loadAllUsers();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -91,8 +288,17 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     } catch (error: any) {
       console.error('Error loading friends:', error);
       toast.error('Failed to load friends');
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_all_visible_users');
+      
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (error: any) {
+      console.error('Error loading all users:', error);
     }
   };
 
@@ -101,7 +307,6 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get pending requests received
       const { data: received, error: receivedError } = await supabase
         .from('friend_requests')
         .select('*')
@@ -110,7 +315,6 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
 
       if (receivedError) throw receivedError;
 
-      // Get sent requests
       const { data: sent, error: sentError } = await supabase
         .from('friend_requests')
         .select('*')
@@ -162,7 +366,8 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       if (error) throw error;
 
       toast.success('Friend request sent!');
-      searchUsers(); // Refresh search results
+      searchUsers();
+      loadAllUsers();
     } catch (error: any) {
       console.error('Error sending friend request:', error);
       toast.error('Failed to send friend request');
@@ -192,6 +397,70 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     return email.substring(0, 2).toUpperCase();
   };
 
+  const renderUserCard = (user: Friend | SearchResult, isFriend: boolean = false) => {
+    const status = user.user_status || 'offline';
+    const userId = 'friend_user_id' in user ? user.friend_user_id : user.user_id;
+    const displayName = 'friend_display_name' in user ? user.friend_display_name : user.display_name;
+    const email = 'friend_email' in user ? user.friend_email : user.email;
+    const avatarUrl = 'friend_avatar_url' in user ? user.friend_avatar_url : user.avatar_url;
+    
+    return (
+      <Card key={userId} className="p-4 hover:shadow-md transition-shadow">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Avatar>
+                <AvatarImage src={avatarUrl} />
+                <AvatarFallback>
+                  {getUserInitials(displayName, email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${getStatusColor(status)} flex items-center justify-center`}>
+                {getStatusIcon(status)}
+              </div>
+            </div>
+            <div>
+              <p className="font-medium">
+                {displayName || email}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {email}
+              </p>
+              <Badge variant="outline" className="text-xs mt-1">
+                {getStatusLabel(status)}
+              </Badge>
+            </div>
+          </div>
+          {isFriend ? (
+            <Button
+              size="sm"
+              onClick={() => onOpenChat(userId, displayName || email)}
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              Chat
+            </Button>
+          ) : (
+            <>
+              {'is_friend' in user && user.is_friend ? (
+                <Badge variant="secondary">Friends</Badge>
+              ) : 'has_pending_request' in user && user.has_pending_request ? (
+                <Badge>Pending</Badge>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => sendFriendRequest(userId)}
+                >
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
   if (isLoading) {
     return (
       <Card className="w-full h-full">
@@ -207,14 +476,77 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Friends & Community
+          Collaboration Hub
         </CardTitle>
+        
+        {/* Status & Visibility Settings */}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="status-select" className="text-sm font-medium flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              My Status
+            </Label>
+            <Select value={myStatus} onValueChange={(val) => updateUserStatus(val as UserStatus)}>
+              <SelectTrigger id="status-select" className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="online">
+                  <div className="flex items-center gap-2">
+                    <Circle className="h-3 w-3 fill-green-500 text-green-500" />
+                    Online
+                  </div>
+                </SelectItem>
+                <SelectItem value="busy">
+                  <div className="flex items-center gap-2">
+                    <Minus className="h-3 w-3 text-yellow-500" />
+                    Busy
+                  </div>
+                </SelectItem>
+                <SelectItem value="dnd">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-3 w-3 text-red-500" />
+                    Do Not Disturb
+                  </div>
+                </SelectItem>
+                <SelectItem value="offline">
+                  <div className="flex items-center gap-2">
+                    <Circle className="h-3 w-3 fill-gray-400 text-gray-400" />
+                    Appear Offline
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="visibility-switch" className="text-sm font-medium flex items-center gap-2">
+              {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Visibility
+            </Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {isVisible ? 'Visible' : 'Invisible'}
+              </span>
+              <Switch
+                id="visibility-switch"
+                checked={isVisible}
+                onCheckedChange={updateVisibility}
+              />
+            </div>
+          </div>
+        </div>
+        <Separator className="mt-4" />
       </CardHeader>
+
       <CardContent>
         <Tabs defaultValue="friends" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="friends">
               Friends {friends.length > 0 && `(${friends.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="discover">
+              Discover
             </TabsTrigger>
             <TabsTrigger value="requests">
               Requests
@@ -228,50 +560,37 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
           </TabsList>
 
           <TabsContent value="friends" className="space-y-4">
-            <ScrollArea className="h-[500px]">
+            <ScrollArea className="h-[400px]">
               {friends.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No friends yet. Search for users to connect!</p>
+                  <p>No friends yet. Discover users to connect!</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {friends.map((friend) => (
-                    <Card key={friend.friend_user_id} className="p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={friend.friend_avatar_url} />
-                            <AvatarFallback>
-                              {getUserInitials(friend.friend_display_name, friend.friend_email)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {friend.friend_display_name || friend.friend_email}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {friend.friend_email}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => onOpenChat(friend.friend_user_id, friend.friend_display_name || friend.friend_email)}
-                        >
-                          <MessageCircle className="h-4 w-4 mr-1" />
-                          Chat
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+                  {friends.map((friend) => renderUserCard(friend, true))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="discover" className="space-y-4">
+            <ScrollArea className="h-[450px]">
+              {allUsers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No users available</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allUsers.map((user) => renderUserCard(user, false))}
                 </div>
               )}
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4">
-            <ScrollArea className="h-[500px]">
+            <ScrollArea className="h-[450px]">
               {pendingRequests.length === 0 && sentRequests.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -357,7 +676,7 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
               </Button>
             </div>
 
-            <ScrollArea className="h-[450px]">
+            <ScrollArea className="h-[400px]">
               {searchResults.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -365,41 +684,7 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {searchResults.map((result) => (
-                    <Card key={result.user_id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={result.avatar_url} />
-                            <AvatarFallback>
-                              {getUserInitials(result.display_name, result.email)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {result.display_name || result.email}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {result.email}
-                            </p>
-                          </div>
-                        </div>
-                        {result.is_friend ? (
-                          <Badge variant="secondary">Friends</Badge>
-                        ) : result.has_pending_request ? (
-                          <Badge>Pending</Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => sendFriendRequest(result.user_id)}
-                          >
-                            <UserPlus className="h-4 w-4 mr-1" />
-                            Add Friend
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
+                  {searchResults.map((result) => renderUserCard(result, false))}
                 </div>
               )}
             </ScrollArea>
