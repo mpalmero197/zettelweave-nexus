@@ -74,7 +74,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
       
       return matchesSearch && matchesCategory;
     });
-  }, [cards, searchTerm, selectedCategory]);
+  }, [cards, searchTerm, selectedCategory, isMobile]);
 
   // Layout algorithms
   const getNodePositions = useCallback((cards: ZettelCard[], type: string) => {
@@ -148,8 +148,9 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
       case 'force':
       default:
         // Improved force-directed layout with collision detection
-        const nodeRadius = 125; // Approximate node size
-        const minDistance = nodeRadius * 2.2; // Minimum distance between nodes
+        // Much larger spacing on mobile for cleaner view
+        const nodeRadius = isMobile ? 80 : 125;
+        const minDistance = nodeRadius * (isMobile ? 3.5 : 2.2);
         
         cards.forEach((card, index) => {
           // Start with a grid
@@ -189,15 +190,11 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
     }
 
     return positions;
-  }, []);
+  }, [isMobile]);
 
   // Convert cards to nodes with enhanced styling and positioning
   const initialNodes: Node[] = useMemo(() => {
     const positions = getNodePositions(filteredCards, layoutType);
-    
-    // Adjust node size for mobile
-    const nodeMinWidth = isMobile ? '160px' : '200px';
-    const nodeMaxWidth = isMobile ? '180px' : '250px';
     
     return filteredCards.map((card) => {
       const categoryInfo = getCategoryInfo(card.category);
@@ -208,6 +205,52 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         card.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       
+      // Mobile: simple dots/circles only
+      if (isMobile) {
+        return {
+          id: card.id,
+          type: 'default',
+          position: positions[card.id] || { x: 0, y: 0 },
+          sourcePosition: Position.Right,
+          targetPosition: Position.Left,
+          data: {
+            label: (
+              <div 
+                className={`group rounded-full transition-all duration-200 ${
+                  isHighlighted ? 'scale-110' : 'scale-100'
+                }`}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: isHighlighted 
+                    ? `hsl(var(--primary))` 
+                    : isSearchMatch 
+                      ? `hsl(var(--accent))` 
+                      : `hsl(var(--category-${categoryInfo.color}))`,
+                  opacity: searchTerm && !isSearchMatch ? 0.3 : 1,
+                  border: '2px solid',
+                  borderColor: isHighlighted 
+                    ? `hsl(var(--primary))` 
+                    : 'hsl(var(--background))',
+                  boxShadow: isHighlighted 
+                    ? '0 0 12px hsl(var(--primary) / 0.5)' 
+                    : '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+                title={card.title}
+              />
+            ),
+            card
+          },
+          style: {
+            background: 'transparent',
+            border: 'none',
+            padding: 0
+          },
+          className: 'cursor-pointer'
+        };
+      }
+      
+      // Desktop: full cards with all info
       return {
         id: card.id,
         type: 'default',
@@ -216,8 +259,8 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         targetPosition: Position.Left,
         data: {
           label: (
-            <div className={`group relative ${isMobile ? 'p-2' : 'p-3'} bg-gradient-to-br from-card via-card/95 to-card/90 
-              border-2 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl touch-manipulation
+            <div className={`group relative p-3 bg-gradient-to-br from-card via-card/95 to-card/90 
+              border-2 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl
               ${isHighlighted 
                 ? 'scale-105 shadow-2xl border-primary/60 bg-gradient-to-br from-primary/5 to-primary/10' 
                 : isSearchMatch 
@@ -231,15 +274,14 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
                     ? `hsl(var(--accent))` 
                     : `hsl(var(--category-${categoryInfo.color}) / 0.6)`,
                 opacity: searchTerm && !isSearchMatch ? 0.4 : 1,
-                minWidth: nodeMinWidth,
-                maxWidth: nodeMaxWidth
+                minWidth: '200px',
+                maxWidth: '250px'
               }}
             >
-              {/* Header with number and connections */}
               <div className="flex items-center justify-between mb-2">
                 <Badge 
                   variant="outline" 
-                  className={`${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'} font-mono bg-background/50 backdrop-blur-sm`}
+                  className="text-xs px-2 py-1 font-mono bg-background/50 backdrop-blur-sm"
                   style={{ 
                     borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                     color: `hsl(var(--category-${categoryInfo.color}))`
@@ -250,42 +292,36 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
                 {card.linkedCards.length > 0 && (
                   <Badge 
                     variant="secondary" 
-                    className={`${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-primary/10 text-primary border-primary/20`}
+                    className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20"
                   >
                     🔗 {card.linkedCards.length}
                   </Badge>
                 )}
               </div>
               
-              {/* Title */}
-              <div className={`font-semibold ${isMobile ? 'text-xs' : 'text-sm'} leading-snug mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-2`}>
+              <div className="font-semibold text-sm leading-snug mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-2">
                 {card.title}
               </div>
               
-              {/* Content preview - hide on mobile if too long */}
-              {!isMobile && (
-                <div className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
-                  {card.content.slice(0, 80)}...
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
+                {card.content.slice(0, 80)}...
+              </div>
               
-              {/* Tags - show fewer on mobile */}
               {card.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {card.tags.slice(0, isMobile ? 2 : 3).map((tag, i) => (
+                  {card.tags.slice(0, 3).map((tag, i) => (
                     <Badge key={i} variant="outline" className="text-xs px-1.5 py-0.5 bg-muted/30">
                       {tag}
                     </Badge>
                   ))}
-                  {card.tags.length > (isMobile ? 2 : 3) && (
+                  {card.tags.length > 3 && (
                     <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-muted/30">
-                      +{card.tags.length - (isMobile ? 2 : 3)}
+                      +{card.tags.length - 3}
                     </Badge>
                   )}
                 </div>
               )}
               
-              {/* Hover indicator */}
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           ),
