@@ -13,6 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -30,7 +39,9 @@ import {
   Moon,
   Eye,
   EyeOff,
-  Settings
+  Settings,
+  Mail,
+  UserCheck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -57,6 +68,11 @@ interface FriendRequest {
   sender_email?: string;
   sender_display_name?: string;
   sender_avatar_url?: string;
+  request_type?: 'friend' | 'message'; // New field to distinguish types
+}
+
+interface MessageRequest extends FriendRequest {
+  request_type: 'message';
 }
 
 interface SearchResult {
@@ -111,6 +127,7 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [allUsers, setAllUsers] = useState<SearchResult[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [messageRequests, setMessageRequests] = useState<MessageRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -119,6 +136,10 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
   const [myStatus, setMyStatus] = useState<UserStatus>('online');
   const [isVisible, setIsVisible] = useState(true);
   const [activityTimer, setActivityTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [messageText, setMessageText] = useState('');
 
   useEffect(() => {
     loadInitialData();
@@ -307,14 +328,26 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load received requests
+      // Load received friend requests (no message)
       const { data: received, error: receivedError } = await supabase
         .from('friend_requests')
         .select('*')
         .eq('receiver_id', user.id)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .or('message.is.null,message.eq.');
 
       if (receivedError) throw receivedError;
+
+      // Load received message requests (with message)
+      const { data: messageReqs, error: messageError } = await supabase
+        .from('friend_requests')
+        .select('*')
+        .eq('receiver_id', user.id)
+        .eq('status', 'pending')
+        .not('message', 'is', null)
+        .neq('message', '');
+
+      if (messageError) throw messageError;
 
       // Load sent requests
       const { data: sent, error: sentError } = await supabase
@@ -326,9 +359,11 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       if (sentError) throw sentError;
 
       console.log('Received requests:', received);
+      console.log('Message requests:', messageReqs);
       console.log('Sent requests:', sent);
 
       setPendingRequests(received || []);
+      setMessageRequests((messageReqs || []).map(req => ({ ...req, request_type: 'message' as const })));
       setSentRequests(sent || []);
     } catch (error: any) {
       console.error('Error loading friend requests:', error);
@@ -354,6 +389,60 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       toast.error('Failed to search users');
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const sendMessageRequest = (userId: string, userName: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserName(userName);
+    setShowMessageDialog(true);
+  };
+
+  const submitMessageRequest = async () => {
+    if (!messageText.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check for existing request
+      const { data: existing } = await supabase
+        .from('friend_requests')
+        .select('id, status')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (existing) {
+        toast.error('A request already exists between you and this user');
+        return;
+      }
+
+      const { error } = await supabase.from('friend_requests').insert({
+        sender_id: user.id,
+        receiver_id: selectedUserId,
+        status: 'pending',
+        message: messageText.trim()
+      });
+
+      if (error) throw error;
+
+      toast.success('Message request sent!');
+      setShowMessageDialog(false);
+      setMessageText('');
+      searchUsers();
+      loadAllUsers();
+      loadFriendRequests();
+    } catch (error: any) {
+      console.error('Error sending message request:', error);
+      if (error.code === '23505') {
+        toast.error('A request already exists');
+      } else {
+        toast.error('Failed to send message request');
+      }
     }
   };
 
@@ -532,13 +621,23 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  size="sm"
-                  onClick={() => sendFriendRequest(userId)}
-                >
-                  <UserPlus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => sendFriendRequest(userId)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Add Friend
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => sendMessageRequest(userId, displayName || email)}
+                  >
+                    <Mail className="h-4 w-4 mr-1" />
+                    Message
+                  </Button>
+                </div>
               )}
             </>
           )}
@@ -627,17 +726,23 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
 
       <CardContent>
         <Tabs defaultValue="friends" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="friends">
               Friends {friends.length > 0 && `(${friends.length})`}
             </TabsTrigger>
             <TabsTrigger value="discover">
               Discover
             </TabsTrigger>
+            <TabsTrigger value="messages">
+              Messages
+              {messageRequests.length > 0 && (
+                <Badge variant="destructive" className="ml-1">{messageRequests.length}</Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="requests">
               Requests
               {pendingRequests.length > 0 && (
-                <Badge variant="destructive" className="ml-1">{pendingRequests.length}</Badge>
+                <Badge variant="secondary" className="ml-1">{pendingRequests.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="search">
@@ -670,6 +775,66 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
               ) : (
                 <div className="space-y-2">
                   {allUsers.map((user) => renderUserCard(user, false))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="messages" className="space-y-4">
+            <ScrollArea className="h-[450px]">
+              {messageRequests.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No message requests</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {messageRequests.map((request) => (
+                    <Card key={request.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback>
+                                {request.sender_id.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">Message Request</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(request.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-muted p-3 rounded-lg">
+                          <p className="text-sm">{request.message}</p>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              respondToRequest(request.id, true);
+                              // Open chat with this user
+                              setTimeout(() => onOpenChat(request.sender_id, 'New Friend'), 500);
+                            }}
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Accept & Chat
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => respondToRequest(request.id, false)}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               )}
             </ScrollArea>
@@ -789,6 +954,42 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
             </ScrollArea>
           </TabsContent>
         </Tabs>
+
+        {/* Message Request Dialog */}
+        <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Message to {selectedUserName}</DialogTitle>
+              <DialogDescription>
+                Send a message request. If accepted, you can start chatting and add them as a friend.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Textarea
+                placeholder="Write your message..."
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                maxLength={500}
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                {messageText.length}/500 characters
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setShowMessageDialog(false);
+                setMessageText('');
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={submitMessageRequest}>
+                <Mail className="h-4 w-4 mr-2" />
+                Send Message
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

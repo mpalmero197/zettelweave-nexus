@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { X, Send, Minimize2, Maximize2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { X, Send, Minimize2, Maximize2, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -30,10 +32,13 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [isCheckingFriendship, setIsCheckingFriendship] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadCurrentUser();
+    checkFriendship();
     loadMessages();
     subscribeToMessages();
   }, [friendId]);
@@ -45,6 +50,49 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
   const loadCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setCurrentUserId(user.id);
+  };
+
+  const checkFriendship = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('friendships')
+        .select('id')
+        .or(`and(user_id_1.eq.${user.id},user_id_2.eq.${friendId}),and(user_id_1.eq.${friendId},user_id_2.eq.${user.id})`)
+        .maybeSingle();
+
+      setIsFriend(!!data);
+    } catch (error) {
+      console.error('Error checking friendship:', error);
+    } finally {
+      setIsCheckingFriendship(false);
+    }
+  };
+
+  const sendFriendRequest = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from('friend_requests').insert({
+        sender_id: user.id,
+        receiver_id: friendId,
+        status: 'pending'
+      });
+
+      if (error) throw error;
+
+      toast.success('Friend request sent!');
+    } catch (error: any) {
+      console.error('Error sending friend request:', error);
+      if (error.code === '23505') {
+        toast.error('Friend request already sent');
+      } else {
+        toast.error('Failed to send friend request');
+      }
+    }
   };
 
   const loadMessages = async () => {
@@ -165,6 +213,21 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
 
       {!isMinimized && (
         <CardContent className="p-0">
+          {!isCheckingFriendship && !isFriend && (
+            <Alert className="m-4 border-primary/50 bg-primary/10">
+              <UserPlus className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-sm">
+                  You're not friends yet. Send a friend request?
+                </span>
+                <Button size="sm" variant="outline" onClick={sendFriendRequest}>
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Add Friend
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <ScrollArea className="h-96 px-4" ref={scrollRef}>
             <div className="space-y-4 py-4">
               {messages.length === 0 ? (
