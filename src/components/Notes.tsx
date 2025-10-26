@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
 import { useSimilarContent } from '@/hooks/useSimilarContent';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { EditNoteDialog } from './EditNoteDialog';
 
 interface Note {
   id: string;
@@ -172,24 +173,22 @@ export function Notes() {
     }
   };
 
-  const updateNote = async () => {
-    if (!editingNote) return;
-
+  const updateNote = async (updatedNote: Note) => {
     try {
       const { error } = await supabase
         .from('notes')
         .update({
-          title: editingNote.title,
-          content: editingNote.content,
-          notebook_id: editingNote.notebook_id || null,
-          tags: editingNote.tags
+          title: updatedNote.title,
+          content: updatedNote.content,
+          notebook_id: updatedNote.notebook_id || null,
+          tags: updatedNote.tags
         })
-        .eq('id', editingNote.id);
+        .eq('id', updatedNote.id);
 
       if (error) throw error;
 
       // Regenerate embedding for the updated note
-      generateEmbedding(editingNote.id, 'note', `${editingNote.title} ${editingNote.content}`);
+      generateEmbedding(updatedNote.id, 'note', `${updatedNote.title} ${updatedNote.content}`);
 
       setEditingNote(null);
       fetchNotes();
@@ -509,72 +508,13 @@ export function Notes() {
 
       {/* Edit Note Dialog */}
       {editingNote && (
-        <Dialog open={!!editingNote} onOpenChange={() => setEditingNote(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Note</DialogTitle>
-              <DialogDescription>
-                Update your note's content and organization
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                value={editingNote.title}
-                onChange={(e) => setEditingNote(prev => prev ? { ...prev, title: e.target.value } : null)}
-                placeholder="Note title"
-              />
-              <Textarea
-                value={editingNote.content}
-                onChange={(e) => setEditingNote(prev => prev ? { ...prev, content: e.target.value } : null)}
-                rows={8}
-                placeholder="Note content"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Notebook</label>
-                  <Select 
-                    value={editingNote.notebook_id || 'no-notebook'} 
-                    onValueChange={(value) => setEditingNote(prev => prev ? { ...prev, notebook_id: value === 'no-notebook' ? undefined : value } : null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select notebook" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no-notebook">No Notebook</SelectItem>
-                      {notebooks.map(notebook => (
-                        <SelectItem key={notebook.id} value={notebook.id}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: notebook.color }} />
-                            {notebook.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Tags</label>
-                  <Input
-                    value={editingNote.tags.join(', ')}
-                    onChange={(e) => {
-                      const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
-                      setEditingNote(prev => prev ? { ...prev, tags } : null);
-                    }}
-                    placeholder="tag1, tag2, tag3"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditingNote(null)}>
-                  Cancel
-                </Button>
-                <Button onClick={updateNote}>
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <EditNoteDialog
+          note={editingNote}
+          notebooks={notebooks}
+          isOpen={!!editingNote}
+          onClose={() => setEditingNote(null)}
+          onSave={updateNote}
+        />
       )}
 
       {/* Similar Content Dialog */}

@@ -345,12 +345,14 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
 
           <div className="grid gap-2">
             <Label>Linked Cards</Label>
+            <p className="text-xs text-muted-foreground">Enter card numbers (e.g., 1a, 2.3, 100) to link cards</p>
             <div className="flex gap-2">
               <Input
-                placeholder="Card ID to link"
+                placeholder="Card number (e.g., 1a2b)"
                 className="flex-1"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
+                    e.preventDefault();
                     const value = (e.target as HTMLInputElement).value.trim();
                     if (value && !formData.linkedCards.includes(value)) {
                       setFormData(prev => ({ 
@@ -362,14 +364,29 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
                   }
                 }}
               />
-              <Button type="button" size="sm" variant="outline">
+              <Button 
+                type="button" 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  const input = document.querySelector('input[placeholder="Card number (e.g., 1a2b)"]') as HTMLInputElement;
+                  const value = input?.value.trim();
+                  if (value && !formData.linkedCards.includes(value)) {
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      linkedCards: [...prev.linkedCards, value] 
+                    }));
+                    if (input) input.value = '';
+                  }
+                }}
+              >
                 <Link className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex flex-wrap gap-1 mt-2">
-              {formData.linkedCards.map((linkId, index) => (
+              {formData.linkedCards.map((cardNumber, index) => (
                 <Badge key={index} variant="outline" className="flex items-center gap-1">
-                  {linkId}
+                  #{cardNumber}
                   <Button
                     type="button"
                     variant="ghost"
@@ -377,7 +394,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
                     className="h-auto p-0 hover:bg-transparent"
                     onClick={() => setFormData(prev => ({ 
                       ...prev, 
-                      linkedCards: prev.linkedCards.filter(id => id !== linkId) 
+                      linkedCards: prev.linkedCards.filter(num => num !== cardNumber) 
                     }))}
                   >
                     <X className="h-3 w-3" />
