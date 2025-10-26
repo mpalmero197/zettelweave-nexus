@@ -57,10 +57,15 @@ export function CatalystEditor({ content, onChange, onWordCountChange }: Catalys
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[600px] p-4',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[600px] p-4 bg-background text-foreground',
       },
     },
   });
+
+  // Sync external content changes to editor
+  if (editor && content !== editor.getHTML()) {
+    editor.commands.setContent(content);
+  }
 
   if (!editor) return null;
 

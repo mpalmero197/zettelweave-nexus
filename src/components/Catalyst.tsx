@@ -221,8 +221,32 @@ export function Catalyst() {
   };
 
   const insertReference = (item: ContentItem) => {
-    const reference = `<blockquote><strong>Reference: ${item.title}</strong><br/>${item.content}</blockquote>`;
+    const reference = `<blockquote><strong>Reference: ${item.title}</strong><br/>${item.content}</blockquote><p></p>`;
     setEditorContent(prev => prev + reference);
+  };
+
+  const insertSelectedItems = () => {
+    const itemsToInsert = contentItems.filter(item => selectedItems.has(item.id));
+    if (itemsToInsert.length === 0) {
+      toast({
+        title: 'No items selected',
+        description: 'Select items using checkboxes to insert multiple at once.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let combinedContent = editorContent;
+    itemsToInsert.forEach(item => {
+      const reference = `<blockquote><strong>Reference: ${item.title}</strong><br/>${item.content}</blockquote><p></p>`;
+      combinedContent += reference;
+    });
+    
+    setEditorContent(combinedContent);
+    toast({
+      title: 'Items inserted',
+      description: `${itemsToInsert.length} item(s) added to your document.`,
+    });
   };
 
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -730,34 +754,45 @@ export function Catalyst() {
                 </SelectContent>
               </Select>
 
-              <ScrollArea className="h-[calc(100vh-400px)]">
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={insertSelectedItems} 
+                  size="sm"
+                  disabled={selectedItems.size === 0}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Insert Selected ({selectedItems.size})
+                </Button>
+              </div>
+
+              <ScrollArea className="h-[calc(100vh-480px)]">
                 <div className="space-y-2 pr-4">
-                  {contentItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedItems.has(item.id)}
-                        onCheckedChange={() => toggleItem(item.id)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {item.content}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 h-7 text-xs"
-                          onClick={() => insertReference(item)}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Insert
-                        </Button>
+                  {contentItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No {selectedSource} available
+                    </p>
+                  ) : (
+                    contentItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => toggleItem(item.id)}
+                      >
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          onCheckedChange={() => toggleItem(item.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                            {item.description || item.content.substring(0, 100) + '...'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </CardContent>
@@ -766,11 +801,18 @@ export function Catalyst() {
 
         {/* Editor */}
         <div className="lg:col-span-6">
-          <Card className="h-full">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Document Editor</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Document Editor</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {wordCount.toLocaleString()} words
+                  </Badge>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <CatalystEditor
                 content={editorContent}
                 onChange={setEditorContent}
@@ -794,46 +836,49 @@ export function Catalyst() {
                 </TabsList>
 
                 <TabsContent value="suggestions" className="space-y-3 mt-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateSuggestions('outline')}
-                      disabled={isGeneratingSuggestions}
-                    >
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      Outline
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateSuggestions('brainstorm')}
-                      disabled={isGeneratingSuggestions}
-                    >
-                      <Brain className="h-3 w-3 mr-1" />
-                      Ideas
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateSuggestions('expand')}
-                      disabled={isGeneratingSuggestions}
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Expand
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateSuggestions('critique')}
-                      disabled={isGeneratingSuggestions}
-                    >
-                      <PenTool className="h-3 w-3 mr-1" />
-                      Critique
-                    </Button>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Get AI-powered writing assistance</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateSuggestions('outline')}
+                        disabled={isGeneratingSuggestions || !editorContent.trim()}
+                      >
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        Outline
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateSuggestions('brainstorm')}
+                        disabled={isGeneratingSuggestions || !editorContent.trim()}
+                      >
+                        <Brain className="h-3 w-3 mr-1" />
+                        Ideas
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateSuggestions('expand')}
+                        disabled={isGeneratingSuggestions || !editorContent.trim()}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Expand
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateSuggestions('critique')}
+                        disabled={isGeneratingSuggestions || !editorContent.trim()}
+                      >
+                        <PenTool className="h-3 w-3 mr-1" />
+                        Critique
+                      </Button>
+                    </div>
                   </div>
 
-                  <ScrollArea className="h-[400px] border rounded-lg p-3">
+                  <ScrollArea className="h-[320px] border rounded-lg p-3">
                     {isGeneratingSuggestions ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -850,14 +895,17 @@ export function Catalyst() {
                   </ScrollArea>
 
                   {/* Recommendations Section */}
-                  <div className="border-t pt-3 mt-3">
+                  <div className="border-t pt-3">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium">Related Content</h4>
+                      <div>
+                        <h4 className="text-sm font-medium">Related Content</h4>
+                        <p className="text-xs text-muted-foreground">Auto-suggested while you write</p>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleGetRecommendations}
-                        disabled={isLoadingRecommendations}
+                        disabled={isLoadingRecommendations || editorContent.length < 50}
                       >
                         {isLoadingRecommendations ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -866,7 +914,7 @@ export function Catalyst() {
                         )}
                       </Button>
                     </div>
-                    <ScrollArea className="h-[200px]">
+                    <ScrollArea className="h-[180px]">
                       {recommendations.length > 0 ? (
                         <div className="space-y-2">
                           {recommendations.map((rec) => (
