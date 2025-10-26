@@ -392,6 +392,25 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     }
   };
 
+  const cancelRequest = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('friend_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast.success('Request cancelled');
+      loadFriendRequests();
+      searchUsers();
+      loadAllUsers();
+    } catch (error: any) {
+      console.error('Error cancelling request:', error);
+      toast.error('Failed to cancel request');
+    }
+  };
+
   const getUserInitials = (name: string | null, email: string) => {
     if (name) return name.substring(0, 2).toUpperCase();
     return email.substring(0, 2).toUpperCase();
@@ -678,10 +697,23 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
                         {sentRequests.map((request) => (
                           <Card key={request.id} className="p-4">
                             <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm text-muted-foreground">Pending...</p>
+                              <div className="flex items-center gap-3">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm font-medium">Request Pending</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Sent {new Date(request.created_at).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
-                              <Badge variant="secondary">Waiting</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => cancelRequest(request.id)}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Cancel
+                              </Button>
                             </div>
                           </Card>
                         ))}
