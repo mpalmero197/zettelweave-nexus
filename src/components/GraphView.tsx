@@ -580,14 +580,14 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         connectionMode={ConnectionMode.Loose}
         fitView
         fitViewOptions={{
-          padding: isMobile ? 0.05 : 0.15,
+          padding: isMobile ? 0.1 : 0.15,
           includeHiddenNodes: false,
           duration: 800,
           minZoom: isMobile ? 0.3 : 0.5,
-          maxZoom: isMobile ? 1 : 1.5
+          maxZoom: isMobile ? 1.2 : 1.5
         }}
-        nodesDraggable={!isMobile} // Disable dragging on mobile
-        nodesConnectable={!isMobile} // Disable connecting on mobile
+        nodesDraggable={!isMobile}
+        nodesConnectable={!isMobile}
         elementsSelectable={true}
         snapToGrid={!isMobile}
         snapGrid={[15, 15]}
@@ -595,7 +595,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           type: 'smoothstep',
           animated: false
         }}
-        panOnDrag={isMobile ? true : [1, 2]} // Pan with one finger on mobile
+        panOnDrag={isMobile ? true : [1, 2]}
         zoomOnPinch={isMobile}
         zoomOnScroll={!isMobile}
         zoomOnDoubleClick={false}
@@ -608,94 +608,167 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           size={1}
         />
         
-        {/* Mobile Menu Button */}
-        {isMobile && (
-          <Panel position="top-left" className="m-2">
-            <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-              <SheetTrigger asChild>
-                <Button size="sm" variant="outline" className="bg-card/95 backdrop-blur-lg">
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px]">
-                <SheetHeader>
-                  <SheetTitle>Graph Controls</SheetTitle>
-                </SheetHeader>
-                <div className="space-y-4 mt-6">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search..."
-                      value={searchTerm}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      className="pl-10"
-                    />
+        {/* Mobile Bottom Control Bar */}
+        {isMobile ? (
+          <>
+            {/* Top stats badge */}
+            <Panel position="top-center" className="m-2">
+              <Badge variant="secondary" className="bg-card/95 backdrop-blur-lg px-4 py-2 text-xs shadow-lg border border-border/40">
+                {filteredCards.length} nodes • {initialEdges.length} links
+              </Badge>
+            </Panel>
+            
+            {/* Bottom Control Bar - Mobile First */}
+            <Panel position="bottom-center" className="m-0 w-full">
+              <div className="bg-card/98 backdrop-blur-xl border-t border-border/60 shadow-2xl">
+                <div className="px-4 py-3 space-y-3">
+                  {/* Primary Actions Row */}
+                  <div className="flex items-center gap-2">
+                    {/* Search */}
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="h-11 pl-10 pr-3 bg-background/80 border-border/50 rounded-xl text-base"
+                      />
+                    </div>
+                    
+                    {/* Menu Button */}
+                    <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+                      <SheetTrigger asChild>
+                        <Button size="lg" variant="outline" className="h-11 w-11 p-0 bg-background/80 backdrop-blur-lg rounded-xl">
+                          <Menu className="h-5 w-5" />
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
+                        <SheetHeader>
+                          <SheetTitle>Graph Settings</SheetTitle>
+                        </SheetHeader>
+                        <div className="space-y-6 mt-6 pb-6">
+                          {/* Layout */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-semibold">Layout Style</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              {[
+                                { value: 'force', icon: '🌐', label: 'Force' },
+                                { value: 'circular', icon: '⭕', label: 'Circular' },
+                                { value: 'hierarchical', icon: '🏗️', label: 'Hierarchy' },
+                                { value: 'category', icon: '📂', label: 'Category' },
+                              ].map((layout) => (
+                                <Button
+                                  key={layout.value}
+                                  variant={layoutType === layout.value ? "default" : "outline"}
+                                  size="lg"
+                                  onClick={() => setLayoutType(layout.value as typeof layoutType)}
+                                  className="h-16 flex flex-col gap-1 rounded-2xl"
+                                >
+                                  <span className="text-2xl">{layout.icon}</span>
+                                  <span className="text-xs">{layout.label}</span>
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Category Filter */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-semibold">Filter by Category</label>
+                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                              <SelectTrigger className="h-12 text-base rounded-xl">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="all">All Categories</SelectItem>
+                                {categories.map(cat => (
+                                  <SelectItem key={cat} value={cat}>
+                                    {getCategoryInfo(cat).name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-semibold">Actions</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <Button 
+                                onClick={resetLayout} 
+                                variant="outline" 
+                                size="lg"
+                                className="h-12 rounded-xl"
+                              >
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                Reset View
+                              </Button>
+                              <Button 
+                                onClick={() => setIs3D(!is3D)} 
+                                variant={is3D ? "default" : "outline"}
+                                size="lg"
+                                className="h-12 rounded-xl"
+                              >
+                                <Box className="h-4 w-4 mr-2" />
+                                {is3D ? '3D Mode' : '2D Mode'}
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Stats */}
+                          <div className="pt-4 border-t">
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                              <div className="bg-muted/30 rounded-2xl p-4">
+                                <div className="text-2xl font-bold text-foreground">{filteredCards.length}</div>
+                                <div className="text-xs text-muted-foreground mt-1">Nodes</div>
+                              </div>
+                              <div className="bg-muted/30 rounded-2xl p-4">
+                                <div className="text-2xl font-bold text-foreground">{initialEdges.length}</div>
+                                <div className="text-xs text-muted-foreground mt-1">Links</div>
+                              </div>
+                              <div className="bg-primary/10 rounded-2xl p-4">
+                                <div className="text-2xl font-bold text-primary">{highlightedNodes.size || 0}</div>
+                                <div className="text-xs text-muted-foreground mt-1">Selected</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </SheetContent>
+                    </Sheet>
                   </div>
                   
-                  {/* Layout */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Layout</label>
-                    <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="force">🌐 Force</SelectItem>
-                        <SelectItem value="circular">⭕ Circular</SelectItem>
-                        <SelectItem value="hierarchical">🏗️ Hierarchy</SelectItem>
-                        <SelectItem value="category">📂 Category</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {/* Category Filter */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Filter</label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {categories.map(cat => (
-                          <SelectItem key={cat} value={cat}>
-                            {getCategoryInfo(cat).name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {/* Actions */}
-                  <div className="space-y-2">
-                    <Button onClick={resetLayout} variant="outline" className="w-full">
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Reset View
+                  {/* Secondary Quick Actions */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      variant={layoutType === 'force' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setLayoutType('force')}
+                      className="flex-1 h-9 rounded-xl text-xs"
+                    >
+                      🌐 Force
+                    </Button>
+                    <Button
+                      variant={layoutType === 'circular' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setLayoutType('circular')}
+                      className="flex-1 h-9 rounded-xl text-xs"
+                    >
+                      ⭕ Circle
+                    </Button>
+                    <Button
+                      onClick={resetLayout}
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-3 rounded-xl"
+                    >
+                      <RotateCcw className="h-4 w-4" />
                     </Button>
                   </div>
-                  
-                  {/* Stats */}
-                  <div className="pt-3 border-t">
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-muted/30 rounded-lg p-2">
-                        <div className="text-muted-foreground">Nodes</div>
-                        <div className="font-semibold">{filteredCards.length}</div>
-                      </div>
-                      <div className="bg-muted/30 rounded-lg p-2">
-                        <div className="text-muted-foreground">Connections</div>
-                        <div className="font-semibold">{initialEdges.length}</div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </SheetContent>
-            </Sheet>
-          </Panel>
-        )}
-        
-        {/* Desktop Controls Panel */}
-        {!isMobile && (
+              </div>
+            </Panel>
+          </>
+        ) : (
+          /* Desktop Controls Panel */
           <Panel position="top-right" className="m-4">
             <div className="bg-card/95 backdrop-blur-lg border border-border/60 rounded-3xl shadow-2xl overflow-hidden">
               <div className="p-5 space-y-4 min-w-[280px] max-w-[320px]">
@@ -824,11 +897,16 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           </Panel>
         )}
 
-        <Controls 
-          className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg" 
-          position="bottom-left"
-          showInteractive={!isMobile}
-        />
+        {/* Zoom Controls - Hidden on mobile, bottom-left on desktop */}
+        {!isMobile && (
+          <Controls 
+            className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg" 
+            position="bottom-left"
+            showInteractive={false}
+          />
+        )}
+        
+        {/* MiniMap - Desktop only */}
         {!isMobile && (
           <MiniMap 
             className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg overflow-hidden" 
