@@ -23,12 +23,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RotateCcw, Eye, EyeOff, Box } from 'lucide-react';
+import { Search, RotateCcw, Eye, EyeOff, Box, Menu, X } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Graph3D } from '@/components/Graph3D';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -44,11 +46,13 @@ interface GraphViewInnerProps extends GraphViewProps {
 // Inner component that uses React Flow hooks
 function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: GraphViewInnerProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'circular' | 'force' | 'hierarchical' | 'category'>('force');
-  const [showCategoryEdges, setShowCategoryEdges] = useState(true);
+  const [showCategoryEdges, setShowCategoryEdges] = useState(!isMobile); // Simplify on mobile
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { fitView } = useReactFlow();
 
   // Get unique categories for filtering
@@ -191,6 +195,10 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
   const initialNodes: Node[] = useMemo(() => {
     const positions = getNodePositions(filteredCards, layoutType);
     
+    // Adjust node size for mobile
+    const nodeMinWidth = isMobile ? '160px' : '200px';
+    const nodeMaxWidth = isMobile ? '180px' : '250px';
+    
     return filteredCards.map((card) => {
       const categoryInfo = getCategoryInfo(card.category);
       const isHighlighted = highlightedNodes.has(card.id);
@@ -208,8 +216,8 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         targetPosition: Position.Left,
         data: {
           label: (
-            <div className={`group relative p-3 bg-gradient-to-br from-card via-card/95 to-card/90 
-              border-2 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl
+            <div className={`group relative ${isMobile ? 'p-2' : 'p-3'} bg-gradient-to-br from-card via-card/95 to-card/90 
+              border-2 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl touch-manipulation
               ${isHighlighted 
                 ? 'scale-105 shadow-2xl border-primary/60 bg-gradient-to-br from-primary/5 to-primary/10' 
                 : isSearchMatch 
@@ -223,15 +231,15 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
                     ? `hsl(var(--accent))` 
                     : `hsl(var(--category-${categoryInfo.color}) / 0.6)`,
                 opacity: searchTerm && !isSearchMatch ? 0.4 : 1,
-                minWidth: '200px',
-                maxWidth: '250px'
+                minWidth: nodeMinWidth,
+                maxWidth: nodeMaxWidth
               }}
             >
               {/* Header with number and connections */}
               <div className="flex items-center justify-between mb-2">
                 <Badge 
                   variant="outline" 
-                  className="text-xs font-mono px-2 py-1 bg-background/50 backdrop-blur-sm"
+                  className={`${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'} font-mono bg-background/50 backdrop-blur-sm`}
                   style={{ 
                     borderColor: `hsl(var(--category-${categoryInfo.color}))`,
                     color: `hsl(var(--category-${categoryInfo.color}))`
@@ -242,7 +250,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
                 {card.linkedCards.length > 0 && (
                   <Badge 
                     variant="secondary" 
-                    className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20"
+                    className={`${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-primary/10 text-primary border-primary/20`}
                   >
                     🔗 {card.linkedCards.length}
                   </Badge>
@@ -250,26 +258,28 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
               </div>
               
               {/* Title */}
-              <div className="font-semibold text-sm leading-snug mb-2 text-foreground group-hover:text-primary transition-colors">
+              <div className={`font-semibold ${isMobile ? 'text-xs' : 'text-sm'} leading-snug mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-2`}>
                 {card.title}
               </div>
               
-              {/* Content preview */}
-              <div className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
-                {card.content.slice(0, 80)}...
-              </div>
+              {/* Content preview - hide on mobile if too long */}
+              {!isMobile && (
+                <div className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
+                  {card.content.slice(0, 80)}...
+                </div>
+              )}
               
-              {/* Tags */}
+              {/* Tags - show fewer on mobile */}
               {card.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {card.tags.slice(0, 3).map((tag, i) => (
+                  {card.tags.slice(0, isMobile ? 2 : 3).map((tag, i) => (
                     <Badge key={i} variant="outline" className="text-xs px-1.5 py-0.5 bg-muted/30">
                       {tag}
                     </Badge>
                   ))}
-                  {card.tags.length > 3 && (
+                  {card.tags.length > (isMobile ? 2 : 3) && (
                     <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-muted/30">
-                      +{card.tags.length - 3}
+                      +{card.tags.length - (isMobile ? 2 : 3)}
                     </Badge>
                   )}
                 </div>
@@ -289,7 +299,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         className: 'cursor-pointer'
       };
     });
-  }, [filteredCards, layoutType, getNodePositions, highlightedNodes, searchTerm]);
+  }, [filteredCards, layoutType, getNodePositions, highlightedNodes, searchTerm, isMobile]);
 
   // Convert links to edges with enhanced styling
   const initialEdges: Edge[] = useMemo(() => {
@@ -532,182 +542,277 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
-        onNodeMouseEnter={onNodeMouseEnter}
-        onNodeMouseLeave={onNodeMouseLeave}
+        onNodeMouseEnter={isMobile ? undefined : onNodeMouseEnter}
+        onNodeMouseLeave={isMobile ? undefined : onNodeMouseLeave}
         connectionMode={ConnectionMode.Loose}
         fitView
         fitViewOptions={{
-          padding: 0.15,
+          padding: isMobile ? 0.05 : 0.15,
           includeHiddenNodes: false,
           duration: 800,
-          minZoom: 0.5,
-          maxZoom: 1.5
+          minZoom: isMobile ? 0.3 : 0.5,
+          maxZoom: isMobile ? 1 : 1.5
         }}
-        nodesDraggable={true}
-        nodesConnectable={true}
+        nodesDraggable={!isMobile} // Disable dragging on mobile
+        nodesConnectable={!isMobile} // Disable connecting on mobile
         elementsSelectable={true}
-        snapToGrid={true}
+        snapToGrid={!isMobile}
         snapGrid={[15, 15]}
         defaultEdgeOptions={{
           type: 'smoothstep',
           animated: false
         }}
+        panOnDrag={isMobile ? true : [1, 2]} // Pan with one finger on mobile
+        zoomOnPinch={isMobile}
+        zoomOnScroll={!isMobile}
+        zoomOnDoubleClick={false}
         className="bg-gradient-to-br from-background via-background/95 to-muted/10"
         proOptions={{ hideAttribution: true }}
       >
         <Background 
           color="hsl(var(--border) / 0.3)" 
-          gap={24} 
+          gap={isMobile ? 16 : 24} 
           size={1}
         />
         
-        {/* Enhanced Controls Panel */}
-        <Panel position="top-right" className="m-4">
-          <div className="bg-card/95 backdrop-blur-lg border border-border/60 rounded-3xl shadow-2xl overflow-hidden">
-            <div className="p-5 space-y-4 min-w-[280px] max-w-[320px]">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <h3 className="text-sm font-semibold text-foreground">Knowledge Graph</h3>
-                </div>
-                <Badge variant="secondary" className="text-xs px-3 py-1 bg-primary/10 text-primary">
-                  {filteredCards.length} nodes
-                </Badge>
-              </div>
-              
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search knowledge..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="h-10 pl-10 text-sm bg-background/80 border-border/50 focus:border-primary/60 rounded-xl transition-all duration-200"
-                />
-                {searchTerm && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Badge variant="outline" className="text-xs">
-                      {filteredCards.filter(card => 
-                        card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        card.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        card.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-                      ).length}
-                    </Badge>
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <Panel position="top-left" className="m-2">
+            <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+              <SheetTrigger asChild>
+                <Button size="sm" variant="outline" className="bg-card/95 backdrop-blur-lg">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px]">
+                <SheetHeader>
+                  <SheetTitle>Graph Controls</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-6">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                )}
-              </div>
-              
-              {/* Layout Controls */}
-              <div className="space-y-3">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Layout</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
+                  
+                  {/* Layout */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Layout</label>
+                    <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="force">🌐 Force</SelectItem>
+                        <SelectItem value="circular">⭕ Circular</SelectItem>
+                        <SelectItem value="hierarchical">🏗️ Hierarchy</SelectItem>
+                        <SelectItem value="category">📂 Category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Category Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Filter</label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map(cat => (
+                          <SelectItem key={cat} value={cat}>
+                            {getCategoryInfo(cat).name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="space-y-2">
+                    <Button onClick={resetLayout} variant="outline" className="w-full">
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset View
+                    </Button>
+                  </div>
+                  
+                  {/* Stats */}
+                  <div className="pt-3 border-t">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-muted/30 rounded-lg p-2">
+                        <div className="text-muted-foreground">Nodes</div>
+                        <div className="font-semibold">{filteredCards.length}</div>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-2">
+                        <div className="text-muted-foreground">Connections</div>
+                        <div className="font-semibold">{initialEdges.length}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </Panel>
+        )}
+        
+        {/* Desktop Controls Panel */}
+        {!isMobile && (
+          <Panel position="top-right" className="m-4">
+            <div className="bg-card/95 backdrop-blur-lg border border-border/60 rounded-3xl shadow-2xl overflow-hidden">
+              <div className="p-5 space-y-4 min-w-[280px] max-w-[320px]">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <h3 className="text-sm font-semibold text-foreground">Knowledge Graph</h3>
+                  </div>
+                  <Badge variant="secondary" className="text-xs px-3 py-1 bg-primary/10 text-primary">
+                    {filteredCards.length} nodes
+                  </Badge>
+                </div>
+                
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search knowledge..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="h-10 pl-10 text-sm bg-background/80 border-border/50 focus:border-primary/60 rounded-xl transition-all duration-200"
+                  />
+                  {searchTerm && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <Badge variant="outline" className="text-xs">
+                        {filteredCards.filter(card => 
+                          card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          card.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          card.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+                        ).length}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Layout Controls */}
+                <div className="space-y-3">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Layout</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
+                      <SelectTrigger className="h-9 text-sm bg-background/80 border-border/50 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60 rounded-xl">
+                        <SelectItem value="force">🌐 Force</SelectItem>
+                        <SelectItem value="circular">⭕ Circular</SelectItem>
+                        <SelectItem value="hierarchical">🏗️ Hierarchy</SelectItem>
+                        <SelectItem value="category">📂 Category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={resetLayout}
+                      className="h-9 px-3 bg-background/80 hover:bg-primary/10 border-border/50 rounded-xl transition-all duration-200"
+                      title="Reset View"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Category Filter */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Filter</label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="h-9 text-sm bg-background/80 border-border/50 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60 rounded-xl">
-                      <SelectItem value="force">🌐 Force</SelectItem>
-                      <SelectItem value="circular">⭕ Circular</SelectItem>
-                      <SelectItem value="hierarchical">🏗️ Hierarchy</SelectItem>
-                      <SelectItem value="category">📂 Category</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>
+                          {getCategoryInfo(cat).name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                </div>
+                
+                {/* View Options */}
+                <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                  <Button
+                    variant={is3D ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIs3D(!is3D)}
+                    className="h-9 px-4 flex items-center gap-2 rounded-xl transition-all duration-200"
+                    title="Toggle 3D View"
+                  >
+                    <Box className="h-4 w-4" />
+                    <span className="text-xs font-medium">{is3D ? '3D' : '2D'}</span>
+                  </Button>
                   
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={resetLayout}
-                    className="h-9 px-3 bg-background/80 hover:bg-primary/10 border-border/50 rounded-xl transition-all duration-200"
-                    title="Reset View"
+                    onClick={() => setShowCategoryEdges(!showCategoryEdges)}
+                    className={`h-9 px-3 rounded-xl transition-all duration-200 ${
+                      showCategoryEdges 
+                        ? 'bg-primary/10 border-primary/30 text-primary' 
+                        : 'bg-background/80 hover:bg-muted/50 border-border/50'
+                    }`}
+                    title={showCategoryEdges ? "Hide Category Links" : "Show Category Links"}
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    {showCategoryEdges ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-              </div>
-              
-              {/* Category Filter */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Filter</label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="h-9 text-sm bg-background/80 border-border/50 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card/95 backdrop-blur-sm border-border/60 rounded-xl">
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map(cat => (
-                      <SelectItem key={cat} value={cat}>
-                        {getCategoryInfo(cat).name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* View Options */}
-              <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                <Button
-                  variant={is3D ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIs3D(!is3D)}
-                  className="h-9 px-4 flex items-center gap-2 rounded-xl transition-all duration-200"
-                  title="Toggle 3D View"
-                >
-                  <Box className="h-4 w-4" />
-                  <span className="text-xs font-medium">{is3D ? '3D' : '2D'}</span>
-                </Button>
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCategoryEdges(!showCategoryEdges)}
-                  className={`h-9 px-3 rounded-xl transition-all duration-200 ${
-                    showCategoryEdges 
-                      ? 'bg-primary/10 border-primary/30 text-primary' 
-                      : 'bg-background/80 hover:bg-muted/50 border-border/50'
-                  }`}
-                  title={showCategoryEdges ? "Hide Category Links" : "Show Category Links"}
-                >
-                  {showCategoryEdges ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              
-              {/* Stats */}
-              <div className="pt-3 border-t border-border/30">
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-muted/30 rounded-lg p-2">
-                    <div className="text-muted-foreground">Connections</div>
-                    <div className="font-semibold text-foreground">{initialEdges.length}</div>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-2">
-                    <div className="text-muted-foreground">Highlighted</div>
-                    <div className="font-semibold text-primary">{highlightedNodes.size || 0}</div>
+                {/* Stats */}
+                <div className="pt-3 border-t border-border/30">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-muted/30 rounded-lg p-2">
+                      <div className="text-muted-foreground">Connections</div>
+                      <div className="font-semibold text-foreground">{initialEdges.length}</div>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-2">
+                      <div className="text-muted-foreground">Highlighted</div>
+                      <div className="font-semibold text-primary">{highlightedNodes.size || 0}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Panel>
+          </Panel>
+        )}
 
         <Controls 
           className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg" 
           position="bottom-left"
+          showInteractive={!isMobile}
         />
-        <MiniMap 
-          className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg overflow-hidden" 
-          nodeColor={(node) => {
-            const card = filteredCards.find(c => c.id === node.id);
-            if (card) {
-              const categoryInfo = getCategoryInfo(card.category);
-              return `hsl(var(--category-${categoryInfo.color}))`;
-            }
-            return 'hsl(var(--primary))';
-          }}
-          maskColor="hsl(var(--background) / 0.9)"
-          pannable
-          zoomable
-          position="bottom-right"
-        />
+        {!isMobile && (
+          <MiniMap 
+            className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl shadow-lg overflow-hidden" 
+            nodeColor={(node) => {
+              const card = filteredCards.find(c => c.id === node.id);
+              if (card) {
+                const categoryInfo = getCategoryInfo(card.category);
+                return `hsl(var(--category-${categoryInfo.color}))`;
+              }
+              return 'hsl(var(--primary))';
+            }}
+            maskColor="hsl(var(--background) / 0.9)"
+            pannable
+            zoomable
+            position="bottom-right"
+          />
+        )}
       </ReactFlow>
     </div>
   );
