@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
@@ -25,7 +24,8 @@ import {
   Save,
   Upload,
   FolderOpen,
-  Image as ImageIcon,
+  FileUp,
+  Trash2,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
@@ -33,8 +33,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { exportCatalystToPDF, exportCatalystToDOCX, exportCatalystToEPUB } from '@/utils/catalystExportUtils';
+import { exportCatalystToPDF, exportCatalystToDOCX, exportCatalystToEPUB, exportCatalystToKPF } from '@/utils/catalystExportUtils';
+import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
+import { CatalystEditor } from '@/components/CatalystEditor';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type ContentSource = 'cards' | 'notes';
 
@@ -63,7 +66,6 @@ interface CatalystDocument {
   updated_at: string;
 }
 
-// Validation schemas
 const MAX_CONTENT_LENGTH = 50000;
 
 const writingSuggestionSchema = z.object({
@@ -82,6 +84,7 @@ export function Catalyst() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const localLoadRef = useRef<HTMLInputElement>(null);
   
   const [selectedSource, setSelectedSource] = useState<ContentSource>('cards');
   const [editorContent, setEditorContent] = useState('');
@@ -96,7 +99,6 @@ export function Catalyst() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
 
-  // Fetch notes
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
     queryFn: async () => {
@@ -114,7 +116,6 @@ export function Catalyst() {
     enabled: !!user,
   });
 
-  // Fetch saved documents
   const { data: savedDocuments = [] } = useQuery({
     queryKey: ['catalyst_documents', user?.id],
     queryFn: async () => {
@@ -131,7 +132,6 @@ export function Catalyst() {
     enabled: !!user,
   });
 
-  // Save document mutation
   const saveDocumentMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
@@ -185,7 +185,6 @@ export function Catalyst() {
     },
   });
 
-  // Get content items based on selected source
   const getContentItems = (): ContentItem[] => {
     switch (selectedSource) {
       case 'cards':
@@ -220,54 +219,34 @@ export function Catalyst() {
   };
 
   const insertReference = (item: ContentItem) => {
-    const reference = `\n\n[Reference: ${item.title}]\n${item.content}\n\n`;
+    const reference = `<blockquote><strong>Reference: ${item.title}</strong><br/>${item.content}</blockquote>`;
     setEditorContent(prev => prev + reference);
-    updateWordCount(editorContent + reference);
   };
 
-  const insertFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result;
-        if (typeof result === 'string') {
-          const fileRef = `\n\n[File: ${file.name}]\n${result.substring(0, 500)}...\n\n`;
-          setEditorContent(prev => prev + fileRef);
-          updateWordCount(editorContent + fileRef);
-          toast({
-            title: 'File inserted',
-            description: `${file.name} has been added to your content`,
-          });
-        }
-      };
-      
-      if (file.type.startsWith('image/') || file.name.endsWith('.tiff')) {
-        reader.readAsDataURL(file);
-      } else {
-        reader.readAsText(file);
+    for (const file of Array.from(files)) {
+      try {
+        const imported = await importFile(file);
+        setEditorContent(prev => prev + imported.content);
+        toast({
+          title: 'File imported',
+          description: `${file.name} has been added to your document`,
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Import failed',
+          description: `Failed to import ${file.name}: ${error.message}`,
+          variant: 'destructive',
+        });
       }
-    });
-  };
-
-  const updateWordCount = (text: string) => {
-    const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-    setWordCount(words.length);
-  };
-
-  const handleEditorChange = (text: string) => {
-    if (text.length > MAX_CONTENT_LENGTH) {
-      toast({
-        title: 'Content too long',
-        description: `Content cannot exceed ${MAX_CONTENT_LENGTH.toLocaleString()} characters`,
-        variant: 'destructive',
-      });
-      return;
     }
-    setEditorContent(text);
-    updateWordCount(text);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleGenerateSuggestions = async (type: string) => {
@@ -280,8 +259,9 @@ export function Catalyst() {
       return;
     }
 
+    const plainText = editorContent.replace(/<[^>]*>/g, '');
     const validation = writingSuggestionSchema.safeParse({ 
-      text: editorContent, 
+      text: plainText, 
       type 
     });
 
@@ -334,8 +314,9 @@ export function Catalyst() {
       .filter(item => selectedItems.has(item.id))
       .map(item => item.content);
 
+    const plainText = editorContent.replace(/<[^>]*>/g, '');
     const validation = plagiarismCheckSchema.safeParse({ 
-      text: editorContent,
+      text: plainText,
       referenceTexts: selectedContent.length > 0 ? selectedContent : null,
     });
 
@@ -383,9 +364,33 @@ export function Catalyst() {
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(editorContent);
-    toast({ title: 'Copied!', description: 'Content copied to clipboard.' });
+  const handleExport = async (format: 'pdf' | 'docx' | 'epub' | 'kpf') => {
+    try {
+      switch (format) {
+        case 'pdf':
+          exportCatalystToPDF(documentTitle, editorContent);
+          break;
+        case 'docx':
+          await exportCatalystToDOCX(documentTitle, editorContent);
+          break;
+        case 'epub':
+          await exportCatalystToEPUB(documentTitle, editorContent);
+          break;
+        case 'kpf':
+          await exportCatalystToKPF(documentTitle, editorContent);
+          break;
+      }
+      toast({
+        title: 'Export successful',
+        description: `Document exported as ${format.toUpperCase()}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Export failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSaveToLocal = () => {
@@ -420,7 +425,6 @@ export function Catalyst() {
         setEditorContent(data.content || '');
         setSelectedSource(data.selected_source || 'cards');
         setSelectedItems(new Set(data.selected_items || []));
-        updateWordCount(data.content || '');
         setCurrentDocId(null);
         toast({ title: 'Loaded!', description: 'Document loaded from file.' });
       } catch (error) {
@@ -432,7 +436,7 @@ export function Catalyst() {
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
+    if (e.target) e.target.value = '';
   };
 
   const handleLoadFromCloud = (doc: CatalystDocument) => {
@@ -440,45 +444,202 @@ export function Catalyst() {
     setEditorContent(doc.content);
     setSelectedSource(doc.selected_source as ContentSource);
     setSelectedItems(new Set(doc.selected_items));
-    updateWordCount(doc.content);
     setCurrentDocId(doc.id);
     setShowLoadDialog(false);
     toast({ title: 'Loaded!', description: 'Document loaded from Pendragon.' });
   };
 
+  const handleNewDocument = () => {
+    setDocumentTitle('Untitled Document');
+    setEditorContent('');
+    setSelectedItems(new Set());
+    setCurrentDocId(null);
+    setWordCount(0);
+    setSuggestions('');
+    setPlagiarismResult(null);
+    toast({ title: 'New document', description: 'Started a new document.' });
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+    <div className="container mx-auto px-4 py-8 max-w-[1800px]">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
             <div className="p-3 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl">
               <Lightbulb className="h-8 w-8 text-primary" />
             </div>
-            Catalyst
-          </h1>
-          <p className="text-muted-foreground">
-            Transform your knowledge into original content with AI-assisted ideation
-          </p>
+            <div>
+              <h1 className="text-3xl font-bold">Catalyst</h1>
+              <p className="text-sm text-muted-foreground">Professional Writing Suite for Books, Theses & Research</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Input
+              value={documentTitle}
+              onChange={(e) => setDocumentTitle(e.target.value)}
+              className="w-64"
+              placeholder="Document title..."
+            />
+            <Badge variant="outline" className="px-3 py-1">
+              {wordCount.toLocaleString()} words
+            </Badge>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Input
-            value={documentTitle}
-            onChange={(e) => setDocumentTitle(e.target.value)}
-            className="w-64"
-            placeholder="Document title..."
+
+        {/* Action Bar */}
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <Button onClick={handleNewDocument} variant="outline" size="sm">
+            <FileText className="h-4 w-4 mr-2" />
+            New
+          </Button>
+          
+          <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save Document</DialogTitle>
+                <DialogDescription>Choose where to save your document</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => saveDocumentMutation.mutate()} 
+                  className="w-full"
+                  disabled={saveDocumentMutation.isPending}
+                >
+                  {saveDocumentMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Save to Pendragon Cloud
+                </Button>
+                <Button onClick={handleSaveToLocal} variant="outline" className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download to Computer
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Load
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Load Document</DialogTitle>
+                <DialogDescription>Open a saved document</DialogDescription>
+              </DialogHeader>
+              <Tabs defaultValue="cloud">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="cloud">Pendragon Cloud</TabsTrigger>
+                  <TabsTrigger value="local">From Computer</TabsTrigger>
+                </TabsList>
+                <TabsContent value="cloud">
+                  <ScrollArea className="h-[400px] pr-4">
+                    {savedDocuments.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">No saved documents</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {savedDocuments.map((doc) => (
+                          <Card 
+                            key={doc.id} 
+                            className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => handleLoadFromCloud(doc)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-semibold">{doc.title}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {doc.word_count.toLocaleString()} words
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Updated: {new Date(doc.updated_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="local">
+                  <div className="flex items-center justify-center py-12">
+                    <Button onClick={() => localLoadRef.current?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
+                    </Button>
+                    <input
+                      ref={localLoadRef}
+                      type="file"
+                      accept=".catalyst.json"
+                      onChange={handleLoadFromLocal}
+                      className="hidden"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
+
+          <div className="h-6 w-px bg-border mx-2" />
+
+          <Button onClick={() => handleExport('pdf')} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
+          <Button onClick={() => handleExport('docx')} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            DOCX
+          </Button>
+          <Button onClick={() => handleExport('epub')} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            EPUB
+          </Button>
+          <Button onClick={() => handleExport('kpf')} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            KPF
+          </Button>
+
+          <div className="h-6 w-px bg-border mx-2" />
+
+          <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
+            <FileUp className="h-4 w-4 mr-2" />
+            Import Files
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={getSupportedFileTypes()}
+            multiple
+            onChange={handleFileImport}
+            className="hidden"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Knowledge Base Panel */}
-        <div className="lg:col-span-1">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Knowledge Base Sidebar */}
+        <div className="lg:col-span-3">
           <Card className="h-full">
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-base">Knowledge Base</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Select value={selectedSource} onValueChange={(value) => {
                 setSelectedSource(value as ContentSource);
                 setSelectedItems(new Set());
@@ -492,338 +653,184 @@ export function Catalyst() {
                 </SelectContent>
               </Select>
 
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                {contentItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <Checkbox
-                      checked={selectedItems.has(item.id)}
-                      onCheckedChange={() => toggleItem(item.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {item.content.substring(0, 60)}...
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertReference(item)}
-                        className="mt-1 h-6 text-xs"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Insert
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Editor Panel */}
-        <div className="lg:col-span-2">
-          <Card className="h-full flex flex-col">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <PenTool className="h-5 w-5" />
-                  Your Content
-                </CardTitle>
-                <div className="flex items-center gap-4">
-                  <Badge variant="outline">{wordCount} words</Badge>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleCopy}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    
-                    {/* Save/Load Dropdown */}
-                    <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Save className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Save Document</DialogTitle>
-                          <DialogDescription>Choose where to save your work</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-2">
-                          <Button 
-                            className="w-full" 
-                            onClick={() => saveDocumentMutation.mutate()}
-                            disabled={saveDocumentMutation.isPending}
-                          >
-                            {saveDocumentMutation.isPending ? (
-                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
-                            ) : (
-                              <><Save className="mr-2 h-4 w-4" />Save to Pendragon</>
-                            )}
-                          </Button>
-                          <Button variant="outline" className="w-full" onClick={handleSaveToLocal}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Save to Desktop
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <FolderOpen className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Load Document</DialogTitle>
-                          <DialogDescription>Open a saved document or load from your desktop</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept=".json,.catalyst.json"
-                              onChange={handleLoadFromLocal}
-                              className="hidden"
-                            />
-                            <Button 
-                              variant="outline" 
-                              className="w-full" 
-                              onClick={() => fileInputRef.current?.click()}
-                            >
-                              <Upload className="mr-2 h-4 w-4" />
-                              Load from Desktop
-                            </Button>
-                          </div>
-                          
-                          <div className="border-t pt-4">
-                            <p className="text-sm font-medium mb-2">Saved Documents</p>
-                            <div className="space-y-2 max-h-64 overflow-y-auto">
-                              {savedDocuments.map(doc => (
-                                <Button
-                                  key={doc.id}
-                                  variant="ghost"
-                                  className="w-full justify-start"
-                                  onClick={() => handleLoadFromCloud(doc)}
-                                >
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  <div className="flex-1 text-left">
-                                    <p className="font-medium">{doc.title}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {new Date(doc.updated_at).toLocaleDateString()} • {doc.word_count} words
-                                    </p>
-                                  </div>
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Export Dropdown */}
-                    <Select onValueChange={(value) => {
-                      if (value === 'pdf') exportCatalystToPDF(documentTitle, editorContent);
-                      else if (value === 'docx') exportCatalystToDOCX(documentTitle, editorContent);
-                      else if (value === 'epub') exportCatalystToEPUB(documentTitle, editorContent);
-                      else if (value === 'kpf') {
-                        toast({
-                          title: 'KPF Export',
-                          description: 'KPF format coming soon. Use EPUB for now.',
-                        });
-                      }
-                    }}>
-                      <SelectTrigger className="w-32">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="docx">DOCX</SelectItem>
-                        <SelectItem value="epub">EPUB</SelectItem>
-                        <SelectItem value="kpf">KPF (Soon)</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Insert File Button */}
-                    <input
-                      type="file"
-                      accept=".tiff,.jpg,.jpeg,.dta"
-                      multiple
-                      className="hidden"
-                      id="file-insert"
-                      onChange={insertFile}
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => document.getElementById('file-insert')?.click()}
+              <ScrollArea className="h-[calc(100vh-400px)]">
+                <div className="space-y-2 pr-4">
+                  {contentItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                     >
-                      <ImageIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <Checkbox
+                        checked={selectedItems.has(item.id)}
+                        onCheckedChange={() => toggleItem(item.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {item.content}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-7 text-xs"
+                          onClick={() => insertReference(item)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Insert
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col min-h-0">
-              <Textarea
-                value={editorContent}
-                onChange={(e) => handleEditorChange(e.target.value)}
-                placeholder="Start writing your original content here. Use your knowledge base for reference and get AI suggestions for ideas..."
-                className="flex-1 min-h-[500px] resize-none font-mono text-sm"
-                maxLength={MAX_CONTENT_LENGTH}
-              />
-              
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => handleGenerateSuggestions('brainstorm')}
-                  disabled={isGeneratingSuggestions}
-                >
-                  <Brain className="h-4 w-4 mr-2" />
-                  Brainstorm Ideas
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleGenerateSuggestions('outline')}
-                  disabled={isGeneratingSuggestions}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Create Outline
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleGenerateSuggestions('expand')}
-                  disabled={isGeneratingSuggestions}
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Expand Ideas
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleGenerateSuggestions('critique')}
-                  disabled={isGeneratingSuggestions}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Get Feedback
-                </Button>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
 
-        {/* Suggestions & Plagiarism Panel */}
-        <div className="lg:col-span-1">
-          <Tabs defaultValue="suggestions" className="h-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
-              <TabsTrigger value="plagiarism">Check</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="suggestions" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4" />
-                    AI Suggestions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isGeneratingSuggestions ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : suggestions ? (
-                    <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap text-sm">{suggestions}</p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <p className="text-sm text-muted-foreground">
-                        Click a suggestion button to get AI-powered ideas
+        {/* Editor */}
+        <div className="lg:col-span-6">
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Document Editor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CatalystEditor
+                content={editorContent}
+                onChange={setEditorContent}
+                onWordCountChange={setWordCount}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Assistant Sidebar */}
+        <div className="lg:col-span-3">
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">AI Assistant</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Tabs defaultValue="suggestions">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+                  <TabsTrigger value="plagiarism">Originality</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="suggestions" className="space-y-3 mt-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateSuggestions('outline')}
+                      disabled={isGeneratingSuggestions}
+                    >
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      Outline
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateSuggestions('brainstorm')}
+                      disabled={isGeneratingSuggestions}
+                    >
+                      <Brain className="h-3 w-3 mr-1" />
+                      Ideas
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateSuggestions('expand')}
+                      disabled={isGeneratingSuggestions}
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Expand
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateSuggestions('critique')}
+                      disabled={isGeneratingSuggestions}
+                    >
+                      <PenTool className="h-3 w-3 mr-1" />
+                      Critique
+                    </Button>
+                  </div>
+
+                  <ScrollArea className="h-[400px] border rounded-lg p-3">
+                    {isGeneratingSuggestions ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : suggestions ? (
+                      <div className="prose prose-sm max-w-none">
+                        <p className="whitespace-pre-wrap text-sm">{suggestions}</p>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm text-center py-8">
+                        Select a suggestion type to get AI-powered writing help
                       </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="plagiarism" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Originality Check</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="plagiarism" className="space-y-3 mt-4">
                   <Button
                     onClick={handleCheckPlagiarism}
                     disabled={isCheckingPlagiarism}
                     className="w-full"
                   >
                     {isCheckingPlagiarism ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Checking...
-                      </>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        Check Originality
-                      </>
+                      <Search className="h-4 w-4 mr-2" />
                     )}
+                    Check Originality
                   </Button>
 
                   {plagiarismResult && (
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Originality Score</span>
-                          <span className="text-sm font-bold">
-                            {plagiarismResult.originalityScore}%
-                          </span>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        {plagiarismResult.isPlagiarized ? (
+                          <AlertCircle className="h-5 w-5 text-destructive" />
+                        ) : (
+                          <CheckCircle2 className="h-5 w-5 text-success" />
+                        )}
+                        <div>
+                          <p className="text-sm font-medium">
+                            Originality: {plagiarismResult.originalityScore}%
+                          </p>
+                          <Progress value={plagiarismResult.originalityScore} className="h-2 mt-1" />
                         </div>
-                        <Progress value={plagiarismResult.originalityScore} />
                       </div>
 
-                      {plagiarismResult.isPlagiarized ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">Issues Detected</span>
-                          </div>
-                          <ul className="space-y-1 text-sm">
+                      {plagiarismResult.issues.length > 0 && (
+                        <ScrollArea className="h-[300px] border rounded-lg p-3">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Issues Found:</p>
                             {plagiarismResult.issues.map((issue, i) => (
-                              <li key={i} className="text-muted-foreground">• {issue}</li>
+                              <div key={i} className="text-xs bg-destructive/10 p-2 rounded">
+                                {issue}
+                              </div>
                             ))}
-                          </ul>
-                          <div className="mt-4">
-                            <p className="text-sm font-medium mb-2">Suggestions:</p>
-                            <ul className="space-y-1 text-sm">
-                              {plagiarismResult.suggestions.map((suggestion, i) => (
-                                <li key={i} className="text-muted-foreground">• {suggestion}</li>
-                              ))}
-                            </ul>
+                            {plagiarismResult.suggestions.length > 0 && (
+                              <>
+                                <p className="text-sm font-medium mt-3">Suggestions:</p>
+                                {plagiarismResult.suggestions.map((suggestion, i) => (
+                                  <div key={i} className="text-xs bg-primary/10 p-2 rounded">
+                                    {suggestion}
+                                  </div>
+                                ))}
+                              </>
+                            )}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span className="text-sm font-medium">Content is original!</span>
-                        </div>
+                        </ScrollArea>
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
