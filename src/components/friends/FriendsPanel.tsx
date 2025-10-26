@@ -441,6 +441,11 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     const avatarUrl = 'friend_avatar_url' in user ? user.friend_avatar_url : user.avatar_url;
     const lastActivity = user.last_activity_at;
     
+    // Find the pending request ID if there is one
+    const pendingRequest = 'has_pending_request' in user && user.has_pending_request
+      ? sentRequests.find(req => req.receiver_id === userId)
+      : null;
+    
     const getLastOnlineText = () => {
       if (!lastActivity) return 'Unknown';
       
@@ -509,8 +514,17 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
             <>
               {'is_friend' in user && user.is_friend ? (
                 <Badge variant="secondary">Friends</Badge>
-              ) : 'has_pending_request' in user && user.has_pending_request ? (
-                <Badge>Pending</Badge>
+              ) : pendingRequest ? (
+                <div className="flex items-center gap-2">
+                  <Badge>Pending</Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => cancelRequest(pendingRequest.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : (
                 <Button
                   size="sm"
