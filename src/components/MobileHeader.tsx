@@ -6,10 +6,11 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 export function MobileHeader() {
   const isMobile = useIsMobile();
   
+  // Only render on mobile
   if (!isMobile) return null;
   
   return (
-    <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur-xl border-b border-border shadow-lg">
+    <header className="md:hidden sticky top-0 z-40 w-full bg-background/95 backdrop-blur-xl border-b border-border shadow-lg">
       <div className="flex items-center justify-between px-4 py-3 mobile-safe-area">
         <Sheet>
           <SheetTrigger asChild>

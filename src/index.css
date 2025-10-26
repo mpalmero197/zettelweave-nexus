@@ -350,7 +350,7 @@
     @apply w-full px-4 py-4 mobile-safe-area;
   }
   
-  /* Touch-friendly cards on mobile */
+  /* Touch-friendly cards and navigation on mobile only */
   @media (max-width: 767px) {
     .card, .glass-card {
       @apply rounded-2xl p-4 shadow-lg;
@@ -363,17 +363,9 @@
       min-height: var(--touch-target);
     }
     
-    /* Mobile navigation optimization */
-    nav {
-      @apply fixed bottom-0 left-0 right-0 z-50;
-      @apply bg-background/95 backdrop-blur-lg border-t;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    
-    /* Mobile header */
-    header {
-      @apply sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b;
-      padding-top: env(safe-area-inset-top);
+    /* Add bottom padding to page content to prevent overlap with mobile nav */
+    main, .main-content, [role="main"] {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
     }
     
     /* Mobile modals and dialogs */
@@ -394,6 +386,13 @@
     .scroll-area {
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
+    }
+  }
+  
+  /* Desktop: hide mobile-only elements */
+  @media (min-width: 768px) {
+    .md\\:hidden {
+      display: none !important;
     }
   }
   
