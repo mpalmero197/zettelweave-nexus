@@ -45,6 +45,24 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [displayName, setDisplayName] = useState('');
   const [aboutMe, setAboutMe] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+
+  // Load profile data on mount
+  useState(() => {
+    if (user) {
+      supabase
+        .from('profiles')
+        .select('display_name, about_me, avatar_url')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setDisplayName(data.display_name || '');
+            setAboutMe(data.about_me || '');
+            setAvatarUrl(data.avatar_url || '');
+          }
+        });
+    }
+  });
   
   // Security states
   const [currentPassword, setCurrentPassword] = useState('');

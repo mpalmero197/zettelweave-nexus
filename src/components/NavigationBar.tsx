@@ -268,6 +268,14 @@ export function NavigationBar({
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const currentState = localStorage.getItem('globalDictionaryEnabled') !== 'false';
+                  localStorage.setItem('globalDictionaryEnabled', (!currentState).toString());
+                  window.location.reload();
+                }}>
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  {localStorage.getItem('globalDictionaryEnabled') === 'false' ? 'Enable' : 'Disable'} Dictionary
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onTabChange("recycle")}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Recycle Bin
