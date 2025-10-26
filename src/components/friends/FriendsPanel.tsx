@@ -403,6 +403,24 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     const displayName = 'friend_display_name' in user ? user.friend_display_name : user.display_name;
     const email = 'friend_email' in user ? user.friend_email : user.email;
     const avatarUrl = 'friend_avatar_url' in user ? user.friend_avatar_url : user.avatar_url;
+    const lastActivity = user.last_activity_at;
+    
+    const getLastOnlineText = () => {
+      if (!lastActivity) return 'Never';
+      const date = new Date(lastActivity);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (status === 'online') return 'Online now';
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString();
+    };
     
     return (
       <Card key={userId} className="p-4 hover:shadow-md transition-shadow">
@@ -426,9 +444,14 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
               <p className="text-xs text-muted-foreground">
                 {email}
               </p>
-              <Badge variant="outline" className="text-xs mt-1">
-                {getStatusLabel(status)}
-              </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-xs">
+                  {getStatusLabel(status)}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  • {getLastOnlineText()}
+                </span>
+              </div>
             </div>
           </div>
           {isFriend ? (
