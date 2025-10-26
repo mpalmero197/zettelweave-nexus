@@ -63,7 +63,6 @@ export default function Admin() {
           .rpc('has_role', { _user_id: user.id, _role: 'admin' });
         
         if (error) {
-          console.error('Error checking admin role:', error);
           toast({
             title: "Access Denied",
             description: "Unable to verify admin privileges",
@@ -73,7 +72,6 @@ export default function Admin() {
           setIsAdmin(data);
         }
       } catch (error) {
-        console.error('Error checking admin access:', error);
         toast({
           title: "Access Error",
           description: "Failed to check admin access",
