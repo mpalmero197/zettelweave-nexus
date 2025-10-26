@@ -23,3 +23,12 @@ verify_jwt = true
 
 [functions.ai-search]
 verify_jwt = true
+
+[functions.catalyst-ai-generate-chapter]
+verify_jwt = true
+
+[functions.catalyst-ai-enhance-content]
+verify_jwt = true
+
+[functions.catalyst-ai-generate-citations]
+verify_jwt = true

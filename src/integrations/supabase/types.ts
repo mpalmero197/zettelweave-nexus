@@ -89,6 +89,128 @@ export type Database = {
         }
         Relationships: []
       }
+      catalyst_chapters: {
+        Row: {
+          content: string | null
+          created_at: string
+          document_id: string
+          id: string
+          level: number
+          order_index: number
+          parent_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          document_id: string
+          id?: string
+          level?: number
+          order_index?: number
+          parent_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          level?: number
+          order_index?: number
+          parent_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalyst_chapters_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalyst_chapters_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalyst_citations: {
+        Row: {
+          authors: Json | null
+          citation_type: string
+          created_at: string
+          document_id: string
+          doi: string | null
+          id: string
+          issue: string | null
+          metadata: Json | null
+          pages: string | null
+          publication_year: number | null
+          publisher: string | null
+          title: string
+          updated_at: string
+          url: string | null
+          user_id: string
+          volume: string | null
+        }
+        Insert: {
+          authors?: Json | null
+          citation_type: string
+          created_at?: string
+          document_id: string
+          doi?: string | null
+          id?: string
+          issue?: string | null
+          metadata?: Json | null
+          pages?: string | null
+          publication_year?: number | null
+          publisher?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+          volume?: string | null
+        }
+        Update: {
+          authors?: Json | null
+          citation_type?: string
+          created_at?: string
+          document_id?: string
+          doi?: string | null
+          id?: string
+          issue?: string | null
+          metadata?: Json | null
+          pages?: string | null
+          publication_year?: number | null
+          publisher?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+          volume?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalyst_citations_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalyst_documents: {
         Row: {
           content: string
@@ -124,6 +246,54 @@ export type Database = {
           word_count?: number | null
         }
         Relationships: []
+      }
+      catalyst_writing_goals: {
+        Row: {
+          chapter_id: string | null
+          created_at: string
+          deadline: string | null
+          document_id: string
+          id: string
+          target_words: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          document_id: string
+          id?: string
+          target_words: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          document_id?: string
+          id?: string
+          target_words?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalyst_writing_goals_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalyst_writing_goals_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dashboard_layouts: {
         Row: {
