@@ -225,6 +225,35 @@ export function Catalyst() {
     setEditorContent(prev => prev + reference);
   };
 
+  const insertRecommendation = (rec: { id: string; type: string; title: string; content: string }) => {
+    // Fetch full content based on type
+    let fullContent = rec.content;
+    
+    if (rec.type === 'card') {
+      const card = cards.find(c => c.id === rec.id);
+      if (card) fullContent = card.content;
+    } else if (rec.type === 'note') {
+      const note = notes.find(n => n.id === rec.id);
+      if (note) fullContent = note.content;
+    } else if (rec.type === 'sticky') {
+      const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
+      const sticky = stickyNotes.find((s: any) => s.id === rec.id);
+      if (sticky) fullContent = sticky.content;
+    } else if (rec.type === 'scratchpad') {
+      const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
+      const scratch = scratchPad.find((s: any) => s.id === rec.id);
+      if (scratch) fullContent = scratch.content;
+    }
+
+    const reference = `<blockquote><strong>Reference: ${rec.title}</strong><br/>${fullContent}</blockquote><p></p>`;
+    setEditorContent(prev => prev + reference);
+    
+    toast({
+      title: 'Content inserted',
+      description: `Added ${rec.type} to your document.`,
+    });
+  };
+
   const insertSelectedItems = () => {
     const itemsToInsert = contentItems.filter(item => selectedItems.has(item.id));
     if (itemsToInsert.length === 0) {
@@ -920,23 +949,21 @@ export function Catalyst() {
                           {recommendations.map((rec) => (
                             <div
                               key={rec.id}
-                              className="p-2 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                              onClick={() => {
-                                const content = contentItems.find(c => c.id === rec.id);
-                                if (content) insertReference(content);
-                              }}
+                              className="p-2 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                              onClick={() => insertRecommendation(rec)}
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">{rec.type}</Badge>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className="text-xs capitalize">{rec.type}</Badge>
                                     <p className="text-xs font-medium truncate">{rec.title}</p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
                                     {rec.content}
                                   </p>
                                   <p className="text-xs text-primary mt-1">{rec.relevance}</p>
                                 </div>
+                                <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                               </div>
                             </div>
                           ))}
