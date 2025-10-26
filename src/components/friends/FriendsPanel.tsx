@@ -307,21 +307,38 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Load received requests with sender profile info
       const { data: received, error: receivedError } = await supabase
         .from('friend_requests')
-        .select('*')
+        .select(`
+          *,
+          sender:profiles!friend_requests_sender_id_fkey(
+            display_name,
+            avatar_url
+          )
+        `)
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
 
       if (receivedError) throw receivedError;
 
+      // Load sent requests with receiver profile info
       const { data: sent, error: sentError } = await supabase
         .from('friend_requests')
-        .select('*')
+        .select(`
+          *,
+          receiver:profiles!friend_requests_receiver_id_fkey(
+            display_name,
+            avatar_url
+          )
+        `)
         .eq('sender_id', user.id)
         .eq('status', 'pending');
 
       if (sentError) throw sentError;
+
+      console.log('Received requests:', received);
+      console.log('Sent requests:', sent);
 
       setPendingRequests(received || []);
       setSentRequests(sent || []);
@@ -692,15 +709,22 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
 
                   {sentRequests.length > 0 && (
                     <div>
-                      <h3 className="font-semibold mb-2">Sent Requests</h3>
+                      <h3 className="font-semibold mb-2">Sent Requests ({sentRequests.length})</h3>
                       <div className="space-y-2">
-                        {sentRequests.map((request) => (
+                        {sentRequests.map((request: any) => (
                           <Card key={request.id} className="p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <Avatar>
+                                  <AvatarImage src={request.receiver?.avatar_url} />
+                                  <AvatarFallback>
+                                    {request.receiver?.display_name?.substring(0, 2).toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
                                 <div>
-                                  <p className="text-sm font-medium">Request Pending</p>
+                                  <p className="text-sm font-medium">
+                                    {request.receiver?.display_name || 'User'}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
                                     Sent {new Date(request.created_at).toLocaleDateString()}
                                   </p>
