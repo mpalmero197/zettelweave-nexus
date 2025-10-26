@@ -71,6 +71,41 @@ Provide an assessment of how original and well-written this appears to be.`;
           { role: 'user', content: userPrompt }
         ],
         max_tokens: 1000,
+        tools: [{
+          type: "function",
+          function: {
+            name: "return_plagiarism_analysis",
+            description: "Return the plagiarism analysis results",
+            parameters: {
+              type: "object",
+              properties: {
+                originalityScore: {
+                  type: "number",
+                  description: "Score from 0-100, where 100 is completely original"
+                },
+                isPlagiarized: {
+                  type: "boolean",
+                  description: "Whether plagiarism was detected"
+                },
+                issues: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Specific plagiarism concerns found"
+                },
+                suggestions: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Suggestions to improve originality"
+                }
+              },
+              required: ["originalityScore", "isPlagiarized", "issues", "suggestions"]
+            }
+          }
+        }],
+        tool_choice: {
+          type: "function",
+          function: { name: "return_plagiarism_analysis" }
+        }
       }),
     });
 
@@ -96,25 +131,13 @@ Provide an assessment of how original and well-written this appears to be.`;
     }
 
     const data = await response.json();
-    const analysis = data.choices?.[0]?.message?.content;
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
-    if (!analysis) {
+    if (!toolCall) {
       throw new Error('No analysis generated from AI');
     }
 
-    // Try to parse as JSON, fallback to text analysis
-    let result;
-    try {
-      result = JSON.parse(analysis);
-    } catch {
-      // If not valid JSON, create a basic response
-      result = {
-        originalityScore: 75,
-        isPlagiarized: false,
-        issues: [],
-        suggestions: [analysis],
-      };
-    }
+    const result = JSON.parse(toolCall.function.arguments);
 
     return new Response(
       JSON.stringify(result),
