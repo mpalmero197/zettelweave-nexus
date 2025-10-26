@@ -551,13 +551,9 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
       
-      // If status is online and activity was very recent (within 2 mins), show "Online now"
       if (status === 'online' && diffMins < 2) return 'Online now';
-      
-      // If the last activity is more than 30 days old, it's likely stale data from initialization
       if (diffDays > 30) return 'Unknown';
       
-      // Otherwise show relative time
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
       if (diffHours < 24) return `${diffHours}h ago`;
@@ -566,82 +562,91 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     };
     
     return (
-      <Card key={userId} className="p-4 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Avatar>
-                <AvatarImage src={avatarUrl} />
-                <AvatarFallback>
-                  {getUserInitials(displayName, email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${getStatusColor(status)} flex items-center justify-center`}>
-                {getStatusIcon(status)}
+      <Card key={userId} className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-background/50 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="relative flex-shrink-0">
+                <Avatar className="h-12 w-12 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300">
+                  <AvatarImage src={avatarUrl} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
+                    {getUserInitials(displayName, email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background ${getStatusColor(status)} flex items-center justify-center transition-all duration-300 group-hover:scale-110`}>
+                  <div className="h-2 w-2">{getStatusIcon(status)}</div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate group-hover:text-primary transition-colors">
+                  {displayName || email}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {email}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border/50">
+                    {getStatusLabel(status)}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    • {getLastOnlineText()}
+                  </span>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="font-medium">
-                {displayName || email}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {email}
-              </p>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">
-                  {getStatusLabel(status)}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  • {getLastOnlineText()}
-                </span>
-              </div>
+            
+            <div className="flex-shrink-0 ml-3">
+              {isFriend ? (
+                <Button
+                  size="sm"
+                  onClick={() => onOpenChat(userId, displayName || email)}
+                  className="gap-2 group-hover:shadow-md transition-all"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Chat</span>
+                </Button>
+              ) : (
+                <>
+                  {'is_friend' in user && user.is_friend ? (
+                    <Badge variant="secondary" className="shadow-sm">Friends</Badge>
+                  ) : pendingRequest ? (
+                    <div className="flex items-center gap-2">
+                      <Badge className="shadow-sm animate-pulse">Pending</Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => cancelRequest(pendingRequest.id)}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => sendFriendRequest(userId)}
+                        className="gap-2"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Add</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => sendMessageRequest(userId, displayName || email)}
+                        className="gap-2 border-primary/50 hover:bg-primary/10"
+                      >
+                        <Mail className="h-4 w-4" />
+                        <span className="hidden sm:inline">Message</span>
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
-          {isFriend ? (
-            <Button
-              size="sm"
-              onClick={() => onOpenChat(userId, displayName || email)}
-            >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              Chat
-            </Button>
-          ) : (
-            <>
-              {'is_friend' in user && user.is_friend ? (
-                <Badge variant="secondary">Friends</Badge>
-              ) : pendingRequest ? (
-                <div className="flex items-center gap-2">
-                  <Badge>Pending</Badge>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => cancelRequest(pendingRequest.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => sendFriendRequest(userId)}
-                  >
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    Add Friend
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => sendMessageRequest(userId, displayName || email)}
-                  >
-                    <Mail className="h-4 w-4 mr-1" />
-                    Message
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        </CardContent>
       </Card>
     );
   };
@@ -657,340 +662,422 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
   }
 
   return (
-    <Card className="w-full h-full glass-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Collaboration Hub
-        </CardTitle>
-        
-        {/* Status & Visibility Settings */}
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="status-select" className="text-sm font-medium flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              My Status
-            </Label>
-            <Select value={myStatus} onValueChange={(val) => updateUserStatus(val as UserStatus)}>
-              <SelectTrigger id="status-select" className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="online">
-                  <div className="flex items-center gap-2">
-                    <Circle className="h-3 w-3 fill-green-500 text-green-500" />
-                    Online
-                  </div>
-                </SelectItem>
-                <SelectItem value="busy">
-                  <div className="flex items-center gap-2">
-                    <Minus className="h-3 w-3 text-yellow-500" />
-                    Busy
-                  </div>
-                </SelectItem>
-                <SelectItem value="dnd">
-                  <div className="flex items-center gap-2">
-                    <Moon className="h-3 w-3 text-red-500" />
-                    Do Not Disturb
-                  </div>
-                </SelectItem>
-                <SelectItem value="offline">
-                  <div className="flex items-center gap-2">
-                    <Circle className="h-3 w-3 fill-gray-400 text-gray-400" />
-                    Appear Offline
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="visibility-switch" className="text-sm font-medium flex items-center gap-2">
-              {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              Visibility
-            </Label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {isVisible ? 'Visible' : 'Invisible'}
-              </span>
-              <Switch
-                id="visibility-switch"
-                checked={isVisible}
-                onCheckedChange={updateVisibility}
-              />
+    <div className="w-full h-full flex flex-col glass-card rounded-xl overflow-hidden border border-border/50 shadow-2xl">
+      {/* Modern Header with Gradient */}
+      <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border/50 backdrop-blur-sm">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  Collaboration Hub
+                </h2>
+                <p className="text-sm text-muted-foreground">Connect and collaborate with others</p>
+              </div>
             </div>
+            <Badge variant="outline" className="px-3 py-1 border-primary/50">
+              {friends.length} {friends.length === 1 ? 'Friend' : 'Friends'}
+            </Badge>
+          </div>
+          
+          {/* Status & Visibility Settings - Modern Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all duration-300">
+              <CardContent className="p-4">
+                <Label className="text-xs text-muted-foreground mb-2 block">Status</Label>
+                <Select value={myStatus} onValueChange={(val) => updateUserStatus(val as UserStatus)}>
+                  <SelectTrigger className="border-none bg-transparent">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background/95 backdrop-blur-lg border-border/50">
+                    <SelectItem value="online">
+                      <div className="flex items-center gap-2">
+                        <Circle className="h-3 w-3 fill-green-500 text-green-500" />
+                        <span>Online</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="busy">
+                      <div className="flex items-center gap-2">
+                        <Minus className="h-3 w-3 text-yellow-500" />
+                        <span>Busy</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="dnd">
+                      <div className="flex items-center gap-2">
+                        <Moon className="h-3 w-3 text-red-500" />
+                        <span>Do Not Disturb</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="offline">
+                      <div className="flex items-center gap-2">
+                        <Circle className="h-3 w-3 fill-gray-400 text-gray-400" />
+                        <span>Appear Offline</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all duration-300">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">Visibility</Label>
+                  <span className="text-sm font-medium">
+                    {isVisible ? 'Visible' : 'Invisible'}
+                  </span>
+                </div>
+                <Switch
+                  checked={isVisible}
+                  onCheckedChange={updateVisibility}
+                />
+              </CardContent>
+            </Card>
           </div>
         </div>
-        <Separator className="mt-4" />
-      </CardHeader>
+      </div>
 
-      <CardContent>
-        <Tabs defaultValue="friends" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="friends">
-              Friends {friends.length > 0 && `(${friends.length})`}
+      {/* Modern Tab System */}
+      <Tabs defaultValue="friends" className="flex-1 flex flex-col">
+        <div className="px-6 pt-4 border-b border-border/50 bg-background/30 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger value="friends" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Users className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Friends</span>
+              {friends.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {friends.length}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="discover">
-              Discover
+            <TabsTrigger value="discover" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Search className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Discover</span>
             </TabsTrigger>
-            <TabsTrigger value="messages">
-              Messages
+            <TabsTrigger value="messages" className="data-[state=active]:bg-background data-[state=active]:shadow-sm relative">
+              <Mail className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Messages</span>
               {messageRequests.length > 0 && (
-                <Badge variant="destructive" className="ml-1">{messageRequests.length}</Badge>
+                <div className="absolute -top-1 -right-1 h-5 w-5 bg-destructive rounded-full flex items-center justify-center text-[10px] text-destructive-foreground font-bold animate-pulse">
+                  {messageRequests.length}
+                </div>
               )}
             </TabsTrigger>
-            <TabsTrigger value="requests">
-              Requests
+            <TabsTrigger value="requests" className="data-[state=active]:bg-background data-[state=active]:shadow-sm relative">
+              <UserPlus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Requests</span>
               {pendingRequests.length > 0 && (
-                <Badge variant="secondary" className="ml-1">{pendingRequests.length}</Badge>
+                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {pendingRequests.length}
+                </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="search">
+            <TabsTrigger value="search" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Search className="h-4 w-4" />
             </TabsTrigger>
           </TabsList>
+        </div>
 
-          <TabsContent value="friends" className="space-y-4">
-            <ScrollArea className="h-[400px]">
-              {friends.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No friends yet. Discover users to connect!</p>
+        {/* Friends Tab */}
+        <TabsContent value="friends" className="flex-1 m-0 p-6 animate-fade-in">
+          <ScrollArea className="h-[calc(100vh-400px)]">
+            {friends.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[400px] text-center animate-fade-in">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Users className="h-10 w-10 text-primary/50" />
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {friends.map((friend) => renderUserCard(friend, true))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
+                <h3 className="text-lg font-semibold mb-2">No friends yet</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+                  Discover and connect with others to start collaborating
+                </p>
+                <Button variant="default" className="gap-2">
+                  <Search className="h-4 w-4" />
+                  Discover People
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {friends.map((friend, idx) => (
+                  <div key={friend.friend_user_id} className="animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
+                    {renderUserCard(friend, true)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
 
-          <TabsContent value="discover" className="space-y-4">
-            <ScrollArea className="h-[450px]">
-              {allUsers.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No users available</p>
+        {/* Discover Tab */}
+        <TabsContent value="discover" className="flex-1 m-0 p-6 animate-fade-in">
+          <ScrollArea className="h-[calc(100vh-400px)]">
+            {allUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[400px] text-center">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Users className="h-10 w-10 text-primary/50" />
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {allUsers.map((user) => renderUserCard(user, false))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
+                <h3 className="text-lg font-semibold mb-2">No users available</h3>
+                <p className="text-sm text-muted-foreground">Check back later for new connections</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {allUsers.map((user, idx) => (
+                  <div key={user.user_id} className="animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
+                    {renderUserCard(user, false)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
 
-          <TabsContent value="messages" className="space-y-4">
-            <ScrollArea className="h-[450px]">
-              {messageRequests.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No message requests</p>
+        {/* Messages Tab */}
+        <TabsContent value="messages" className="flex-1 m-0 p-6 animate-fade-in">
+          <ScrollArea className="h-[calc(100vh-400px)]">
+            {messageRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[400px] text-center">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Mail className="h-10 w-10 text-primary/50" />
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {messageRequests.map((request) => (
-                    <Card key={request.id} className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>
-                                {request.sender_id.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">Message Request</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(request.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
+                <h3 className="text-lg font-semibold mb-2">No message requests</h3>
+                <p className="text-sm text-muted-foreground">You'll see message requests from others here</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {messageRequests.map((request, idx) => (
+                  <Card key={request.id} className="overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
+                    <CardContent className="p-0">
+                      <div className="p-4 bg-gradient-to-r from-primary/5 to-transparent border-b border-border/50">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                              {request.sender_id.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-semibold">New Message Request</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(request.created_at).toLocaleDateString()}
+                            </p>
                           </div>
-                        </div>
-                        <div className="bg-muted p-3 rounded-lg">
-                          <p className="text-sm">{request.message}</p>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              respondToRequest(request.id, true);
-                              // Open chat with this user
-                              setTimeout(() => onOpenChat(request.sender_id, 'New Friend'), 500);
-                            }}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Accept & Chat
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => respondToRequest(request.id, false)}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Decline
-                          </Button>
+                          <Badge variant="secondary">Pending</Badge>
                         </div>
                       </div>
-                    </Card>
+                      <div className="p-4 bg-muted/30">
+                        <p className="text-sm leading-relaxed">{request.message}</p>
+                      </div>
+                      <div className="p-4 flex gap-2">
+                        <Button
+                          className="flex-1 gap-2"
+                          onClick={() => {
+                            respondToRequest(request.id, true);
+                            setTimeout(() => onOpenChat(request.sender_id, 'New Friend'), 500);
+                          }}
+                        >
+                          <Check className="h-4 w-4" />
+                          Accept & Chat
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => respondToRequest(request.id, false)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Requests Tab */}
+        <TabsContent value="requests" className="flex-1 m-0 p-6 animate-fade-in">
+          <ScrollArea className="h-[calc(100vh-400px)]">
+            {pendingRequests.length === 0 && sentRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[400px] text-center">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <UserPlus className="h-10 w-10 text-primary/50" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No pending requests</h3>
+                <p className="text-sm text-muted-foreground">Friend requests will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {pendingRequests.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Received ({pendingRequests.length})
+                    </h3>
+                    {pendingRequests.map((request, idx) => (
+                      <Card key={request.id} className="overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                  {request.sender_id.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">Friend Request</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(request.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => respondToRequest(request.id, true)}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => respondToRequest(request.id, false)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {sentRequests.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Sent ({sentRequests.length})
+                    </h3>
+                    {sentRequests.map((request, idx) => (
+                      <Card key={request.id} className="overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                <Clock className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-medium">Request Pending</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Sent {new Date(request.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => cancelRequest(request.id)}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Search Tab */}
+        <TabsContent value="search" className="flex-1 m-0 p-6 animate-fade-in">
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by email or name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
+                  className="pl-9 border-border/50 focus:border-primary/50 transition-colors"
+                />
+              </div>
+              <Button onClick={searchUsers} disabled={isSearching} className="gap-2">
+                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Search
+              </Button>
+            </div>
+
+            <ScrollArea className="h-[calc(100vh-500px)]">
+              {searchResults.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <Search className="h-10 w-10 text-primary/50" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Search for users</h3>
+                  <p className="text-sm text-muted-foreground">Find and connect with others</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {searchResults.map((result, idx) => (
+                    <div key={result.user_id} className="animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
+                      {renderUserCard(result, false)}
+                    </div>
                   ))}
                 </div>
               )}
             </ScrollArea>
-          </TabsContent>
+          </div>
+        </TabsContent>
+      </Tabs>
 
-          <TabsContent value="requests" className="space-y-4">
-            <ScrollArea className="h-[450px]">
-              {pendingRequests.length === 0 && sentRequests.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No pending friend requests</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {pendingRequests.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Received Requests</h3>
-                      <div className="space-y-2">
-                        {pendingRequests.map((request) => (
-                          <Card key={request.id} className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarFallback>
-                                    {request.sender_id.substring(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">New Request</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(request.created_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => respondToRequest(request.id, true)}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => respondToRequest(request.id, false)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {sentRequests.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Sent Requests ({sentRequests.length})</h3>
-                      <div className="space-y-2">
-                        {sentRequests.map((request: any) => (
-                          <Card key={request.id} className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">Request Pending</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Sent {new Date(request.created_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => cancelRequest(request.id)}
-                              >
-                                <X className="h-4 w-4 mr-1" />
-                                Cancel
-                              </Button>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="search" className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Search by email or name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
-              />
-              <Button onClick={searchUsers} disabled={isSearching}>
-                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              </Button>
-            </div>
-
-            <ScrollArea className="h-[400px]">
-              {searchResults.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Search for users to connect with</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {searchResults.map((result) => renderUserCard(result, false))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-
-        {/* Message Request Dialog */}
-        <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Send Message to {selectedUserName}</DialogTitle>
-              <DialogDescription>
-                Send a message request. If accepted, you can start chatting and add them as a friend.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Textarea
-                placeholder="Write your message..."
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                maxLength={500}
-                rows={4}
-              />
+      {/* Message Request Dialog */}
+      <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+        <DialogContent className="sm:max-w-md border-border/50 bg-background/95 backdrop-blur-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Send Message to {selectedUserName}
+            </DialogTitle>
+            <DialogDescription>
+              Send a message request. If accepted, you can start chatting and add them as a friend.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Write your message..."
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              maxLength={500}
+              rows={4}
+              className="resize-none border-border/50 focus:border-primary/50"
+            />
+            <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 {messageText.length}/500 characters
               </p>
+              <Badge variant={messageText.length > 400 ? 'destructive' : 'secondary'}>
+                {500 - messageText.length} left
+              </Badge>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setShowMessageDialog(false);
-                setMessageText('');
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={submitMessageRequest}>
-                <Mail className="h-4 w-4 mr-2" />
-                Send Message
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowMessageDialog(false);
+              setMessageText('');
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={submitMessageRequest} className="gap-2">
+              <Mail className="h-4 w-4" />
+              Send Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
