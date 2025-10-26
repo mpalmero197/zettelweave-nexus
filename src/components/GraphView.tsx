@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect, Suspense } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { 
   ReactFlow, 
   ReactFlowProvider,
@@ -13,7 +13,8 @@ import {
   ConnectionMode,
   Panel,
   useReactFlow,
-  Position
+  Position,
+  Connection
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
@@ -25,6 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, RotateCcw, Eye, EyeOff, Box } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Graph3D } from '@/components/Graph3D';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -39,6 +43,7 @@ interface GraphViewInnerProps extends GraphViewProps {
 
 // Inner component that uses React Flow hooks
 function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: GraphViewInnerProps) {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'circular' | 'force' | 'hierarchical' | 'category'>('force');
   const [showCategoryEdges, setShowCategoryEdges] = useState(true);
@@ -138,21 +143,43 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
 
       case 'force':
       default:
-        // Force-directed layout simulation
+        // Improved force-directed layout with collision detection
+        const nodeRadius = 125; // Approximate node size
+        const minDistance = nodeRadius * 2.2; // Minimum distance between nodes
+        
         cards.forEach((card, index) => {
-          // Start with a rough grid
+          // Start with a grid
           const cols = Math.ceil(Math.sqrt(cards.length));
-          const x = (index % cols) * 200 + 100;
-          const y = Math.floor(index / cols) * 150 + 100;
+          let x = (index % cols) * minDistance + nodeRadius;
+          let y = Math.floor(index / cols) * minDistance + nodeRadius;
           
-          // Add some randomness
-          const jitterX = (Math.random() - 0.5) * 100;
-          const jitterY = (Math.random() - 0.5) * 100;
+          // Apply collision detection with existing nodes
+          let attempts = 0;
+          let hasCollision = true;
           
-          positions[card.id] = {
-            x: x + jitterX,
-            y: y + jitterY
-          };
+          while (hasCollision && attempts < 50) {
+            hasCollision = false;
+            
+            for (const existingId in positions) {
+              const existing = positions[existingId];
+              const dx = x - existing.x;
+              const dy = y - existing.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              
+              if (distance < minDistance) {
+                hasCollision = true;
+                // Push away from collision
+                const angle = Math.atan2(dy, dx);
+                x += Math.cos(angle) * (minDistance - distance) * 1.1;
+                y += Math.sin(angle) * (minDistance - distance) * 1.1;
+                break;
+              }
+            }
+            
+            attempts++;
+          }
+          
+          positions[card.id] = { x, y };
         });
         break;
     }
@@ -372,9 +399,51 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
 
+  // Persist connection to database
   const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    async (params: Connection) => {
+      if (!params.source || !params.target || !user) return;
+      
+      // Optimistically add edge to UI
+      setEdges((eds) => addEdge(params, eds));
+      
+      try {
+        // Get source card's current linked_cards
+        const { data: sourceCard, error: fetchError } = await supabase
+          .from('zettel_cards')
+          .select('linked_cards')
+          .eq('id', params.source)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (fetchError) throw fetchError;
+        
+        const currentLinks = sourceCard?.linked_cards || [];
+        
+        // Add new link if not already present
+        if (!currentLinks.includes(params.target)) {
+          const { error: updateError } = await supabase
+            .from('zettel_cards')
+            .update({ 
+              linked_cards: [...currentLinks, params.target]
+            })
+            .eq('id', params.source)
+            .eq('user_id', user.id);
+          
+          if (updateError) throw updateError;
+          
+          toast.success('Connection saved');
+        }
+      } catch (error) {
+        console.error('Failed to save connection:', error);
+        toast.error('Failed to save connection');
+        // Revert the edge on error
+        setEdges((eds) => eds.filter(e => 
+          !(e.source === params.source && e.target === params.target)
+        ));
+      }
+    },
+    [setEdges, user]
   );
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
@@ -468,9 +537,20 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         connectionMode={ConnectionMode.Loose}
         fitView
         fitViewOptions={{
-          padding: 0.1,
+          padding: 0.15,
           includeHiddenNodes: false,
-          duration: 800
+          duration: 800,
+          minZoom: 0.5,
+          maxZoom: 1.5
+        }}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        elementsSelectable={true}
+        snapToGrid={true}
+        snapGrid={[15, 15]}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          animated: false
         }}
         className="bg-gradient-to-br from-background via-background/95 to-muted/10"
         proOptions={{ hideAttribution: true }}
