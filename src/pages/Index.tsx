@@ -521,7 +521,7 @@ const Index = () => {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="friends" className="mt-0">
+                <TabsContent value="collab" className="mt-0">
                   <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
                   </div>

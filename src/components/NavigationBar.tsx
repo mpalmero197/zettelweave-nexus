@@ -245,17 +245,17 @@ export function NavigationBar({
                     Recorder
                   </Button>
 
-                  {/* Friends */}
+                  {/* Collab */}
                   <Button
-                    variant={activeTab === "friends" ? "default" : "ghost"}
+                    variant={activeTab === "collab" ? "default" : "ghost"}
                     onClick={() => {
-                      onTabChange("friends");
+                      onTabChange("collab");
                       setMobileMenuOpen(false);
                     }}
                     className="w-full justify-start gap-2"
                   >
                     <Users className="h-4 w-4" />
-                    Friends
+                    Collab
                   </Button>
 
                   {/* Recycle Bin */}
