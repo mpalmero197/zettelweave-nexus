@@ -7,6 +7,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
+import { MobileDetector } from "@/components/MobileDetector";
+import { MobileTouchHandler } from "@/components/MobileTouchHandler";
+import { MobileNavigation } from "@/components/MobileNavigation";
+import { MobileHeader } from "@/components/MobileHeader";
 
 // Lazy load heavy pages to reduce initial bundle size
 const Index = lazy(() => import("./pages/Index"));
@@ -33,33 +37,39 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-                  <Index />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-              <ProtectedRoute>
-                <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-                  <Admin />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={
-              <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-                <NotFound />
-              </Suspense>
-            } />
-          </Routes>
-        </BrowserRouter>
+        <MobileDetector>
+          <MobileTouchHandler>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <MobileHeader />
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                      <Index />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                      <Admin />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={
+                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                    <NotFound />
+                  </Suspense>
+                } />
+              </Routes>
+              <MobileNavigation />
+            </BrowserRouter>
+          </MobileTouchHandler>
+        </MobileDetector>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

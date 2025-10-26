@@ -161,17 +161,45 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Mobile-first: Prevent overscroll bounce on iOS */
+    overscroll-behavior: none;
+    /* Better touch response */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
-  /* Performance optimizations for mobile */
+  /* Mobile-optimized tap highlights */
   * {
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: hsl(var(--primary) / 0.1);
+    -webkit-touch-callout: none;
   }
   
   /* Smooth scrolling with momentum on mobile */
   html {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+    /* Mobile viewport units */
+    height: 100dvh;
+  }
+  
+  /* Mobile-first: Better button and link touch targets */
+  button, a, [role="button"] {
+    min-height: 44px; /* iOS recommended minimum */
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Mobile input optimization */
+  input, textarea, select {
+    font-size: 16px; /* Prevent zoom on iOS */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  /* Better scrolling containers on mobile */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 }
 
@@ -298,19 +326,115 @@
     }
   }
   
-  /* Mobile-friendly spacing */
+  /* Mobile-first responsive spacing */
   body.mobile {
-    --header-height: 3rem;
+    --header-height: 3.5rem;
     --mobile-padding: 1rem;
+    --touch-target: 44px;
   }
   
   body.tablet {
-    --header-height: 3.5rem;
+    --header-height: 4rem;
     --mobile-padding: 1.5rem;
+    --touch-target: 40px;
   }
   
   body.desktop {
-    --header-height: 4rem;
+    --header-height: 4.5rem;
     --mobile-padding: 2rem;
+    --touch-target: 36px;
+  }
+  
+  /* Mobile-optimized containers */
+  .mobile-container {
+    @apply w-full px-4 py-4 mobile-safe-area;
+  }
+  
+  /* Touch-friendly cards on mobile */
+  @media (max-width: 767px) {
+    .card, .glass-card {
+      @apply rounded-2xl p-4 shadow-lg;
+      min-height: var(--touch-target);
+    }
+    
+    /* Larger tap targets on mobile */
+    button, a[role="button"], .clickable {
+      @apply p-3 rounded-xl;
+      min-height: var(--touch-target);
+    }
+    
+    /* Mobile navigation optimization */
+    nav {
+      @apply fixed bottom-0 left-0 right-0 z-50;
+      @apply bg-background/95 backdrop-blur-lg border-t;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Mobile header */
+    header {
+      @apply sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b;
+      padding-top: env(safe-area-inset-top);
+    }
+    
+    /* Mobile modals and dialogs */
+    [role="dialog"], .dialog {
+      @apply rounded-t-3xl;
+      max-height: 90dvh;
+      bottom: 0;
+      position: fixed;
+    }
+    
+    /* Mobile form inputs */
+    input, textarea, select {
+      @apply text-base p-4 rounded-xl;
+      min-height: var(--touch-target);
+    }
+    
+    /* Mobile scroll optimization */
+    .scroll-area {
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+  
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .mobile-container {
+      @apply px-6 py-5;
+    }
+  }
+  
+  /* Landscape mobile optimization */
+  @media (max-height: 500px) and (orientation: landscape) {
+    nav {
+      @apply static;
+    }
+    
+    header {
+      @apply h-12;
+    }
+  }
+  
+  /* iOS Safari specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      /* Fix for iOS Safari bottom bar */
+      min-height: -webkit-fill-available;
+    }
+    
+    .mobile-safe-area {
+      padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+    }
+  }
+  
+  /* Pull-to-refresh prevention */
+  html, body {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 }
