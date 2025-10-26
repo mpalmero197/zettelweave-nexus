@@ -255,7 +255,7 @@ const Index = () => {
       <RightSidebar onCreateCard={handleCreateCard} />
 
       {/* Main Content */}
-      <main className="py-2 px-4 relative">
+      <main className="py-2 px-4 relative" role="main">
         {/* Subtle top glow effect */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-glow pointer-events-none opacity-50" />
         

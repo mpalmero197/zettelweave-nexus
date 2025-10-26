@@ -110,7 +110,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background/95 to-accent/5 p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background/95 to-accent/5 p-4" role="main">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
@@ -266,6 +266,6 @@ export default function Auth() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
