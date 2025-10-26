@@ -33,6 +33,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [isCheckingFriendship, setIsCheckingFriendship] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -57,13 +58,24 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      // Check if they're friends
+      const { data: friendshipData } = await supabase
         .from('friendships')
         .select('id')
         .or(`and(user_id_1.eq.${user.id},user_id_2.eq.${friendId}),and(user_id_1.eq.${friendId},user_id_2.eq.${user.id})`)
         .maybeSingle();
 
-      setIsFriend(!!data);
+      setIsFriend(!!friendshipData);
+
+      // Check if there's a pending request (sent or received)
+      const { data: requestData } = await supabase
+        .from('friend_requests')
+        .select('id')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      setHasPendingRequest(!!requestData);
     } catch (error) {
       console.error('Error checking friendship:', error);
     } finally {
@@ -213,7 +225,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
 
       {!isMinimized && (
         <CardContent className="p-0">
-          {!isCheckingFriendship && !isFriend && (
+          {!isCheckingFriendship && !isFriend && !hasPendingRequest && (
             <Alert className="m-4 border-primary/50 bg-primary/10">
               <UserPlus className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
@@ -224,6 +236,17 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
                   <UserPlus className="h-4 w-4 mr-1" />
                   Add Friend
                 </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!isCheckingFriendship && !isFriend && hasPendingRequest && (
+            <Alert className="m-4 border-blue-500/50 bg-blue-500/10">
+              <UserPlus className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-sm">
+                  You can chat while the request is pending. Add as friend to keep chatting!
+                </span>
               </AlertDescription>
             </Alert>
           )}
