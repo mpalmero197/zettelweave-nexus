@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow, Polygon, Triangle, Group, ActiveSelection, FabricObject } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { 
   MousePointer2,
@@ -43,6 +43,7 @@ import {
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface InfiniteWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
@@ -67,6 +68,13 @@ const stickyColors = [
 ];
 
 export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) => {
+  const isMobile = useIsMobile();
+  
+  // Use mobile-optimized whiteboard on mobile devices
+  if (isMobile) {
+    return <MobileWhiteboard />;
+  }
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -80,16 +88,19 @@ export const InfiniteWhiteboard = ({ onCreateCard }: InfiniteWhiteboardProps) =>
   const [clipboard, setClipboard] = useState<FabricObject[]>([]);
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Initialize canvas
+  // Initialize canvas with proper mobile sizing
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
     const initCanvas = () => {
-      const width = containerRef.current!.clientWidth;
-      const height = containerRef.current!.clientHeight;
+      const container = containerRef.current!;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
       
+      // Ensure canvas has visible dimensions
       if (width === 0 || height === 0) {
         setTimeout(initCanvas, 100);
         return;
