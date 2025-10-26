@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Save, Plus, Trash2, X, Pin, ChevronRight, ChevronLeft } from "lucide-react";
+import { FileText, Save, Plus, Trash2, X, Pin, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ interface RightSidebarProps {
   onCreateCard: (
     card: Omit<ZettelCardType, "id" | "created" | "modified">
   ) => void;
+  onOpenAIAssistant?: () => void;
 }
 
 interface ScratchNote {
@@ -32,7 +33,7 @@ interface StickyNote {
 const SCRATCH_STORAGE_KEY = "scratchpad:notes:v1";
 const STICKY_STORAGE_KEY = "stickyNotes";
 
-export function RightSidebar({ onCreateCard }: RightSidebarProps) {
+export function RightSidebar({ onCreateCard, onOpenAIAssistant }: RightSidebarProps) {
   const [scratchContent, setScratchContent] = useState("");
   const [scratchNotes, setScratchNotes] = useState<ScratchNote[]>([]);
   const [pinnedNotes, setPinnedNotes] = useState<StickyNote[]>([]);
@@ -199,6 +200,18 @@ export function RightSidebar({ onCreateCard }: RightSidebarProps) {
       >
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
+          {/* AI Assistant Button */}
+          {onOpenAIAssistant && (
+            <Button
+              onClick={onOpenAIAssistant}
+              className="w-full"
+              variant="default"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Open AI Assistant
+            </Button>
+          )}
+          
           {/* Scratchpad */}
           <Card>
             <CardHeader className="pb-3">

@@ -1,4 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
+import { AIAssistantSidebar } from "@/components/AIAssistantSidebar";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AISearchBar } from "@/components/AISearchBar";
@@ -83,6 +84,7 @@ const Index = () => {
   const [viewingCard, setViewingCard] = useState<ZettelCardType | null>(null);
   const [showAccountManagement, setShowAccountManagement] = useState(false);
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
@@ -255,7 +257,10 @@ const Index = () => {
       </div>
 
       {/* Right Sidebar */}
-      <RightSidebar onCreateCard={handleCreateCard} />
+      <RightSidebar 
+        onCreateCard={handleCreateCard} 
+        onOpenAIAssistant={() => setShowAIAssistant(true)}
+      />
 
       {/* Main Content */}
       <main className="py-2 px-4 relative" role="main">
@@ -601,6 +606,11 @@ const Index = () => {
           onClose={() => setActiveChatFriend(null)}
         />
       )}
+      
+      <AIAssistantSidebar 
+        open={showAIAssistant} 
+        onOpenChange={setShowAIAssistant} 
+      />
       
       <Footer />
       </MobileOptimizedLayout>
