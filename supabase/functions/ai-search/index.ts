@@ -71,29 +71,83 @@ serve(async (req) => {
       supabaseClient.from('notes').select('*').is('deleted_at', null)
     ]);
 
+    if (cardsResult.error) {
+      console.error('Cards fetch error:', cardsResult.error);
+    }
+    if (notesResult.error) {
+      console.error('Notes fetch error:', notesResult.error);
+    }
+
     const cards = cardsResult.data || [];
     const notes = notesResult.data || [];
 
-    // Prepare content for AI
+    console.log(`Found ${cards.length} cards and ${notes.length} notes for user ${userId}`);
+
+    // If no AI-powered search is needed (very short query), use simple string matching
+    const lowerQuery = query.toLowerCase();
+    
+    // First try simple keyword matching as fallback
+    const simpleCardMatches = cards.filter((c: any) => 
+      c.title?.toLowerCase().includes(lowerQuery) ||
+      c.content?.toLowerCase().includes(lowerQuery) ||
+      c.tags?.some((tag: string) => tag.toLowerCase().includes(lowerQuery)) ||
+      c.category?.toLowerCase().includes(lowerQuery)
+    );
+    
+    const simpleNoteMatches = notes.filter((n: any) =>
+      n.title?.toLowerCase().includes(lowerQuery) ||
+      n.content?.toLowerCase().includes(lowerQuery) ||
+      n.tags?.some((tag: string) => tag.toLowerCase().includes(lowerQuery))
+    );
+    
+    const simpleStickyMatches = stickyNotes.filter((sn: any) =>
+      sn.content?.toLowerCase().includes(lowerQuery)
+    );
+
+    // If we have simple matches, return them immediately without calling AI
+    if (simpleCardMatches.length > 0 || simpleNoteMatches.length > 0 || simpleStickyMatches.length > 0) {
+      console.log(`Simple search found: ${simpleCardMatches.length} cards, ${simpleNoteMatches.length} notes, ${simpleStickyMatches.length} sticky notes`);
+      return new Response(
+        JSON.stringify({
+          cards: simpleCardMatches,
+          notes: simpleNoteMatches,
+          stickyNotes: simpleStickyMatches,
+          reasoning: `Found ${simpleCardMatches.length + simpleNoteMatches.length + simpleStickyMatches.length} exact matches for "${query}"`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Only use AI for semantic/fuzzy search if simple search found nothing
+    console.log('No simple matches, trying AI semantic search...');
+    
+    // Prepare content for AI with more context
     const contentSummary = {
-      cards: cards.map(c => ({
+      cards: cards.map((c: any) => ({
         id: c.id,
+        number: c.number,
         title: c.title,
-        content: c.content.substring(0, 200),
-        tags: c.tags,
+        content: c.content.substring(0, 300), // Increased from 200
+        tags: c.tags || [],
         category: c.category
       })),
-      notes: notes.map(n => ({
+      notes: notes.map((n: any) => ({
         id: n.id,
         title: n.title,
-        content: n.content.substring(0, 200),
-        tags: n.tags
+        content: n.content.substring(0, 300), // Increased from 200
+        tags: n.tags || []
       })),
       stickyNotes: stickyNotes.map((sn: any) => ({
         id: sn.id,
-        content: sn.content.substring(0, 200)
+        content: sn.content.substring(0, 300) // Increased from 200
       }))
     };
+
+    console.log('Content summary prepared:', JSON.stringify({
+      cardCount: contentSummary.cards.length,
+      noteCount: contentSummary.notes.length,
+      stickyNoteCount: contentSummary.stickyNotes.length
+    }));
 
     // Call AI to understand intent and find matches
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -182,15 +236,32 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
     }
 
     const aiData = await aiResponse.json();
+    
+    console.log('AI Response:', JSON.stringify(aiData, null, 2));
 
     // Extract results from tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      console.error('No tool call in AI response');
+      return new Response(
+        JSON.stringify({
+          cards: [],
+          notes: [],
+          stickyNotes: [],
+          reasoning: 'AI search did not return results. Try using exact keywords.'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const results = toolCall?.function?.arguments ? JSON.parse(toolCall.function.arguments) : { 
       cardIds: [], 
       noteIds: [], 
       stickyNoteIds: [],
-      reasoning: '' 
+      reasoning: 'No matches found' 
     };
+    
+    console.log('Parsed AI results:', results);
 
     // Get full data for matched items
     const matchedCards = cards.filter(c => results.cardIds.includes(c.id));
