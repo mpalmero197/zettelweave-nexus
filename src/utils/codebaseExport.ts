@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileEntry {
   path: string;
@@ -575,6 +576,144 @@ dist-ssr
   }
 ];
 
+// Fetch user database export
+const getUserDatabaseExport = async (): Promise<string> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('export-user-data');
+    
+    if (error) {
+      console.error('Error fetching user data:', error);
+      return '-- Error exporting user data\n';
+    }
+    
+    return data.sql || '-- No user data to export\n';
+  } catch (error) {
+    console.error('Failed to export user data:', error);
+    return '-- Failed to export user data\n';
+  }
+};
+
+// Get database schema migrations
+const getDatabaseSchema = (): string => {
+  return `-- PendragonX Database Schema
+-- This file contains all tables, policies, and functions needed
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "vector";
+
+-- Create enum types
+CREATE TYPE app_role AS ENUM ('admin', 'moderator', 'user');
+
+-- Create profiles table
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE,
+  display_name TEXT,
+  avatar_url TEXT,
+  about_me TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create notebooks table
+CREATE TABLE IF NOT EXISTS public.notebooks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  color TEXT DEFAULT '#3b82f6',
+  is_favorite BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create zettel_cards table
+CREATE TABLE IF NOT EXISTS public.zettel_cards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  notebook_id UUID,
+  number TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  tags TEXT[] DEFAULT '{}',
+  linked_cards UUID[] DEFAULT '{}',
+  attachments UUID[] DEFAULT '{}',
+  image_url TEXT,
+  video_url TEXT,
+  is_favorite BOOLEAN DEFAULT false,
+  content_embedding vector(1536),
+  deleted_at TIMESTAMPTZ,
+  permanent_delete_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create notes table
+CREATE TABLE IF NOT EXISTS public.notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  notebook_id UUID,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  tags TEXT[] DEFAULT '{}',
+  attachments UUID[] DEFAULT '{}',
+  is_favorite BOOLEAN DEFAULT false,
+  content_embedding vector(1536),
+  deleted_at TIMESTAMPTZ,
+  permanent_delete_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create other tables (calendar, files, recordings, etc.)
+-- ... additional table definitions ...
+
+-- Enable Row Level Security
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notebooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.zettel_cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS Policies
+CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own notebooks" ON public.notebooks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own notebooks" ON public.notebooks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own notebooks" ON public.notebooks FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own notebooks" ON public.notebooks FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own cards" ON public.zettel_cards FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own cards" ON public.zettel_cards FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own cards" ON public.zettel_cards FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own cards" ON public.zettel_cards FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own notes" ON public.notes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own notes" ON public.notes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own notes" ON public.notes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own notes" ON public.notes FOR DELETE USING (auth.uid() = user_id);
+
+-- Create functions
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_notebooks_updated_at BEFORE UPDATE ON public.notebooks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_zettel_cards_updated_at BEFORE UPDATE ON public.zettel_cards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON public.notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+`;
+};
+
 export const exportCodebase = async (userEmail: string): Promise<void> => {
   // Security check - only allow specific email
   if (userEmail !== 'mpalmero197@gmail.com') {
@@ -601,12 +740,90 @@ export const exportCodebase = async (userEmail: string): Promise<void> => {
       console.warn('Could not fetch all source files, exporting core files only:', error);
     }
 
+    // Add database schema
+    const schemaSQL = getDatabaseSchema();
+    zip.file('supabase/migrations/00000000000000_init_schema.sql', schemaSQL);
+
+    // Add user data export
+    console.log('Exporting user data...');
+    const userDataSQL = await getUserDatabaseExport();
+    zip.file('supabase/migrations/99999999999999_user_data.sql', userDataSQL);
+
+    // Add deployment script
+    const deployScript = `#!/bin/bash
+# PendragonX Deployment Script
+
+echo "🚀 PendragonX Deployment Setup"
+echo "=============================="
+echo ""
+
+# Check for required tools
+command -v npm >/dev/null 2>&1 || { echo "❌ npm is required but not installed. Aborting." >&2; exit 1; }
+
+# Install dependencies
+echo "📦 Installing dependencies..."
+npm install
+
+# Setup Supabase
+echo ""
+echo "🔧 Supabase Setup Instructions:"
+echo "1. Create a new project at https://supabase.com"
+echo "2. Copy your project URL and anon key"
+echo "3. Create a .env file with:"
+echo "   VITE_SUPABASE_URL=your_project_url"
+echo "   VITE_SUPABASE_ANON_KEY=your_anon_key"
+echo ""
+echo "4. Run the SQL migrations in this order:"
+echo "   - supabase/migrations/00000000000000_init_schema.sql"
+echo "   - supabase/migrations/99999999999999_user_data.sql"
+echo ""
+echo "5. Enable Email authentication in Supabase Dashboard:"
+echo "   Authentication > Providers > Email"
+echo ""
+
+# Ask if they want to start dev server
+read -p "Start development server now? (y/n) " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    echo "🎉 Starting development server..."
+    npm run dev
+else
+    echo "✅ Setup complete! Run 'npm run dev' when ready."
+fi
+`;
+    zip.file('deploy.sh', deployScript);
+
+    // Add Windows deployment script
+    const deployBat = `@echo off
+echo PendragonX Deployment Setup
+echo ==============================
+echo.
+
+echo Installing dependencies...
+call npm install
+
+echo.
+echo Supabase Setup Instructions:
+echo 1. Create a new project at https://supabase.com
+echo 2. Copy your project URL and anon key
+echo 3. Create a .env file with:
+echo    VITE_SUPABASE_URL=your_project_url
+echo    VITE_SUPABASE_ANON_KEY=your_anon_key
+echo.
+echo 4. Run the SQL migrations in Supabase SQL Editor
+echo.
+echo Setup complete! Run 'npm run dev' to start.
+pause
+`;
+    zip.file('deploy.bat', deployBat);
+
     // Generate and download zip
     const blob = await zip.generateAsync({ type: 'blob' });
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     saveAs(blob, `pendragonx-complete-${timestamp}.zip`);
     
-    console.log('Codebase export completed successfully');
+    console.log('Codebase export completed successfully with database and deployment scripts');
     
   } catch (error) {
     console.error('Export failed:', error);
