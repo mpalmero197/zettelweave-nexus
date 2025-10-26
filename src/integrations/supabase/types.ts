@@ -295,6 +295,66 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read_at: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read_at?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      collaboration_sessions: {
+        Row: {
+          active_users: Json
+          content_id: string
+          content_type: Database["public"]["Enums"]["shareable_content_type"]
+          created_at: string
+          ended_at: string | null
+          host_user_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          active_users?: Json
+          content_id: string
+          content_type: Database["public"]["Enums"]["shareable_content_type"]
+          created_at?: string
+          ended_at?: string | null
+          host_user_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          active_users?: Json
+          content_id?: string
+          content_type?: Database["public"]["Enums"]["shareable_content_type"]
+          created_at?: string
+          ended_at?: string | null
+          host_user_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dashboard_layouts: {
         Row: {
           created_at: string
@@ -361,6 +421,57 @@ export type Database = {
           storage_path?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      friend_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          receiver_id: string
+          sender_id: string
+          status: Database["public"]["Enums"]["friend_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: Database["public"]["Enums"]["friend_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: Database["public"]["Enums"]["friend_request_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          id: string
+          user_id_1: string
+          user_id_2: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id_1: string
+          user_id_2: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id_1?: string
+          user_id_2?: string
         }
         Relationships: []
       }
@@ -561,6 +672,39 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_content: {
+        Row: {
+          content_id: string
+          content_type: Database["public"]["Enums"]["shareable_content_type"]
+          created_at: string
+          id: string
+          owner_id: string
+          permission: Database["public"]["Enums"]["sharing_permission"]
+          shared_with_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          content_id: string
+          content_type: Database["public"]["Enums"]["shareable_content_type"]
+          created_at?: string
+          id?: string
+          owner_id: string
+          permission?: Database["public"]["Enums"]["sharing_permission"]
+          shared_with_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: Database["public"]["Enums"]["shareable_content_type"]
+          created_at?: string
+          id?: string
+          owner_id?: string
+          permission?: Database["public"]["Enums"]["sharing_permission"]
+          shared_with_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           auto_delete_days: number
@@ -688,6 +832,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      are_friends: {
+        Args: { _user_id_1: string; _user_id_2: string }
+        Returns: boolean
+      }
       auto_delete_expired_items: { Args: never; Returns: undefined }
       cleanup_old_audit_logs: { Args: never; Returns: undefined }
       clear_all_card_links: { Args: never; Returns: number }
@@ -732,6 +880,16 @@ export type Database = {
           roles: Database["public"]["Enums"]["app_role"][]
         }[]
       }
+      get_my_friends: {
+        Args: never
+        Returns: {
+          friend_avatar_url: string
+          friend_display_name: string
+          friend_email: string
+          friend_user_id: string
+          friendship_created_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -750,6 +908,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_users: {
+        Args: { _search_query: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          email: string
+          has_pending_request: boolean
+          is_friend: boolean
+          user_id: string
+        }[]
+      }
       update_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -764,6 +933,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      friend_request_status: "pending" | "accepted" | "declined"
+      shareable_content_type:
+        | "card"
+        | "note"
+        | "scratchpad"
+        | "stickynote"
+        | "notebook"
+      sharing_permission: "view" | "edit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -892,6 +1069,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      friend_request_status: ["pending", "accepted", "declined"],
+      shareable_content_type: [
+        "card",
+        "note",
+        "scratchpad",
+        "stickynote",
+        "notebook",
+      ],
+      sharing_permission: ["view", "edit"],
     },
   },
 } as const

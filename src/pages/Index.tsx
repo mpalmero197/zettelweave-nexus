@@ -35,6 +35,8 @@ import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
 import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
+import { FriendsPanel } from "@/components/friends/FriendsPanel";
+import { ChatPopup } from "@/components/friends/ChatPopup";
 import { 
   Plus, 
   Download, 
@@ -80,6 +82,7 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
   const [viewingCard, setViewingCard] = useState<ZettelCardType | null>(null);
   const [showAccountManagement, setShowAccountManagement] = useState(false);
+  const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -517,6 +520,12 @@ const Index = () => {
                     <RecordingsLibrary />
                   </div>
                 </TabsContent>
+
+                <TabsContent value="friends" className="mt-0">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
+                  </div>
+                </TabsContent>
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
@@ -582,6 +591,14 @@ const Index = () => {
             });
           }}
           cards={cards}
+        />
+      )}
+
+      {activeChatFriend && (
+        <ChatPopup
+          friendId={activeChatFriend.id}
+          friendName={activeChatFriend.name}
+          onClose={() => setActiveChatFriend(null)}
         />
       )}
       

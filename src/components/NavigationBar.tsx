@@ -35,6 +35,7 @@ import {
   Settings,
   Shield,
   Lightbulb,
+  Users,
 } from "lucide-react";
 
 interface NavigationBarProps {
@@ -242,6 +243,19 @@ export function NavigationBar({
                   >
                     <Mic className="h-4 w-4" />
                     Recorder
+                  </Button>
+
+                  {/* Friends */}
+                  <Button
+                    variant={activeTab === "friends" ? "default" : "ghost"}
+                    onClick={() => {
+                      onTabChange("friends");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    Friends
                   </Button>
 
                   {/* Recycle Bin */}
