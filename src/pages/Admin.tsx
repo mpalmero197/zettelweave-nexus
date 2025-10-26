@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
-import { ActivityMonitor } from '@/components/admin/ActivityMonitor';
-import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart } from 'lucide-react';
+import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
+import { SecurityMonitor } from '@/components/admin/SecurityMonitor';
+import { ContentModeration } from '@/components/admin/ContentModeration';
+import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Admin() {
@@ -120,7 +122,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart className="h-4 w-4" />
               Overview
@@ -129,13 +131,17 @@ export default function Admin() {
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="content" className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Content
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               System
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Activity
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
@@ -146,11 +152,11 @@ export default function Admin() {
           <TabsContent value="overview">
             <Card>
               <CardHeader>
-                <CardTitle>System Overview</CardTitle>
-                <CardDescription>Quick stats and system health at a glance</CardDescription>
+                <CardTitle>Analytics Dashboard</CardTitle>
+                <CardDescription>Platform-wide statistics and growth metrics</CardDescription>
               </CardHeader>
               <CardContent>
-                <ActivityMonitor />
+                <AnalyticsDashboard />
               </CardContent>
             </Card>
           </TabsContent>
@@ -159,20 +165,16 @@ export default function Admin() {
             <UserManagement />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <SystemSettings />
+          <TabsContent value="content">
+            <ContentModeration />
           </TabsContent>
 
-          <TabsContent value="activity">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Monitor user activity and system events</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ActivityMonitor />
-              </CardContent>
-            </Card>
+          <TabsContent value="security">
+            <SecurityMonitor />
+          </TabsContent>
+
+          <TabsContent value="system">
+            <SystemSettings />
           </TabsContent>
 
           <TabsContent value="docs">
