@@ -10,14 +10,45 @@ import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
 import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
 import { SecurityMonitor } from '@/components/admin/SecurityMonitor';
 import { ContentModeration } from '@/components/admin/ContentModeration';
-import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert } from 'lucide-react';
+import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { exportCodebase } from '@/utils/codebaseExport';
 
 export default function Admin() {
   const { user, loading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+
+  const handleExportCodebase = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "User email not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      await exportCodebase(user.email);
+      toast({
+        title: "Success",
+        description: "Site exported successfully! Check your downloads.",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export codebase. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -122,7 +153,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart className="h-4 w-4" />
               Overview
@@ -142,6 +173,10 @@ export default function Admin() {
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               System
+            </TabsTrigger>
+            <TabsTrigger value="export" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Export
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
@@ -175,6 +210,97 @@ export default function Admin() {
 
           <TabsContent value="system">
             <SystemSettings />
+          </TabsContent>
+
+          <TabsContent value="export">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Site Export & Backup
+                </CardTitle>
+                <CardDescription>
+                  Download your complete site codebase for hosting on any platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-6 border rounded-lg bg-muted/50">
+                  <h3 className="text-lg font-semibold mb-3">What's Included</h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">✓</span>
+                      <span>Complete source code (all React components, hooks, utilities)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">✓</span>
+                      <span>Configuration files (Vite, Tailwind, TypeScript, etc.)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">✓</span>
+                      <span>Supabase backend functions and database schema</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">✓</span>
+                      <span>Package.json with all dependencies</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">✓</span>
+                      <span>Deployment instructions and README</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="p-6 border rounded-lg bg-primary/5">
+                  <h3 className="text-lg font-semibold mb-3">Deployment Options</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Once downloaded, you can deploy your site to any hosting platform:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-primary"></span>
+                      <span><strong>Netlify/Vercel:</strong> Connect repo and auto-deploy</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-primary"></span>
+                      <span><strong>AWS S3/CloudFront:</strong> Static hosting with CDN</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-primary"></span>
+                      <span><strong>Custom VPS:</strong> Full control with nginx/apache</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-primary"></span>
+                      <span><strong>GitHub Pages:</strong> Free hosting for public repos</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-between p-6 border rounded-lg">
+                  <div>
+                    <h3 className="font-semibold mb-1">Export Complete Site</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Download a ZIP file containing your entire codebase
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleExportCodebase}
+                    disabled={isExporting}
+                    size="lg"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Site'}
+                  </Button>
+                </div>
+
+                <div className="p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/10">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                    <strong>Note:</strong> After exporting, you'll need to set up your Supabase credentials 
+                    in the .env file and configure your database. See the included README for instructions.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="docs">
