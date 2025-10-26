@@ -17,7 +17,8 @@ import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
 import { Notes } from "@/components/Notes";
-import MeetingRecorder from "@/components/MeetingRecorder";
+import { MediaRecorder as MediaRecorderComponent } from "@/components/MediaRecorder";
+import { RecordingsLibrary } from "@/components/RecordingsLibrary";
 import { AudioManager } from "@/components/AudioManager";
 import { Catalyst } from "@/components/Catalyst";
 import { StickyNotesSimple } from "@/components/StickyNotesSimple";
@@ -512,10 +513,8 @@ const Index = () => {
 
                 <TabsContent value="recorder" className="mt-0">
                   <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 space-y-6 animate-fade-in-up">
-                    <Suspense fallback={<FastLoadingFallback message="Loading meeting recorder..." />}>
-                      <MeetingRecorderLazy />
-                    </Suspense>
-                    <AudioManager />
+                    <MediaRecorderComponent />
+                    <RecordingsLibrary />
                   </div>
                 </TabsContent>
               </div>

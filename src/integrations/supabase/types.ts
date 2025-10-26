@@ -483,6 +483,54 @@ export type Database = {
         }
         Relationships: []
       }
+      recordings: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          duration: number | null
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          recording_type: string
+          storage_path: string
+          thumbnail_url: string | null
+          title: string
+          transcription: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          duration?: number | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          recording_type: string
+          storage_path: string
+          thumbnail_url?: string | null
+          title: string
+          transcription?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          duration?: number | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          recording_type?: string
+          storage_path?: string
+          thumbnail_url?: string | null
+          title?: string
+          transcription?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           created_at: string | null
