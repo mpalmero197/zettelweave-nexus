@@ -406,7 +406,8 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
     const lastActivity = user.last_activity_at;
     
     const getLastOnlineText = () => {
-      if (!lastActivity) return 'Never';
+      if (!lastActivity) return 'Unknown';
+      
       const date = new Date(lastActivity);
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
@@ -414,7 +415,13 @@ export function FriendsPanel({ onOpenChat }: FriendsPanelProps) {
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
       
-      if (status === 'online') return 'Online now';
+      // If status is online and activity was very recent (within 2 mins), show "Online now"
+      if (status === 'online' && diffMins < 2) return 'Online now';
+      
+      // If the last activity is more than 30 days old, it's likely stale data from initialization
+      if (diffDays > 30) return 'Unknown';
+      
+      // Otherwise show relative time
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins}m ago`;
       if (diffHours < 24) return `${diffHours}h ago`;
