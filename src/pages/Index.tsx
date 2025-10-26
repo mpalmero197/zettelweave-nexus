@@ -485,7 +485,15 @@ const Index = () => {
                 <TabsContent value="journal" className="mt-0">
                   <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
-                      <BulletJournal onCreateCard={handleCreateCard} />
+                      <BulletJournal 
+                        onCreateCard={handleCreateCard}
+                        onAddHabit={(taskName) => {
+                          // Trigger habit creation via global function exposed by HabitTracker
+                          if ((window as any).__addHabitFromTask) {
+                            (window as any).__addHabitFromTask(taskName);
+                          }
+                        }}
+                      />
                     </Suspense>
                   </div>
                 </TabsContent>

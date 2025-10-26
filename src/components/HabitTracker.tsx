@@ -71,6 +71,40 @@ export default function HabitTracker() {
   const [view, setView] = useState<'today' | 'calendar' | 'stats' | 'all' | 'pomodoro'>('today');
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
+  // Expose function to add habits from external components (like BulletJournal)
+  const addHabitFromTask = (taskName: string) => {
+    const existingHabit = habits.find(h => h.name.toLowerCase() === taskName.toLowerCase());
+    if (existingHabit) {
+      toast(`Habit "${taskName}" already exists`);
+      return;
+    }
+
+    const newHabit: Habit = {
+      id: crypto.randomUUID(),
+      name: taskName,
+      description: 'Created from bullet journal task',
+      frequency: 'daily',
+      target: 1,
+      category: 'productivity',
+      color: HABIT_COLORS[habits.length % HABIT_COLORS.length],
+      createdAt: new Date(),
+      completions: [],
+      streak: 0,
+      bestStreak: 0
+    };
+
+    setHabits(prev => [...prev, newHabit]);
+    toast(`Habit "${taskName}" added from bullet journal!`);
+  };
+
+  // Make this available globally via window (for BulletJournal integration)
+  useEffect(() => {
+    (window as any).__addHabitFromTask = addHabitFromTask;
+    return () => {
+      delete (window as any).__addHabitFromTask;
+    };
+  }, [habits]);
+
   // Load habits from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('habit-tracker-data');

@@ -19,6 +19,7 @@ interface BulletItem {
 
 interface BulletJournalProps {
   onCreateCard?: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
+  onAddHabit?: (habitName: string) => void;
 }
 
 const BulletIcon = ({ type, completed }: { type: BulletItem["type"]; completed?: boolean }) => {
@@ -31,7 +32,7 @@ const BulletIcon = ({ type, completed }: { type: BulletItem["type"]; completed?:
   return "•";
 };
 
-export const BulletJournal = ({ onCreateCard }: BulletJournalProps) => {
+export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) => {
   const [items, setItems] = useState<BulletItem[]>([]);
   const [newItem, setNewItem] = useState("");
   const [newTags, setNewTags] = useState("");
@@ -55,6 +56,11 @@ export const BulletJournal = ({ onCreateCard }: BulletJournalProps) => {
     setNewItem("");
     setNewTags("");
     toast("Bullet journal item added");
+
+    // Auto-sync tasks to habit tracker
+    if (selectedType === 'task' && onAddHabit) {
+      onAddHabit(newItem);
+    }
   };
 
   const toggleTask = (id: string) => {

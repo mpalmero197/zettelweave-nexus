@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Play, Pause, RotateCcw, Timer, Coffee, Target } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,6 +30,8 @@ export function PomodoroTimer({ habits = [], onSessionComplete }: PomodoroTimerP
   const [selectedHabit, setSelectedHabit] = useState<string>('');
   const [sessions, setSessions] = useState<PomodoroSession[]>([]);
   const [cycle, setCycle] = useState(1);
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('25');
   
   const intervalRef = useRef<NodeJS.Timeout>();
   const initialTime = useRef(25 * 60);
@@ -123,7 +126,18 @@ export function PomodoroTimer({ habits = [], onSessionComplete }: PomodoroTimerP
     setMode(newMode);
     setSeconds(timePresets[newMode]);
     initialTime.current = timePresets[newMode];
+    setCustomMinutes(Math.floor(timePresets[newMode] / 60).toString());
     setIsRunning(false);
+  };
+
+  const handleSetCustomTime = () => {
+    const mins = parseInt(customMinutes) || 25;
+    const totalSeconds = mins * 60;
+    setSeconds(totalSeconds);
+    initialTime.current = totalSeconds;
+    setIsEditingTime(false);
+    setIsRunning(false);
+    toast.success(`Timer set to ${mins} minutes`);
   };
 
   const formatTime = (secs: number) => {
@@ -209,12 +223,35 @@ export function PomodoroTimer({ habits = [], onSessionComplete }: PomodoroTimerP
 
           {/* Timer display */}
           <div className="text-center space-y-4">
-            <div className="text-6xl font-mono font-bold text-primary">
-              {formatTime(seconds)}
-            </div>
+            {isEditingTime ? (
+              <div className="flex items-center justify-center gap-2">
+                <Input
+                  type="number"
+                  value={customMinutes}
+                  onChange={(e) => setCustomMinutes(e.target.value)}
+                  className="w-24 text-center text-2xl font-mono"
+                  min="1"
+                  max="999"
+                />
+                <span className="text-2xl font-mono">min</span>
+                <Button size="sm" onClick={handleSetCustomTime}>Set</Button>
+                <Button size="sm" variant="outline" onClick={() => setIsEditingTime(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <div 
+                className="text-6xl font-mono font-bold text-primary cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => !isRunning && setIsEditingTime(true)}
+                title="Click to edit timer"
+              >
+                {formatTime(seconds)}
+              </div>
+            )}
             <Progress value={progress} className="h-2" />
             <div className="text-sm text-muted-foreground">
               {mode === 'work' ? 'Focus time' : 'Break time'} • {Math.ceil(seconds / 60)} min remaining
+              {!isRunning && !isEditingTime && (
+                <span className="block text-xs mt-1">Click timer to customize duration</span>
+              )}
             </div>
           </div>
 

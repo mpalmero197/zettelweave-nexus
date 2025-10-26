@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -98,6 +98,8 @@ export function Catalyst() {
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [recommendations, setRecommendations] = useState<Array<{id: string; type: string; title: string; content: string; relevance: string}>>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
@@ -460,6 +462,81 @@ export function Catalyst() {
     toast({ title: 'New document', description: 'Started a new document.' });
   };
 
+  // AI Recommendations based on current writing
+  const handleGetRecommendations = async () => {
+    if (!editorContent || editorContent.length < 50) {
+      toast({ title: 'Need more content', description: 'Write at least a few sentences to get recommendations.', variant: 'destructive' });
+      return;
+    }
+
+    setIsLoadingRecommendations(true);
+    setRecommendations([]);
+
+    try {
+      // Get all content sources
+      const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
+      const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
+
+      const allSources = [
+        ...cards.map(c => ({ id: c.id, type: 'card', title: c.title, content: c.content })),
+        ...notes.map(n => ({ id: n.id, type: 'note', title: n.title, content: n.content })),
+        ...stickyNotes.map((s: any) => ({ id: s.id, type: 'sticky', title: 'Sticky Note', content: s.content })),
+        ...scratchPad.map((s: any) => ({ id: s.id, type: 'scratchpad', title: 'Scratch Note', content: s.content })),
+      ];
+
+      // Simple keyword matching algorithm
+      const keywords = editorContent.toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length > 4)
+        .slice(0, 20);
+
+      const scored = allSources.map(source => {
+        const sourceText = (source.title + ' ' + source.content).toLowerCase();
+        const matches = keywords.filter(kw => sourceText.includes(kw)).length;
+        return { ...source, score: matches };
+      });
+
+      const topRecommendations = scored
+        .filter(s => s.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(s => ({
+          id: s.id,
+          type: s.type,
+          title: s.title,
+          content: s.content.substring(0, 150) + '...',
+          relevance: `${s.score} keyword${s.score > 1 ? 's' : ''} match`
+        }));
+
+      setRecommendations(topRecommendations);
+      
+      if (topRecommendations.length === 0) {
+        toast({ title: 'No recommendations', description: 'No related content found based on your current writing.' });
+      } else {
+        toast({ title: 'Recommendations ready', description: `Found ${topRecommendations.length} related items.` });
+      }
+    } catch (error) {
+      console.error('Failed to generate recommendations:', error);
+      toast({ title: 'Error', description: 'Failed to generate recommendations', variant: 'destructive' });
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
+
+  // Auto-trigger recommendations when user pauses typing
+  useEffect(() => {
+    if (!editorContent || editorContent.length < 50) {
+      setRecommendations([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleGetRecommendations();
+    }, 3000); // Wait 3 seconds after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [editorContent]);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1800px]">
       {/* Header */}
@@ -771,6 +848,58 @@ export function Catalyst() {
                       </p>
                     )}
                   </ScrollArea>
+
+                  {/* Recommendations Section */}
+                  <div className="border-t pt-3 mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium">Related Content</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGetRecommendations}
+                        disabled={isLoadingRecommendations}
+                      >
+                        {isLoadingRecommendations ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                    <ScrollArea className="h-[200px]">
+                      {recommendations.length > 0 ? (
+                        <div className="space-y-2">
+                          {recommendations.map((rec) => (
+                            <div
+                              key={rec.id}
+                              className="p-2 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                              onClick={() => {
+                                const content = contentItems.find(c => c.id === rec.id);
+                                if (content) insertReference(content);
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">{rec.type}</Badge>
+                                    <p className="text-xs font-medium truncate">{rec.title}</p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                    {rec.content}
+                                  </p>
+                                  <p className="text-xs text-primary mt-1">{rec.relevance}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-4">
+                          {isLoadingRecommendations ? 'Searching...' : 'Write some content to see recommendations'}
+                        </p>
+                      )}
+                    </ScrollArea>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="plagiarism" className="space-y-3 mt-4">
