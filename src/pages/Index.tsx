@@ -38,6 +38,7 @@ import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { FriendsPanel } from "@/components/friends/FriendsPanel";
 import { ChatPopup } from "@/components/friends/ChatPopup";
+import { FloatingChatBubble } from "@/components/FloatingChatBubble";
 import { 
   Plus, 
   Download, 
@@ -611,6 +612,9 @@ const Index = () => {
         open={showAIAssistant} 
         onOpenChange={setShowAIAssistant} 
       />
+      
+      {/* Floating Chat Bubble */}
+      <FloatingChatBubble />
       
       <Footer />
       </MobileOptimizedLayout>
