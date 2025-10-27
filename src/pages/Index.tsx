@@ -222,6 +222,7 @@ const Index = () => {
   }
 
   return (
+    <>
     <MobileDetector>
       <MobileOptimizedLayout>
       <SecurityNotice />
@@ -613,12 +614,13 @@ const Index = () => {
         onOpenChange={setShowAIAssistant} 
       />
       
-      {/* Floating Chat Bubble */}
-      <FloatingChatBubble />
-      
       <Footer />
       </MobileOptimizedLayout>
     </MobileDetector>
+    
+    {/* Floating Chat Bubble - Outside all containers for true viewport fixed positioning */}
+    <FloatingChatBubble />
+    </>
   );
 
 };
