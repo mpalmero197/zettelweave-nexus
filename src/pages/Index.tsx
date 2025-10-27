@@ -323,7 +323,7 @@ const Index = () => {
           <div className="mt-4 w-full">
             <div className="w-full space-y-4">
               {/* Main Content Area - Full width with proper padding for sidebar on desktop */}
-              <div className={`w-full min-h-[600px] ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
+              <div className={`w-full ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
@@ -337,7 +337,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="search" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                  <div className="glass-card rounded-2xl p-6 shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     {searchResults ? (
                       <UnifiedSearchResults
                         query={searchResults.query}
@@ -394,7 +394,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                  <div className="glass-card rounded-2xl p-6 shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     {isLoading ? (
                       <FastLoadingFallback message="Loading your knowledge cards..." />
                     ) : filteredCards.length === 0 ? (
