@@ -179,8 +179,8 @@ export function FloatingChatBubble() {
 
   return (
     <>
-      {/* Floating Chat Bubble */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
+      {/* Floating Chat Bubble - Fixed to viewport */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3" style={{ position: 'fixed' }}>
         {isOpen && (
           <Card className="w-96 shadow-2xl border-2 glass-card animate-fade-in-up">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
