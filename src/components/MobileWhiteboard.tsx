@@ -36,7 +36,7 @@ export function MobileWhiteboard() {
     const initCanvas = () => {
       const container = containerRef.current!;
       const width = Math.max(container.clientWidth, window.innerWidth);
-      const height = Math.max(container.clientHeight, window.innerHeight - 200); // Account for toolbar
+      const height = Math.max(container.clientHeight, window.innerHeight - 200);
 
       if (width === 0 || height === 0) {
         setTimeout(initCanvas, 100);
@@ -55,50 +55,63 @@ export function MobileWhiteboard() {
       brush.width = 3;
       canvas.freeDrawingBrush = brush;
 
-      // Touch panning
-      let isPanning = false;
-      let lastPos: { x: number; y: number } | null = null;
-
-      canvas.on('mouse:down', (opt) => {
-        if (activeTool === 'pan') {
-          isPanning = true;
-          canvas.selection = false;
-          canvas.isDrawingMode = false;
-          const pointer = opt.pointer;
-          if (pointer) {
-            lastPos = { x: pointer.x, y: pointer.y };
-          }
-        }
-      });
-
-      canvas.on('mouse:move', (opt) => {
-        if (activeTool === 'pan' && isPanning && lastPos) {
-          const pointer = opt.pointer;
-          if (pointer && canvas.viewportTransform) {
-            canvas.viewportTransform[4] += pointer.x - lastPos.x;
-            canvas.viewportTransform[5] += pointer.y - lastPos.y;
-            canvas.requestRenderAll();
-            lastPos = { x: pointer.x, y: pointer.y };
-          }
-        }
-      });
-
-      canvas.on('mouse:up', () => {
-        if (isPanning) {
-          isPanning = false;
-          canvas.selection = true;
-          lastPos = null;
-        }
-      });
-
       setFabricCanvas(canvas);
       toast.success("Whiteboard ready!");
-
-      return () => canvas.dispose();
     };
 
-    initCanvas();
-  }, []);
+    const timer = setTimeout(initCanvas, 100);
+    return () => clearTimeout(timer);
+  }, [penColor]);
+
+  // Handle panning separately with proper state management
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    let isPanning = false;
+    let lastPos: { x: number; y: number } | null = null;
+
+    const handleMouseDown = (opt: any) => {
+      if (activeTool === 'pan') {
+        isPanning = true;
+        fabricCanvas.selection = false;
+        fabricCanvas.isDrawingMode = false;
+        const pointer = opt.pointer;
+        if (pointer) {
+          lastPos = { x: pointer.x, y: pointer.y };
+        }
+      }
+    };
+
+    const handleMouseMove = (opt: any) => {
+      if (activeTool === 'pan' && isPanning && lastPos) {
+        const pointer = opt.pointer;
+        if (pointer && fabricCanvas.viewportTransform) {
+          fabricCanvas.viewportTransform[4] += pointer.x - lastPos.x;
+          fabricCanvas.viewportTransform[5] += pointer.y - lastPos.y;
+          fabricCanvas.requestRenderAll();
+          lastPos = { x: pointer.x, y: pointer.y };
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isPanning) {
+        isPanning = false;
+        fabricCanvas.selection = true;
+        lastPos = null;
+      }
+    };
+
+    fabricCanvas.on('mouse:down', handleMouseDown);
+    fabricCanvas.on('mouse:move', handleMouseMove);
+    fabricCanvas.on('mouse:up', handleMouseUp);
+
+    return () => {
+      fabricCanvas.off('mouse:down', handleMouseDown);
+      fabricCanvas.off('mouse:move', handleMouseMove);
+      fabricCanvas.off('mouse:up', handleMouseUp);
+    };
+  }, [fabricCanvas, activeTool]);
 
   useEffect(() => {
     if (!fabricCanvas) return;
