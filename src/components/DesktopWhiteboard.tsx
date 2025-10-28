@@ -48,7 +48,7 @@ interface DesktopWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "pen" | "highlighter" | "eraser" | "rectangle" | "circle" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "triangle" | "star" | "polygon";
+type Tool = "select" | "pen" | "bezier" | "highlighter" | "eraser" | "rectangle" | "circle" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "triangle" | "star" | "polygon";
 
 const penColors = [
   { name: "Black", value: "#000000" },
@@ -81,6 +81,11 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  const [bezierPoints, setBezierPoints] = useState<{x: number, y: number}[]>([]);
+  const [currentBezierPath, setCurrentBezierPath] = useState<Path | null>(null);
+  const [showShapeMenu, setShowShapeMenu] = useState(false);
+  const [showDrawMenu, setShowDrawMenu] = useState(false);
+  const [showLineMenu, setShowLineMenu] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
@@ -198,10 +203,65 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       fabricCanvas.on('mouse:down', handleObjectClick);
     }
 
+    // Handle Bezier pen tool
+    const handleBezierClick = (e: any) => {
+      if (activeTool === "bezier") {
+        const pointer = fabricCanvas.getPointer(e.e);
+        const newPoints = [...bezierPoints, { x: pointer.x, y: pointer.y }];
+        setBezierPoints(newPoints);
+
+        if (newPoints.length === 1) {
+          // First point - start path
+          const pathString = `M ${pointer.x} ${pointer.y}`;
+          const path = new Path(pathString, {
+            stroke: penColor,
+            strokeWidth: penSize,
+            fill: '',
+            selectable: false,
+          });
+          fabricCanvas.add(path);
+          setCurrentBezierPath(path);
+        } else if (newPoints.length > 1 && currentBezierPath) {
+          // Add line to point
+          const pathData = newPoints.map((p, i) => {
+            if (i === 0) return `M ${p.x} ${p.y}`;
+            return `L ${p.x} ${p.y}`;
+          }).join(' ');
+          
+          currentBezierPath.set('path', pathData as any);
+          fabricCanvas.renderAll();
+        }
+      }
+    };
+
+    const handleBezierKeyDown = (e: KeyboardEvent) => {
+      if (activeTool === "bezier" && (e.key === "Enter" || e.key === "Escape")) {
+        if (currentBezierPath && bezierPoints.length > 1) {
+          currentBezierPath.set('selectable', true);
+          fabricCanvas.renderAll();
+          toast.success("Path completed");
+        }
+        setBezierPoints([]);
+        setCurrentBezierPath(null);
+      }
+    };
+
+    if (activeTool === "bezier") {
+      fabricCanvas.isDrawingMode = false;
+      fabricCanvas.selection = false;
+      fabricCanvas.on('mouse:down', handleBezierClick);
+      window.addEventListener('keydown', handleBezierKeyDown);
+      toast.info("Click to add points. Press Enter to finish.");
+    } else {
+      fabricCanvas.selection = true;
+    }
+
     return () => {
       fabricCanvas.off('mouse:down', handleObjectClick);
+      fabricCanvas.off('mouse:down', handleBezierClick);
+      window.removeEventListener('keydown', handleBezierKeyDown);
     };
-  }, [activeTool, penColor, penSize, fabricCanvas]);
+  }, [activeTool, penColor, penSize, fabricCanvas, bezierPoints, currentBezierPath]);
 
   const handleToolClick = (tool: Tool) => {
     setActiveTool(tool);
@@ -470,6 +530,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     <div ref={containerRef} className="relative w-full h-[800px] bg-gradient-to-br from-background via-background/95 to-background rounded-xl overflow-hidden">
       {/* Top Toolbar */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-card/95 backdrop-blur-xl px-4 py-2 rounded-xl shadow-lg border border-border">
+        {/* Selection Tools */}
         <Button
           variant={activeTool === "select" ? "default" : "ghost"}
           size="icon"
@@ -486,82 +547,156 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
         >
           <Hand className="h-4 w-4" />
         </Button>
+        
         <Separator orientation="vertical" className="h-6" />
-        <Button
-          variant={activeTool === "pen" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("pen")}
-          title="Pen"
-        >
-          <Pen className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "highlighter" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("highlighter")}
-          title="Highlighter"
-        >
-          <Highlighter className="h-4 w-4" />
-        </Button>
+        
+        {/* Drawing Tools Group */}
+        <Sheet open={showDrawMenu} onOpenChange={setShowDrawMenu}>
+          <SheetTrigger asChild>
+            <Button
+              variant={["pen", "bezier", "highlighter"].includes(activeTool) ? "default" : "ghost"}
+              size="icon"
+              title="Drawing Tools"
+            >
+              <Pen className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="top" className="h-auto">
+            <SheetHeader>
+              <SheetTitle>Drawing Tools</SheetTitle>
+            </SheetHeader>
+            <div className="flex gap-2 mt-4 justify-center">
+              <Button
+                variant={activeTool === "pen" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("pen"); setShowDrawMenu(false); }}
+              >
+                <Pen className="h-5 w-5 mb-1" />
+                <span className="text-xs">Freehand</span>
+              </Button>
+              <Button
+                variant={activeTool === "bezier" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { setActiveTool("bezier"); setShowDrawMenu(false); }}
+              >
+                <Pen className="h-5 w-5 mb-1" />
+                <span className="text-xs">Pen Tool</span>
+              </Button>
+              <Button
+                variant={activeTool === "highlighter" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("highlighter"); setShowDrawMenu(false); }}
+              >
+                <Highlighter className="h-5 w-5 mb-1" />
+                <span className="text-xs">Highlighter</span>
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+        
         <Separator orientation="vertical" className="h-6" />
-        <Button
-          variant={activeTool === "rectangle" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("rectangle")}
-          title="Rectangle"
-        >
-          <Square className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "circle" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("circle")}
-          title="Circle"
-        >
-          <CircleIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "triangle" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("triangle")}
-          title="Triangle"
-        >
-          <TriangleIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "star" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("star")}
-          title="Star"
-        >
-          <Star className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "polygon" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("polygon")}
-          title="Hexagon"
-        >
-          <Hexagon className="h-4 w-4" />
-        </Button>
+        
+        {/* Shape Tools Group */}
+        <Sheet open={showShapeMenu} onOpenChange={setShowShapeMenu}>
+          <SheetTrigger asChild>
+            <Button
+              variant={["rectangle", "circle", "triangle", "star", "polygon"].includes(activeTool) ? "default" : "ghost"}
+              size="icon"
+              title="Shape Tools"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="top" className="h-auto">
+            <SheetHeader>
+              <SheetTitle>Shape Tools</SheetTitle>
+            </SheetHeader>
+            <div className="flex gap-2 mt-4 justify-center">
+              <Button
+                variant={activeTool === "rectangle" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("rectangle"); setShowShapeMenu(false); }}
+              >
+                <Square className="h-5 w-5 mb-1" />
+                <span className="text-xs">Rectangle</span>
+              </Button>
+              <Button
+                variant={activeTool === "circle" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("circle"); setShowShapeMenu(false); }}
+              >
+                <CircleIcon className="h-5 w-5 mb-1" />
+                <span className="text-xs">Circle</span>
+              </Button>
+              <Button
+                variant={activeTool === "triangle" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("triangle"); setShowShapeMenu(false); }}
+              >
+                <TriangleIcon className="h-5 w-5 mb-1" />
+                <span className="text-xs">Triangle</span>
+              </Button>
+              <Button
+                variant={activeTool === "star" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("star"); setShowShapeMenu(false); }}
+              >
+                <Star className="h-5 w-5 mb-1" />
+                <span className="text-xs">Star</span>
+              </Button>
+              <Button
+                variant={activeTool === "polygon" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("polygon"); setShowShapeMenu(false); }}
+              >
+                <Hexagon className="h-5 w-5 mb-1" />
+                <span className="text-xs">Hexagon</span>
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+        
         <Separator orientation="vertical" className="h-6" />
-        <Button
-          variant={activeTool === "line" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("line")}
-          title="Line"
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "arrow" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("arrow")}
-          title="Arrow"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+        
+        {/* Line Tools Group */}
+        <Sheet open={showLineMenu} onOpenChange={setShowLineMenu}>
+          <SheetTrigger asChild>
+            <Button
+              variant={["line", "arrow"].includes(activeTool) ? "default" : "ghost"}
+              size="icon"
+              title="Line Tools"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="top" className="h-auto">
+            <SheetHeader>
+              <SheetTitle>Line Tools</SheetTitle>
+            </SheetHeader>
+            <div className="flex gap-2 mt-4 justify-center">
+              <Button
+                variant={activeTool === "line" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("line"); setShowLineMenu(false); }}
+              >
+                <Minus className="h-5 w-5 mb-1" />
+                <span className="text-xs">Line</span>
+              </Button>
+              <Button
+                variant={activeTool === "arrow" ? "default" : "outline"}
+                className="flex-col h-20 w-20"
+                onClick={() => { handleToolClick("arrow"); setShowLineMenu(false); }}
+              >
+                <ArrowRight className="h-5 w-5 mb-1" />
+                <span className="text-xs">Arrow</span>
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+        
         <Separator orientation="vertical" className="h-6" />
+        
+        {/* Content Tools */}
         <Button
           variant={activeTool === "text" ? "default" : "ghost"}
           size="icon"
@@ -586,7 +721,9 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
+        
         <Separator orientation="vertical" className="h-6" />
+        
         <Button
           variant={activeTool === "eraser" ? "default" : "ghost"}
           size="icon"
