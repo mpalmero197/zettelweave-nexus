@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow, Polygon, Triangle, Group, ActiveSelection, FabricObject } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow, Polygon, Triangle, Group, ActiveSelection, FabricObject, FabricImage } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -184,9 +184,23 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       }
     }
 
+    // Handle eraser mode - click to delete objects
+    const handleObjectClick = (e: any) => {
+      if (activeTool === "eraser" && e.target) {
+        fabricCanvas.remove(e.target);
+        fabricCanvas.renderAll();
+        toast.success("Object deleted");
+      }
+    };
+
     if (activeTool === "eraser") {
       fabricCanvas.isDrawingMode = false;
+      fabricCanvas.on('mouse:down', handleObjectClick);
     }
+
+    return () => {
+      fabricCanvas.off('mouse:down', handleObjectClick);
+    };
   }, [activeTool, penColor, penSize, fabricCanvas]);
 
   const handleToolClick = (tool: Tool) => {
@@ -208,6 +222,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       fabricCanvas.add(rect);
       fabricCanvas.setActiveObject(rect);
       fabricCanvas.renderAll();
+      toast.success("Rectangle added");
     } else if (tool === "circle") {
       const circle = new Circle({
         left: fabricCanvas.width! / 2 - 50,
@@ -220,6 +235,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       fabricCanvas.add(circle);
       fabricCanvas.setActiveObject(circle);
       fabricCanvas.renderAll();
+      toast.success("Circle added");
     } else if (tool === "text") {
       const text = new FabricText("Double-click to edit", {
         left: fabricCanvas.width! / 2 - 100,
@@ -231,6 +247,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       fabricCanvas.add(text);
       fabricCanvas.setActiveObject(text);
       fabricCanvas.renderAll();
+      toast.success("Text added");
     } else if (tool === "sticky") {
       const stickyColor = stickyColors[Math.floor(Math.random() * stickyColors.length)];
       const sticky = new Rect({
@@ -263,6 +280,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       fabricCanvas.add(stickyGroup);
       fabricCanvas.setActiveObject(stickyGroup);
       fabricCanvas.renderAll();
+      toast.success("Sticky note added");
     } else if (tool === "triangle") {
       const triangle = new Triangle({
         left: fabricCanvas.width! / 2 - 50,
@@ -276,6 +294,127 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       fabricCanvas.add(triangle);
       fabricCanvas.setActiveObject(triangle);
       fabricCanvas.renderAll();
+      toast.success("Triangle added");
+    } else if (tool === "line") {
+      const line = new Line([50, 50, 200, 50], {
+        left: fabricCanvas.width! / 2 - 100,
+        top: fabricCanvas.height! / 2,
+        stroke: penColor,
+        strokeWidth: penSize,
+      });
+      fabricCanvas.add(line);
+      fabricCanvas.setActiveObject(line);
+      fabricCanvas.renderAll();
+      toast.success("Line added");
+    } else if (tool === "arrow") {
+      const arrowLine = new Line([0, 0, 150, 0], {
+        stroke: penColor,
+        strokeWidth: penSize,
+      });
+      
+      const arrowHead = new Triangle({
+        left: 150,
+        top: -10,
+        width: 20,
+        height: 20,
+        fill: penColor,
+        angle: 90,
+      });
+      
+      const arrow = new Group([arrowLine, arrowHead], {
+        left: fabricCanvas.width! / 2 - 75,
+        top: fabricCanvas.height! / 2,
+      });
+      
+      fabricCanvas.add(arrow);
+      fabricCanvas.setActiveObject(arrow);
+      fabricCanvas.renderAll();
+      toast.success("Arrow added");
+    } else if (tool === "star") {
+      const starPoints = [];
+      const spikes = 5;
+      const outerRadius = 50;
+      const innerRadius = 25;
+      const centerX = 0;
+      const centerY = 0;
+      
+      for (let i = 0; i < spikes * 2; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (i * Math.PI) / spikes - Math.PI / 2;
+        starPoints.push({
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+        });
+      }
+      
+      const star = new Polygon(starPoints, {
+        left: fabricCanvas.width! / 2 - 50,
+        top: fabricCanvas.height! / 2 - 50,
+        fill: "transparent",
+        stroke: penColor,
+        strokeWidth: penSize,
+      });
+      
+      fabricCanvas.add(star);
+      fabricCanvas.setActiveObject(star);
+      fabricCanvas.renderAll();
+      toast.success("Star added");
+    } else if (tool === "polygon") {
+      const hexPoints = [];
+      const sides = 6;
+      const radius = 50;
+      
+      for (let i = 0; i < sides; i++) {
+        const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
+        hexPoints.push({
+          x: radius * Math.cos(angle),
+          y: radius * Math.sin(angle),
+        });
+      }
+      
+      const hexagon = new Polygon(hexPoints, {
+        left: fabricCanvas.width! / 2 - 50,
+        top: fabricCanvas.height! / 2 - 50,
+        fill: "transparent",
+        stroke: penColor,
+        strokeWidth: penSize,
+      });
+      
+      fabricCanvas.add(hexagon);
+      fabricCanvas.setActiveObject(hexagon);
+      fabricCanvas.renderAll();
+      toast.success("Hexagon added");
+    } else if (tool === "eraser") {
+      fabricCanvas.isDrawingMode = false;
+      toast.info("Click objects to delete them");
+    } else if (tool === "image") {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e: any) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const imgElement = document.createElement('img');
+            imgElement.src = event.target?.result as string;
+            imgElement.onload = () => {
+              const img = new FabricImage(imgElement, {
+                left: fabricCanvas.width! / 2 - 100,
+                top: fabricCanvas.height! / 2 - 100,
+                scaleX: 0.5,
+                scaleY: 0.5,
+              });
+              fabricCanvas.add(img);
+              fabricCanvas.setActiveObject(img);
+              fabricCanvas.renderAll();
+              toast.success("Image added");
+            };
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
     }
   };
 
@@ -389,6 +528,39 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
         >
           <TriangleIcon className="h-4 w-4" />
         </Button>
+        <Button
+          variant={activeTool === "star" ? "default" : "ghost"}
+          size="icon"
+          onClick={() => handleToolClick("star")}
+          title="Star"
+        >
+          <Star className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={activeTool === "polygon" ? "default" : "ghost"}
+          size="icon"
+          onClick={() => handleToolClick("polygon")}
+          title="Hexagon"
+        >
+          <Hexagon className="h-4 w-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button
+          variant={activeTool === "line" ? "default" : "ghost"}
+          size="icon"
+          onClick={() => handleToolClick("line")}
+          title="Line"
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={activeTool === "arrow" ? "default" : "ghost"}
+          size="icon"
+          onClick={() => handleToolClick("arrow")}
+          title="Arrow"
+        >
+          <ArrowRight className="h-4 w-4" />
+        </Button>
         <Separator orientation="vertical" className="h-6" />
         <Button
           variant={activeTool === "text" ? "default" : "ghost"}
@@ -405,6 +577,23 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
           title="Sticky Note"
         >
           <StickyNote className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={activeTool === "image" ? "default" : "ghost"}
+          size="icon"
+          onClick={() => handleToolClick("image")}
+          title="Upload Image"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button
+          variant={activeTool === "eraser" ? "default" : "ghost"}
+          size="icon"
+          onClick={() => handleToolClick("eraser")}
+          title="Eraser"
+        >
+          <Eraser className="h-4 w-4" />
         </Button>
         
         <Separator orientation="vertical" className="h-6" />
