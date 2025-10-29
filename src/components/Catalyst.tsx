@@ -49,6 +49,7 @@ import {
 } from '@/utils/catalystSocialExportUtils';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { CatalystEditor } from '@/components/CatalystEditor';
+import { CatalystImportDialog } from '@/components/CatalystImportDialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -87,15 +88,14 @@ interface CatalystDocument {
   updated_at: string;
 }
 
-const MAX_CONTENT_LENGTH = 50000;
-
+// No character limit for the editor
 const writingSuggestionSchema = z.object({
-  text: z.string().min(1, "Content is required").max(MAX_CONTENT_LENGTH, "Content must be less than 50,000 characters"),
+  text: z.string().min(1, "Content is required"),
   type: z.enum(['outline', 'brainstorm', 'expand', 'critique'])
 });
 
 const plagiarismCheckSchema = z.object({
-  text: z.string().min(1, "Content is required").max(MAX_CONTENT_LENGTH, "Content must be less than 50,000 characters"),
+  text: z.string().min(1, "Content is required"),
   referenceTexts: z.array(z.string()).nullable().optional()
 });
 
@@ -104,7 +104,6 @@ export function Catalyst() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const localLoadRef = useRef<HTMLInputElement>(null);
   
   const [selectedSource, setSelectedSource] = useState<ContentSource>('cards');
@@ -119,6 +118,7 @@ export function Catalyst() {
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [recommendations, setRecommendations] = useState<Array<{id: string; type: string; title: string; content: string; relevance: string}>>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
 
@@ -299,30 +299,8 @@ export function Catalyst() {
     });
   };
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    for (const file of Array.from(files)) {
-      try {
-        const imported = await importFile(file);
-        setEditorContent(prev => prev + imported.content);
-        toast({
-          title: 'File imported',
-          description: `${file.name} has been added to your document`,
-        });
-      } catch (error: any) {
-        toast({
-          title: 'Import failed',
-          description: `Failed to import ${file.name}: ${error.message}`,
-          variant: 'destructive',
-        });
-      }
-    }
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleImport = (content: string, fileName: string) => {
+    setEditorContent(prev => prev + content);
   };
 
   const handleGenerateSuggestions = async (type: string) => {
@@ -841,18 +819,10 @@ export function Catalyst() {
 
           <div className="h-6 w-px bg-border mx-2" />
 
-          <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
+          <Button onClick={() => setShowImportDialog(true)} variant="outline" size="sm">
             <FileUp className="h-4 w-4 mr-2" />
             Import Files
           </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={getSupportedFileTypes()}
-            multiple
-            onChange={handleFileImport}
-            className="hidden"
-          />
         </div>
       </div>
 
@@ -1132,6 +1102,13 @@ export function Catalyst() {
           </Card>
         </div>
       </div>
+
+      {/* Import Dialog */}
+      <CatalystImportDialog 
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onImport={handleImport}
+      />
     </div>
   );
 }
