@@ -60,7 +60,6 @@ serve(async (req) => {
     // Validate input
     const validationResult = transcribeSchema.safeParse(body);
     if (!validationResult.success) {
-      console.error('Validation error:', validationResult.error);
       return new Response(
         JSON.stringify({ error: 'Invalid audio data or parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -75,11 +74,8 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      console.error('Lovable API key not found in environment variables');
       throw new Error('Lovable AI is not configured. Please enable Lovable AI in project settings.');
     }
-
-    console.log('Processing audio transcription request with Lovable AI...');
     
     // For now, we'll simulate transcription since Lovable AI doesn't have audio transcription yet
     // In practice, you'd need to use a different service or convert audio to text first
@@ -108,15 +104,11 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Lovable AI error:", errorText);
-      throw new Error(`Lovable AI error: ${response.status} - ${errorText}`);
+      throw new Error('Lovable AI error');
     }
 
     const result = await response.json();
     const aiResponse = result.choices?.[0]?.message?.content || 'No response from AI';
-    
-    console.log('AI response:', aiResponse);
 
     // For demo purposes, return a message explaining the limitation
     const response_data = {
@@ -140,8 +132,6 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in transcribe-audio-ai function:', error);
-    
     return new Response(
       JSON.stringify({ error: 'Failed to process audio transcription' }),
       { 

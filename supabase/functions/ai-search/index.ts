@@ -51,7 +51,6 @@ serve(async (req) => {
     // Validate input
     const validationResult = aiSearchSchema.safeParse(body);
     if (!validationResult.success) {
-      console.error('Validation error:', validationResult.error);
       return new Response(
         JSON.stringify({ error: 'Invalid search parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -71,17 +70,8 @@ serve(async (req) => {
       supabaseClient.from('notes').select('*').is('deleted_at', null)
     ]);
 
-    if (cardsResult.error) {
-      console.error('Cards fetch error:', cardsResult.error);
-    }
-    if (notesResult.error) {
-      console.error('Notes fetch error:', notesResult.error);
-    }
-
     const cards = cardsResult.data || [];
     const notes = notesResult.data || [];
-
-    console.log(`Found ${cards.length} cards and ${notes.length} notes for user ${userId}`);
 
     // If no AI-powered search is needed (very short query), use simple string matching
     const lowerQuery = query.toLowerCase();
@@ -106,7 +96,6 @@ serve(async (req) => {
 
     // If we have simple matches, return them immediately without calling AI
     if (simpleCardMatches.length > 0 || simpleNoteMatches.length > 0 || simpleStickyMatches.length > 0) {
-      console.log(`Simple search found: ${simpleCardMatches.length} cards, ${simpleNoteMatches.length} notes, ${simpleStickyMatches.length} sticky notes`);
       return new Response(
         JSON.stringify({
           cards: simpleCardMatches,
@@ -119,8 +108,6 @@ serve(async (req) => {
     }
 
     // Only use AI for semantic/fuzzy search if simple search found nothing
-    console.log('No simple matches, trying AI semantic search...');
-    
     // Prepare content for AI with more context
     const contentSummary = {
       cards: cards.map((c: any) => ({
@@ -142,12 +129,6 @@ serve(async (req) => {
         content: sn.content.substring(0, 300) // Increased from 200
       }))
     };
-
-    console.log('Content summary prepared:', JSON.stringify({
-      cardCount: contentSummary.cards.length,
-      noteCount: contentSummary.notes.length,
-      stickyNoteCount: contentSummary.stickyNotes.length
-    }));
 
     // Call AI to understand intent and find matches
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -236,13 +217,10 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
     }
 
     const aiData = await aiResponse.json();
-    
-    console.log('AI Response:', JSON.stringify(aiData, null, 2));
 
     // Extract results from tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      console.error('No tool call in AI response');
       return new Response(
         JSON.stringify({
           cards: [],
@@ -260,8 +238,6 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
       stickyNoteIds: [],
       reasoning: 'No matches found' 
     };
-    
-    console.log('Parsed AI results:', results);
 
     // Get full data for matched items
     const matchedCards = cards.filter(c => results.cardIds.includes(c.id));
@@ -279,8 +255,6 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
     );
 
   } catch (error) {
-    console.error('Error in ai-search:', error);
-    
     let status = 500;
     let errorMessage = 'Failed to process search request';
     
