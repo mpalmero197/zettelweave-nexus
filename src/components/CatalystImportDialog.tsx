@@ -26,8 +26,8 @@ export function CatalystImportDialog({ open, onOpenChange, onImport }: CatalystI
     if (open && activeTab === 'googledrive' && !googleDriveReady) {
       initGoogleDrive()
         .then(() => setGoogleDriveReady(true))
-        .catch((error) => {
-          console.error('Google Drive init error:', error);
+        .catch(() => {
+          // Silently fail - user will see friendly message when they try to use it
         });
     }
   }, [open, activeTab, googleDriveReady]);
