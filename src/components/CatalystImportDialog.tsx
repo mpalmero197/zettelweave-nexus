@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileUp, Cloud, HardDrive } from 'lucide-react';
+import { FileUp, Cloud, HardDrive, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
+import { initGoogleDrive, openGoogleDrivePicker } from '@/utils/googleDriveImport';
+import { openOneDrivePicker } from '@/utils/oneDriveImport';
 
 interface CatalystImportDialogProps {
   open: boolean;
@@ -15,7 +17,20 @@ interface CatalystImportDialogProps {
 export function CatalystImportDialog({ open, onOpenChange, onImport }: CatalystImportDialogProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'computer' | 'googledrive' | 'onedrive'>('computer');
+  const [isLoading, setIsLoading] = useState(false);
+  const [googleDriveReady, setGoogleDriveReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Initialize Google Drive when dialog opens
+    if (open && activeTab === 'googledrive' && !googleDriveReady) {
+      initGoogleDrive()
+        .then(() => setGoogleDriveReady(true))
+        .catch((error) => {
+          console.error('Google Drive init error:', error);
+        });
+    }
+  }, [open, activeTab, googleDriveReady]);
 
   const handleLocalFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -44,18 +59,66 @@ export function CatalystImportDialog({ open, onOpenChange, onImport }: CatalystI
     onOpenChange(false);
   };
 
-  const handleGoogleDriveImport = () => {
-    toast({
-      title: 'Google Drive',
-      description: 'Google Drive integration coming soon! Use the computer option for now.',
-    });
+  const handleGoogleDriveImport = async () => {
+    if (!googleDriveReady) {
+      setIsLoading(true);
+      try {
+        await initGoogleDrive();
+        setGoogleDriveReady(true);
+      } catch (error: any) {
+        toast({
+          title: 'Configuration Required',
+          description: error.message || 'Please configure Google Drive credentials in your environment settings.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      await openGoogleDrivePicker((file) => {
+        onImport(file.content, file.name);
+        toast({
+          title: 'File imported',
+          description: `${file.name} has been added from Google Drive`,
+        });
+      });
+      onOpenChange(false);
+    } catch (error: any) {
+      if (error.message) {
+        toast({
+          title: 'Import failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOneDriveImport = () => {
-    toast({
-      title: 'OneDrive',
-      description: 'OneDrive integration coming soon! Use the computer option for now.',
-    });
+  const handleOneDriveImport = async () => {
+    setIsLoading(true);
+    try {
+      await openOneDrivePicker((file) => {
+        onImport(file.content, file.name);
+        toast({
+          title: 'File imported',
+          description: `${file.name} has been added from OneDrive`,
+        });
+      });
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: 'Configuration Required',
+        description: error.message || 'Please configure OneDrive credentials in your environment settings.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -113,11 +176,18 @@ export function CatalystImportDialog({ open, onOpenChange, onImport }: CatalystI
               <p className="text-sm text-muted-foreground mb-4">
                 Import directly from Google Drive
               </p>
-              <Button onClick={handleGoogleDriveImport}>
-                Connect Google Drive
+              <Button onClick={handleGoogleDriveImport} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Select from Google Drive'
+                )}
               </Button>
               <p className="text-xs text-muted-foreground mt-4">
-                Coming soon - Use computer import for now
+                Supports: Docs, TXT, MD, DOCX, PDF
               </p>
             </div>
           </TabsContent>
@@ -128,11 +198,18 @@ export function CatalystImportDialog({ open, onOpenChange, onImport }: CatalystI
               <p className="text-sm text-muted-foreground mb-4">
                 Import directly from OneDrive
               </p>
-              <Button onClick={handleOneDriveImport}>
-                Connect OneDrive
+              <Button onClick={handleOneDriveImport} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Select from OneDrive'
+                )}
               </Button>
               <p className="text-xs text-muted-foreground mt-4">
-                Coming soon - Use computer import for now
+                Supports: TXT, MD, DOCX, PDF, DOC
               </p>
             </div>
           </TabsContent>
