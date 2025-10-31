@@ -7,6 +7,9 @@ import { Sparkles, Send, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useZettelCards } from '@/hooks/useZettelCards';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -22,6 +25,25 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { cards } = useZettelCards();
+  const { user } = useAuth();
+
+  const { data: notes = [] } = useQuery({
+    queryKey: ['notes', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,10 +61,19 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
     setIsLoading(true);
 
     try {
+      // Get sticky notes from localStorage
+      const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
+      const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
+
       const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
         body: { 
           messages: [...messages, userMessage],
-          contextType: 'knowledge-base'
+          context: {
+            cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
+            notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
+            stickyNotes: stickyNotes.map((s: any) => ({ id: s.id, content: s.content })),
+            scratchPad: scratchPad.map((s: any) => ({ id: s.id, content: s.content })),
+          }
         }
       });
 
