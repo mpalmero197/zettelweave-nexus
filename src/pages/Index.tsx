@@ -11,6 +11,7 @@ import { GraphView } from "@/components/GraphViewNew";
 import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
+import { SmartLinkingSidebar } from "@/components/SmartLinkingSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MobileDetector } from "@/components/MobileDetector";
 import { NavigationBar } from "@/components/NavigationBar";
@@ -46,7 +47,8 @@ import {
   Lightbulb,
   FileText,
   Palette,
-  StickyNote
+  StickyNote,
+  Sparkles
 } from "lucide-react";
 
 import HabitTracker from "@/components/HabitTracker";
@@ -86,6 +88,8 @@ const Index = () => {
   const [showAccountManagement, setShowAccountManagement] = useState(false);
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showSmartLinking, setShowSmartLinking] = useState(false);
+  const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -217,6 +221,25 @@ const Index = () => {
     }
   };
 
+  const handleOpenSmartLinking = (cardId: string) => {
+    setSmartLinkingCardId(cardId);
+    setShowSmartLinking(true);
+  };
+
+  const handleAcceptLink = async (sourceCardId: string, targetCardId: string) => {
+    const sourceCard = cards.find(c => c.id === sourceCardId);
+    if (!sourceCard) return;
+
+    const updatedLinks = [...(sourceCard.linkedCards || [])];
+    if (!updatedLinks.includes(targetCardId)) {
+      updatedLinks.push(targetCardId);
+      await updateCard({
+        ...sourceCard,
+        linkedCards: updatedLinks,
+      });
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -310,7 +333,23 @@ const Index = () => {
                   aria-label="AI Recommendations"
                 >
                   <Lightbulb className="h-4 w-4" />
-                  <span className="hidden sm:inline">AI</span>
+                  <span className="hidden sm:inline">AI Suggest</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (filteredCards.length > 0) {
+                      handleOpenSmartLinking(filteredCards[0].id);
+                    } else {
+                      toast.error("Create some cards first to use Smart Linking");
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                  aria-label="Smart Linking"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Smart Links</span>
                 </Button>
                 <DeleteAllCardsDialog 
                   onDeleteAll={deleteAllCards}
@@ -612,6 +651,14 @@ const Index = () => {
       <AIAssistantSidebar 
         open={showAIAssistant} 
         onOpenChange={setShowAIAssistant} 
+      />
+
+      <SmartLinkingSidebar
+        open={showSmartLinking}
+        onOpenChange={setShowSmartLinking}
+        currentCardId={smartLinkingCardId}
+        allCards={cards}
+        onLinkAccepted={handleAcceptLink}
       />
       
       <Footer />
