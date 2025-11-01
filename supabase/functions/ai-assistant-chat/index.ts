@@ -19,44 +19,59 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Check if the user is asking for internet search
+    // Get the last user message
     const lastUserMessage = messages[messages.length - 1]?.content || "";
-    const needsInternetSearch = /\b(search|google|look up|find|what is|who is|when did|current|latest|recent|today|news)\b/i.test(lastUserMessage);
+    
+    // Determine if this is a knowledge base query or internet search query
+    // Knowledge base queries: summarize my notes, find connections, what did I write about X
+    // Internet queries: current time, recent events, when was X written, who is Y, what is happening
+    const knowledgeBaseKeywords = /\b(my|our|I|we|summarize|connection|link|note|card|wrote|saved|recorded)\b/i;
+    const isKnowledgeBaseQuery = knowledgeBaseKeywords.test(lastUserMessage);
+    
+    // Try internet search first for non-knowledge-base queries if Perplexity is available
+    if (!isKnowledgeBaseQuery && PERPLEXITY_API_KEY) {
+      console.log("Using Perplexity for internet search:", lastUserMessage);
+      
+      try {
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-sonar-large-128k-online',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are ALICE (Adaptive Learning & Intelligence Companion Engine). Provide accurate, verified, current information in a clear, organized, and summarized format. Always cite sources when presenting facts. Be concise and precise.'
+              },
+              {
+                role: 'user',
+                content: lastUserMessage
+              }
+            ],
+            temperature: 0.2,
+            top_p: 0.9,
+            max_tokens: 2000,
+          }),
+        });
 
-    // If internet search is needed and Perplexity is available, use it
-    if (needsInternetSearch && PERPLEXITY_API_KEY) {
-      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-large-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are ALICE, an intelligent research assistant. Provide accurate, verified information in a clear, organized, and summarized format. Always cite your sources when presenting facts.'
-            },
-            {
-              role: 'user',
-              content: lastUserMessage
-            }
-          ],
-          temperature: 0.2,
-          top_p: 0.9,
-          max_tokens: 2000,
-        }),
-      });
-
-      if (perplexityResponse.ok) {
-        const perplexityData = await perplexityResponse.json();
-        const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
-        
-        return new Response(
-          JSON.stringify({ response: searchResult }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (perplexityResponse.ok) {
+          const perplexityData = await perplexityResponse.json();
+          const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
+          console.log("Perplexity search successful");
+          
+          return new Response(
+            JSON.stringify({ response: searchResult }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } else {
+          console.error("Perplexity API error:", perplexityResponse.status, await perplexityResponse.text());
+        }
+      } catch (perplexityError) {
+        console.error("Perplexity error:", perplexityError);
+        // Fall through to Lovable AI
       }
     }
 
