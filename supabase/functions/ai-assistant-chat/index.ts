@@ -13,9 +13,51 @@ serve(async (req) => {
   try {
     const { messages, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Check if the user is asking for internet search
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    const needsInternetSearch = /\b(search|google|look up|find|what is|who is|when did|current|latest|recent|today|news)\b/i.test(lastUserMessage);
+
+    // If internet search is needed and Perplexity is available, use it
+    if (needsInternetSearch && PERPLEXITY_API_KEY) {
+      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-sonar-large-128k-online',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are ALICE, an intelligent research assistant. Provide accurate, verified information in a clear, organized, and summarized format. Always cite your sources when presenting facts.'
+            },
+            {
+              role: 'user',
+              content: lastUserMessage
+            }
+          ],
+          temperature: 0.2,
+          top_p: 0.9,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (perplexityResponse.ok) {
+        const perplexityData = await perplexityResponse.json();
+        const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
+        
+        return new Response(
+          JSON.stringify({ response: searchResult }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Build context-aware system prompt
@@ -50,7 +92,7 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are Pendragon AI, an intelligent assistant for a knowledge management system called Pendragon. You have access to the user's complete knowledge base including their Zettelkasten cards, notes, sticky notes, and scratch pad.${contextInfo}
+    const systemPrompt = `You are ALICE (Adaptive Learning & Intelligence Companion Engine), an intelligent assistant for a knowledge management system called Pendragon. You have access to the user's complete knowledge base including their Zettelkasten cards, notes, sticky notes, and scratch pad.${contextInfo}
 
 Your capabilities:
 - Search and reference the user's cards and notes when answering questions
@@ -59,6 +101,7 @@ Your capabilities:
 - Provide contextual suggestions based on their existing content
 - Help organize and structure their knowledge
 - Answer questions using their saved information
+- Search the internet for current information when needed
 
 When referencing content:
 - Cite specific cards or notes by title

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Sparkles, Send, Loader2, X } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingCard, setIsCreatingCard] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const { cards, createCard } = useZettelCards();
   const { user } = useAuth();
 
@@ -157,6 +158,17 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
     }
   };
 
+  const copyToClipboard = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
@@ -231,13 +243,27 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                 >
                   <div
                     className={cn(
-                      'rounded-lg px-4 py-2 max-w-[85%]',
+                      'rounded-lg px-4 py-2 max-w-[85%] relative group',
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-accent text-accent-foreground'
                     )}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.role === 'assistant' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(message.content, index)}
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background shadow-sm"
+                      >
+                        {copiedIndex === index ? (
+                          <Check className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
