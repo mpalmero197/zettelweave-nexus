@@ -25,7 +25,8 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { cards } = useZettelCards();
+  const [isCreatingCard, setIsCreatingCard] = useState(false);
+  const { cards, createCard } = useZettelCards();
   const { user } = useAuth();
 
   const { data: notes = [] } = useQuery({
@@ -104,6 +105,58 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
     toast.success('Chat cleared');
   };
 
+  const createZettelCard = async () => {
+    if (messages.length === 0) {
+      toast.error('No conversation to create a card from');
+      return;
+    }
+
+    setIsCreatingCard(true);
+    try {
+      // Prepare conversation summary request
+      const conversationText = messages
+        .map(m => `${m.role === 'user' ? 'User' : 'ALICE'}: ${m.content}`)
+        .join('\n\n');
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
+        body: { 
+          messages: [
+            {
+              role: 'user',
+              content: `Summarize this conversation into a clear, organized zettelcard format with key points. Include a title and structured content:\n\n${conversationText}`
+            }
+          ]
+        }
+      });
+
+      if (error) throw error;
+
+      // Extract title and content from the summary
+      const summary = data.response;
+      const lines = summary.split('\n');
+      const title = lines[0].replace(/^#+\s*/, '').replace(/^title:?\s*/i, '').trim() || 'ALICE Conversation Summary';
+      const content = lines.slice(1).join('\n').trim();
+
+      // Create the card
+      await createCard({
+        title,
+        content: content || summary,
+        category: 'AI Conversations',
+        tags: ['alice', 'ai-generated'],
+        number: '',
+        linkedCards: []
+      });
+
+      toast.success('Zettelcard created from conversation');
+      clearChat();
+    } catch (error: any) {
+      console.error('Error creating zettelcard:', error);
+      toast.error('Failed to create zettelcard from conversation');
+    } finally {
+      setIsCreatingCard(false);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
@@ -111,17 +164,28 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              AI Assistant
+              Ask ALICE
             </SheetTitle>
             {messages.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearChat}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={createZettelCard}
+                  disabled={isCreatingCard}
+                  className="h-8 text-xs"
+                >
+                  {isCreatingCard ? 'Creating...' : 'Create Card'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearChat}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
         </SheetHeader>
