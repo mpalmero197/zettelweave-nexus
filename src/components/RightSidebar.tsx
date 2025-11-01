@@ -200,7 +200,7 @@ export function RightSidebar({ onCreateCard, onOpenAIAssistant }: RightSidebarPr
       >
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
-          {/* AI Assistant Button */}
+          {/* Ask ALICE Button */}
           {onOpenAIAssistant && (
             <Button
               onClick={onOpenAIAssistant}
@@ -208,7 +208,7 @@ export function RightSidebar({ onCreateCard, onOpenAIAssistant }: RightSidebarPr
               variant="default"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              Open AI Assistant
+              Ask ALICE
             </Button>
           )}
           
