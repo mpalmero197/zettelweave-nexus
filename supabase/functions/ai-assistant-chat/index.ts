@@ -22,15 +22,20 @@ serve(async (req) => {
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
+    console.log("Processing message:", lastUserMessage);
+    console.log("Perplexity API key available:", !!PERPLEXITY_API_KEY);
+    
     // Determine if this is a knowledge base query or internet search query
     // Knowledge base queries: summarize my notes, find connections, what did I write about X
     // Internet queries: current time, recent events, when was X written, who is Y, what is happening
     const knowledgeBaseKeywords = /\b(my|our|I|we|summarize|connection|link|note|card|wrote|saved|recorded)\b/i;
     const isKnowledgeBaseQuery = knowledgeBaseKeywords.test(lastUserMessage);
     
+    console.log("Is knowledge base query:", isKnowledgeBaseQuery);
+    
     // Try internet search first for non-knowledge-base queries if Perplexity is available
     if (!isKnowledgeBaseQuery && PERPLEXITY_API_KEY) {
-      console.log("Using Perplexity for internet search:", lastUserMessage);
+      console.log("Attempting Perplexity search for:", lastUserMessage);
       
       try {
         const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -57,22 +62,27 @@ serve(async (req) => {
           }),
         });
 
+        console.log("Perplexity response status:", perplexityResponse.status);
+        
         if (perplexityResponse.ok) {
           const perplexityData = await perplexityResponse.json();
           const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
-          console.log("Perplexity search successful");
+          console.log("Perplexity search successful, returning result");
           
           return new Response(
             JSON.stringify({ response: searchResult }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         } else {
-          console.error("Perplexity API error:", perplexityResponse.status, await perplexityResponse.text());
+          const errorText = await perplexityResponse.text();
+          console.error("Perplexity API error:", perplexityResponse.status, errorText);
         }
       } catch (perplexityError) {
         console.error("Perplexity error:", perplexityError);
         // Fall through to Lovable AI
       }
+    } else {
+      console.log("Using Lovable AI - Knowledge base query or no Perplexity key");
     }
 
     // Build context-aware system prompt
