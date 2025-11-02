@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Sparkles, Send, Loader2, X, Copy, Check } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, Copy, Check, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  source?: 'internet_search' | 'knowledge_base';
 }
 
 interface AIAssistantSidebarProps {
@@ -83,7 +84,8 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
 
       const assistantMessage: Message = { 
         role: 'assistant', 
-        content: data.response 
+        content: data.response,
+        source: data.source
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
@@ -217,8 +219,8 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                 <div className="space-y-1">
                   {[
                     'Summarize my recent notes',
-                    'Find connections between my cards',
-                    'What are my main topics?'
+                    'What time is it in Tokyo?',
+                    'Find connections between my cards'
                   ].map((suggestion, i) => (
                     <button
                       key={i}
@@ -242,29 +244,35 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                   )}
                 >
                   <div
-                    className={cn(
-                      'rounded-lg px-4 py-2 max-w-[85%] relative group',
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-accent text-accent-foreground'
-                    )}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    {message.role === 'assistant' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(message.content, index)}
-                        className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background shadow-sm"
-                      >
-                        {copiedIndex === index ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    )}
-                  </div>
+                  className={cn(
+                    'rounded-lg px-4 py-2 max-w-[85%] relative group',
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-accent text-accent-foreground'
+                  )}
+                >
+                  {message.role === 'assistant' && message.source === 'internet_search' && (
+                    <div className="flex items-center gap-1.5 mb-2 text-xs opacity-70">
+                      <Globe className="h-3 w-3" />
+                      <span>Internet Search Result</span>
+                    </div>
+                  )}
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'assistant' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(message.content, index)}
+                      className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background shadow-sm"
+                    >
+                      {copiedIndex === index ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
                 </div>
               ))}
               {isLoading && (

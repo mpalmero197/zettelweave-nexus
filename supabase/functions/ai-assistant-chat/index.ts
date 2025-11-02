@@ -26,15 +26,19 @@ serve(async (req) => {
     console.log("Perplexity API key available:", !!PERPLEXITY_API_KEY);
     
     // Determine if this is a knowledge base query or internet search query
-    // Knowledge base queries: summarize my notes, find connections, what did I write about X
-    // Internet queries: current time, recent events, when was X written, who is Y, what is happening
-    const knowledgeBaseKeywords = /\b(my|our|I|we|summarize|connection|link|note|card|wrote|saved|recorded)\b/i;
+    // Knowledge base queries contain specific keywords about user's personal content
+    const knowledgeBaseKeywords = /\b(my|our|I|we|summarize|connection|link|note|card|wrote|saved|recorded|notebook)\b/i;
     const isKnowledgeBaseQuery = knowledgeBaseKeywords.test(lastUserMessage);
     
-    console.log("Is knowledge base query:", isKnowledgeBaseQuery);
+    // Internet search indicators
+    const internetKeywords = /\b(search|google|find|lookup|current|today|now|latest|recent|who is|what is|when|where|news|weather|time in)\b/i;
+    const shouldSearchInternet = internetKeywords.test(lastUserMessage) || !isKnowledgeBaseQuery;
     
-    // Try internet search first for non-knowledge-base queries if Perplexity is available
-    if (!isKnowledgeBaseQuery && PERPLEXITY_API_KEY) {
+    console.log("Is knowledge base query:", isKnowledgeBaseQuery);
+    console.log("Should search internet:", shouldSearchInternet);
+    
+    // Try internet search first if Perplexity is available and appropriate
+    if (shouldSearchInternet && PERPLEXITY_API_KEY) {
       console.log("Attempting Perplexity search for:", lastUserMessage);
       
       try {
@@ -70,12 +74,16 @@ serve(async (req) => {
           console.log("Perplexity search successful, returning result");
           
           return new Response(
-            JSON.stringify({ response: searchResult }),
+            JSON.stringify({ 
+              response: searchResult,
+              source: "internet_search" 
+            }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         } else {
           const errorText = await perplexityResponse.text();
           console.error("Perplexity API error:", perplexityResponse.status, errorText);
+          // Fall through to Lovable AI with knowledge base
         }
       } catch (perplexityError) {
         console.error("Perplexity error:", perplexityError);
@@ -171,7 +179,10 @@ Keep responses clear, concise, and actionable. Always prioritize information fro
     const assistantResponse = data.choices?.[0]?.message?.content || "I apologize, but I couldn't generate a response.";
 
     return new Response(
-      JSON.stringify({ response: assistantResponse }),
+      JSON.stringify({ 
+        response: assistantResponse,
+        source: "knowledge_base"
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
