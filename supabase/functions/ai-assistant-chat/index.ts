@@ -30,11 +30,15 @@ serve(async (req) => {
     const knowledgeBaseKeywords = /\b(my|our|I|we|summarize|connection|link|note|card|wrote|saved|recorded|notebook)\b/i;
     const isKnowledgeBaseQuery = knowledgeBaseKeywords.test(lastUserMessage);
     
-    // Internet search indicators
-    const internetKeywords = /\b(search|google|find|lookup|current|today|now|latest|recent|who is|what is|when|where|news|weather|time in)\b/i;
-    const shouldSearchInternet = internetKeywords.test(lastUserMessage) || !isKnowledgeBaseQuery;
+    // Internet search indicators - current events, factual queries, etc.
+    const internetKeywords = /\b(search|google|find|lookup|current|today|now|latest|recent|who is|what is|when|where|news|weather|time in|how many|define|explain)\b/i;
+    const hasInternetKeywords = internetKeywords.test(lastUserMessage);
+    
+    // Use internet search if: has internet keywords AND is not specifically about user's knowledge base
+    const shouldSearchInternet = hasInternetKeywords && !isKnowledgeBaseQuery;
     
     console.log("Is knowledge base query:", isKnowledgeBaseQuery);
+    console.log("Has internet keywords:", hasInternetKeywords);
     console.log("Should search internet:", shouldSearchInternet);
     
     // Try internet search first if Perplexity is available and appropriate

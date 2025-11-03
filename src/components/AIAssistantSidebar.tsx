@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Sparkles, Send, Loader2, X, Copy, Check, Globe } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
+import { SearchResultsDialog } from '@/components/SearchResultsDialog';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -28,6 +29,9 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingCard, setIsCreatingCard] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [expandedSearchQuery, setExpandedSearchQuery] = useState('');
+  const [expandedSearchResult, setExpandedSearchResult] = useState('');
+  const [showSearchDialog, setShowSearchDialog] = useState(false);
   const { cards, createCard } = useZettelCards();
   const { user } = useAuth();
 
@@ -88,6 +92,13 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
         source: data.source
       };
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Auto-open dialog for internet searches
+      if (data.source === 'internet_search') {
+        setExpandedSearchQuery(input);
+        setExpandedSearchResult(data.response);
+        setShowSearchDialog(true);
+      }
     } catch (error: any) {
       console.error('AI assistant error:', error);
       toast.error('Failed to get response from AI assistant');
@@ -171,8 +182,22 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
     }
   };
 
+  const expandSearchResult = (message: Message, userQuery: string) => {
+    setExpandedSearchQuery(userQuery);
+    setExpandedSearchResult(message.content);
+    setShowSearchDialog(true);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <>
+      <SearchResultsDialog
+        open={showSearchDialog}
+        onOpenChange={setShowSearchDialog}
+        query={expandedSearchQuery}
+        result={expandedSearchResult}
+      />
+      
+      <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center justify-between">
@@ -211,7 +236,7 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
               <div className="space-y-2">
                 <h3 className="font-semibold text-lg">How can I help?</h3>
                 <p className="text-sm text-muted-foreground max-w-[280px]">
-                  Ask me about your cards, request summaries, or find connections in your knowledge base.
+                  I can search the internet for current information or help you with your knowledge base.
                 </p>
               </div>
               <div className="space-y-2 w-full max-w-[280px]">
@@ -219,7 +244,8 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                 <div className="space-y-1">
                   {[
                     'Summarize my recent notes',
-                    'What time is it in Tokyo?',
+                    'What time is it in Paris?',
+                    'Who won the latest Nobel Prize?',
                     'Find connections between my cards'
                   ].map((suggestion, i) => (
                     <button
@@ -235,46 +261,59 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    'flex gap-3',
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
+              {messages.map((message, index) => {
+                const userQuery = index > 0 ? messages[index - 1]?.content || '' : '';
+                return (
                   <div
-                  className={cn(
-                    'rounded-lg px-4 py-2 max-w-[85%] relative group',
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-accent text-accent-foreground'
-                  )}
-                >
-                  {message.role === 'assistant' && message.source === 'internet_search' && (
-                    <div className="flex items-center gap-1.5 mb-2 text-xs opacity-70">
-                      <Globe className="h-3 w-3" />
-                      <span>Internet Search Result</span>
-                    </div>
-                  )}
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  {message.role === 'assistant' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(message.content, index)}
-                      className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background shadow-sm"
-                    >
-                      {copiedIndex === index ? (
-                        <Check className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
+                    key={index}
+                    className={cn(
+                      'flex gap-3',
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'rounded-lg px-4 py-2 max-w-[85%] relative group',
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-accent text-accent-foreground'
                       )}
-                    </Button>
-                  )}
-                </div>
-                </div>
-              ))}
+                    >
+                      {message.role === 'assistant' && message.source === 'internet_search' && (
+                        <div className="flex items-center justify-between mb-2 text-xs opacity-70">
+                          <div className="flex items-center gap-1.5">
+                            <Globe className="h-3 w-3" />
+                            <span>Internet Search Result</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => expandSearchResult(message, userQuery)}
+                            className="h-5 w-5 p-0 hover:bg-background/50"
+                          >
+                            <Maximize2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      {message.role === 'assistant' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(message.content, index)}
+                          className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background shadow-sm"
+                        >
+                          {copiedIndex === index ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
               {isLoading && (
                 <div className="flex gap-3 justify-start">
                   <div className="rounded-lg px-4 py-2 bg-accent">
@@ -311,5 +350,6 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
         </div>
       </SheetContent>
     </Sheet>
+    </>
   );
 }
