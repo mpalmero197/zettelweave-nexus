@@ -27,12 +27,22 @@ serve(async (req) => {
     
     // Determine if this is a knowledge base query or internet search query
     // Knowledge base queries contain specific keywords about user's personal content
-    const knowledgeBaseKeywords = /\b(my|our|I|we|summarize|connection|link|note|card|wrote|saved|recorded|notebook)\b/i;
+    const knowledgeBaseKeywords = /\b(my|our|I have|I've|we have|we've|summarize my|connection between my|link my|in my notes|in my cards|I wrote|I saved|I recorded|my notebook|show me my|find in my)\b/i;
     const isKnowledgeBaseQuery = knowledgeBaseKeywords.test(lastUserMessage);
     
-    // Internet search indicators - current events, factual queries, etc.
-    const internetKeywords = /\b(search|google|find|lookup|current|today|now|latest|recent|who is|what is|when|where|news|weather|time in|how many|define|explain)\b/i;
-    const hasInternetKeywords = internetKeywords.test(lastUserMessage);
+    // Internet search indicators - current events, factual queries, real-time data, etc.
+    const internetPatterns = [
+      /\b(search|google|look up|lookup|find out)\b/i,
+      /\b(current|today|now|latest|recent|this week|this month|this year)\b/i,
+      /\b(who is|what is|when is|when did|when was|where is|why is|how to|how do|how does|how many)\b/i,
+      /\b(news|weather|time|stock|price|score|result)\b/i,
+      /\bwhat time is it\b/i,
+      /\bdefine|explain|describe\b/i,
+      /\b(flights?|hotels?|restaurants?|movies?|events?)\s+(in|near|at)\b/i,
+      /\b(directions to|route to|how to get to)\b/i,
+      /\b(population of|capital of|president of|located in)\b/i
+    ];
+    const hasInternetKeywords = internetPatterns.some(pattern => pattern.test(lastUserMessage));
     
     // Use internet search if: has internet keywords AND is not specifically about user's knowledge base
     const shouldSearchInternet = hasInternetKeywords && !isKnowledgeBaseQuery;
