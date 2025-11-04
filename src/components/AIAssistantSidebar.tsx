@@ -16,14 +16,17 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   source?: 'internet_search' | 'knowledge_base';
+  images?: string[];
+  relatedQuestions?: string[];
 }
 
 interface AIAssistantSidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSearchResult?: (query: string, result: string, images?: string[], relatedQuestions?: string[]) => void;
 }
 
-export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarProps) {
+export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAssistantSidebarProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -89,15 +92,18 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
       const assistantMessage: Message = { 
         role: 'assistant', 
         content: data.response,
-        source: data.source
+        source: data.source,
+        images: data.images || [],
+        relatedQuestions: data.relatedQuestions || []
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Auto-open dialog for internet searches
+      // Show in canvas for internet searches
       if (data.source === 'internet_search') {
+        onSearchResult?.(input, data.response, data.images, data.relatedQuestions);
         setExpandedSearchQuery(input);
         setExpandedSearchResult(data.response);
-        setShowSearchDialog(true);
+        setShowSearchDialog(false); // Don't auto-open dialog anymore
       }
     } catch (error: any) {
       console.error('AI assistant error:', error);
@@ -219,14 +225,16 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
           const assistantMessage: Message = { 
             role: 'assistant', 
             content: data.response,
-            source: data.source
+            source: data.source,
+            images: data.images || [],
+            relatedQuestions: data.relatedQuestions || []
           };
           setMessages(prev => [...prev, assistantMessage]);
 
           if (data.source === 'internet_search') {
+            onSearchResult?.(query, data.response, data.images, data.relatedQuestions);
             setExpandedSearchQuery(query);
             setExpandedSearchResult(data.response);
-            setShowSearchDialog(true);
           }
         } catch (error: any) {
           console.error('AI assistant error:', error);

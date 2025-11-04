@@ -77,6 +77,8 @@ serve(async (req) => {
             temperature: 0.2,
             top_p: 0.9,
             max_tokens: 2000,
+            return_images: true,
+            return_related_questions: true
           }),
         });
 
@@ -85,13 +87,17 @@ serve(async (req) => {
         if (perplexityResponse.ok) {
           const perplexityData = await perplexityResponse.json();
           const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
+          const images = perplexityData.images || [];
+          const relatedQuestions = perplexityData.related_questions || [];
           console.log("Perplexity search successful, returning result");
           
           return new Response(
             JSON.stringify({ 
               response: searchResult,
               source: "internet_search",
-              query: lastUserMessage
+              query: lastUserMessage,
+              images: images,
+              relatedQuestions: relatedQuestions
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );

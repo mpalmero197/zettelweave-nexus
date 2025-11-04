@@ -1,5 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { AIAssistantSidebar } from "@/components/AIAssistantSidebar";
+import { SearchResultsCanvas } from "@/components/SearchResultsCanvas";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AISearchBar } from "@/components/AISearchBar";
@@ -90,6 +91,12 @@ const Index = () => {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
+  const [aiSearchCanvas, setAISearchCanvas] = useState<{
+    query: string;
+    result: string;
+    images?: string[];
+    relatedQuestions?: string[];
+  } | null>(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -363,6 +370,24 @@ const Index = () => {
             <div className="w-full space-y-4">
               {/* Main Content Area - Full width with proper padding for sidebar on desktop */}
               <div className={`w-full ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
+                {/* AI Search Results Canvas - Full screen overlay */}
+                {aiSearchCanvas && (
+                  <div className="fixed inset-0 z-50 bg-background">
+                    <SearchResultsCanvas
+                      query={aiSearchCanvas.query}
+                      result={aiSearchCanvas.result}
+                      images={aiSearchCanvas.images}
+                      relatedQuestions={aiSearchCanvas.relatedQuestions}
+                      onClose={() => setAISearchCanvas(null)}
+                      onRelatedSearch={(query) => {
+                        setShowAIAssistant(true);
+                        setAISearchCanvas(null);
+                        // The suggested search will be triggered from the sidebar
+                      }}
+                    />
+                  </div>
+                )}
+
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
@@ -650,7 +675,10 @@ const Index = () => {
       
       <AIAssistantSidebar 
         open={showAIAssistant} 
-        onOpenChange={setShowAIAssistant} 
+        onOpenChange={setShowAIAssistant}
+        onSearchResult={(query, result, images, relatedQuestions) => {
+          setAISearchCanvas({ query, result, images, relatedQuestions });
+        }}
       />
 
       <SmartLinkingSidebar
