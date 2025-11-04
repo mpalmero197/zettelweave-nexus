@@ -188,6 +188,56 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
     setShowSearchDialog(true);
   };
 
+  const handleSuggestedSearch = (query: string) => {
+    setInput(query);
+    // Auto-send the suggested search
+    setTimeout(() => {
+      const userMessage: Message = { role: 'user', content: query };
+      setMessages(prev => [...prev, userMessage]);
+      setIsLoading(true);
+
+      // Same logic as handleSend
+      (async () => {
+        try {
+          const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
+          const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
+
+          const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
+            body: { 
+              messages: [...messages, userMessage],
+              context: {
+                cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
+                notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
+                stickyNotes: stickyNotes.map((s: any) => ({ id: s.id, content: s.content })),
+                scratchPad: scratchPad.map((s: any) => ({ id: s.id, content: s.content })),
+              }
+            }
+          });
+
+          if (error) throw error;
+
+          const assistantMessage: Message = { 
+            role: 'assistant', 
+            content: data.response,
+            source: data.source
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+
+          if (data.source === 'internet_search') {
+            setExpandedSearchQuery(query);
+            setExpandedSearchResult(data.response);
+            setShowSearchDialog(true);
+          }
+        } catch (error: any) {
+          console.error('AI assistant error:', error);
+          toast.error('Failed to get response from AI assistant');
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    }, 100);
+  };
+
   return (
     <>
       <SearchResultsDialog
@@ -195,15 +245,20 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
         onOpenChange={setShowSearchDialog}
         query={expandedSearchQuery}
         result={expandedSearchResult}
+        onSuggestedSearch={handleSuggestedSearch}
       />
       
       <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b">
+      <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col bg-gradient-to-br from-background via-background to-accent/5">
+        <SheetHeader className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Ask ALICE
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Ask ALICE
+              </span>
             </SheetTitle>
             {messages.length > 0 && (
               <div className="flex gap-2">
@@ -229,19 +284,26 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <ScrollArea className="flex-1 p-5" ref={scrollRef}>
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-4 py-8">
-              <Sparkles className="h-12 w-12 text-muted-foreground" />
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">How can I help?</h3>
-                <p className="text-sm text-muted-foreground max-w-[280px]">
-                  I can search the internet for current information or help you with your knowledge base.
+            <div className="flex flex-col items-center justify-center h-full text-center gap-6 py-8">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm">
+                <Sparkles className="h-12 w-12 text-primary" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="font-bold text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  How can I help?
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-[320px] leading-relaxed">
+                  I can search the internet for current information or help you explore your knowledge base.
                 </p>
               </div>
-              <div className="space-y-2 w-full max-w-[280px]">
-                <p className="text-xs font-medium text-muted-foreground">Try asking:</p>
-                <div className="space-y-1">
+              <div className="space-y-3 w-full max-w-[340px]">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 justify-center">
+                  <Sparkles className="h-3 w-3" />
+                  Suggested Queries
+                </p>
+                <div className="space-y-2">
                   {[
                     'Summarize my recent notes',
                     'What time is it in Paris?',
@@ -251,7 +313,7 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                     <button
                       key={i}
                       onClick={() => setInput(suggestion)}
-                      className="w-full text-left text-xs p-2 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
+                      className="w-full text-left text-sm p-3 rounded-xl bg-gradient-to-r from-accent/50 to-accent/30 hover:from-accent hover:to-accent/50 transition-all border border-border/30 hover:border-primary/30 font-medium"
                     >
                       {suggestion}
                     </button>
@@ -267,46 +329,46 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                   <div
                     key={index}
                     className={cn(
-                      'flex gap-3',
+                      'flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300',
                       message.role === 'user' ? 'justify-end' : 'justify-start'
                     )}
                   >
                     <div
                       className={cn(
-                        'rounded-lg px-4 py-2 max-w-[85%] relative group',
+                        'rounded-2xl px-4 py-3 max-w-[85%] relative group shadow-sm',
                         message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-accent text-accent-foreground'
+                          ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground'
+                          : 'bg-gradient-to-br from-accent/80 to-accent/50 text-accent-foreground border border-border/30 backdrop-blur-sm'
                       )}
                     >
                       {message.role === 'assistant' && message.source === 'internet_search' && (
-                        <div className="flex items-center justify-between mb-2 text-xs opacity-70">
-                          <div className="flex items-center gap-1.5">
-                            <Globe className="h-3 w-3" />
-                            <span>Internet Search Result</span>
+                        <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/20">
+                          <div className="flex items-center gap-1.5 text-xs font-medium">
+                            <Globe className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-primary">Internet Search</span>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => expandSearchResult(message, userQuery)}
-                            className="h-5 w-5 p-0 hover:bg-background/50"
+                            className="h-6 w-6 p-0 hover:bg-primary/10 rounded-lg"
                           >
-                            <Maximize2 className="h-3 w-3" />
+                            <Maximize2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       )}
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
                       {message.role === 'assistant' && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(message.content, index)}
-                          className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background shadow-sm"
+                          className="absolute -top-2 -right-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-all bg-background shadow-md rounded-lg border border-border/50"
                         >
                           {copiedIndex === index ? (
-                            <Check className="h-3 w-3 text-green-500" />
+                            <Check className="h-3.5 w-3.5 text-green-500" />
                           ) : (
-                            <Copy className="h-3 w-3" />
+                            <Copy className="h-3.5 w-3.5" />
                           )}
                         </Button>
                       )}
@@ -315,9 +377,9 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
                 );
               })}
               {isLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="rounded-lg px-4 py-2 bg-accent">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2">
+                  <div className="rounded-2xl px-4 py-3 bg-gradient-to-br from-accent/80 to-accent/50 border border-border/30 backdrop-blur-sm">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   </div>
                 </div>
               )}
@@ -325,7 +387,7 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
           )}
         </ScrollArea>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t border-border/50 bg-gradient-to-r from-background to-accent/5">
           <div className="flex gap-2">
             <Input
               value={input}
@@ -333,12 +395,13 @@ export function AIAssistantSidebar({ open, onOpenChange }: AIAssistantSidebarPro
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything..."
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:ring-2 focus:ring-primary/20"
             />
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               size="icon"
+              className="rounded-xl shadow-sm hover:shadow-md transition-shadow"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

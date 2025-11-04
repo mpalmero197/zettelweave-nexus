@@ -67,7 +67,7 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are ALICE (Adaptive Learning & Intelligence Companion Engine). Provide accurate, verified, current information in a clear, organized, and summarized format. Always cite sources when presenting facts. Be concise and precise.'
+                content: 'You are ALICE (Adaptive Learning & Intelligence Companion Engine). Provide accurate, verified, current information in a clear, organized, and summarized format. Always cite sources when presenting facts. Be concise and precise. When relevant, provide 3 suggested follow-up questions at the end formatted as: "\n\n**Suggested searches:**\n1. [question]\n2. [question]\n3. [question]"'
               },
               {
                 role: 'user',
@@ -90,7 +90,8 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ 
               response: searchResult,
-              source: "internet_search" 
+              source: "internet_search",
+              query: lastUserMessage
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );

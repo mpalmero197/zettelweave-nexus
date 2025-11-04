@@ -53,8 +53,12 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         .from('profiles')
         .select('display_name, about_me, avatar_url')
         .eq('user_id', user.id)
-        .single()
-        .then(({ data }) => {
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error loading profile:', error);
+            return;
+          }
           if (data) {
             setDisplayName(data.display_name || '');
             setAboutMe(data.about_me || '');
