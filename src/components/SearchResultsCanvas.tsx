@@ -13,6 +13,7 @@ interface SearchResultsCanvasProps {
   query: string;
   result: string;
   images?: string[];
+  citations?: string[];
   relatedQuestions?: string[];
   onClose: () => void;
   onRelatedSearch?: (query: string) => void;
@@ -22,6 +23,7 @@ export function SearchResultsCanvas({
   query, 
   result, 
   images = [], 
+  citations = [],
   relatedQuestions = [],
   onClose,
   onRelatedSearch 
@@ -180,42 +182,47 @@ export function SearchResultsCanvas({
         {/* Main content area */}
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6">
-            {/* Images section */}
+            {/* Images section - Google-style */}
             {images && images.length > 0 && (
               <Card className="p-8 bg-gradient-to-br from-card via-card/95 to-card/90 backdrop-blur-xl border border-primary/20 shadow-2xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
                     <ImageIcon className="h-5 w-5 text-primary" />
                   </div>
-                  <h2 className="text-xl font-bold">Visual References</h2>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold">Images</h2>
+                    <p className="text-sm text-muted-foreground">Visual results from the web</p>
+                  </div>
+                  <Badge variant="secondary" className="ml-auto">
+                    {images.length} {images.length === 1 ? 'image' : 'images'}
+                  </Badge>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {images.map((img, idx) => (
-                    <div
+                    <a
                       key={idx}
-                      className="relative group rounded-xl overflow-hidden border border-border/40 hover:border-primary/60 transition-all aspect-video bg-muted/20"
+                      href={img}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative group rounded-xl overflow-hidden border border-border/40 hover:border-primary/60 transition-all aspect-square bg-muted/20 hover:shadow-xl"
                     >
                       <img
                         src={img}
-                        alt={`Visual reference ${idx + 1} for ${query}`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        alt={`Search result ${idx + 1} for "${query}"`}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"
                         onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23334155" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23cbd5e1" font-family="sans-serif">No Image</text></svg>';
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            parent.classList.add('hidden');
+                          }
                         }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="w-full shadow-lg"
-                          onClick={() => window.open(img, '_blank')}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                          Open Full Size
-                        </Button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-3">
+                        <ExternalLink className="h-5 w-5 text-white" />
                       </div>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </Card>

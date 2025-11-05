@@ -95,6 +95,7 @@ const Index = () => {
     query: string;
     result: string;
     images?: string[];
+    citations?: string[];
     relatedQuestions?: string[];
   } | null>(null);
 
@@ -376,6 +377,7 @@ const Index = () => {
                     query={aiSearchCanvas.query}
                     result={aiSearchCanvas.result}
                     images={aiSearchCanvas.images}
+                    citations={aiSearchCanvas.citations}
                     relatedQuestions={aiSearchCanvas.relatedQuestions}
                     onClose={() => setAISearchCanvas(null)}
                     onRelatedSearch={(query) => {
@@ -383,6 +385,7 @@ const Index = () => {
                         query,
                         result: '',
                         images: [],
+                        citations: [],
                         relatedQuestions: []
                       });
                     }}
@@ -677,8 +680,14 @@ const Index = () => {
       <AIAssistantSidebar 
         open={showAIAssistant} 
         onOpenChange={setShowAIAssistant}
-        onSearchResult={(query, result, images, relatedQuestions) => {
-          setAISearchCanvas({ query, result, images, relatedQuestions });
+        onSearchResult={(data) => {
+          setAISearchCanvas({
+            query: data.query,
+            result: data.result,
+            images: data.images,
+            citations: data.citations,
+            relatedQuestions: data.relatedQuestions
+          });
         }}
       />
 

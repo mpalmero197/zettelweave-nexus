@@ -17,13 +17,20 @@ interface Message {
   content: string;
   source?: 'internet_search' | 'knowledge_base';
   images?: string[];
+  citations?: string[];
   relatedQuestions?: string[];
 }
 
 interface AIAssistantSidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSearchResult?: (query: string, result: string, images?: string[], relatedQuestions?: string[]) => void;
+  onSearchResult?: (data: {
+    query: string;
+    result: string;
+    images?: string[];
+    citations?: string[];
+    relatedQuestions?: string[];
+  }) => void;
 }
 
 export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAssistantSidebarProps) {
@@ -94,16 +101,23 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
         content: data.response,
         source: data.source,
         images: data.images || [],
+        citations: data.citations || [],
         relatedQuestions: data.relatedQuestions || []
       };
       setMessages(prev => [...prev, assistantMessage]);
 
       // Show in canvas for internet searches
-      if (data.source === 'internet_search') {
-        onSearchResult?.(input, data.response, data.images, data.relatedQuestions);
+      if (data.source === 'internet_search' && onSearchResult) {
+        onSearchResult({
+          query: input,
+          result: data.response,
+          images: data.images || [],
+          citations: data.citations || [],
+          relatedQuestions: data.relatedQuestions || []
+        });
         setExpandedSearchQuery(input);
         setExpandedSearchResult(data.response);
-        setShowSearchDialog(false); // Don't auto-open dialog anymore
+        setShowSearchDialog(false);
       }
     } catch (error: any) {
       console.error('AI assistant error:', error);
@@ -227,12 +241,19 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
             content: data.response,
             source: data.source,
             images: data.images || [],
+            citations: data.citations || [],
             relatedQuestions: data.relatedQuestions || []
           };
           setMessages(prev => [...prev, assistantMessage]);
 
-          if (data.source === 'internet_search') {
-            onSearchResult?.(query, data.response, data.images, data.relatedQuestions);
+          if (data.source === 'internet_search' && onSearchResult) {
+            onSearchResult({
+              query,
+              result: data.response,
+              images: data.images || [],
+              citations: data.citations || [],
+              relatedQuestions: data.relatedQuestions || []
+            });
             setExpandedSearchQuery(query);
             setExpandedSearchResult(data.response);
           }

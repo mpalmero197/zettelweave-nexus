@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context } = await req.json();
+    const { messages, context, useInternet } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     
@@ -44,8 +44,8 @@ serve(async (req) => {
     ];
     const hasInternetKeywords = internetPatterns.some(pattern => pattern.test(lastUserMessage));
     
-    // Use internet search if: has internet keywords AND is not specifically about user's knowledge base
-    const shouldSearchInternet = hasInternetKeywords && !isKnowledgeBaseQuery;
+    // Use internet search if: explicitly requested OR (has internet keywords AND is not specifically about user's knowledge base)
+    const shouldSearchInternet = useInternet || (hasInternetKeywords && !isKnowledgeBaseQuery);
     
     console.log("Is knowledge base query:", isKnowledgeBaseQuery);
     console.log("Has internet keywords:", hasInternetKeywords);
@@ -86,9 +86,16 @@ serve(async (req) => {
         
         if (perplexityResponse.ok) {
           const perplexityData = await perplexityResponse.json();
+          console.log("Perplexity full response:", JSON.stringify(perplexityData, null, 2));
+          
           const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
           const images = perplexityData.images || [];
+          const citations = perplexityData.citations || [];
           const relatedQuestions = perplexityData.related_questions || [];
+          
+          console.log("Images found:", images.length);
+          console.log("Citations found:", citations.length);
+          console.log("Related questions found:", relatedQuestions.length);
           console.log("Perplexity search successful, returning result");
           
           return new Response(
@@ -97,6 +104,7 @@ serve(async (req) => {
               source: "internet_search",
               query: lastUserMessage,
               images: images,
+              citations: citations,
               relatedQuestions: relatedQuestions
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
