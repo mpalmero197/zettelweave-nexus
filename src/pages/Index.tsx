@@ -372,20 +372,21 @@ const Index = () => {
               <div className={`w-full ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
                 {/* AI Search Results Canvas - Full screen overlay */}
                 {aiSearchCanvas && (
-                  <div className="fixed inset-0 z-50 bg-background">
-                    <SearchResultsCanvas
-                      query={aiSearchCanvas.query}
-                      result={aiSearchCanvas.result}
-                      images={aiSearchCanvas.images}
-                      relatedQuestions={aiSearchCanvas.relatedQuestions}
-                      onClose={() => setAISearchCanvas(null)}
-                      onRelatedSearch={(query) => {
-                        setShowAIAssistant(true);
-                        setAISearchCanvas(null);
-                        // The suggested search will be triggered from the sidebar
-                      }}
-                    />
-                  </div>
+                  <SearchResultsCanvas
+                    query={aiSearchCanvas.query}
+                    result={aiSearchCanvas.result}
+                    images={aiSearchCanvas.images}
+                    relatedQuestions={aiSearchCanvas.relatedQuestions}
+                    onClose={() => setAISearchCanvas(null)}
+                    onRelatedSearch={(query) => {
+                      setAISearchCanvas({
+                        query,
+                        result: '',
+                        images: [],
+                        relatedQuestions: []
+                      });
+                    }}
+                  />
                 )}
 
                 <TabsContent value="dashboard" className="mt-0">

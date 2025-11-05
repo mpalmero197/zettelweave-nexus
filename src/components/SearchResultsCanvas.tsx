@@ -2,9 +2,12 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Globe, ExternalLink, Sparkles, Image as ImageIcon, X, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Globe, ExternalLink, Sparkles, Image as ImageIcon, X, ArrowRight, Search, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface SearchResultsCanvasProps {
   query: string;
@@ -26,6 +29,9 @@ export function SearchResultsCanvas({
   const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
   const [mainContent, setMainContent] = useState('');
   const [extractedLinks, setExtractedLinks] = useState<{ url: string; text: string }[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Extract suggested searches if present
@@ -52,80 +58,161 @@ export function SearchResultsCanvas({
     setExtractedLinks(links);
   }, [result, relatedQuestions]);
 
+  const handleSearch = async () => {
+    if (!searchInput.trim() || isSearching) return;
+    
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
+        body: {
+          message: searchInput,
+          useInternet: true
+        }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        onRelatedSearch?.(searchInput);
+        setSearchInput('');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "Search failed",
+        description: "Unable to perform search. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
-    <div className="h-full w-full bg-gradient-to-br from-background via-background to-primary/5 p-6 relative overflow-hidden">
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-background/95 backdrop-blur-md z-40 overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+      <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] pointer-events-none" />
       
-      <div className="relative h-full flex flex-col max-w-6xl mx-auto">
+      <div className="relative h-full flex flex-col max-w-7xl mx-auto pt-20 pb-6 px-6">
         {/* Header */}
-        <div className="mb-6 flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 backdrop-blur-sm border border-primary/20">
-                <Globe className="h-6 w-6 text-primary" />
+        <div className="mb-8 space-y-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-lg shadow-primary/20">
+                <Sparkles className="h-7 w-7 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Search Results
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+                  Knowledge Canvas
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1">Powered by ALICE</p>
+                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  <Globe className="h-3.5 w-3.5" />
+                  Powered by ALICE Intelligence
+                </p>
               </div>
             </div>
             
-            <div className="bg-gradient-to-r from-accent/50 to-accent/30 rounded-xl p-4 border border-border/30 backdrop-blur-sm">
-              <div className="flex items-start gap-2">
-                <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                    Your Query
-                  </p>
-                  <p className="text-base font-medium">{query}</p>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-xl" />
+            <div className="relative flex gap-3 p-2 bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl">
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="Ask anything... Get instant answers with sources"
+                  className="pl-12 h-14 bg-background/50 border-0 text-base focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+                  disabled={isSearching}
+                />
+              </div>
+              <Button
+                onClick={handleSearch}
+                disabled={isSearching || !searchInput.trim()}
+                size="lg"
+                className="h-14 px-8 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all"
+              >
+                {isSearching ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Search className="h-5 w-5 mr-2" />
+                    Search
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Current Query Display */}
+          {query && (
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/30 to-primary/30 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+              <div className="relative bg-gradient-to-r from-accent/20 to-primary/20 rounded-xl p-5 border border-border/40 backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-primary/20 mt-0.5">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                      Current Search
+                    </p>
+                    <p className="text-lg font-medium leading-relaxed">{query}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="ml-4 rounded-xl hover:bg-destructive/10 hover:text-destructive"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          )}
         </div>
 
         {/* Main content area */}
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6">
             {/* Images section */}
-            {images.length > 0 && (
-              <Card className="p-6 bg-gradient-to-br from-card/80 to-card/50 backdrop-blur-sm border-border/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <ImageIcon className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Related Images</h2>
+            {images && images.length > 0 && (
+              <Card className="p-8 bg-gradient-to-br from-card via-card/95 to-card/90 backdrop-blur-xl border border-primary/20 shadow-2xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold">Visual References</h2>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {images.map((img, idx) => (
                     <div
                       key={idx}
-                      className="relative group rounded-lg overflow-hidden border border-border/30 hover:border-primary/50 transition-all aspect-video"
+                      className="relative group rounded-xl overflow-hidden border border-border/40 hover:border-primary/60 transition-all aspect-video bg-muted/20"
                     >
                       <img
                         src={img}
-                        alt={`Result ${idx + 1}`}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        alt={`Visual reference ${idx + 1} for ${query}`}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23334155" width="100" height="100"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23cbd5e1" font-family="sans-serif">No Image</text></svg>';
+                        }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="w-full"
+                          className="w-full shadow-lg"
                           onClick={() => window.open(img, '_blank')}
                         >
-                          <ExternalLink className="h-3 w-3 mr-2" />
-                          View Full
+                          <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                          Open Full Size
                         </Button>
                       </div>
                     </div>
@@ -135,8 +222,8 @@ export function SearchResultsCanvas({
             )}
 
             {/* Main content */}
-            <Card className="p-6 bg-gradient-to-br from-card/80 to-card/50 backdrop-blur-sm border-border/50">
-              <div className="prose prose-sm dark:prose-invert max-w-none">
+            <Card className="p-8 bg-gradient-to-br from-card via-card/95 to-card/90 backdrop-blur-xl border border-primary/10 shadow-2xl">
+              <div className="prose prose-base dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-p:text-base prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
                 <ReactMarkdown
                   components={{
                     a: ({ href, children }) => (
@@ -175,10 +262,15 @@ export function SearchResultsCanvas({
 
             {/* Links section */}
             {extractedLinks.length > 0 && (
-              <Card className="p-6 bg-gradient-to-br from-card/80 to-card/50 backdrop-blur-sm border-border/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <ExternalLink className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Referenced Sources</h2>
+              <Card className="p-8 bg-gradient-to-br from-card via-card/95 to-card/90 backdrop-blur-xl border border-accent/20 shadow-2xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10">
+                    <ExternalLink className="h-5 w-5 text-accent-foreground" />
+                  </div>
+                  <h2 className="text-xl font-bold">Verified Sources</h2>
+                  <Badge variant="secondary" className="ml-auto">
+                    {extractedLinks.length} {extractedLinks.length === 1 ? 'source' : 'sources'}
+                  </Badge>
                 </div>
                 <div className="grid gap-3">
                   {extractedLinks.map((link, idx) => (
@@ -187,18 +279,18 @@ export function SearchResultsCanvas({
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-lg bg-accent/30 hover:bg-accent/50 border border-border/30 hover:border-primary/50 transition-all group"
+                      className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-accent/10 to-transparent hover:from-accent/20 hover:to-accent/10 border border-border/40 hover:border-primary/60 transition-all group shadow-sm hover:shadow-lg"
                     >
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <Globe className="h-4 w-4" />
+                      <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                        <Globe className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate group-hover:text-primary transition-colors">
+                        <p className="font-semibold truncate group-hover:text-primary transition-colors text-base">
                           {link.text}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                        <p className="text-sm text-muted-foreground truncate mt-0.5">{link.url}</p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                      <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                     </a>
                   ))}
                 </div>
@@ -207,25 +299,29 @@ export function SearchResultsCanvas({
 
             {/* Suggested searches */}
             {suggestedSearches.length > 0 && (
-              <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm border-primary/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-primary">Continue Exploring</h2>
+              <Card className="p-8 bg-gradient-to-br from-primary/10 via-accent/5 to-primary/5 backdrop-blur-xl border border-primary/30 shadow-2xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/30 to-primary/20">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    Explore Further
+                  </h2>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {suggestedSearches.map((search, idx) => (
                     <Button
                       key={idx}
                       variant="outline"
                       onClick={() => onRelatedSearch?.(search)}
-                      className="h-auto py-3 px-4 justify-start text-left hover:bg-primary/10 hover:border-primary/50 transition-all group"
+                      className="h-auto py-4 px-5 justify-start text-left hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg transition-all group border-primary/20 rounded-xl"
                     >
-                      <div className="flex items-start gap-2 w-full">
-                        <Badge variant="secondary" className="mt-0.5 flex-shrink-0">
+                      <div className="flex items-start gap-3 w-full">
+                        <Badge variant="secondary" className="mt-1 flex-shrink-0 bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
                           {idx + 1}
                         </Badge>
-                        <span className="text-sm flex-1">{search}</span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-0.5" />
+                        <span className="text-sm flex-1 leading-relaxed font-medium">{search}</span>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 mt-0.5" />
                       </div>
                     </Button>
                   ))}
