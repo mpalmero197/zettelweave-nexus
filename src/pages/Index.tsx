@@ -99,6 +99,20 @@ const Index = () => {
     relatedQuestions?: string[];
   } | null>(null);
 
+  // Handle web search tab activation
+  useEffect(() => {
+    if (activeTab === "websearch") {
+      // Auto-focus on search when web search tab is activated
+      setAISearchCanvas({
+        query: "",
+        result: "Enter a search query above to search the internet.",
+        images: [],
+        citations: [],
+        relatedQuestions: []
+      });
+    }
+  }, [activeTab]);
+
   // Check if user is admin
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -599,6 +613,28 @@ const Index = () => {
                 <TabsContent value="collab" className="mt-0">
                   <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="websearch" className="mt-0">
+                  <div className="min-h-[600px]">
+                    <SearchResultsCanvas
+                      query={aiSearchCanvas?.query || ""}
+                      result={aiSearchCanvas?.result || "Enter a search query to search the internet for anything."}
+                      images={aiSearchCanvas?.images || []}
+                      citations={aiSearchCanvas?.citations || []}
+                      relatedQuestions={aiSearchCanvas?.relatedQuestions || []}
+                      onClose={() => setActiveTab("dashboard")}
+                      onRelatedSearch={(query) => {
+                        setAISearchCanvas({
+                          query,
+                          result: '',
+                          images: [],
+                          citations: [],
+                          relatedQuestions: []
+                        });
+                      }}
+                    />
                   </div>
                 </TabsContent>
               </div>

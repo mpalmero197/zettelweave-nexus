@@ -219,18 +219,43 @@ export function NavigationBar({
                     </Button>
                   </div>
 
-                  {/* Catalyst */}
-                  <Button
-                    variant={activeTab === "catalyst" ? "default" : "ghost"}
-                    onClick={() => {
-                      onTabChange("catalyst");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full justify-start gap-2"
-                  >
-                    <Lightbulb className="h-4 w-4" />
-                    Catalyst
-                  </Button>
+                  {/* Collaboration Section */}
+                  <div className="pt-2">
+                    <p className="text-xs font-semibold text-muted-foreground px-3 pb-2">Collaboration</p>
+                    <Button
+                      variant={activeTab === "catalyst" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("catalyst");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Lightbulb className="h-4 w-4" />
+                      Catalyst
+                    </Button>
+                    <Button
+                      variant={activeTab === "collab" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("collab");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Collab
+                    </Button>
+                    <Button
+                      variant={activeTab === "websearch" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("websearch");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Search className="h-4 w-4" />
+                      Web Search
+                    </Button>
+                  </div>
 
                   {/* Recorder */}
                   <Button
@@ -243,19 +268,6 @@ export function NavigationBar({
                   >
                     <Mic className="h-4 w-4" />
                     Recorder
-                  </Button>
-
-                  {/* Collab */}
-                  <Button
-                    variant={activeTab === "collab" ? "default" : "ghost"}
-                    onClick={() => {
-                      onTabChange("collab");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full justify-start gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    Collab
                   </Button>
 
                   {/* Recycle Bin */}
@@ -468,30 +480,35 @@ export function NavigationBar({
                   </DropdownMenu>
                 </NavigationMenuItem>
 
-                {/* Catalyst - Direct Link */}
+                {/* Collaboration - Dropdown */}
                 <NavigationMenuItem>
-                  <Button
-                    variant={activeTab === "catalyst" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => onTabChange("catalyst")}
-                    className="h-9 px-3"
-                  >
-                    <Lightbulb className="h-4 w-4 mr-2" />
-                    Catalyst
-                  </Button>
-                </NavigationMenuItem>
-
-                {/* Collab - Direct Link */}
-                <NavigationMenuItem>
-                  <Button
-                    variant={activeTab === "collab" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => onTabChange("collab")}
-                    className="h-9 px-3"
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Collab
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant={["catalyst", "collab", "websearch"].includes(activeTab) ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-9 px-3 gap-1"
+                      >
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                        Collaborate
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48 bg-popover/95 backdrop-blur-sm border-border/60">
+                      <DropdownMenuItem onClick={() => onTabChange("catalyst")}>
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                        Catalyst
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onTabChange("collab")}>
+                        <Users className="h-4 w-4 mr-2" />
+                        Collab
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onTabChange("websearch")}>
+                        <Search className="h-4 w-4 mr-2" />
+                        Web Search
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>

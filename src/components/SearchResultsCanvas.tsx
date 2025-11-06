@@ -91,52 +91,41 @@ export function SearchResultsCanvas({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 bg-background/95 backdrop-blur-md z-40 overflow-hidden">
+    <div className="glass-card rounded-2xl p-6 shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up min-h-[calc(100vh-200px)]">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-      <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-2xl pointer-events-none" />
       
-      <div className="relative h-full flex flex-col max-w-7xl mx-auto pt-20 pb-6 px-6">
+      <div className="relative space-y-6">
         {/* Header */}
-        <div className="mb-8 space-y-6">
+        <div className="space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-lg shadow-primary/20">
-                <Sparkles className="h-7 w-7 text-primary-foreground" />
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/20">
+                <Sparkles className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
-                  Knowledge Canvas
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Web Search
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                   <Globe className="h-3.5 w-3.5" />
-                  Powered by ALICE Intelligence
+                  Search the internet for anything
                 </p>
               </div>
             </div>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
-            >
-              <X className="h-5 w-5" />
-            </Button>
           </div>
 
           {/* Search Input */}
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-xl" />
-            <div className="relative flex gap-3 p-2 bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl">
+            <div className="flex gap-3 p-2 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-lg">
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Ask anything... Get instant answers with sources"
-                  className="pl-12 h-14 bg-background/50 border-0 text-base focus-visible:ring-2 focus-visible:ring-primary/50 rounded-xl"
+                  placeholder="Search for anything on the internet..."
+                  className="pl-12 h-12 bg-background/50 border-0 text-base focus-visible:ring-2 focus-visible:ring-primary/50 rounded-lg"
                   disabled={isSearching}
                 />
               </div>
@@ -144,7 +133,7 @@ export function SearchResultsCanvas({
                 onClick={handleSearch}
                 disabled={isSearching || !searchInput.trim()}
                 size="lg"
-                className="h-14 px-8 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all"
+                className="h-12 px-6 rounded-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all"
               >
                 {isSearching ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -180,8 +169,7 @@ export function SearchResultsCanvas({
         </div>
 
         {/* Main content area */}
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Images section - Google-style */}
             {images && images.length > 0 && (
               <Card className="p-8 bg-gradient-to-br from-card via-card/95 to-card/90 backdrop-blur-xl border border-primary/20 shadow-2xl">
@@ -335,8 +323,7 @@ export function SearchResultsCanvas({
                 </div>
               </Card>
             )}
-          </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );
