@@ -19,6 +19,11 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Validate that messages array exists and has at least one message
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      throw new Error("Messages array is required and must contain at least one message");
+    }
+
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
