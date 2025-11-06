@@ -99,6 +99,50 @@ const Index = () => {
     relatedQuestions?: string[];
   } | null>(null);
 
+  // Handle web search
+  const handleWebSearch = async (query: string) => {
+    if (!query.trim()) return;
+    
+    // Set loading state
+    setAISearchCanvas({
+      query,
+      result: 'Searching the internet...',
+      images: [],
+      citations: [],
+      relatedQuestions: []
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
+        body: {
+          messages: [{ role: 'user', content: query }],
+          useInternet: true
+        }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setAISearchCanvas({
+          query,
+          result: data.response || data.result || 'No results found.',
+          images: data.images || [],
+          citations: data.citations || [],
+          relatedQuestions: data.relatedQuestions || []
+        });
+      }
+    } catch (error) {
+      console.error('Web search error:', error);
+      setAISearchCanvas({
+        query,
+        result: 'Search failed. Please try again.',
+        images: [],
+        citations: [],
+        relatedQuestions: []
+      });
+    }
+  };
+
   // Handle web search tab activation
   useEffect(() => {
     if (activeTab === "websearch") {
@@ -385,27 +429,6 @@ const Index = () => {
             <div className="w-full space-y-4">
               {/* Main Content Area - Full width with proper padding for sidebar on desktop */}
               <div className={`w-full ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
-                {/* AI Search Results Canvas - Full screen overlay */}
-                {aiSearchCanvas && (
-                  <SearchResultsCanvas
-                    query={aiSearchCanvas.query}
-                    result={aiSearchCanvas.result}
-                    images={aiSearchCanvas.images}
-                    citations={aiSearchCanvas.citations}
-                    relatedQuestions={aiSearchCanvas.relatedQuestions}
-                    onClose={() => setAISearchCanvas(null)}
-                    onRelatedSearch={(query) => {
-                      setAISearchCanvas({
-                        query,
-                        result: '',
-                        images: [],
-                        citations: [],
-                        relatedQuestions: []
-                      });
-                    }}
-                  />
-                )}
-
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
@@ -625,14 +648,9 @@ const Index = () => {
                       citations={aiSearchCanvas?.citations || []}
                       relatedQuestions={aiSearchCanvas?.relatedQuestions || []}
                       onClose={() => setActiveTab("dashboard")}
-                      onRelatedSearch={(query) => {
-                        setAISearchCanvas({
-                          query,
-                          result: '',
-                          images: [],
-                          citations: [],
-                          relatedQuestions: []
-                        });
+                      onRelatedSearch={(newQuery) => {
+                        // Trigger a new search when related question is clicked
+                        handleWebSearch(newQuery);
                       }}
                     />
                   </div>

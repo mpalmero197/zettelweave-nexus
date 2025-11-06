@@ -63,33 +63,9 @@ export function SearchResultsCanvas({
   const handleSearch = async () => {
     if (!searchInput.trim() || isSearching) return;
     
-    setIsSearching(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
-        body: {
-          messages: [
-            { role: 'user', content: searchInput }
-          ],
-          useInternet: true
-        }
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        onRelatedSearch?.(searchInput);
-        setSearchInput('');
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search failed",
-        description: "Unable to perform search. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSearching(false);
-    }
+    // Trigger the search via the parent component
+    onRelatedSearch?.(searchInput);
+    setSearchInput('');
   };
 
   return (
