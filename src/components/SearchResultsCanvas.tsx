@@ -67,7 +67,9 @@ export function SearchResultsCanvas({
     try {
       const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
         body: {
-          message: searchInput,
+          messages: [
+            { role: 'user', content: searchInput }
+          ],
           useInternet: true
         }
       });
