@@ -400,6 +400,8 @@ const Index = () => {
                         cards={searchResults.cards}
                         notes={searchResults.notes}
                         stickyNotes={searchResults.stickyNotes}
+                        scratchNotes={searchResults.scratchNotes}
+                        webResults={searchResults.webResults}
                         reasoning={searchResults.reasoning}
                         onNavigateToCard={(cardId) => {
                           const card = cards.find(c => c.id === cardId);
@@ -415,6 +417,25 @@ const Index = () => {
                         onNavigateToStickyNote={(noteId) => {
                           setActiveTab('stickynotes');
                           toast.success('Opening sticky note');
+                        }}
+                        onSaveAsCard={async (content, source) => {
+                          try {
+                            await createCard({
+                              number: `WEB-${Date.now()}`,
+                              title: searchResults.query,
+                              content: content,
+                              description: source ? `Source: ${source}` : undefined,
+                              category: "Research",
+                              tags: ["web-search", searchResults.query.split(' ')[0]],
+                              linkedCards: []
+                            });
+                            toast.success('Saved as card');
+                          } catch (error) {
+                            toast.error('Failed to save card');
+                          }
+                        }}
+                        onSaveAsNote={async (content, source) => {
+                          toast.success('Save as note feature coming soon');
                         }}
                       />
                     ) : (

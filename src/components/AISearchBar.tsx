@@ -67,7 +67,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
       console.log('Starting comprehensive search:', query);
 
-      // Run AI search and web search in parallel
+      // Always run AI search and web search in parallel
       const [aiSearchResult, webSearchResult] = await Promise.allSettled([
         supabase.functions.invoke('ai-search', {
           body: { 
@@ -79,6 +79,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
             }))
           }
         }),
+        // Always search the web for every query
         supabase.functions.invoke('ai-assistant-chat', {
           body: {
             messages: [{ role: 'user', content: query }],

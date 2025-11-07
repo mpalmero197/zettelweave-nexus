@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, BookOpen, StickyNote, Calendar, ExternalLink, Globe, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import { FileText, BookOpen, StickyNote, Calendar, ExternalLink, Globe, Image as ImageIcon, Link as LinkIcon, Plus, FileEdit } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
+import { useState } from "react";
 
 interface Note {
   id: string;
@@ -38,6 +39,8 @@ interface SearchResultsProps {
   onNavigateToCard?: (cardId: string) => void;
   onNavigateToNote?: (noteId: string) => void;
   onNavigateToStickyNote?: (noteId: string) => void;
+  onSaveAsCard?: (content: string, source?: string) => void;
+  onSaveAsNote?: (content: string, source?: string) => void;
 }
 
 export function UnifiedSearchResults({
@@ -50,7 +53,9 @@ export function UnifiedSearchResults({
   reasoning,
   onNavigateToCard,
   onNavigateToNote,
-  onNavigateToStickyNote
+  onNavigateToStickyNote,
+  onSaveAsCard,
+  onSaveAsNote
 }: SearchResultsProps) {
   const totalResults = cards.length + notes.length + stickyNotes.length + scratchNotes.length;
 
@@ -276,8 +281,34 @@ export function UnifiedSearchResults({
 
           {/* Main Content */}
           <Card className="glass-card">
-            <CardContent className="pt-6 prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{webResults.result}</ReactMarkdown>
+            <CardContent className="pt-6">
+              <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+                <ReactMarkdown>{webResults.result}</ReactMarkdown>
+              </div>
+              {(onSaveAsCard || onSaveAsNote) && (
+                <div className="flex gap-2 mt-4 pt-4 border-t">
+                  {onSaveAsCard && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Save as Card
+                    </Button>
+                  )}
+                  {onSaveAsNote && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSaveAsNote(webResults.result, webResults.citations?.[0])}
+                    >
+                      <FileEdit className="h-4 w-4 mr-2" />
+                      Save as Note
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -287,22 +318,34 @@ export function UnifiedSearchResults({
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <LinkIcon className="h-4 w-4" />
-                  Sources
+                  Sources ({webResults.citations.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="grid gap-3 md:grid-cols-2">
                   {webResults.citations.map((citation, idx) => (
-                    <a
-                      key={idx}
-                      href={citation}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {citation}
-                    </a>
+                    <Card key={idx} className="p-3 hover:shadow-hover transition-all">
+                      <a
+                        href={citation}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2 text-sm text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span className="break-all">{citation}</span>
+                      </a>
+                      {onSaveAsCard && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 w-full"
+                          onClick={() => onSaveAsCard(`Source: ${citation}`, citation)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Save Source
+                        </Button>
+                      )}
+                    </Card>
                   ))}
                 </div>
               </CardContent>
