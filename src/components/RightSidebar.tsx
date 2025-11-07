@@ -12,7 +12,6 @@ interface RightSidebarProps {
   onCreateCard: (
     card: Omit<ZettelCardType, "id" | "created" | "modified">
   ) => void;
-  onOpenAIAssistant?: () => void;
 }
 
 interface ScratchNote {
@@ -33,7 +32,7 @@ interface StickyNote {
 const SCRATCH_STORAGE_KEY = "scratchpad:notes:v1";
 const STICKY_STORAGE_KEY = "stickyNotes";
 
-export function RightSidebar({ onCreateCard, onOpenAIAssistant }: RightSidebarProps) {
+export function RightSidebar({ onCreateCard }: RightSidebarProps) {
   const [scratchContent, setScratchContent] = useState("");
   const [scratchNotes, setScratchNotes] = useState<ScratchNote[]>([]);
   const [pinnedNotes, setPinnedNotes] = useState<StickyNote[]>([]);
@@ -200,17 +199,6 @@ export function RightSidebar({ onCreateCard, onOpenAIAssistant }: RightSidebarPr
       >
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
-          {/* Ask ALICE Button */}
-          {onOpenAIAssistant && (
-            <Button
-              onClick={onOpenAIAssistant}
-              className="w-full"
-              variant="default"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Ask ALICE
-            </Button>
-          )}
           
           {/* Scratchpad */}
           <Card>

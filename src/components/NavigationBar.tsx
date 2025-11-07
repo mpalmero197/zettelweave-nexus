@@ -244,17 +244,6 @@ export function NavigationBar({
                       <Users className="h-4 w-4" />
                       Collab
                     </Button>
-                    <Button
-                      variant={activeTab === "websearch" ? "default" : "ghost"}
-                      onClick={() => {
-                        onTabChange("websearch");
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Search className="h-4 w-4" />
-                      Web Search
-                    </Button>
                   </div>
 
                   {/* Recorder */}
@@ -485,7 +474,7 @@ export function NavigationBar({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant={["catalyst", "collab", "websearch"].includes(activeTab) ? "secondary" : "ghost"}
+                        variant={["catalyst", "collab"].includes(activeTab) ? "secondary" : "ghost"}
                         size="sm"
                         className="h-9 px-3 gap-1"
                       >
@@ -502,10 +491,6 @@ export function NavigationBar({
                       <DropdownMenuItem onClick={() => onTabChange("collab")}>
                         <Users className="h-4 w-4 mr-2" />
                         Collab
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onTabChange("websearch")}>
-                        <Search className="h-4 w-4 mr-2" />
-                        Web Search
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

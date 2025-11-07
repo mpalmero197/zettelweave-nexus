@@ -1,6 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
-import { AIAssistantSidebar } from "@/components/AIAssistantSidebar";
-import { SearchResultsCanvas } from "@/components/SearchResultsCanvas";
+
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AISearchBar } from "@/components/AISearchBar";
@@ -73,6 +72,8 @@ const Index = () => {
     cards: ZettelCardType[];
     notes: any[];
     stickyNotes: any[];
+    scratchNotes?: any[];
+    webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null;
     reasoning: string;
     query: string;
   } | null>(null);
@@ -88,74 +89,25 @@ const Index = () => {
   const [viewingCard, setViewingCard] = useState<ZettelCardType | null>(null);
   const [showAccountManagement, setShowAccountManagement] = useState(false);
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null);
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
-  const [aiSearchCanvas, setAISearchCanvas] = useState<{
+
+  // Handle search results including web results
+  const handleSearchResults = (results: {
+    cards: ZettelCardType[];
+    notes: any[];
+    stickyNotes: any[];
+    scratchNotes?: any[];
+    webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null;
+    reasoning: string;
     query: string;
-    result: string;
-    images?: string[];
-    citations?: string[];
-    relatedQuestions?: string[];
-  } | null>(null);
-
-  // Handle web search
-  const handleWebSearch = async (query: string) => {
-    if (!query.trim()) return;
-    
-    // Set loading state
-    setAISearchCanvas({
-      query,
-      result: 'Searching the internet...',
-      images: [],
-      citations: [],
-      relatedQuestions: []
-    });
-
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
-        body: {
-          messages: [{ role: 'user', content: query }],
-          useInternet: true
-        }
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        setAISearchCanvas({
-          query,
-          result: data.response || data.result || 'No results found.',
-          images: data.images || [],
-          citations: data.citations || [],
-          relatedQuestions: data.relatedQuestions || []
-        });
-      }
-    } catch (error) {
-      console.error('Web search error:', error);
-      setAISearchCanvas({
-        query,
-        result: 'Search failed. Please try again.',
-        images: [],
-        citations: [],
-        relatedQuestions: []
-      });
+  }) => {
+    setSearchResults(results);
+    // Auto-switch to search tab when there are results
+    if (results.query && activeTab !== "search") {
+      setActiveTab("search");
     }
   };
-
-  // Handle web search tab activation
-  useEffect(() => {
-    if (activeTab === "websearch") {
-      // Auto-focus on search when web search tab is activated
-      setAISearchCanvas({
-        query: "",
-        result: "Enter a search query above to search the internet.",
-        images: [],
-        citations: [],
-        relatedQuestions: []
-      });
-    }
-  }, [activeTab]);
 
   // Check if user is admin
   useEffect(() => {
@@ -348,10 +300,9 @@ const Index = () => {
       </div>
 
       {/* Right Sidebar */}
-      <RightSidebar 
-        onCreateCard={handleCreateCard} 
-        onOpenAIAssistant={() => setShowAIAssistant(true)}
-      />
+              <RightSidebar
+                onCreateCard={handleCreateCard}
+              />
 
       {/* Main Content */}
       <main className="py-2 px-4 relative" role="main">
@@ -639,22 +590,6 @@ const Index = () => {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="websearch" className="mt-0">
-                  <div className="min-h-[600px]">
-                    <SearchResultsCanvas
-                      query={aiSearchCanvas?.query || ""}
-                      result={aiSearchCanvas?.result || "Enter a search query to search the internet for anything."}
-                      images={aiSearchCanvas?.images || []}
-                      citations={aiSearchCanvas?.citations || []}
-                      relatedQuestions={aiSearchCanvas?.relatedQuestions || []}
-                      onClose={() => setActiveTab("dashboard")}
-                      onRelatedSearch={(newQuery) => {
-                        // Trigger a new search when related question is clicked
-                        handleWebSearch(newQuery);
-                      }}
-                    />
-                  </div>
-                </TabsContent>
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
@@ -731,19 +666,6 @@ const Index = () => {
         />
       )}
       
-      <AIAssistantSidebar 
-        open={showAIAssistant} 
-        onOpenChange={setShowAIAssistant}
-        onSearchResult={(data) => {
-          setAISearchCanvas({
-            query: data.query,
-            result: data.result,
-            images: data.images,
-            citations: data.citations,
-            relatedQuestions: data.relatedQuestions
-          });
-        }}
-      />
 
       <SmartLinkingSidebar
         open={showSmartLinking}

@@ -14,9 +14,23 @@ interface Note {
   tags: string[];
 }
 
+interface ScratchNote {
+  id: string;
+  content: string;
+  timestamp: Date;
+}
+
 interface AISearchBarProps {
   cards: ZettelCard[];
-  onSearchResults: (results: { cards: ZettelCard[], notes: any[], stickyNotes: any[], reasoning: string, query: string }) => void;
+  onSearchResults: (results: { 
+    cards: ZettelCard[], 
+    notes: any[], 
+    stickyNotes: any[], 
+    scratchNotes: ScratchNote[],
+    webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null,
+    reasoning: string, 
+    query: string 
+  }) => void;
   className?: string;
 }
 
@@ -27,15 +41,15 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
   const handleAISearch = async () => {
     if (!query.trim()) {
-      onSearchResults({ cards, notes: [], stickyNotes: [], reasoning: "", query: "" });
+      onSearchResults({ cards, notes: [], stickyNotes: [], scratchNotes: [], reasoning: "", query: "" });
       setReasoning("");
       return;
     }
 
     setIsSearching(true);
     
-    // First try regular search immediately for instant feedback
-    handleRegularSearch(query);
+    // First search locally for instant feedback
+    const localResults = handleRegularSearch(query);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -44,73 +58,98 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
         throw new Error('Not authenticated');
       }
 
-      // Get sticky notes from localStorage
+      // Get sticky notes and scratch notes from localStorage
       const stickyNotesRaw = localStorage.getItem('stickyNotes');
       const allStickyNotes = stickyNotesRaw ? JSON.parse(stickyNotesRaw) : [];
-
-      console.log('Calling AI search with query:', query);
-      console.log('Available cards count:', cards.length);
-
-      const { data, error } = await supabase.functions.invoke('ai-search', {
-        body: { 
-          query,
-          stickyNotes: allStickyNotes.map((n: any) => ({
-            id: n.id,
-            content: n.content,
-            timestamp: n.timestamp
-          }))
-        }
-      });
-
-      if (error) {
-        console.error('AI Search error:', error);
-        throw error;
-      }
-
-      console.log('AI Search response:', data);
-
-      // Ensure all arrays exist with defaults
-      const safeCards = (data.cards || []).map((card: any) => ({
-        ...card,
-        tags: card.tags || [],
-        linkedCards: card.linkedCards || card.linked_cards || [],
-      }));
       
-      const safeNotes = data.notes || [];
-      const safeStickyNotes = (data.stickyNotes || []).map((sn: any) => 
-        allStickyNotes.find((n: any) => n.id === sn.id) || sn
-      );
+      const scratchNotesRaw = localStorage.getItem('scratchpad:notes:v1');
+      const allScratchNotes = scratchNotesRaw ? JSON.parse(scratchNotesRaw) : [];
 
-      const total = safeCards.length + safeNotes.length + safeStickyNotes.length;
-      
-      // If AI found results, use them; otherwise keep the regular search results
-      if (total > 0) {
-        onSearchResults({ 
-          cards: safeCards, 
-          notes: safeNotes, 
-          stickyNotes: safeStickyNotes,
-          reasoning: data.reasoning || `Found ${total} results`,
-          query 
-        });
-        setReasoning(data.reasoning || `Found ${total} results`);
+      console.log('Starting comprehensive search:', query);
+
+      // Run AI search and web search in parallel
+      const [aiSearchResult, webSearchResult] = await Promise.allSettled([
+        supabase.functions.invoke('ai-search', {
+          body: { 
+            query,
+            stickyNotes: allStickyNotes.map((n: any) => ({
+              id: n.id,
+              content: n.content,
+              timestamp: n.timestamp
+            }))
+          }
+        }),
+        supabase.functions.invoke('ai-assistant-chat', {
+          body: {
+            messages: [{ role: 'user', content: query }],
+            useInternet: true
+          }
+        })
+      ]);
+
+      let finalCards = localResults.cards;
+      let finalNotes = localResults.notes;
+      let finalStickyNotes = localResults.stickyNotes;
+      let finalScratchNotes = localResults.scratchNotes;
+      let webResults = null;
+      let reasoning = `Found ${localResults.total} local matches`;
+
+      // Process AI search results
+      if (aiSearchResult.status === 'fulfilled' && aiSearchResult.value.data) {
+        const data = aiSearchResult.value.data;
+        const safeCards = (data.cards || []).map((card: any) => ({
+          ...card,
+          tags: card.tags || [],
+          linkedCards: card.linkedCards || card.linked_cards || [],
+        }));
         
-        toast.success(`AI Search: ${total} results`, {
-          description: data.reasoning
-        });
-      } else {
-        // Keep the regular search results that were already shown
-        const reasoning = data.reasoning || 'No AI matches. Showing exact keyword matches.';
-        setReasoning(reasoning);
-        toast.info('AI Search', {
-          description: reasoning
-        });
+        const safeNotes = data.notes || [];
+        const safeStickyNotes = (data.stickyNotes || []).map((sn: any) => 
+          allStickyNotes.find((n: any) => n.id === sn.id) || sn
+        );
+
+        if (safeCards.length > 0 || safeNotes.length > 0 || safeStickyNotes.length > 0) {
+          finalCards = safeCards;
+          finalNotes = safeNotes;
+          finalStickyNotes = safeStickyNotes;
+          reasoning = data.reasoning || `AI found ${safeCards.length + safeNotes.length + safeStickyNotes.length} relevant results`;
+        }
       }
-    } catch (error: any) {
-      console.error('AI Search error:', error);
-      toast.error('AI Search unavailable', {
-        description: 'Showing exact keyword matches instead'
+
+      // Process web search results
+      if (webSearchResult.status === 'fulfilled' && webSearchResult.value.data) {
+        const data = webSearchResult.value.data;
+        webResults = {
+          query,
+          result: data.response || data.result || '',
+          images: data.images || [],
+          citations: data.citations || [],
+          relatedQuestions: data.relatedQuestions || []
+        };
+      }
+
+      const totalResults = finalCards.length + finalNotes.length + finalStickyNotes.length + finalScratchNotes.length;
+      
+      onSearchResults({ 
+        cards: finalCards, 
+        notes: finalNotes, 
+        stickyNotes: finalStickyNotes,
+        scratchNotes: finalScratchNotes,
+        webResults,
+        reasoning: webResults ? `${reasoning} + web results` : reasoning,
+        query 
       });
-      // Regular search results were already shown at the start
+      
+      setReasoning(webResults ? `${reasoning} + web results` : reasoning);
+      
+      toast.success(`Search complete: ${totalResults} local results${webResults ? ' + web' : ''}`, {
+        description: reasoning
+      });
+    } catch (error: any) {
+      console.error('Search error:', error);
+      toast.error('Search completed with errors', {
+        description: 'Showing local results'
+      });
     } finally {
       setIsSearching(false);
     }
@@ -118,17 +157,14 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
   const handleRegularSearch = (searchQuery: string) => {
     if (!searchQuery.trim()) {
-      onSearchResults({ cards, notes: [], stickyNotes: [], reasoning: "", query: "" });
+      onSearchResults({ cards, notes: [], stickyNotes: [], scratchNotes: [], reasoning: "", query: "" });
       setReasoning("");
-      return;
+      return { cards: [], notes: [], stickyNotes: [], scratchNotes: [], total: 0 };
     }
 
     const q = searchQuery.toLowerCase();
     
-    console.log('Regular search for:', q);
-    console.log('Searching in', cards.length, 'cards');
-    
-    // Search cards with comprehensive field matching
+    // Search cards
     const matchedCards = cards.filter(card => {
       const titleMatch = card.title?.toLowerCase().includes(q);
       const contentMatch = card.content?.toLowerCase().includes(q);
@@ -140,34 +176,46 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
       return titleMatch || contentMatch || descMatch || tagMatch || numMatch || catMatch;
     });
 
-    console.log('Found', matchedCards.length, 'matching cards');
-
-    // Search sticky notes from localStorage
+    // Search sticky notes
     const stickyNotesRaw = localStorage.getItem('stickyNotes');
     const allStickyNotes = stickyNotesRaw ? JSON.parse(stickyNotesRaw) : [];
     const matchedStickyNotes = allStickyNotes.filter((note: any) =>
       note.content?.toLowerCase().includes(q)
     );
 
-    const total = matchedCards.length + matchedStickyNotes.length;
-    const resultReasoning = `Found ${total} exact keyword match${total !== 1 ? 'es' : ''}`;
+    // Search scratch notes
+    const scratchNotesRaw = localStorage.getItem('scratchpad:notes:v1');
+    const allScratchNotes = scratchNotesRaw ? JSON.parse(scratchNotesRaw) : [];
+    const matchedScratchNotes = allScratchNotes.filter((note: any) =>
+      note.content?.toLowerCase().includes(q)
+    );
+
+    const total = matchedCards.length + matchedStickyNotes.length + matchedScratchNotes.length;
+    const resultReasoning = `Found ${total} local match${total !== 1 ? 'es' : ''}`;
     
     onSearchResults({ 
       cards: matchedCards, 
       notes: [], 
       stickyNotes: matchedStickyNotes,
+      scratchNotes: matchedScratchNotes,
       reasoning: resultReasoning,
       query: searchQuery
     });
     setReasoning(resultReasoning);
     
-    console.log('Search results:', { cards: matchedCards.length, stickyNotes: matchedStickyNotes.length });
+    return { 
+      cards: matchedCards, 
+      notes: [], 
+      stickyNotes: matchedStickyNotes, 
+      scratchNotes: matchedScratchNotes,
+      total 
+    };
   };
 
   const clearSearch = () => {
     setQuery("");
     setReasoning("");
-    onSearchResults({ cards, notes: [], stickyNotes: [], reasoning: "", query: "" });
+    onSearchResults({ cards, notes: [], stickyNotes: [], scratchNotes: [], reasoning: "", query: "" });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -186,7 +234,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Search all content: cards, notes, sticky notes..."
+              placeholder="Search"
               className="pl-10 pr-24 bg-card shadow-sm"
               dir="ltr"
             />
