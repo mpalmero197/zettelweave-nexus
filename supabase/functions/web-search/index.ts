@@ -31,11 +31,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sonar-pro',
+        model: 'llama-3.1-sonar-large-128k-online',
         messages: [
           {
             role: 'system',
-            content: 'You are a comprehensive web search engine. Provide detailed, organized information with clear sections. Include relevant facts, statistics, and context. Format your response with markdown for readability. Always cite sources.'
+            content: 'You are a comprehensive web search engine. Provide detailed, well-researched information from multiple sources across the internet. Include diverse perspectives, facts, statistics, and context. Format your response with markdown for readability. Be thorough and comprehensive.'
           },
           {
             role: 'user',
@@ -44,10 +44,10 @@ serve(async (req) => {
         ],
         temperature: 0.2,
         top_p: 0.9,
-        max_tokens: 3000,
+        max_tokens: 4000,
         return_images: true,
         return_related_questions: true,
-        search_recency_filter: "month" // Prioritize recent content
+        search_recency_filter: "year" // Search broader time range
       }),
     });
 

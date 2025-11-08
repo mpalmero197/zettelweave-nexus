@@ -273,20 +273,32 @@ export function UnifiedSearchResults({
           {/* Images */}
           {webResults.images && webResults.images.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium mb-3 text-muted-foreground">Images</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {webResults.images.slice(0, 12).map((img, idx) => (
-                  <Card key={idx} className="overflow-hidden hover:shadow-hover transition-all group cursor-pointer">
-                    <img
-                      src={img}
-                      alt={`${query} - Image ${idx + 1}`}
-                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform"
-                      onClick={() => window.open(img, '_blank')}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </Card>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                Images ({webResults.images.length})
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {webResults.images.map((img, idx) => (
+                  <a
+                    key={idx}
+                    href={img}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group"
+                  >
+                    <Card className="overflow-hidden hover:shadow-lg hover:scale-105 transition-all cursor-pointer">
+                      <img
+                        src={img}
+                        alt={`${query} - Result ${idx + 1}`}
+                        className="w-full h-48 object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.parentElement!.style.display = 'none';
+                        }}
+                      />
+                    </Card>
+                  </a>
                 ))}
               </div>
             </div>
