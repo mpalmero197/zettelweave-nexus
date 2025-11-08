@@ -31,7 +31,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+        model: 'sonar-pro',
         messages: [
           {
             role: 'system',
@@ -47,7 +47,7 @@ serve(async (req) => {
         max_tokens: 4000,
         return_images: true,
         return_related_questions: true,
-        search_recency_filter: "year" // Search broader time range
+        search_recency_filter: "year"
       }),
     });
 
