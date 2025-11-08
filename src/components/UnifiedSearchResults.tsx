@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -262,239 +263,258 @@ export function UnifiedSearchResults({
         </div>
       )}
 
-      {/* Web Results */}
+      {/* Web Results with Tabs */}
       {webResults && webResults.result && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            Web Results
+            Web Search Results
           </h2>
           
-          {/* Images */}
-          {webResults.images && webResults.images.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Globe className="h-5 w-5 text-primary" />
-                Images ({webResults.images.length})
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {webResults.images.map((img, idx) => (
-                  <a
-                    key={idx}
-                    href={img}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group"
-                  >
-                    <Card className="overflow-hidden hover:shadow-lg hover:scale-105 transition-all cursor-pointer">
-                      <img
-                        src={img}
-                        alt={`${query} - Result ${idx + 1}`}
-                        className="w-full h-48 object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          target.parentElement!.style.display = 'none';
-                        }}
-                      />
-                    </Card>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Videos */}
-          {webResults.videos && webResults.videos.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center gap-2">
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-6 mb-4">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                All
+              </TabsTrigger>
+              <TabsTrigger value="web" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Web
+              </TabsTrigger>
+              <TabsTrigger value="images" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Images {webResults.images && `(${webResults.images.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="flex items-center gap-2">
                 <Video className="h-4 w-4" />
-                Videos ({webResults.videos.length})
-              </h3>
-              <div className="grid gap-3 md:grid-cols-2">
-                {webResults.videos.map((videoUrl, idx) => (
-                  <Card key={idx} className="p-3 hover:shadow-hover transition-all">
-                    <a
-                      href={videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-3 text-sm group"
-                    >
-                      <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-primary group-hover:underline break-all line-clamp-2">
-                          {videoUrl.length > 60 ? `${videoUrl.substring(0, 60)}...` : videoUrl}
-                        </span>
-                      </div>
-                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                    </a>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Shopping */}
-          {webResults.shopping && webResults.shopping.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center gap-2">
+                Videos {webResults.videos && `(${webResults.videos.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="shopping" className="flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4" />
-                Shopping ({webResults.shopping.length})
-              </h3>
-              <div className="grid gap-3 md:grid-cols-2">
-                {webResults.shopping.map((shopUrl, idx) => (
-                  <Card key={idx} className="p-3 hover:shadow-hover transition-all">
-                    <a
-                      href={shopUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-3 text-sm group"
-                    >
-                      <ShoppingCart className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-primary group-hover:underline break-all line-clamp-2">
-                          {shopUrl.length > 60 ? `${shopUrl.substring(0, 60)}...` : shopUrl}
-                        </span>
-                      </div>
-                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                    </a>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* News */}
-          {webResults.news && webResults.news.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center gap-2">
+                Shopping {webResults.shopping && `(${webResults.shopping.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="news" className="flex items-center gap-2">
                 <Newspaper className="h-4 w-4" />
-                News ({webResults.news.length})
-              </h3>
-              <div className="grid gap-3 md:grid-cols-2">
-                {webResults.news.map((newsUrl, idx) => (
-                  <Card key={idx} className="p-3 hover:shadow-hover transition-all">
-                    <a
-                      href={newsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-3 text-sm group"
-                    >
-                      <Newspaper className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-primary group-hover:underline break-all line-clamp-2">
-                          {newsUrl.length > 60 ? `${newsUrl.substring(0, 60)}...` : newsUrl}
-                        </span>
-                      </div>
-                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                    </a>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+                News {webResults.news && `(${webResults.news.length})`}
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Main Content */}
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-                <ReactMarkdown>{webResults.result}</ReactMarkdown>
-              </div>
-              {(onSaveAsCard || onSaveAsNote) && (
-                <div className="flex gap-2 mt-4 pt-4 border-t">
-                  {onSaveAsCard && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Save as Card
-                    </Button>
-                  )}
-                  {onSaveAsNote && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSaveAsNote(webResults.result, webResults.citations?.[0])}
-                    >
-                      <FileEdit className="h-4 w-4 mr-2" />
-                      Save as Note
-                    </Button>
+            {/* All Tab */}
+            <TabsContent value="all" className="space-y-6">
+              {/* Images Preview */}
+              {webResults.images && webResults.images.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                    Images
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {webResults.images.slice(0, 6).map((img, idx) => (
+                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group">
+                        <Card className="overflow-hidden hover:shadow-lg hover:scale-105 transition-all cursor-pointer">
+                          <img
+                            src={img}
+                            alt={`${query} - ${idx + 1}`}
+                            className="w-full h-40 object-cover"
+                            loading="lazy"
+                            onError={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }}
+                          />
+                        </Card>
+                      </a>
+                    ))}
+                  </div>
+                  {webResults.images.length > 6 && (
+                    <p className="text-sm text-muted-foreground mt-2">View all {webResults.images.length} images in the Images tab</p>
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Citations */}
-          {webResults.citations && webResults.citations.length > 0 && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  Sources ({webResults.citations.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {webResults.citations.map((citation, idx) => (
-                    <Card key={idx} className="p-3 hover:shadow-hover transition-all">
-                      <a
-                        href={citation}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-start gap-2 text-sm text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="break-all">{citation}</span>
-                      </a>
+              {/* Main Content */}
+              <Card className="glass-card">
+                <CardContent className="pt-6">
+                  <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+                    <ReactMarkdown>{webResults.result}</ReactMarkdown>
+                  </div>
+                  {(onSaveAsCard || onSaveAsNote) && (
+                    <div className="flex gap-2 mt-4 pt-4 border-t">
                       {onSaveAsCard && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 w-full"
-                          onClick={() => onSaveAsCard(`Source: ${citation}`, citation)}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Save Source
+                        <Button variant="outline" size="sm" onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Save as Card
                         </Button>
                       )}
+                      {onSaveAsNote && (
+                        <Button variant="outline" size="sm" onClick={() => onSaveAsNote(webResults.result, webResults.citations?.[0])}>
+                          <FileEdit className="h-4 w-4 mr-2" />
+                          Save as Note
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Citations */}
+              {webResults.citations && webResults.citations.length > 0 && (
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      Sources ({webResults.citations.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {webResults.citations.map((citation, idx) => (
+                        <Card key={idx} className="p-3 hover:shadow-hover transition-all">
+                          <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline">
+                            <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <span className="break-all">{citation}</span>
+                          </a>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Web Tab */}
+            <TabsContent value="web" className="space-y-6">
+              <Card className="glass-card">
+                <CardContent className="pt-6">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown>{webResults.result}</ReactMarkdown>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {webResults.citations && webResults.citations.length > 0 && (
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      Sources ({webResults.citations.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {webResults.citations.map((citation, idx) => (
+                        <Card key={idx} className="p-3 hover:shadow-hover transition-all">
+                          <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline">
+                            <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <span className="break-all">{citation}</span>
+                          </a>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Images Tab */}
+            <TabsContent value="images">
+              {webResults.images && webResults.images.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  {webResults.images.map((img, idx) => (
+                    <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group">
+                      <Card className="overflow-hidden hover:shadow-lg hover:scale-105 transition-all cursor-pointer">
+                        <img
+                          src={img}
+                          alt={`${query} - Result ${idx + 1}`}
+                          className="w-full h-48 object-cover"
+                          loading="lazy"
+                          onError={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }}
+                        />
+                      </Card>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No images found for this search</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Videos Tab */}
+            <TabsContent value="videos">
+              {webResults.videos && webResults.videos.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {webResults.videos.map((videoUrl, idx) => (
+                    <Card key={idx} className="p-4 hover:shadow-hover transition-all">
+                      <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm group">
+                        <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-primary group-hover:underline break-all">{videoUrl}</span>
+                        </div>
+                        <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                      </a>
                     </Card>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No videos found for this search</p>
+                </Card>
+              )}
+            </TabsContent>
 
-          {/* Related Questions */}
-          {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-base">Related Questions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {webResults.relatedQuestions.map((q, idx) => (
-                    <Badge key={idx} variant="secondary" className="cursor-pointer hover:bg-primary/20">
-                      {q}
-                    </Badge>
+            {/* Shopping Tab */}
+            <TabsContent value="shopping">
+              {webResults.shopping && webResults.shopping.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {webResults.shopping.map((shopUrl, idx) => (
+                    <Card key={idx} className="p-4 hover:shadow-hover transition-all">
+                      <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm group">
+                        <ShoppingCart className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-primary group-hover:underline break-all">{shopUrl}</span>
+                        </div>
+                        <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                      </a>
+                    </Card>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No shopping results found for this search</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* News Tab */}
+            <TabsContent value="news">
+              {webResults.news && webResults.news.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {webResults.news.map((newsUrl, idx) => (
+                    <Card key={idx} className="p-4 hover:shadow-hover transition-all">
+                      <a href={newsUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm group">
+                        <Newspaper className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-primary group-hover:underline break-all">{newsUrl}</span>
+                        </div>
+                        <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                      </a>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No news found for this search</p>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       )}
 
-      {/* No Results */}
+      {/* No Results Message */}
       {totalResults === 0 && !webResults && (
-        <Card className="glass-card">
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No results found for "{query}". Try different keywords or check your spelling.
-            </p>
-          </CardContent>
+        <Card className="p-12 text-center">
+          <p className="text-muted-foreground text-lg">No results found for "{query}"</p>
+          <p className="text-sm text-muted-foreground mt-2">Try different keywords or check your spelling</p>
         </Card>
       )}
     </div>
