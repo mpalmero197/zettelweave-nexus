@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, BookOpen, StickyNote, Calendar, ExternalLink, Globe, Image as ImageIcon, Link as LinkIcon, Plus, FileEdit } from "lucide-react";
+import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -34,7 +34,16 @@ interface SearchResultsProps {
   notes: Note[];
   stickyNotes: StickyNote[];
   scratchNotes?: ScratchNote[];
-  webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null;
+  webResults?: { 
+    query: string; 
+    result: string; 
+    images?: string[]; 
+    videos?: string[];
+    shopping?: string[];
+    news?: string[];
+    citations?: string[]; 
+    relatedQuestions?: string[] 
+  } | null;
   reasoning?: string;
   onNavigateToCard?: (cardId: string) => void;
   onNavigateToNote?: (noteId: string) => void;
@@ -255,7 +264,7 @@ export function UnifiedSearchResults({
 
       {/* Web Results */}
       {webResults && webResults.result && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Globe className="h-5 w-5" />
             Web Results
@@ -263,19 +272,113 @@ export function UnifiedSearchResults({
           
           {/* Images */}
           {webResults.images && webResults.images.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {webResults.images.slice(0, 8).map((img, idx) => (
-                <Card key={idx} className="overflow-hidden hover:shadow-hover transition-all">
-                  <img
-                    src={img}
-                    alt={`Result ${idx + 1}`}
-                    className="w-full h-32 object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </Card>
-              ))}
+            <div>
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground">Images</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {webResults.images.slice(0, 12).map((img, idx) => (
+                  <Card key={idx} className="overflow-hidden hover:shadow-hover transition-all group cursor-pointer">
+                    <img
+                      src={img}
+                      alt={`${query} - Image ${idx + 1}`}
+                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform"
+                      onClick={() => window.open(img, '_blank')}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Videos */}
+          {webResults.videos && webResults.videos.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center gap-2">
+                <Video className="h-4 w-4" />
+                Videos ({webResults.videos.length})
+              </h3>
+              <div className="grid gap-3 md:grid-cols-2">
+                {webResults.videos.map((videoUrl, idx) => (
+                  <Card key={idx} className="p-3 hover:shadow-hover transition-all">
+                    <a
+                      href={videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-3 text-sm group"
+                    >
+                      <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-primary group-hover:underline break-all line-clamp-2">
+                          {videoUrl.length > 60 ? `${videoUrl.substring(0, 60)}...` : videoUrl}
+                        </span>
+                      </div>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                    </a>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Shopping */}
+          {webResults.shopping && webResults.shopping.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                Shopping ({webResults.shopping.length})
+              </h3>
+              <div className="grid gap-3 md:grid-cols-2">
+                {webResults.shopping.map((shopUrl, idx) => (
+                  <Card key={idx} className="p-3 hover:shadow-hover transition-all">
+                    <a
+                      href={shopUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-3 text-sm group"
+                    >
+                      <ShoppingCart className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-primary group-hover:underline break-all line-clamp-2">
+                          {shopUrl.length > 60 ? `${shopUrl.substring(0, 60)}...` : shopUrl}
+                        </span>
+                      </div>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                    </a>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* News */}
+          {webResults.news && webResults.news.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center gap-2">
+                <Newspaper className="h-4 w-4" />
+                News ({webResults.news.length})
+              </h3>
+              <div className="grid gap-3 md:grid-cols-2">
+                {webResults.news.map((newsUrl, idx) => (
+                  <Card key={idx} className="p-3 hover:shadow-hover transition-all">
+                    <a
+                      href={newsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-3 text-sm group"
+                    >
+                      <Newspaper className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-primary group-hover:underline break-all line-clamp-2">
+                          {newsUrl.length > 60 ? `${newsUrl.substring(0, 60)}...` : newsUrl}
+                        </span>
+                      </div>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                    </a>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
 

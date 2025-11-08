@@ -79,12 +79,9 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
             }))
           }
         }),
-        // Always search the web for every query
-        supabase.functions.invoke('ai-assistant-chat', {
-          body: {
-            messages: [{ role: 'user', content: query }],
-            useInternet: true
-          }
+        // Use dedicated web search function
+        supabase.functions.invoke('web-search', {
+          body: { query }
         })
       ]);
 
@@ -122,8 +119,11 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
         const data = webSearchResult.value.data;
         webResults = {
           query,
-          result: data.response || data.result || '',
+          result: data.result || '',
           images: data.images || [],
+          videos: data.videos || [],
+          shopping: data.shopping || [],
+          news: data.news || [],
           citations: data.citations || [],
           relatedQuestions: data.relatedQuestions || []
         };

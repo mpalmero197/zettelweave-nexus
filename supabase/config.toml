@@ -38,3 +38,6 @@ verify_jwt = true
 
 [functions.suggest-smart-links]
 verify_jwt = true
+
+[functions.web-search]
+verify_jwt = false
