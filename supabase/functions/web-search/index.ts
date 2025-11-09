@@ -35,7 +35,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a comprehensive web search engine. Provide detailed, well-researched information from multiple sources across the internet. Include diverse perspectives, facts, statistics, and context. Format your response with markdown for readability. Be thorough and comprehensive.'
+            content: 'You are a comprehensive internet search assistant. Provide detailed, well-structured information from diverse sources across the web. Include facts, statistics, expert opinions, and multiple perspectives. Use markdown formatting with headers, bullet points, and emphasis for clarity. Be thorough, accurate, and cite-worthy.'
           },
           {
             role: 'user',
@@ -44,10 +44,11 @@ serve(async (req) => {
         ],
         temperature: 0.2,
         top_p: 0.9,
-        max_tokens: 4000,
+        max_tokens: 5000,
         return_images: true,
         return_related_questions: true,
-        search_recency_filter: "year"
+        search_recency_filter: "year",
+        stream: false
       }),
     });
 
@@ -60,12 +61,14 @@ serve(async (req) => {
     }
 
     const data = await perplexityResponse.json();
-    console.log("Search successful");
+    console.log("Search successful, processing results...");
     
     const result = data.choices?.[0]?.message?.content || "No results found.";
-    const images = data.images || [];
-    const citations = data.citations || [];
+    const images = (data.images || []).filter((img: string) => img && img.startsWith('http'));
+    const citations = (data.citations || []).filter((url: string) => url && url.startsWith('http'));
     const relatedQuestions = data.related_questions || [];
+    
+    console.log(`Found ${images.length} images, ${citations.length} citations, ${relatedQuestions.length} related questions`);
     
     // Extract video links from citations
     const videoLinks = citations.filter((url: string) => 

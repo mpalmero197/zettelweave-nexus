@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon } from "lucide-react";
+import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon, Sparkles } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -266,77 +266,112 @@ export function UnifiedSearchResults({
       {/* Web Results with Tabs */}
       {webResults && webResults.result && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Web Search Results
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Globe className="h-6 w-6 text-primary" />
+              Web Search Results
+            </h2>
+            {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {webResults.relatedQuestions.length} related questions
+              </Badge>
+            )}
+          </div>
           
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-4">
-              <TabsTrigger value="all" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-6 mb-6 h-auto p-1 bg-muted/50 rounded-lg">
+              <TabsTrigger value="all" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Globe className="h-4 w-4" />
-                All
+                <span className="hidden sm:inline">All</span>
               </TabsTrigger>
-              <TabsTrigger value="web" className="flex items-center gap-2">
+              <TabsTrigger value="web" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <FileText className="h-4 w-4" />
-                Web
+                <span className="hidden sm:inline">Web</span>
               </TabsTrigger>
-              <TabsTrigger value="images" className="flex items-center gap-2">
+              <TabsTrigger value="images" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <ImageIcon className="h-4 w-4" />
-                Images {webResults.images && `(${webResults.images.length})`}
+                <span className="hidden sm:inline">Images</span>
+                {webResults.images && webResults.images.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.images.length}</Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="videos" className="flex items-center gap-2">
+              <TabsTrigger value="videos" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Video className="h-4 w-4" />
-                Videos {webResults.videos && `(${webResults.videos.length})`}
+                <span className="hidden sm:inline">Videos</span>
+                {webResults.videos && webResults.videos.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.videos.length}</Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="shopping" className="flex items-center gap-2">
+              <TabsTrigger value="shopping" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <ShoppingCart className="h-4 w-4" />
-                Shopping {webResults.shopping && `(${webResults.shopping.length})`}
+                <span className="hidden sm:inline">Shop</span>
+                {webResults.shopping && webResults.shopping.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.shopping.length}</Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="news" className="flex items-center gap-2">
+              <TabsTrigger value="news" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Newspaper className="h-4 w-4" />
-                News {webResults.news && `(${webResults.news.length})`}
+                <span className="hidden sm:inline">News</span>
+                {webResults.news && webResults.news.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.news.length}</Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 
             {/* All Tab */}
-            <TabsContent value="all" className="space-y-6">
+            <TabsContent value="all" className="space-y-8">
               {/* Images Preview */}
               {webResults.images && webResults.images.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5 text-primary" />
-                    Images
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {webResults.images.slice(0, 6).map((img, idx) => (
-                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group">
-                        <Card className="overflow-hidden hover:shadow-lg hover:scale-105 transition-all cursor-pointer">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      Images from the web
+                    </h3>
+                    <Badge variant="outline">{webResults.images.length} found</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {webResults.images.slice(0, 12).map((img, idx) => (
+                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group block">
+                        <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/20">
                           <img
                             src={img}
-                            alt={`${query} - ${idx + 1}`}
-                            className="w-full h-40 object-cover"
+                            alt={`${query} - Result ${idx + 1}`}
+                            className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity"
                             loading="lazy"
-                            onError={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }}
+                            onError={(e) => { 
+                              const card = e.currentTarget.closest('.group');
+                              if (card) card.remove();
+                            }}
                           />
                         </Card>
                       </a>
                     ))}
                   </div>
-                  {webResults.images.length > 6 && (
-                    <p className="text-sm text-muted-foreground mt-2">View all {webResults.images.length} images in the Images tab</p>
+                  {webResults.images.length > 12 && (
+                    <div className="text-center">
+                      <Badge variant="secondary" className="cursor-default">
+                        + {webResults.images.length - 12} more images in the Images tab
+                      </Badge>
+                    </div>
                   )}
                 </div>
               )}
 
               {/* Main Content */}
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+              <Card className="glass-card border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-primary" />
+                    Search Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown>{webResults.result}</ReactMarkdown>
                   </div>
                   {(onSaveAsCard || onSaveAsNote) && (
-                    <div className="flex gap-2 mt-4 pt-4 border-t">
+                    <div className="flex gap-2 pt-4 border-t">
                       {onSaveAsCard && (
                         <Button variant="outline" size="sm" onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}>
                           <Plus className="h-4 w-4 mr-2" />
@@ -353,6 +388,27 @@ export function UnifiedSearchResults({
                   )}
                 </CardContent>
               </Card>
+              
+              {/* Related Questions */}
+              {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      People also ask
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {webResults.relatedQuestions.map((question, idx) => (
+                        <Card key={idx} className="p-3 hover:shadow-md transition-all cursor-pointer hover:border-primary/30">
+                          <p className="text-sm font-medium">{question}</p>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Citations */}
               {webResults.citations && webResults.citations.length > 0 && (
@@ -414,26 +470,43 @@ export function UnifiedSearchResults({
             </TabsContent>
 
             {/* Images Tab */}
-            <TabsContent value="images">
+            <TabsContent value="images" className="space-y-4">
               {webResults.images && webResults.images.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                  {webResults.images.map((img, idx) => (
-                    <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group">
-                      <Card className="overflow-hidden hover:shadow-lg hover:scale-105 transition-all cursor-pointer">
-                        <img
-                          src={img}
-                          alt={`${query} - Result ${idx + 1}`}
-                          className="w-full h-48 object-cover"
-                          loading="lazy"
-                          onError={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }}
-                        />
-                      </Card>
-                    </a>
-                  ))}
-                </div>
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {webResults.images.length} image{webResults.images.length !== 1 ? 's' : ''} from across the web
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                    {webResults.images.map((img, idx) => (
+                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group block">
+                        <Card className="overflow-hidden hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/30">
+                          <div className="relative aspect-square">
+                            <img
+                              src={img}
+                              alt={`${query} - Result ${idx + 1}`}
+                              className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
+                              loading="lazy"
+                              onError={(e) => { 
+                                const card = e.currentTarget.closest('.group');
+                                if (card) card.remove();
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                              <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                        </Card>
+                      </a>
+                    ))}
+                  </div>
+                </>
               ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">No images found for this search</p>
+                <Card className="p-12 text-center border-2 border-dashed">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p className="text-muted-foreground font-medium">No images found for "{query}"</p>
+                  <p className="text-sm text-muted-foreground/70 mt-2">Try a different search term</p>
                 </Card>
               )}
             </TabsContent>
