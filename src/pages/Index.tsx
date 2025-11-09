@@ -437,6 +437,21 @@ const Index = () => {
                         onSaveAsNote={async (content, source) => {
                           toast.success('Save as note feature coming soon');
                         }}
+                        onSaveToScratchpad={(content) => {
+                          try {
+                            const existingNotes = localStorage.getItem('scratchpad:notes:v1');
+                            const notes = existingNotes ? JSON.parse(existingNotes) : [];
+                            notes.push({
+                              id: Date.now().toString(),
+                              content: content,
+                              timestamp: new Date()
+                            });
+                            localStorage.setItem('scratchpad:notes:v1', JSON.stringify(notes));
+                            toast.success('Saved to scratchpad');
+                          } catch (error) {
+                            toast.error('Failed to save to scratchpad');
+                          }
+                        }}
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-96 text-center">

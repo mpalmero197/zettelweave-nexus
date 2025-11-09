@@ -2,11 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon, Sparkles } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon, Sparkles, MoreVertical, Save } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Note {
   id: string;
@@ -51,6 +53,7 @@ interface SearchResultsProps {
   onNavigateToStickyNote?: (noteId: string) => void;
   onSaveAsCard?: (content: string, source?: string) => void;
   onSaveAsNote?: (content: string, source?: string) => void;
+  onSaveToScratchpad?: (content: string) => void;
 }
 
 export function UnifiedSearchResults({
@@ -65,9 +68,38 @@ export function UnifiedSearchResults({
   onNavigateToNote,
   onNavigateToStickyNote,
   onSaveAsCard,
-  onSaveAsNote
+  onSaveAsNote,
+  onSaveToScratchpad
 }: SearchResultsProps) {
   const totalResults = cards.length + notes.length + stickyNotes.length + scratchNotes.length;
+
+  const handleSaveImage = (imageUrl: string, action: 'card' | 'note' | 'scratch') => {
+    const content = `![${query}](${imageUrl})\n\nImage source: ${imageUrl}`;
+    if (action === 'card' && onSaveAsCard) {
+      onSaveAsCard(content, imageUrl);
+      toast.success('Image saved as card');
+    } else if (action === 'note' && onSaveAsNote) {
+      onSaveAsNote(content, imageUrl);
+      toast.success('Image saved as note');
+    } else if (action === 'scratch' && onSaveToScratchpad) {
+      onSaveToScratchpad(content);
+      toast.success('Image saved to scratchpad');
+    }
+  };
+
+  const handleSaveLink = (url: string, type: string, action: 'card' | 'note' | 'scratch') => {
+    const content = `${type}: ${url}`;
+    if (action === 'card' && onSaveAsCard) {
+      onSaveAsCard(content, url);
+      toast.success(`${type} saved as card`);
+    } else if (action === 'note' && onSaveAsNote) {
+      onSaveAsNote(content, url);
+      toast.success(`${type} saved as note`);
+    } else if (action === 'scratch' && onSaveToScratchpad) {
+      onSaveToScratchpad(content);
+      toast.success(`${type} saved to scratchpad`);
+    }
+  };
 
   const highlightText = (text: string, query: string) => {
     if (!query) return text;
@@ -332,20 +364,53 @@ export function UnifiedSearchResults({
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {webResults.images.slice(0, 12).map((img, idx) => (
-                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group block">
-                        <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                          <img
-                            src={img}
-                            alt={`${query} - Result ${idx + 1}`}
-                            className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity"
-                            loading="lazy"
-                            onError={(e) => { 
-                              const card = e.currentTarget.closest('.group');
-                              if (card) card.remove();
-                            }}
-                          />
-                        </Card>
-                      </a>
+                      <div key={idx} className="group relative">
+                        <a href={img} target="_blank" rel="noopener noreferrer" className="block">
+                          <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                            <img
+                              src={img}
+                              alt={`${query} - Result ${idx + 1}`}
+                              className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity"
+                              loading="lazy"
+                              onError={(e) => { 
+                                const card = e.currentTarget.closest('.group');
+                                if (card) card.remove();
+                              }}
+                            />
+                          </Card>
+                        </a>
+                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="secondary" className="h-7 w-7 p-0 shadow-lg">
+                                  <Save className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {onSaveAsCard && (
+                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'card')}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Save as Card
+                                  </DropdownMenuItem>
+                                )}
+                                {onSaveAsNote && (
+                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'note')}>
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Save as Note
+                                  </DropdownMenuItem>
+                                )}
+                                {onSaveToScratchpad && (
+                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'scratch')}>
+                                    <FileEdit className="h-4 w-4 mr-2" />
+                                    Save to Scratchpad
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                   {webResults.images.length > 12 && (
@@ -370,8 +435,8 @@ export function UnifiedSearchResults({
                   <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown>{webResults.result}</ReactMarkdown>
                   </div>
-                  {(onSaveAsCard || onSaveAsNote) && (
-                    <div className="flex gap-2 pt-4 border-t">
+                  {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                    <div className="flex flex-wrap gap-2 pt-4 border-t">
                       {onSaveAsCard && (
                         <Button variant="outline" size="sm" onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}>
                           <Plus className="h-4 w-4 mr-2" />
@@ -382,6 +447,12 @@ export function UnifiedSearchResults({
                         <Button variant="outline" size="sm" onClick={() => onSaveAsNote(webResults.result, webResults.citations?.[0])}>
                           <FileEdit className="h-4 w-4 mr-2" />
                           Save as Note
+                        </Button>
+                      )}
+                      {onSaveToScratchpad && (
+                        <Button variant="outline" size="sm" onClick={() => onSaveToScratchpad(webResults.result)}>
+                          <FileEdit className="h-4 w-4 mr-2" />
+                          Save to Scratchpad
                         </Button>
                       )}
                     </div>
@@ -422,11 +493,42 @@ export function UnifiedSearchResults({
                   <CardContent>
                     <div className="grid gap-3 md:grid-cols-2">
                       {webResults.citations.map((citation, idx) => (
-                        <Card key={idx} className="p-3 hover:shadow-hover transition-all">
-                          <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline">
-                            <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span className="break-all">{citation}</span>
-                          </a>
+                        <Card key={idx} className="p-3 hover:shadow-hover transition-all group">
+                          <div className="flex items-start justify-between gap-2">
+                            <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline flex-1 min-w-0">
+                              <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span className="break-all">{citation}</span>
+                            </a>
+                            {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {onSaveAsCard && (
+                                    <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'card')}>
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Save as Card
+                                    </DropdownMenuItem>
+                                  )}
+                                  {onSaveAsNote && (
+                                    <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'note')}>
+                                      <BookOpen className="h-4 w-4 mr-2" />
+                                      Save as Note
+                                    </DropdownMenuItem>
+                                  )}
+                                  {onSaveToScratchpad && (
+                                    <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'scratch')}>
+                                      <FileEdit className="h-4 w-4 mr-2" />
+                                      Save to Scratchpad
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
                         </Card>
                       ))}
                     </div>
@@ -480,25 +582,58 @@ export function UnifiedSearchResults({
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                     {webResults.images.map((img, idx) => (
-                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="group block">
-                        <Card className="overflow-hidden hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/30">
-                          <div className="relative aspect-square">
-                            <img
-                              src={img}
-                              alt={`${query} - Result ${idx + 1}`}
-                              className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
-                              loading="lazy"
-                              onError={(e) => { 
-                                const card = e.currentTarget.closest('.group');
-                                if (card) card.remove();
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                              <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div key={idx} className="group relative">
+                        <a href={img} target="_blank" rel="noopener noreferrer" className="block">
+                          <Card className="overflow-hidden hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/30">
+                            <div className="relative aspect-square">
+                              <img
+                                src={img}
+                                alt={`${query} - Result ${idx + 1}`}
+                                className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
+                                loading="lazy"
+                                onError={(e) => { 
+                                  const card = e.currentTarget.closest('.group');
+                                  if (card) card.remove();
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
                             </div>
+                          </Card>
+                        </a>
+                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="secondary" className="h-7 w-7 p-0 shadow-lg">
+                                  <Save className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {onSaveAsCard && (
+                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'card')}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Save as Card
+                                  </DropdownMenuItem>
+                                )}
+                                {onSaveAsNote && (
+                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'note')}>
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Save as Note
+                                  </DropdownMenuItem>
+                                )}
+                                {onSaveToScratchpad && (
+                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'scratch')}>
+                                    <FileEdit className="h-4 w-4 mr-2" />
+                                    Save to Scratchpad
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                        </Card>
-                      </a>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </>
@@ -516,14 +651,42 @@ export function UnifiedSearchResults({
               {webResults.videos && webResults.videos.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {webResults.videos.map((videoUrl, idx) => (
-                    <Card key={idx} className="p-4 hover:shadow-hover transition-all">
-                      <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm group">
-                        <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                        <div className="flex-1 min-w-0">
+                    <Card key={idx} className="p-4 hover:shadow-hover transition-all group">
+                      <div className="flex items-start justify-between gap-3">
+                        <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm flex-1 min-w-0">
+                          <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
                           <span className="text-primary group-hover:underline break-all">{videoUrl}</span>
-                        </div>
-                        <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                      </a>
+                        </a>
+                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {onSaveAsCard && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(videoUrl, 'Video', 'card')}>
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Save as Card
+                                </DropdownMenuItem>
+                              )}
+                              {onSaveAsNote && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(videoUrl, 'Video', 'note')}>
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Save as Note
+                                </DropdownMenuItem>
+                              )}
+                              {onSaveToScratchpad && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(videoUrl, 'Video', 'scratch')}>
+                                  <FileEdit className="h-4 w-4 mr-2" />
+                                  Save to Scratchpad
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </Card>
                   ))}
                 </div>
@@ -539,14 +702,42 @@ export function UnifiedSearchResults({
               {webResults.shopping && webResults.shopping.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {webResults.shopping.map((shopUrl, idx) => (
-                    <Card key={idx} className="p-4 hover:shadow-hover transition-all">
-                      <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm group">
-                        <ShoppingCart className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                        <div className="flex-1 min-w-0">
+                    <Card key={idx} className="p-4 hover:shadow-hover transition-all group">
+                      <div className="flex items-start justify-between gap-3">
+                        <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm flex-1 min-w-0">
+                          <ShoppingCart className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
                           <span className="text-primary group-hover:underline break-all">{shopUrl}</span>
-                        </div>
-                        <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                      </a>
+                        </a>
+                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {onSaveAsCard && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(shopUrl, 'Shopping', 'card')}>
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Save as Card
+                                </DropdownMenuItem>
+                              )}
+                              {onSaveAsNote && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(shopUrl, 'Shopping', 'note')}>
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Save as Note
+                                </DropdownMenuItem>
+                              )}
+                              {onSaveToScratchpad && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(shopUrl, 'Shopping', 'scratch')}>
+                                  <FileEdit className="h-4 w-4 mr-2" />
+                                  Save to Scratchpad
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </Card>
                   ))}
                 </div>
@@ -562,14 +753,42 @@ export function UnifiedSearchResults({
               {webResults.news && webResults.news.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {webResults.news.map((newsUrl, idx) => (
-                    <Card key={idx} className="p-4 hover:shadow-hover transition-all">
-                      <a href={newsUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm group">
-                        <Newspaper className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                        <div className="flex-1 min-w-0">
+                    <Card key={idx} className="p-4 hover:shadow-hover transition-all group">
+                      <div className="flex items-start justify-between gap-3">
+                        <a href={newsUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm flex-1 min-w-0">
+                          <Newspaper className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
                           <span className="text-primary group-hover:underline break-all">{newsUrl}</span>
-                        </div>
-                        <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100" />
-                      </a>
+                        </a>
+                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {onSaveAsCard && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(newsUrl, 'News', 'card')}>
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Save as Card
+                                </DropdownMenuItem>
+                              )}
+                              {onSaveAsNote && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(newsUrl, 'News', 'note')}>
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Save as Note
+                                </DropdownMenuItem>
+                              )}
+                              {onSaveToScratchpad && (
+                                <DropdownMenuItem onClick={() => handleSaveLink(newsUrl, 'News', 'scratch')}>
+                                  <FileEdit className="h-4 w-4 mr-2" />
+                                  Save to Scratchpad
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </Card>
                   ))}
                 </div>
