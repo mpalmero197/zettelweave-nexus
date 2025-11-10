@@ -22,6 +22,7 @@ import { Notes } from "@/components/Notes";
 import { MediaRecorder as MediaRecorderComponent } from "@/components/MediaRecorder";
 import { RecordingsLibrary } from "@/components/RecordingsLibrary";
 import { AudioManager } from "@/components/AudioManager";
+import { ScratchPad } from "@/components/ScratchPad";
 import { Catalyst } from "@/components/Catalyst";
 import { StickyNotesSimple } from "@/components/StickyNotesSimple";
 import { Notebooks } from "@/components/Notebooks";
@@ -310,6 +311,9 @@ const Index = () => {
         onTabChange={setActiveTab}
         onSignOut={handleSignOut}
         onAccountSettings={() => setShowAccountManagement(true)}
+        onCreateCard={handleCreateCard}
+        existingCards={cards}
+        organizationMethod={organizationMethod}
         isAdmin={isAdmin}
       />
 
@@ -643,6 +647,12 @@ const Index = () => {
                 <TabsContent value="stickynotes" className="mt-0">
                   <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 relative animate-fade-in-up">
                     <StickyNotesSimple />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="scratchpad" className="mt-0">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <ScratchPad onCreateCard={handleCreateCard} />
                   </div>
                 </TabsContent>
 

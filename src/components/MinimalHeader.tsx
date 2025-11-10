@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { Brain, Menu, Plus } from "lucide-react";
+import { Brain, Menu } from "lucide-react";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { MinimalSidebar } from "./MinimalSidebar";
+import { CreateCardDialog } from "./CreateCardDialog";
+import { ZettelCard, OrganizationMethod } from "@/types/zettel";
 
 interface MinimalHeaderProps {
   user: any;
@@ -13,6 +15,9 @@ interface MinimalHeaderProps {
   onTabChange: (tab: string) => void;
   onSignOut: () => void;
   onAccountSettings: () => void;
+  onCreateCard: (card: Omit<ZettelCard, 'id' | 'created' | 'modified'>) => void;
+  existingCards: ZettelCard[];
+  organizationMethod: OrganizationMethod;
   isAdmin: boolean;
 }
 
@@ -22,6 +27,9 @@ export function MinimalHeader({
   onTabChange,
   onSignOut,
   onAccountSettings,
+  onCreateCard,
+  existingCards,
+  organizationMethod,
   isAdmin,
 }: MinimalHeaderProps) {
   return (
@@ -52,9 +60,11 @@ export function MinimalHeader({
         </div>
 
         {/* Quick Create */}
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <Plus className="h-4 w-4" />
-        </Button>
+        <CreateCardDialog 
+          onCreateCard={onCreateCard}
+          existingCards={existingCards}
+          organizationMethod={organizationMethod}
+        />
       </div>
     </header>
   );

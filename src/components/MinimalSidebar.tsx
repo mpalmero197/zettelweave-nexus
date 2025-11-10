@@ -18,6 +18,7 @@ import {
   Shield,
   Settings,
   LogOut,
+  FileEdit,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -80,6 +81,7 @@ export function MinimalSidebar({
           <NavButton tab="calendar" icon={CalendarIcon} label="Calendar" />
           <NavButton tab="journal" icon={StickyNote} label="Journal" />
           <NavButton tab="habits" icon={Target} label="Habits" />
+          <NavButton tab="scratchpad" icon={FileEdit} label="Scratchpad" />
           <NavButton tab="stickynotes" icon={StickyNote} label="Sticky Notes" />
           
           <Separator className="my-2" />
