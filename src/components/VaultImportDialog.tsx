@@ -14,12 +14,15 @@ import {
   FolderOpen,
   Image,
   Download,
-  AlertCircle
+  AlertCircle,
+  History
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { CardMergeDialog } from "./CardMergeDialog";
+import { ImportHistoryPanel } from "./ImportHistoryPanel";
 import { sanitizeCardInput, validateZettelCard } from "@/utils/security";
+import { generateFileHash, isFileImported, trackImport } from "@/utils/importTracking";
 
 interface VaultImportDialogProps {
   onImportCards: (cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => void;
@@ -46,10 +49,13 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
   const [progress, setProgress] = useState(0);
   const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
   const [activeTab, setActiveTab] = useState("obsidian");
+  const [viewMode, setViewMode] = useState<'import' | 'history'>('import');
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [duplicatePairs, setDuplicatePairs] = useState<Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}>>([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [processedCards, setProcessedCards] = useState<Partial<ZettelCardType>[]>([]);
+  const [skipExisting, setSkipExisting] = useState(true);
+  const [reimportPaths, setReimportPaths] = useState<string[]>([]);
 
   const processObsidianVault = async (files: FileList) => {
     setIsProcessing(true);
@@ -493,14 +499,18 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="obsidian" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
-              Obsidian Vault
+              Obsidian
             </TabsTrigger>
             <TabsTrigger value="notion" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
-              Notion Export
+              Notion
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              History
             </TabsTrigger>
           </TabsList>
           
@@ -584,6 +594,45 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="history" className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Track your import history and selectively re-import files
+                </p>
+              </div>
+              
+              <Tabs defaultValue="obsidian-history" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="obsidian-history">Obsidian</TabsTrigger>
+                  <TabsTrigger value="notion-history">Notion</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="obsidian-history" className="mt-4">
+                  <ImportHistoryPanel 
+                    sourceType="obsidian"
+                    onSelectForReimport={(paths) => {
+                      setReimportPaths(paths);
+                      setActiveTab('obsidian');
+                      toast.info(`${paths.length} file(s) selected for re-import. Please select your vault folder.`);
+                    }}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="notion-history" className="mt-4">
+                  <ImportHistoryPanel 
+                    sourceType="notion"
+                    onSelectForReimport={(paths) => {
+                      setReimportPaths(paths);
+                      setActiveTab('notion');
+                      toast.info(`${paths.length} file(s) selected for re-import. Please select your export folder.`);
+                    }}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
           </TabsContent>
         </Tabs>
         

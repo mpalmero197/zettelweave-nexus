@@ -475,6 +475,42 @@ export type Database = {
         }
         Relationships: []
       }
+      import_history: {
+        Row: {
+          card_id: string | null
+          file_hash: string
+          file_name: string
+          file_path: string
+          id: string
+          imported_at: string
+          metadata: Json | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          card_id?: string | null
+          file_hash: string
+          file_name: string
+          file_path: string
+          id?: string
+          imported_at?: string
+          metadata?: Json | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string | null
+          file_hash?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          imported_at?: string
+          metadata?: Json | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notebooks: {
         Row: {
           color: string | null
