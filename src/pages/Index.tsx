@@ -14,7 +14,7 @@ import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { SmartLinkingSidebar } from "@/components/SmartLinkingSidebar";
 import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
 import { MobileDetector } from "@/components/MobileDetector";
-import { NavigationBar } from "@/components/NavigationBar";
+import { MinimalHeader } from "@/components/MinimalHeader";
 import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
@@ -303,21 +303,18 @@ const Index = () => {
       <MobileOptimizedLayout>
       <SecurityNotice />
       
-      {/* Navigation Bar with Dropdowns */}
-      <NavigationBar
+      {/* Minimal Header */}
+      <MinimalHeader
         user={user}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onSignOut={handleSignOut}
         onAccountSettings={() => setShowAccountManagement(true)}
         isAdmin={isAdmin}
-        onCreateNote={() => setActiveTab("notes")}
-        onCreateWhiteboard={() => setActiveTab("whiteboard")}
-        onStartRecording={() => setActiveTab("recorder")}
       />
 
-      {/* Global AI Search Bar - Below Nav with proper z-index */}
-      <div className="sticky top-16 z-[35] glass-card px-4 py-3 mb-4">
+      {/* Compact AI Search Bar */}
+      <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 px-3 py-2">
         <div className="max-w-3xl mx-auto flex items-center gap-2">
           <AISearchBar 
             cards={cards} 
@@ -342,21 +339,13 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Right Sidebar */}
-              <RightSidebar
-                onCreateCard={handleCreateCard}
-              />
-
       {/* Main Content */}
-      <main className="py-2 px-4 relative" role="main">
-        {/* Subtle top glow effect */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-glow pointer-events-none opacity-50" />
-        
+      <main className="py-3 px-3 relative" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
-          {/* Cards Menu Bar - Below Global Search */}
+          {/* Cards Menu Bar */}
           {activeTab === "cards" && (
-            <div className="sticky top-32 z-30 glass-card px-4 py-3 animate-fade-in-up">
-              <div className="flex items-center justify-center max-w-7xl mx-auto gap-4 flex-wrap">
+            <div className="sticky top-24 z-30 bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-2 mb-3">
+              <div className="flex items-center justify-center max-w-7xl mx-auto gap-2 flex-wrap"  >
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                 <VaultImportDialog onImportCards={handleImportCards} />
                 <Button
@@ -419,18 +408,15 @@ const Index = () => {
               </div>
             </div>
           )}
-          <div className="mt-4 w-full">
-            <div className="w-full space-y-4">
-              {/* Main Content Area - Full width with proper padding for sidebar on desktop */}
-              <div className={`w-full ${activeTab === 'cards' ? 'lg:ml-84' : ''}`}>
+          <div className="w-full">
+            <div className="w-full space-y-3">
+              <div className="w-full">
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
                     onEdit={(card) => setViewingCard(card)}
                     onOpenNote={(note) => {
-                      // Navigate to notes tab and focus on this note
                       setActiveTab("notes");
-                      toast.success(`Opening note: ${note.title}`);
                     }}
                   />
                 </TabsContent>
@@ -532,16 +518,17 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                  <div className="p-3">
                     {isLoading ? (
-                      <FastLoadingFallback message="Loading your knowledge cards..." />
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {[...Array(6)].map((_, i) => (
+                          <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
+                        ))}
+                      </div>
                     ) : filteredCards.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-96 text-center">
-                        <div className="p-6 bg-primary/5 rounded-full mb-6">
-                          <FileText className="h-16 w-16 text-primary" />
-                        </div>
-                        <h3 className="text-xl font-semibold mb-2">No cards found</h3>
-                        <p className="text-muted-foreground mb-6 max-w-md">
+                      <div className="text-center py-12">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-20 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-4">
                           {cards.length === 0 
                             ? "Start building your knowledge base by creating your first card"
                             : "Try adjusting your search terms or filters"
@@ -550,15 +537,15 @@ const Index = () => {
                         <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                       </div>
                     ) : (
-                      <div className="space-y-8">
+                      <div>
                         {/* Favorites Section */}
                         {filteredCards.some(card => card.is_favorite) && (
-                          <div>
-                            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                          <div className="mb-6">
+                            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
                               <span className="text-yellow-500">★</span>
                               Favorites
                             </h2>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {filteredCards
                                 .filter(card => card.is_favorite)
                                 .map((card) => (
@@ -584,9 +571,9 @@ const Index = () => {
                         {filteredCards.some(card => !card.is_favorite) && (
                           <div>
                             {filteredCards.some(card => card.is_favorite) && (
-                              <h2 className="text-2xl font-bold mb-4">All Cards</h2>
+                              <h2 className="text-lg font-semibold mb-3">All Cards</h2>
                             )}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-max">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {filteredCards
                                 .filter(card => !card.is_favorite)
                                 .map((card) => (
@@ -613,12 +600,12 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="graph" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                  <div className="h-[calc(100vh-8rem)]">
                     <GraphView 
                       cards={filteredCards} 
                       onCardSelect={setViewingCard}
                       onCardUpdate={handleUpdateCard}
-                      className="h-[550px]"
+                      className="h-full"
                     />
                   </div>
                 </TabsContent>

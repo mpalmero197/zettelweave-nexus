@@ -472,8 +472,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
 
   return (
     <div className={cn(
-      "relative w-full h-full bg-background border border-border rounded-xl overflow-hidden shadow-card",
-      isFullscreen && "fixed inset-0 z-50 rounded-none",
+      "relative w-full h-full bg-background overflow-hidden",
+      isFullscreen && "fixed inset-0 z-50",
       className
     )}>
       <ReactFlow

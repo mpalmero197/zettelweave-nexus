@@ -225,11 +225,11 @@
     box-shadow: var(--shadow-hover);
   }
   
-  /* Glassmorphism 2025 */
+  /* Glassmorphism - Minimal */
   .glass-card {
-    background: var(--gradient-glass);
-    backdrop-filter: blur(12px) saturate(180%);
-    border: 1px solid hsl(var(--border) / 0.3);
+    background: hsl(var(--background) / 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--border) / 0.2);
   }
   
   /* Subtle animations */
