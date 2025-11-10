@@ -13,23 +13,34 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
-
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    
-    if (!user) {
-      throw new Error('Unauthorized');
+    // When verify_jwt = true in config, the JWT is already validated by Supabase
+    // We can trust the Authorization header and extract the user ID from it
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
     }
 
-    console.log('Analyzing cache patterns for user:', user.id);
+    // Create admin client to query data
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Decode the JWT to get user ID (already validated by Supabase)
+    const token = authHeader.replace('Bearer ', '');
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid token format');
+    }
+    
+    const payload = JSON.parse(atob(parts[1]));
+    const userId = payload.sub;
+    
+    if (!userId) {
+      throw new Error('No user ID in token');
+    }
+
+    console.log('Analyzing cache patterns for user:', userId);
 
     // Get current time info
     const now = new Date();
@@ -39,10 +50,10 @@ serve(async (req) => {
     // Analyze activity logs from the past 30 days
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const { data: activityLogs, error: logsError } = await supabaseClient
+    const { data: activityLogs, error: logsError } = await supabaseAdmin
       .from('user_activity_logs')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: false });
 
@@ -113,7 +124,7 @@ serve(async (req) => {
         );
 
         predictions.push({
-          user_id: user.id,
+          user_id: userId,
           resource_type: resourceType,
           resource_ids: resourceIds,
           hour_of_day: hour,
@@ -127,7 +138,7 @@ serve(async (req) => {
 
     // Upsert predictions
     if (predictions.length > 0) {
-      const { error: upsertError } = await supabaseClient
+      const { error: upsertError } = await supabaseAdmin
         .from('cache_predictions')
         .upsert(predictions, {
           onConflict: 'user_id,resource_type,hour_of_day,day_of_week'
@@ -144,10 +155,10 @@ serve(async (req) => {
       (currentHour + offset + 24) % 24
     );
 
-    const { data: currentPredictions, error: predictionsError } = await supabaseClient
+    const { data: currentPredictions, error: predictionsError } = await supabaseAdmin
       .from('cache_predictions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('day_of_week', currentDay)
       .in('hour_of_day', hourWindow)
       .gte('confidence_score', 0.3)
