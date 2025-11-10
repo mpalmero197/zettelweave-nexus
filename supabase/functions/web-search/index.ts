@@ -64,8 +64,8 @@ serve(async (req) => {
     console.log("Search successful, processing results...");
     
     const result = data.choices?.[0]?.message?.content || "No results found.";
-    const images = (data.images || []).filter((img: string) => img && img.startsWith('http'));
-    const citations = (data.citations || []).filter((url: string) => url && url.startsWith('http'));
+    const images = (data.images || []).filter((img: any) => typeof img === 'string' && img.startsWith('http'));
+    const citations = (data.citations || []).filter((url: any) => typeof url === 'string' && url.startsWith('http'));
     const relatedQuestions = data.related_questions || [];
     
     console.log(`Found ${images.length} images, ${citations.length} citations, ${relatedQuestions.length} related questions`);
