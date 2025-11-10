@@ -88,55 +88,12 @@ export default defineConfig(({ mode }) => ({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            // React core - highest priority, smallest bundle
-            if (id.includes('react/') || id.includes('react-dom/')) {
-              return 'react-core';
-            }
-            // Router - needed early
-            if (id.includes('react-router')) {
-              return 'react-router';
-            }
-            // Supabase - needed for auth
-            if (id.includes('@supabase')) {
-              return 'supabase';
-            }
-            // Query - data fetching
-            if (id.includes('@tanstack/react-query')) {
-              return 'react-query';
-            }
-            // Radix UI components
-            if (id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            // Heavy visualization libs - lazy load
-            if (id.includes('recharts') || id.includes('d3')) {
-              return 'chart-vendor';
-            }
-            if (id.includes('three') || id.includes('@react-three')) {
-              return 'three-vendor';
-            }
-            if (id.includes('fabric')) {
-              return 'fabric-vendor';
-            }
-            // Editor - lazy load
-            if (id.includes('@tiptap') || id.includes('prosemirror')) {
-              return 'editor-vendor';
-            }
-            // Document processing - lazy load
-            if (id.includes('mammoth') || id.includes('docx') || id.includes('jspdf') || id.includes('html2canvas')) {
-              return 'document-vendor';
-            }
-            // Other vendors
-            return 'vendor';
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
   },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
-  },
+
 }));
