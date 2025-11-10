@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon, Sparkles, MoreVertical, Save } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon, Sparkles, MoreVertical, Save, CheckSquare, XSquare } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -85,6 +86,105 @@ export function UnifiedSearchResults({
 }: SearchResultsProps) {
   const totalResults = cards.length + notes.length + stickyNotes.length + scratchNotes.length;
   
+  // Batch selection state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  
+  const toggleItemSelection = (id: string, type: 'image' | 'video' | 'citation') => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      const key = `${type}:${id}`;
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+  
+  const selectAllOfType = (type: 'images' | 'videos' | 'citations') => {
+    const items = type === 'images' ? (multimediaResults?.images || []) :
+                  type === 'videos' ? (multimediaResults?.videos || []) :
+                  (webResults?.citations || []);
+    
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      items.forEach((item: any, idx: number) => {
+        next.add(`${type.slice(0, -1)}:${idx}`);
+      });
+      return next;
+    });
+  };
+  
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
+  
+  const handleBatchSave = async (action: 'card' | 'note' | 'scratch') => {
+    if (selectedItems.size === 0) {
+      toast.error('No items selected');
+      return;
+    }
+    
+    let savedCount = 0;
+    
+    for (const key of selectedItems) {
+      const [type, id] = key.split(':');
+      const idx = parseInt(id);
+      
+      if (type === 'image') {
+        const images = multimediaResults?.images || [];
+        if (images[idx]) {
+          const content = `![${query}](${images[idx]})\n\nImage source: ${images[idx]}`;
+          if (action === 'card' && onSaveAsCard) {
+            onSaveAsCard(content, images[idx]);
+            savedCount++;
+          } else if (action === 'note' && onSaveAsNote) {
+            onSaveAsNote(content, images[idx]);
+            savedCount++;
+          } else if (action === 'scratch' && onSaveToScratchpad) {
+            onSaveToScratchpad(content);
+            savedCount++;
+          }
+        }
+      } else if (type === 'video') {
+        const videos = multimediaResults?.videos || [];
+        if (videos[idx]) {
+          const content = `Video: ${videos[idx]}`;
+          if (action === 'card' && onSaveAsCard) {
+            onSaveAsCard(content, videos[idx]);
+            savedCount++;
+          } else if (action === 'note' && onSaveAsNote) {
+            onSaveAsNote(content, videos[idx]);
+            savedCount++;
+          } else if (action === 'scratch' && onSaveToScratchpad) {
+            onSaveToScratchpad(content);
+            savedCount++;
+          }
+        }
+      } else if (type === 'citation') {
+        const citations = webResults?.citations || [];
+        if (citations[idx]) {
+          const content = `Web Result: ${citations[idx]}`;
+          if (action === 'card' && onSaveAsCard) {
+            onSaveAsCard(content, citations[idx]);
+            savedCount++;
+          } else if (action === 'note' && onSaveAsNote) {
+            onSaveAsNote(content, citations[idx]);
+            savedCount++;
+          } else if (action === 'scratch' && onSaveToScratchpad) {
+            onSaveToScratchpad(content);
+            savedCount++;
+          }
+        }
+      }
+    }
+    
+    toast.success(`Saved ${savedCount} item${savedCount !== 1 ? 's' : ''} to ${action === 'card' ? 'cards' : action === 'note' ? 'notes' : 'scratchpad'}`);
+    clearSelection();
+  };
+  
   if (totalResults === 0 && !webResults && !generatedImage && !multimediaResults) {
     return (
       <Card className="p-6 text-center">
@@ -157,9 +257,24 @@ export function UnifiedSearchResults({
       {/* Search Summary */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {getIntentBadge()}
-            Search Results for "{query}"
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getIntentBadge()}
+              Search Results for "{query}"
+            </div>
+            {(multimediaResults || webResults?.citations) && (
+              <Button
+                variant={isBatchMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsBatchMode(!isBatchMode);
+                  if (isBatchMode) clearSelection();
+                }}
+              >
+                {isBatchMode ? <XSquare className="h-4 w-4 mr-2" /> : <CheckSquare className="h-4 w-4 mr-2" />}
+                {isBatchMode ? 'Exit Batch Mode' : 'Batch Select'}
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -186,6 +301,36 @@ export function UnifiedSearchResults({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Batch Actions Toolbar */}
+      {isBatchMode && selectedItems.size > 0 && (
+        <Card className="glass-card border-primary">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="default">{selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected</Badge>
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  Clear
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleBatchSave('card')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Save as Cards
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleBatchSave('note')}>
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Save as Notes
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleBatchSave('scratch')}>
+                  <FileEdit className="h-4 w-4 mr-2" />
+                  Save to Scratchpad
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Generated Image */}
       {generatedImage && (
@@ -250,40 +395,63 @@ export function UnifiedSearchResults({
 
               <TabsContent value="videos" className="space-y-4 mt-4">
                 {multimediaResults.videos && multimediaResults.videos.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {multimediaResults.videos.map((video: string, index: number) => (
-                      <Card key={index} className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <a 
-                            href={video}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline flex-1 truncate"
-                          >
-                            {new URL(video).hostname}
-                          </a>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'card')}>
-                                Save as Card
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'note')}>
-                                Save as Note
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'scratch')}>
-                                Save to Scratchpad
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+                  <>
+                    {isBatchMode && (
+                      <div className="flex justify-end mb-2">
+                        <Button variant="ghost" size="sm" onClick={() => selectAllOfType('videos')}>
+                          Select All Videos
+                        </Button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {multimediaResults.videos.map((video: string, index: number) => {
+                        const itemKey = `video:${index}`;
+                        const isSelected = selectedItems.has(itemKey);
+                        
+                        return (
+                          <Card key={index} className={`p-4 ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              {isBatchMode && (
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleItemSelection(String(index), 'video')}
+                                  className="mt-1"
+                                />
+                              )}
+                              <a 
+                                href={video}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline flex-1 truncate"
+                              >
+                                {new URL(video).hostname}
+                              </a>
+                              {!isBatchMode && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'card')}>
+                                      Save as Card
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'note')}>
+                                      Save as Note
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'scratch')}>
+                                      Save to Scratchpad
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No videos found</p>
                 )}
@@ -291,39 +459,64 @@ export function UnifiedSearchResults({
 
               <TabsContent value="images" className="space-y-4 mt-4">
                 {multimediaResults.images && multimediaResults.images.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {multimediaResults.images.map((image: string, index: number) => (
-                      <Card key={index} className="p-2">
-                        <div className="relative group">
-                          <img 
-                            src={image} 
-                            alt={`Result ${index + 1}`}
-                            className="w-full h-32 object-cover rounded"
-                          />
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" size="sm">
-                                  <Save className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => handleSaveImage(image, 'card')}>
-                                  Save as Card
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleSaveImage(image, 'note')}>
-                                  Save as Note
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleSaveImage(image, 'scratch')}>
-                                  Save to Scratchpad
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+                  <>
+                    {isBatchMode && (
+                      <div className="flex justify-end mb-2">
+                        <Button variant="ghost" size="sm" onClick={() => selectAllOfType('images')}>
+                          Select All Images
+                        </Button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {multimediaResults.images.map((image: string, index: number) => {
+                        const itemKey = `image:${index}`;
+                        const isSelected = selectedItems.has(itemKey);
+                        
+                        return (
+                          <Card key={index} className={`p-2 ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                            <div className="relative group">
+                              {isBatchMode && (
+                                <div className="absolute top-2 left-2 z-10">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleItemSelection(String(index), 'image')}
+                                    className="bg-background"
+                                  />
+                                </div>
+                              )}
+                              <img 
+                                src={image} 
+                                alt={`Result ${index + 1}`}
+                                className="w-full h-32 object-cover rounded"
+                              />
+                              {!isBatchMode && (
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="secondary" size="sm">
+                                        <Save className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                      <DropdownMenuItem onClick={() => handleSaveImage(image, 'card')}>
+                                        Save as Card
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleSaveImage(image, 'note')}>
+                                        Save as Note
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleSaveImage(image, 'scratch')}>
+                                        Save to Scratchpad
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No images found</p>
                 )}
@@ -684,52 +877,71 @@ export function UnifiedSearchResults({
               {webResults.citations && webResults.citations.length > 0 && (
                 <Card className="glass-card">
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      Sources ({webResults.citations.length})
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <LinkIcon className="h-4 w-4" />
+                        Sources ({webResults.citations.length})
+                      </div>
+                      {isBatchMode && (
+                        <Button variant="ghost" size="sm" onClick={() => selectAllOfType('citations')}>
+                          Select All
+                        </Button>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3 md:grid-cols-2">
-                      {webResults.citations.map((citation, idx) => (
-                        <Card key={idx} className="p-3 hover:shadow-hover transition-all group">
-                          <div className="flex items-start justify-between gap-2">
-                            <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline flex-1 min-w-0">
-                              <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span className="break-all">{citation}</span>
-                            </a>
-                            {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <MoreVertical className="h-3.5 w-3.5" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {onSaveAsCard && (
-                                    <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'card')}>
-                                      <FileText className="h-4 w-4 mr-2" />
-                                      Save as Card
-                                    </DropdownMenuItem>
-                                  )}
-                                  {onSaveAsNote && (
-                                    <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'note')}>
-                                      <BookOpen className="h-4 w-4 mr-2" />
-                                      Save as Note
-                                    </DropdownMenuItem>
-                                  )}
-                                  {onSaveToScratchpad && (
-                                    <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'scratch')}>
-                                      <FileEdit className="h-4 w-4 mr-2" />
-                                      Save to Scratchpad
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
+                      {webResults.citations.map((citation, idx) => {
+                        const itemKey = `citation:${idx}`;
+                        const isSelected = selectedItems.has(itemKey);
+                        
+                        return (
+                          <Card key={idx} className={`p-3 hover:shadow-hover transition-all group ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              {isBatchMode && (
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleItemSelection(String(idx), 'citation')}
+                                  className="mt-1"
+                                />
+                              )}
+                              <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline flex-1 min-w-0">
+                                <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                <span className="break-all">{citation}</span>
+                              </a>
+                              {!isBatchMode && (onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {onSaveAsCard && (
+                                      <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'card')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Save as Card
+                                      </DropdownMenuItem>
+                                    )}
+                                    {onSaveAsNote && (
+                                      <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'note')}>
+                                        <BookOpen className="h-4 w-4 mr-2" />
+                                        Save as Note
+                                      </DropdownMenuItem>
+                                    )}
+                                    {onSaveToScratchpad && (
+                                      <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'scratch')}>
+                                        <FileEdit className="h-4 w-4 mr-2" />
+                                        Save to Scratchpad
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          </Card>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
