@@ -90,41 +90,58 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            // Core React libraries
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
+            // React core - highest priority, smallest bundle
+            if (id.includes('react/') || id.includes('react-dom/')) {
+              return 'react-core';
+            }
+            // Router - needed early
+            if (id.includes('react-router')) {
+              return 'react-router';
+            }
+            // Supabase - needed for auth
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            // Query - data fetching
+            if (id.includes('@tanstack/react-query')) {
+              return 'react-query';
             }
             // Radix UI components
             if (id.includes('@radix-ui')) {
               return 'ui-vendor';
             }
-            // Chart libraries
+            // Heavy visualization libs - lazy load
             if (id.includes('recharts') || id.includes('d3')) {
               return 'chart-vendor';
             }
-            // Tiptap editor
-            if (id.includes('@tiptap') || id.includes('prosemirror')) {
-              return 'editor-vendor';
-            }
-            // Three.js and related
             if (id.includes('three') || id.includes('@react-three')) {
               return 'three-vendor';
             }
-            // Fabric.js for whiteboard
             if (id.includes('fabric')) {
               return 'fabric-vendor';
             }
-            // Other large libraries
-            if (id.includes('mammoth') || id.includes('docx') || id.includes('jspdf')) {
+            // Editor - lazy load
+            if (id.includes('@tiptap') || id.includes('prosemirror')) {
+              return 'editor-vendor';
+            }
+            // Document processing - lazy load
+            if (id.includes('mammoth') || id.includes('docx') || id.includes('jspdf') || id.includes('html2canvas')) {
               return 'document-vendor';
             }
-            // Split remaining node_modules
+            // Other vendors
             return 'vendor';
           }
         },
       },
     },
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 600,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],

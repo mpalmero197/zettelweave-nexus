@@ -6,11 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
-import Auth from "./pages/Auth";
+import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { MobileDetector } from "@/components/MobileDetector";
 import { MobileTouchHandler } from "@/components/MobileTouchHandler";
 
-// Lazy load heavy pages to reduce initial bundle size
+// Lazy load ALL pages including Auth to reduce initial bundle size dramatically
+const Auth = lazy(() => import("./pages/Auth"));
 const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Install = lazy(() => import("./pages/Install"));
@@ -22,7 +23,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <FastLoadingFallback message="Authenticating..." />;
   }
   
   if (!user) {
@@ -42,29 +43,33 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth" element={
+                  <Suspense fallback={<FastLoadingFallback message="Loading sign in..." />}>
+                    <Auth />
+                  </Suspense>
+                } />
                 <Route path="/install" element={
-                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                  <Suspense fallback={<FastLoadingFallback message="Loading installation..." />}>
                     <Install />
                   </Suspense>
                 } />
                 <Route path="/" element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                    <Suspense fallback={<FastLoadingFallback message="Loading workspace..." />}>
                       <Index />
                     </Suspense>
                   </ProtectedRoute>
                 } />
                 <Route path="/admin" element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                    <Suspense fallback={<FastLoadingFallback message="Loading admin panel..." />}>
                       <Admin />
                     </Suspense>
                   </ProtectedRoute>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={
-                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                  <Suspense fallback={<FastLoadingFallback message="Loading page..." />}>
                     <NotFound />
                   </Suspense>
                 } />
