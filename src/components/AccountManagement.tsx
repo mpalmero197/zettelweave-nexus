@@ -16,6 +16,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
 import { DebugLogger } from '@/components/DebugLogger';
 import { Switch } from '@/components/ui/switch';
+import { AvatarEditor } from '@/components/AvatarEditor';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -41,6 +42,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   
   // Profile states
   const [displayName, setDisplayName] = useState('');
@@ -271,7 +274,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     });
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
@@ -295,15 +298,23 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       return;
     }
 
+    // Open editor
+    setSelectedImageFile(file);
+    setShowAvatarEditor(true);
+  };
+
+  const handleAvatarUpload = async (croppedBlob: Blob) => {
+    if (!user) return;
+
     setIsLoading(true);
     setUploadProgress(0);
+    setShowAvatarEditor(false);
     
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}-${Date.now()}.png`;
       const filePath = fileName;
       
-      // Simulate upload progress (Supabase doesn't provide native progress)
+      // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -317,9 +328,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { 
+        .upload(filePath, croppedBlob, { 
           upsert: true,
-          contentType: file.type
+          contentType: 'image/png'
         });
 
       clearInterval(progressInterval);
@@ -343,13 +354,13 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         .from('files')
         .insert({
           user_id: user.id,
-          file_name: file.name,
+          file_name: 'avatar.png',
           file_type: 'image',
-          mime_type: file.type,
-          file_size: file.size,
+          mime_type: 'image/png',
+          file_size: croppedBlob.size,
           storage_path: `avatars/${filePath}`,
           metadata: {
-            original_name: file.name,
+            original_name: selectedImageFile?.name || 'avatar.png',
             usage: 'avatar',
             uploaded_from: 'account_settings'
           }
@@ -559,7 +570,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                         id="avatar-upload"
                         type="file"
                         accept="image/*"
-                        onChange={handleAvatarUpload}
+                        onChange={handleAvatarFileSelect}
                         className="hidden"
                         disabled={isLoading}
                       />
@@ -852,7 +863,17 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
           </div>
         </div>
       </Card>
-      
+
+      <AvatarEditor
+        imageFile={selectedImageFile}
+        isOpen={showAvatarEditor}
+        onClose={() => {
+          setShowAvatarEditor(false);
+          setSelectedImageFile(null);
+        }}
+        onSave={handleAvatarUpload}
+      />
+
       {showDebugLogger && (
         <DebugLogger onClose={() => setShowDebugLogger(false)} />
       )}
