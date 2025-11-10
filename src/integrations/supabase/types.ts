@@ -798,6 +798,182 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          results: Json | null
+          results_count: number | null
+          started_at: string
+          status: Database["public"]["Enums"]["workflow_status"]
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          results?: Json | null
+          results_count?: number | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["workflow_status"]
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          results?: Json | null
+          results_count?: number | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["workflow_status"]
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_results: {
+        Row: {
+          content: string
+          created_at: string
+          execution_id: string
+          id: string
+          metadata: Json | null
+          relevance_score: number | null
+          saved_as_card_id: string | null
+          saved_as_note_id: string | null
+          saved_to_notebook_id: string | null
+          source_url: string | null
+          title: string
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          execution_id: string
+          id?: string
+          metadata?: Json | null
+          relevance_score?: number | null
+          saved_as_card_id?: string | null
+          saved_as_note_id?: string | null
+          saved_to_notebook_id?: string | null
+          source_url?: string | null
+          title: string
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          execution_id?: string
+          id?: string
+          metadata?: Json | null
+          relevance_score?: number | null
+          saved_as_card_id?: string | null
+          saved_as_note_id?: string | null
+          saved_to_notebook_id?: string | null
+          source_url?: string | null
+          title?: string
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_results_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_results_saved_as_card_id_fkey"
+            columns: ["saved_as_card_id"]
+            isOneToOne: false
+            referencedRelation: "zettel_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_results_saved_as_note_id_fkey"
+            columns: ["saved_as_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_results_saved_to_notebook_id_fkey"
+            columns: ["saved_to_notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_results_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string | null
+          execution_count: number
+          id: string
+          last_executed_at: string | null
+          name: string
+          next_execution_at: string | null
+          status: Database["public"]["Enums"]["workflow_status"]
+          updated_at: string
+          user_id: string
+          workflow_type: Database["public"]["Enums"]["workflow_type"]
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          execution_count?: number
+          id?: string
+          last_executed_at?: string | null
+          name: string
+          next_execution_at?: string | null
+          status?: Database["public"]["Enums"]["workflow_status"]
+          updated_at?: string
+          user_id: string
+          workflow_type?: Database["public"]["Enums"]["workflow_type"]
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          execution_count?: number
+          id?: string
+          last_executed_at?: string | null
+          name?: string
+          next_execution_at?: string | null
+          status?: Database["public"]["Enums"]["workflow_status"]
+          updated_at?: string
+          user_id?: string
+          workflow_type?: Database["public"]["Enums"]["workflow_type"]
+        }
+        Relationships: []
+      }
       zettel_cards: {
         Row: {
           attachments: string[] | null
@@ -882,6 +1058,10 @@ export type Database = {
         Returns: boolean
       }
       auto_delete_expired_items: { Args: never; Returns: undefined }
+      calculate_next_execution: {
+        Args: { base_time: string; workflow_config: Json }
+        Returns: string
+      }
       cleanup_old_audit_logs: { Args: never; Returns: undefined }
       clear_all_card_links: { Args: never; Returns: number }
       find_similar_notes: {
@@ -1004,6 +1184,8 @@ export type Database = {
         | "notebook"
       sharing_permission: "view" | "edit"
       user_status: "online" | "busy" | "away" | "dnd" | "offline"
+      workflow_status: "active" | "paused" | "completed" | "failed"
+      workflow_type: "monitor_topic" | "periodic_search" | "keyword_alert"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1142,6 +1324,8 @@ export const Constants = {
       ],
       sharing_permission: ["view", "edit"],
       user_status: ["online", "busy", "away", "dnd", "offline"],
+      workflow_status: ["active", "paused", "completed", "failed"],
+      workflow_type: ["monitor_topic", "periodic_search", "keyword_alert"],
     },
   },
 } as const
