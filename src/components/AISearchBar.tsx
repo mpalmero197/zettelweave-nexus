@@ -32,15 +32,22 @@ interface AISearchBarProps {
     multimediaResults?: { videos: any[]; images: any[] } | null,
     reasoning: string, 
     query: string,
-    intent?: string
+    intent?: string;
+    resultCount?: number;
   }) => void;
   className?: string;
+  onQueryChange?: (query: string) => void;
 }
 
-export function AISearchBar({ cards, onSearchResults, className }: AISearchBarProps) {
+export function AISearchBar({ cards, onSearchResults, className, onQueryChange }: AISearchBarProps) {
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [reasoning, setReasoning] = useState("");
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    onQueryChange?.(value);
+  };
 
   const handleAISearch = async () => {
     if (!query.trim()) {
@@ -164,7 +171,10 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
         }
       }
 
-      const totalResults = finalCards.length + finalNotes.length + finalStickyNotes.length + finalScratchNotes.length;
+      const totalResults = finalCards.length + finalNotes.length + finalStickyNotes.length + finalScratchNotes.length +
+        (webResults?.citations?.length || 0) + (webResults?.images?.length || 0) +
+        (multimediaResults?.videos?.length || 0) + (multimediaResults?.images?.length || 0) +
+        (generatedImage ? 1 : 0);
       
       onSearchResults({ 
         cards: finalCards, 
@@ -176,7 +186,8 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
         multimediaResults,
         reasoning,
         query,
-        intent
+        intent,
+        resultCount: totalResults
       });
       
       setReasoning(reasoning);
@@ -265,7 +276,7 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => handleQueryChange(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Search"
               className="pl-10 pr-24 bg-card shadow-sm"

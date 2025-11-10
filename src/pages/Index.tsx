@@ -28,7 +28,10 @@ import { Notebooks } from "@/components/Notebooks";
 import { Calendar } from "@/components/Calendar";
 import { FileManager } from "@/components/FileManager";
 import { RecycleBin } from "@/components/RecycleBin";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { SearchHistorySidebar } from "@/components/SearchHistorySidebar";
 import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
@@ -61,10 +64,11 @@ const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const { history, addToHistory, clearHistory, removeItem } = useSearchHistory();
+  const [currentQuery, setCurrentQuery] = useState("");
   const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
   
   const [filteredCards, setFilteredCards] = useState<ZettelCardType[]>([]);
@@ -79,6 +83,7 @@ const Index = () => {
     reasoning: string;
     query: string;
     intent?: string;
+    resultCount?: number;
   } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -107,12 +112,36 @@ const Index = () => {
     reasoning: string;
     query: string;
     intent?: string;
+    resultCount?: number;
   }) => {
     setSearchResults(results);
     // Auto-switch to search tab when there are results
     if (results.query && activeTab !== "search") {
       setActiveTab("search");
     }
+
+    // Add to search history
+    if (currentQuery && results.intent) {
+      addToHistory({
+        query: currentQuery,
+        intent: results.intent,
+        resultCount: results.resultCount || 0,
+        hasImages: (results.webResults?.images && results.webResults.images.length > 0) || !!results.generatedImage || (results.multimediaResults?.images && results.multimediaResults.images.length > 0),
+        hasVideos: results.multimediaResults?.videos && results.multimediaResults.videos.length > 0,
+        hasCitations: results.webResults?.citations && results.webResults.citations.length > 0,
+      });
+    }
+  };
+
+  const handleRerunSearch = (query: string) => {
+    setCurrentQuery(query);
+    toast.success(`Re-running search: "${query}"`);
+  };
+
+  const handleCombineSearches = (queries: string[]) => {
+    const combinedQuery = queries.join(' AND ');
+    setCurrentQuery(combinedQuery);
+    toast.success('Combined searches - ready to execute');
   };
 
   // Check if user is admin
@@ -289,18 +318,26 @@ const Index = () => {
 
       {/* Global AI Search Bar - Below Nav with proper z-index */}
       <div className="sticky top-16 z-[35] glass-card px-4 py-3 mb-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto flex items-center gap-2">
           <AISearchBar 
             cards={cards} 
             onSearchResults={(results) => {
               if (results.query) {
-                setSearchResults(results);
-                setActiveTab('search');
+                handleSearchResults(results);
               } else {
                 setSearchResults(null);
                 setFilteredCards(results.cards);
               }
             }}
+            onQueryChange={setCurrentQuery}
+            className="flex-1"
+          />
+          <SearchHistorySidebar
+            history={history}
+            onRerun={handleRerunSearch}
+            onCombine={handleCombineSearches}
+            onClear={clearHistory}
+            onRemove={removeItem}
           />
         </div>
       </div>
