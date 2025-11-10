@@ -29,6 +29,7 @@ import { Notebooks } from "@/components/Notebooks";
 import { Calendar } from "@/components/Calendar";
 import { FileManager } from "@/components/FileManager";
 import { RecycleBin } from "@/components/RecycleBin";
+import { WorkflowManager } from "@/components/WorkflowManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
@@ -519,6 +520,12 @@ const Index = () => {
 
                 <TabsContent value="recycle" className="mt-0">
                   <RecycleBin />
+                </TabsContent>
+
+                <TabsContent value="workflows" className="mt-0">
+                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <WorkflowManager />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
