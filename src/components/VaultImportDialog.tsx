@@ -218,7 +218,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     toast(`Parsed ${parsed.length} files from Notion export (${errorCount} errors)`);
   };
 
-  const convertToZettelCards = () => {
+  const convertToZettelCards = async () => {
     const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
     const cardsByNumber = new Map<string, number>();
     let convertedCount = 0;
@@ -229,7 +229,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     
     console.log(`Converting ${parsedFiles.length} parsed files to cards...`);
     
-    parsedFiles.forEach((file, index) => {
+    for (const file of parsedFiles) {
       if (file.type === 'markdown') {
         // Extract title from filename or first heading
         let title = file.name.replace(/\.md$/, '');
@@ -340,12 +340,13 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         if (!validation.valid) {
           console.error(`Skipping invalid image card ${sanitizedName}: ${validation.errors.join(', ')}`);
           validationErrors++;
-          return;
+          continue;
         }
         
         cards.push(imageCard);
       }
-    });
+    }
+    
     
     // Second pass: resolve links by card number
     const finalCards = cards.map(card => {
@@ -381,10 +382,38 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
       setMergeDialogOpen(true);
       setIsProcessing(false);
     } else {
+      // Import cards and track in import history
+      await importCardsWithTracking(finalCards);
+    }
+  };
+
+  const importCardsWithTracking = async (finalCards: any[]) => {
+    try {
+      // Call the original import function
       onImportCards(finalCards);
+      
+      // Track each imported file
+      for (const card of finalCards) {
+        if (card._filePath && card._fileName) {
+          await trackImport(
+            card._filePath,
+            card._fileName,
+            activeTab as 'obsidian' | 'notion',
+            { 
+              cardNumber: card.number, 
+              title: card.title,
+              tags: card.tags 
+            }
+          );
+        }
+      }
+      
       setIsOpen(false);
       setParsedFiles([]);
-      toast(`Successfully imported ${cards.length} cards with auto-linking!`);
+      toast(`Successfully imported ${finalCards.length} cards with auto-linking!`);
+    } catch (error) {
+      console.error('Error tracking imports:', error);
+      toast.error('Import completed but tracking failed');
     }
   };
 

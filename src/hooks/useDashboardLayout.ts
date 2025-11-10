@@ -113,7 +113,7 @@ export function useDashboardLayout() {
       }
 
       console.log('Dashboard layout saved successfully');
-      toast.success('Dashboard layout saved');
+      // Silent auto-save - no toast notification
       
       // Verify the save by reloading
       setTimeout(() => {

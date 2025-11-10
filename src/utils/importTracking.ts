@@ -38,10 +38,9 @@ export async function getImportHistory(sourceType: 'obsidian' | 'notion'): Promi
 }
 
 export async function isFileImported(
-  sourceType: 'obsidian' | 'notion',
   filePath: string,
-  fileHash: string
-): Promise<{ imported: boolean; changed: boolean; record?: ImportHistoryRecord }> {
+  sourceType: 'obsidian' | 'notion'
+): Promise<boolean> {
   const { data, error } = await supabase
     .from('import_history')
     .select('*')
@@ -51,24 +50,16 @@ export async function isFileImported(
 
   if (error) {
     console.error('Error checking import status:', error);
-    return { imported: false, changed: false };
+    return false;
   }
 
-  if (!data) {
-    return { imported: false, changed: false };
-  }
-
-  const record = data as ImportHistoryRecord;
-  const changed = record.file_hash !== fileHash;
-  return { imported: true, changed, record };
+  return !!data;
 }
 
 export async function trackImport(
-  sourceType: 'obsidian' | 'notion',
   filePath: string,
   fileName: string,
-  fileHash: string,
-  cardId?: string,
+  sourceType: 'obsidian' | 'notion',
   metadata?: Record<string, any>
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -76,6 +67,9 @@ export async function trackImport(
   if (!user) {
     throw new Error('User not authenticated');
   }
+
+  // Generate file hash from path (simple approach)
+  const fileHash = await generateFileHash(filePath + fileName);
 
   const { error } = await supabase
     .from('import_history')
@@ -85,7 +79,6 @@ export async function trackImport(
       file_path: filePath,
       file_name: fileName,
       file_hash: fileHash,
-      card_id: cardId,
       metadata: metadata || {},
       imported_at: new Date().toISOString()
     }, {
