@@ -1,11 +1,14 @@
 import { Menu, Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useOfflineMode } from '@/hooks/useOfflineMode';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import pendragonLogo from '@/assets/pendragon-logo.png';
 
 export function MobileHeader() {
   const isMobile = useIsMobile();
+  const { isOnline } = useOfflineMode();
   
   // Only render on mobile
   if (!isMobile) return null;
@@ -32,12 +35,27 @@ export function MobileHeader() {
           </SheetContent>
         </Sheet>
         
-        <div className="flex items-center gap-2">
-          <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            PendragonX
-          </h1>
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2">
+                <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  PendragonX
+                </h1>
+                <div 
+                  className={`h-2 w-2 rounded-full ${
+                    isOnline ? 'bg-green-500' : 'bg-gray-400'
+                  }`}
+                  aria-label={isOnline ? 'Online' : 'Offline'}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isOnline ? 'Online' : 'Offline'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         
         <div className="flex items-center gap-2">
           <Button 
