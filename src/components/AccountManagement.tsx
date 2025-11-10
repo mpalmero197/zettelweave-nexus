@@ -85,23 +85,46 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // First check if profile exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: displayName,
-          about_me: aboutMe,
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString()
-        });
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingProfile) {
+        // Update existing profile
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            display_name: displayName,
+            about_me: aboutMe,
+            avatar_url: avatarUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new profile
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            display_name: displayName,
+            about_me: aboutMe,
+            avatar_url: avatarUrl
+          });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
       });
     } catch (error: any) {
+      console.error('Profile update error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
@@ -251,28 +274,83 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "File must be an image",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}.${fileExt}`;
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       
+      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { 
+          upsert: true,
+          contentType: file.type
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
+      // Update local state
       setAvatarUrl(publicUrl);
+
+      // Auto-save to profile
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
+          .eq('user_id', user.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            avatar_url: publicUrl
+          });
+
+        if (insertError) throw insertError;
+      }
       
       toast({
         title: "Avatar uploaded",
-        description: "Don't forget to save your profile changes.",
+        description: "Your profile picture has been updated.",
       });
     } catch (error: any) {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to upload avatar",
