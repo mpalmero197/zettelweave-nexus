@@ -32,7 +32,11 @@ export const useIntelligentCache = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-cache-patterns');
+      const { data, error } = await supabase.functions.invoke('analyze-cache-patterns', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
       
       if (error) {
         console.error('Error analyzing patterns:', error);
