@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -87,16 +88,43 @@ export default defineConfig(({ mode }) => ({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover'],
-          'chart-vendor': ['recharts', 'd3', 'd3-force'],
-          'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit'],
-          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            // Core React libraries
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            // Radix UI components
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            // Chart libraries
+            if (id.includes('recharts') || id.includes('d3')) {
+              return 'chart-vendor';
+            }
+            // Tiptap editor
+            if (id.includes('@tiptap') || id.includes('prosemirror')) {
+              return 'editor-vendor';
+            }
+            // Three.js and related
+            if (id.includes('three') || id.includes('@react-three')) {
+              return 'three-vendor';
+            }
+            // Fabric.js for whiteboard
+            if (id.includes('fabric')) {
+              return 'fabric-vendor';
+            }
+            // Other large libraries
+            if (id.includes('mammoth') || id.includes('docx') || id.includes('jspdf')) {
+              return 'document-vendor';
+            }
+            // Split remaining node_modules
+            return 'vendor';
+          }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
