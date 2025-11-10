@@ -73,9 +73,12 @@ const Index = () => {
     notes: any[];
     stickyNotes: any[];
     scratchNotes?: any[];
-    webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null;
+    webResults?: { query: string; result: string; images?: string[]; videos?: string[]; shopping?: string[]; news?: string[]; citations?: string[]; relatedQuestions?: string[] } | null;
+    generatedImage?: { imageUrl: string; prompt: string } | null;
+    multimediaResults?: { videos: any[]; images: any[] } | null;
     reasoning: string;
     query: string;
+    intent?: string;
   } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -98,9 +101,12 @@ const Index = () => {
     notes: any[];
     stickyNotes: any[];
     scratchNotes?: any[];
-    webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null;
+    webResults?: any;
+    generatedImage?: any;
+    multimediaResults?: any;
     reasoning: string;
     query: string;
+    intent?: string;
   }) => {
     setSearchResults(results);
     // Auto-switch to search tab when there are results
@@ -402,7 +408,10 @@ const Index = () => {
                         stickyNotes={searchResults.stickyNotes}
                         scratchNotes={searchResults.scratchNotes}
                         webResults={searchResults.webResults}
+                        generatedImage={searchResults.generatedImage}
+                        multimediaResults={searchResults.multimediaResults}
                         reasoning={searchResults.reasoning}
+                        intent={searchResults.intent}
                         onNavigateToCard={(cardId) => {
                           const card = cards.find(c => c.id === cardId);
                           if (card) {

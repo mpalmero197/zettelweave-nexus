@@ -47,7 +47,16 @@ interface SearchResultsProps {
     citations?: string[]; 
     relatedQuestions?: string[] 
   } | null;
+  generatedImage?: {
+    imageUrl: string;
+    prompt: string;
+  } | null;
+  multimediaResults?: {
+    videos: any[];
+    images: any[];
+  } | null;
   reasoning?: string;
+  intent?: string;
   onNavigateToCard?: (cardId: string) => void;
   onNavigateToNote?: (noteId: string) => void;
   onNavigateToStickyNote?: (noteId: string) => void;
@@ -63,7 +72,10 @@ export function UnifiedSearchResults({
   stickyNotes,
   scratchNotes = [],
   webResults,
+  generatedImage,
+  multimediaResults,
   reasoning,
+  intent,
   onNavigateToCard,
   onNavigateToNote,
   onNavigateToStickyNote,
@@ -72,6 +84,35 @@ export function UnifiedSearchResults({
   onSaveToScratchpad
 }: SearchResultsProps) {
   const totalResults = cards.length + notes.length + stickyNotes.length + scratchNotes.length;
+  
+  if (totalResults === 0 && !webResults && !generatedImage && !multimediaResults) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="text-muted-foreground">No results found for "{query}"</p>
+      </Card>
+    );
+  }
+
+  const getIntentBadge = () => {
+    if (!intent) return null;
+    
+    const badges = {
+      internal_search: { label: "In Your Notes", variant: "default" as const },
+      web_search: { label: "Live Web Search", variant: "secondary" as const },
+      image_generation: { label: "AI Generated", variant: "outline" as const },
+      multimedia_search: { label: "Multimedia Search", variant: "secondary" as const }
+    };
+    
+    const badge = badges[intent as keyof typeof badges];
+    if (!badge) return null;
+    
+    return (
+      <Badge variant={badge.variant} className="mb-2">
+        <Sparkles className="h-3 w-3 mr-1" />
+        {badge.label}
+      </Badge>
+    );
+  };
 
   const handleSaveImage = (imageUrl: string, action: 'card' | 'note' | 'scratch') => {
     const content = `![${query}](${imageUrl})\n\nImage source: ${imageUrl}`;
@@ -117,14 +158,26 @@ export function UnifiedSearchResults({
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
+            {getIntentBadge()}
             Search Results for "{query}"
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <p className="text-muted-foreground">
-              Found {totalResults} result{totalResults !== 1 ? 's' : ''} across your content
-            </p>
+            {intent === 'internal_search' && (
+              <p className="text-muted-foreground">
+                Found {totalResults} result{totalResults !== 1 ? 's' : ''} in your notes
+              </p>
+            )}
+            {intent === 'web_search' && (
+              <p className="text-muted-foreground">Live web search results</p>
+            )}
+            {intent === 'image_generation' && (
+              <p className="text-muted-foreground">AI-generated image</p>
+            )}
+            {intent === 'multimedia_search' && (
+              <p className="text-muted-foreground">Multimedia search results</p>
+            )}
             {reasoning && (
               <Badge variant="secondary" className="text-xs">
                 {reasoning}
@@ -133,6 +186,152 @@ export function UnifiedSearchResults({
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Generated Image */}
+      {generatedImage && (
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Generated Image
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <img 
+              src={generatedImage.imageUrl} 
+              alt={generatedImage.prompt}
+              className="w-full rounded-lg border"
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Prompt: {generatedImage.prompt}</p>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleSaveImage(generatedImage.imageUrl, 'card')}>
+                    Save as Card
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSaveImage(generatedImage.imageUrl, 'note')}>
+                    Save as Note
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSaveImage(generatedImage.imageUrl, 'scratch')}>
+                    Save to Scratchpad
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Multimedia Results */}
+      {multimediaResults && (multimediaResults.videos.length > 0 || multimediaResults.images.length > 0) && (
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" />
+              Multimedia Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="videos">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="videos">
+                  Videos ({multimediaResults.videos?.length || 0})
+                </TabsTrigger>
+                <TabsTrigger value="images">
+                  Images ({multimediaResults.images?.length || 0})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="videos" className="space-y-4 mt-4">
+                {multimediaResults.videos && multimediaResults.videos.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {multimediaResults.videos.map((video: string, index: number) => (
+                      <Card key={index} className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <a 
+                            href={video}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline flex-1 truncate"
+                          >
+                            {new URL(video).hostname}
+                          </a>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'card')}>
+                                Save as Card
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'note')}>
+                                Save as Note
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'scratch')}>
+                                Save to Scratchpad
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No videos found</p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="images" className="space-y-4 mt-4">
+                {multimediaResults.images && multimediaResults.images.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {multimediaResults.images.map((image: string, index: number) => (
+                      <Card key={index} className="p-2">
+                        <div className="relative group">
+                          <img 
+                            src={image} 
+                            alt={`Result ${index + 1}`}
+                            className="w-full h-32 object-cover rounded"
+                          />
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="secondary" size="sm">
+                                  <Save className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => handleSaveImage(image, 'card')}>
+                                  Save as Card
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSaveImage(image, 'note')}>
+                                  Save as Note
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSaveImage(image, 'scratch')}>
+                                  Save to Scratchpad
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No images found</p>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Cards Results */}
       {cards.length > 0 && (

@@ -41,3 +41,9 @@ verify_jwt = true
 
 [functions.web-search]
 verify_jwt = false
+
+[functions.classify-intent]
+verify_jwt = true
+
+[functions.generate-image]
+verify_jwt = true

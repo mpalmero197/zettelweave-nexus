@@ -27,9 +27,12 @@ interface AISearchBarProps {
     notes: any[], 
     stickyNotes: any[], 
     scratchNotes: ScratchNote[],
-    webResults?: { query: string; result: string; images?: string[]; citations?: string[]; relatedQuestions?: string[] } | null,
+    webResults?: { query: string; result: string; images?: string[]; videos?: string[]; shopping?: string[]; news?: string[]; citations?: string[]; relatedQuestions?: string[] } | null,
+    generatedImage?: { imageUrl: string; prompt: string } | null,
+    multimediaResults?: { videos: any[]; images: any[] } | null,
     reasoning: string, 
-    query: string 
+    query: string,
+    intent?: string
   }) => void;
   className?: string;
 }
@@ -48,15 +51,31 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
     setIsSearching(true);
     
-    // First search locally for instant feedback
-    const localResults = handleRegularSearch(query);
-    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Please sign in to search');
         throw new Error('Not authenticated');
       }
+
+      // STEP 1: Classify intent first (CRITICAL to prevent hallucination)
+      console.log('Step 1: Classifying intent for:', query);
+      const { data: intentData } = await supabase.functions.invoke('classify-intent', {
+        body: { query }
+      });
+
+      const intent = intentData?.intent || 'internal_search';
+      const confidence = intentData?.confidence || 0.5;
+      console.log('Intent classified:', intent, 'confidence:', confidence);
+
+      let finalCards: ZettelCard[] = [];
+      let finalNotes: any[] = [];
+      let finalStickyNotes: any[] = [];
+      let finalScratchNotes: ScratchNote[] = [];
+      let webResults = null;
+      let generatedImage = null;
+      let multimediaResults = null;
+      let reasoning = intentData?.reason || '';
 
       // Get sticky notes and scratch notes from localStorage
       const stickyNotesRaw = localStorage.getItem('stickyNotes');
@@ -65,11 +84,10 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
       const scratchNotesRaw = localStorage.getItem('scratchpad:notes:v1');
       const allScratchNotes = scratchNotesRaw ? JSON.parse(scratchNotesRaw) : [];
 
-      console.log('Starting comprehensive search:', query);
-
-      // Always run AI search and web search in parallel
-      const [aiSearchResult, webSearchResult] = await Promise.allSettled([
-        supabase.functions.invoke('ai-search', {
+      // STEP 2: Route to correct service based on intent
+      if (intent === 'internal_search') {
+        console.log('Step 2: Executing internal search');
+        const { data: aiSearchResult } = await supabase.functions.invoke('ai-search', {
           body: { 
             query,
             stickyNotes: allStickyNotes.map((n: any) => ({
@@ -78,55 +96,72 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
               timestamp: n.timestamp
             }))
           }
-        }),
-        // Use dedicated web search function
-        supabase.functions.invoke('web-search', {
+        });
+
+        if (aiSearchResult) {
+          finalCards = (aiSearchResult.cards || []).map((card: any) => ({
+            ...card,
+            tags: card.tags || [],
+            linkedCards: card.linkedCards || card.linked_cards || [],
+          }));
+          finalNotes = aiSearchResult.notes || [];
+          finalStickyNotes = (aiSearchResult.stickyNotes || []).map((sn: any) => 
+            allStickyNotes.find((n: any) => n.id === sn.id) || sn
+          );
+          finalScratchNotes = allScratchNotes.filter((note: any) =>
+            note.content?.toLowerCase().includes(query.toLowerCase())
+          );
+          reasoning = aiSearchResult.reasoning || `Found ${finalCards.length + finalNotes.length + finalStickyNotes.length} results in your notes`;
+        }
+      } 
+      else if (intent === 'web_search') {
+        console.log('Step 2: Executing live web search');
+        const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
           body: { query }
-        })
-      ]);
+        });
 
-      let finalCards = localResults.cards;
-      let finalNotes = localResults.notes;
-      let finalStickyNotes = localResults.stickyNotes;
-      let finalScratchNotes = localResults.scratchNotes;
-      let webResults = null;
-      let reasoning = `Found ${localResults.total} local matches`;
-
-      // Process AI search results
-      if (aiSearchResult.status === 'fulfilled' && aiSearchResult.value.data) {
-        const data = aiSearchResult.value.data;
-        const safeCards = (data.cards || []).map((card: any) => ({
-          ...card,
-          tags: card.tags || [],
-          linkedCards: card.linkedCards || card.linked_cards || [],
-        }));
-        
-        const safeNotes = data.notes || [];
-        const safeStickyNotes = (data.stickyNotes || []).map((sn: any) => 
-          allStickyNotes.find((n: any) => n.id === sn.id) || sn
-        );
-
-        if (safeCards.length > 0 || safeNotes.length > 0 || safeStickyNotes.length > 0) {
-          finalCards = safeCards;
-          finalNotes = safeNotes;
-          finalStickyNotes = safeStickyNotes;
-          reasoning = data.reasoning || `AI found ${safeCards.length + safeNotes.length + safeStickyNotes.length} relevant results`;
+        if (webSearchResult) {
+          webResults = {
+            query,
+            result: webSearchResult.result || '',
+            images: webSearchResult.images || [],
+            videos: webSearchResult.videos || [],
+            shopping: webSearchResult.shopping || [],
+            news: webSearchResult.news || [],
+            citations: webSearchResult.citations || [],
+            relatedQuestions: webSearchResult.relatedQuestions || []
+          };
+          reasoning = `Live web search results for: "${query}"`;
         }
       }
+      else if (intent === 'image_generation') {
+        console.log('Step 2: Generating image');
+        const { data: imageResult } = await supabase.functions.invoke('generate-image', {
+          body: { prompt: query }
+        });
 
-      // Process web search results
-      if (webSearchResult.status === 'fulfilled' && webSearchResult.value.data) {
-        const data = webSearchResult.value.data;
-        webResults = {
-          query,
-          result: data.result || '',
-          images: data.images || [],
-          videos: data.videos || [],
-          shopping: data.shopping || [],
-          news: data.news || [],
-          citations: data.citations || [],
-          relatedQuestions: data.relatedQuestions || []
-        };
+        if (imageResult?.imageUrl) {
+          generatedImage = {
+            imageUrl: imageResult.imageUrl,
+            prompt: query
+          };
+          reasoning = `AI generated image for: "${query}"`;
+        }
+      }
+      else if (intent === 'multimedia_search') {
+        console.log('Step 2: Searching for multimedia');
+        // Use web-search but filter for multimedia content
+        const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
+          body: { query }
+        });
+
+        if (webSearchResult) {
+          multimediaResults = {
+            videos: webSearchResult.videos || [],
+            images: webSearchResult.images || []
+          };
+          reasoning = `Found ${(webSearchResult.videos?.length || 0) + (webSearchResult.images?.length || 0)} multimedia results`;
+        }
       }
 
       const totalResults = finalCards.length + finalNotes.length + finalStickyNotes.length + finalScratchNotes.length;
@@ -137,19 +172,30 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
         stickyNotes: finalStickyNotes,
         scratchNotes: finalScratchNotes,
         webResults,
-        reasoning: webResults ? `${reasoning} + web results` : reasoning,
-        query 
+        generatedImage,
+        multimediaResults,
+        reasoning,
+        query,
+        intent
       });
       
-      setReasoning(webResults ? `${reasoning} + web results` : reasoning);
+      setReasoning(reasoning);
       
-      toast.success(`Search complete: ${totalResults} local results${webResults ? ' + web' : ''}`, {
+      const resultMessage = intent === 'internal_search' 
+        ? `Found ${totalResults} results in your notes`
+        : intent === 'web_search'
+        ? 'Live web results fetched'
+        : intent === 'image_generation'
+        ? 'Image generated'
+        : 'Multimedia results found';
+
+      toast.success(resultMessage, {
         description: reasoning
       });
     } catch (error: any) {
       console.error('Search error:', error);
-      toast.error('Search completed with errors', {
-        description: 'Showing local results'
+      toast.error('Search failed', {
+        description: error.message || 'Please try again'
       });
     } finally {
       setIsSearching(false);
@@ -165,7 +211,6 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
 
     const q = searchQuery.toLowerCase();
     
-    // Search cards
     const matchedCards = cards.filter(card => {
       const titleMatch = card.title?.toLowerCase().includes(q);
       const contentMatch = card.content?.toLowerCase().includes(q);
@@ -177,14 +222,12 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
       return titleMatch || contentMatch || descMatch || tagMatch || numMatch || catMatch;
     });
 
-    // Search sticky notes
     const stickyNotesRaw = localStorage.getItem('stickyNotes');
     const allStickyNotes = stickyNotesRaw ? JSON.parse(stickyNotesRaw) : [];
     const matchedStickyNotes = allStickyNotes.filter((note: any) =>
       note.content?.toLowerCase().includes(q)
     );
 
-    // Search scratch notes
     const scratchNotesRaw = localStorage.getItem('scratchpad:notes:v1');
     const allScratchNotes = scratchNotesRaw ? JSON.parse(scratchNotesRaw) : [];
     const matchedScratchNotes = allScratchNotes.filter((note: any) =>
@@ -192,17 +235,6 @@ export function AISearchBar({ cards, onSearchResults, className }: AISearchBarPr
     );
 
     const total = matchedCards.length + matchedStickyNotes.length + matchedScratchNotes.length;
-    const resultReasoning = `Found ${total} local match${total !== 1 ? 'es' : ''}`;
-    
-    onSearchResults({ 
-      cards: matchedCards, 
-      notes: [], 
-      stickyNotes: matchedStickyNotes,
-      scratchNotes: matchedScratchNotes,
-      reasoning: resultReasoning,
-      query: searchQuery
-    });
-    setReasoning(resultReasoning);
     
     return { 
       cards: matchedCards, 
