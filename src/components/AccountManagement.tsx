@@ -40,6 +40,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   
   // Profile states
   const [displayName, setDisplayName] = useState('');
@@ -295,17 +296,34 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     }
 
     setIsLoading(true);
+    setUploadProgress(0);
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
       
+      // Simulate upload progress (Supabase doesn't provide native progress)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 100);
+
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { 
+        .upload(filePath, file, { 
           upsert: true,
           contentType: file.type
         });
+
+      clearInterval(progressInterval);
+      setUploadProgress(95);
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
@@ -315,10 +333,32 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
       // Update local state
       setAvatarUrl(publicUrl);
+
+      // Save to files table for tracking
+      const { error: fileError } = await supabase
+        .from('files')
+        .insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_type: 'image',
+          mime_type: file.type,
+          file_size: file.size,
+          storage_path: `avatars/${filePath}`,
+          metadata: {
+            original_name: file.name,
+            usage: 'avatar',
+            uploaded_from: 'account_settings'
+          }
+        });
+
+      if (fileError) {
+        console.error('File tracking error:', fileError);
+        // Don't fail the upload if file tracking fails
+      }
 
       // Auto-save to profile
       const { data: existingProfile } = await supabase
@@ -344,6 +384,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
 
         if (insertError) throw insertError;
       }
+
+      setUploadProgress(100);
       
       toast({
         title: "Avatar uploaded",
@@ -354,6 +396,47 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to upload avatar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      // Update profile to remove avatar URL
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: null })
+          .eq('user_id', user.id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Update local state
+      setAvatarUrl('');
+      
+      toast({
+        title: "Avatar removed",
+        description: "Your profile picture has been reset to default.",
+      });
+    } catch (error: any) {
+      console.error('Avatar removal error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove avatar",
         variant: "destructive",
       });
     } finally {
@@ -444,25 +527,58 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div>
-                      <Label htmlFor="avatar-upload" className="cursor-pointer">
-                        <Button variant="outline" size="sm" className="gap-2" asChild>
-                          <span>
-                            <Upload className="h-4 w-4" />
-                            Upload Avatar
-                          </span>
-                        </Button>
-                      </Label>
+                    <div className="flex-1">
+                      <div className="flex gap-2 mb-2">
+                        <Label htmlFor="avatar-upload" className="cursor-pointer">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2" 
+                            asChild
+                            disabled={isLoading}
+                          >
+                            <span>
+                              <Upload className="h-4 w-4" />
+                              Upload Avatar
+                            </span>
+                          </Button>
+                        </Label>
+                        {avatarUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemoveAvatar}
+                            disabled={isLoading}
+                            className="gap-2"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
                       <input
                         id="avatar-upload"
                         type="file"
                         accept="image/*"
                         onChange={handleAvatarUpload}
                         className="hidden"
+                        disabled={isLoading}
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground">
                         JPG, PNG up to 2MB
                       </p>
+                      {uploadProgress > 0 && uploadProgress < 100 && (
+                        <div className="mt-2">
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Uploading... {uploadProgress}%
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
