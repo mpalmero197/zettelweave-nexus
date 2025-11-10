@@ -226,17 +226,17 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         position,
         data: {
           label: (
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-2">
               <div className={cn(
-                "text-foreground font-medium text-center max-w-[120px] truncate",
-                isParent ? "text-sm" : "text-xs"
+                "text-foreground font-semibold text-center max-w-[180px] leading-tight px-2",
+                isParent ? "text-base" : "text-sm"
               )}>
                 {card.title}
               </div>
               <div 
                 className={cn(
-                  "rounded-full border-2 border-muted-foreground/30 bg-background hover:border-primary hover:bg-primary/10 transition-all cursor-pointer shadow-sm",
-                  isParent ? "w-3 h-3" : "w-2.5 h-2.5"
+                  "rounded-full border-2 border-foreground/40 bg-background hover:border-primary hover:bg-primary/20 transition-all cursor-pointer shadow-md",
+                  isParent ? "w-4 h-4" : "w-3 h-3"
                 )}
               />
             </div>
@@ -266,8 +266,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             target: linkedCardId,
             type: 'straight',
             style: {
-              stroke: 'hsl(var(--muted-foreground) / 0.3)',
-              strokeWidth: 1.5,
+              stroke: 'hsl(var(--foreground) / 0.25)',
+              strokeWidth: 2,
             },
             animated: false,
             markerEnd: undefined, // No arrow - cleaner Obsidian style
@@ -413,8 +413,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         target: params.target,
         type: 'straight',
         style: {
-          stroke: 'hsl(var(--muted-foreground) / 0.3)',
-          strokeWidth: 1.5,
+          stroke: 'hsl(var(--foreground) / 0.25)',
+          strokeWidth: 2,
         },
         animated: false,
       };
@@ -494,8 +494,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
           type: 'straight',
           animated: false,
           style: {
-            stroke: 'hsl(var(--muted-foreground) / 0.2)',
-            strokeWidth: 1,
+            stroke: 'hsl(var(--foreground) / 0.2)',
+            strokeWidth: 1.5,
           },
         }}
         nodesDraggable={true}
@@ -524,82 +524,75 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
           maskColor="hsl(var(--muted) / 0.1)"
         />
 
-        {/* Search and Controls Panel */}
+        {/* Compact Controls Panel */}
         <Panel position="top-left" className="bg-transparent">
-          <div className="bg-card/80 backdrop-blur-md border border-border rounded-lg shadow-card p-4 space-y-3 min-w-[300px]">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="bg-card/90 backdrop-blur-sm border border-border rounded-md shadow-sm p-2 space-y-1.5 w-[240px]">
+            <div className="flex items-center gap-1.5">
+              <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               <Input
-                placeholder="Search cards..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 bg-background/50"
+                className="flex-1 h-7 text-xs bg-background/50"
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Layout className="h-4 w-4 text-muted-foreground" />
-              <Select value={layoutType} onValueChange={(value: any) => setLayoutType(value)}>
-                <SelectTrigger className="flex-1 bg-background/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="force">Force Layout</SelectItem>
-                  <SelectItem value="circular">Circular</SelectItem>
-                  <SelectItem value="hierarchical">Hierarchical</SelectItem>
-                  <SelectItem value="category">By Category</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={layoutType} onValueChange={(value: any) => setLayoutType(value)}>
+              <SelectTrigger className="h-7 text-xs bg-background/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="force">Force</SelectItem>
+                <SelectItem value="circular">Circular</SelectItem>
+                <SelectItem value="hierarchical">Hierarchical</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {layoutType === 'force' && (
-              <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={resetLayout}
+                className="flex-1 h-7 text-xs bg-background/50 px-2"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+              
+              {layoutType === 'force' && (
                 <Button 
                   variant={physicsEnabled ? "default" : "outline"}
                   size="sm" 
                   onClick={() => {
                     setPhysicsEnabled(!physicsEnabled);
-                    toast(physicsEnabled ? "Physics disabled" : "Physics enabled - nodes now interact!");
+                    toast(physicsEnabled ? "Physics disabled" : "Physics enabled");
                   }}
-                  className="flex-1"
+                  className="h-7 text-xs px-2"
                 >
-                  {physicsEnabled ? <Zap className="h-4 w-4 mr-2" /> : <ZapOff className="h-4 w-4 mr-2" />}
-                  {physicsEnabled ? 'Physics On' : 'Physics Off'}
+                  {physicsEnabled ? <Zap className="h-3 w-3" /> : <ZapOff className="h-3 w-3" />}
                 </Button>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={resetLayout}
-                className="flex-1 bg-background/50"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset Layout
-              </Button>
+              )}
               
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className="bg-background/50"
+                className="h-7 bg-background/50 px-2"
               >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleAutoLink}
                 disabled={isAutoLinking}
-                className="flex-1 bg-background/50"
+                className="flex-1 h-7 text-xs bg-background/50 px-2"
               >
-                <Link2 className="h-4 w-4 mr-2" />
-                Auto Link
+                <Link2 className="h-3 w-3 mr-1" />
+                Link
               </Button>
               
               <Button 
@@ -607,28 +600,21 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 size="sm" 
                 onClick={handleClearAllLinks}
                 disabled={isClearingLinks}
-                className="flex-1 bg-background/50"
+                className="flex-1 h-7 text-xs bg-background/50 px-2"
               >
-                <Link2Off className="h-4 w-4 mr-2" />
-                Clear Links
+                <Link2Off className="h-3 w-3 mr-1" />
+                Clear
               </Button>
             </div>
           </div>
         </Panel>
 
-        {/* Stats Panel */}
+        {/* Compact Stats Panel */}
         <Panel position="top-right" className="bg-transparent">
-          <div className="bg-card/80 backdrop-blur-md border border-border rounded-lg shadow-card p-4">
-            <div className="text-sm space-y-1">
-              <div className="font-medium text-foreground">Graph Stats</div>
-              <div className="text-muted-foreground">
-                {filteredCards.length} cards • {initialEdges.length} connections
-              </div>
-              {physicsEnabled && (
-                <div className="text-xs text-primary mt-1">
-                  ⚡ Physics Active
-                </div>
-              )}
+          <div className="bg-card/90 backdrop-blur-sm border border-border rounded-md shadow-sm p-2">
+            <div className="text-xs text-muted-foreground">
+              {filteredCards.length} cards • {initialEdges.length} links
+              {physicsEnabled && <span className="text-primary ml-1">⚡</span>}
             </div>
           </div>
         </Panel>
