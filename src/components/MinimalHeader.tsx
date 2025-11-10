@@ -8,6 +8,7 @@ import {
 import { MinimalSidebar } from "./MinimalSidebar";
 import { CreateCardDialog } from "./CreateCardDialog";
 import { ZettelCard, OrganizationMethod } from "@/types/zettel";
+import pendragonLogo from '@/assets/pendragon-logo.png';
 
 interface MinimalHeaderProps {
   user: any;
@@ -55,7 +56,7 @@ export function MinimalHeader({
 
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-primary" />
+          <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
           <span className="text-sm font-semibold">PendragonX</span>
         </div>
 

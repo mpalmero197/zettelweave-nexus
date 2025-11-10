@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Brain, Sun, Moon, User, Plus, ChevronDown, Search, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import pendragonLogo from '@/assets/pendragon-logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -317,9 +318,7 @@ export function NavigationBar({
           
           {/* Logo & Brand - Desktop Only */}
           <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Brain className="h-6 w-6 text-primary" />
-            </div>
+            <img src={pendragonLogo} alt="PendragonX" className="h-8 w-8 object-contain" />
             <div>
               <h1 className="text-lg font-bold text-foreground">PendragonX</h1>
               <p className="text-xs text-muted-foreground">
@@ -331,7 +330,7 @@ export function NavigationBar({
           {/* Logo - Mobile Center */}
           <div className="lg:hidden flex-1 flex justify-center">
             <div className="flex items-center gap-2">
-              <Brain className="h-6 w-6 text-primary" />
+              <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
               <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 PendragonX
               </h1>

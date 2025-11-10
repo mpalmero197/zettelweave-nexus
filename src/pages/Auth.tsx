@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Brain, Shield, Eye, EyeOff } from "lucide-react";
 import { setSecurityHeaders } from "@/utils/security";
+import pendragonLogo from '@/assets/pendragon-logo.png';
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -113,8 +114,8 @@ export default function Auth() {
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background/95 to-accent/5 p-4" role="main">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <Brain className="h-8 w-8 text-primary" />
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img src={pendragonLogo} alt="PendragonX" className="h-10 w-10 object-contain" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               PendragonX
             </h1>

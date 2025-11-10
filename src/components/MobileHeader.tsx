@@ -2,6 +2,7 @@ import { Menu, Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import pendragonLogo from '@/assets/pendragon-logo.png';
 
 export function MobileHeader() {
   const isMobile = useIsMobile();
@@ -32,6 +33,7 @@ export function MobileHeader() {
         </Sheet>
         
         <div className="flex items-center gap-2">
+          <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             PendragonX
           </h1>
