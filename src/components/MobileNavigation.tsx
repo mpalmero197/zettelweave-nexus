@@ -16,7 +16,7 @@ export function MobileNavigation() {
   if (!isMobile) return null;
   
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border shadow-2xl mobile-safe-area">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border shadow-2xl pb-safe">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map((item) => (
           <NavLink

@@ -13,6 +13,7 @@ import { MobileTouchHandler } from "@/components/MobileTouchHandler";
 // Lazy load heavy pages to reduce initial bundle size
 const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -42,6 +43,11 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/install" element={
+                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                    <Install />
+                  </Suspense>
+                } />
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>

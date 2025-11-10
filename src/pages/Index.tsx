@@ -33,6 +33,10 @@ import { WorkflowManager } from "@/components/WorkflowManager";
 import { OfflineModeIndicator } from "@/components/OfflineModeIndicator";
 import { IntelligentCacheIndicator } from "@/components/IntelligentCacheIndicator";
 import { OfflineDataManager } from "@/components/OfflineDataManager";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { MobileHeader } from "@/components/MobileHeader";
+import { MobileNavigation } from "@/components/MobileNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
@@ -775,6 +779,12 @@ const Index = () => {
       <Footer />
       </MobileOptimizedLayout>
     </MobileDetector>
+    
+    {/* PWA Install Prompt */}
+    <PWAInstallPrompt />
+    
+    {/* Mobile Navigation */}
+    <MobileNavigation />
     
     {/* Floating Chat Bubble - Outside all containers for true viewport fixed positioning */}
     <FloatingChatBubble />
