@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ContextualInsightsPanel } from "@/components/ContextualInsightsPanel";
 
 interface Note {
   id: string;
@@ -46,7 +47,8 @@ interface SearchResultsProps {
     shopping?: string[];
     news?: string[];
     citations?: string[]; 
-    relatedQuestions?: string[] 
+    relatedQuestions?: string[];
+    contextualData?: any;
   } | null;
   generatedImage?: {
     imageUrl: string;
@@ -702,45 +704,48 @@ export function UnifiedSearchResults({
             )}
           </div>
           
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-6 h-auto p-1 bg-muted/50 rounded-lg">
-              <TabsTrigger value="all" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">All</span>
-              </TabsTrigger>
-              <TabsTrigger value="web" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Web</span>
-              </TabsTrigger>
-              <TabsTrigger value="images" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <ImageIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Images</span>
-                {webResults.images && webResults.images.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.images.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="videos" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Video className="h-4 w-4" />
-                <span className="hidden sm:inline">Videos</span>
-                {webResults.videos && webResults.videos.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.videos.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="shopping" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <ShoppingCart className="h-4 w-4" />
-                <span className="hidden sm:inline">Shop</span>
-                {webResults.shopping && webResults.shopping.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.shopping.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="news" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Newspaper className="h-4 w-4" />
-                <span className="hidden sm:inline">News</span>
-                {webResults.news && webResults.news.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.news.length}</Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Search Results */}
+            <div className="lg:col-span-2">
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-6 mb-6 h-auto p-1 bg-muted/50 rounded-lg">
+                  <TabsTrigger value="all" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <Globe className="h-4 w-4" />
+                    <span className="hidden sm:inline">All</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="web" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Web</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="images" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">Images</span>
+                    {webResults.images && webResults.images.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.images.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="videos" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <Video className="h-4 w-4" />
+                    <span className="hidden sm:inline">Videos</span>
+                    {webResults.videos && webResults.videos.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.videos.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="shopping" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span className="hidden sm:inline">Shop</span>
+                    {webResults.shopping && webResults.shopping.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.shopping.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="news" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <Newspaper className="h-4 w-4" />
+                    <span className="hidden sm:inline">News</span>
+                    {webResults.news && webResults.news.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.news.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
 
             {/* All Tab */}
             <TabsContent value="all" className="space-y-8">
@@ -1209,7 +1214,18 @@ export function UnifiedSearchResults({
                 </Card>
               )}
             </TabsContent>
-          </Tabs>
+            </Tabs>
+            </div>
+            
+            {/* Contextual Insights Panel */}
+            {webResults.contextualData && (
+              <div className="lg:col-span-1">
+                <div className="lg:sticky lg:top-6">
+                  <ContextualInsightsPanel data={webResults.contextualData} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

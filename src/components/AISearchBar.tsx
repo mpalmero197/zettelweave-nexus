@@ -27,7 +27,7 @@ interface AISearchBarProps {
     notes: any[], 
     stickyNotes: any[], 
     scratchNotes: ScratchNote[],
-    webResults?: { query: string; result: string; images?: string[]; videos?: string[]; shopping?: string[]; news?: string[]; citations?: string[]; relatedQuestions?: string[] } | null,
+    webResults?: { query: string; result: string; images?: string[]; videos?: string[]; shopping?: string[]; news?: string[]; citations?: string[]; relatedQuestions?: string[]; contextualData?: any } | null,
     generatedImage?: { imageUrl: string; prompt: string } | null,
     multimediaResults?: { videos: any[]; images: any[] } | null,
     reasoning: string, 
@@ -122,9 +122,9 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange }
         }
       } 
       else if (intent === 'web_search') {
-        console.log('Step 2: Executing live web search');
+        console.log('Step 2: Executing live web search with contextual insights');
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
-          body: { query }
+          body: { query, includeContext: true }
         });
 
         if (webSearchResult) {
@@ -136,9 +136,12 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange }
             shopping: webSearchResult.shopping || [],
             news: webSearchResult.news || [],
             citations: webSearchResult.citations || [],
-            relatedQuestions: webSearchResult.relatedQuestions || []
+            relatedQuestions: webSearchResult.relatedQuestions || [],
+            contextualData: webSearchResult.contextualData || null
           };
-          reasoning = `Live web search results for: "${query}"`;
+          reasoning = webSearchResult.contextualData 
+            ? `Live web search with AI insights for: "${query}"`
+            : `Live web search results for: "${query}"`;
         }
       }
       else if (intent === 'image_generation') {

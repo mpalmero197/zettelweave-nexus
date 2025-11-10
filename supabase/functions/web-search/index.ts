@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, includeContext = true } = await req.json();
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -137,6 +137,111 @@ serve(async (req) => {
 
     console.log(`Results - Images: ${images.length}, Videos: ${videoLinks.length}, Shopping: ${shoppingLinks.length}, News: ${newsLinks.length}`);
     
+    // Generate contextual understanding if requested
+    let contextualData = null;
+    if (includeContext && LOVABLE_API_KEY) {
+      console.log('Generating contextual insights...');
+      try {
+        const contextResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a research assistant providing contextual understanding for search queries. Analyze the search query and results to provide:
+1. Related concepts and resources to explore
+2. Key definitions of important terms
+3. Alternative perspectives or counter-arguments
+4. Suggested follow-up questions
+
+Be concise, actionable, and insightful.`
+              },
+              {
+                role: 'user',
+                content: `Search query: "${query}"\n\nSearch result summary: ${result.substring(0, 1500)}\n\nProvide contextual understanding.`
+              }
+            ],
+            tools: [{
+              type: 'function',
+              function: {
+                name: 'provide_context',
+                description: 'Provide contextual understanding for the search',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    relatedResources: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          title: { type: 'string', description: 'Resource title' },
+                          description: { type: 'string', description: 'Brief description' },
+                          relevance: { type: 'string', description: 'Why it\'s relevant (High/Medium)' }
+                        },
+                        required: ['title', 'description', 'relevance']
+                      },
+                      description: 'Related concepts and resources (3-5 items)'
+                    },
+                    definitions: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          term: { type: 'string', description: 'Key term' },
+                          definition: { type: 'string', description: 'Clear definition' }
+                        },
+                        required: ['term', 'definition']
+                      },
+                      description: 'Important term definitions (2-4 items)'
+                    },
+                    counterArguments: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          perspective: { type: 'string', description: 'Alternative viewpoint' },
+                          summary: { type: 'string', description: 'Brief explanation' }
+                        },
+                        required: ['perspective', 'summary']
+                      },
+                      description: 'Alternative perspectives (2-3 items)'
+                    },
+                    followUpQuestions: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'Suggested follow-up questions (3-5 items)'
+                    }
+                  },
+                  required: ['relatedResources', 'definitions', 'counterArguments', 'followUpQuestions']
+                }
+              }
+            }],
+            tool_choice: { type: 'function', function: { name: 'provide_context' } }
+          })
+        });
+
+        if (contextResponse.ok) {
+          const contextData = await contextResponse.json();
+          const toolCall = contextData.choices?.[0]?.message?.tool_calls?.[0];
+          if (toolCall?.function?.arguments) {
+            contextualData = JSON.parse(toolCall.function.arguments);
+            console.log('Contextual insights generated successfully');
+          }
+        } else {
+          const errorText = await contextResponse.text();
+          console.error('Context generation failed:', contextResponse.status, errorText);
+        }
+      } catch (contextError) {
+        console.error('Error generating contextual insights:', contextError);
+        // Continue without context if it fails
+      }
+    }
+    
     return new Response(
       JSON.stringify({ 
         result,
@@ -146,7 +251,8 @@ serve(async (req) => {
         shopping: shoppingLinks,
         news: newsLinks,
         citations,
-        relatedQuestions
+        relatedQuestions,
+        contextualData
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
