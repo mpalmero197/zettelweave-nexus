@@ -32,13 +32,6 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: 'Recent Cards',
     position: { x: 6, y: 3, w: 6, h: 4 },
     isVisible: true
-  },
-  {
-    id: 'recent-notes',
-    type: 'recent-notes',
-    title: 'Recent Notes',
-    position: { x: 0, y: 7, w: 6, h: 4 },
-    isVisible: true
   }
 ];
 

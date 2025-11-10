@@ -97,51 +97,134 @@ export function ResizableGrid({
   };
 
   const resetLayout = () => {
-    // Auto-arrange to fill full width with optimized layout
+    // Improved masonry-style layout that fills width evenly
     const autoArrangeWidgets = () => {
-      const sorted = [...widgets].sort((a, b) => {
-        // Prioritize larger widgets first for better packing
-        const sizeA = (a.position?.w || 4) * (a.position?.h || 3);
-        const sizeB = (b.position?.w || 4) * (b.position?.h || 3);
-        return sizeB - sizeA;
-      });
-
+      const COLS = 12;
       const arranged: DashboardWidget[] = [];
-      const grid: boolean[][] = Array(100).fill(null).map(() => Array(12).fill(false));
+      let currentY = 0;
+      let currentRow: DashboardWidget[] = [];
+      let currentRowWidth = 0;
       
-      sorted.forEach(widget => {
-        const w = Math.max(widget.position?.w || 4, widget.type === 'welcome' || widget.type === 'stats' ? 4 : 3);
-        const h = Math.max(widget.position?.h || 3, widget.type === 'welcome' ? 3 : 3);
+      // Sort widgets by priority (important ones first)
+      const sorted = [...widgets].sort((a, b) => {
+        const priority: { [key: string]: number } = {
+          'welcome': 1,
+          'stats': 2,
+          'quick-capture': 3,
+          'recent-cards': 4,
+          'recent-notes': 5
+        };
+        return (priority[a.type] || 100) - (priority[b.type] || 100);
+      });
+      
+      sorted.forEach((widget, index) => {
+        // Determine optimal widget size based on type and content
+        let w = widget.position?.w || 6;
+        let h = widget.position?.h || 3;
         
-        // Find best position that fits
-        let placed = false;
-        for (let y = 0; y < 100 && !placed; y++) {
-          for (let x = 0; x <= 12 - w && !placed; x++) {
-            // Check if space is available
-            let canPlace = true;
-            for (let dy = 0; dy < h && canPlace; dy++) {
-              for (let dx = 0; dx < w && canPlace; dx++) {
-                if (grid[y + dy]?.[x + dx]) {
-                  canPlace = false;
-                }
-              }
+        // Set minimum readable sizes
+        const minSizes: { [key: string]: { w: number; h: number } } = {
+          'welcome': { w: 6, h: 3 },
+          'stats': { w: 6, h: 3 },
+          'quick-capture': { w: 6, h: 4 },
+          'recent-cards': { w: 6, h: 4 },
+          'recent-notes': { w: 6, h: 4 },
+          'content-summarizer': { w: 6, h: 4 },
+          'task-manager': { w: 6, h: 4 },
+          'habit-tracker': { w: 4, h: 3 },
+          'calendar-events': { w: 4, h: 3 },
+          'weather': { w: 4, h: 3 },
+          'quotes': { w: 4, h: 3 },
+        };
+        
+        const minSize = minSizes[widget.type] || { w: 4, h: 3 };
+        w = Math.max(w, minSize.w);
+        h = Math.max(h, minSize.h);
+        
+        // Check if widget fits in current row
+        if (currentRowWidth + w > COLS) {
+          // Distribute current row to fill width evenly
+          if (currentRow.length > 0) {
+            const totalWidth = currentRow.reduce((sum, w) => sum + w.position.w, 0);
+            const remainingSpace = COLS - totalWidth;
+            
+            if (remainingSpace > 0 && currentRow.length > 0) {
+              // Distribute extra space proportionally
+              const extraPerWidget = Math.floor(remainingSpace / currentRow.length);
+              const remainder = remainingSpace % currentRow.length;
+              
+              let xOffset = 0;
+              currentRow.forEach((widget, i) => {
+                const extraWidth = extraPerWidget + (i < remainder ? 1 : 0);
+                widget.position.w += extraWidth;
+                widget.position.x = xOffset;
+                xOffset += widget.position.w;
+              });
+            } else {
+              // Just position them normally
+              let xOffset = 0;
+              currentRow.forEach(widget => {
+                widget.position.x = xOffset;
+                xOffset += widget.position.w;
+              });
             }
             
-            if (canPlace) {
-              // Mark space as occupied
-              for (let dy = 0; dy < h; dy++) {
-                for (let dx = 0; dx < w; dx++) {
-                  grid[y + dy][x + dx] = true;
-                }
-              }
-              
-              arranged.push({
-                ...widget,
-                position: { x, y, w, h }
-              });
-              placed = true;
-            }
+            // Normalize heights in row for visual consistency
+            const maxHeight = Math.max(...currentRow.map(w => w.position.h));
+            currentRow.forEach(widget => {
+              widget.position.h = maxHeight;
+            });
+            
+            arranged.push(...currentRow);
+            currentY += maxHeight;
+            currentRow = [];
+            currentRowWidth = 0;
           }
+        }
+        
+        // Add widget to current row
+        currentRow.push({
+          ...widget,
+          position: {
+            x: currentRowWidth,
+            y: currentY,
+            w,
+            h
+          }
+        });
+        currentRowWidth += w;
+        
+        // If this is the last widget, flush the row
+        if (index === sorted.length - 1 && currentRow.length > 0) {
+          const totalWidth = currentRow.reduce((sum, w) => sum + w.position.w, 0);
+          const remainingSpace = COLS - totalWidth;
+          
+          if (remainingSpace > 0) {
+            const extraPerWidget = Math.floor(remainingSpace / currentRow.length);
+            const remainder = remainingSpace % currentRow.length;
+            
+            let xOffset = 0;
+            currentRow.forEach((widget, i) => {
+              const extraWidth = extraPerWidget + (i < remainder ? 1 : 0);
+              widget.position.w += extraWidth;
+              widget.position.x = xOffset;
+              xOffset += widget.position.w;
+            });
+          } else {
+            let xOffset = 0;
+            currentRow.forEach(widget => {
+              widget.position.x = xOffset;
+              xOffset += widget.position.w;
+            });
+          }
+          
+          // Normalize heights in row
+          const maxHeight = Math.max(...currentRow.map(w => w.position.h));
+          currentRow.forEach(widget => {
+            widget.position.h = maxHeight;
+          });
+          
+          arranged.push(...currentRow);
         }
       });
       
@@ -150,7 +233,7 @@ export function ResizableGrid({
     
     const arrangedWidgets = autoArrangeWidgets();
     onLayoutChange(arrangedWidgets);
-    toast.success('Layout auto-arranged to fill width');
+    toast.success('Dashboard optimized for readability');
   };
 
   const visibleWidgets = widgets.filter(w => w.isVisible);
@@ -190,11 +273,11 @@ export function ResizableGrid({
         layouts={layouts}
         onLayoutChange={handleLayoutChange}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 12, sm: 8, xs: 6, xxs: 4 }}
-        rowHeight={80}
+        cols={{ lg: 12, md: 12, sm: 8, xs: 4, xxs: 2 }}
+        rowHeight={100}
         isDraggable={isDraggable && !isLocked}
         isResizable={isResizable && !isLocked}
-        compactType="horizontal"
+        compactType={null}
         preventCollision={false}
         margin={[12, 12]}
         containerPadding={[0, 0]}
