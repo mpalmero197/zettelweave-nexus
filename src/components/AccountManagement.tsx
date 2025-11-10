@@ -391,9 +391,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
-      <Card className="w-full max-w-4xl my-8 overflow-hidden bg-card/95 backdrop-blur-md border border-border/50 shadow-2xl">
-        <CardHeader className="pb-4 border-b border-border/50">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-card/95 backdrop-blur-md border border-border/50 shadow-2xl flex flex-col">
+        <CardHeader className="pb-4 border-b border-border/50 shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl font-semibold flex items-center gap-2">
@@ -410,9 +410,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
           </div>
         </CardHeader>
 
-        <div className="flex h-[600px]">
+        <div className="flex flex-1 min-h-0">
           {/* Sidebar */}
-          <div className="w-48 border-r border-border/50 p-4">
+          <div className="w-48 border-r border-border/50 p-4 shrink-0">
             <div className="space-y-1">
               {tabs.map(({ id, label, icon: Icon }) => (
                 <Button
@@ -430,7 +430,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 p-6 overflow-y-auto min-h-0">
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div>
