@@ -32,9 +32,18 @@ export const useIntelligentCache = () => {
     if (!user) return;
 
     try {
-      // The supabase client automatically includes auth headers
+      // Get the current session to include auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No active session');
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('analyze-cache-patterns', {
-        body: {}
+        body: {},
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
       
       if (error) {
