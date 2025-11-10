@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cache_predictions: {
+        Row: {
+          confidence_score: number | null
+          day_of_week: number
+          hour_of_day: number
+          id: string
+          last_updated: string
+          resource_ids: string[]
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          day_of_week: number
+          hour_of_day: number
+          id?: string
+          last_updated?: string
+          resource_ids: string[]
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          day_of_week?: number
+          hour_of_day?: number
+          id?: string
+          last_updated?: string
+          resource_ids?: string[]
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           created_at: string
@@ -747,6 +780,42 @@ export type Database = {
           permission?: Database["public"]["Enums"]["sharing_permission"]
           shared_with_user_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_activity_logs: {
+        Row: {
+          activity_type: string
+          created_at: string
+          day_of_week: number
+          hour_of_day: number
+          id: string
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          day_of_week: number
+          hour_of_day: number
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          day_of_week?: number
+          hour_of_day?: number
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string
         }
         Relationships: []
       }
