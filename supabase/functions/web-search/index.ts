@@ -35,7 +35,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a comprehensive internet search assistant. Provide detailed, well-structured information from diverse sources across the web. Include facts, statistics, expert opinions, and multiple perspectives. Use markdown formatting with headers, bullet points, and emphasis for clarity. Be thorough, accurate, and cite-worthy.'
+            content: 'You are a comprehensive internet search assistant. Always respond in English and search for English-language sources unless the query is clearly in Spanish or Simplified Chinese (Mandarin). Provide detailed, well-structured information from diverse sources across the web. Include facts, statistics, expert opinions, and multiple perspectives. Use markdown formatting with headers, bullet points, and emphasis for clarity. Be thorough, accurate, and cite-worthy.'
           },
           {
             role: 'user',
