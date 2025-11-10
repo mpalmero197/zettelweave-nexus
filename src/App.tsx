@@ -6,11 +6,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
-import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { MobileDetector } from "@/components/MobileDetector";
 import { MobileTouchHandler } from "@/components/MobileTouchHandler";
+import { Loader2 } from "lucide-react";
 
-// Lazy load ALL pages including Auth to reduce initial bundle size dramatically
+// Lightweight loading component
+const LoadingFallback = ({ message = "Loading..." }: { message?: string }) => (
+  <div className="flex flex-col items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+    <p className="text-sm text-muted-foreground">{message}</p>
+  </div>
+);
+
+// Lazy load pages to reduce initial bundle size
 const Auth = lazy(() => import("./pages/Auth"));
 const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -23,7 +31,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <FastLoadingFallback message="Authenticating..." />;
+    return <LoadingFallback message="Authenticating..." />;
   }
   
   if (!user) {
@@ -44,32 +52,32 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={
-                  <Suspense fallback={<FastLoadingFallback message="Loading sign in..." />}>
+                  <Suspense fallback={<LoadingFallback message="Loading sign in..." />}>
                     <Auth />
                   </Suspense>
                 } />
                 <Route path="/install" element={
-                  <Suspense fallback={<FastLoadingFallback message="Loading installation..." />}>
+                  <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
                     <Install />
                   </Suspense>
                 } />
                 <Route path="/" element={
                   <ProtectedRoute>
-                    <Suspense fallback={<FastLoadingFallback message="Loading workspace..." />}>
+                    <Suspense fallback={<LoadingFallback message="Loading workspace..." />}>
                       <Index />
                     </Suspense>
                   </ProtectedRoute>
                 } />
                 <Route path="/admin" element={
                   <ProtectedRoute>
-                    <Suspense fallback={<FastLoadingFallback message="Loading admin panel..." />}>
+                    <Suspense fallback={<LoadingFallback message="Loading admin panel..." />}>
                       <Admin />
                     </Suspense>
                   </ProtectedRoute>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={
-                  <Suspense fallback={<FastLoadingFallback message="Loading page..." />}>
+                  <Suspense fallback={<LoadingFallback message="Loading page..." />}>
                     <NotFound />
                   </Suspense>
                 } />
