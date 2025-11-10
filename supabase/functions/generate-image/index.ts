@@ -18,11 +18,26 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Validate input
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
-      throw new Error("Prompt is required");
+      return new Response(
+        JSON.stringify({ error: "Prompt is required and must be a non-empty string" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log("Generating image for:", prompt);
+    if (prompt.length > 2000) {
+      return new Response(
+        JSON.stringify({ error: "Prompt must be 2000 characters or less" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Log only metadata
+    console.log("Image generation request", {
+      promptLength: prompt.length,
+      timestamp: new Date().toISOString()
+    });
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

@@ -19,9 +19,24 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    // Validate input
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: 'Text is required for plagiarism check' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (text.length > 50000) {
+      return new Response(
+        JSON.stringify({ error: 'Text must be 50,000 characters or less' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (referenceTexts && (!Array.isArray(referenceTexts) || referenceTexts.length > 20)) {
+      return new Response(
+        JSON.stringify({ error: 'Reference texts must be an array with max 20 items' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

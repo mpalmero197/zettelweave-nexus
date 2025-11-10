@@ -77,6 +77,16 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Clear sensitive data from localStorage before signing out
+    try {
+      localStorage.removeItem('sticky-notes:v1');
+      localStorage.removeItem('scratchpad:notes:v1');
+      localStorage.removeItem('habit-tracker-data');
+      localStorage.removeItem('zettelweave-recordings');
+    } catch (e) {
+      console.error('Error clearing localStorage:', e);
+    }
+    
     const { error } = await supabase.auth.signOut();
     return { error };
   };

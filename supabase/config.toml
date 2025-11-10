@@ -40,7 +40,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.web-search]
-verify_jwt = false
+verify_jwt = true
 
 [functions.classify-intent]
 verify_jwt = true

@@ -5,6 +5,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation
+function validateChatInput(messages: any, context: any): { valid: boolean; error?: string } {
+  if (!Array.isArray(messages)) {
+    return { valid: false, error: 'Messages must be an array' };
+  }
+  if (messages.length === 0) {
+    return { valid: false, error: 'Messages array cannot be empty' };
+  }
+  if (messages.length > 50) {
+    return { valid: false, error: 'Messages array cannot exceed 50 messages' };
+  }
+  
+  for (const msg of messages) {
+    if (!msg.role || !msg.content) {
+      return { valid: false, error: 'Each message must have role and content' };
+    }
+    if (!['system', 'user', 'assistant'].includes(msg.role)) {
+      return { valid: false, error: 'Invalid message role' };
+    }
+    if (typeof msg.content !== 'string') {
+      return { valid: false, error: 'Message content must be a string' };
+    }
+    if (msg.content.length > 4000) {
+      return { valid: false, error: 'Message content cannot exceed 4000 characters' };
+    }
+  }
+  
+  if (context) {
+    if (context.cards && (!Array.isArray(context.cards) || context.cards.length > 100)) {
+      return { valid: false, error: 'Context cards must be an array with max 100 items' };
+    }
+    if (context.notes && (!Array.isArray(context.notes) || context.notes.length > 100)) {
+      return { valid: false, error: 'Context notes must be an array with max 100 items' };
+    }
+  }
+  
+  return { valid: true };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -12,6 +51,16 @@ serve(async (req) => {
 
   try {
     const { messages, context, useInternet } = await req.json();
+    
+    // Validate input
+    const validation = validateChatInput(messages, context);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     
@@ -19,17 +68,18 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Validate that messages array exists and has at least one message
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      throw new Error("Messages array is required and must contain at least one message");
-    }
-
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
-    console.log("Processing message:", lastUserMessage);
+    // Log only metadata, not user content
+    console.log("Chat request", {
+      messageCount: messages.length,
+      lastMessageLength: lastUserMessage.length,
+      hasContext: !!context,
+      useInternet: !!useInternet,
+      timestamp: new Date().toISOString()
+    });
     console.log("Perplexity API key available:", !!PERPLEXITY_API_KEY);
-    
     // Determine if this is a knowledge base query or internet search query
     // Knowledge base queries contain specific keywords about user's personal content
     const knowledgeBaseKeywords = /\b(my|our|I have|I've|we have|we've|summarize my|connection between my|link my|in my notes|in my cards|I wrote|I saved|I recorded|my notebook|show me my|find in my)\b/i;
@@ -90,8 +140,10 @@ serve(async (req) => {
         console.log("Perplexity response status:", perplexityResponse.status);
         
         if (perplexityResponse.ok) {
-          const perplexityData = await perplexityResponse.json();
-          console.log("Perplexity full response:", JSON.stringify(perplexityData, null, 2));
+          console.log("Perplexity response received", {
+            hasChoices: perplexityData?.choices?.length > 0,
+            timestamp: new Date().toISOString()
+          });
           
           const searchResult = perplexityData.choices?.[0]?.message?.content || "I couldn't find relevant information.";
           const images = perplexityData.images || [];

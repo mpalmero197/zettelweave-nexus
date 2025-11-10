@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,53 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { query, includeContext = true } = await req.json();
+    
+    // Validate input
+    if (!query || typeof query !== "string" || query.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Query is required and must be a non-empty string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (query.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'Query must be 500 characters or less' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (includeContext !== undefined && typeof includeContext !== 'boolean') {
+      return new Response(
+        JSON.stringify({ error: 'includeContext must be a boolean' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -23,11 +70,13 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    if (!query || typeof query !== "string" || query.trim().length === 0) {
-      throw new Error("Query is required");
-    }
-
-    console.log("Web search for:", query);
+    // Log only metadata, not user content
+    console.log("Search request", {
+      queryLength: query.length,
+      hasContext: includeContext,
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    });
     
     // Detect language using Lovable AI
     console.log("Detecting language...");
