@@ -3,14 +3,18 @@ import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const navItems = [
-  { icon: Home, label: 'Home', path: '/' },
-  { icon: Shield, label: 'Admin', path: '/admin' },
-  { icon: Settings, label: 'Settings', path: '/' }, // Will add settings route later
-];
+interface MobileNavigationProps {
+  isAdmin?: boolean;
+}
 
-export function MobileNavigation() {
+export function MobileNavigation({ isAdmin = false }: MobileNavigationProps) {
   const isMobile = useIsMobile();
+  
+  const navItems = [
+    { icon: Home, label: 'Home', path: '/' },
+    ...(isAdmin ? [{ icon: Shield, label: 'Admin', path: '/admin' }] : []),
+    { icon: Settings, label: 'Settings', path: '/' }, // Will add settings route later
+  ];
   
   // Only render on mobile
   if (!isMobile) return null;

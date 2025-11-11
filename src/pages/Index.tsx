@@ -777,7 +777,7 @@ const Index = () => {
     <PWAInstallPrompt />
     
     {/* Mobile Navigation */}
-    <MobileNavigation />
+    <MobileNavigation isAdmin={isAdmin} />
     
     {/* Floating Chat Bubble - Outside all containers for true viewport fixed positioning */}
     <FloatingChatBubble />
