@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { format, isToday, isYesterday, startOfDay, subDays } from 'date-fns';
 import { ScratchPad } from './ScratchPad';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpgradeBanner } from './UpgradeBanner';
 
 interface Note {
   id: string;
@@ -61,6 +63,7 @@ interface DashboardProps {
 export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps = {}) {
   const { user } = useAuth();
   const { cards } = useZettelCards();
+  const { hasPremium } = useSubscription();
   const [notes, setNotes] = useState<Note[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -153,6 +156,9 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="p-6 space-y-8">
+        {/* Upgrade Banner for Free Users */}
+        {!hasPremium && <UpgradeBanner />}
+
         {/* Welcome Header */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
