@@ -11,6 +11,7 @@ import { categorizeContent, generateZettelNumber, extractKeywords, getCategoryIn
 import { MediaUpload } from "./MediaUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sanitizeUserInput } from "@/utils/security";
 
 interface CreateCardDialogProps {
   existingCards: ZettelCard[];
@@ -92,14 +93,20 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
   const handleSubmit = () => {
     if (!title || !content) return;
 
-    const finalCategory = category || categorizeContent(content, title);
+    // Sanitize all user inputs to prevent XSS and code injection
+    const sanitizedTitle = sanitizeUserInput(title);
+    const sanitizedContent = sanitizeUserInput(content);
+    const sanitizedDescription = sanitizeUserInput(description);
+    const sanitizedTags = tags.map(tag => sanitizeUserInput(tag));
+
+    const finalCategory = category || categorizeContent(sanitizedContent, sanitizedTitle);
     const finalNumber = number || generateZettelNumber(finalCategory, existingCards.map(c => c.number));
 
     onCreateCard({
-      title: title.trim(),
-      content: content.trim(),
-      description: description.trim(),
-      tags,
+      title: sanitizedTitle,
+      content: sanitizedContent,
+      description: sanitizedDescription,
+      tags: sanitizedTags,
       category: finalCategory,
       number: finalNumber,
       linkedCards: [],

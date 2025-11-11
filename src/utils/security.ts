@@ -1,26 +1,51 @@
 // Security utility functions for the application
+import DOMPurify from 'dompurify';
 
 /**
- * Sanitizes HTML content to prevent XSS attacks
+ * Sanitizes HTML content to prevent XSS attacks using DOMPurify
  */
 export function sanitizeHtml(input: string): string {
-  const div = document.createElement('div');
-  div.textContent = input;
-  return div.innerHTML;
+  if (!input || typeof input !== 'string') return '';
+  
+  // Configure DOMPurify to be strict
+  return DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote'],
+    ALLOWED_ATTR: ['href', 'title', 'target'],
+    ALLOW_DATA_ATTR: false,
+    SAFE_FOR_TEMPLATES: true
+  });
 }
 
 /**
- * Validates and sanitizes user input for card content
+ * Validates and sanitizes user input for card/note content
+ * Removes all potentially dangerous HTML/JS while preserving safe formatting
  */
-export function sanitizeCardInput(input: string): string {
+export function sanitizeUserInput(input: string): string {
   if (!input || typeof input !== 'string') return '';
   
-  // Remove potential script tags and other dangerous content
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  // Use DOMPurify for comprehensive XSS protection
+  const sanitized = DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [], // No HTML tags allowed in plain text fields
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true, // Keep text content, just remove tags
+    SAFE_FOR_TEMPLATES: true
+  });
+  
+  // Additional sanitization for common injection patterns
+  return sanitized
     .replace(/javascript:/gi, '')
+    .replace(/data:text\/html/gi, '')
+    .replace(/vbscript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
     .trim();
+}
+
+/**
+ * Legacy function - use sanitizeUserInput instead
+ * @deprecated
+ */
+export function sanitizeCardInput(input: string): string {
+  return sanitizeUserInput(input);
 }
 
 /**

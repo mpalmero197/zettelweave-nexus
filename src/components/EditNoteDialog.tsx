@@ -32,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { z } from 'zod';
+import { sanitizeUserInput } from '@/utils/security';
 
 interface Note {
   id: string;
@@ -104,12 +105,13 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
       return;
     }
 
+    // Sanitize all user inputs to prevent XSS and code injection
     const updatedNote: Note = {
       ...note,
-      title: formData.title.trim(),
-      content: formData.content,
+      title: sanitizeUserInput(formData.title.trim()),
+      content: sanitizeUserInput(formData.content),
       notebook_id: formData.notebook_id,
-      tags: formData.tags,
+      tags: formData.tags.map(tag => sanitizeUserInput(tag)),
       updated_at: new Date().toISOString()
     };
     onSave(updatedNote);

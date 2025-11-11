@@ -10,6 +10,7 @@ import { X } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { DEWEY_CATEGORIES } from "@/types/zettel";
 import { Link } from "lucide-react";
+import { sanitizeUserInput } from "@/utils/security";
 
 interface EditCardDialogProps {
   card: ZettelCardType;
@@ -52,13 +53,14 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
   }, [card, isOpen]);
 
   const handleSave = () => {
+    // Sanitize all user inputs to prevent XSS and code injection
     const updatedCard: ZettelCardType = {
       ...card,
-      title: formData.title,
-      description: formData.description,
-      content: formData.content,
-      category: formData.category,
-      tags: formData.tags,
+      title: sanitizeUserInput(formData.title),
+      description: sanitizeUserInput(formData.description),
+      content: sanitizeUserInput(formData.content),
+      category: sanitizeUserInput(formData.category),
+      tags: formData.tags.map(tag => sanitizeUserInput(tag)),
       number: formData.number,
       linkedCards: formData.linkedCards,
       image_url: formData.image_url,

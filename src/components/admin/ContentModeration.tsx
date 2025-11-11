@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Trash2, Eye, Activity } from 'lucide-react';
+import { FileText, Eye, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -59,32 +59,8 @@ export function ContentModeration() {
     }
   };
 
-  const handleDelete = async (item: ContentItem) => {
-    if (!confirm(`Delete this ${item.type}? This will move it to the recycle bin.`)) return;
-
-    try {
-      const table = item.type === 'card' ? 'zettel_cards' : 'notes';
-      const { error } = await supabase
-        .from(table)
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', item.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `${item.type} moved to recycle bin`,
-      });
-
-      fetchRecentContent();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: `Failed to delete ${item.type}`,
-        variant: "destructive",
-      });
-    }
-  };
+  // Admin deletion removed for security and privacy
+  // Admins should not be able to delete user content
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -120,15 +96,7 @@ export function ContentModeration() {
                     Content hidden for privacy - Admins can only see metadata
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(item)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {/* Delete button removed - admins cannot delete user content */}
               </div>
             </div>
           ))
@@ -183,7 +151,9 @@ export function ContentModeration() {
             <Eye className="h-5 w-5" />
             Content Metadata Monitor
           </CardTitle>
-          <CardDescription>View content metadata (titles, timestamps) - Content hidden for user privacy</CardDescription>
+          <CardDescription>
+            View content metadata only - user privacy is protected. Admins cannot read, modify, or delete user notes and cards.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="cards">
