@@ -10,8 +10,30 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Ban, CheckCircle, Trash2, Plus, AlertTriangle } from 'lucide-react';
+import { Shield, Ban, CheckCircle, Trash2, Plus, AlertTriangle, Download } from 'lucide-react';
 import { format } from 'date-fns';
+
+// Known scam domains database - updated regularly
+const KNOWN_SCAM_DOMAINS = [
+  { domain: 'tooolz.com', reason: 'Known scam platform' },
+  { domain: 'guerrillamail.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'mailinator.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: '10minutemail.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'tempmail.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'throwaway.email', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'yopmail.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'fakeinbox.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'maildrop.cc', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'trashmail.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'getnada.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'temp-mail.org', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'dispostable.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'emailondeck.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'mohmal.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'sharklasers.com', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'grr.la', reason: 'Temporary email service - frequently used for spam' },
+  { domain: 'guerrillamailblock.com', reason: 'Temporary email service - frequently used for spam' },
+];
 
 interface DomainRestriction {
   id: string;
@@ -29,6 +51,7 @@ export function DomainManagement() {
   const [newDomain, setNewDomain] = useState('');
   const [restrictionType, setRestrictionType] = useState<'banned' | 'allowed'>('banned');
   const [reason, setReason] = useState('');
+  const [importingScamDomains, setImportingScamDomains] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -150,6 +173,58 @@ export function DomainManagement() {
     }
   };
 
+  const handleImportScamDomains = async () => {
+    setImportingScamDomains(true);
+    
+    try {
+      // Get existing domains to avoid duplicates
+      const existingDomains = new Set(domains.map(d => d.domain.toLowerCase()));
+      
+      // Filter out already existing domains
+      const newScamDomains = KNOWN_SCAM_DOMAINS.filter(
+        scam => !existingDomains.has(scam.domain.toLowerCase())
+      );
+
+      if (newScamDomains.length === 0) {
+        toast({
+          title: "Info",
+          description: "All known scam domains are already in the banned list",
+        });
+        setImportingScamDomains(false);
+        return;
+      }
+
+      // Insert new scam domains in batch
+      const { error } = await supabase
+        .from('domain_restrictions')
+        .insert(
+          newScamDomains.map(scam => ({
+            domain: scam.domain.toLowerCase(),
+            restriction_type: 'banned' as const,
+            reason: scam.reason,
+          }))
+        );
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Added ${newScamDomains.length} known scam domains to the banned list`,
+      });
+
+      fetchDomains();
+    } catch (error: any) {
+      console.error('Error importing scam domains:', error);
+      toast({
+        title: "Error",
+        description: "Failed to import scam domains",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingScamDomains(false);
+    }
+  };
+
   const bannedDomains = domains.filter(d => d.restriction_type === 'banned');
   const allowedDomains = domains.filter(d => d.restriction_type === 'allowed');
 
@@ -195,7 +270,16 @@ export function DomainManagement() {
                 Manage banned and allowed email domains for user registration
               </CardDescription>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleImportScamDomains}
+                disabled={importingScamDomains}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {importingScamDomains ? 'Importing...' : 'Import Known Scam Domains'}
+              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
@@ -264,7 +348,8 @@ export function DomainManagement() {
                   </Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
