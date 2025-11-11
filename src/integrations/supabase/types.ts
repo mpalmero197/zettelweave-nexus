@@ -442,6 +442,93 @@ export type Database = {
         }
         Relationships: []
       }
+      error_reports: {
+        Row: {
+          column_number: number | null
+          error_message: string
+          error_signature: string
+          error_type: string
+          filename: string | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          line_number: number | null
+          occurrence_count: number
+          severity: string
+          stack_trace: string | null
+          status: string
+          url: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          column_number?: number | null
+          error_message: string
+          error_signature: string
+          error_type: string
+          filename?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          line_number?: number | null
+          occurrence_count?: number
+          severity?: string
+          stack_trace?: string | null
+          status?: string
+          url?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          column_number?: number | null
+          error_message?: string
+          error_signature?: string
+          error_type?: string
+          filename?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          line_number?: number | null
+          occurrence_count?: number
+          severity?: string
+          stack_trace?: string | null
+          status?: string
+          url?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      feature_requests: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+          votes: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          votes?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          votes?: number
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           created_at: string
@@ -1271,6 +1358,21 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      report_error: {
+        Args: {
+          p_column_number?: number
+          p_error_message: string
+          p_error_signature: string
+          p_error_type: string
+          p_filename?: string
+          p_line_number?: number
+          p_severity?: string
+          p_stack_trace?: string
+          p_url?: string
+          p_user_agent?: string
+        }
+        Returns: string
       }
       search_users: {
         Args: { _search_query: string }

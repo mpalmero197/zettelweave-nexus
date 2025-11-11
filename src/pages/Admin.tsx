@@ -11,7 +11,9 @@ import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
 import { SecurityMonitor } from '@/components/admin/SecurityMonitor';
 import { ContentModeration } from '@/components/admin/ContentModeration';
 import { DomainManagement } from '@/components/admin/DomainManagement';
-import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download } from 'lucide-react';
+import { FeatureRequestsPanel } from '@/components/admin/FeatureRequestsPanel';
+import { ErrorReportsPanel } from '@/components/admin/ErrorReportsPanel';
+import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download, Lightbulb, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase } from '@/utils/codebaseExport';
 
@@ -152,7 +154,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart className="h-4 w-4" />
               Overview
@@ -172,6 +174,14 @@ export default function Admin() {
             <TabsTrigger value="security" className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4" />
               Security
+            </TabsTrigger>
+            <TabsTrigger value="features" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Features
+            </TabsTrigger>
+            <TabsTrigger value="errors" className="flex items-center gap-2">
+              <Bug className="h-4 w-4" />
+              Errors
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -213,6 +223,14 @@ export default function Admin() {
 
           <TabsContent value="security">
             <SecurityMonitor />
+          </TabsContent>
+
+          <TabsContent value="features">
+            <FeatureRequestsPanel />
+          </TabsContent>
+
+          <TabsContent value="errors">
+            <ErrorReportsPanel />
           </TabsContent>
 
           <TabsContent value="system">

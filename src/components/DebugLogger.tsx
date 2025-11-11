@@ -61,11 +61,33 @@ class DebugLoggerService {
         lineno: event.lineno,
         colno: event.colno
       });
+      
+      // Auto-report to database
+      import('@/utils/errorReporter').then(({ reportError }) => {
+        reportError(
+          'RUNTIME_ERROR',
+          event.message,
+          event.error?.stack,
+          event.filename,
+          event.lineno,
+          event.colno
+        );
+      });
     });
 
     // Capture unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
-      this.addLog('error', `Unhandled Promise Rejection: ${event.reason}`, event.reason?.stack);
+      const message = `Unhandled Promise Rejection: ${event.reason}`;
+      this.addLog('error', message, event.reason?.stack);
+      
+      // Auto-report to database
+      import('@/utils/errorReporter').then(({ reportError }) => {
+        reportError(
+          'PROMISE_REJECTION',
+          message,
+          event.reason?.stack
+        );
+      });
     });
 
     // Capture React errors (if using React error boundaries)

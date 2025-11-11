@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { MinimalSidebar } from "./MinimalSidebar";
 import { CreateCardDialog } from "./CreateCardDialog";
+import { FeatureRequestDialog } from "./FeatureRequestDialog";
 import { ZettelCard, OrganizationMethod } from "@/types/zettel";
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useOfflineMode } from "@/hooks/useOfflineMode";
@@ -77,12 +78,15 @@ export function MinimalHeader({
           </Tooltip>
         </TooltipProvider>
 
-        {/* Quick Create */}
-        <CreateCardDialog 
-          onCreateCard={onCreateCard}
-          existingCards={existingCards}
-          organizationMethod={organizationMethod}
-        />
+        {/* Quick Actions */}
+        <div className="flex items-center gap-2">
+          <FeatureRequestDialog />
+          <CreateCardDialog 
+            onCreateCard={onCreateCard}
+            existingCards={existingCards}
+            organizationMethod={organizationMethod}
+          />
+        </div>
       </div>
     </header>
   );
