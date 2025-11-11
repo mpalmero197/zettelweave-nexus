@@ -134,6 +134,22 @@ export function ErrorReportsPanel() {
     }));
   };
 
+  const getErrorsByLocation = () => {
+    const locationMap = errors.reduce((acc, e) => {
+      const location = e.filename || 'Unknown';
+      if (!acc[location]) {
+        acc[location] = { location, count: 0, errors: [] };
+      }
+      acc[location].count += e.occurrence_count;
+      acc[location].errors.push(e);
+      return acc;
+    }, {} as Record<string, { location: string; count: number; errors: ErrorReport[] }>);
+
+    return Object.values(locationMap)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  };
+
   const COLORS = ['hsl(var(--destructive))', 'hsl(var(--warning))', 'hsl(var(--muted-foreground))'];
 
   if (loading) {
@@ -329,6 +345,83 @@ export function ErrorReportsPanel() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Error Location Analysis */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Errors by Location</CardTitle>
+          <CardDescription>Component/file breakdown showing problematic areas of codebase</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {getErrorsByLocation().map((location, index) => (
+              <Collapsible key={index}>
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 text-destructive font-semibold text-sm">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                          {location.location}
+                        </code>
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-sm text-muted-foreground">
+                            {location.count} occurrence{location.count > 1 ? 's' : ''}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {location.errors.length} unique error{location.errors.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent>
+                  <div className="ml-4 pl-4 mt-2 border-l-2 border-border space-y-2">
+                    {location.errors.map((error) => (
+                      <div key={error.id} className="p-3 bg-muted/30 rounded-lg">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {getSeverityIcon(error.severity)}
+                              <span className="font-medium text-sm">{error.error_type}</span>
+                              {getSeverityBadge(error.severity)}
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {error.error_message}
+                            </p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                              <span>{error.occurrence_count} times</span>
+                              <span>
+                                {formatDistanceToNow(new Date(error.last_seen_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge variant={error.status === 'resolved' ? 'default' : 'secondary'}>
+                            {error.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+            {getErrorsByLocation().length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No error location data available
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

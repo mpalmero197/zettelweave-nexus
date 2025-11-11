@@ -154,7 +154,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-10">
+          <TabsList className="grid w-full grid-cols-7 gap-2">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart className="h-4 w-4" />
               Overview
@@ -167,29 +167,17 @@ export default function Admin() {
               <Eye className="h-4 w-4" />
               Content
             </TabsTrigger>
-            <TabsTrigger value="domains" className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4" />
-              Domains
-            </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="features" className="flex items-center gap-2">
+            <TabsTrigger value="feedback" className="flex items-center gap-2">
               <Lightbulb className="h-4 w-4" />
-              Features
-            </TabsTrigger>
-            <TabsTrigger value="errors" className="flex items-center gap-2">
-              <Bug className="h-4 w-4" />
-              Errors
+              Feedback
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               System
-            </TabsTrigger>
-            <TabsTrigger value="export" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
@@ -217,27 +205,52 @@ export default function Admin() {
             <ContentModeration />
           </TabsContent>
 
-          <TabsContent value="domains">
-            <DomainManagement />
-          </TabsContent>
-
           <TabsContent value="security">
-            <SecurityMonitor />
+            <Tabs defaultValue="audit" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="audit">Security Audit</TabsTrigger>
+                <TabsTrigger value="domains">Domain Management</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="audit">
+                <SecurityMonitor />
+              </TabsContent>
+              
+              <TabsContent value="domains">
+                <DomainManagement />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="features">
-            <FeatureRequestsPanel />
-          </TabsContent>
-
-          <TabsContent value="errors">
-            <ErrorReportsPanel />
+          <TabsContent value="feedback">
+            <Tabs defaultValue="features" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="features">Feature Requests</TabsTrigger>
+                <TabsTrigger value="errors">Error Reports</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="features">
+                <FeatureRequestsPanel />
+              </TabsContent>
+              
+              <TabsContent value="errors">
+                <ErrorReportsPanel />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="system">
-            <SystemSettings />
-          </TabsContent>
-
-          <TabsContent value="export">
+            <Tabs defaultValue="settings" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="settings">System Settings</TabsTrigger>
+                <TabsTrigger value="export">Export & Backup</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="settings">
+                <SystemSettings />
+              </TabsContent>
+              
+              <TabsContent value="export">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -326,6 +339,8 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="docs">
