@@ -95,17 +95,8 @@ export function AvatarEditor({ imageFile, isOpen, onClose, onSave }: AvatarEdito
     // Restore context
     ctx.restore();
 
-    // Draw circular mask overlay
+    // Draw circular border only (no overlay)
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(0, 0, size, size);
-    
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2 - 10, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ctx.beginPath();
