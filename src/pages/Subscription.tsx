@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Check, X, Sparkles, Zap, Brain, FileText, BookOpen, Palette, Mic, BarChart3 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 
 export default function Subscription() {
@@ -125,85 +126,207 @@ export default function Subscription() {
           </CardContent>
         </Card>
 
-        {/* Premium Features Card */}
+        {/* Feature Comparison Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Premium Features</CardTitle>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle>Feature Comparison</CardTitle>
+            </div>
             <CardDescription>
-              Unlock all features with a premium subscription
+              See what's included in each plan
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <FeatureItem 
-                title="Interactive Whiteboard" 
-                description="Infinite canvas for brainstorming and visual thinking"
-                included={hasPremium}
-              />
-              <FeatureItem 
-                title="Knowledge Graph" 
-                description="3D visualization of your connected ideas"
-                included={hasPremium}
-              />
-              <FeatureItem 
-                title="Catalyst Writing Suite" 
-                description="AI-powered long-form writing and research tools"
-                included={hasPremium}
-              />
-              <FeatureItem 
-                title="Habit Tracker" 
-                description="Build and maintain productive habits"
-                included={hasPremium}
-              />
-              <FeatureItem 
-                title="Audio/Video Recording" 
-                description="Record meetings and capture ideas on the go"
-                included={hasPremium}
-              />
-              <FeatureItem 
-                title="Advanced Analytics" 
-                description="Deep insights into your knowledge base"
-                included={hasPremium}
-              />
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[300px]">Feature</TableHead>
+                    <TableHead className="text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-lg font-bold">Free</span>
+                        <span className="text-xs text-muted-foreground">$0/month</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-center bg-primary/5">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-1">
+                          <Crown className="h-4 w-4 text-primary" />
+                          <span className="text-lg font-bold">Premium</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">$4.99/month</span>
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        Unlimited Notes
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                        Notebooks
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                        End-to-End Encryption
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Brain className="h-4 w-4 text-muted-foreground" />
+                        Zettel Cards
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="text-sm text-muted-foreground">Limited</span>
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        Knowledge Graph (3D)
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Palette className="h-4 w-4 text-muted-foreground" />
+                        Interactive Whiteboard
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        Catalyst Writing Suite
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Mic className="h-4 w-4 text-muted-foreground" />
+                        Audio/Video Recording
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                        Advanced Analytics
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        Habit Tracker
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Brain className="h-4 w-4 text-muted-foreground" />
+                        AI-Powered Features
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5">
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Free Features Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Always Free</CardTitle>
-            <CardDescription>
-              Core features available to all users
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <FeatureItem 
-                title="Unlimited Notes" 
-                description="Create and organize unlimited notes"
-                included={true}
-                alwaysFree
-              />
-              <FeatureItem 
-                title="Notebooks" 
-                description="Organize notes into customizable notebooks"
-                included={true}
-                alwaysFree
-              />
-              <FeatureItem 
-                title="Cloud Sync" 
-                description="Access your notes from anywhere"
-                included={true}
-                alwaysFree
-              />
-              <FeatureItem 
-                title="End-to-End Encryption" 
-                description="Optional encryption for sensitive data"
-                included={true}
-                alwaysFree
-              />
-            </div>
+            
+            {!hasPremium && (
+              <div className="mt-6 pt-6 border-t text-center">
+                <Button size="lg" onClick={startCheckout} className="bg-gradient-primary hover:opacity-90">
+                  <Crown className="mr-2 h-5 w-5" />
+                  Upgrade to Premium - $4.99/month
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
