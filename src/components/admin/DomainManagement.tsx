@@ -44,7 +44,10 @@ export function DomainManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDomains(data || []);
+      setDomains((data || []).map(d => ({
+        ...d,
+        restriction_type: d.restriction_type as 'banned' | 'allowed'
+      })));
     } catch (error: any) {
       console.error('Error fetching domains:', error);
       toast({

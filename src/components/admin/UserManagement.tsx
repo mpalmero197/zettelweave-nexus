@@ -235,7 +235,6 @@ export function UserManagement() {
       setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
     }
   };
-  };
 
   const handleBanUser = async () => {
     if (!selectedUser) return;
