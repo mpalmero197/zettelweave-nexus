@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Check, X, Sparkles, Zap, Brain, FileText, BookOpen, Palette, Mic, BarChart3 } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Check, X, Sparkles, Zap, Brain, FileText, BookOpen, Palette, Mic, BarChart3, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
 
 export default function Subscription() {
@@ -327,6 +328,112 @@ export default function Subscription() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* FAQ Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-primary" />
+              <CardTitle>Frequently Asked Questions</CardTitle>
+            </div>
+            <CardDescription>
+              Common questions about billing, cancellation, and features
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="text-left">
+                  How does billing work?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Premium subscriptions are billed monthly at $4.99/month. Your first payment is processed immediately upon upgrade, and subsequent payments occur on the same day each month. You'll receive an email receipt for each payment.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-2">
+                <AccordionTrigger className="text-left">
+                  Can I cancel my subscription anytime?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Yes! You can cancel your subscription at any time through the "Manage Billing" portal. When you cancel, you'll retain premium access until the end of your current billing period. Your notes and notebooks will always remain accessible on the free plan.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-3">
+                <AccordionTrigger className="text-left">
+                  What happens to my data if I downgrade to free?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  All your notes and notebooks are always available, regardless of your plan. If you downgrade, you'll simply lose access to premium features like the Knowledge Graph, Whiteboard, and Catalyst writing suite. Your Zettel cards remain accessible, but you won't be able to create new ones on the free plan.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4">
+                <AccordionTrigger className="text-left">
+                  Do you offer refunds?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  We offer a 7-day money-back guarantee. If you're not satisfied with Premium within the first week, contact our support team for a full refund. After 7 days, subscriptions are non-refundable, but you can cancel anytime to avoid future charges.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-5">
+                <AccordionTrigger className="text-left">
+                  What's included in Premium vs Free?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  The Free plan includes unlimited notes and notebooks with cloud sync and encryption. Premium adds Zettel cards, 3D Knowledge Graph visualization, Interactive Whiteboard, Catalyst writing suite, AI-powered features, habit tracking, audio/video recording, and advanced analytics. See the comparison table above for full details.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-6">
+                <AccordionTrigger className="text-left">
+                  Can I upgrade or downgrade at any time?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Absolutely! You can upgrade to Premium instantly and start using all features immediately. If you downgrade, premium access continues until the end of your current billing period, then your account automatically switches to the free plan.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-7">
+                <AccordionTrigger className="text-left">
+                  Is my payment information secure?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Yes! All payments are processed securely through Stripe, an industry-leading payment processor. We never store your credit card information on our servers. Stripe is PCI-DSS compliant and handles billions of dollars in transactions annually.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-8">
+                <AccordionTrigger className="text-left">
+                  What if I'm an admin or have a license?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Admin users and licensed users receive Premium access automatically at no charge. Admins can grant licenses to select users through the admin panel. These premium licenses don't require payment and can be managed by administrators.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-9">
+                <AccordionTrigger className="text-left">
+                  Can I use PendragonX on multiple devices?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Yes! Your subscription covers all your devices. Sign in with the same account on your phone, tablet, and computer, and your data syncs automatically across all devices. There's no limit to the number of devices you can use.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-10">
+                <AccordionTrigger className="text-left">
+                  How do I update my payment method?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Click the "Manage Billing" button above to access the Stripe customer portal. There you can update your payment method, view invoice history, and manage all billing details. Changes take effect immediately.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardContent>
         </Card>
       </div>
