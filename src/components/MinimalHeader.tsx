@@ -9,6 +9,8 @@ import { MinimalSidebar } from "./MinimalSidebar";
 import { CreateCardDialog } from "./CreateCardDialog";
 import { ZettelCard, OrganizationMethod } from "@/types/zettel";
 import pendragonLogo from '@/assets/pendragon-logo.png';
+import { useOfflineMode } from "@/hooks/useOfflineMode";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MinimalHeaderProps {
   user: any;
@@ -33,6 +35,8 @@ export function MinimalHeader({
   organizationMethod,
   isAdmin,
 }: MinimalHeaderProps) {
+  const { isOnline } = useOfflineMode();
+  
   return (
     <header className="h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="h-full px-3 flex items-center justify-between gap-3">
@@ -54,11 +58,24 @@ export function MinimalHeader({
           </SheetContent>
         </Sheet>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
-          <span className="text-sm font-semibold">PendragonX</span>
-        </div>
+        {/* Logo with Status Dot */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2">
+                <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
+                <span className="text-sm font-semibold">PendragonX</span>
+                <div 
+                  className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}
+                  aria-label={isOnline ? 'Online' : 'Offline'}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isOnline ? 'Online' : 'Offline'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         {/* Quick Create */}
         <CreateCardDialog 

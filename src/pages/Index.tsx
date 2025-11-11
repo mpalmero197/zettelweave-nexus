@@ -312,12 +312,6 @@ const Index = () => {
     <MobileDetector>
       <MobileOptimizedLayout>
       <SecurityNotice />
-      
-      <div className="flex items-center justify-between px-4 py-2 border-b">
-        <div className="flex items-center gap-2">
-          <IntelligentCacheIndicator />
-        </div>
-      </div>
 
       {/* Minimal Header */}
       <MinimalHeader
