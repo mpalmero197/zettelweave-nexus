@@ -485,8 +485,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-card/95 backdrop-blur-md border border-border/50 shadow-2xl flex flex-col">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-start justify-center pt-[150px] overflow-y-auto">
+      <Card className="w-full max-w-4xl max-h-[calc(100vh-200px)] overflow-hidden bg-card/95 backdrop-blur-md border border-border/50 shadow-2xl flex flex-col mb-8">
         <CardHeader className="pb-4 border-b border-border/50 shrink-0">
           <div className="flex items-center justify-between">
             <div>
