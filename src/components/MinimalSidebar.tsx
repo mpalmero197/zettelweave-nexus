@@ -19,6 +19,7 @@ import {
   Settings,
   LogOut,
   FileEdit,
+  CreditCard,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -108,6 +109,12 @@ export function MinimalSidebar({
             </Button>
           </Link>
         )}
+        <Link to="/subscription">
+          <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
+            <CreditCard className="h-4 w-4 mr-3" />
+            Subscription
+          </Button>
+        </Link>
         <Button
           variant="ghost"
           onClick={onAccountSettings}

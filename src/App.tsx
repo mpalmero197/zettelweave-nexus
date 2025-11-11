@@ -23,6 +23,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Install = lazy(() => import("./pages/Install"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -72,6 +73,13 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<LoadingFallback message="Loading admin panel..." />}>
                       <Admin />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/subscription" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingFallback message="Loading subscription..." />}>
+                      <Subscription />
                     </Suspense>
                   </ProtectedRoute>
                 } />
