@@ -12,6 +12,9 @@ import { MediaUpload } from "./MediaUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sanitizeUserInput } from "@/utils/security";
+import { EncryptionToggle } from "./EncryptionToggle";
+import { EncryptionPasswordDialog } from "./EncryptionPasswordDialog";
+import { encryptData, getUserEncryptionSalt, isEncryptionEnabled, initializeUserEncryption } from "@/utils/encryption";
 
 interface CreateCardDialogProps {
   existingCards: ZettelCard[];
@@ -32,6 +35,10 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [encryptionEnabled, setEncryptionEnabled] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [encryptionPassword, setEncryptionPassword] = useState("");
+  const [setupMode, setSetupMode] = useState(false);
 
   const handleAutoGenerate = async () => {
     if (!title && !content) return;
@@ -90,7 +97,39 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = () => {
+  const handleEncryptionToggle = async (enabled: boolean) => {
+    const hasEncryption = await isEncryptionEnabled();
+    
+    if (enabled && !hasEncryption) {
+      // Need to setup encryption first
+      setSetupMode(true);
+      setShowPasswordDialog(true);
+      return;
+    }
+    
+    if (enabled) {
+      // Need password to encrypt
+      setShowPasswordDialog(true);
+    } else {
+      setEncryptionEnabled(false);
+      setEncryptionPassword("");
+    }
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (setupMode) {
+      // Initialize encryption
+      await initializeUserEncryption(password);
+      setSetupMode(false);
+      toast.success("Encryption enabled successfully");
+    }
+    
+    setEncryptionPassword(password);
+    setEncryptionEnabled(true);
+    setShowPasswordDialog(false);
+  };
+
+  const handleSubmit = async () => {
     if (!title || !content) return;
 
     // Sanitize all user inputs to prevent XSS and code injection
@@ -102,7 +141,7 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     const finalCategory = category || categorizeContent(sanitizedContent, sanitizedTitle);
     const finalNumber = number || generateZettelNumber(finalCategory, existingCards.map(c => c.number));
 
-    onCreateCard({
+    const cardData: any = {
       title: sanitizedTitle,
       content: sanitizedContent,
       description: sanitizedDescription,
@@ -112,8 +151,27 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
       linkedCards: [],
       author: "User",
       imageUrl: imageUrl || undefined,
-      videoUrl: videoUrl || undefined
-    });
+      videoUrl: videoUrl || undefined,
+      is_encrypted: encryptionEnabled
+    };
+
+    // Handle encryption if enabled
+    if (encryptionEnabled && encryptionPassword) {
+      try {
+        const salt = await getUserEncryptionSalt();
+        if (!salt) throw new Error("Encryption not initialized");
+
+        const { encrypted, iv } = await encryptData(sanitizedContent, encryptionPassword, salt);
+        cardData.encrypted_content = encrypted;
+        cardData.encryption_iv = iv;
+        // Content field will be cleared server-side for encrypted items
+      } catch (error: any) {
+        toast.error("Encryption failed: " + error.message);
+        return;
+      }
+    }
+
+    onCreateCard(cardData);
 
     // Reset form
     setTitle("");
@@ -125,6 +183,8 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     setNumber("");
     setImageUrl("");
     setVideoUrl("");
+    setEncryptionEnabled(false);
+    setEncryptionPassword("");
     setOpen(false);
   };
 
@@ -246,7 +306,19 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
             </div>
           </div>
 
-          <MediaUpload 
+          <EncryptionToggle
+            enabled={encryptionEnabled}
+            onChange={handleEncryptionToggle}
+          />
+
+          <EncryptionPasswordDialog
+            open={showPasswordDialog}
+            onOpenChange={setShowPasswordDialog}
+            onPasswordSubmit={handlePasswordSubmit}
+            mode={setupMode ? 'setup' : 'encrypt'}
+          />
+
+          <MediaUpload
             onImageUpload={setImageUrl}
             onVideoUpload={setVideoUrl}
             existingImageUrl={imageUrl}

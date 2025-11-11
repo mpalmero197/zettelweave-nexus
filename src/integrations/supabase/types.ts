@@ -614,7 +614,10 @@ export type Database = {
           content_embedding: string | null
           created_at: string
           deleted_at: string | null
+          encrypted_content: string | null
+          encryption_iv: string | null
           id: string
+          is_encrypted: boolean | null
           is_favorite: boolean | null
           notebook_id: string | null
           permanent_delete_at: string | null
@@ -629,7 +632,10 @@ export type Database = {
           content_embedding?: string | null
           created_at?: string
           deleted_at?: string | null
+          encrypted_content?: string | null
+          encryption_iv?: string | null
           id?: string
+          is_encrypted?: boolean | null
           is_favorite?: boolean | null
           notebook_id?: string | null
           permanent_delete_at?: string | null
@@ -644,7 +650,10 @@ export type Database = {
           content_embedding?: string | null
           created_at?: string
           deleted_at?: string | null
+          encrypted_content?: string | null
+          encryption_iv?: string | null
           id?: string
+          is_encrypted?: boolean | null
           is_favorite?: boolean | null
           notebook_id?: string | null
           permanent_delete_at?: string | null
@@ -853,6 +862,8 @@ export type Database = {
         Row: {
           auto_delete_days: number
           created_at: string
+          encryption_enabled: boolean | null
+          encryption_key_salt: string | null
           id: string
           updated_at: string
           user_id: string
@@ -860,6 +871,8 @@ export type Database = {
         Insert: {
           auto_delete_days?: number
           created_at?: string
+          encryption_enabled?: boolean | null
+          encryption_key_salt?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -867,6 +880,8 @@ export type Database = {
         Update: {
           auto_delete_days?: number
           created_at?: string
+          encryption_enabled?: boolean | null
+          encryption_key_salt?: string | null
           id?: string
           updated_at?: string
           user_id?: string
@@ -1082,8 +1097,11 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          encrypted_content: string | null
+          encryption_iv: string | null
           id: string
           image_url: string | null
+          is_encrypted: boolean | null
           is_favorite: boolean | null
           linked_cards: string[] | null
           notebook_id: string | null
@@ -1103,8 +1121,11 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          encrypted_content?: string | null
+          encryption_iv?: string | null
           id?: string
           image_url?: string | null
+          is_encrypted?: boolean | null
           is_favorite?: boolean | null
           linked_cards?: string[] | null
           notebook_id?: string | null
@@ -1124,8 +1145,11 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          encrypted_content?: string | null
+          encryption_iv?: string | null
           id?: string
           image_url?: string | null
+          is_encrypted?: boolean | null
           is_favorite?: boolean | null
           linked_cards?: string[] | null
           notebook_id?: string | null
