@@ -412,6 +412,36 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_restrictions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          domain: string
+          id: string
+          reason: string | null
+          restriction_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          id?: string
+          reason?: string | null
+          restriction_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          id?: string
+          reason?: string | null
+          restriction_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           created_at: string
@@ -1207,6 +1237,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_domain_banned: { Args: { email_address: string }; Returns: boolean }
       log_security_event: {
         Args: {
           p_event_details?: Json

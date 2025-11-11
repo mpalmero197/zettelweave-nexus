@@ -10,6 +10,7 @@ import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
 import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
 import { SecurityMonitor } from '@/components/admin/SecurityMonitor';
 import { ContentModeration } from '@/components/admin/ContentModeration';
+import { DomainManagement } from '@/components/admin/DomainManagement';
 import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -151,7 +152,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart className="h-4 w-4" />
               Overview
@@ -163,6 +164,10 @@ export default function Admin() {
             <TabsTrigger value="content" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Content
+            </TabsTrigger>
+            <TabsTrigger value="domains" className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />
+              Domains
             </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4" />
@@ -200,6 +205,10 @@ export default function Admin() {
 
           <TabsContent value="content">
             <ContentModeration />
+          </TabsContent>
+
+          <TabsContent value="domains">
+            <DomainManagement />
           </TabsContent>
 
           <TabsContent value="security">
