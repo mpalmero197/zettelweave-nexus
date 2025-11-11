@@ -29,24 +29,24 @@ export function ContentModeration() {
 
   const fetchRecentContent = async () => {
     try {
-      // Get recent cards
+      // Get recent cards - only metadata, NO content for privacy
       const { data: cards } = await supabase
         .from('zettel_cards')
-        .select('id, title, content, user_id, created_at')
+        .select('id, title, user_id, created_at, category, tags')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      // Get recent notes
+      // Get recent notes - only metadata, NO content for privacy
       const { data: notes } = await supabase
         .from('notes')
-        .select('id, title, content, user_id, created_at')
+        .select('id, title, user_id, created_at, tags, is_favorite')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      setRecentCards(cards?.map(c => ({ ...c, type: 'card' as const })) || []);
-      setRecentNotes(notes?.map(n => ({ ...n, type: 'note' as const })) || []);
+      setRecentCards(cards?.map(c => ({ ...c, type: 'card' as const, content: '' })) || []);
+      setRecentNotes(notes?.map(n => ({ ...n, type: 'note' as const, content: '' })) || []);
     } catch (error: any) {
       console.error('Error fetching content:', error);
       toast({
@@ -112,13 +112,13 @@ export function ContentModeration() {
                       {item.type}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.content}
-                  </p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>Created: {formatDate(item.created_at)}</span>
                     <span>User ID: {item.user_id.slice(0, 8)}...</span>
                   </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    Content hidden for privacy - Admins can only see metadata
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -181,9 +181,9 @@ export function ContentModeration() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Recent Content
+            Content Metadata Monitor
           </CardTitle>
-          <CardDescription>Review and moderate user-generated content</CardDescription>
+          <CardDescription>View content metadata (titles, timestamps) - Content hidden for user privacy</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="cards">

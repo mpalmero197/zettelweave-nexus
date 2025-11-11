@@ -82,7 +82,7 @@ A comprehensive knowledge management and long-form writing platform built with R
 - Vector-based semantic search
 
 ### Admin Panel (Admin Role Required)
-**Complete platform control hub:**
+**Complete platform control hub with privacy-first design:**
 
 - **Overview Dashboard**
   - Real-time activity statistics
@@ -95,16 +95,28 @@ A comprehensive knowledge management and long-form writing platform built with R
   - Account status monitoring
   - User activity tracking
 
+- **Content Metadata Monitor**
+  - View content titles and timestamps
+  - Monitor creation trends
+  - Content counts and statistics
+  - **Privacy Protection**: Admins CANNOT see actual content of notes/cards
+
+- **Security Monitor**
+  - Security audit logs
+  - Access monitoring
+  - Security event tracking
+
 - **System Settings**
   - Database management
   - Auto-cleanup configuration
   - System statistics
   - Storage usage monitoring
 
-- **Activity Monitor**
-  - Recent user activity
-  - Content creation trends
-  - System performance metrics
+- **Site Export & Backup**
+  - Export complete codebase
+  - Download source, configs, Supabase functions
+  - Deployment ready ZIP file
+  - Includes deployment instructions
 
 - **Documentation Viewer**
   - Built-in platform documentation
@@ -324,20 +336,33 @@ Visit `http://localhost:5173`
 ### Admin Panel
 
 **Accessing:**
-1. Navigate to /admin (admin role required)
-2. View from User Menu → Admin Panel link
+1. Must have admin role assigned
+2. Navigate to /admin or click Admin Panel from user menu
+3. Only visible to users with admin privileges
 
 **Overview Tab:**
 - Today's cards created
-- Today's notes created
+- Today's notes created  
 - System health status
 - Quick activity metrics
 
 **Users Tab:**
 - View all registered users
-- See user roles
+- See user roles and permissions
 - Monitor last login times
-- Manage user permissions
+- Manage user access
+
+**Content Tab:**
+- View content metadata (titles, timestamps)
+- Monitor content creation trends
+- Track platform usage
+- **Privacy Protected**: Content itself is never visible
+
+**Security Tab:**
+- Security audit logs
+- Access monitoring
+- Failed login attempts
+- Security event tracking
 
 **System Tab:**
 - Database statistics
@@ -345,10 +370,11 @@ Visit `http://localhost:5173`
 - Cleanup operations
 - System health checks
 
-**Activity Tab:**
-- Real-time activity feed
-- User engagement metrics
-- Content creation trends
+**Export Tab:**
+- Export complete site codebase
+- Download as ZIP file
+- Includes all source code, configs, Supabase functions
+- Ready for deployment to any platform
 
 **Docs Tab:**
 - Platform documentation
