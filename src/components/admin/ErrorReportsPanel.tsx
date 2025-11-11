@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock } from "lucide-react";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface ErrorReport {
   id: string;
@@ -29,6 +30,7 @@ interface ErrorReport {
 export function ErrorReportsPanel() {
   const [errors, setErrors] = useState<ErrorReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<number>(7);
 
   useEffect(() => {
     fetchErrors();
@@ -87,6 +89,53 @@ export function ErrorReportsPanel() {
     return <Badge variant={variants[severity] || "default"}>{severity}</Badge>;
   };
 
+  // Analytics calculations
+  const getErrorTrend = () => {
+    const days = timeRange;
+    const trendData = [];
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dateStr = format(date, 'MMM dd');
+      const dayErrors = errors.filter(e => {
+        const errorDate = new Date(e.last_seen_at);
+        return format(errorDate, 'MMM dd') === dateStr;
+      });
+      
+      trendData.push({
+        date: dateStr,
+        count: dayErrors.reduce((sum, e) => sum + e.occurrence_count, 0),
+        unique: dayErrors.length
+      });
+    }
+    
+    return trendData;
+  };
+
+  const getTopErrors = () => {
+    return [...errors]
+      .sort((a, b) => b.occurrence_count - a.occurrence_count)
+      .slice(0, 5)
+      .map(e => ({
+        name: e.error_type.length > 30 ? e.error_type.substring(0, 30) + '...' : e.error_type,
+        count: e.occurrence_count
+      }));
+  };
+
+  const getSeverityDistribution = () => {
+    const distribution = errors.reduce((acc, e) => {
+      acc[e.severity] = (acc[e.severity] || 0) + e.occurrence_count;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution).map(([name, value]) => ({
+      name: name.toUpperCase(),
+      value
+    }));
+  };
+
+  const COLORS = ['hsl(var(--destructive))', 'hsl(var(--warning))', 'hsl(var(--muted-foreground))'];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -97,6 +146,23 @@ export function ErrorReportsPanel() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Error Analytics</h3>
+        </div>
+        <Select value={timeRange.toString()} onValueChange={(v) => setTimeRange(Number(v))}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="14">Last 14 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -137,6 +203,128 @@ export function ErrorReportsPanel() {
           <CardContent>
             <div className="text-2xl font-bold">
               {errors.filter((e) => e.status === "resolved").length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error Trend</CardTitle>
+            <CardDescription>Error occurrences over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={getErrorTrend()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }} 
+                />
+                <Line type="monotone" dataKey="count" stroke="hsl(var(--destructive))" name="Total Errors" strokeWidth={2} />
+                <Line type="monotone" dataKey="unique" stroke="hsl(var(--primary))" name="Unique Errors" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Top 5 Errors</CardTitle>
+            <CardDescription>Most frequent errors by occurrence count</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={getTopErrors()} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" width={150} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }} 
+                />
+                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Severity Distribution</CardTitle>
+            <CardDescription>Errors grouped by severity level</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={getSeverityDistribution()}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="hsl(var(--primary))"
+                  dataKey="value"
+                >
+                  {getSeverityDistribution().map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Error Patterns</CardTitle>
+            <CardDescription>Key insights and statistics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-border">
+              <span className="text-sm text-muted-foreground">Avg errors per day</span>
+              <span className="font-semibold">
+                {(errors.reduce((sum, e) => sum + e.occurrence_count, 0) / timeRange).toFixed(1)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pb-2 border-b border-border">
+              <span className="text-sm text-muted-foreground">Most active error type</span>
+              <span className="font-semibold text-sm">
+                {getTopErrors()[0]?.name || 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pb-2 border-b border-border">
+              <span className="text-sm text-muted-foreground">Error resolution rate</span>
+              <span className="font-semibold">
+                {errors.length > 0 
+                  ? `${((errors.filter(e => e.status === 'resolved').length / errors.length) * 100).toFixed(1)}%`
+                  : '0%'
+                }
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Needs attention</span>
+              <Badge variant="destructive">
+                {errors.filter(e => e.status === 'new' && e.severity === 'error').length}
+              </Badge>
             </div>
           </CardContent>
         </Card>
