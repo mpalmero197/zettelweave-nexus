@@ -6,11 +6,13 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { generateZettelNumber, categorizeContent } from '@/utils/deweySystem';
 import { sanitizeCardInput, validateZettelCard, createCardLimiter } from '@/utils/security';
+import { useCardLimit } from './useCardLimit';
 
 export const useZettelCards = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canCreateCard } = useCardLimit();
   const [organizationMethod, setOrganizationMethod] = useState<string>(() => {
     return localStorage.getItem('zettel-organization-method') || 'dewey';
   });
@@ -103,6 +105,11 @@ export const useZettelCards = () => {
   const createCardMutation = useMutation({
     mutationFn: async (newCard: Omit<ZettelCard, 'id' | 'created' | 'modified'>) => {
       if (!user) throw new Error('User not authenticated');
+
+      // Check card limit before creating
+      if (!canCreateCard(cards.length)) {
+        throw new Error('Card limit reached');
+      }
 
       // Rate limiting
       if (!createCardLimiter.isAllowed(user.id)) {

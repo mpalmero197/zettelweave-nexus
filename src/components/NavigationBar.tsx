@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Brain, Sun, Moon, User, Plus, ChevronDown, Search, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
+import { PremiumBadge } from "@/components/PremiumBadge";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import {
@@ -65,6 +67,7 @@ export function NavigationBar({
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { hasPremium } = useSubscription();
 
   return (
     <header className="bg-card/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm">
@@ -122,6 +125,7 @@ export function NavigationBar({
                     >
                       <BarChart3 className="h-4 w-4" />
                       Graph
+                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                     <Button
                       variant={activeTab === "notes" ? "default" : "ghost"}
@@ -169,6 +173,7 @@ export function NavigationBar({
                   >
                     <Palette className="h-4 w-4" />
                     Whiteboard
+                    {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                   </Button>
 
                   {/* Planner Section */}
@@ -195,6 +200,7 @@ export function NavigationBar({
                     >
                       <StickyNote className="h-4 w-4" />
                       Journal
+                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                     <Button
                       variant={activeTab === "habits" ? "default" : "ghost"}
@@ -206,6 +212,7 @@ export function NavigationBar({
                     >
                       <Target className="h-4 w-4" />
                       Habits
+                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                     <Button
                       variant={activeTab === "stickynotes" ? "default" : "ghost"}
@@ -233,6 +240,7 @@ export function NavigationBar({
                     >
                       <Lightbulb className="h-4 w-4" />
                       Catalyst
+                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                     <Button
                       variant={activeTab === "collab" ? "default" : "ghost"}
@@ -244,6 +252,7 @@ export function NavigationBar({
                     >
                       <Users className="h-4 w-4" />
                       Collab
+                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                   </div>
 
@@ -258,6 +267,7 @@ export function NavigationBar({
                   >
                     <Mic className="h-4 w-4" />
                     Recorder
+                    {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                   </Button>
 
                   {/* Recycle Bin */}

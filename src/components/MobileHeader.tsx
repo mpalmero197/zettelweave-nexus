@@ -22,9 +22,9 @@ export function MobileHeader() {
               variant="ghost" 
               size="icon"
               className="rounded-xl min-h-[44px] min-w-[44px] touch-manipulation"
+              aria-label="Open menu"
             >
               <Menu className="h-6 w-6" />
-              <span className="sr-only">Open menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[85vw] max-w-sm overflow-y-auto">
@@ -62,19 +62,19 @@ export function MobileHeader() {
             variant="ghost" 
             size="icon"
             className="rounded-xl min-h-[44px] min-w-[44px] touch-manipulation"
+            aria-label="Search"
           >
             <Search className="h-5 w-5" />
-            <span className="sr-only">Search</span>
           </Button>
           
           <Button 
             variant="ghost" 
             size="icon"
             className="rounded-xl min-h-[44px] min-w-[44px] touch-manipulation relative"
+            aria-label="Notifications"
           >
             <Bell className="h-5 w-5" />
             <span className="absolute top-2 right-2 h-2 w-2 bg-destructive rounded-full" />
-            <span className="sr-only">Notifications</span>
           </Button>
         </div>
       </div>
