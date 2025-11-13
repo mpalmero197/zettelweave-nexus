@@ -3,9 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Network, Brain, Layout, FileText, Check, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { cn } from "@/lib/utils";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const heroAnimation = useScrollAnimation(0.1);
+  const valueAnimation = useScrollAnimation(0.1);
+  const featuresAnimation = useScrollAnimation(0.1);
+  const galleryAnimation = useScrollAnimation(0.1);
+  const pricingAnimation = useScrollAnimation(0.1);
+  const ctaAnimation = useScrollAnimation(0.1);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -45,7 +53,13 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 md:py-32">
+      <section 
+        ref={heroAnimation.ref}
+        className={cn(
+          "relative overflow-hidden py-20 md:py-32 transition-all duration-1000",
+          heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        )}
+      >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.1),transparent_50%)]" />
         
@@ -83,7 +97,13 @@ export default function Landing() {
       </section>
 
       {/* Value Proposition */}
-      <section className="py-20 border-t border-border/50">
+      <section 
+        ref={valueAnimation.ref}
+        className={cn(
+          "py-20 border-t border-border/50 transition-all duration-1000 delay-200",
+          valueAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        )}
+      >
         <div className="container">
           <div className="mx-auto max-w-4xl space-y-12">
             <div className="text-center space-y-4">
@@ -132,7 +152,14 @@ export default function Landing() {
       </section>
 
       {/* Feature Showcase */}
-      <section id="features" className="py-20 bg-gradient-to-b from-background to-primary/5">
+      <section 
+        id="features" 
+        ref={featuresAnimation.ref}
+        className={cn(
+          "py-20 bg-gradient-to-b from-background to-primary/5 transition-all duration-1000 delay-300",
+          featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        )}
+      >
         <div className="container">
           <div className="mx-auto max-w-4xl space-y-12">
             <div className="text-center space-y-4">
@@ -209,7 +236,13 @@ export default function Landing() {
       </section>
 
       {/* Screenshot Gallery */}
-      <section className="py-20 border-t border-border/50">
+      <section 
+        ref={galleryAnimation.ref}
+        className={cn(
+          "py-20 border-t border-border/50 transition-all duration-1000 delay-100",
+          galleryAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        )}
+      >
         <div className="container">
           <div className="mx-auto max-w-5xl space-y-12">
             <div className="text-center space-y-4">
@@ -221,15 +254,46 @@ export default function Landing() {
 
             <div className="grid md:grid-cols-2 gap-6">
               {[
-                { title: "Visualize Your Connections", desc: "3D node graph with glowing connections" },
-                { title: "Link Your Thinking", desc: "Zettelkasten cards with bidirectional links" },
-                { title: "Expand Your Ideas", desc: "Infinite whiteboard for brainstorming" },
-                { title: "Find Anything, Instantly", desc: "AI-powered semantic search" }
+                { 
+                  title: "Visualize Your Connections", 
+                  desc: "3D node graph with glowing connections",
+                  screenshot: "graph-view"
+                },
+                { 
+                  title: "Link Your Thinking", 
+                  desc: "Zettelkasten cards with bidirectional links",
+                  screenshot: "zettelkasten"
+                },
+                { 
+                  title: "Expand Your Ideas", 
+                  desc: "Infinite whiteboard for brainstorming",
+                  screenshot: "whiteboard"
+                },
+                { 
+                  title: "Find Anything, Instantly", 
+                  desc: "AI-powered semantic search",
+                  screenshot: "ai-search"
+                }
               ].map((item, i) => (
-                <Card key={i} className="overflow-hidden group hover:shadow-xl transition-all duration-300">
+                <Card 
+                  key={i} 
+                  className={cn(
+                    "overflow-hidden group hover:shadow-xl transition-all duration-500",
+                    galleryAnimation.isVisible 
+                      ? "opacity-100 translate-y-0" 
+                      : "opacity-0 translate-y-10",
+                    `delay-[${i * 100}ms]`
+                  )}
+                >
                   <div className="aspect-video bg-gradient-to-br from-primary/20 via-accent/10 to-background flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.2),transparent_70%)]" />
-                    <Network className="h-16 w-16 text-primary/40 group-hover:text-primary/60 transition-colors" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Network className="h-16 w-16 text-primary/40 group-hover:text-primary/60 transition-colors" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute bottom-4 left-4 right-4 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      Interactive {item.screenshot} view
+                    </div>
                   </div>
                   <CardHeader>
                     <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -243,7 +307,14 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 bg-gradient-to-b from-background to-accent/5">
+      <section 
+        id="pricing" 
+        ref={pricingAnimation.ref}
+        className={cn(
+          "py-20 bg-gradient-to-b from-background to-accent/5 transition-all duration-1000 delay-200",
+          pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        )}
+      >
         <div className="container">
           <div className="mx-auto max-w-5xl space-y-12">
             <div className="text-center space-y-4">
@@ -341,7 +412,13 @@ export default function Landing() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 border-t border-border/50">
+      <section 
+        ref={ctaAnimation.ref}
+        className={cn(
+          "py-20 border-t border-border/50 transition-all duration-1000",
+          ctaAnimation.isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
+        )}
+      >
         <div className="container">
           <div className="mx-auto max-w-3xl text-center space-y-8">
             <div className="space-y-4">
