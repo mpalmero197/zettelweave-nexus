@@ -20,6 +20,7 @@ const LoadingFallback = ({ message = "Loading..." }: { message?: string }) => (
 
 // Lazy load pages to reduce initial bundle size
 const Auth = lazy(() => import("./pages/Auth"));
+const Landing = lazy(() => import("./pages/Landing"));
 const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Install = lazy(() => import("./pages/Install"));
@@ -57,12 +58,17 @@ const App = () => (
                     <Auth />
                   </Suspense>
                 } />
+                <Route path="/landing" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Landing />
+                  </Suspense>
+                } />
                 <Route path="/install" element={
                   <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
                     <Install />
                   </Suspense>
                 } />
-                <Route path="/" element={
+                <Route path="/app" element={
                   <ProtectedRoute>
                     <Suspense fallback={<LoadingFallback message="Loading workspace..." />}>
                       <Index />
@@ -82,6 +88,11 @@ const App = () => (
                       <Subscription />
                     </Suspense>
                   </ProtectedRoute>
+                } />
+                <Route path="/" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Landing />
+                  </Suspense>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={
