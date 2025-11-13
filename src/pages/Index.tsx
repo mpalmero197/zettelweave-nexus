@@ -371,7 +371,7 @@ const Index = () => {
                   aria-label="Export to PDF"
                 >
                   <Download className="h-4 w-4" />
-                  <span className="hidden md:inline">PDF</span>
+                  <span className="sr-only md:not-sr-only">PDF</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -381,7 +381,7 @@ const Index = () => {
                   aria-label="Print cards"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="hidden md:inline">Print</span>
+                  <span className="sr-only md:not-sr-only">Print</span>
                 </Button>
                 <OrganizationMethodDialog
                   currentMethod={organizationMethod}
@@ -397,7 +397,7 @@ const Index = () => {
                   aria-label="AI Recommendations"
                 >
                   <Lightbulb className="h-4 w-4" />
-                  <span className="hidden md:inline">AI Suggest</span>
+                  <span className="sr-only md:not-sr-only">AI Suggest</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -413,7 +413,7 @@ const Index = () => {
                   aria-label="Smart Linking"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span className="hidden md:inline">Smart Links</span>
+                  <span className="sr-only md:not-sr-only">Smart Links</span>
                 </Button>
                 <DeleteAllCardsDialog 
                   onDeleteAll={deleteAllCards}
