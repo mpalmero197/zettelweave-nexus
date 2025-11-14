@@ -11,9 +11,9 @@ export function MobileNavigation({ isAdmin = false }: MobileNavigationProps) {
   const isMobile = useIsMobile();
   
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
+    { icon: Home, label: 'Home', path: '/app' },
     ...(isAdmin ? [{ icon: Shield, label: 'Admin', path: '/admin' }] : []),
-    { icon: Settings, label: 'Settings', path: '/' }, // Will add settings route later
+    { icon: Settings, label: 'Settings', path: '/subscription' },
   ];
   
   // Only render on mobile
@@ -45,7 +45,7 @@ export function MobileNavigation({ isAdmin = false }: MobileNavigationProps) {
                     isActive && 'scale-110'
                   )} 
                 />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="sr-only">{item.label}</span>
               </>
             )}
           </NavLink>
