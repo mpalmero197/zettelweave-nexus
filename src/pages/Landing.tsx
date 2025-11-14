@@ -247,9 +247,9 @@ export default function Landing() {
         <div className="container">
           <div className="mx-auto max-w-5xl space-y-12">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">See Your Mind in 'Neon Noir'</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">See the Platform in Action</h2>
               <p className="text-lg text-muted-foreground">
-                Our 'Futuristic Dark Mode' isn't just a theme, it's a design philosophy built for focus and clarity.
+                Explore the powerful features that make PendragonX the ultimate knowledge management system.
               </p>
             </div>
 
@@ -286,15 +286,12 @@ export default function Landing() {
                     `delay-[${i * 100}ms]`
                   )}
                 >
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 via-accent/10 to-background flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.2),transparent_70%)]" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Network className="h-16 w-16 text-primary/40 group-hover:text-primary/60 transition-colors" />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute bottom-4 left-4 right-4 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      Interactive {item.screenshot} view
-                    </div>
+                  <div className="aspect-video overflow-hidden bg-gradient-to-br from-background to-muted">
+                    <img 
+                      src={`/screenshots/${item.screenshot}.jpg`}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                   </div>
                   <CardHeader>
                     <CardTitle className="text-lg">{item.title}</CardTitle>
