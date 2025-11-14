@@ -5,6 +5,7 @@ import { Network, Brain, Layout, FileText, Check, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
+import pendragonLogo from '@/assets/pendragon-logo.png';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function Landing() {
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/pendragon-logo.png" alt="PendragonX" className="h-8 w-8" />
+            <img src={pendragonLogo} alt="PendragonX" className="h-8 w-8 object-contain" />
             <span className="text-xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
               PendragonX
             </span>
