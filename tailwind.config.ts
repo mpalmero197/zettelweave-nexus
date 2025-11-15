@@ -94,16 +94,6 @@ export default {
 			'glow': 'var(--shadow-glow)',
 			'glow-accent': 'var(--shadow-glow-accent)'
 		},
-		backgroundImage: {
-			'gradient-primary': 'var(--gradient-primary)',
-			'gradient-card': 'var(--gradient-card)',
-			'gradient-accent': 'var(--gradient-accent)',
-			'gradient-glass': 'var(--gradient-glass)',
-			'gradient-glow': 'var(--gradient-glow)',
-			'gradient-forest': 'var(--gradient-forest)',
-			'gradient-ocean': 'var(--gradient-ocean)',
-			'gradient-sunset': 'var(--gradient-sunset)'
-		},
 			backdropBlur: {
 				'xs': '2px',
 			},
