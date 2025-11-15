@@ -154,7 +154,7 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-background">
       <div className="p-6 space-y-8">
         {/* Upgrade Banner for Free Users */}
         {!hasPremium && <UpgradeBanner />}
@@ -162,31 +162,33 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
         {/* Welcome Header */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
-          <div className="relative bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-card hover:shadow-hover transition-all duration-500">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-primary rounded-2xl shadow-lg">
-                    <Sparkles className="h-6 w-6 text-white" />
+          <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary rounded-2xl shadow-material-2">
+                      <Sparkles className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <h1 className="text-4xl font-bold text-foreground">
+                      Welcome back!
+                    </h1>
                   </div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Welcome back!
-                  </h1>
+                  <p className="text-muted-foreground text-lg">Your knowledge universe awaits</p>
                 </div>
-                <p className="text-muted-foreground text-lg">Your knowledge universe awaits</p>
+                <div className="flex gap-3">
+                  <Button 
+                    size="lg" 
+                    className="shadow-material-2 hover:shadow-material-3"
+                    onClick={onCreateCard}
+                  >
+                    <Plus className="h-5 w-5 md:mr-2" />
+                    <span className="hidden md:inline">Quick Create</span>
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                  onClick={onCreateCard}
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Quick Create
-                </Button>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Stats Overview - Glassmorphic Cards */}

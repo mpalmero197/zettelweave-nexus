@@ -165,7 +165,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
   const visibleWidgets = widgets.filter(w => w.isVisible);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen w-full bg-background">
       <div className="w-full max-w-none p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Header with widget toolbox */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
