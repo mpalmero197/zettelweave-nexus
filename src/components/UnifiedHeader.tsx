@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Brain, Sun, Moon, User, Menu, X } from "lucide-react";
+import { Brain, Sun, Moon, User, Menu, X, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -38,6 +38,7 @@ interface UnifiedHeaderProps {
   onSignOut: () => void;
   onAccountSettings: () => void;
   isAdmin: boolean;
+  onSearchClick?: () => void;
 }
 
 export function UnifiedHeader({
@@ -47,6 +48,7 @@ export function UnifiedHeader({
   onSignOut,
   onAccountSettings,
   isAdmin,
+  onSearchClick,
 }: UnifiedHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -105,7 +107,18 @@ export function UnifiedHeader({
 
           {/* Right Actions */}
           <div className="flex items-center space-x-2">
-            {/* Theme Toggle - Always Visible */}
+            {/* Search Icon */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSearchClick}
+              className="h-10 px-3 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
+              aria-label="Search"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+
+            {/* Theme Toggle */}
             <Button
               variant="outline"
               size="sm"

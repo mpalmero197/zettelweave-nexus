@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Brain, Menu } from "lucide-react";
+import { Brain, Menu, Search } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -23,6 +23,7 @@ interface MinimalHeaderProps {
   existingCards: ZettelCard[];
   organizationMethod: OrganizationMethod;
   isAdmin: boolean;
+  onSearchClick?: () => void;
 }
 
 export function MinimalHeader({
@@ -35,6 +36,7 @@ export function MinimalHeader({
   existingCards,
   organizationMethod,
   isAdmin,
+  onSearchClick,
 }: MinimalHeaderProps) {
   const { isOnline } = useOfflineMode();
   
@@ -80,6 +82,17 @@ export function MinimalHeader({
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
+          {onSearchClick && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0"
+              onClick={onSearchClick}
+              aria-label="Search"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          )}
           <FeatureRequestDialog />
           <CreateCardDialog 
             onCreateCard={onCreateCard}
