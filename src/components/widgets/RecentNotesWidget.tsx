@@ -58,7 +58,7 @@ export function RecentNotesWidget({ onOpenNote }: RecentNotesWidgetProps) {
   return (
     <div className="relative h-full">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-2xl blur-xl opacity-50" />
-      <Card className="relative h-full bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
         <CardHeader className="relative">
           <CardTitle className="flex items-center gap-3">

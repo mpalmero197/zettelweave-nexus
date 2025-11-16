@@ -116,7 +116,7 @@ export function QuotesWidget() {
 
   if (!currentQuote) {
     return (
-      <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <CardContent className="p-4 h-full flex items-center justify-center">
           <div className="text-center">
             <Quote className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-pulse" />
@@ -128,7 +128,7 @@ export function QuotesWidget() {
   }
 
   return (
-    <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">

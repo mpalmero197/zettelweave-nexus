@@ -28,7 +28,7 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
   };
 
   return (
-    <Card className="h-full bg-card border border-border rounded-xl overflow-hidden">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">

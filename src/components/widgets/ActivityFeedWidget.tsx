@@ -86,7 +86,7 @@ export function ActivityFeedWidget() {
 
   if (loading) {
     return (
-      <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm">
             <Activity className="h-4 w-4" />
@@ -105,7 +105,7 @@ export function ActivityFeedWidget() {
   }
 
   return (
-    <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Activity className="h-4 w-4" />
