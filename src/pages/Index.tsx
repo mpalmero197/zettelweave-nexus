@@ -326,33 +326,43 @@ const Index = () => {
         existingCards={cards}
         organizationMethod={organizationMethod}
         isAdmin={isAdmin}
+        onSearchClick={() => {
+          setActiveTab("search");
+          // Focus search input if needed
+          setTimeout(() => {
+            const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+            searchInput?.focus();
+          }, 100);
+        }}
       />
 
-      {/* Compact AI Search Bar */}
-      <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 px-3 py-2">
-        <div className="max-w-3xl mx-auto flex items-center gap-2">
-          <AISearchBar 
-            cards={cards} 
-            onSearchResults={(results) => {
-              if (results.query) {
-                handleSearchResults(results);
-              } else {
-                setSearchResults(null);
-                setFilteredCards(results.cards);
-              }
-            }}
-            onQueryChange={setCurrentQuery}
-            className="flex-1"
-          />
-          <SearchHistorySidebar
-            history={history}
-            onRerun={handleRerunSearch}
-            onCombine={handleCombineSearches}
-            onClear={clearHistory}
-            onRemove={removeItem}
-          />
+      {/* Compact AI Search Bar - Only show when on search tab */}
+      {activeTab === "search" && (
+        <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 px-3 py-2">
+          <div className="max-w-3xl mx-auto flex items-center gap-2">
+            <AISearchBar 
+              cards={cards} 
+              onSearchResults={(results) => {
+                if (results.query) {
+                  handleSearchResults(results);
+                } else {
+                  setSearchResults(null);
+                  setFilteredCards(results.cards);
+                }
+              }}
+              onQueryChange={setCurrentQuery}
+              className="flex-1"
+            />
+            <SearchHistorySidebar
+              history={history}
+              onRerun={handleRerunSearch}
+              onCombine={handleCombineSearches}
+              onClear={clearHistory}
+              onRemove={removeItem}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <main className="py-3 px-3 relative" role="main">
