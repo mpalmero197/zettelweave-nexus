@@ -105,11 +105,13 @@ export function UnifiedHeader({
 
           {/* Right Actions */}
           <div className="flex items-center space-x-2">
+            {/* Theme Toggle - Always Visible */}
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 w-10 p-0 rounded-xl hover:bg-muted/50 transition-colors"
+              className="h-10 px-3 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
+              aria-label="Toggle theme"
             >
               {theme === "dark" ? (
                 <Sun className="h-4 w-4" />

@@ -180,11 +180,10 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
                   <Button 
                     size="lg" 
                     variant="default"
-                    className="shadow-material-2 hover:shadow-material-3 bg-primary text-primary-foreground"
                     onClick={onCreateCard}
                   >
-                    <Plus className="h-5 w-5 md:mr-2" />
-                    <span className="hidden md:inline">Quick Create</span>
+                    <Plus className="h-5 w-5" />
+                    <span className="hidden md:inline ml-2">Quick Create</span>
                   </Button>
                 </div>
               </div>
