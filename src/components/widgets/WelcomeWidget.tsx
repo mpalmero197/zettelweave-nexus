@@ -10,7 +10,7 @@ export function WelcomeWidget({ onCreateCard }: WelcomeWidgetProps) {
   return (
     <div className="relative h-full">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
-      <Card className="relative h-full bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl shadow-card hover:shadow-hover transition-all duration-500 overflow-hidden">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
         <CardContent className="relative p-8 h-full flex flex-col justify-between">
           <div className="space-y-4">

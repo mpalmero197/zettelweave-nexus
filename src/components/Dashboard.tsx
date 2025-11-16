@@ -179,7 +179,8 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
                 <div className="flex gap-3">
                   <Button 
                     size="lg" 
-                    className="shadow-material-2 hover:shadow-material-3"
+                    variant="default"
+                    className="shadow-material-2 hover:shadow-material-3 bg-primary text-primary-foreground"
                     onClick={onCreateCard}
                   >
                     <Plus className="h-5 w-5 md:mr-2" />

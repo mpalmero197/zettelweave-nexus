@@ -85,7 +85,7 @@ export function StatsWidget() {
   ];
 
   return (
-    <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
       <CardContent className="p-6 h-full">
         <div className="grid grid-cols-2 gap-4 h-full">
           {statItems.map((stat, index) => (

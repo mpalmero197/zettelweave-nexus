@@ -78,7 +78,7 @@ export function WeatherWidget() {
 
   if (loading) {
     return (
-      <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <CardContent className="p-4 h-full flex items-center justify-center">
           <div className="text-center">
             <Sun className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-pulse" />
@@ -91,7 +91,7 @@ export function WeatherWidget() {
 
   if (error || !weather) {
     return (
-      <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <CardContent className="p-4 h-full flex items-center justify-center">
           <div className="text-center">
             <Cloud className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
@@ -105,7 +105,7 @@ export function WeatherWidget() {
   const WeatherIcon = weatherIcons[weather.icon];
 
   return (
-    <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <WeatherIcon className="h-4 w-4" />

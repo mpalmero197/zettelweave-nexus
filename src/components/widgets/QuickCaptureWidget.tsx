@@ -8,22 +8,18 @@ interface QuickCaptureWidgetProps {
 
 export function QuickCaptureWidget({ onCreateCard }: QuickCaptureWidgetProps) {
   return (
-    <div className="relative h-full">
-      <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-primary/5 to-accent/10 rounded-3xl blur-2xl opacity-40" />
-      <Card className="relative h-full bg-card/70 backdrop-blur-xl border border-border/50 rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent" />
-        <CardHeader className="relative">
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <div className="p-2 bg-gradient-accent rounded-xl">
-              <Edit3 className="h-5 w-5 text-white" />
-            </div>
-            Quick Capture
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative">
-          <ScratchPad onCreateCard={onCreateCard || (() => {})} />
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <div className="p-2 bg-accent rounded-xl">
+            <Edit3 className="h-5 w-5 text-accent-foreground" />
+          </div>
+          Quick Capture
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScratchPad onCreateCard={onCreateCard || (() => {})} />
+      </CardContent>
+    </Card>
   );
 }

@@ -109,7 +109,7 @@ export function CustomNoteWidget() {
 
   if (!currentNote) {
     return (
-      <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
         <CardContent className="p-4 h-full flex items-center justify-center">
           <div className="text-center">
             <StickyNote className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
