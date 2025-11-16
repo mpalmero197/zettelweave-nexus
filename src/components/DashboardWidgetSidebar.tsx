@@ -220,7 +220,7 @@ export function DashboardWidgetSidebar() {
       <SheetTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Settings2 className="h-4 w-4" />
-          <span className="hidden md:inline">Widget Toolbox</span>
+          <span className="hidden md:inline ml-1">Widget Toolbox</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[400px] sm:w-[540px] overflow-y-auto">

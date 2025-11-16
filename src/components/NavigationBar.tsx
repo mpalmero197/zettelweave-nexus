@@ -357,7 +357,7 @@ export function NavigationBar({
                   className="h-9 gap-2"
                 >
                   <Plus className="h-4 w-4" />
-                  <span className="hidden md:inline">Create</span>
+                  <span className="hidden md:inline ml-1">Create</span>
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>

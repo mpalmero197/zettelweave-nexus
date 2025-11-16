@@ -58,8 +58,8 @@ export function FeatureRequestDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Lightbulb className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Request Feature</span>
+          <Lightbulb className="h-4 w-4" />
+          <span className="hidden md:inline ml-2">Request Feature</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
