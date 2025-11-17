@@ -42,12 +42,47 @@ export function FloatingChatBubble() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string; avatar?: string } | null>(null);
   const [totalUnread, setTotalUnread] = useState(0);
+  const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    setIsDragging(true);
+  };
 
   const loadData = async () => {
     await Promise.all([
@@ -179,15 +214,17 @@ export function FloatingChatBubble() {
 
   return (
     <>
-      {/* Floating Chat Bubble - Fixed to viewport */}
+      {/* Floating Chat Bubble - Draggable */}
       <div 
         className="flex flex-col items-end gap-3" 
         style={{ 
           position: 'fixed', 
-          bottom: '1.5rem', 
-          right: '1.5rem', 
-          zIndex: 9999 
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          zIndex: 9999,
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
+        onMouseDown={handleMouseDown}
       >
         {isOpen && (
           <Card className="w-96 shadow-2xl border-2 glass-card animate-fade-in-up">

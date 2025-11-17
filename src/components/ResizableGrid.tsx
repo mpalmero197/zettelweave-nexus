@@ -259,7 +259,7 @@ export function ResizableGrid({
           className="flex items-center gap-2"
         >
           <Grid3X3 className="h-4 w-4" />
-          Reset Layout
+          <span className="hidden md:inline">Reset Layout</span>
         </Button>
         
         <div className="text-xs text-muted-foreground">

@@ -191,7 +191,7 @@ export function ContentSummarizer() {
                   className="ml-auto"
                 >
                   <BookOpen className="h-3 w-3 mr-1" />
-                  Create Card
+                  <span className="hidden md:inline">Create Card</span>
                 </Button>
               </div>
             </CardContent>

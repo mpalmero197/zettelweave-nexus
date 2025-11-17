@@ -202,7 +202,7 @@ export function WordDefinitionPopover({ word, position, onClose, onCreateCard, c
                   className="bg-gradient-accent hover:bg-accent-hover"
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Create Card
+                  <span className="hidden md:inline">Create Card</span>
                 </Button>
               </div>
             </>
