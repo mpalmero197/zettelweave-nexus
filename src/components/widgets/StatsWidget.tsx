@@ -5,6 +5,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+interface StatsWidgetProps {
+  onNavigate?: (tab: string) => void;
+}
+
 interface Stats {
   cards: number;
   notes: number;
@@ -12,7 +16,7 @@ interface Stats {
   todaysEvents: number;
 }
 
-export function StatsWidget() {
+export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
   const { cards } = useZettelCards();
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({
@@ -56,7 +60,8 @@ export function StatsWidget() {
       icon: Brain, 
       color: 'primary',
       gradientFrom: 'primary/20',
-      gradientTo: 'primary/10'
+      gradientTo: 'primary/10',
+      tab: 'cards'
     },
     { 
       label: 'Notes', 
@@ -64,7 +69,8 @@ export function StatsWidget() {
       icon: FileText, 
       color: 'blue-600',
       gradientFrom: 'blue-500/20',
-      gradientTo: 'blue-500/10'
+      gradientTo: 'blue-500/10',
+      tab: 'notes'
     },
     { 
       label: 'Notebooks', 
@@ -72,7 +78,8 @@ export function StatsWidget() {
       icon: BookOpen, 
       color: 'green-600',
       gradientFrom: 'green-500/20',
-      gradientTo: 'green-500/10'
+      gradientTo: 'green-500/10',
+      tab: 'notebooks'
     },
     { 
       label: "Today's Events", 
@@ -80,7 +87,8 @@ export function StatsWidget() {
       icon: Calendar, 
       color: 'orange-600',
       gradientFrom: 'orange-500/20',
-      gradientTo: 'orange-500/10'
+      gradientTo: 'orange-500/10',
+      tab: 'calendar'
     }
   ];
 
@@ -89,9 +97,13 @@ export function StatsWidget() {
       <CardContent className="p-6 h-full">
         <div className="grid grid-cols-2 gap-4 h-full">
           {statItems.map((stat, index) => (
-            <div key={stat.label} className="group relative">
+            <button
+              key={stat.label}
+              onClick={() => onNavigate?.(stat.tab)}
+              className="group relative text-left w-full cursor-pointer"
+            >
               <div className={`absolute inset-0 bg-gradient-to-br from-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/10 to-transparent rounded-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500`} />
-              <div className={`relative h-full p-4 rounded-xl border border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/20 bg-background/50 backdrop-blur-sm transition-all duration-300 hover:border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/40`}>
+              <div className={`relative h-full p-4 rounded-xl border border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/20 bg-background/50 backdrop-blur-sm transition-all duration-300 hover:border-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/40 hover:scale-105`}>
                 <div className="flex items-center justify-between h-full">
                   <div className="space-y-2">
                     <div className={`p-2 bg-${stat.color === 'primary' ? 'primary' : stat.color.split('-')[0] + '-500'}/10 rounded-lg group-hover:scale-105 transition-transform duration-300 w-fit`}>
@@ -104,7 +116,7 @@ export function StatsWidget() {
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </CardContent>
