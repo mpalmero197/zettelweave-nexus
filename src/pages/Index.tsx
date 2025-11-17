@@ -443,6 +443,7 @@ const Index = () => {
                     onOpenNote={(note) => {
                       setActiveTab("notes");
                     }}
+                    onNavigate={(tab) => setActiveTab(tab)}
                   />
                 </TabsContent>
 

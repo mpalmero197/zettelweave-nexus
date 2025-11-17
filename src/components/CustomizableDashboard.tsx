@@ -29,6 +29,7 @@ interface CustomizableDashboardProps {
   onCreateCard?: (card: any) => void;
   onEdit?: (item: any) => void;
   onOpenNote?: (note: any) => void;
+  onNavigate?: (tab: string) => void;
 }
 
 interface Note {
@@ -40,7 +41,7 @@ interface Note {
   updated_at: string;
 }
 
-export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: CustomizableDashboardProps) {
+export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavigate }: CustomizableDashboardProps) {
   const { widgets, isLoading, removeWidget, updateWidget, saveLayout } = useDashboardLayout();
 
   const renderWidget = (widget: DashboardWidget) => {
@@ -69,7 +70,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote }: Cust
           return <WelcomeWidget onCreateCard={() => onCreateCard?.({})} />;
         
         case 'stats':
-          return <StatsWidget />;
+          return <StatsWidget onNavigate={onNavigate} />;
         
         case 'recent-cards':
           return <RecentCardsWidget onEdit={onEdit} />;

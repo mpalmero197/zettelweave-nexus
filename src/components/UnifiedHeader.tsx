@@ -118,12 +118,12 @@ export function UnifiedHeader({
               <Search className="h-4 w-4" />
             </Button>
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle - Always Visible */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 w-10 p-0 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
+              className="h-10 w-10 p-0 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors flex items-center justify-center"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
