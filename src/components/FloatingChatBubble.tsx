@@ -210,6 +210,42 @@ export function FloatingChatBubble() {
     }
   };
 
+  // Calculate panel position based on bubble location
+  const getPanelPosition = () => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const panelWidth = 384; // w-96 = 24rem = 384px
+    const panelHeight = 500; // approximate height
+    
+    // Determine if bubble is in right half or left half
+    const isRight = position.x > viewportWidth / 2;
+    const isBottom = position.y > viewportHeight / 2;
+    
+    // Position panel opposite to bubble position
+    let left = 'auto';
+    let right = 'auto';
+    let top = 'auto';
+    let bottom = 'auto';
+    
+    if (isRight) {
+      // Bubble on right, panel on left
+      right = `${viewportWidth - position.x}px`;
+    } else {
+      // Bubble on left, panel on right
+      left = `${position.x + 60}px`; // 60px = bubble width
+    }
+    
+    if (isBottom) {
+      // Bubble on bottom, panel above
+      bottom = `${viewportHeight - position.y}px`;
+    } else {
+      // Bubble on top, panel below
+      top = `${position.y + 60}px`; // 60px = bubble height
+    }
+    
+    return { left, right, top, bottom };
+  };
+
   const totalBadgeCount = totalUnread + friendRequests.length;
 
   return (
@@ -227,7 +263,14 @@ export function FloatingChatBubble() {
         onMouseDown={handleMouseDown}
       >
         {isOpen && (
-          <Card className="w-96 shadow-2xl border-2 glass-card animate-fade-in-up">
+          <Card 
+            className="w-96 shadow-2xl border-2 glass-card animate-fade-in-up"
+            style={{
+              position: 'fixed',
+              ...getPanelPosition(),
+              zIndex: 9998,
+            }}
+          >
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg font-semibold">Messages & Friends</CardTitle>
               <Button

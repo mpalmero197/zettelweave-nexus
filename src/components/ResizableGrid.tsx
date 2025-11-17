@@ -25,7 +25,7 @@ export function ResizableGrid({
   isResizable = true,
   className = ""
 }: ResizableGridProps) {
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(true);
   const [layouts, setLayouts] = useState<{ [key: string]: Layout[] }>({});
 
   // Convert widgets to grid layout format
