@@ -298,7 +298,8 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                   disabled={isCreatingCard}
                   className="h-8 text-xs"
                 >
-                  {isCreatingCard ? 'Creating...' : 'Create Card'}
+                  <span className="hidden md:inline">{isCreatingCard ? 'Creating...' : 'Create Card'}</span>
+                  <span className="md:hidden">{isCreatingCard ? '...' : 'Create'}</span>
                 </Button>
                 <Button
                   variant="ghost"

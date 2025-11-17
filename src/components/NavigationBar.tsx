@@ -364,7 +364,8 @@ export function NavigationBar({
               <DropdownMenuContent align="start" className="w-48 bg-popover/95 backdrop-blur-sm border-border/60">
                 <DropdownMenuItem onClick={onCreateNote}>
                   <BookOpen className="h-4 w-4 mr-2" />
-                  New Note
+                  <span className="hidden md:inline">New Note</span>
+                  <span className="md:hidden sr-only">New Note</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onCreateWhiteboard}>
                   <Palette className="h-4 w-4 mr-2" />

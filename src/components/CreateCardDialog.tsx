@@ -202,7 +202,10 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Create Card</DialogTitle>
+          <DialogTitle className="text-xl">
+            <span className="hidden md:inline">Create Card</span>
+            <span className="md:hidden">New Card</span>
+          </DialogTitle>
           <DialogDescription>
             Create a new knowledge card to add to your collection. Fill in the details below.
           </DialogDescription>

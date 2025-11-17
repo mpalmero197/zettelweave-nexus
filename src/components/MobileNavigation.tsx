@@ -13,7 +13,7 @@ export function MobileNavigation({ isAdmin = false }: MobileNavigationProps) {
   const navItems = [
     { icon: Home, label: 'Home', path: '/app' },
     ...(isAdmin ? [{ icon: Shield, label: 'Admin', path: '/admin' }] : []),
-    { icon: Settings, label: 'Settings', path: '/subscription' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
   
   // Only render on mobile

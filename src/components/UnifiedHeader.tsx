@@ -123,7 +123,7 @@ export function UnifiedHeader({
               variant="outline"
               size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 px-3 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
+              className="h-10 w-10 p-0 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
