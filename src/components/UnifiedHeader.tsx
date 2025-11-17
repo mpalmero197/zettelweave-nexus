@@ -107,12 +107,12 @@ export function UnifiedHeader({
 
           {/* Right Actions */}
           <div className="flex items-center space-x-2">
-            {/* Search Icon */}
+            {/* Search Icon - Desktop Only */}
             <Button
               variant="outline"
               size="sm"
               onClick={onSearchClick}
-              className="h-10 px-3 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
+              className="hidden md:flex h-10 px-3 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
