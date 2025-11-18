@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Draggable from 'react-draggable';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { X, Plus, Palette, Pin, PinOff } from 'lucide-react';
+import { X, Plus, Palette, Pin, PinOff, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDraggable } from '@/hooks/useDraggable';
 
 interface StickyNote {
   id: string;
@@ -131,85 +131,96 @@ export const StickyNotesSimple: React.FC = () => {
 
   return (
     <>
-      <div className="relative w-full h-full">
-        {notes.map((note) => (
-          <Draggable
-            key={note.id}
-            defaultPosition={note.position}
-            onStop={(_, data) => updateNotePosition(note.id, { x: data.x, y: data.y })}
-            nodeRef={nodeRef}
-            disabled={isMobile}
-          >
-            <Card
-              ref={nodeRef}
-              className={`absolute shadow-lg border-0 transition-all duration-200 hover:shadow-xl ${
-                note.alwaysOnTop ? 'z-50' : 'z-10'
-              } ${isMobile ? 'w-72 h-40 cursor-default' : 'w-64 h-48 cursor-move'}`}
-              style={{ 
-                backgroundColor: note.color,
-                color: getTextColor(note.color)
-              }}
-            >
-              <CardContent className="p-3 h-full flex flex-col">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex gap-1">
+      <div className="relative w-full h-full overflow-hidden">
+        {notes.map((note) => {
+          const NoteCard = () => {
+            const cardRef = useRef<HTMLDivElement>(null);
+            const draggable = useDraggable(cardRef, {
+              disabled: false,
+              onDragEnd: (position) => updateNotePosition(note.id, position),
+            });
+
+            useEffect(() => {
+              draggable.setPosition(note.position);
+            }, []);
+
+            return (
+              <Card
+                ref={cardRef}
+                className={`absolute shadow-lg border-0 transition-all duration-200 hover:shadow-xl touch-manipulation ${
+                  note.alwaysOnTop ? 'z-50' : 'z-10'
+                } w-64 md:w-72 h-48 md:h-52`}
+                style={{ 
+                  backgroundColor: note.color,
+                  color: getTextColor(note.color),
+                  ...draggable.style,
+                }}
+              >
+                <CardContent className="p-3 h-full flex flex-col">
+                  <div className="flex justify-between items-start mb-2 drag-handle cursor-grab active:cursor-grabbing touch-manipulation">
+                    <div className="flex gap-1 items-center">
+                      <GripVertical className="h-4 w-4 opacity-50" style={{ color: getToolsColor(note.color) }} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 rounded-full hover:bg-white/20 transition-colors touch-manipulation"
+                        style={{ color: getToolsColor(note.color) }}
+                        onClick={() => {
+                          const currentIndex = colors.indexOf(note.color);
+                          const nextIndex = (currentIndex + 1) % colors.length;
+                          updateNoteColor(note.id, colors[nextIndex]);
+                        }}
+                        aria-label="Change color"
+                      >
+                        <Palette className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 rounded-full hover:bg-white/20 transition-colors touch-manipulation"
+                        style={{ color: getToolsColor(note.color) }}
+                        onClick={() => toggleAlwaysOnTop(note.id)}
+                        aria-label={note.alwaysOnTop ? "Unpin note" : "Pin note"}
+                      >
+                        {note.alwaysOnTop ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                      </Button>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 rounded-full hover:bg-white/20 transition-colors"
+                      className="h-7 w-7 p-0 rounded-full hover:bg-white/20 transition-colors touch-manipulation"
                       style={{ color: getToolsColor(note.color) }}
-                      onClick={() => {
-                        const currentIndex = colors.indexOf(note.color);
-                        const nextIndex = (currentIndex + 1) % colors.length;
-                        updateNoteColor(note.id, colors[nextIndex]);
-                      }}
-                      title="Change color"
+                      onClick={() => deleteNote(note.id)}
+                      aria-label="Delete note"
                     >
-                      <Palette className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 rounded-full hover:bg-white/20 transition-colors"
-                      style={{ color: getToolsColor(note.color) }}
-                      onClick={() => toggleAlwaysOnTop(note.id)}
-                      title={note.alwaysOnTop ? "Remove from always on top" : "Keep always on top"}
-                    >
-                      {note.alwaysOnTop ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 rounded-full hover:bg-white/20 transition-colors"
+                  <Textarea
+                    placeholder="Write your note..."
+                    value={note.content}
+                    onChange={(e) => updateNoteContent(note.id, e.target.value)}
+                    className="flex-1 resize-none border-0 bg-transparent placeholder:opacity-60 focus:ring-0 text-sm md:text-base"
+                    style={{ color: getTextColor(note.color) }}
+                  />
+                  <div 
+                    className="text-xs opacity-70 mt-2"
                     style={{ color: getToolsColor(note.color) }}
-                    onClick={() => deleteNote(note.id)}
-                    title="Delete note"
                   >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-                <Textarea
-                  placeholder="Write your note..."
-                  value={note.content}
-                  onChange={(e) => updateNoteContent(note.id, e.target.value)}
-                  className="flex-1 resize-none border-0 bg-transparent placeholder:opacity-60 focus:ring-0 text-sm"
-                  style={{ color: getTextColor(note.color) }}
-                />
-                <div 
-                  className="text-xs opacity-70 mt-2"
-                  style={{ color: getToolsColor(note.color) }}
-                >
-                  {note.timestamp}
-                </div>
-              </CardContent>
-            </Card>
-          </Draggable>
-        ))}
+                    {note.timestamp}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          };
+
+          return <NoteCard key={note.id} />;
+        })}
 
         <Button
           onClick={addNote}
-          className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-14 w-14 shadow-lg z-50`}
+          className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-14 w-14 shadow-lg z-50 touch-manipulation`}
+          aria-label="Add new sticky note"
         >
           <Plus className="h-6 w-6" />
         </Button>
