@@ -175,16 +175,16 @@
   .material-shadow-4 { box-shadow: var(--shadow-4); }
   .material-shadow-5 { box-shadow: var(--shadow-5); }
   
-  /* Mobile-first: Better button and link touch targets */
+  /* Mobile-first: Better button and link touch targets - WCAG 2.2 Level AAA */
   button, a, [role="button"] {
-    min-height: 44px; /* iOS recommended minimum */
+    min-height: 44px; /* iOS recommended minimum, WCAG AAA compliant */
     min-width: 44px;
     touch-action: manipulation;
   }
   
-  /* Mobile input optimization */
+  /* Mobile input optimization - prevent zoom and improve UX */
   input, textarea, select {
-    font-size: 16px; /* Prevent zoom on iOS */
+    font-size: 16px; /* Prevent auto-zoom on iOS */
     -webkit-appearance: none;
     appearance: none;
   }
@@ -193,6 +193,30 @@
   .scroll-container {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+  }
+  
+  /* Reduce motion for users who prefer it - WCAG compliance */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  
+  /* High contrast mode support - WCAG AAA */
+  @media (prefers-contrast: high) {
+    * {
+      border-width: 2px !important;
+      outline-width: 3px !important;
+    }
+  }
+  
+  /* Focus indicators for keyboard navigation - WCAG 2.1 */
+  *:focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 }
 
@@ -345,40 +369,77 @@
   
   /* Touch-friendly cards and navigation on mobile only */
   @media (max-width: 767px) {
-    .card, .glass-card {
-      @apply rounded-2xl p-4 shadow-lg;
-      min-height: var(--touch-target);
+    /* Performance optimization - reduce repaints */
+    * {
+      -webkit-tap-highlight-color: transparent;
     }
     
-    /* Larger tap targets on mobile */
+    .card, .glass-card {
+      @apply rounded-2xl p-4 shadow-md;
+      min-height: var(--touch-target);
+      /* Optimize for mobile performance */
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    
+    /* Larger tap targets on mobile - WCAG 2.2 compliant */
     button, a[role="button"], .clickable {
       @apply p-3 rounded-xl;
-      min-height: var(--touch-target);
+      min-height: 48px; /* Exceeds WCAG AAA requirements */
+      min-width: 48px;
     }
     
-    /* Mobile main content padding */
+    /* Mobile main content padding with safe area */
     main, .main-content, [role="main"] {
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 72px); /* Account for bottom nav */
+      padding-top: env(safe-area-inset-top);
     }
     
-    /* Mobile modals and dialogs */
+    /* Mobile modals and dialogs - Material Design */
     [role="dialog"], .dialog {
       @apply rounded-t-3xl;
       max-height: 90dvh;
       bottom: 0;
       position: fixed;
+      /* Smooth sheet animation */
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* Mobile form inputs */
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+    
+    /* Mobile form inputs - better UX */
     input, textarea, select {
       @apply text-base p-4 rounded-xl;
-      min-height: var(--touch-target);
+      min-height: 48px;
+      /* Prevent zoom while typing */
+      font-size: 16px;
     }
     
-    /* Mobile scroll optimization */
+    /* Mobile scroll optimization - smoother scrolling */
     .scroll-area {
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    /* Optimize image loading on mobile */
+    img {
+      content-visibility: auto;
+      loading: lazy;
+    }
+    
+    /* Reduce motion on mobile for better performance */
+    @media (prefers-reduced-motion: no-preference) {
+      * {
+        scroll-behavior: smooth;
+      }
     }
   }
   
@@ -428,5 +489,38 @@
   body {
     overflow-x: hidden;
     max-width: 100vw;
+  }
+  
+  /* Safe area insets for mobile devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* Performance optimization - GPU acceleration */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  
+  /* Skip to main content link - WCAG 2.1 */
+  .skip-to-main {
+    position: absolute;
+    top: -100%;
+    left: 0;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 1rem 2rem;
+    z-index: 9999;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
+  .skip-to-main:focus {
+    top: 0;
   }
 }

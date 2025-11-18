@@ -71,88 +71,87 @@ export function UnifiedHeader({
   ];
 
   return (
-    <header className="bg-card/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm">
-      <div className="container mx-auto px-4 py-3">
+    <header 
+      className="bg-card/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm"
+      role="banner"
+    >
+      <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
         <div className="flex items-center justify-between">
           {/* Logo & Brand */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3">
             <img 
               src={pendragonLogo} 
-              alt="Pendragon Logo" 
-              className="h-10 w-10 object-contain"
+              alt="Pendragon logo" 
+              className="h-8 w-8 md:h-10 md:w-10 object-contain"
+              loading="lazy"
             />
             <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-foreground">PendragonX</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-base md:text-lg font-bold text-foreground">PendragonX</h1>
+              <p className="text-[10px] md:text-xs text-muted-foreground">
                 Advanced Knowledge System
               </p>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
+          <nav 
+            className="hidden lg:flex items-center space-x-1 flex-1 justify-center"
+            role="navigation"
+            aria-label="Main navigation"
+          >
             {navItems.map(({ id, icon: Icon }) => (
               <Button
                 key={id}
                 variant={activeTab === id ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onTabChange(id)}
-                className="h-9 w-9 p-0 rounded-lg transition-all"
-                aria-label={id.charAt(0).toUpperCase() + id.slice(1)}
+                className="h-9 w-9 p-0 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`Navigate to ${id.charAt(0).toUpperCase() + id.slice(1)}`}
+                aria-current={activeTab === id ? 'page' : undefined}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden="true" />
               </Button>
             ))}
           </nav>
 
           {/* Right Actions */}
-          <div className="flex items-center space-x-2">
-            {/* Search Icon - Desktop Only */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSearchClick}
-              className="hidden md:flex h-10 px-3 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors"
-              aria-label="Search"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-
+          <div className="flex items-center gap-1 md:gap-2">
             {/* Theme Toggle - Always Visible */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 w-10 p-0 rounded-xl border border-border/50 hover:bg-accent/50 transition-colors flex items-center justify-center"
-              aria-label="Toggle theme"
+              className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-lg border border-border/50 hover:bg-accent/50 transition-all touch-manipulation"
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
               {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
+                <Sun className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <Moon className="h-4 w-4" />
+                <Moon className="h-4 w-4" aria-hidden="true" />
               )}
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-10 w-10 p-0 rounded-xl hover:bg-muted/50 transition-colors"
+                  className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-lg border border-border/50 hover:bg-accent/50 transition-all touch-manipulation"
+                  aria-label="User menu"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-card/95 backdrop-blur-sm border-border/60"
+                className="bg-card/95 backdrop-blur-sm border-border/60 w-56"
               >
-                <DropdownMenuItem disabled className="text-xs">
+                <DropdownMenuItem disabled className="text-xs font-medium">
                   {user?.email}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onAccountSettings}>
-                  <Settings className="h-4 w-4 mr-2" />
+                  <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
                   Account Settings
                 </DropdownMenuItem>
                 {isAdmin && (
@@ -160,7 +159,7 @@ export function UnifiedHeader({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="w-full flex items-center">
-                        <Shield className="h-4 w-4 mr-2" />
+                        <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
                         Admin Panel
                       </Link>
                     </DropdownMenuItem>
@@ -169,9 +168,9 @@ export function UnifiedHeader({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={onSignOut}
-                  className="text-destructive"
+                  className="text-destructive focus:text-destructive"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
+                  <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -183,9 +182,10 @@ export function UnifiedHeader({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-10 w-10 p-0 rounded-xl"
+                  className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-lg touch-manipulation"
+                  aria-label="Open mobile menu"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-72 flex flex-col">
