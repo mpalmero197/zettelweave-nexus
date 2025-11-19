@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Brain, Menu, Search } from "lucide-react";
+import { Brain, Menu, Search, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Sheet,
   SheetContent,
@@ -39,6 +40,7 @@ export function MinimalHeader({
   onSearchClick,
 }: MinimalHeaderProps) {
   const { isOnline } = useOfflineMode();
+  const { theme, setTheme } = useTheme();
   
   return (
     <header className="h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -93,6 +95,16 @@ export function MinimalHeader({
               <Search className="h-4 w-4" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
           <FeatureRequestDialog />
           <CreateCardDialog 
             onCreateCard={onCreateCard}
