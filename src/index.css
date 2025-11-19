@@ -76,6 +76,13 @@
     --shadow-glow: 0 0 40px hsl(271 76% 53% / 0.25);
     --shadow-glow-accent: 0 0 40px hsl(346 60% 49% / 0.25);
     
+    /* Material Design elevation shadows */
+    --shadow-material-1: 0 2px 4px hsl(0 0% 0% / 0.04), 0 1px 2px hsl(0 0% 0% / 0.06);
+    --shadow-material-2: 0 4px 8px hsl(0 0% 0% / 0.06), 0 2px 4px hsl(0 0% 0% / 0.08);
+    --shadow-material-3: 0 8px 16px hsl(0 0% 0% / 0.08), 0 4px 8px hsl(0 0% 0% / 0.1);
+    --shadow-material-4: 0 12px 24px hsl(0 0% 0% / 0.1), 0 6px 12px hsl(0 0% 0% / 0.12);
+    --shadow-material-5: 0 16px 32px hsl(0 0% 0% / 0.12), 0 8px 16px hsl(0 0% 0% / 0.14);
+    
     /* Gradients - light mode */
     --gradient-primary: linear-gradient(135deg, hsl(271 76% 53%), hsl(346 60% 49%));
     --gradient-secondary: linear-gradient(135deg, hsl(346 60% 49%), hsl(320 65% 52%));
@@ -130,6 +137,13 @@
     --shadow-glow: 0 0 50px hsl(271 80% 58% / 0.5);
     --shadow-glow-accent: 0 0 50px hsl(346 65% 52% / 0.5);
     
+    /* Material Design elevation shadows - dark mode */
+    --shadow-material-1: 0 2px 4px hsl(0 0% 0% / 0.2), 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-material-2: 0 4px 8px hsl(0 0% 0% / 0.3), 0 2px 4px hsl(0 0% 0% / 0.4);
+    --shadow-material-3: 0 8px 16px hsl(0 0% 0% / 0.4), 0 4px 8px hsl(0 0% 0% / 0.5);
+    --shadow-material-4: 0 12px 24px hsl(0 0% 0% / 0.5), 0 6px 12px hsl(0 0% 0% / 0.6);
+    --shadow-material-5: 0 16px 32px hsl(0 0% 0% / 0.6), 0 8px 16px hsl(0 0% 0% / 0.7);
+    
     /* Gradients - dark mode */
     --gradient-primary: linear-gradient(135deg, hsl(271 80% 58%), hsl(346 65% 52%));
     --gradient-secondary: linear-gradient(135deg, hsl(346 65% 52%), hsl(320 70% 55%));
@@ -176,11 +190,11 @@
     @apply glass rounded-2xl;
   }
 
-  .material-shadow-1 { box-shadow: var(--shadow-1); }
-  .material-shadow-2 { box-shadow: var(--shadow-2); }
-  .material-shadow-3 { box-shadow: var(--shadow-3); }
-  .material-shadow-4 { box-shadow: var(--shadow-4); }
-  .material-shadow-5 { box-shadow: var(--shadow-5); }
+  .shadow-material-1 { box-shadow: var(--shadow-material-1); }
+  .shadow-material-2 { box-shadow: var(--shadow-material-2); }
+  .shadow-material-3 { box-shadow: var(--shadow-material-3); }
+  .shadow-material-4 { box-shadow: var(--shadow-material-4); }
+  .shadow-material-5 { box-shadow: var(--shadow-material-5); }
   
   /* Mobile-first: Better button and link touch targets - WCAG 2.2 Level AAA */
   button, a, [role="button"] {
