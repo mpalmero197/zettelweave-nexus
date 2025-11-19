@@ -2,7 +2,7 @@ import * as React from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
-// Unified Card Design System - Consistent across all components
+// Unified Card Design System - Beautiful styling inspired by WelcomeWidget
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -14,11 +14,9 @@ const Card = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "rounded-2xl bg-card text-card-foreground border border-border/50",
-        "transition-all duration-200 gpu-accelerate",
-        isMobile 
-          ? "shadow-md hover:shadow-lg" 
-          : "shadow-card hover:shadow-hover",
+        "rounded-2xl bg-card text-card-foreground",
+        "glass-card shadow-material-2 hover:shadow-material-3",
+        "transition-all duration-300 gpu-accelerate",
         className
       )}
       {...props}
@@ -47,6 +45,7 @@ const CardTitle = React.forwardRef<
     ref={ref}
     className={cn(
       "text-lg md:text-2xl font-semibold leading-none tracking-tight",
+      "bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent",
       className
     )}
     {...props}
@@ -60,7 +59,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-muted-foreground leading-relaxed", className)}
     {...props}
   />
 ))
@@ -72,7 +71,7 @@ const CardContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div 
     ref={ref} 
-    className={cn("p-4 md:p-6 pt-0", className)} 
+    className={cn("p-4 md:p-6 pt-0 relative", className)} 
     {...props} 
   />
 ))
