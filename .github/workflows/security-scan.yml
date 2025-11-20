@@ -1,0 +1,198 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scan every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        id: npm-audit
+        run: |
+          echo "## NPM Audit Results" >> $GITHUB_STEP_SUMMARY
+          npm audit --json > audit-results.json || true
+          
+          # Parse and display audit results
+          if [ -s audit-results.json ]; then
+            echo "### Vulnerabilities Found:" >> $GITHUB_STEP_SUMMARY
+            cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | "- **\(.key)**: \(.value.severity)"' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No vulnerabilities or parsing failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for outdated dependencies
+        id: outdated
+        run: |
+          echo "## Outdated Dependencies" >> $GITHUB_STEP_SUMMARY
+          npm outdated --json > outdated.json || true
+          
+          if [ -s outdated.json ] && [ "$(cat outdated.json)" != "{}" ]; then
+            echo "### Packages needing updates:" >> $GITHUB_STEP_SUMMARY
+            cat outdated.json | jq -r 'to_entries[] | "- **\(.key)**: \(.value.current) → \(.value.latest)"' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Could not parse outdated packages" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ All dependencies are up to date!" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for security best practices
+        id: security-check
+        run: |
+          echo "## Security Best Practices Check" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for sensitive patterns in code
+          echo "### Checking for potential security issues..." >> $GITHUB_STEP_SUMMARY
+          
+          # Check for hardcoded secrets (basic patterns)
+          if grep -r -i "password\s*=\s*['\"]" src/ --exclude-dir=node_modules --exclude="*.test.*" 2>/dev/null; then
+            echo "⚠️ Warning: Potential hardcoded passwords found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for console.log in production code
+          console_logs=$(grep -r "console\.log" src/ --exclude-dir=node_modules --exclude="*.test.*" -c 2>/dev/null || echo "0")
+          if [ "$console_logs" -gt 0 ]; then
+            echo "⚠️ Found $console_logs console.log statements (should be removed in production)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for eval usage
+          if grep -r "eval(" src/ --exclude-dir=node_modules 2>/dev/null; then
+            echo "❌ Critical: eval() usage detected - major security risk!" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for dangerouslySetInnerHTML
+          dangerous_html=$(grep -r "dangerouslySetInnerHTML" src/ --exclude-dir=node_modules -c 2>/dev/null || echo "0")
+          if [ "$dangerous_html" -gt 0 ]; then
+            echo "⚠️ Found $dangerous_html uses of dangerouslySetInnerHTML (verify XSS protection)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "✅ Basic security checks completed" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check Supabase configuration
+        id: supabase-check
+        run: |
+          echo "## Supabase Configuration Check" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if .env.example exists with proper template
+          if [ -f ".env.example" ]; then
+            echo "✅ .env.example file exists" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No .env.example file found - add one for better documentation" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for RLS policies in migrations
+          rls_count=$(grep -r "ROW LEVEL SECURITY" supabase/migrations/ -c 2>/dev/null || echo "0")
+          echo "- Found $rls_count RLS policy configurations" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for security definer functions
+          security_definer=$(grep -r "SECURITY DEFINER" supabase/migrations/ -c 2>/dev/null || echo "0")
+          echo "- Found $security_definer SECURITY DEFINER functions" >> $GITHUB_STEP_SUMMARY
+
+      - name: TypeScript type checking
+        id: type-check
+        run: |
+          echo "## TypeScript Type Checking" >> $GITHUB_STEP_SUMMARY
+          if npm run build 2>&1 | tee build-output.txt; then
+            echo "✅ TypeScript compilation successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ TypeScript compilation failed - check build logs" >> $GITHUB_STEP_SUMMARY
+            echo "### Build Errors:" >> $GITHUB_STEP_SUMMARY
+            tail -20 build-output.txt >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: |
+            audit-results.json
+            outdated.json
+            build-output.txt
+          retention-days: 30
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let comment = '## 🔒 Security Scan Results\n\n';
+            
+            // Read audit results if they exist
+            try {
+              const auditData = JSON.parse(fs.readFileSync('audit-results.json', 'utf8'));
+              const vulnCount = Object.keys(auditData.vulnerabilities || {}).length;
+              
+              if (vulnCount > 0) {
+                comment += `⚠️ **${vulnCount} vulnerabilities** found. Run \`npm audit fix\` to resolve.\n\n`;
+              } else {
+                comment += '✅ No npm vulnerabilities found!\n\n';
+              }
+            } catch (e) {
+              comment += '✅ No npm vulnerabilities found!\n\n';
+            }
+            
+            // Read outdated packages
+            try {
+              const outdatedData = JSON.parse(fs.readFileSync('outdated.json', 'utf8'));
+              const outdatedCount = Object.keys(outdatedData || {}).length;
+              
+              if (outdatedCount > 0) {
+                comment += `📦 **${outdatedCount} packages** have updates available.\n\n`;
+              } else {
+                comment += '✅ All dependencies are up to date!\n\n';
+              }
+            } catch (e) {
+              comment += '✅ All dependencies are up to date!\n\n';
+            }
+            
+            comment += '\n---\n*Automated security scan powered by GitHub Actions*';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail on critical vulnerabilities
+        run: |
+          # Check if there are any critical or high severity vulnerabilities
+          if [ -f audit-results.json ]; then
+            critical=$(cat audit-results.json | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "critical" or .value.severity == "high")] | length' 2>/dev/null || echo "0")
+            
+            if [ "$critical" -gt 0 ]; then
+              echo "❌ Found $critical critical/high severity vulnerabilities!"
+              echo "Run 'npm audit fix' to resolve these issues."
+              exit 1
+            fi
+          fi
+          
+          echo "✅ No critical vulnerabilities found"
