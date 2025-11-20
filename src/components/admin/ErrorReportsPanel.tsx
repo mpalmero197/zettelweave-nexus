@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp } from "lucide-react";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -31,6 +31,7 @@ export function ErrorReportsPanel() {
   const [errors, setErrors] = useState<ErrorReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<number>(7);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchErrors();
@@ -87,6 +88,78 @@ export function ErrorReportsPanel() {
       info: "default",
     };
     return <Badge variant={variants[severity] || "default"}>{severity}</Badge>;
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        total_errors: errors.length,
+        total_occurrences: errors.reduce((sum, e) => sum + e.occurrence_count, 0),
+        errors: errors.map(error => ({
+          id: error.id,
+          type: error.error_type,
+          message: error.error_message,
+          severity: error.severity,
+          status: error.status,
+          filename: error.filename,
+          line_number: error.line_number,
+          column_number: error.column_number,
+          occurrence_count: error.occurrence_count,
+          first_seen: error.first_seen_at,
+          last_seen: error.last_seen_at,
+          stack_trace: error.stack_trace,
+        })),
+      };
+
+      await navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
+      setCopied(true);
+      toast.success("Error reports copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
+  const handleDownloadJSON = () => {
+    try {
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        total_errors: errors.length,
+        total_occurrences: errors.reduce((sum, e) => sum + e.occurrence_count, 0),
+        time_range: `Last ${timeRange} days`,
+        errors: errors.map(error => ({
+          id: error.id,
+          type: error.error_type,
+          message: error.error_message,
+          severity: error.severity,
+          status: error.status,
+          filename: error.filename,
+          line_number: error.line_number,
+          column_number: error.column_number,
+          occurrence_count: error.occurrence_count,
+          first_seen: error.first_seen_at,
+          last_seen: error.last_seen_at,
+          stack_trace: error.stack_trace,
+        })),
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `error-reports-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Error reports downloaded!");
+    } catch (error) {
+      console.error("Failed to download:", error);
+      toast.error("Failed to download error reports");
+    }
   };
 
   // Analytics calculations
@@ -167,16 +240,45 @@ export function ErrorReportsPanel() {
           <TrendingUp className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-semibold">Error Analytics</h3>
         </div>
-        <Select value={timeRange.toString()} onValueChange={(v) => setTimeRange(Number(v))}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="14">Last 14 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyToClipboard}
+            className="gap-2"
+          >
+            {copied ? (
+              <>
+                <Check className="h-4 w-4" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                Copy JSON
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadJSON}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Download JSON
+          </Button>
+          <Select value={timeRange.toString()} onValueChange={(v) => setTimeRange(Number(v))}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="14">Last 14 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
