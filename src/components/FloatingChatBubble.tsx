@@ -323,7 +323,7 @@ export function FloatingChatBubble() {
                         >
                           <Avatar className="h-10 w-10 ring-2 ring-border">
                             <AvatarImage src={thread.sender_avatar} />
-                            <AvatarFallback>{thread.sender_name?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
+                            <AvatarFallback>{thread.sender_name ? thread.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
@@ -357,7 +357,7 @@ export function FloatingChatBubble() {
                           <div className="relative">
                             <Avatar className="h-10 w-10 ring-2 ring-border">
                               <AvatarImage src={friend.avatar_url} />
-                              <AvatarFallback>{friend.display_name?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
+                              <AvatarFallback>{friend.display_name ? friend.display_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
                             </Avatar>
                             <div className={cn(
                               "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card",
@@ -388,7 +388,7 @@ export function FloatingChatBubble() {
                         >
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={request.sender_avatar} />
-                            <AvatarFallback>{request.sender_name?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
+                            <AvatarFallback>{request.sender_name ? request.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{request.sender_name}</p>
