@@ -67,7 +67,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
     const widgetContent = (() => {
       switch (widget.type) {
         case 'welcome':
-          return <WelcomeWidget onCreateCard={() => onCreateCard?.({})} />;
+          return <WelcomeWidget />;
         
         case 'stats':
           return <StatsWidget onNavigate={onNavigate} />;

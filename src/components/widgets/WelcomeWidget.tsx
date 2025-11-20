@@ -1,12 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CreateCardDialog } from "@/components/CreateCardDialog";
 import { Sparkles, Plus } from "lucide-react";
+import { useZettelCards } from "@/hooks/useZettelCards";
 
 interface WelcomeWidgetProps {
-  onCreateCard?: () => void;
+  // No longer needs onCreateCard prop
 }
 
-export function WelcomeWidget({ onCreateCard }: WelcomeWidgetProps) {
+export function WelcomeWidget({}: WelcomeWidgetProps) {
+  const { cards, createCard } = useZettelCards();
+  
   return (
     <div className="relative h-full">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
@@ -31,14 +35,20 @@ export function WelcomeWidget({ onCreateCard }: WelcomeWidgetProps) {
             <p className="text-sm text-muted-foreground leading-relaxed">
               Build your second brain with zettel cards, organize notes, and create connections between ideas.
             </p>
-            <Button 
-              size="lg" 
-              className="w-full bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 h-12 text-base"
-              onClick={onCreateCard}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create Your First Card
-            </Button>
+            <CreateCardDialog
+              existingCards={cards}
+              onCreateCard={createCard}
+              organizationMethod="dewey"
+              trigger={
+                <Button 
+                  size="lg" 
+                  className="w-full bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 h-12 text-base"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create Your First Card
+                </Button>
+              }
+            />
           </div>
         </CardContent>
       </Card>
