@@ -25,6 +25,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Install = lazy(() => import("./pages/Install"));
 const Subscription = lazy(() => import("./pages/Subscription"));
+const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -86,6 +87,13 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<LoadingFallback message="Loading subscription..." />}>
                       <Subscription />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingFallback message="Loading settings..." />}>
+                      <Settings />
                     </Suspense>
                   </ProtectedRoute>
                 } />
