@@ -485,8 +485,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-start justify-center pt-[150px] overflow-y-auto">
-      <Card className="w-full max-w-4xl max-h-[calc(100vh-200px)] overflow-hidden bg-card/95 backdrop-blur-md border border-border/50 shadow-2xl flex flex-col mb-8">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-start justify-center md:pt-[150px] overflow-y-auto">
+      <Card className="w-full md:max-w-4xl h-full md:h-auto md:max-h-[calc(100vh-200px)] overflow-hidden bg-card/95 backdrop-blur-md md:border border-border/50 md:shadow-2xl flex flex-col md:mb-8">
         <CardHeader className="pb-4 border-b border-border/50 shrink-0">
           <div className="flex items-center justify-between">
             <div>
@@ -494,7 +494,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <Settings className="h-5 w-5" />
                 Account Settings
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="hidden md:block">
                 Manage your profile, security, and preferences
               </CardDescription>
             </div>
@@ -506,7 +506,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
 
         <div className="flex flex-1 min-h-0">
           {/* Sidebar */}
-          <div className="w-48 border-r border-border/50 p-4 shrink-0">
+          <div className="w-16 md:w-48 border-r border-border/50 p-2 md:p-4 shrink-0">
             <div className="space-y-1">
               {tabs.map(({ id, label, icon: Icon }) => (
                 <Button
@@ -516,15 +516,15 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                   className="w-full justify-start gap-2 text-left"
                   onClick={() => setActiveTab(id as typeof activeTab)}
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
+                  <Icon className="h-4 w-4 md:h-4 md:w-4" />
+                  <span className="hidden md:inline">{label}</span>
                 </Button>
               ))}
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto min-h-0">
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto min-h-0">
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div>
