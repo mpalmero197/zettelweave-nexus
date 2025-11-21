@@ -44,11 +44,17 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   
   // Profile states
   const [displayName, setDisplayName] = useState('');
   const [aboutMe, setAboutMe] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  
+  // Track original values for change detection
+  const [originalDisplayName, setOriginalDisplayName] = useState('');
+  const [originalAboutMe, setOriginalAboutMe] = useState('');
+  const [originalAvatarUrl, setOriginalAvatarUrl] = useState('');
 
   // Load profile data on mount
   useEffect(() => {
@@ -67,6 +73,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setDisplayName(data.display_name || '');
             setAboutMe(data.about_me || '');
             setAvatarUrl(data.avatar_url || '');
+            setOriginalDisplayName(data.display_name || '');
+            setOriginalAboutMe(data.about_me || '');
+            setOriginalAvatarUrl(data.avatar_url || '');
           }
         });
     }
@@ -76,6 +85,35 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Check for unsaved changes
+  const hasUnsavedChanges = () => {
+    return displayName !== originalDisplayName || 
+           aboutMe !== originalAboutMe || 
+           avatarUrl !== originalAvatarUrl ||
+           currentPassword || newPassword || confirmPassword;
+  };
+  
+  // Handle close with unsaved changes check
+  const handleClose = () => {
+    if (hasUnsavedChanges()) {
+      setShowCloseConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+  
+  // Escape key handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [displayName, aboutMe, avatarUrl, currentPassword, newPassword, confirmPassword]);
   
   // Appearance states
   const [selectedTheme, setSelectedTheme] = useState('system');
@@ -127,6 +165,11 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
       });
+      
+      // Update original values after successful save
+      setOriginalDisplayName(displayName);
+      setOriginalAboutMe(aboutMe);
+      setOriginalAvatarUrl(avatarUrl);
     } catch (error: any) {
       console.error('Profile update error:', error);
       toast({
@@ -498,7 +541,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 Manage your profile, security, and preferences
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={handleClose}>
               ×
             </Button>
           </div>
@@ -877,6 +920,20 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       {showDebugLogger && (
         <DebugLogger onClose={() => setShowDebugLogger(false)} />
       )}
+      
+      <ConfirmDialog
+        isOpen={showCloseConfirm}
+        onClose={() => setShowCloseConfirm(false)}
+        onConfirm={() => {
+          setShowCloseConfirm(false);
+          onClose();
+        }}
+        title="Unsaved Changes"
+        description="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmText="Close Without Saving"
+        cancelText="Keep Editing"
+        variant="destructive"
+      />
     </div>
   );
 }
