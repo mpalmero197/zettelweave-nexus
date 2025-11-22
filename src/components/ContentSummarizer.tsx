@@ -102,23 +102,26 @@ export function ContentSummarizer() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-col sm:flex-row">
             <Input
               placeholder="Paste URL (YouTube, articles, PDFs, Google Docs...)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSummarize()}
+              className="flex-1"
             />
             <Button 
               onClick={handleSummarize}
               disabled={isLoading}
+              size="icon"
+              className="sm:w-auto sm:px-4 shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Sparkles className="h-4 w-4" />
               )}
-              Summarize
+              <span className="sr-only sm:not-sr-only sm:ml-2">Summarize</span>
             </Button>
           </div>
           
@@ -186,12 +189,12 @@ export function ContentSummarizer() {
                   </a>
                 )}
                 <Button 
-                  size="sm" 
+                  size="icon" 
                   onClick={() => handleCreateCard(summary)}
-                  className="ml-auto"
+                  className="ml-auto sm:w-auto sm:px-4"
                 >
-                  <BookOpen className="h-3 w-3 mr-1" />
-                  <span className="hidden md:inline">Create Card</span>
+                  <BookOpen className="h-3 w-3" />
+                  <span className="sr-only sm:not-sr-only sm:ml-2">Create Card</span>
                 </Button>
               </div>
             </CardContent>

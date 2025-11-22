@@ -12,11 +12,8 @@ export function WelcomeWidget({}: WelcomeWidgetProps) {
   const { cards, createCard } = useZettelCards();
   
   return (
-    <div className="relative h-full">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
-      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-        <CardContent className="relative p-8 h-full flex flex-col justify-between">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
+      <CardContent className="p-8 h-full flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-gradient-primary rounded-2xl shadow-lg">
@@ -51,7 +48,6 @@ export function WelcomeWidget({}: WelcomeWidgetProps) {
             />
           </div>
         </CardContent>
-      </Card>
-    </div>
+    </Card>
   );
 }
