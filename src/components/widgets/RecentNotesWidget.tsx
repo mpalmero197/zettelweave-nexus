@@ -56,19 +56,16 @@ export function RecentNotesWidget({ onOpenNote }: RecentNotesWidgetProps) {
   };
 
   return (
-    <div className="relative h-full">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-2xl blur-xl opacity-50" />
-      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
-        <CardHeader className="relative">
-          <CardTitle className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/10 rounded-xl">
-              <FileText className="h-5 w-5 text-blue-600" />
-            </div>
-            Recent Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative space-y-3 overflow-y-auto max-h-80">
+    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3">
+          <div className="p-2 bg-blue-500/10 rounded-xl">
+            <FileText className="h-5 w-5 text-blue-600" />
+          </div>
+          Recent Notes
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 overflow-y-auto max-h-80">
           {loading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
@@ -103,7 +100,6 @@ export function RecentNotesWidget({ onOpenNote }: RecentNotesWidgetProps) {
             </div>
           )}
         </CardContent>
-      </Card>
-    </div>
+    </Card>
   );
 }

@@ -105,7 +105,7 @@ export function TaskTrackerWidget() {
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="space-y-4">
         {/* Add new task */}
         <div className="space-y-2">
           <div className="flex gap-2">
@@ -119,10 +119,11 @@ export function TaskTrackerWidget() {
             <Button
               onClick={addTask}
               disabled={!newTaskTitle.trim()}
-              size="sm"
-              className="h-8 w-8 p-0"
+              size="icon"
+              className="h-8 w-8 shrink-0"
             >
               <Plus className="h-3 w-3" />
+              <span className="sr-only">Add task</span>
             </Button>
           </div>
           
@@ -168,11 +169,12 @@ export function TaskTrackerWidget() {
                     </div>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => deleteTask(task.id)}
-                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-3 w-3" />
+                      <span className="sr-only">Delete task</span>
                     </Button>
                   </div>
                 ))}
@@ -199,11 +201,12 @@ export function TaskTrackerWidget() {
                     </div>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => deleteTask(task.id)}
-                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-3 w-3" />
+                      <span className="sr-only">Delete task</span>
                     </Button>
                   </div>
                 ))}
