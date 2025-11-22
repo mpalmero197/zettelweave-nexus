@@ -181,11 +181,12 @@ export function FavoritesWidget() {
                         </Badge>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => removeFavorite(item.id, item.type)}
-                          className="h-6 w-6 p-0 text-yellow-500 hover:text-yellow-600"
+                          className="h-6 w-6 shrink-0 text-yellow-500 hover:text-yellow-600"
                         >
                           <Star className="h-3 w-3 fill-current" />
+                          <span className="sr-only">Remove from favorites</span>
                         </Button>
                       </div>
                     </div>
