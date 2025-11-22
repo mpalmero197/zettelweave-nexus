@@ -9,105 +9,105 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     id: 'welcome',
     type: 'welcome',
     title: 'Welcome',
-    position: { x: 0, y: 0, w: 6, h: 3 },
+    position: { x: 0, y: 0, w: 12, h: 3 },
     isVisible: true
   },
   {
     id: 'stats',
     type: 'stats',
     title: 'Statistics',
-    position: { x: 6, y: 0, w: 6, h: 3 },
+    position: { x: 0, y: 3, w: 12, h: 3 },
     isVisible: true
   },
   {
     id: 'quick-capture',
     type: 'quick-capture',
     title: 'Quick Capture',
-    position: { x: 0, y: 3, w: 6, h: 4 },
+    position: { x: 0, y: 6, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'recent-cards',
     type: 'recent-cards',
     title: 'Recent Cards',
-    position: { x: 6, y: 3, w: 6, h: 5 },
+    position: { x: 6, y: 6, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'recent-notes',
     type: 'recent-notes',
     title: 'Recent Notes',
-    position: { x: 0, y: 7, w: 4, h: 4 },
+    position: { x: 0, y: 10, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'content-summarizer',
     type: 'content-summarizer',
     title: 'Content Summarizer',
-    position: { x: 4, y: 7, w: 4, h: 4 },
+    position: { x: 6, y: 10, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'task-tracker',
     type: 'task-tracker',
     title: 'Quick Tasks',
-    position: { x: 8, y: 8, w: 4, h: 4 },
+    position: { x: 0, y: 14, w: 4, h: 4 },
     isVisible: true
   },
   {
     id: 'favorites',
     type: 'favorites',
     title: 'Favorites',
-    position: { x: 0, y: 11, w: 4, h: 4 },
+    position: { x: 4, y: 14, w: 4, h: 4 },
     isVisible: true
   },
   {
     id: 'calendar-events',
     type: 'calendar-events',
     title: 'Upcoming Events',
-    position: { x: 4, y: 11, w: 4, h: 4 },
+    position: { x: 8, y: 14, w: 4, h: 4 },
     isVisible: true
   },
   {
     id: 'habit-tracker',
     type: 'habit-tracker',
     title: 'Habits',
-    position: { x: 8, y: 12, w: 4, h: 4 },
+    position: { x: 0, y: 18, w: 4, h: 3 },
     isVisible: true
   },
   {
     id: 'weather',
     type: 'weather',
     title: 'Weather',
-    position: { x: 0, y: 15, w: 3, h: 3 },
+    position: { x: 4, y: 18, w: 4, h: 3 },
     isVisible: true
   },
   {
     id: 'quotes',
     type: 'quotes',
     title: 'Daily Quote',
-    position: { x: 3, y: 15, w: 3, h: 3 },
+    position: { x: 8, y: 18, w: 4, h: 3 },
     isVisible: true
   },
   {
     id: 'notebook-list',
     type: 'notebook-list',
     title: 'Knowledge',
-    position: { x: 6, y: 15, w: 3, h: 3 },
+    position: { x: 0, y: 21, w: 6, h: 3 },
     isVisible: true
   },
   {
     id: 'task-manager',
     type: 'task-manager',
     title: 'Task Manager',
-    position: { x: 9, y: 16, w: 3, h: 4 },
+    position: { x: 6, y: 21, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'activity-feed',
     type: 'activity-feed',
     title: 'Recent Activity',
-    position: { x: 0, y: 18, w: 12, h: 4 },
+    position: { x: 0, y: 25, w: 12, h: 4 },
     isVisible: true
   }
 ];

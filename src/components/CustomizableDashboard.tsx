@@ -167,12 +167,12 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="w-full max-w-none p-4 sm:p-6 lg:p-8 space-y-6">
+      <div className="w-full max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
         {/* Header with widget toolbox */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Customize your workspace to fit your workflow</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground">Customize your workspace</p>
           </div>
           <DashboardWidgetSidebar />
         </div>
