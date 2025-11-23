@@ -5,6 +5,7 @@ import { DashboardWidget, DashboardLayout } from '@/types/dashboard';
 import { toast } from 'sonner';
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
+  // Full-width header widgets (h: 3)
   {
     id: 'welcome',
     type: 'welcome',
@@ -19,6 +20,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     position: { x: 0, y: 3, w: 12, h: 3 },
     isVisible: true
   },
+  // Two-column layout (h: 4 standardized)
   {
     id: 'quick-capture',
     type: 'quick-capture',
@@ -47,6 +49,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     position: { x: 6, y: 10, w: 6, h: 4 },
     isVisible: true
   },
+  // Three-column row (h: 4 standardized)
   {
     id: 'task-tracker',
     type: 'task-tracker',
@@ -68,46 +71,49 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     position: { x: 8, y: 14, w: 4, h: 4 },
     isVisible: true
   },
+  // Three-column row (h: 4 standardized)
   {
     id: 'habit-tracker',
     type: 'habit-tracker',
     title: 'Habits',
-    position: { x: 0, y: 18, w: 4, h: 3 },
+    position: { x: 0, y: 18, w: 4, h: 4 },
     isVisible: true
   },
   {
     id: 'weather',
     type: 'weather',
     title: 'Weather',
-    position: { x: 4, y: 18, w: 4, h: 3 },
+    position: { x: 4, y: 18, w: 4, h: 4 },
     isVisible: true
   },
   {
     id: 'quotes',
     type: 'quotes',
     title: 'Daily Quote',
-    position: { x: 8, y: 18, w: 4, h: 3 },
+    position: { x: 8, y: 18, w: 4, h: 4 },
     isVisible: true
   },
+  // Two-column row (h: 4 standardized)
   {
     id: 'notebook-list',
     type: 'notebook-list',
     title: 'Knowledge',
-    position: { x: 0, y: 21, w: 6, h: 3 },
+    position: { x: 0, y: 22, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'task-manager',
     type: 'task-manager',
     title: 'Task Manager',
-    position: { x: 6, y: 21, w: 6, h: 4 },
+    position: { x: 6, y: 22, w: 6, h: 4 },
     isVisible: true
   },
+  // Full-width footer widget (h: 4)
   {
     id: 'activity-feed',
     type: 'activity-feed',
     title: 'Recent Activity',
-    position: { x: 0, y: 25, w: 12, h: 4 },
+    position: { x: 0, y: 26, w: 12, h: 4 },
     isVisible: true
   }
 ];
