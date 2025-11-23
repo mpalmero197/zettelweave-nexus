@@ -31,7 +31,7 @@ export function ResizableGrid({
   // Convert widgets to grid layout format
   const convertWidgetsToLayout = useCallback((widgets: DashboardWidget[]): Layout[] => {
     return widgets.map(widget => {
-      // Mobile-first minimum sizes
+      // Mobile-first minimum sizes - standardized to 2 heights for clean layout
       const minSizes: { [key: string]: { w: number; h: number } } = {
         'welcome': { w: 2, h: 3 },
         'stats': { w: 2, h: 3 },
@@ -46,7 +46,7 @@ export function ResizableGrid({
         'habit-tracker': { w: 2, h: 3 },
         'weather': { w: 2, h: 3 },
         'quotes': { w: 2, h: 3 },
-        'notebook-list': { w: 2, h: 3 },
+        'notebook-list': { w: 2, h: 4 },
         'activity-feed': { w: 2, h: 4 }
       };
       
@@ -136,7 +136,7 @@ export function ResizableGrid({
         'activity-feed': 15
       };
       
-      // Optimal sizes for each widget type (desktop)
+      // Optimal sizes for each widget type (desktop) - standardized heights
       const optimalSizes: { [key: string]: { w: number; h: number } } = {
         'welcome': { w: 12, h: 3 },
         'stats': { w: 12, h: 3 },
@@ -147,10 +147,10 @@ export function ResizableGrid({
         'task-tracker': { w: 4, h: 4 },
         'favorites': { w: 4, h: 4 },
         'calendar-events': { w: 4, h: 4 },
-        'habit-tracker': { w: 4, h: 3 },
-        'weather': { w: 4, h: 3 },
-        'quotes': { w: 4, h: 3 },
-        'notebook-list': { w: 6, h: 3 },
+        'habit-tracker': { w: 4, h: 4 },
+        'weather': { w: 4, h: 4 },
+        'quotes': { w: 4, h: 4 },
+        'notebook-list': { w: 6, h: 4 },
         'task-manager': { w: 6, h: 4 },
         'activity-feed': { w: 12, h: 4 }
       };
