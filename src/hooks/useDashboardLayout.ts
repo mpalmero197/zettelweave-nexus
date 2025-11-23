@@ -5,7 +5,7 @@ import { DashboardWidget, DashboardLayout } from '@/types/dashboard';
 import { toast } from 'sonner';
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
-  // Full-width header widgets (h: 3)
+  // Hero Section - Welcome banner
   {
     id: 'welcome',
     type: 'welcome',
@@ -13,102 +13,111 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     position: { x: 0, y: 0, w: 12, h: 3 },
     isVisible: true
   },
-  {
-    id: 'stats',
-    type: 'stats',
-    title: 'Statistics',
-    position: { x: 0, y: 3, w: 12, h: 3 },
-    isVisible: true
-  },
-  // Two-column layout (h: 4 standardized)
+  
+  // Quick Actions Row - Most used features
   {
     id: 'quick-capture',
     type: 'quick-capture',
     title: 'Quick Capture',
-    position: { x: 0, y: 6, w: 6, h: 4 },
+    position: { x: 0, y: 3, w: 8, h: 4 },
     isVisible: true
   },
+  {
+    id: 'stats',
+    type: 'stats',
+    title: 'Statistics',
+    position: { x: 8, y: 3, w: 4, h: 4 },
+    isVisible: true
+  },
+  
+  // Primary Content Row - Recent activity
   {
     id: 'recent-cards',
     type: 'recent-cards',
     title: 'Recent Cards',
-    position: { x: 6, y: 6, w: 6, h: 4 },
+    position: { x: 0, y: 7, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'recent-notes',
     type: 'recent-notes',
     title: 'Recent Notes',
-    position: { x: 0, y: 10, w: 6, h: 4 },
+    position: { x: 6, y: 7, w: 6, h: 4 },
     isVisible: true
   },
-  {
-    id: 'content-summarizer',
-    type: 'content-summarizer',
-    title: 'Content Summarizer',
-    position: { x: 6, y: 10, w: 6, h: 4 },
-    isVisible: true
-  },
-  // Three-column row (h: 4 standardized)
+  
+  // Productivity Row - Tasks and planning
   {
     id: 'task-tracker',
     type: 'task-tracker',
     title: 'Quick Tasks',
-    position: { x: 0, y: 14, w: 4, h: 4 },
-    isVisible: true
-  },
-  {
-    id: 'favorites',
-    type: 'favorites',
-    title: 'Favorites',
-    position: { x: 4, y: 14, w: 4, h: 4 },
-    isVisible: true
-  },
-  {
-    id: 'calendar-events',
-    type: 'calendar-events',
-    title: 'Upcoming Events',
-    position: { x: 8, y: 14, w: 4, h: 4 },
-    isVisible: true
-  },
-  // Three-column row (h: 4 standardized)
-  {
-    id: 'habit-tracker',
-    type: 'habit-tracker',
-    title: 'Habits',
-    position: { x: 0, y: 18, w: 4, h: 4 },
-    isVisible: true
-  },
-  {
-    id: 'weather',
-    type: 'weather',
-    title: 'Weather',
-    position: { x: 4, y: 18, w: 4, h: 4 },
-    isVisible: true
-  },
-  {
-    id: 'quotes',
-    type: 'quotes',
-    title: 'Daily Quote',
-    position: { x: 8, y: 18, w: 4, h: 4 },
-    isVisible: true
-  },
-  // Two-column row (h: 4 standardized)
-  {
-    id: 'notebook-list',
-    type: 'notebook-list',
-    title: 'Knowledge',
-    position: { x: 0, y: 22, w: 6, h: 4 },
+    position: { x: 0, y: 11, w: 4, h: 4 },
     isVisible: true
   },
   {
     id: 'task-manager',
     type: 'task-manager',
     title: 'Task Manager',
-    position: { x: 6, y: 22, w: 6, h: 4 },
+    position: { x: 4, y: 11, w: 4, h: 4 },
     isVisible: true
   },
-  // Full-width footer widget (h: 4)
+  {
+    id: 'calendar-events',
+    type: 'calendar-events',
+    title: 'Upcoming Events',
+    position: { x: 8, y: 11, w: 4, h: 4 },
+    isVisible: true
+  },
+  
+  // Knowledge & Tools Row
+  {
+    id: 'notebook-list',
+    type: 'notebook-list',
+    title: 'Knowledge',
+    position: { x: 0, y: 15, w: 6, h: 4 },
+    isVisible: true
+  },
+  {
+    id: 'favorites',
+    type: 'favorites',
+    title: 'Favorites',
+    position: { x: 6, y: 15, w: 6, h: 4 },
+    isVisible: true
+  },
+  
+  // Content Tools Row
+  {
+    id: 'content-summarizer',
+    type: 'content-summarizer',
+    title: 'Content Summarizer',
+    position: { x: 0, y: 19, w: 8, h: 4 },
+    isVisible: true
+  },
+  {
+    id: 'habit-tracker',
+    type: 'habit-tracker',
+    title: 'Habits',
+    position: { x: 8, y: 19, w: 4, h: 4 },
+    isVisible: true
+  },
+  
+  // Insights Row - Less critical info
+  {
+    id: 'weather',
+    type: 'weather',
+    title: 'Weather',
+    position: { x: 0, y: 23, w: 4, h: 3 },
+    isVisible: true
+  },
+  {
+    id: 'quotes',
+    type: 'quotes',
+    title: 'Daily Quote',
+    position: { x: 4, y: 23, w: 8, h: 3 },
+    isVisible: true
+  },
+  
+  // Activity Feed - Full width footer
   {
     id: 'activity-feed',
     type: 'activity-feed',

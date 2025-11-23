@@ -112,96 +112,54 @@ export function ResizableGrid({
   };
 
   const resetLayout = () => {
-    // Create a clean, mobile-first layout
+    // Create a clean, professional layout inspired by modern productivity apps
     const createOptimizedLayout = () => {
       const arranged: DashboardWidget[] = [];
+      
+      // Priority groups with intentional visual hierarchy
+      const layoutGroups = [
+        // Hero: Welcome banner (full width)
+        { widgets: ['welcome'], layout: [{ w: 12, h: 3 }] },
+        
+        // Quick Actions: Primary interaction area
+        { widgets: ['quick-capture', 'stats'], layout: [{ w: 8, h: 4 }, { w: 4, h: 4 }] },
+        
+        // Recent Activity: Two equal columns
+        { widgets: ['recent-cards', 'recent-notes'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
+        
+        // Productivity: Three equal columns
+        { widgets: ['task-tracker', 'task-manager', 'calendar-events'], layout: [{ w: 4, h: 4 }, { w: 4, h: 4 }, { w: 4, h: 4 }] },
+        
+        // Knowledge: Two equal columns
+        { widgets: ['notebook-list', 'favorites'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
+        
+        // Tools: Asymmetric for visual interest
+        { widgets: ['content-summarizer', 'habit-tracker'], layout: [{ w: 8, h: 4 }, { w: 4, h: 4 }] },
+        
+        // Insights: Compact info widgets
+        { widgets: ['weather', 'quotes'], layout: [{ w: 4, h: 3 }, { w: 8, h: 3 }] },
+        
+        // Footer: Full width activity
+        { widgets: ['activity-feed'], layout: [{ w: 12, h: 4 }] }
+      ];
+      
       let currentY = 0;
       
-      // Priority order for widgets
-      const priority: { [key: string]: number } = {
-        'welcome': 1,
-        'stats': 2,
-        'quick-capture': 3,
-        'recent-cards': 4,
-        'recent-notes': 5,
-        'content-summarizer': 6,
-        'task-tracker': 7,
-        'favorites': 8,
-        'calendar-events': 9,
-        'habit-tracker': 10,
-        'weather': 11,
-        'quotes': 12,
-        'notebook-list': 13,
-        'task-manager': 14,
-        'activity-feed': 15
-      };
-      
-      // Optimal sizes for each widget type (desktop) - standardized heights
-      const optimalSizes: { [key: string]: { w: number; h: number } } = {
-        'welcome': { w: 12, h: 3 },
-        'stats': { w: 12, h: 3 },
-        'quick-capture': { w: 6, h: 4 },
-        'recent-cards': { w: 6, h: 4 },
-        'recent-notes': { w: 6, h: 4 },
-        'content-summarizer': { w: 6, h: 4 },
-        'task-tracker': { w: 4, h: 4 },
-        'favorites': { w: 4, h: 4 },
-        'calendar-events': { w: 4, h: 4 },
-        'habit-tracker': { w: 4, h: 4 },
-        'weather': { w: 4, h: 4 },
-        'quotes': { w: 4, h: 4 },
-        'notebook-list': { w: 6, h: 4 },
-        'task-manager': { w: 6, h: 4 },
-        'activity-feed': { w: 12, h: 4 }
-      };
-      
-      // Sort by priority
-      const sorted = [...widgets].sort((a, b) => 
-        (priority[a.type] || 100) - (priority[b.type] || 100)
-      );
-      
-      // Layout rows
-      const rows: DashboardWidget[][] = [];
-      let currentRow: DashboardWidget[] = [];
-      let currentRowWidth = 0;
-      const COLS = 12;
-      
-      sorted.forEach((widget) => {
-        const size = optimalSizes[widget.type] || { w: 4, h: 3 };
-        
-        // Check if widget fits in current row
-        if (currentRowWidth + size.w > COLS && currentRow.length > 0) {
-          rows.push(currentRow);
-          currentRow = [];
-          currentRowWidth = 0;
-        }
-        
-        currentRow.push({
-          ...widget,
-          position: { x: currentRowWidth, y: currentY, w: size.w, h: size.h }
-        });
-        currentRowWidth += size.w;
-      });
-      
-      // Add last row
-      if (currentRow.length > 0) {
-        rows.push(currentRow);
-      }
-      
-      // Position all widgets
-      currentY = 0;
-      rows.forEach(row => {
+      layoutGroups.forEach(group => {
         let x = 0;
-        const maxHeight = Math.max(...row.map(w => w.position.h));
-        
-        row.forEach(widget => {
-          widget.position.x = x;
-          widget.position.y = currentY;
-          widget.position.h = maxHeight; // Normalize row height
-          arranged.push(widget);
-          x += widget.position.w;
+        group.widgets.forEach((widgetType, index) => {
+          const widget = widgets.find(w => w.type === widgetType);
+          if (widget) {
+            const size = group.layout[index];
+            arranged.push({
+              ...widget,
+              position: { x, y: currentY, w: size.w, h: size.h }
+            });
+            x += size.w;
+          }
         });
-        
+        // Move to next row (use max height from group)
+        const maxHeight = Math.max(...group.layout.map(l => l.h));
         currentY += maxHeight;
       });
       
@@ -210,7 +168,7 @@ export function ResizableGrid({
     
     const optimizedLayout = createOptimizedLayout();
     onLayoutChange(optimizedLayout);
-    toast.success('Dashboard layout optimized');
+    toast.success('Dashboard optimized with professional layout');
   };
 
   const visibleWidgets = widgets.filter(w => w.isVisible);
@@ -247,29 +205,37 @@ export function ResizableGrid({
       </div>
 
       {/* Responsive Grid */}
-      <ResponsiveGridLayout
-        className="layout"
-        layouts={layouts}
-        onLayoutChange={handleLayoutChange}
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={80}
-        isDraggable={isDraggable && !isLocked}
-        isResizable={isResizable && !isLocked}
-        compactType="vertical"
-        preventCollision={false}
-        margin={[16, 16]}
-        containerPadding={[0, 0]}
-        useCSSTransforms={true}
-        transformScale={1}
-        isBounded={false}
-      >
-        {visibleWidgets.map((widget) => (
-          <div key={widget.id} className="grid-item">
-            {children(widget)}
-          </div>
-        ))}
-      </ResponsiveGridLayout>
+      <div className="animate-fade-in">
+        <ResponsiveGridLayout
+          className="layout"
+          layouts={layouts}
+          onLayoutChange={handleLayoutChange}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+          rowHeight={80}
+          isDraggable={isDraggable && !isLocked}
+          isResizable={isResizable && !isLocked}
+          compactType="vertical"
+          preventCollision={false}
+          margin={[16, 16]}
+          containerPadding={[0, 0]}
+          useCSSTransforms={true}
+          transformScale={1}
+          isBounded={false}
+        >
+          {visibleWidgets.map((widget, index) => (
+            <div 
+              key={widget.id} 
+              className="grid-item"
+              style={{
+                animationDelay: `${index * 50}ms`
+              }}
+            >
+              {children(widget)}
+            </div>
+          ))}
+        </ResponsiveGridLayout>
+      </div>
     </div>
   );
 }

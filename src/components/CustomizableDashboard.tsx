@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { DashboardWidget, WidgetType } from "@/types/dashboard";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
-import { Brain, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Brain, Eye, EyeOff, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface CustomizableDashboardProps {
@@ -167,14 +167,21 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="w-full max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
-        {/* Header with widget toolbox */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-xs sm:text-sm md:text-base text-muted-foreground">Customize your workspace</p>
+      <div className="w-full max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
+        {/* Modern Dashboard Header */}
+        <div className="animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground flex items-center gap-3">
+                <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                Dashboard
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-2">
+                Your knowledge hub at a glance
+              </p>
+            </div>
+            <DashboardWidgetSidebar />
           </div>
-          <DashboardWidgetSidebar />
         </div>
 
         {/* Resizable Grid Layout */}
@@ -187,11 +194,11 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
             {renderWidget}
           </ResizableGrid>
         ) : (
-          <div className="text-center py-20">
-            <div className="mb-4">
+          <div className="text-center py-20 animate-fade-in">
+            <div className="mb-6">
               <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No widgets to display</h3>
-              <p className="text-muted-foreground">Use the customize button to add widgets to your dashboard</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">No widgets to display</h3>
+              <p className="text-muted-foreground">Add widgets to customize your dashboard</p>
             </div>
             <DashboardWidgetSidebar />
           </div>
