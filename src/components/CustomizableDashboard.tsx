@@ -42,7 +42,7 @@ interface Note {
 }
 
 export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavigate }: CustomizableDashboardProps) {
-  const { widgets, isLoading, removeWidget, updateWidget, saveLayout } = useDashboardLayout();
+  const { widgets, isLoading, removeWidget, updateWidget, saveLayout, resetToDefault } = useDashboardLayout();
 
   const renderWidget = (widget: DashboardWidget) => {
     if (!widget.isVisible) return null;
@@ -180,7 +180,17 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
                 Your knowledge hub at a glance
               </p>
             </div>
-            <DashboardWidgetSidebar />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={resetToDefault}
+                className="hover-scale"
+              >
+                Reset Layout
+              </Button>
+              <DashboardWidgetSidebar />
+            </div>
           </div>
         </div>
 
