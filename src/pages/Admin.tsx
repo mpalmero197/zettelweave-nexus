@@ -9,6 +9,7 @@ import { SystemSettings } from '@/components/admin/SystemSettings';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
 import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
 import { SecurityMonitor } from '@/components/admin/SecurityMonitor';
+import { AdminAuditLog } from '@/components/admin/AdminAuditLog';
 import { ContentModeration } from '@/components/admin/ContentModeration';
 import { DomainManagement } from '@/components/admin/DomainManagement';
 import { FeatureRequestsPanel } from '@/components/admin/FeatureRequestsPanel';
@@ -36,6 +37,18 @@ export default function Admin() {
 
     setIsExporting(true);
     try {
+      // Log the codebase export action
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'codebase_export',
+        p_event_details: {
+          action: 'admin_codebase_export',
+          timestamp: new Date().toISOString(),
+          user_email: user.email,
+          source: 'admin_panel'
+        }
+      });
+
       await exportCodebase(user.email);
       toast({
         title: "Success",
@@ -207,12 +220,17 @@ export default function Admin() {
 
           <TabsContent value="security">
             <Tabs defaultValue="audit" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="audit">Security Audit</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="audit">Audit Log</TabsTrigger>
+                <TabsTrigger value="monitor">Security Monitor</TabsTrigger>
                 <TabsTrigger value="domains">Domain Management</TabsTrigger>
               </TabsList>
               
               <TabsContent value="audit">
+                <AdminAuditLog />
+              </TabsContent>
+              
+              <TabsContent value="monitor">
                 <SecurityMonitor />
               </TabsContent>
               
