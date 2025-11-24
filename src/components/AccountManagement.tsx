@@ -516,6 +516,17 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     
     setIsLoading(true);
     try {
+      // Log the codebase export action
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'codebase_export',
+        p_event_details: {
+          action: 'full_codebase_export',
+          timestamp: new Date().toISOString(),
+          user_email: user.email
+        }
+      });
+
       await exportCodebase(user.email);
       toast({
         title: "Backup exported successfully",

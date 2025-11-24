@@ -110,6 +110,8 @@ export function UserManagement() {
     if (!selectedUser || !newRole) return;
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { error } = await supabase.rpc('update_user_role', {
         _user_id: selectedUser.id,
         _role: newRole as 'admin' | 'moderator' | 'user'
@@ -123,6 +125,22 @@ export function UserManagement() {
           variant: "destructive",
         });
       } else {
+        // Log the role change action
+        if (user) {
+          await supabase.rpc('log_security_event', {
+            p_user_id: user.id,
+            p_event_type: 'role_changed',
+            p_event_details: {
+              action: 'user_role_updated',
+              target_user_id: selectedUser.id,
+              target_user_email: selectedUser.email,
+              old_role: selectedUser.roles?.join(',') || 'user',
+              new_role: newRole,
+              timestamp: new Date().toISOString()
+            }
+          });
+        }
+
         toast({
           title: "Success",
           description: `User role updated to ${newRole}`,
