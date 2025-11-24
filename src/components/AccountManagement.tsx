@@ -45,6 +45,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Profile states
   const [displayName, setDisplayName] = useState('');
@@ -56,9 +57,10 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [originalAboutMe, setOriginalAboutMe] = useState('');
   const [originalAvatarUrl, setOriginalAvatarUrl] = useState('');
 
-  // Load profile data on mount
+  // Load profile data and check admin status on mount
   useEffect(() => {
     if (user) {
+      // Load profile data
       supabase
         .from('profiles')
         .select('display_name, about_me, avatar_url')
@@ -77,6 +79,17 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
           }
+        });
+      
+      // Check if user is admin
+      supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error checking admin status:', error);
+            return;
+          }
+          setIsAdmin(data || false);
         });
     }
   }, [user]);
@@ -871,35 +884,49 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Data Backup & Export</h3>
                   
-                  <Card className="p-6 space-y-4">
-                    <div>
-                      <h4 className="font-medium text-lg mb-2">Complete Codebase Export</h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Export your entire ZettelWeave application as a downloadable ZIP file. 
-                        This includes all source code, configurations, and setup instructions.
-                      </p>
-                      
-                      <div className="bg-muted p-4 rounded-lg mb-4">
-                        <h5 className="font-medium mb-2">Export includes:</h5>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          <li>• Complete React TypeScript application</li>
-                          <li>• All components and utilities</li>
-                          <li>• Configuration files (package.json, etc.)</li>
-                          <li>• Setup and deployment instructions</li>
-                          <li>• Environment variable templates</li>
-                        </ul>
+                  {!isAdmin ? (
+                    <Card className="p-6">
+                      <div className="text-center py-8 space-y-4">
+                        <Lock className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                        <div>
+                          <h4 className="font-medium text-lg mb-2">Admin Access Required</h4>
+                          <p className="text-sm text-muted-foreground">
+                            The codebase export feature is restricted to administrators only for security purposes.
+                          </p>
+                        </div>
                       </div>
+                    </Card>
+                  ) : (
+                    <Card className="p-6 space-y-4">
+                      <div>
+                        <h4 className="font-medium text-lg mb-2">Complete Codebase Export</h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Export your entire ZettelWeave application as a downloadable ZIP file. 
+                          This includes all source code, configurations, and setup instructions.
+                        </p>
+                        
+                        <div className="bg-muted p-4 rounded-lg mb-4">
+                          <h5 className="font-medium mb-2">Export includes:</h5>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Complete React TypeScript application</li>
+                            <li>• All components and utilities</li>
+                            <li>• Configuration files (package.json, etc.)</li>
+                            <li>• Setup and deployment instructions</li>
+                            <li>• Environment variable templates</li>
+                          </ul>
+                        </div>
 
-                      <Button
-                        onClick={handleExportBackup}
-                        disabled={isLoading}
-                        className="gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        {isLoading ? 'Generating Backup...' : 'Export Codebase'}
-                      </Button>
-                    </div>
-                  </Card>
+                        <Button
+                          onClick={handleExportBackup}
+                          disabled={isLoading}
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          {isLoading ? 'Generating Backup...' : 'Export Codebase'}
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
                 </div>
               </div>
             )}
