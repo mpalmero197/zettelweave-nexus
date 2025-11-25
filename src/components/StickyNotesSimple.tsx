@@ -163,7 +163,7 @@ export const StickyNotesSimple: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 rounded-full hover:bg-white/20 transition-colors touch-manipulation"
+                        className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-colors touch-manipulation"
                         style={{ color: getToolsColor(note.color) }}
                         onClick={() => {
                           const currentIndex = colors.indexOf(note.color);
@@ -177,7 +177,7 @@ export const StickyNotesSimple: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 rounded-full hover:bg-white/20 transition-colors touch-manipulation"
+                        className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-colors touch-manipulation"
                         style={{ color: getToolsColor(note.color) }}
                         onClick={() => toggleAlwaysOnTop(note.id)}
                         aria-label={note.alwaysOnTop ? "Unpin note" : "Pin note"}
@@ -188,7 +188,7 @@ export const StickyNotesSimple: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 rounded-full hover:bg-white/20 transition-colors touch-manipulation"
+                      className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-colors touch-manipulation"
                       style={{ color: getToolsColor(note.color) }}
                       onClick={() => deleteNote(note.id)}
                       aria-label="Delete note"

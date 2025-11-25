@@ -118,7 +118,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
                   variant="outline" 
                   className={cn(
                     "text-xs font-mono",
-                    currentColor.text && "border-white/30 bg-white/10"
+                    currentColor.text && "border-primary/30 bg-primary/10"
                   )}
                   style={!currentColor.text ? { 
                     borderColor: `hsl(var(--category-${categoryInfo.color}))`,
@@ -131,7 +131,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
                   variant="secondary" 
                   className={cn(
                     "text-xs",
-                    currentColor.text && "border-white/30 bg-white/20"
+                    currentColor.text && "border-primary/30 bg-primary/20"
                   )}
                   style={!currentColor.bg ? {
                     backgroundColor: `hsl(var(--category-${categoryInfo.color}) / 0.15)`,
@@ -166,14 +166,14 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
               size="sm" 
               onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} 
               aria-label={card.is_favorite ? "Remove from favorites" : "Add to favorites"} 
-              className={cn("hover:bg-white/20", card.is_favorite ? "text-yellow-500" : (currentColor.text || "text-muted-foreground hover:text-foreground"))}
+              className={cn("hover:bg-accent/50", card.is_favorite ? "text-yellow-500" : (currentColor.text || "text-muted-foreground hover:text-foreground"))}
             >
               <Star className={cn("h-4 w-4", card.is_favorite && "fill-yellow-500")} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit?.(card); }} aria-label="Edit card" className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground hover:text-foreground")}>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit?.(card); }} aria-label="Edit card" className={cn("hover:bg-accent/50", currentColor.text || "text-muted-foreground hover:text-foreground")}>
               <Edit3 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLink?.(card); }} aria-label="Link card" className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground hover:text-foreground")}>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLink?.(card); }} aria-label="Link card" className={cn("hover:bg-accent/50", currentColor.text || "text-muted-foreground hover:text-foreground")}>
               <Link2 className="h-4 w-4" />
             </Button>
             <DropdownMenu>
