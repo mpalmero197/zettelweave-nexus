@@ -444,6 +444,7 @@ export type Database = {
           created_at: string
           emoji: string | null
           id: string
+          is_favorite: boolean
           preview: string
           title: string
           updated_at: string
@@ -453,6 +454,7 @@ export type Database = {
           created_at?: string
           emoji?: string | null
           id?: string
+          is_favorite?: boolean
           preview?: string
           title: string
           updated_at?: string
@@ -462,6 +464,7 @@ export type Database = {
           created_at?: string
           emoji?: string | null
           id?: string
+          is_favorite?: boolean
           preview?: string
           title?: string
           updated_at?: string
@@ -860,6 +863,7 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          is_favorite: boolean
           name: string
           priority: string
           status: string
@@ -870,6 +874,7 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          is_favorite?: boolean
           name: string
           priority?: string
           status?: string
@@ -880,6 +885,7 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          is_favorite?: boolean
           name?: string
           priority?: string
           status?: string
