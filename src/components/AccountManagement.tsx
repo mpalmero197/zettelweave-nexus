@@ -17,6 +17,7 @@ import { exportCodebase } from '@/utils/codebaseExport';
 import { DebugLogger } from '@/components/DebugLogger';
 import { Switch } from '@/components/ui/switch';
 import { AvatarEditor } from '@/components/AvatarEditor';
+import { ThemePreview } from '@/components/ThemePreview';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -821,29 +822,14 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Appearance & Themes</h3>
                   
-                  <div className="grid gap-3 max-w-md">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {themes.map((theme) => (
-                      <Card 
+                      <ThemePreview
                         key={theme.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedTheme === theme.id ? 'ring-2 ring-primary' : ''
-                        }`}
-                        onClick={() => handleThemeChange(theme.id)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium">{theme.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {theme.description}
-                              </p>
-                            </div>
-                            {selectedTheme === theme.id && (
-                              <Check className="h-5 w-5 text-primary" />
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
+                        theme={theme}
+                        isSelected={selectedTheme === theme.id}
+                        onSelect={() => handleThemeChange(theme.id)}
+                      />
                     ))}
                   </div>
                 </div>
