@@ -18,6 +18,8 @@ import { DebugLogger } from '@/components/DebugLogger';
 import { Switch } from '@/components/ui/switch';
 import { AvatarEditor } from '@/components/AvatarEditor';
 import { ThemePreview } from '@/components/ThemePreview';
+import { ThemeVariantSelector } from '@/components/ThemeVariantSelector';
+import { ContrastChecker } from '@/components/ContrastChecker';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -871,6 +873,25 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       />
                     ))}
                   </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Theme Variants</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Choose from beautiful color palettes while maintaining accessibility
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <ThemeVariantSelector />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Accessibility</h3>
+                  <ContrastChecker />
                 </div>
 
                 <Separator />
