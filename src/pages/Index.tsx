@@ -338,21 +338,24 @@ const Index = () => {
 
       {/* Compact AI Search Bar - Only show when on search tab */}
       {activeTab === "search" && (
-        <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 px-3 py-2">
-          <div className="max-w-3xl mx-auto flex items-center gap-2">
-            <AISearchBar 
-              cards={cards} 
-              onSearchResults={(results) => {
-                if (results.query) {
-                  handleSearchResults(results);
-                } else {
-                  setSearchResults(null);
-                  setFilteredCards(results.cards);
-                }
-              }}
-              onQueryChange={setCurrentQuery}
-              className="flex-1"
-            />
+        <div className="sticky top-12 z-40 bg-gradient-to-r from-background/98 via-background/95 to-background/98 backdrop-blur-xl border-b border-border/40 px-3 py-3 shadow-lg">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <div className="flex-1 relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+              <AISearchBar 
+                cards={cards} 
+                onSearchResults={(results) => {
+                  if (results.query) {
+                    handleSearchResults(results);
+                  } else {
+                    setSearchResults(null);
+                    setFilteredCards(results.cards);
+                  }
+                }}
+                onQueryChange={setCurrentQuery}
+                className="relative z-10"
+              />
+            </div>
             <SearchHistorySidebar
               history={history}
               onRerun={handleRerunSearch}
@@ -365,11 +368,11 @@ const Index = () => {
       )}
 
       {/* Main Content */}
-      <main className="py-3 px-3 relative" role="main">
+      <main className="py-4 px-3 md:px-4 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar */}
           {activeTab === "cards" && (
-            <div className="sticky top-24 z-30 bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-2 mb-3">
+            <div className="sticky top-24 z-30 bg-gradient-to-r from-card/98 via-card/95 to-card/98 backdrop-blur-xl border-2 border-border/40 rounded-2xl px-4 py-3 mb-4 shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-300">
               <div className="flex items-center justify-center max-w-7xl mx-auto gap-2 flex-wrap"  >
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                 <VaultImportDialog onImportCards={handleImportCards} />
@@ -448,9 +451,11 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="search" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
-                    {searchResults ? (
-                      <UnifiedSearchResults
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-3xl blur-3xl"></div>
+                    <div className="glass-card rounded-3xl p-6 md:p-8 shadow-2xl hover:shadow-glow transition-all duration-500 animate-fade-in-up relative border-2 border-border/30 hover:border-primary/30">
+                      {searchResults ? (
+                        <UnifiedSearchResults
                         query={searchResults.query}
                         cards={searchResults.cards}
                         notes={searchResults.notes}
@@ -516,6 +521,7 @@ const Index = () => {
                         <p className="text-muted-foreground">Use the search bar above to find content across your notes, cards, and sticky notes.</p>
                       </div>
                     )}
+                    </div>
                   </div>
                 </TabsContent>
 
