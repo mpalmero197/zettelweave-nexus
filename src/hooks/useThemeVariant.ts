@@ -11,6 +11,8 @@ export function useThemeVariant() {
   });
 
   useEffect(() => {
+    console.log('Theme variant changing to:', variant);
+    
     // Remove all theme variant classes
     const variants: ThemeVariant[] = ['default', 'ocean', 'forest', 'sunset', 'lavender'];
     const root = document.documentElement;
@@ -22,7 +24,10 @@ export function useThemeVariant() {
     // Add current variant class (skip for default)
     if (variant !== 'default') {
       root.classList.add(`theme-${variant}`);
+      console.log('Added theme class:', `theme-${variant}`);
     }
+
+    console.log('Root classList:', root.classList.toString());
 
     // Store preference
     localStorage.setItem(THEME_VARIANT_KEY, variant);
@@ -32,6 +37,7 @@ export function useThemeVariant() {
   }, [variant]);
 
   const setVariant = (newVariant: ThemeVariant) => {
+    console.log('setVariant called with:', newVariant);
     setVariantState(newVariant);
   };
 
