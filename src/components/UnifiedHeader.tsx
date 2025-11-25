@@ -72,22 +72,27 @@ export function UnifiedHeader({
 
   return (
     <header 
-      className="bg-card/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm"
+      className="bg-gradient-to-r from-card/98 via-card/95 to-card/98 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 shadow-lg hover-lift transition-all duration-300"
       role="banner"
     >
       <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
         <div className="flex items-center justify-between">
           {/* Logo & Brand */}
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <img 
-              src={pendragonLogo} 
-              alt="Pendragon logo" 
-              className="h-8 w-8 md:h-10 md:w-10 object-contain"
-              loading="lazy"
-            />
+          <div className="flex items-center space-x-2 md:space-x-3 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
+              <img 
+                src={pendragonLogo} 
+                alt="Pendragon logo" 
+                className="h-8 w-8 md:h-10 md:w-10 object-contain relative z-10 group-hover:scale-110 transition-transform duration-300"
+                loading="lazy"
+              />
+            </div>
             <div className="hidden sm:block">
-              <h1 className="text-base md:text-lg font-bold text-foreground">PendragonX</h1>
-              <p className="text-[10px] md:text-xs text-muted-foreground">
+              <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                PendragonX
+              </h1>
+              <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
                 Advanced Knowledge System
               </p>
             </div>
@@ -95,7 +100,7 @@ export function UnifiedHeader({
 
           {/* Desktop Navigation */}
           <nav 
-            className="hidden lg:flex items-center space-x-1 flex-1 justify-center"
+            className="hidden lg:flex items-center space-x-1 flex-1 justify-center bg-muted/30 rounded-full px-2 py-1.5 mx-4"
             role="navigation"
             aria-label="Main navigation"
           >
@@ -105,7 +110,11 @@ export function UnifiedHeader({
                 variant={activeTab === id ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onTabChange(id)}
-                className="h-9 w-9 p-0 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-ring"
+                className={`h-9 w-9 p-0 rounded-full transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring ${
+                  activeTab === id 
+                    ? 'shadow-lg shadow-primary/30 scale-110' 
+                    : 'hover:scale-105 hover:bg-accent/50'
+                }`}
                 aria-label={`Navigate to ${id.charAt(0).toUpperCase() + id.slice(1)}`}
                 aria-current={activeTab === id ? 'page' : undefined}
               >
@@ -121,13 +130,13 @@ export function UnifiedHeader({
               variant="outline"
               size="sm"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-lg border border-border/50 hover:bg-accent/50 transition-all touch-manipulation"
+              className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-full border-2 border-border/50 hover:border-primary/50 hover:bg-primary/10 hover:scale-110 hover:rotate-12 transition-all duration-300 touch-manipulation shadow-md hover:shadow-primary/20"
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
               {theme === "dark" ? (
-                <Sun className="h-4 w-4" aria-hidden="true" />
+                <Sun className="h-4 w-4 text-primary" aria-hidden="true" />
               ) : (
-                <Moon className="h-4 w-4" aria-hidden="true" />
+                <Moon className="h-4 w-4 text-primary" aria-hidden="true" />
               )}
             </Button>
 
@@ -136,39 +145,45 @@ export function UnifiedHeader({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-lg border border-border/50 hover:bg-accent/50 transition-all touch-manipulation"
+                  className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-full border-2 border-border/50 hover:border-primary/50 hover:bg-primary/10 hover:scale-110 transition-all duration-300 touch-manipulation shadow-md hover:shadow-primary/20"
                   aria-label="User menu"
                 >
-                  <User className="h-4 w-4" aria-hidden="true" />
+                  <User className="h-4 w-4 text-primary" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-card/95 backdrop-blur-sm border-border/60 w-56"
+                className="bg-card/98 backdrop-blur-xl border-border/60 w-56 shadow-2xl rounded-xl mt-2 animate-fade-in"
               >
-                <DropdownMenuItem disabled className="text-xs font-medium">
+                <DropdownMenuItem disabled className="text-xs font-medium text-muted-foreground">
                   {user?.email}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onAccountSettings}>
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem 
+                  onClick={onAccountSettings}
+                  className="hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer rounded-lg"
+                >
                   <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
                   Account Settings
                 </DropdownMenuItem>
                 {isAdmin && (
                   <>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator className="bg-border/50" />
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" className="w-full flex items-center">
+                      <Link 
+                        to="/admin" 
+                        className="w-full flex items-center hover:bg-accent/50 hover:text-accent-foreground transition-colors cursor-pointer rounded-lg"
+                      >
                         <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
                         Admin Panel
                       </Link>
                     </DropdownMenuItem>
                   </>
                 )}
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-border/50" />
                 <DropdownMenuItem
                   onClick={onSignOut}
-                  className="text-destructive focus:text-destructive"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:text-destructive transition-colors cursor-pointer rounded-lg"
                 >
                   <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
                   Sign Out
