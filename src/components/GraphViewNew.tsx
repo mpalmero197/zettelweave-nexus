@@ -19,7 +19,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
-import { Search, Layout, RotateCcw, Maximize2, Minimize2, Link2Off, Link2, Zap, ZapOff, ChevronDown, ChevronUp, Map as MapIcon, ZoomIn, ZoomOut, Locate, X } from 'lucide-react';
+import { Search, Layout, RotateCcw, Maximize2, Minimize2, Link2Off, Link2, Zap, ZapOff, ChevronDown, ChevronUp, MapIcon, ZoomIn, ZoomOut, Locate, X, Menu, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -552,92 +552,84 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         )}
 
 
-        {/* Mobile-Optimized Control Bar */}
+        {/* Mobile-Optimized Minimal Controls */}
         {isMobile ? (
           <>
-            {/* Collapsible Controls Panel - Mobile */}
-            <Panel position="top-center" className="bg-transparent w-full px-2">
-              <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-lg">
-                <button
-                  onClick={() => setShowControls(!showControls)}
-                  className="w-full flex items-center justify-between px-3 py-2 touch-manipulation"
-                >
-                  <div className="flex items-center gap-2 text-xs font-medium">
-                    <Search className="h-3.5 w-3.5" />
-                    <span>{filteredCards.length} cards • {initialEdges.length} links</span>
-                  </div>
-                  {showControls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-                
-                {showControls && (
-                  <div className="border-t border-border p-3 space-y-2">
-                    <Input
-                      placeholder="Search cards..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="h-9 text-sm"
-                    />
-                    
-                    <Select value={layoutType} onValueChange={(value: any) => setLayoutType(value)}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Layout className="h-3.5 w-3.5" />
-                          <SelectValue />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="force">Force Layout</SelectItem>
-                        <SelectItem value="circular">Circular</SelectItem>
-                        <SelectItem value="hierarchical">Hierarchical</SelectItem>
-                        <SelectItem value="category">By Category</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleAutoLink}
-                        disabled={isAutoLinking}
-                        className="h-9 text-xs touch-manipulation"
-                      >
-                        <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                        Auto Link
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleClearAllLinks}
-                        disabled={isClearingLinks}
-                        className="h-9 text-xs touch-manipulation"
-                      >
-                        <Link2Off className="h-3.5 w-3.5 mr-1.5" />
-                        Clear All
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* Floating Action Menu Button */}
+            <Panel position="top-right" className="m-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowControls(!showControls)}
+                className="h-11 w-11 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
+                aria-label="Menu"
+              >
+                {showControls ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
             </Panel>
 
-            {/* Mobile Zoom Controls - Bottom Right */}
-            <Panel position="bottom-right" className="bg-transparent mb-2 mr-2">
+            {/* Expandable Controls Menu */}
+            {showControls && (
+              <Panel position="top-center" className="bg-transparent w-full px-4 mt-16">
+                <div className="bg-card/98 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 space-y-3 max-w-sm mx-auto">
+                  <Input
+                    placeholder="Search cards..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-10"
+                  />
+                  
+                  <Select value={layoutType} onValueChange={(value: any) => setLayoutType(value)}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Layout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="force">Force Layout</SelectItem>
+                      <SelectItem value="circular">Circular</SelectItem>
+                      <SelectItem value="hierarchical">Hierarchical</SelectItem>
+                      <SelectItem value="category">Category</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAutoLink}
+                      disabled={isAutoLinking}
+                      className="h-10 touch-manipulation"
+                    >
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Link All
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleClearAllLinks}
+                      disabled={isClearingLinks}
+                      className="h-10 touch-manipulation"
+                    >
+                      <Link2Off className="h-4 w-4 mr-2" />
+                      Clear
+                    </Button>
+                  </div>
+
+                  <div className="pt-2 border-t border-border text-xs text-muted-foreground text-center">
+                    {filteredCards.length} cards • {initialEdges.length} links
+                  </div>
+                </div>
+              </Panel>
+            )}
+
+            {/* Minimal Zoom Controls - Vertical Stack */}
+            <Panel position="bottom-right" className="mb-20 mr-3">
               <div className="flex flex-col gap-2">
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setShowMinimap(!showMinimap)}
-                  className="h-10 w-10 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation"
-                  aria-label="Toggle minimap"
-                >
-                  {showMinimap ? <X className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
                   onClick={handleZoomIn}
-                  className="h-10 w-10 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation"
+                  className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
                   aria-label="Zoom in"
                 >
                   <ZoomIn className="h-5 w-5" />
@@ -646,7 +638,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                   variant="outline"
                   size="icon"
                   onClick={handleZoomOut}
-                  className="h-10 w-10 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation"
+                  className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
                   aria-label="Zoom out"
                 >
                   <ZoomOut className="h-5 w-5" />
@@ -655,55 +647,31 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                   variant="outline"
                   size="icon"
                   onClick={handleFitView}
-                  className="h-10 w-10 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation"
+                  className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
                   aria-label="Fit view"
                 >
-                  <Locate className="h-4 w-4" />
+                  <Locate className="h-5 w-5" />
                 </Button>
               </div>
             </Panel>
 
-            {/* Mobile Bottom Toolbar */}
-            <Panel position="bottom-center" className="bg-transparent w-full px-2 pb-20">
-              <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-2">
-                <div className="flex items-center justify-around gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={resetLayout}
-                    className="flex-1 h-10 touch-manipulation"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  
-                  {layoutType === 'force' && (
-                    <Button 
-                      variant={physicsEnabled ? "default" : "ghost"}
-                      size="sm" 
-                      onClick={() => {
-                        setPhysicsEnabled(!physicsEnabled);
-                        toast(physicsEnabled ? "Physics disabled" : "Physics enabled");
-                      }}
-                      className="flex-1 h-10 touch-manipulation"
-                    >
-                      {physicsEnabled ? <Zap className="h-4 w-4" /> : <ZapOff className="h-4 w-4" />}
-                    </Button>
-                  )}
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="flex-1 h-10 touch-manipulation"
-                  >
-                    {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-            </Panel>
+            {/* Minimap Toggle - Bottom Left */}
+            {showMinimap && (
+              <Panel position="bottom-left" className="mb-20 ml-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowMinimap(false)}
+                  className="h-10 w-10 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
+                  aria-label="Hide map"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </Panel>
+            )}
           </>
         ) : (
-          /* Desktop Compact Controls Panel */
+          /* Desktop Compact Controls */
           <>
             <Panel position="top-left" className="bg-transparent">
               <div className="bg-card/90 backdrop-blur-sm border border-border rounded-md shadow-sm p-2 space-y-1.5 w-[240px]">
