@@ -439,6 +439,36 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          id: string
+          preview: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          preview?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          preview?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       domain_restrictions: {
         Row: {
           created_at: string
@@ -822,6 +852,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
+        }
+        Relationships: []
+      }
+      project_tasks: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          name: string
+          priority: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          name: string
+          priority?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          name?: string
+          priority?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

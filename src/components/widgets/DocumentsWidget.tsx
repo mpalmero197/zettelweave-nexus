@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Plus, Trash2, Edit2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Document {
   id: string;
@@ -15,50 +17,91 @@ interface Document {
 }
 
 export function DocumentsWidget() {
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: "1",
-      title: "Getting Started",
-      preview: "Welcome to your workspace. Start organizing your thoughts...",
-      updatedAt: new Date(),
-      emoji: "📝"
-    },
-    {
-      id: "2",
-      title: "Project Planning",
-      preview: "Key milestones and deliverables for Q1...",
-      updatedAt: new Date(Date.now() - 86400000),
-      emoji: "📋"
-    }
-  ]);
+  const { user } = useAuth();
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadDocuments();
+    }
+  }, [user]);
+
+  const loadDocuments = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setDocuments(data.map(doc => ({
+          id: doc.id,
+          title: doc.title,
+          preview: doc.preview,
+          updatedAt: new Date(doc.updated_at),
+          emoji: doc.emoji || "📄"
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      toast.error("Failed to load documents");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredDocs = documents.filter(doc =>
     doc.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const createDocument = () => {
-    if (!newTitle.trim()) return;
+  const createDocument = async () => {
+    if (!newTitle.trim() || !user) return;
     
-    const newDoc: Document = {
-      id: Date.now().toString(),
-      title: newTitle,
-      preview: "Start writing...",
-      updatedAt: new Date(),
-      emoji: "📄"
-    };
-    
-    setDocuments(prev => [newDoc, ...prev]);
-    setNewTitle("");
-    setIsCreating(false);
-    toast.success("Document created");
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .insert([{
+          user_id: user.id,
+          title: newTitle,
+          preview: "Start writing...",
+          emoji: "📄"
+        }]);
+
+      if (error) throw error;
+
+      setNewTitle("");
+      setIsCreating(false);
+      toast.success("Document created");
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error creating document:', error);
+      toast.error("Failed to create document");
+    }
   };
 
-  const deleteDocument = (id: string) => {
-    setDocuments(prev => prev.filter(doc => doc.id !== id));
-    toast.success("Document deleted");
+  const deleteDocument = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Document deleted");
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error("Failed to delete document");
+    }
   };
 
   return (
@@ -103,7 +146,14 @@ export function DocumentsWidget() {
 
       <ScrollArea className="flex-1">
         <div className="space-y-2">
-          {filteredDocs.map((doc) => (
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          ) : filteredDocs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery ? "No documents found" : "No documents yet"}
+            </div>
+          ) : (
+            filteredDocs.map((doc) => (
             <div
               key={doc.id}
               className="group p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
@@ -136,7 +186,8 @@ export function DocumentsWidget() {
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </ScrollArea>
     </Card>
