@@ -87,6 +87,14 @@
     --gradient-primary: linear-gradient(135deg, hsl(271 76% 53%), hsl(346 60% 49%));
     --gradient-secondary: linear-gradient(135deg, hsl(346 60% 49%), hsl(320 65% 52%));
     
+    /* Ocean theme glow effects */
+    --ocean-glow: 0 0 60px hsl(195 100% 50% / 0.4);
+    --ocean-glow-soft: 0 0 40px hsl(180 70% 45% / 0.3);
+    
+    /* Forest theme glow effects */
+    --forest-glow: 0 0 50px hsl(145 70% 45% / 0.3);
+    --forest-glow-soft: 0 0 35px hsl(85 50% 40% / 0.25);
+    
     /* Border radius */
     --radius: 0.75rem;
     
@@ -555,4 +563,95 @@
   .skip-to-main:focus {
     top: 0;
   }
-}
+  
+  /* Ocean Theme Animations */
+  .ocean-preview-glow {
+    box-shadow: var(--ocean-glow-soft);
+    animation: ocean-pulse 4s ease-in-out infinite;
+  }
+  
+  .ocean-wave-1 {
+    background: linear-gradient(180deg, 
+      transparent 0%, 
+      hsl(195 100% 50% / 0.05) 50%, 
+      transparent 100%);
+    animation: ocean-wave 8s ease-in-out infinite;
+  }
+  
+  .ocean-wave-2 {
+    background: linear-gradient(180deg, 
+      transparent 0%, 
+      hsl(180 70% 45% / 0.05) 50%, 
+      transparent 100%);
+    animation: ocean-wave 10s ease-in-out infinite reverse;
+  }
+  
+  .ocean-bioluminescence {
+    animation: bioluminescence 3s ease-in-out infinite;
+    box-shadow: 0 0 10px currentColor;
+  }
+  
+  @keyframes ocean-pulse {
+    0%, 100% { box-shadow: var(--ocean-glow-soft); }
+    50% { box-shadow: var(--ocean-glow); }
+  }
+  
+  @keyframes ocean-wave {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+    50% { transform: translateY(-10px) scale(1.05); opacity: 0.6; }
+  }
+  
+  @keyframes bioluminescence {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+  
+  /* Forest Theme Animations */
+  .forest-preview-glow {
+    box-shadow: var(--forest-glow-soft);
+    animation: forest-pulse 5s ease-in-out infinite;
+  }
+  
+  .forest-canopy {
+    background: radial-gradient(
+      ellipse at top,
+      hsl(145 70% 45% / 0.08) 0%,
+      transparent 60%
+    );
+    animation: forest-sway 6s ease-in-out infinite;
+  }
+  
+  .forest-firefly {
+    animation: firefly 4s ease-in-out infinite;
+    box-shadow: 0 0 8px currentColor;
+  }
+  
+  @keyframes forest-pulse {
+    0%, 100% { box-shadow: var(--forest-glow-soft); }
+    50% { box-shadow: var(--forest-glow); }
+  }
+  
+  @keyframes forest-sway {
+    0%, 100% { transform: translateX(0); opacity: 0.4; }
+    50% { transform: translateX(3px); opacity: 0.6; }
+  }
+  
+  @keyframes firefly {
+    0%, 100% { 
+      opacity: 0.2; 
+      transform: translate(0, 0) scale(1);
+    }
+    25% { 
+      opacity: 1; 
+      transform: translate(2px, -2px) scale(1.3);
+    }
+    50% { 
+      opacity: 0.4; 
+      transform: translate(-2px, 2px) scale(0.8);
+    }
+    75% { 
+      opacity: 0.8; 
+      transform: translate(1px, 1px) scale(1.2);
+    }
+  }
+
