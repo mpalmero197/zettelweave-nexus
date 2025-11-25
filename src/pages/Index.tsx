@@ -336,12 +336,12 @@ const Index = () => {
         }}
       />
 
-      {/* Compact AI Search Bar - Only show when on search tab */}
+      {/* Compact AI Search Bar - Mobile Optimized */}
       {activeTab === "search" && (
-        <div className="sticky top-12 z-40 bg-gradient-to-r from-background/98 via-background/95 to-background/98 backdrop-blur-xl border-b border-border/40 px-3 py-3 shadow-lg">
-          <div className="max-w-3xl mx-auto flex items-center gap-3">
+        <div className="sticky top-12 z-40 bg-background/98 backdrop-blur-xl border-b border-border/40 px-2 sm:px-3 py-2 sm:py-3 shadow-lg">
+          <div className="max-w-3xl mx-auto flex items-center gap-2">
             <div className="flex-1 relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl sm:rounded-2xl blur-lg sm:blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
               <AISearchBar 
                 cards={cards} 
                 onSearchResults={(results) => {
@@ -367,34 +367,34 @@ const Index = () => {
         </div>
       )}
 
-      {/* Main Content */}
-      <main className="py-4 px-3 md:px-4 relative min-h-screen" role="main">
+      {/* Main Content - Mobile Optimized */}
+      <main className="pb-20 md:pb-4 px-2 sm:px-3 md:px-4 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
-          {/* Cards Menu Bar */}
+          {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
-            <div className="sticky top-24 z-30 bg-gradient-to-r from-card/98 via-card/95 to-card/98 backdrop-blur-xl border-2 border-border/40 rounded-2xl px-4 py-3 mb-4 shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-300">
-              <div className="flex items-center justify-center max-w-7xl mx-auto gap-2 flex-wrap"  >
+            <div className="sticky top-14 sm:top-24 z-30 bg-card/98 backdrop-blur-xl border border-border/40 rounded-lg sm:rounded-2xl px-2 sm:px-4 py-2 sm:py-3 mb-3 sm:mb-4 shadow-lg hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="flex items-center justify-center max-w-7xl mx-auto gap-1.5 sm:gap-2 flex-wrap">
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                 <VaultImportDialog onImportCards={handleImportCards} />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => exportToPDF(filteredCards)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
                   aria-label="Export to PDF"
                 >
-                  <Download className="h-4 w-4" />
-                  <span className="sr-only md:not-sr-only">PDF</span>
+                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">PDF</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => printCards(filteredCards)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
                   aria-label="Print cards"
                 >
-                  <Printer className="h-4 w-4" />
-                  <span className="sr-only md:not-sr-only">Print</span>
+                  <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">Print</span>
                 </Button>
                 <OrganizationMethodDialog
                   currentMethod={organizationMethod}
@@ -406,11 +406,11 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowRecommendations(!showRecommendations)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
                   aria-label="AI Recommendations"
                 >
-                  <Lightbulb className="h-4 w-4" />
-                  <span className="sr-only md:not-sr-only">AI Suggest</span>
+                  <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">AI</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -422,11 +422,11 @@ const Index = () => {
                       toast.error("Create some cards first to use Smart Linking");
                     }
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
                   aria-label="Smart Linking"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  <span className="sr-only md:not-sr-only">Smart Links</span>
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">Links</span>
                 </Button>
                 <DeleteAllCardsDialog 
                   onDeleteAll={deleteAllCards}
@@ -436,8 +436,8 @@ const Index = () => {
               </div>
             </div>
           )}
-          <div className="w-full">
-            <div className="w-full space-y-3">
+          <div className="w-full pt-2 sm:pt-0">
+            <div className="w-full space-y-2 sm:space-y-3">
               <div className="w-full">
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
