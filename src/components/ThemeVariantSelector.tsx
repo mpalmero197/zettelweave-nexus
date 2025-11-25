@@ -72,9 +72,14 @@ const themeOptions: ThemeOption[] = [
 
 export function ThemeVariantSelector() {
   const { variant, setVariant } = useThemeVariant();
+  
+  const handleThemeChange = (newVariant: ThemeVariant) => {
+    console.log('Theme option clicked:', newVariant);
+    setVariant(newVariant);
+  };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Palette className="h-4 w-4" />
@@ -92,7 +97,11 @@ export function ThemeVariantSelector() {
         {themeOptions.map((option) => (
           <DropdownMenuItem
             key={option.value}
-            onClick={() => setVariant(option.value)}
+            onClick={() => handleThemeChange(option.value)}
+            onSelect={(e) => {
+              e.preventDefault();
+              handleThemeChange(option.value);
+            }}
             className="flex items-start gap-3 cursor-pointer p-3"
           >
             <ThemeLivePreview
