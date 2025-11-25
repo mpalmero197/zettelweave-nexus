@@ -20,6 +20,7 @@ import { AvatarEditor } from '@/components/AvatarEditor';
 import { ThemePreview } from '@/components/ThemePreview';
 import { ThemeVariantSelector } from '@/components/ThemeVariantSelector';
 import { ContrastChecker } from '@/components/ContrastChecker';
+import { CustomThemeBuilder } from '@/components/CustomThemeBuilder';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -880,10 +881,13 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Theme Variants</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Choose from beautiful color palettes while maintaining accessibility
+                    Choose from beautiful color palettes or create your own
                   </p>
-                  <div className="flex items-center gap-3">
-                    <ThemeVariantSelector />
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <ThemeVariantSelector />
+                    </div>
+                    <CustomThemeBuilder />
                   </div>
                 </div>
 
