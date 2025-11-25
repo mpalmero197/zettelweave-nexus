@@ -28,7 +28,7 @@ export function UpgradeBanner() {
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex-shrink-0">
               <div className="p-4 bg-gradient-primary rounded-2xl shadow-lg animate-bounce">
-                <Sparkles className="h-8 w-8 text-white" />
+                <Sparkles className="h-8 w-8 text-primary-foreground" />
               </div>
             </div>
             

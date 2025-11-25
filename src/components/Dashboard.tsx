@@ -276,7 +276,7 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
                 <CardHeader className="relative">
                   <CardTitle className="flex items-center gap-3 text-xl">
                     <div className="p-2 bg-gradient-accent rounded-xl">
-                      <Edit3 className="h-5 w-5 text-white" />
+                      <Edit3 className="h-5 w-5 text-accent-foreground" />
                     </div>
                     Quick Capture
                   </CardTitle>
