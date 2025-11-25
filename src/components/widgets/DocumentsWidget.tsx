@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Plus, Trash2, Edit2, Search } from "lucide-react";
+import { FileText, Plus, Trash2, Edit2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -138,9 +138,14 @@ export function DocumentsWidget() {
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && createDocument()}
             autoFocus
+            className="flex-1"
           />
-          <Button size="sm" onClick={createDocument}>Create</Button>
-          <Button size="sm" variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
+          <Button size="sm" onClick={createDocument} className="h-10 w-10 p-0" aria-label="Create document">
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setIsCreating(false)} className="h-10 w-10 p-0" aria-label="Cancel">
+            <FileText className="w-4 h-4" />
+          </Button>
         </div>
       )}
 
@@ -172,7 +177,7 @@ export function DocumentsWidget() {
                   </p>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Edit document">
                     <Edit2 className="w-3 h-3" />
                   </Button>
                   <Button
@@ -180,6 +185,7 @@ export function DocumentsWidget() {
                     variant="ghost"
                     className="h-8 w-8 p-0 text-destructive"
                     onClick={() => deleteDocument(doc.id)}
+                    aria-label="Delete document"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
