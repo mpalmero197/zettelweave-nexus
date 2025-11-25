@@ -28,7 +28,9 @@ export type WidgetType =
   | 'quotes'
   | 'custom-note'
   | 'content-summarizer'
-  | 'task-manager';
+  | 'task-manager'
+  | 'documents'
+  | 'database';
 
 export interface DashboardLayout {
   id: string;

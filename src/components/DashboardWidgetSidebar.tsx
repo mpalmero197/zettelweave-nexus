@@ -19,7 +19,9 @@ import {
   Sun, 
   Quote, 
   StickyNote,
-  Plus
+  Plus,
+  File,
+  Database
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -158,6 +160,22 @@ const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     defaultSize: { w: 3, h: 3 },
     minSize: { w: 2, h: 2 },
     maxSize: { w: 4, h: 4 }
+  },
+  {
+    type: 'documents',
+    name: 'Documents',
+    description: 'Notion-style document management with search',
+    icon: File,
+    defaultSize: { w: 6, h: 5 },
+    minSize: { w: 4, h: 4 },
+  },
+  {
+    type: 'database',
+    name: 'Database',
+    description: 'Notion-style table database with status tracking',
+    icon: Database,
+    defaultSize: { w: 6, h: 5 },
+    minSize: { w: 4, h: 4 },
   }
 ];
 

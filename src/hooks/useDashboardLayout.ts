@@ -117,12 +117,28 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     isVisible: true
   },
   
+  // Knowledge Management Row
+  {
+    id: 'documents',
+    type: 'documents',
+    title: 'Documents',
+    position: { x: 0, y: 26, w: 6, h: 5 },
+    isVisible: true
+  },
+  {
+    id: 'database',
+    type: 'database',
+    title: 'Database',
+    position: { x: 6, y: 26, w: 6, h: 5 },
+    isVisible: true
+  },
+  
   // Activity Feed - Full width footer
   {
     id: 'activity-feed',
     type: 'activity-feed',
     title: 'Recent Activity',
-    position: { x: 0, y: 26, w: 12, h: 4 },
+    position: { x: 0, y: 31, w: 12, h: 4 },
     isVisible: true
   }
 ];

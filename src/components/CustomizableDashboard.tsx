@@ -9,6 +9,8 @@ import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
 import { HabitTrackerWidget } from "./widgets/HabitTrackerWidget";
 import { TaskManagerWidget } from "./widgets/TaskManagerWidget";
 import { ContentSummarizerWidget } from "./widgets/ContentSummarizerWidget";
+import { DocumentsWidget } from "./widgets/DocumentsWidget";
+import { DatabaseWidget } from "./widgets/DatabaseWidget";
 import { ActivityFeedWidget } from "./widgets/ActivityFeedWidget";
 import { NotebookListWidget } from "./widgets/NotebookListWidget";
 import { WeatherWidget } from "./widgets/WeatherWidget";
@@ -113,6 +115,12 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
         
         case 'task-manager':
           return <TaskManagerWidget />;
+        
+        case 'documents':
+          return <DocumentsWidget />;
+        
+        case 'database':
+          return <DatabaseWidget />;
         
         default:
           return (
