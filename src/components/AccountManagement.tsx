@@ -294,13 +294,41 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         break;
       case 'ocean':
         root.classList.add('dark');
-        root.style.setProperty('--primary', '200 100% 50%');
-        root.style.setProperty('--accent', '190 100% 60%');
+        // Deep ocean blues with bioluminescent accents
+        root.style.setProperty('--background', '210 45% 8%');
+        root.style.setProperty('--foreground', '180 20% 95%');
+        root.style.setProperty('--card', '210 40% 12%');
+        root.style.setProperty('--card-foreground', '180 20% 95%');
+        root.style.setProperty('--primary', '195 100% 50%');
+        root.style.setProperty('--primary-foreground', '210 45% 8%');
+        root.style.setProperty('--primary-hover', '195 100% 60%');
+        root.style.setProperty('--secondary', '180 70% 45%');
+        root.style.setProperty('--secondary-foreground', '210 45% 8%');
+        root.style.setProperty('--accent', '190 85% 35%');
+        root.style.setProperty('--accent-foreground', '180 20% 95%');
+        root.style.setProperty('--muted', '210 30% 15%');
+        root.style.setProperty('--muted-foreground', '180 15% 60%');
+        root.style.setProperty('--border', '210 35% 25%');
+        root.style.setProperty('--input', '210 35% 18%');
         break;
       case 'forest':
         root.classList.add('dark');
-        root.style.setProperty('--primary', '120 60% 50%');
-        root.style.setProperty('--accent', '140 70% 60%');
+        // Deep forest greens with earthy tones
+        root.style.setProperty('--background', '140 30% 8%');
+        root.style.setProperty('--foreground', '120 15% 92%');
+        root.style.setProperty('--card', '140 25% 12%');
+        root.style.setProperty('--card-foreground', '120 15% 92%');
+        root.style.setProperty('--primary', '145 70% 45%');
+        root.style.setProperty('--primary-foreground', '140 30% 8%');
+        root.style.setProperty('--primary-hover', '145 70% 55%');
+        root.style.setProperty('--secondary', '85 50% 40%');
+        root.style.setProperty('--secondary-foreground', '140 30% 8%');
+        root.style.setProperty('--accent', '160 60% 30%');
+        root.style.setProperty('--accent-foreground', '120 15% 92%');
+        root.style.setProperty('--muted', '140 20% 15%');
+        root.style.setProperty('--muted-foreground', '120 10% 60%');
+        root.style.setProperty('--border', '140 25% 22%');
+        root.style.setProperty('--input', '140 25% 16%');
         break;
       case 'sunset':
         root.classList.add('dark');
