@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Database, Plus, Trash2, X, Check, Maximize2, Minimize2 } from "lucide-react";
+import { Database, Plus, Trash2, X, Check, Maximize2, Minimize2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ interface DatabaseRow {
   status: "todo" | "in-progress" | "done";
   priority: "low" | "medium" | "high";
   dueDate: string;
+  isFavorite: boolean;
 }
 
 export function DatabaseWidget() {
@@ -44,6 +45,7 @@ export function DatabaseWidget() {
       const { data, error } = await supabase
         .from('project_tasks')
         .select('*')
+        .order('is_favorite', { ascending: false })
         .order('due_date', { ascending: true });
 
       if (error) throw error;
@@ -54,7 +56,8 @@ export function DatabaseWidget() {
           name: task.name,
           status: task.status as DatabaseRow["status"],
           priority: task.priority as DatabaseRow["priority"],
-          dueDate: task.due_date
+          dueDate: task.due_date,
+          isFavorite: task.is_favorite || false
         })));
       }
     } catch (error) {
@@ -122,6 +125,22 @@ export function DatabaseWidget() {
     }
   };
 
+  const toggleFavorite = async (id: string, currentFavorite: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('project_tasks')
+        .update({ is_favorite: !currentFavorite })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await loadTasks();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error("Failed to update favorite");
+    }
+  };
+
   const updateStatus = async (id: string, status: DatabaseRow["status"]) => {
     try {
       const { error } = await supabase
@@ -169,6 +188,7 @@ export function DatabaseWidget() {
         <table className={`w-full ${isCompact ? 'text-xs' : 'text-sm'}`}>
           <thead className="border-b">
             <tr className="text-left">
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} w-8`}></th>
               <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Name</th>
               <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Status</th>
               <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Priority</th>
@@ -214,6 +234,17 @@ export function DatabaseWidget() {
             )}
             {rows.map((row) => (
               <tr key={row.id} className={`border-b hover:bg-accent/50 group ${isCompact ? 'text-xs' : ''}`}>
+                <td className={isCompact ? 'py-1' : 'py-2'}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`${isCompact ? 'h-5 w-5' : 'h-6 w-6'} p-0 ${row.isFavorite ? '' : 'opacity-0 group-hover:opacity-100'}`}
+                    onClick={() => toggleFavorite(row.id, row.isFavorite)}
+                    aria-label={row.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Star className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${row.isFavorite ? 'fill-primary text-primary' : ''}`} />
+                  </Button>
+                </td>
                 <td className={`${isCompact ? 'py-1' : 'py-2'} font-medium`}>{row.name}</td>
                 <td className={isCompact ? 'py-1' : 'py-2'}>
                   <Select

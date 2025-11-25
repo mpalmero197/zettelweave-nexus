@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Plus, Trash2, Edit2, Search, X, Maximize2, Minimize2 } from "lucide-react";
+import { FileText, Plus, Trash2, Edit2, Search, X, Maximize2, Minimize2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ interface Document {
   preview: string;
   updatedAt: Date;
   emoji?: string;
+  isFavorite: boolean;
 }
 
 export function DocumentsWidget() {
@@ -38,6 +39,7 @@ export function DocumentsWidget() {
       const { data, error } = await supabase
         .from('documents')
         .select('*')
+        .order('is_favorite', { ascending: false })
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -48,7 +50,8 @@ export function DocumentsWidget() {
           title: doc.title,
           preview: doc.preview,
           updatedAt: new Date(doc.updated_at),
-          emoji: doc.emoji || "📄"
+          emoji: doc.emoji || "📄",
+          isFavorite: doc.is_favorite || false
         })));
       }
     } catch (error) {
@@ -102,6 +105,22 @@ export function DocumentsWidget() {
     } catch (error) {
       console.error('Error deleting document:', error);
       toast.error("Failed to delete document");
+    }
+  };
+
+  const toggleFavorite = async (id: string, currentFavorite: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ is_favorite: !currentFavorite })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error("Failed to update favorite");
     }
   };
 
@@ -195,6 +214,18 @@ export function DocumentsWidget() {
                   )}
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`${isCompact ? 'h-6 w-6' : 'h-8 w-8'} p-0 ${doc.isFavorite ? 'opacity-100' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(doc.id, doc.isFavorite);
+                    }}
+                    aria-label={doc.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Star className={`${isCompact ? 'w-3 h-3' : 'w-3 h-3'} ${doc.isFavorite ? 'fill-primary text-primary' : ''}`} />
+                  </Button>
                   <Button 
                     size="sm" 
                     variant="ghost" 
