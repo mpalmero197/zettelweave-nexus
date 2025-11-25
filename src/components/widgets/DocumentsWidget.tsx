@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Plus, Trash2, Edit2, Search, X, Maximize2, Minimize2, Star } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, Plus, Trash2, Edit2, Search, X, Maximize2, Minimize2, Star, StarOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +26,7 @@ export function DocumentsWidget() {
   const [newTitle, setNewTitle] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCompact, setIsCompact] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -124,6 +126,64 @@ export function DocumentsWidget() {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelection = new Set(selectedIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedIds(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredDocs.length && filteredDocs.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredDocs.map(doc => doc.id)));
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${selectedIds.size} document(s)`);
+      setSelectedIds(new Set());
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      toast.error("Failed to delete documents");
+    }
+  };
+
+  const bulkToggleFavorite = async (markAsFavorite: boolean) => {
+    if (selectedIds.size === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ is_favorite: markAsFavorite })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`Updated ${selectedIds.size} document(s)`);
+      setSelectedIds(new Set());
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error bulk updating favorites:', error);
+      toast.error("Failed to update favorites");
+    }
+  };
+
   return (
     <Card className="p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -150,6 +210,26 @@ export function DocumentsWidget() {
           </Button>
         </div>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="flex gap-1 ml-auto">
+            <Button size="sm" variant="ghost" onClick={() => bulkToggleFavorite(true)} aria-label="Mark as favorite">
+              <Star className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => bulkToggleFavorite(false)} aria-label="Remove from favorites">
+              <StarOff className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={bulkDelete} className="text-destructive" aria-label="Delete selected">
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -181,6 +261,16 @@ export function DocumentsWidget() {
       )}
 
       <ScrollArea className="flex-1">
+        {filteredDocs.length > 0 && (
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <Checkbox
+              checked={selectedIds.size === filteredDocs.length && filteredDocs.length > 0}
+              onCheckedChange={toggleSelectAll}
+              aria-label="Select all"
+            />
+            <span className="text-xs text-muted-foreground">Select all</span>
+          </div>
+        )}
         <div className="space-y-2">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
@@ -192,11 +282,19 @@ export function DocumentsWidget() {
             filteredDocs.map((doc) => (
             <div
               key={doc.id}
-              className={`group rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer ${
+              className={`group rounded-lg border bg-card hover:bg-accent/50 transition-colors ${
                 isCompact ? 'p-2' : 'p-3'
               }`}
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  checked={selectedIds.has(doc.id)}
+                  onCheckedChange={() => toggleSelection(doc.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1"
+                  aria-label={`Select ${doc.title}`}
+                />
+                <div className="flex-1 min-w-0 cursor-pointer">
                 <div className="flex-1 min-w-0">
                   <div className={`flex items-center gap-2 ${isCompact ? 'mb-0' : 'mb-1'}`}>
                     {doc.emoji && <span className={isCompact ? 'text-base' : 'text-lg'}>{doc.emoji}</span>}
@@ -245,6 +343,7 @@ export function DocumentsWidget() {
                   </Button>
                 </div>
               </div>
+            </div>
             </div>
             ))
           )}

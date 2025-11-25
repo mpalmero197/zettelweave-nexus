@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Database, Plus, Trash2, X, Check, Maximize2, Minimize2, Star } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Database, Plus, Trash2, X, Check, Maximize2, Minimize2, Star, StarOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ export function DatabaseWidget() {
   const [newRowName, setNewRowName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCompact, setIsCompact] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -141,6 +143,64 @@ export function DatabaseWidget() {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelection = new Set(selectedIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedIds(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === rows.length && rows.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(rows.map(row => row.id)));
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('project_tasks')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${selectedIds.size} task(s)`);
+      setSelectedIds(new Set());
+      await loadTasks();
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      toast.error("Failed to delete tasks");
+    }
+  };
+
+  const bulkToggleFavorite = async (markAsFavorite: boolean) => {
+    if (selectedIds.size === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('project_tasks')
+        .update({ is_favorite: markAsFavorite })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`Updated ${selectedIds.size} task(s)`);
+      setSelectedIds(new Set());
+      await loadTasks();
+    } catch (error) {
+      console.error('Error bulk updating favorites:', error);
+      toast.error("Failed to update favorites");
+    }
+  };
+
   const updateStatus = async (id: string, status: DatabaseRow["status"]) => {
     try {
       const { error } = await supabase
@@ -184,10 +244,37 @@ export function DatabaseWidget() {
         </div>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="flex gap-1 ml-auto">
+            <Button size="sm" variant="ghost" onClick={() => bulkToggleFavorite(true)} aria-label="Mark as favorite">
+              <Star className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => bulkToggleFavorite(false)} aria-label="Remove from favorites">
+              <StarOff className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={bulkDelete} className="text-destructive" aria-label="Delete selected">
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto">
         <table className={`w-full ${isCompact ? 'text-xs' : 'text-sm'}`}>
           <thead className="border-b">
             <tr className="text-left">
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} w-10`}>
+                <Checkbox
+                  checked={selectedIds.size === rows.length && rows.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </th>
               <th className={`${isCompact ? 'pb-1' : 'pb-2'} w-8`}></th>
               <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Name</th>
               <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Status</th>
@@ -234,6 +321,13 @@ export function DatabaseWidget() {
             )}
             {rows.map((row) => (
               <tr key={row.id} className={`border-b hover:bg-accent/50 group ${isCompact ? 'text-xs' : ''}`}>
+                <td className={isCompact ? 'py-1' : 'py-2'}>
+                  <Checkbox
+                    checked={selectedIds.has(row.id)}
+                    onCheckedChange={() => toggleSelection(row.id)}
+                    aria-label={`Select ${row.name}`}
+                  />
+                </td>
                 <td className={isCompact ? 'py-1' : 'py-2'}>
                   <Button
                     size="sm"
