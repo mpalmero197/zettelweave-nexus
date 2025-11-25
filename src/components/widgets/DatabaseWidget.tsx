@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Database, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Select,
   SelectContent,
@@ -22,24 +24,45 @@ interface DatabaseRow {
 }
 
 export function DatabaseWidget() {
-  const [rows, setRows] = useState<DatabaseRow[]>([
-    {
-      id: "1",
-      name: "Design system update",
-      status: "in-progress",
-      priority: "high",
-      dueDate: "2025-01-30"
-    },
-    {
-      id: "2",
-      name: "API integration",
-      status: "todo",
-      priority: "medium",
-      dueDate: "2025-02-05"
-    }
-  ]);
+  const { user } = useAuth();
+  const [rows, setRows] = useState<DatabaseRow[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newRowName, setNewRowName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadTasks();
+    }
+  }, [user]);
+
+  const loadTasks = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('project_tasks')
+        .select('*')
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setRows(data.map(task => ({
+          id: task.id,
+          name: task.name,
+          status: task.status as DatabaseRow["status"],
+          priority: task.priority as DatabaseRow["priority"],
+          dueDate: task.due_date
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      toast.error("Failed to load tasks");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const statusColors = {
     "todo": "bg-gray-500",
@@ -53,32 +76,65 @@ export function DatabaseWidget() {
     "high": "bg-red-500"
   };
 
-  const addRow = () => {
-    if (!newRowName.trim()) return;
+  const addRow = async () => {
+    if (!newRowName.trim() || !user) return;
     
-    const newRow: DatabaseRow = {
-      id: Date.now().toString(),
-      name: newRowName,
-      status: "todo",
-      priority: "medium",
-      dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
-    };
+    const dueDate = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
     
-    setRows(prev => [...prev, newRow]);
-    setNewRowName("");
-    setIsAdding(false);
-    toast.success("Row added");
+    try {
+      const { error } = await supabase
+        .from('project_tasks')
+        .insert([{
+          user_id: user.id,
+          name: newRowName,
+          status: "todo",
+          priority: "medium",
+          due_date: dueDate
+        }]);
+
+      if (error) throw error;
+
+      setNewRowName("");
+      setIsAdding(false);
+      toast.success("Task added");
+      await loadTasks();
+    } catch (error) {
+      console.error('Error adding task:', error);
+      toast.error("Failed to add task");
+    }
   };
 
-  const deleteRow = (id: string) => {
-    setRows(prev => prev.filter(row => row.id !== id));
-    toast.success("Row deleted");
+  const deleteRow = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('project_tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Task deleted");
+      await loadTasks();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error("Failed to delete task");
+    }
   };
 
-  const updateStatus = (id: string, status: DatabaseRow["status"]) => {
-    setRows(prev => prev.map(row => 
-      row.id === id ? { ...row, status } : row
-    ));
+  const updateStatus = async (id: string, status: DatabaseRow["status"]) => {
+    try {
+      const { error } = await supabase
+        .from('project_tasks')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await loadTasks();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error("Failed to update status");
+    }
   };
 
   return (
@@ -109,6 +165,19 @@ export function DatabaseWidget() {
             </tr>
           </thead>
           <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="py-4 text-center text-muted-foreground">
+                  Loading...
+                </td>
+              </tr>
+            ) : rows.length === 0 && !isAdding ? (
+              <tr>
+                <td colSpan={5} className="py-4 text-center text-muted-foreground">
+                  No tasks yet
+                </td>
+              </tr>
+            ) : null}
             {isAdding && (
               <tr className="border-b">
                 <td className="py-2">
