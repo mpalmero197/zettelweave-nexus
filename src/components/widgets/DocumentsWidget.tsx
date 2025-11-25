@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Plus, Trash2, Edit2, Search, X } from "lucide-react";
+import { FileText, Plus, Trash2, Edit2, Search, X, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,7 @@ export function DocumentsWidget() {
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -111,13 +112,24 @@ export function DocumentsWidget() {
           <FileText className="w-5 h-5 text-primary" />
           <h3 className="font-semibold">Documents</h3>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setIsCreating(true)}
-        >
-          <Plus className="w-4 h-4" />
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsCompact(!isCompact)}
+            aria-label={isCompact ? "Expand view" : "Compact view"}
+          >
+            {isCompact ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsCreating(true)}
+            aria-label="Add document"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="relative mb-4">
@@ -161,29 +173,40 @@ export function DocumentsWidget() {
             filteredDocs.map((doc) => (
             <div
               key={doc.id}
-              className="group p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+              className={`group rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer ${
+                isCompact ? 'p-2' : 'p-3'
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {doc.emoji && <span className="text-lg">{doc.emoji}</span>}
-                    <h4 className="font-medium truncate">{doc.title}</h4>
+                  <div className={`flex items-center gap-2 ${isCompact ? 'mb-0' : 'mb-1'}`}>
+                    {doc.emoji && <span className={isCompact ? 'text-base' : 'text-lg'}>{doc.emoji}</span>}
+                    <h4 className={`font-medium truncate ${isCompact ? 'text-sm' : ''}`}>{doc.title}</h4>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {doc.preview}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {doc.updatedAt.toLocaleDateString()}
-                  </p>
+                  {!isCompact && (
+                    <>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {doc.preview}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {doc.updatedAt.toLocaleDateString()}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Edit document">
-                    <Edit2 className="w-3 h-3" />
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className={isCompact ? 'h-6 w-6 p-0' : 'h-8 w-8 p-0'} 
+                    aria-label="Edit document"
+                  >
+                    <Edit2 className={isCompact ? 'w-3 h-3' : 'w-3 h-3'} />
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 w-8 p-0 text-destructive"
+                    className={`${isCompact ? 'h-6 w-6' : 'h-8 w-8'} p-0 text-destructive`}
                     onClick={() => deleteDocument(doc.id)}
                     aria-label="Delete document"
                   >

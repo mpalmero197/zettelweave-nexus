@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Database, Plus, Trash2, X, Check } from "lucide-react";
+import { Database, Plus, Trash2, X, Check, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +29,7 @@ export function DatabaseWidget() {
   const [isAdding, setIsAdding] = useState(false);
   const [newRowName, setNewRowName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -144,24 +145,35 @@ export function DatabaseWidget() {
           <Database className="w-5 h-5 text-primary" />
           <h3 className="font-semibold">Project Database</h3>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setIsAdding(true)}
-        >
-          <Plus className="w-4 h-4" />
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsCompact(!isCompact)}
+            aria-label={isCompact ? "Expand view" : "Compact view"}
+          >
+            {isCompact ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsAdding(true)}
+            aria-label="Add task"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm">
+        <table className={`w-full ${isCompact ? 'text-xs' : 'text-sm'}`}>
           <thead className="border-b">
             <tr className="text-left">
-              <th className="pb-2 font-medium">Name</th>
-              <th className="pb-2 font-medium">Status</th>
-              <th className="pb-2 font-medium">Priority</th>
-              <th className="pb-2 font-medium">Due Date</th>
-              <th className="pb-2 w-10"></th>
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Name</th>
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Status</th>
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Priority</th>
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} font-medium`}>Due Date</th>
+              <th className={`${isCompact ? 'pb-1' : 'pb-2'} w-10`}></th>
             </tr>
           </thead>
           <tbody>
@@ -201,14 +213,14 @@ export function DatabaseWidget() {
               </tr>
             )}
             {rows.map((row) => (
-              <tr key={row.id} className="border-b hover:bg-accent/50 group">
-                <td className="py-2 font-medium">{row.name}</td>
-                <td className="py-2">
+              <tr key={row.id} className={`border-b hover:bg-accent/50 group ${isCompact ? 'text-xs' : ''}`}>
+                <td className={`${isCompact ? 'py-1' : 'py-2'} font-medium`}>{row.name}</td>
+                <td className={isCompact ? 'py-1' : 'py-2'}>
                   <Select
                     value={row.status}
                     onValueChange={(value) => updateStatus(row.id, value as DatabaseRow["status"])}
                   >
-                    <SelectTrigger className="h-7 w-32">
+                    <SelectTrigger className={`${isCompact ? 'h-6 w-28 text-xs' : 'h-7 w-32'}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -218,19 +230,19 @@ export function DatabaseWidget() {
                     </SelectContent>
                   </Select>
                 </td>
-                <td className="py-2">
-                  <Badge className={priorityColors[row.priority]}>
+                <td className={isCompact ? 'py-1' : 'py-2'}>
+                  <Badge className={`${priorityColors[row.priority]} ${isCompact ? 'text-xs px-1.5 py-0' : ''}`}>
                     {row.priority}
                   </Badge>
                 </td>
-                <td className="py-2 text-muted-foreground">
+                <td className={`${isCompact ? 'py-1' : 'py-2'} text-muted-foreground`}>
                   {new Date(row.dueDate).toLocaleDateString()}
                 </td>
-                <td className="py-2">
+                <td className={isCompact ? 'py-1' : 'py-2'}>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-destructive"
+                    className={`${isCompact ? 'h-5 w-5' : 'h-7 w-7'} p-0 opacity-0 group-hover:opacity-100 text-destructive`}
                     onClick={() => deleteRow(row.id)}
                     aria-label="Delete task"
                   >
