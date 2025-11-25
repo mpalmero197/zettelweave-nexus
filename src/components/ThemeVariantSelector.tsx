@@ -10,12 +10,16 @@ import {
 import { useThemeVariant, ThemeVariant } from "@/hooks/useThemeVariant";
 import { Palette, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeLivePreview } from "@/components/ThemeLivePreview";
 
 interface ThemeOption {
   value: ThemeVariant;
   label: string;
   description: string;
-  preview: string;
+  primary: string;
+  secondary: string;
+  background: string;
+  foreground: string;
 }
 
 const themeOptions: ThemeOption[] = [
@@ -23,31 +27,46 @@ const themeOptions: ThemeOption[] = [
     value: 'default',
     label: 'Purple Dream',
     description: 'Vibrant purple & pink',
-    preview: 'bg-gradient-to-r from-[hsl(271,76%,53%)] to-[hsl(346,60%,49%)]'
+    primary: '271 76% 53%',
+    secondary: '346 60% 49%',
+    background: '0 0% 100%',
+    foreground: '0 0% 10%'
   },
   {
     value: 'ocean',
     label: 'Ocean Breeze',
     description: 'Calming blues & teals',
-    preview: 'bg-gradient-to-r from-[hsl(200,70%,48%)] to-[hsl(180,60%,45%)]'
+    primary: '200 70% 48%',
+    secondary: '180 60% 45%',
+    background: '0 0% 100%',
+    foreground: '0 0% 10%'
   },
   {
     value: 'forest',
     label: 'Forest Path',
     description: 'Natural greens & earth',
-    preview: 'bg-gradient-to-r from-[hsl(130,50%,45%)] to-[hsl(85,45%,40%)]'
+    primary: '130 50% 45%',
+    secondary: '85 45% 40%',
+    background: '0 0% 100%',
+    foreground: '0 0% 10%'
   },
   {
     value: 'sunset',
     label: 'Sunset Glow',
     description: 'Warm oranges & reds',
-    preview: 'bg-gradient-to-r from-[hsl(15,85%,55%)] to-[hsl(40,70%,50%)]'
+    primary: '15 85% 55%',
+    secondary: '40 70% 50%',
+    background: '0 0% 100%',
+    foreground: '0 0% 10%'
   },
   {
     value: 'lavender',
     label: 'Lavender Fields',
     description: 'Soft purples & blues',
-    preview: 'bg-gradient-to-r from-[hsl(270,50%,60%)] to-[hsl(240,60%,65%)]'
+    primary: '270 50% 60%',
+    secondary: '240 60% 65%',
+    background: '0 0% 100%',
+    foreground: '0 0% 10%'
   }
 ];
 
@@ -62,23 +81,33 @@ export function ThemeVariantSelector() {
           <span className="hidden sm:inline">Theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 bg-popover/95 backdrop-blur-xl border-border/60">
+      <DropdownMenuContent align="end" className="w-72 bg-popover/95 backdrop-blur-xl border-border/60">
         <DropdownMenuLabel>Color Theme</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {themeOptions.map((option) => (
           <DropdownMenuItem
             key={option.value}
             onClick={() => setVariant(option.value)}
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-start gap-3 cursor-pointer p-3"
           >
-            <div className={cn("w-8 h-8 rounded-md", option.preview)} />
-            <div className="flex-1">
-              <div className="font-medium">{option.label}</div>
-              <div className="text-xs text-muted-foreground">{option.description}</div>
+            <ThemeLivePreview
+              primary={option.primary}
+              secondary={option.secondary}
+              background={option.background}
+              foreground={option.foreground}
+              className="w-20 h-16 flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium flex items-center gap-2">
+                {option.label}
+                {variant === option.value && (
+                  <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {option.description}
+              </div>
             </div>
-            {variant === option.value && (
-              <Check className="h-4 w-4 text-primary" />
-            )}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
