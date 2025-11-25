@@ -18,6 +18,11 @@ interface Document {
   isFavorite: boolean;
 }
 
+interface UndoAction {
+  type: 'delete' | 'favorite' | 'unfavorite';
+  documents: Array<{ id: string; title: string; preview: string; emoji?: string; is_favorite: boolean; updated_at: string }>;
+}
+
 export function DocumentsWidget() {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -27,6 +32,7 @@ export function DocumentsWidget() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCompact, setIsCompact] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -148,6 +154,14 @@ export function DocumentsWidget() {
     if (selectedIds.size === 0) return;
     
     try {
+      // Get documents before deletion for undo
+      const { data: docsToDelete, error: fetchError } = await supabase
+        .from('documents')
+        .select('*')
+        .in('id', Array.from(selectedIds));
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('documents')
         .delete()
@@ -155,9 +169,24 @@ export function DocumentsWidget() {
 
       if (error) throw error;
 
-      toast.success(`Deleted ${selectedIds.size} document(s)`);
+      // Store undo action
+      setUndoAction({
+        type: 'delete',
+        documents: docsToDelete || []
+      });
+
+      const count = selectedIds.size;
       setSelectedIds(new Set());
       await loadDocuments();
+
+      // Show toast with undo button
+      toast.success(`Deleted ${count} document(s)`, {
+        action: {
+          label: "Undo",
+          onClick: () => handleUndo()
+        },
+        duration: 5000
+      });
     } catch (error) {
       console.error('Error bulk deleting:', error);
       toast.error("Failed to delete documents");
@@ -168,6 +197,14 @@ export function DocumentsWidget() {
     if (selectedIds.size === 0) return;
     
     try {
+      // Get documents before updating for undo
+      const { data: docsToUpdate, error: fetchError } = await supabase
+        .from('documents')
+        .select('*')
+        .in('id', Array.from(selectedIds));
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('documents')
         .update({ is_favorite: markAsFavorite })
@@ -175,12 +212,68 @@ export function DocumentsWidget() {
 
       if (error) throw error;
 
-      toast.success(`Updated ${selectedIds.size} document(s)`);
+      // Store undo action
+      setUndoAction({
+        type: markAsFavorite ? 'favorite' : 'unfavorite',
+        documents: docsToUpdate || []
+      });
+
+      const count = selectedIds.size;
       setSelectedIds(new Set());
       await loadDocuments();
+
+      // Show toast with undo button
+      toast.success(`Updated ${count} document(s)`, {
+        action: {
+          label: "Undo",
+          onClick: () => handleUndo()
+        },
+        duration: 5000
+      });
     } catch (error) {
       console.error('Error bulk updating favorites:', error);
       toast.error("Failed to update favorites");
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!undoAction) return;
+
+    try {
+      if (undoAction.type === 'delete') {
+        // Restore deleted documents
+        const { error } = await supabase
+          .from('documents')
+          .insert(undoAction.documents.map(doc => ({
+            id: doc.id,
+            user_id: user?.id,
+            title: doc.title,
+            preview: doc.preview,
+            emoji: doc.emoji,
+            is_favorite: doc.is_favorite,
+            updated_at: doc.updated_at
+          })));
+
+        if (error) throw error;
+        toast.success("Deletion undone");
+      } else {
+        // Restore previous favorite states
+        for (const doc of undoAction.documents) {
+          const { error } = await supabase
+            .from('documents')
+            .update({ is_favorite: doc.is_favorite })
+            .eq('id', doc.id);
+
+          if (error) throw error;
+        }
+        toast.success("Changes undone");
+      }
+
+      setUndoAction(null);
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error undoing action:', error);
+      toast.error("Failed to undo action");
     }
   };
 

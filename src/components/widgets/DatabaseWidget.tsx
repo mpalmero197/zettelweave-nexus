@@ -25,6 +25,11 @@ interface DatabaseRow {
   isFavorite: boolean;
 }
 
+interface UndoAction {
+  type: 'delete' | 'favorite' | 'unfavorite';
+  tasks: Array<{ id: string; name: string; status: string; priority: string; due_date: string; is_favorite: boolean; user_id: string }>;
+}
+
 export function DatabaseWidget() {
   const { user } = useAuth();
   const [rows, setRows] = useState<DatabaseRow[]>([]);
@@ -33,6 +38,7 @@ export function DatabaseWidget() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCompact, setIsCompact] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -165,6 +171,14 @@ export function DatabaseWidget() {
     if (selectedIds.size === 0) return;
     
     try {
+      // Get tasks before deletion for undo
+      const { data: tasksToDelete, error: fetchError } = await supabase
+        .from('project_tasks')
+        .select('*')
+        .in('id', Array.from(selectedIds));
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('project_tasks')
         .delete()
@@ -172,9 +186,24 @@ export function DatabaseWidget() {
 
       if (error) throw error;
 
-      toast.success(`Deleted ${selectedIds.size} task(s)`);
+      // Store undo action
+      setUndoAction({
+        type: 'delete',
+        tasks: tasksToDelete || []
+      });
+
+      const count = selectedIds.size;
       setSelectedIds(new Set());
       await loadTasks();
+
+      // Show toast with undo button
+      toast.success(`Deleted ${count} task(s)`, {
+        action: {
+          label: "Undo",
+          onClick: () => handleUndo()
+        },
+        duration: 5000
+      });
     } catch (error) {
       console.error('Error bulk deleting:', error);
       toast.error("Failed to delete tasks");
@@ -185,6 +214,14 @@ export function DatabaseWidget() {
     if (selectedIds.size === 0) return;
     
     try {
+      // Get tasks before updating for undo
+      const { data: tasksToUpdate, error: fetchError } = await supabase
+        .from('project_tasks')
+        .select('*')
+        .in('id', Array.from(selectedIds));
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('project_tasks')
         .update({ is_favorite: markAsFavorite })
@@ -192,12 +229,60 @@ export function DatabaseWidget() {
 
       if (error) throw error;
 
-      toast.success(`Updated ${selectedIds.size} task(s)`);
+      // Store undo action
+      setUndoAction({
+        type: markAsFavorite ? 'favorite' : 'unfavorite',
+        tasks: tasksToUpdate || []
+      });
+
+      const count = selectedIds.size;
       setSelectedIds(new Set());
       await loadTasks();
+
+      // Show toast with undo button
+      toast.success(`Updated ${count} task(s)`, {
+        action: {
+          label: "Undo",
+          onClick: () => handleUndo()
+        },
+        duration: 5000
+      });
     } catch (error) {
       console.error('Error bulk updating favorites:', error);
       toast.error("Failed to update favorites");
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!undoAction) return;
+
+    try {
+      if (undoAction.type === 'delete') {
+        // Restore deleted tasks
+        const { error } = await supabase
+          .from('project_tasks')
+          .insert(undoAction.tasks);
+
+        if (error) throw error;
+        toast.success("Deletion undone");
+      } else {
+        // Restore previous favorite states
+        for (const task of undoAction.tasks) {
+          const { error } = await supabase
+            .from('project_tasks')
+            .update({ is_favorite: task.is_favorite })
+            .eq('id', task.id);
+
+          if (error) throw error;
+        }
+        toast.success("Changes undone");
+      }
+
+      setUndoAction(null);
+      await loadTasks();
+    } catch (error) {
+      console.error('Error undoing action:', error);
+      toast.error("Failed to undo action");
     }
   };
 
