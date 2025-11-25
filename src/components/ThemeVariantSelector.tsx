@@ -81,7 +81,12 @@ export function ThemeVariantSelector() {
           <span className="hidden sm:inline">Theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 bg-popover backdrop-blur-xl border-border shadow-xl z-[100]">
+      <DropdownMenuContent 
+        align="center" 
+        side="bottom"
+        sideOffset={8}
+        className="w-72 bg-popover backdrop-blur-xl border-border shadow-xl z-[100]"
+      >
         <DropdownMenuLabel>Color Theme</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {themeOptions.map((option) => (
