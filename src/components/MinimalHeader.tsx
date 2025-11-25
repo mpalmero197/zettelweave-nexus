@@ -64,13 +64,13 @@ export function MinimalHeader({
           </SheetContent>
         </Sheet>
 
-        {/* Logo with Status Dot - Always visible */}
+        {/* Logo with Status Dot - Desktop Only */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+              <div className="hidden md:flex items-center gap-1.5 md:gap-2 flex-shrink-0">
                 <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain hover-scale" />
-                <span className="text-sm font-semibold hidden md:inline bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">PendragonX</span>
+                <span className="text-sm font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">PendragonX</span>
                 <div 
                   className={`h-2 w-2 rounded-full transition-all ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-muted-foreground/40'}`}
                   aria-label={isOnline ? 'Online' : 'Offline'}
@@ -86,13 +86,13 @@ export function MinimalHeader({
         {/* Spacer to push actions to the right */}
         <div className="flex-1"></div>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+        {/* Quick Actions - Optimized for mobile */}
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           {onSearchClick && (
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 w-8 p-0 hover-scale"
+              className="h-8 w-8 p-0 hover-scale hidden sm:flex"
               onClick={onSearchClick}
               aria-label="Search"
             >
@@ -109,8 +109,12 @@ export function MinimalHeader({
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
-          <ThemeVariantSelector />
-          <FeatureRequestDialog />
+          <div className="hidden sm:block">
+            <ThemeVariantSelector />
+          </div>
+          <div className="hidden sm:block">
+            <FeatureRequestDialog />
+          </div>
           <CreateCardDialog 
             onCreateCard={onCreateCard}
             existingCards={existingCards}

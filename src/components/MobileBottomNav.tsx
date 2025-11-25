@@ -1,5 +1,7 @@
 import { Home, FileText, Calendar, Folders, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import pendragonLogo from '@/assets/pendragon-logo.png';
+import { useOfflineMode } from '@/hooks/useOfflineMode';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -7,6 +9,8 @@ interface MobileBottomNavProps {
 }
 
 export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps) {
+  const { isOnline } = useOfflineMode();
+  
   const navItems = [
     { id: 'dashboard', label: 'Home', icon: Home, ariaLabel: 'Navigate to dashboard' },
     { id: 'cards', label: 'Cards', icon: FileText, ariaLabel: 'Navigate to cards' },
@@ -21,6 +25,18 @@ export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps
       role="navigation"
       aria-label="Bottom navigation"
     >
+      {/* Logo and Status - Mobile Only */}
+      <div className="flex items-center justify-center gap-2 py-2 border-b border-border/30">
+        <img src={pendragonLogo} alt="PendragonX" className="h-5 w-5 object-contain" />
+        <span className="text-xs font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+          PendragonX
+        </span>
+        <div 
+          className={`h-1.5 w-1.5 rounded-full transition-all ${isOnline ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]' : 'bg-muted-foreground/40'}`}
+          aria-label={isOnline ? 'Online' : 'Offline'}
+        />
+      </div>
+      
       <div className="flex items-center justify-around px-2 py-2 max-w-screen-sm mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
