@@ -13,17 +13,22 @@ export function useThemeVariant() {
   useEffect(() => {
     // Remove all theme variant classes
     const variants: ThemeVariant[] = ['default', 'ocean', 'forest', 'sunset', 'lavender'];
+    const root = document.documentElement;
+    
     variants.forEach(v => {
-      document.documentElement.classList.remove(`theme-${v}`);
+      root.classList.remove(`theme-${v}`);
     });
 
-    // Add current variant class
+    // Add current variant class (skip for default)
     if (variant !== 'default') {
-      document.documentElement.classList.add(`theme-${variant}`);
+      root.classList.add(`theme-${variant}`);
     }
 
     // Store preference
     localStorage.setItem(THEME_VARIANT_KEY, variant);
+    
+    // Force a repaint to ensure CSS variables update
+    void root.offsetHeight;
   }, [variant]);
 
   const setVariant = (newVariant: ThemeVariant) => {
