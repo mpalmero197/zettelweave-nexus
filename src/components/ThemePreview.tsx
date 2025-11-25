@@ -49,18 +49,18 @@ const themeStyles: Record<string, Record<string, string>> = {
     '--preview-accent': '85 50% 40%',
   },
   sunset: {
-    '--preview-bg': '237 28% 10%',
-    '--preview-fg': '0 0% 88%',
-    '--preview-card': '237 35% 12%',
+    '--preview-bg': '25 30% 10%',
+    '--preview-fg': '35 20% 95%',
+    '--preview-card': '25 35% 14%',
     '--preview-primary': '20 100% 60%',
-    '--preview-accent': '40 100% 70%',
+    '--preview-accent': '40 100% 65%',
   },
   lavender: {
-    '--preview-bg': '237 28% 10%',
-    '--preview-fg': '0 0% 88%',
-    '--preview-card': '237 35% 12%',
+    '--preview-bg': '265 25% 10%',
+    '--preview-fg': '270 15% 95%',
+    '--preview-card': '265 30% 14%',
     '--preview-primary': '270 70% 60%',
-    '--preview-accent': '290 80% 70%',
+    '--preview-accent': '290 80% 65%',
   },
   system: {
     '--preview-bg': '0 0% 100%',
@@ -120,6 +120,29 @@ export function ThemePreview({ theme, isSelected, onSelect }: ThemePreviewProps)
               <div className="absolute top-1/4 right-1/4 w-2 h-2 rounded-full bg-primary/40 forest-firefly" />
               <div className="absolute bottom-1/3 left-1/4 w-2 h-2 rounded-full bg-accent/40 forest-firefly" style={{ animationDelay: '1.5s' }} />
               <div className="absolute top-1/2 right-1/3 w-2 h-2 rounded-full bg-primary/30 forest-firefly" style={{ animationDelay: '0.7s' }} />
+            </>
+          )}
+          
+          {theme.id === 'sunset' && (
+            <>
+              <div className="absolute inset-0 sunset-gradient" />
+              <div className="absolute top-1/4 right-1/2 w-3 h-3 rounded-full bg-primary/50 sunset-glow" />
+            </>
+          )}
+          
+          {theme.id === 'lavender' && (
+            <>
+              <div className="absolute inset-0 lavender-mist" />
+              <div className="absolute top-1/3 left-1/4 w-2 h-2 rounded-full bg-primary/40 lavender-sparkle" />
+              <div className="absolute bottom-1/4 right-1/3 w-2 h-2 rounded-full bg-accent/40 lavender-sparkle" style={{ animationDelay: '1.2s' }} />
+            </>
+          )}
+          
+          {theme.id === 'midnight' && (
+            <>
+              <div className="absolute inset-0 midnight-stars" />
+              <div className="absolute top-1/4 right-1/3 w-1 h-1 rounded-full bg-primary/60 midnight-twinkle" />
+              <div className="absolute bottom-1/3 left-1/4 w-1 h-1 rounded-full bg-primary/40 midnight-twinkle" style={{ animationDelay: '0.8s' }} />
             </>
           )}
 
