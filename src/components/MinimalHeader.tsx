@@ -86,35 +86,21 @@ export function MinimalHeader({
         {/* Spacer to push actions to the right */}
         <div className="flex-1"></div>
 
-        {/* Quick Actions - Optimized for mobile */}
+        {/* Quick Actions */}
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           {onSearchClick && (
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 w-8 p-0 hover-scale hidden sm:flex"
+              className="h-8 w-8 p-0 hover-scale"
               onClick={onSearchClick}
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover-scale"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
-          >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
-          <div className="hidden sm:block">
-            <ThemeVariantSelector />
-          </div>
-          <div className="hidden sm:block">
-            <FeatureRequestDialog />
-          </div>
+          <ThemeVariantSelector />
+          <FeatureRequestDialog />
           <CreateCardDialog 
             onCreateCard={onCreateCard}
             existingCards={existingCards}
