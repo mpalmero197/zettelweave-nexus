@@ -173,7 +173,8 @@
                 color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 fill 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   body {
@@ -184,6 +185,100 @@
     min-height: 100vh;
     min-height: 100dvh;
     overscroll-behavior-y: none;
+  }
+  
+  /* Custom Scrollbar - Theme Aware */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.3) hsl(var(--muted));
+  }
+  
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 5px;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 5px;
+    border: 2px solid hsl(var(--muted));
+    transition: background 0.2s ease;
+  }
+  
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
+  }
+  
+  *::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--primary) / 0.7);
+  }
+  
+  /* Horizontal scrollbar */
+  *::-webkit-scrollbar-corner {
+    background: hsl(var(--muted));
+  }
+  
+  /* Theme-Aware Interactive Elements */
+  button:not(.no-hover-effect) {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  button:not(.no-hover-effect)::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: hsl(var(--primary) / 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+  }
+  
+  button:not(.no-hover-effect):hover::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  button:not(.no-hover-effect):active {
+    transform: scale(0.98);
+  }
+  
+  /* Card hover effects */
+  [class*="card"]:not(.no-hover-effect) {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  [class*="card"]:not(.no-hover-effect):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px hsl(var(--primary) / 0.15);
+    border-color: hsl(var(--primary) / 0.3);
+  }
+  
+  /* Link hover effects */
+  a:not(.no-hover-effect) {
+    position: relative;
+    transition: color 0.3s ease;
+  }
+  
+  a:not(.no-hover-effect):hover {
+    color: hsl(var(--primary));
+  }
+  
+  /* Input focus effects */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
   }
 
   /* Material Design Glassmorphism Classes */
@@ -265,12 +360,24 @@
   /* 2025 Glow Effects */
   .glow-primary {
     box-shadow: var(--shadow-glow);
-    transition: var(--transition-glow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .glow-primary:hover {
+    box-shadow: 0 0 50px hsl(var(--primary) / 0.4),
+                0 0 80px hsl(var(--primary) / 0.2);
+    transform: scale(1.02);
   }
   
   .glow-accent {
     box-shadow: var(--shadow-glow-accent);
-    transition: var(--transition-glow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .glow-accent:hover {
+    box-shadow: 0 0 50px hsl(var(--accent) / 0.4),
+                0 0 80px hsl(var(--accent) / 0.2);
+    transform: scale(1.02);
   }
   
   .hover-glow:hover {
@@ -278,9 +385,18 @@
     transform: translateY(-2px);
   }
   
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
   .hover-lift:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-hover);
+  }
+  
+  .hover-lift:active {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-active);
   }
   
   /* Glassmorphism - Minimal */
@@ -288,6 +404,59 @@
     background: hsl(var(--background) / 0.7);
     backdrop-filter: blur(8px);
     border: 1px solid hsl(var(--border) / 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .glass-card:hover {
+    background: hsl(var(--background) / 0.85);
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 8px 32px hsl(var(--primary) / 0.1);
+  }
+  
+  /* Enhanced Button Hover States */
+  .btn-primary-glow:hover {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.5),
+                0 0 40px hsl(var(--primary) / 0.3);
+  }
+  
+  .btn-secondary-glow:hover {
+    box-shadow: 0 0 20px hsl(var(--secondary) / 0.5),
+                0 0 40px hsl(var(--secondary) / 0.3);
+  }
+  
+  /* Interactive Card States */
+  .interactive-card {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  
+  .interactive-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary) / 0.05) 0%, 
+      transparent 50%,
+      hsl(var(--accent) / 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
+  .interactive-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 12px 40px hsl(var(--primary) / 0.2);
+    border-color: hsl(var(--primary) / 0.4);
+  }
+  
+  .interactive-card:hover::after {
+    opacity: 1;
+  }
+  
+  .interactive-card:active {
+    transform: translateY(-2px) scale(1);
   }
   
   /* Subtle animations */
