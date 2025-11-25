@@ -63,11 +63,11 @@ export function MinimalHeader({
           </SheetContent>
         </Sheet>
 
-        {/* Logo with Status Dot - Hidden on small mobile, visible on larger screens */}
+        {/* Logo with Status Dot - Always visible */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
                 <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
                 <span className="text-sm font-semibold hidden md:inline">PendragonX</span>
                 <div 
@@ -82,8 +82,8 @@ export function MinimalHeader({
           </Tooltip>
         </TooltipProvider>
 
-        {/* Spacer for mobile to push buttons to the right */}
-        <div className="flex-1 sm:hidden"></div>
+        {/* Spacer to push actions to the right */}
+        <div className="flex-1"></div>
 
         {/* Quick Actions */}
         <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
