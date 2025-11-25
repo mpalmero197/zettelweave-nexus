@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Database, Plus, Trash2 } from "lucide-react";
+import { Database, Plus, Trash2, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -180,21 +180,21 @@ export function DatabaseWidget() {
             ) : null}
             {isAdding && (
               <tr className="border-b">
-                <td className="py-2">
-                  <Input
-                    placeholder="Row name..."
-                    value={newRowName}
-                    onChange={(e) => setNewRowName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addRow()}
-                    className="h-8"
-                    autoFocus
-                  />
-                </td>
-                <td className="py-2" colSpan={3}>
+                <td className="py-2" colSpan={4}>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={addRow}>Add</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setIsAdding(false)}>
-                      Cancel
+                    <Input
+                      placeholder="Task name..."
+                      value={newRowName}
+                      onChange={(e) => setNewRowName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addRow()}
+                      className="h-8 flex-1"
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={addRow} className="h-8 w-8 p-0" aria-label="Add task">
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsAdding(false)} className="h-8 w-8 p-0" aria-label="Cancel">
+                      <X className="w-4 h-4" />
                     </Button>
                   </div>
                 </td>
@@ -230,8 +230,9 @@ export function DatabaseWidget() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100"
+                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-destructive"
                     onClick={() => deleteRow(row.id)}
+                    aria-label="Delete task"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
