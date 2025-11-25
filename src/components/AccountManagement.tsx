@@ -287,11 +287,22 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         break;
       case 'midnight':
         root.classList.add('dark');
+        // Pure midnight black with subtle purple accents
         root.style.setProperty('--background', '0 0% 0%');
-        root.style.setProperty('--card', '0 0% 5%');
         root.style.setProperty('--foreground', '0 0% 98%');
-        root.style.setProperty('--muted', '0 0% 10%');
-        root.style.setProperty('--border', '0 0% 15%');
+        root.style.setProperty('--card', '240 10% 4%');
+        root.style.setProperty('--card-foreground', '0 0% 98%');
+        root.style.setProperty('--primary', '271 85% 65%');
+        root.style.setProperty('--primary-foreground', '0 0% 0%');
+        root.style.setProperty('--primary-hover', '271 85% 75%');
+        root.style.setProperty('--secondary', '280 60% 55%');
+        root.style.setProperty('--secondary-foreground', '0 0% 0%');
+        root.style.setProperty('--accent', '260 40% 20%');
+        root.style.setProperty('--accent-foreground', '0 0% 95%');
+        root.style.setProperty('--muted', '240 10% 8%');
+        root.style.setProperty('--muted-foreground', '0 0% 60%');
+        root.style.setProperty('--border', '240 10% 12%');
+        root.style.setProperty('--input', '240 10% 10%');
         break;
       case 'ocean':
         root.classList.add('dark');
@@ -314,7 +325,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         break;
       case 'forest':
         root.classList.add('dark');
-        // Deep forest greens with earthy tones
+        // Deep forest greens with earthy moss tones
         root.style.setProperty('--background', '140 30% 8%');
         root.style.setProperty('--foreground', '120 15% 92%');
         root.style.setProperty('--card', '140 25% 12%');
@@ -333,13 +344,41 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
         break;
       case 'sunset':
         root.classList.add('dark');
+        // Warm sunset with golden hour vibes
+        root.style.setProperty('--background', '25 30% 10%');
+        root.style.setProperty('--foreground', '35 20% 95%');
+        root.style.setProperty('--card', '25 35% 14%');
+        root.style.setProperty('--card-foreground', '35 20% 95%');
         root.style.setProperty('--primary', '20 100% 60%');
-        root.style.setProperty('--accent', '40 100% 70%');
+        root.style.setProperty('--primary-foreground', '25 30% 10%');
+        root.style.setProperty('--primary-hover', '20 100% 70%');
+        root.style.setProperty('--secondary', '40 100% 65%');
+        root.style.setProperty('--secondary-foreground', '25 30% 10%');
+        root.style.setProperty('--accent', '30 80% 45%');
+        root.style.setProperty('--accent-foreground', '35 20% 95%');
+        root.style.setProperty('--muted', '25 25% 18%');
+        root.style.setProperty('--muted-foreground', '35 15% 60%');
+        root.style.setProperty('--border', '25 30% 28%');
+        root.style.setProperty('--input', '25 30% 20%');
         break;
       case 'lavender':
         root.classList.add('dark');
+        // Soft lavender with dreamy purple hues
+        root.style.setProperty('--background', '265 25% 10%');
+        root.style.setProperty('--foreground', '270 15% 95%');
+        root.style.setProperty('--card', '265 30% 14%');
+        root.style.setProperty('--card-foreground', '270 15% 95%');
         root.style.setProperty('--primary', '270 70% 60%');
-        root.style.setProperty('--accent', '290 80% 70%');
+        root.style.setProperty('--primary-foreground', '265 25% 10%');
+        root.style.setProperty('--primary-hover', '270 70% 70%');
+        root.style.setProperty('--secondary', '290 80% 65%');
+        root.style.setProperty('--secondary-foreground', '265 25% 10%');
+        root.style.setProperty('--accent', '280 60% 40%');
+        root.style.setProperty('--accent-foreground', '270 15% 95%');
+        root.style.setProperty('--muted', '265 20% 18%');
+        root.style.setProperty('--muted-foreground', '270 12% 60%');
+        root.style.setProperty('--border', '265 25% 26%');
+        root.style.setProperty('--input', '265 25% 20%');
         break;
       default:
         // System preference

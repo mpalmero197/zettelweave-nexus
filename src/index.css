@@ -87,13 +87,14 @@
     --gradient-primary: linear-gradient(135deg, hsl(271 76% 53%), hsl(346 60% 49%));
     --gradient-secondary: linear-gradient(135deg, hsl(346 60% 49%), hsl(320 65% 52%));
     
-    /* Ocean theme glow effects */
+    /* Theme-specific glow effects */
     --ocean-glow: 0 0 60px hsl(195 100% 50% / 0.4);
     --ocean-glow-soft: 0 0 40px hsl(180 70% 45% / 0.3);
-    
-    /* Forest theme glow effects */
     --forest-glow: 0 0 50px hsl(145 70% 45% / 0.3);
     --forest-glow-soft: 0 0 35px hsl(85 50% 40% / 0.25);
+    --sunset-glow: 0 0 55px hsl(20 100% 60% / 0.35);
+    --lavender-glow: 0 0 45px hsl(270 70% 60% / 0.3);
+    --midnight-glow: 0 0 40px hsl(271 85% 65% / 0.25);
     
     /* Border radius */
     --radius: 0.75rem;
@@ -652,6 +653,107 @@
     75% { 
       opacity: 0.8; 
       transform: translate(1px, 1px) scale(1.2);
+    }
+  }
+  
+  /* Sunset Theme Animations */
+  .sunset-gradient {
+    background: radial-gradient(
+      ellipse at center,
+      hsl(20 100% 60% / 0.08) 0%,
+      transparent 70%
+    );
+    animation: sunset-pulse 6s ease-in-out infinite;
+  }
+  
+  .sunset-glow {
+    animation: sunset-radiate 4s ease-in-out infinite;
+    box-shadow: 0 0 15px currentColor;
+  }
+  
+  @keyframes sunset-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+  
+  @keyframes sunset-radiate {
+    0%, 100% { 
+      opacity: 0.3; 
+      transform: scale(1);
+      box-shadow: 0 0 15px currentColor;
+    }
+    50% { 
+      opacity: 1; 
+      transform: scale(1.4);
+      box-shadow: 0 0 25px currentColor;
+    }
+  }
+  
+  /* Lavender Theme Animations */
+  .lavender-mist {
+    background: radial-gradient(
+      circle at 30% 50%,
+      hsl(270 70% 60% / 0.06) 0%,
+      transparent 60%
+    );
+    animation: lavender-drift 8s ease-in-out infinite;
+  }
+  
+  .lavender-sparkle {
+    animation: lavender-twinkle 3s ease-in-out infinite;
+    box-shadow: 0 0 8px currentColor;
+  }
+  
+  @keyframes lavender-drift {
+    0%, 100% { 
+      transform: translate(0, 0); 
+      opacity: 0.4; 
+    }
+    50% { 
+      transform: translate(10px, -5px); 
+      opacity: 0.6; 
+    }
+  }
+  
+  @keyframes lavender-twinkle {
+    0%, 100% { 
+      opacity: 0.2; 
+      transform: scale(0.8);
+    }
+    50% { 
+      opacity: 1; 
+      transform: scale(1.4);
+    }
+  }
+  
+  /* Midnight Theme Animations */
+  .midnight-stars {
+    background-image: 
+      radial-gradient(1px 1px at 20% 30%, hsl(271 85% 65% / 0.3), transparent),
+      radial-gradient(1px 1px at 60% 70%, hsl(271 85% 65% / 0.2), transparent),
+      radial-gradient(1px 1px at 80% 20%, hsl(271 85% 65% / 0.25), transparent);
+    background-size: 100% 100%;
+    animation: midnight-shimmer 5s ease-in-out infinite;
+  }
+  
+  .midnight-twinkle {
+    animation: star-twinkle 2s ease-in-out infinite;
+    box-shadow: 0 0 6px currentColor;
+  }
+  
+  @keyframes midnight-shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.8; }
+  }
+  
+  @keyframes star-twinkle {
+    0%, 100% { 
+      opacity: 0.3; 
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 1; 
+      transform: scale(1.6);
     }
   }
 }
