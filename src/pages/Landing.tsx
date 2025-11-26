@@ -68,13 +68,13 @@ export default function Landing() {
           <div className="mx-auto max-w-4xl text-center space-y-6">
             <div className="space-y-4">
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-                Stop Organizing.{" "}
+                Think Better.{" "}
                 <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-pulse">
-                  Start Connecting.
+                  Think Together.
                 </span>
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-                PendragonX is the all-in-one knowledge engine that transforms your scattered notes into a visual, intelligent, and interconnected second brain.
+                Your thoughts deserve more than folders. PendragonX weaves your ideas into an intelligent network—visualize connections, unlock insights, and watch your knowledge come alive.
               </p>
             </div>
 
@@ -84,7 +84,7 @@ export default function Landing() {
                 className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-lg px-8"
                 onClick={() => scrollToSection('pricing')}
               >
-                Start Building Your Mind
+                Start Your Journey Free
               </Button>
             </div>
           </div>
@@ -108,42 +108,42 @@ export default function Landing() {
         <div className="container">
           <div className="mx-auto max-w-4xl space-y-12">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">The End of App-Switching</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Everything You Need. Nothing You Don't.</h2>
               <p className="text-lg text-muted-foreground">
-                You shouldn't need three different tools to manage your life's work. PendragonX unifies the fragmented parts of your knowledge workflow into one powerful, streamlined system.
+                Imagine if your notes, whiteboard, and graph database had a baby with AI superpowers. That's PendragonX—where your scattered thoughts finally become a living, breathing knowledge ecosystem.
               </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
               <Card className="border-primary/20 hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-xl">From Silos to Synthesis</CardTitle>
+                  <CardTitle className="text-xl">Ideas That Connect Themselves</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Move beyond static, buried files. Our platform is built to link, visualize, and <em>generate</em> new insights from your existing knowledge, turning notes into essays, books, or entire projects.
+                    Say goodbye to buried files. PendragonX automatically links related ideas, surfaces forgotten insights, and helps you <em>generate</em> new content from everything you've ever captured. Turn fragments into masterpieces.
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-accent/20 hover:border-accent/50 transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-xl">A Graph That Understands You</CardTitle>
+                  <CardTitle className="text-xl">See What You've Been Missing</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Don't just store information, <em>see</em> it. Our world-class, responsive network graph reveals the hidden patterns and relationships between every thought you've ever had.
+                    Ever wish you could <em>see</em> your thoughts? Our stunning visual network reveals hidden patterns, unexpected connections, and the bigger picture your brain has been building all along.
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-primary/20 hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-xl">Your Ideas, Infinite Space</CardTitle>
+                  <CardTitle className="text-xl">Freedom Meets Structure</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Combine the structure of notes, the freedom of an infinite collaborative whiteboard, and the power of a Zettelkasten. All in one place.
+                    Sketch on an infinite canvas, organize with precision, or let your thoughts flow freely. PendragonX flexes to match your thinking style—whether you're planning a project or capturing a lightning bolt of inspiration.
                   </p>
                 </CardContent>
               </Card>
@@ -164,7 +164,10 @@ export default function Landing() {
         <div className="container">
           <div className="mx-auto max-w-4xl space-y-12">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">A Toolset for Deep Thinkers</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Built for Brilliant Minds</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Every feature designed to amplify your thinking, not just organize it.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
@@ -179,7 +182,7 @@ export default function Landing() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    A high-performance visual graph to navigate your Zettelkasten. Filter, group, and explore the connections between your notes.
+                    Navigate your mind in 3D. Watch ideas cluster, discover surprising connections, and see your knowledge universe grow in real-time. It's not just pretty—it's powerful.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -195,7 +198,7 @@ export default function Landing() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Use your <em>entire</em> knowledge base to generate long-form content. Ask questions in natural language, even with misspellings.
+                    Your personal AI that actually knows you. Ask anything, get smart answers, and generate polished content from your notes—like having a brilliant writing partner who's read everything you've ever thought.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -211,7 +214,7 @@ export default function Landing() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Brainstorm, plan, and map ideas with your team (or just yourself) on an endless whiteboard that lives alongside your notes.
+                    Sketch, diagram, and dream big on a canvas that never ends. Perfect for brainstorming sessions, project planning, or just letting your creativity run wild. Solo or with friends.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -227,7 +230,7 @@ export default function Landing() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Notebooks, standalone notes, a quick scratchpad, and bi-directional linking. All the tools you expect, finally working together.
+                    Traditional notebooks, quick captures, sticky notes, and powerful Zettelkasten cards. Everything talks to everything. No more choosing between tools—use what fits the moment.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -247,9 +250,9 @@ export default function Landing() {
         <div className="container">
           <div className="mx-auto max-w-5xl space-y-12">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">See the Platform in Action</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Experience the Magic</h2>
               <p className="text-lg text-muted-foreground">
-                Explore the powerful features that make PendragonX the ultimate knowledge management system.
+                See how PendragonX transforms the way you think, create, and connect ideas.
               </p>
             </div>
 
@@ -316,9 +319,9 @@ export default function Landing() {
         <div className="container">
           <div className="mx-auto max-w-5xl space-y-12">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">Choose Your Path</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Start Free. Grow Limitless.</h2>
               <p className="text-lg text-muted-foreground">
-                Start for free and upgrade when you're ready for limitless power.
+                Everyone starts with powerful tools. Upgrade when you're ready to unlock everything.
               </p>
             </div>
 
@@ -332,7 +335,7 @@ export default function Landing() {
                     <span className="text-muted-foreground">Forever</span>
                   </div>
                   <CardDescription className="text-base">
-                    For organizing your ideas and making new connections.
+                    Perfect for getting started and exploring how connected thinking works.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -374,7 +377,7 @@ export default function Landing() {
                     <span className="text-muted-foreground">per month</span>
                   </div>
                   <CardDescription className="text-base">
-                    For professionals, creators, and power-users.
+                    For serious thinkers, creators, and anyone building something big.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -421,10 +424,10 @@ export default function Landing() {
           <div className="mx-auto max-w-3xl text-center space-y-8">
             <div className="space-y-4">
               <h2 className="text-3xl md:text-5xl font-bold">
-                Your Second Brain is Waiting.
+                Your Ideas Deserve Better
               </h2>
               <p className="text-xl text-muted-foreground">
-                Stop letting your best ideas fade away. Give them a home. Connect them. Build something lasting.
+                Stop letting brilliant thoughts vanish into digital void. Build a knowledge system that grows smarter with you—one that connects, surprises, and inspires. Your future self will thank you.
               </p>
             </div>
             <Button 
@@ -432,7 +435,7 @@ export default function Landing() {
               className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-lg px-8"
               onClick={() => navigate('/auth')}
             >
-              Sign Up Now (It's Free)
+              Get Started Free—No Credit Card
             </Button>
           </div>
         </div>
