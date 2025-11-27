@@ -78,7 +78,7 @@ export function SearchResultsCanvas({
         <div className="space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/20">
+              <div className="p-3 rounded-xl bg-primary shadow-lg shadow-primary/20">
                 <Sparkles className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>

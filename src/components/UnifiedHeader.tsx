@@ -72,7 +72,7 @@ export function UnifiedHeader({
 
   return (
     <header 
-      className="bg-gradient-to-r from-card/98 via-card/95 to-card/98 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 shadow-lg hover-lift transition-all duration-300"
+      className="bg-card/98 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 shadow-lg hover-lift transition-all duration-300"
       role="banner"
     >
       <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
@@ -153,7 +153,7 @@ export function UnifiedHeader({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-card/98 backdrop-blur-xl border-border/60 w-56 shadow-2xl rounded-xl mt-2 animate-fade-in"
+                className="bg-card border-border/60 w-56 shadow-2xl rounded-xl mt-2 animate-fade-in"
               >
                 <DropdownMenuItem disabled className="text-xs font-medium text-muted-foreground">
                   {user?.email}

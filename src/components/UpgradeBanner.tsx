@@ -12,13 +12,13 @@ export function UpgradeBanner() {
 
   return (
     <div className="relative">
-      <Card className="relative bg-primary/10 backdrop-blur-xl border-2 border-primary/30 rounded-3xl overflow-hidden">
+      <Card className="relative bg-primary/10 border-2 border-primary/30 rounded-3xl overflow-hidden">
         <div className="absolute inset-0 bg-primary/5" />
         <div className="relative p-6">
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-background/20"
+            className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-accent/20"
             onClick={() => setDismissed(true)}
           >
             <X className="h-4 w-4" />

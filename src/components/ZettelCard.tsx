@@ -178,7 +178,7 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" aria-label="Change card color" onClick={(e) => e.stopPropagation()} className={cn("hover:bg-white/20", currentColor.text || "text-muted-foreground")}>
+                <Button variant="ghost" size="sm" aria-label="Change card color" onClick={(e) => e.stopPropagation()} className={cn("hover:bg-accent/20", currentColor.text || "text-muted-foreground")}>
                   <Palette className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -243,14 +243,14 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
           <div className="flex items-center gap-1 flex-wrap">
             <Tag className={cn("h-3 w-3", currentColor.text ? "opacity-80" : "text-muted-foreground")} />
             {card.tags.map((tag, index) => (
-              <Badge key={index} variant="outline" className={cn("text-xs", currentColor.text && "border-white/30 bg-white/10")}>
+              <Badge key={index} variant="outline" className={cn("text-xs", currentColor.text && "border-primary/30 bg-primary/10")}>
                 {tag}
               </Badge>
             ))}
           </div>
         )}
         
-        <div className={cn("flex items-center justify-between text-xs pt-2 border-t", currentColor.text ? "border-white/20 opacity-80" : "text-muted-foreground border-border/50")}>
+        <div className={cn("flex items-center justify-between text-xs pt-2 border-t", currentColor.text ? "border-primary/20 opacity-80" : "text-muted-foreground border-border/50")}>
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {new Date(card.created).toLocaleDateString()}

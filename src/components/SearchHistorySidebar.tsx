@@ -77,11 +77,11 @@ export function SearchHistorySidebar({
   const getIntentColor = (intent: string) => {
     switch (intent) {
       case 'internal_search':
-        return 'bg-primary/20 text-primary-foreground';
+        return 'bg-primary/20 text-primary';
       case 'web_search':
         return 'bg-accent/20 text-accent-foreground';
       case 'image_generation':
-        return 'bg-secondary/20 text-secondary-foreground';
+        return 'bg-secondary/20 text-foreground';
       case 'multimedia_search':
         return 'bg-muted text-muted-foreground';
       default:
