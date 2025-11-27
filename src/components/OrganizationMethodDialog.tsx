@@ -61,7 +61,7 @@ export function OrganizationMethodDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="bg-gradient-to-r from-accent/10 to-accent/5 hover:from-accent/20 hover:to-accent/10 border-accent/20">
+        <Button variant="outline" size="sm" className="bg-accent/10 hover:bg-accent/20 border-accent/20">
           <Settings className="h-4 w-4 mr-2" />
           <span className="hidden sm:inline">Organization Method</span>
           <span className="sm:hidden">Method</span>

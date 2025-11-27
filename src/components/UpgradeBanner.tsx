@@ -12,9 +12,8 @@ export function UpgradeBanner() {
 
   return (
     <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-2xl opacity-50 animate-pulse" />
-      <Card className="relative bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 backdrop-blur-xl border-2 border-primary/30 rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+      <Card className="relative bg-primary/10 backdrop-blur-xl border-2 border-primary/30 rounded-3xl overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5" />
         <div className="relative p-6">
           <Button
             variant="ghost"
@@ -27,13 +26,13 @@ export function UpgradeBanner() {
           
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex-shrink-0">
-              <div className="p-4 bg-gradient-primary rounded-2xl shadow-lg animate-bounce">
+              <div className="p-4 bg-primary rounded-2xl shadow-lg animate-bounce">
                 <Sparkles className="h-8 w-8 text-primary-foreground" />
               </div>
             </div>
             
             <div className="flex-1 text-center md:text-left space-y-2">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <h3 className="text-2xl font-bold text-foreground">
                 Unlock Premium Features
               </h3>
               <p className="text-muted-foreground">
@@ -58,7 +57,7 @@ export function UpgradeBanner() {
             <div className="flex-shrink-0">
               <Button
                 size="lg"
-                className="bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="bg-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                 onClick={() => navigate('/subscription')}
               >
                 <Sparkles className="h-5 w-5 mr-2" />

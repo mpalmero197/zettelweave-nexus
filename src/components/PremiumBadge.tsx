@@ -18,7 +18,7 @@ export function PremiumBadge({
     <Badge 
       variant="secondary" 
       className={cn(
-        "gap-1 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 text-primary font-semibold",
+        "gap-1 bg-primary/20 border-primary/30 text-primary font-semibold",
         variant === 'compact' && "text-xs px-2 py-0",
         variant === 'icon-only' && "p-1",
         className
