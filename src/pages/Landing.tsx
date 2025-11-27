@@ -28,7 +28,7 @@ export default function Landing() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={pendragonLogo} alt="PendragonX" className="h-8 w-8 object-contain" />
-            <span className="text-xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-primary">
               PendragonX
             </span>
           </div>
@@ -61,8 +61,7 @@ export default function Landing() {
           heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         )}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-background" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-accent/5" />
         
         <div className="container relative z-10">
           <div className="mx-auto max-w-4xl text-center space-y-6">
@@ -157,7 +156,7 @@ export default function Landing() {
         id="features" 
         ref={featuresAnimation.ref}
         className={cn(
-          "py-20 bg-gradient-to-b from-background to-primary/5 transition-all duration-1000 delay-300",
+          "py-20 bg-primary/5 transition-all duration-1000 delay-300",
           featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         )}
       >
@@ -289,7 +288,7 @@ export default function Landing() {
                     `delay-[${i * 100}ms]`
                   )}
                 >
-                  <div className="aspect-video overflow-hidden bg-gradient-to-br from-background to-muted">
+                  <div className="aspect-video overflow-hidden bg-muted">
                     <img 
                       src={`/screenshots/${item.screenshot}.jpg`}
                       alt={item.title}
@@ -312,7 +311,7 @@ export default function Landing() {
         id="pricing" 
         ref={pricingAnimation.ref}
         className={cn(
-          "py-20 bg-gradient-to-b from-background to-accent/5 transition-all duration-1000 delay-200",
+          "py-20 bg-accent/5 transition-all duration-1000 delay-200",
           pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         )}
       >
@@ -364,14 +363,14 @@ export default function Landing() {
 
               {/* Premium Tier */}
               <Card className="border-primary/50 shadow-lg shadow-primary/20 relative">
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-accent border-0">
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary border-0">
                   <Crown className="h-3 w-3 mr-1" />
                   Best Value
                 </Badge>
                 <CardHeader>
                   <CardTitle className="text-2xl">Premium</CardTitle>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <span className="text-4xl font-bold text-primary">
                       $4.99
                     </span>
                     <span className="text-muted-foreground">per month</span>
@@ -400,7 +399,7 @@ export default function Landing() {
                     ))}
                   </ul>
                   <Button 
-                    className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                    className="w-full bg-primary hover:opacity-90"
                     onClick={() => navigate('/auth')}
                   >
                     Go Premium
@@ -432,7 +431,7 @@ export default function Landing() {
             </div>
             <Button 
               size="lg"
-              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-lg px-8"
+              className="bg-primary hover:opacity-90 transition-opacity text-lg px-8"
               onClick={() => navigate('/auth')}
             >
               Get Started Free—No Credit Card

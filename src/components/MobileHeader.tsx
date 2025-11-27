@@ -40,7 +40,7 @@ export function MobileHeader() {
             <TooltipTrigger asChild>
               <div className="flex items-center gap-2">
                 <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold text-primary">
                   PendragonX
                 </h1>
                 <div 

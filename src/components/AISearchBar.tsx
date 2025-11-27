@@ -300,7 +300,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange }
           <Button
             onClick={handleAISearch}
             disabled={isSearching}
-            className="bg-gradient-to-r from-primary to-secondary shadow-glow hover:scale-105 transition-all"
+            className="bg-primary shadow-glow hover:scale-105 transition-all"
           >
             {isSearching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
