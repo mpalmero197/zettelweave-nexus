@@ -134,7 +134,7 @@ export function Calendar() {
   const modifiersStyles = {
     hasEvents: {
       backgroundColor: 'hsl(var(--primary))',
-      color: 'white',
+      color: 'hsl(var(--primary-foreground))',
       fontWeight: 'bold'
     }
   };

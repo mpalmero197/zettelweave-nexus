@@ -52,7 +52,7 @@ export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps
                 'min-w-[64px] min-h-[56px]',
                 'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 isActive
-                  ? 'bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105'
                   : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground active:scale-95'
               )}
               aria-label={item.ariaLabel}

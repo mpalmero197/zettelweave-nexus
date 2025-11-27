@@ -317,7 +317,7 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
         <ScrollArea className="flex-1 p-5" ref={scrollRef}>
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center gap-6 py-8">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm">
+              <div className="p-4 rounded-2xl bg-primary/10">
                 <Sparkles className="h-12 w-12 text-primary" />
               </div>
               <div className="space-y-3">
@@ -367,8 +367,8 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                       className={cn(
                         'rounded-2xl px-4 py-3 max-w-[85%] relative group shadow-sm',
                         message.role === 'user'
-                          ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground'
-                          : 'bg-gradient-to-br from-accent/80 to-accent/50 text-accent-foreground border border-border/30 backdrop-blur-sm'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-accent text-accent-foreground border border-border/30'
                       )}
                     >
                       {message.role === 'assistant' && message.source === 'internet_search' && (
@@ -408,7 +408,7 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
               })}
               {isLoading && (
                 <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2">
-                  <div className="rounded-2xl px-4 py-3 bg-gradient-to-br from-accent/80 to-accent/50 border border-border/30 backdrop-blur-sm">
+                  <div className="rounded-2xl px-4 py-3 bg-accent border border-border/30">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   </div>
                 </div>
@@ -425,7 +425,7 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything..."
               disabled={isLoading}
-              className="flex-1 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:ring-2 focus:ring-primary/20"
+              className="flex-1 rounded-xl border-border/50 bg-background focus:ring-2 focus:ring-primary/20"
             />
             <Button
               onClick={handleSend}

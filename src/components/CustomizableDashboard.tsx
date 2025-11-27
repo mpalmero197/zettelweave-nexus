@@ -124,7 +124,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
         
         default:
           return (
-            <Card className="h-full bg-card/70 backdrop-blur-xl border border-border/50">
+            <Card className="h-full bg-card border border-border/50">
               <CardContent className="p-6 h-full flex items-center justify-center">
                 <div className="text-center">
                   <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -144,7 +144,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
             variant="ghost"
             size="sm"
             onClick={handleToggleVisibility}
-            className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm hover:bg-background"
+            className="h-8 w-8 p-0 bg-background hover:bg-background"
           >
             {widget.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </Button>
@@ -152,7 +152,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
             variant="ghost"
             size="sm"
             onClick={handleRemoveWidget}
-            className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm hover:bg-destructive/10 text-destructive"
+            className="h-8 w-8 p-0 bg-background hover:bg-destructive/10 text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
