@@ -37,7 +37,7 @@ export default function Landing() {
             backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
-            opacity: 0.03,
+            opacity: 0.08,
             filter: 'grayscale(100%) contrast(150%)',
           }}
         />
