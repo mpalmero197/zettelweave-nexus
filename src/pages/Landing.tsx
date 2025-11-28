@@ -27,7 +27,21 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Embossed Logo Watermark */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] md:w-[1200px] md:h-[1200px]"
+          style={{
+            backgroundImage: `url(${pendragonLogo})`,
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            opacity: 0.03,
+            filter: 'grayscale(100%) contrast(150%)',
+          }}
+        />
+      </div>
       {/* Persistent Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
