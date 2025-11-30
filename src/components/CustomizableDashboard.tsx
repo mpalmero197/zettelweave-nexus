@@ -174,24 +174,24 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
   const visibleWidgets = widgets.filter(w => w.isVisible);
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="w-full max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
+    <div className="w-full bg-background">
+      <div className="w-full max-w-[1600px] mx-auto p-2 sm:p-3 lg:p-4 space-y-4">
         {/* Modern Dashboard Header */}
         <div className="animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-1">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground flex items-center gap-3">
-                <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
                 Dashboard
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-2">
+              <p className="text-sm text-muted-foreground mt-1">
                 Your knowledge hub at a glance
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                size="default"
+                size="sm"
                 onClick={resetToDefault}
                 className="hover-scale"
               >
@@ -207,16 +207,16 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
           <ResizableGrid
             widgets={visibleWidgets}
             onLayoutChange={saveLayout}
-            className="min-h-[600px]"
+            className="min-h-[400px]"
           >
             {renderWidget}
           </ResizableGrid>
         ) : (
-          <div className="text-center py-20 animate-fade-in">
-            <div className="mb-6">
-              <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">No widgets to display</h3>
-              <p className="text-muted-foreground">Add widgets to customize your dashboard</p>
+          <div className="text-center py-12 animate-fade-in">
+            <div className="mb-4">
+              <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+              <h3 className="text-lg font-semibold text-foreground mb-1">No widgets to display</h3>
+              <p className="text-sm text-muted-foreground">Add widgets to customize your dashboard</p>
             </div>
             <DashboardWidgetSidebar />
           </div>

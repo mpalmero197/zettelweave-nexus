@@ -193,11 +193,11 @@ export function FileManager() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
+      <div className="p-3 sm:p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {[...Array(8)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="h-4 bg-muted rounded mb-2" />
                 <div className="h-3 bg-muted rounded w-1/2" />
               </CardContent>
@@ -209,16 +209,16 @@ export function FileManager() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">File Manager</h1>
-          <p className="text-muted-foreground">Upload and manage your documents</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">File Manager</h1>
+          <p className="text-sm text-muted-foreground">Upload and manage your documents</p>
         </div>
-        <Button onClick={() => setShowUploadDialog(true)} className="flex items-center gap-2">
+        <Button size="sm" onClick={() => setShowUploadDialog(true)} className="flex items-center gap-2">
           <Upload className="h-4 w-4" />
-          Upload Files
+          <span className="hidden sm:inline">Upload Files</span>
         </Button>
       </div>
 
@@ -234,7 +234,7 @@ export function FileManager() {
       </div>
 
       {/* Files Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {filteredFiles.length > 0 ? (
           filteredFiles.map((file) => {
             const FileIcon = getFileIcon(file.mime_type);
