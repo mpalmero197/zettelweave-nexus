@@ -368,12 +368,12 @@ const Index = () => {
       )}
 
       {/* Main Content - Mobile Optimized */}
-      <main className="pb-20 md:pb-4 px-2 sm:px-3 md:px-4 relative min-h-screen" role="main">
+      <main className="pb-16 md:pb-2 px-1.5 sm:px-2 md:px-3 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
-            <div className="sticky top-14 sm:top-24 z-30 bg-card/98 backdrop-blur-xl border border-border/40 rounded-lg sm:rounded-2xl px-2 sm:px-4 py-2 sm:py-3 mb-3 sm:mb-4 shadow-lg hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="flex items-center justify-center max-w-7xl mx-auto gap-1.5 sm:gap-2 flex-wrap">
+            <div className="sticky top-14 sm:top-20 z-30 bg-card/98 backdrop-blur-xl border border-border/40 rounded-lg px-2 py-1.5 sm:py-2 mb-2 shadow-md hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+              <div className="flex items-center justify-center max-w-7xl mx-auto gap-1 sm:gap-1.5 flex-wrap">
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                 <VaultImportDialog onImportCards={handleImportCards} />
                 <Button
@@ -452,8 +452,8 @@ const Index = () => {
 
                 <TabsContent value="search" className="mt-0">
                   <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-3xl blur-3xl"></div>
-                    <div className="glass-card rounded-3xl p-6 md:p-8 shadow-2xl hover:shadow-glow transition-all duration-500 animate-fade-in-up relative border-2 border-border/30 hover:border-primary/30">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-2xl blur-2xl"></div>
+                    <div className="glass-card rounded-xl p-3 sm:p-4 md:p-6 shadow-xl hover:shadow-glow transition-all duration-500 animate-fade-in-up relative border border-border/30 hover:border-primary/30">
                       {searchResults ? (
                         <UnifiedSearchResults
                         query={searchResults.query}
@@ -517,8 +517,8 @@ const Index = () => {
                         }}
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-96 text-center">
-                        <p className="text-muted-foreground">Use the search bar above to find content across your notes, cards, and sticky notes.</p>
+                      <div className="flex flex-col items-center justify-center h-64 text-center">
+                        <p className="text-muted-foreground text-sm">Use the search bar above to find content across your notes, cards, and sticky notes.</p>
                       </div>
                     )}
                     </div>
@@ -529,10 +529,10 @@ const Index = () => {
                   {hasPremium ? (
                     <Catalyst />
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Catalyst Writing Suite is available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Catalyst Writing Suite is available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -560,23 +560,23 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="workflows" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                  <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <WorkflowManager />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="p-3">
+                  <div className="p-2">
                     {isLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+                        {[...Array(8)].map((_, i) => (
+                          <div key={i} className="h-40 bg-muted/50 rounded-lg animate-pulse" />
                         ))}
                       </div>
                     ) : filteredCards.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-20 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground mb-4">
+                      <div className="text-center py-8">
+                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-20 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-3">
                           {cards.length === 0 
                             ? "Start building your knowledge base by creating your first card"
                             : "Try adjusting your search terms or filters"
@@ -588,12 +588,12 @@ const Index = () => {
                       <div>
                         {/* Favorites Section */}
                         {filteredCards.some(card => card.is_favorite) && (
-                          <div className="mb-6">
-                            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                          <div className="mb-4">
+                            <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
                               <span className="text-yellow-500">★</span>
                               Favorites
                             </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                               {filteredCards
                                 .filter(card => card.is_favorite)
                                 .map((card) => (
@@ -610,7 +610,7 @@ const Index = () => {
                                     onWordHover={handleWordHover}
                                     className="h-fit"
                                   />
-                                ))}
+                              ))}
                             </div>
                           </div>
                         )}
@@ -619,9 +619,9 @@ const Index = () => {
                         {filteredCards.some(card => !card.is_favorite) && (
                           <div>
                             {filteredCards.some(card => card.is_favorite) && (
-                              <h2 className="text-lg font-semibold mb-3">All Cards</h2>
+                              <h2 className="text-base font-semibold mb-2">All Cards</h2>
                             )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                               {filteredCards
                                 .filter(card => !card.is_favorite)
                                 .map((card) => (
@@ -649,7 +649,7 @@ const Index = () => {
 
                 <TabsContent value="graph" className="mt-0">
                   {hasPremium ? (
-                    <div className="h-[calc(100vh-8rem)]">
+                    <div className="h-[calc(100vh-10rem)]">
                       <GraphView 
                         cards={filteredCards} 
                         onCardSelect={setViewingCard}
@@ -658,10 +658,10 @@ const Index = () => {
                       />
                     </div>
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Knowledge Graph (3D) is available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Knowledge Graph (3D) is available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -670,16 +670,16 @@ const Index = () => {
 
                 <TabsContent value="whiteboard" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <div className="glass-card rounded-xl p-3 min-h-[500px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                       <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <InfiniteWhiteboard onCreateCard={handleCreateCard} />
                       </Suspense>
                     </div>
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Interactive Whiteboard is available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Interactive Whiteboard is available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -688,7 +688,7 @@ const Index = () => {
 
                 <TabsContent value="journal" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                       <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
                         <BulletJournal 
                           onCreateCard={handleCreateCard}
@@ -702,10 +702,10 @@ const Index = () => {
                       </Suspense>
                     </div>
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Bullet Journal is available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Bullet Journal is available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -714,14 +714,14 @@ const Index = () => {
 
                 <TabsContent value="habits" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                       <HabitTracker />
                     </div>
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Habit Tracker is available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Habit Tracker is available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -729,28 +729,28 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="stickynotes" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 relative animate-fade-in-up">
+                  <div className="glass-card rounded-xl p-3 min-h-[500px] shadow-card hover:shadow-hover transition-all duration-500 relative animate-fade-in-up">
                     <StickyNotesSimple />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="scratchpad" className="mt-0">
-                  <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                  <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                     <ScratchPad onCreateCard={handleCreateCard} />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="recorder" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 space-y-6 animate-fade-in-up">
+                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 space-y-4 animate-fade-in-up">
                       <MediaRecorderComponent />
                       <RecordingsLibrary />
                     </div>
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Audio/Video Recording is available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Audio/Video Recording is available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -759,14 +759,14 @@ const Index = () => {
 
                 <TabsContent value="collab" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-2xl p-6 min-h-[600px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
                       <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
                     </div>
                   ) : (
-                    <div className="glass-card rounded-2xl p-12 shadow-card text-center">
-                      <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-6">Collaboration features are available for premium subscribers only.</p>
-                      <Button onClick={() => window.location.href = '/subscription'}>
+                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
+                      <p className="text-muted-foreground mb-4 text-sm">Collaboration features are available for premium subscribers only.</p>
+                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>

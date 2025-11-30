@@ -141,20 +141,20 @@ export function Calendar() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="p-3 sm:p-4 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <Card>
-              <CardContent className="p-6">
-                <div className="h-80 bg-muted/30 rounded-lg animate-pulse" />
+              <CardContent className="p-4">
+                <div className="h-72 bg-muted/30 rounded-lg animate-pulse" />
               </CardContent>
             </Card>
           </div>
           <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
+            <CardContent className="p-4">
+              <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-muted/30 rounded-lg animate-pulse" />
+                  <div key={i} className="h-14 bg-muted/30 rounded-lg animate-pulse" />
                 ))}
               </div>
             </CardContent>
@@ -165,18 +165,18 @@ export function Calendar() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Calendar</h1>
-          <p className="text-muted-foreground">Track events and reminders from your knowledge base</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Calendar</h1>
+          <p className="text-sm text-muted-foreground">Track events and reminders from your knowledge base</p>
         </div>
         <Dialog open={showAddEvent} onOpenChange={setShowAddEvent}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
+            <Button size="sm" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Add Event
+              <span className="hidden sm:inline">Add Event</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -225,7 +225,7 @@ export function Calendar() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Calendar */}
         <div className="lg:col-span-2">
           <Card>

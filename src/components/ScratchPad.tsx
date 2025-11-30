@@ -91,7 +91,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-4 h-full flex flex-col">
       <Card className="flex-shrink-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

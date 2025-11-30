@@ -217,12 +217,21 @@ export const StickyNotesSimple: React.FC = () => {
           return <NoteCard key={note.id} />;
         })}
 
+        {/* Empty state message */}
+        {notes.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+            <Plus className="h-16 w-16 text-muted-foreground/30 mb-4" />
+            <p className="text-lg font-medium text-muted-foreground mb-2">No sticky notes yet</p>
+            <p className="text-sm text-muted-foreground/70 mb-4">Click the button below to create your first note</p>
+          </div>
+        )}
+
         <Button
           onClick={addNote}
-          className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-14 w-14 shadow-lg z-50 touch-manipulation`}
+          className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-14 w-14 shadow-xl z-50 touch-manipulation bg-primary hover:bg-primary/90 hover:scale-110 transition-all duration-200`}
           aria-label="Add new sticky note"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-7 w-7" />
         </Button>
       </div>
 

@@ -262,13 +262,13 @@ export function Notes() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
+      <div className="p-3 sm:p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+          {[...Array(8)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="h-4 bg-muted rounded mb-2" />
-                <div className="h-20 bg-muted rounded mb-4" />
+                <div className="h-16 bg-muted rounded mb-3" />
                 <div className="h-3 bg-muted rounded w-1/2" />
               </CardContent>
             </Card>
@@ -279,7 +279,7 @@ export function Notes() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -401,11 +401,11 @@ export function Notes() {
       </div>
 
       {/* Notes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {filteredNotes.length > 0 ? (
           filteredNotes.map((note) => (
             <Card key={note.id} className="group hover:shadow-md transition-all duration-200">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2 flex-1">
