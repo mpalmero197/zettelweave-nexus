@@ -129,112 +129,123 @@ export const StickyNotesSimple: React.FC = () => {
     return 'hsl(0 0% 25%)'; // Dark gray for good contrast
   };
 
-  return (
-    <>
-      <div className="relative w-full h-full overflow-hidden">
-        {notes.map((note) => {
-          const NoteCard = () => {
-            const cardRef = useRef<HTMLDivElement>(null);
-            const draggable = useDraggable(cardRef, {
-              disabled: false,
-              onDragEnd: (position) => updateNotePosition(note.id, position),
-            });
+  // Render individual note card
+  const renderNoteCard = (note: StickyNote) => {
+    const NoteCard = () => {
+      const cardRef = useRef<HTMLDivElement>(null);
+      const draggable = useDraggable(cardRef, {
+        disabled: false,
+        onDragEnd: (position) => updateNotePosition(note.id, position),
+      });
 
-            useEffect(() => {
-              draggable.setPosition(note.position);
-            }, []);
+      useEffect(() => {
+        draggable.setPosition(note.position);
+      }, []);
 
-            return (
-              <Card
-                ref={cardRef}
-                className={`absolute shadow-lg border-0 transition-all duration-200 hover:shadow-xl touch-manipulation ${
-                  note.alwaysOnTop ? 'z-50' : 'z-10'
-                } w-64 md:w-72 h-48 md:h-52`}
-                style={{ 
-                  backgroundColor: note.color,
-                  color: getTextColor(note.color),
-                  ...draggable.style,
-                }}
+      return (
+        <Card
+          ref={cardRef}
+          className={`absolute shadow-lg border-0 transition-all duration-200 hover:shadow-xl touch-manipulation ${
+            note.alwaysOnTop ? 'z-30' : 'z-10'
+          } w-56 sm:w-64 md:w-72 h-44 sm:h-48 md:h-52`}
+          style={{ 
+            backgroundColor: note.color,
+            color: getTextColor(note.color),
+            ...draggable.style,
+          }}
+        >
+          <CardContent className="p-2 sm:p-3 h-full flex flex-col">
+            <div className="flex justify-between items-start mb-1 sm:mb-2 drag-handle cursor-grab active:cursor-grabbing touch-manipulation">
+              <div className="flex gap-0.5 sm:gap-1 items-center">
+                <GripVertical className="h-3 w-3 sm:h-4 sm:w-4 opacity-50" style={{ color: getToolsColor(note.color) }} />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full hover:bg-black/10 transition-colors touch-manipulation"
+                  style={{ color: getToolsColor(note.color) }}
+                  onClick={() => {
+                    const currentIndex = colors.indexOf(note.color);
+                    const nextIndex = (currentIndex + 1) % colors.length;
+                    updateNoteColor(note.id, colors[nextIndex]);
+                  }}
+                  aria-label="Change color"
+                >
+                  <Palette className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full hover:bg-black/10 transition-colors touch-manipulation"
+                  style={{ color: getToolsColor(note.color) }}
+                  onClick={() => toggleAlwaysOnTop(note.id)}
+                  aria-label={note.alwaysOnTop ? "Unpin note" : "Pin note"}
+                >
+                  {note.alwaysOnTop ? <PinOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Pin className="h-3 w-3 sm:h-4 sm:w-4" />}
+                </Button>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full hover:bg-black/10 transition-colors touch-manipulation"
+                style={{ color: getToolsColor(note.color) }}
+                onClick={() => deleteNote(note.id)}
+                aria-label="Delete note"
               >
-                <CardContent className="p-3 h-full flex flex-col">
-                  <div className="flex justify-between items-start mb-2 drag-handle cursor-grab active:cursor-grabbing touch-manipulation">
-                    <div className="flex gap-1 items-center">
-                      <GripVertical className="h-4 w-4 opacity-50" style={{ color: getToolsColor(note.color) }} />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-colors touch-manipulation"
-                        style={{ color: getToolsColor(note.color) }}
-                        onClick={() => {
-                          const currentIndex = colors.indexOf(note.color);
-                          const nextIndex = (currentIndex + 1) % colors.length;
-                          updateNoteColor(note.id, colors[nextIndex]);
-                        }}
-                        aria-label="Change color"
-                      >
-                        <Palette className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-colors touch-manipulation"
-                        style={{ color: getToolsColor(note.color) }}
-                        onClick={() => toggleAlwaysOnTop(note.id)}
-                        aria-label={note.alwaysOnTop ? "Unpin note" : "Pin note"}
-                      >
-                        {note.alwaysOnTop ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-colors touch-manipulation"
-                      style={{ color: getToolsColor(note.color) }}
-                      onClick={() => deleteNote(note.id)}
-                      aria-label="Delete note"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <Textarea
-                    placeholder="Write your note..."
-                    value={note.content}
-                    onChange={(e) => updateNoteContent(note.id, e.target.value)}
-                    className="flex-1 resize-none border-0 bg-transparent placeholder:opacity-60 focus:ring-0 text-sm md:text-base"
-                    style={{ color: getTextColor(note.color) }}
-                  />
-                  <div 
-                    className="text-xs opacity-70 mt-2"
-                    style={{ color: getToolsColor(note.color) }}
-                  >
-                    {note.timestamp}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          };
+                <X className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Button>
+            </div>
+            <Textarea
+              placeholder="Write your note..."
+              value={note.content}
+              onChange={(e) => updateNoteContent(note.id, e.target.value)}
+              className="flex-1 resize-none border-0 bg-transparent placeholder:opacity-60 focus:ring-0 focus-visible:ring-0 text-xs sm:text-sm md:text-base"
+              style={{ color: getTextColor(note.color) }}
+            />
+            <div 
+              className="text-[10px] sm:text-xs opacity-70 mt-1 sm:mt-2"
+              style={{ color: getToolsColor(note.color) }}
+            >
+              {note.timestamp}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    };
 
-          return <NoteCard key={note.id} />;
-        })}
+    return <NoteCard key={note.id} />;
+  };
 
-        {/* Empty state message */}
-        {notes.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-            <Plus className="h-16 w-16 text-muted-foreground/30 mb-4" />
-            <p className="text-lg font-medium text-muted-foreground mb-2">No sticky notes yet</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">Click the button below to create your first note</p>
+  return (
+    <div className="relative w-full h-full min-h-[400px] flex flex-col">
+      {/* Notes canvas area */}
+      <div className="relative flex-1 overflow-auto">
+        {notes.length > 0 ? (
+          <div className="relative min-h-full" style={{ minHeight: '500px', minWidth: '100%' }}>
+            {notes.map(renderNoteCard)}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center p-4">
+            <div className="rounded-full bg-muted/50 p-4 mb-4">
+              <Plus className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/50" />
+            </div>
+            <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">No sticky notes yet</p>
+            <p className="text-xs sm:text-sm text-muted-foreground/70 max-w-xs">
+              Click the + button to create your first note
+            </p>
           </div>
         )}
-
-        <Button
-          onClick={addNote}
-          className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-14 w-14 shadow-xl z-50 touch-manipulation bg-primary hover:bg-primary/90 hover:scale-110 transition-all duration-200`}
-          aria-label="Add new sticky note"
-        >
-          <Plus className="h-7 w-7" />
-        </Button>
       </div>
 
+      {/* FAB button */}
+      <Button
+        onClick={addNote}
+        className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} rounded-full h-12 w-12 sm:h-14 sm:w-14 shadow-2xl z-40 touch-manipulation bg-primary hover:bg-primary/90 hover:scale-110 active:scale-95 transition-all duration-200`}
+        aria-label="Add new sticky note"
+      >
+        <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+      </Button>
+
+      {/* Delete confirmation dialog */}
       <AlertDialog open={deleteConfirmId !== null} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -251,6 +262,6 @@ export const StickyNotesSimple: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
