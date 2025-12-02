@@ -175,16 +175,16 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
 
   return (
     <div className="w-full bg-background">
-      <div className="w-full max-w-[1600px] mx-auto p-2 sm:p-3 lg:p-4 space-y-4">
+      <div className="w-full max-w-[1600px] mx-auto p-2 sm:p-3 space-y-3">
         {/* Modern Dashboard Header */}
         <div className="animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-1">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
-                <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 Dashboard
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Your knowledge hub at a glance
               </p>
             </div>
@@ -193,7 +193,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
                 variant="outline"
                 size="sm"
                 onClick={resetToDefault}
-                className="hover-scale"
+                className="h-8 text-xs"
               >
                 Reset Layout
               </Button>
@@ -207,17 +207,14 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
           <ResizableGrid
             widgets={visibleWidgets}
             onLayoutChange={saveLayout}
-            className="min-h-[400px]"
           >
             {renderWidget}
           </ResizableGrid>
         ) : (
-          <div className="text-center py-12 animate-fade-in">
-            <div className="mb-4">
-              <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <h3 className="text-lg font-semibold text-foreground mb-1">No widgets to display</h3>
-              <p className="text-sm text-muted-foreground">Add widgets to customize your dashboard</p>
-            </div>
+          <div className="text-center py-8 animate-fade-in">
+            <Brain className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
+            <h3 className="text-base font-semibold text-foreground mb-1">No widgets to display</h3>
+            <p className="text-xs text-muted-foreground mb-3">Add widgets to customize your dashboard</p>
             <DashboardWidgetSidebar />
           </div>
         )}

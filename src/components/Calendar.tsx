@@ -165,12 +165,12 @@ export function Calendar() {
   }
 
   return (
-    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-3 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Calendar</h1>
-          <p className="text-sm text-muted-foreground">Track events and reminders from your knowledge base</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Track events and reminders from your knowledge base</p>
         </div>
         <Dialog open={showAddEvent} onOpenChange={setShowAddEvent}>
           <DialogTrigger asChild>
@@ -225,7 +225,7 @@ export function Calendar() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Calendar */}
         <div className="lg:col-span-2">
           <Card>
@@ -307,8 +307,8 @@ export function Calendar() {
                 );
               })
             ) : (
-              <div className="text-center py-12">
-                <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <div className="text-center py-8">
+                <CalendarIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-medium mb-2">No events this day</p>
                 <p className="text-xs text-muted-foreground">
                   Add events manually or they'll appear automatically from your notes and cards
@@ -353,7 +353,7 @@ export function Calendar() {
               })}
             
             {events.filter(event => new Date(event.event_date) >= new Date()).length === 0 && (
-              <div className="text-center py-8">
+              <div className="text-center py-6">
                 <p className="text-sm text-muted-foreground">No upcoming events</p>
               </div>
             )}

@@ -209,12 +209,12 @@ export function FileManager() {
   }
 
   return (
-    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-3 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">File Manager</h1>
-          <p className="text-sm text-muted-foreground">Upload and manage your documents</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Upload and manage your documents</p>
         </div>
         <Button size="sm" onClick={() => setShowUploadDialog(true)} className="flex items-center gap-2">
           <Upload className="h-4 w-4" />
@@ -296,8 +296,8 @@ export function FileManager() {
             );
           })
         ) : (
-          <div className="col-span-full text-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <div className="col-span-full text-center py-8">
+            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium mb-2">
               {searchTerm ? 'No files match your search' : 'No files uploaded yet'}
             </p>

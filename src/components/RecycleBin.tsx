@@ -210,10 +210,10 @@ export function RecycleBin() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="animate-pulse space-y-4">
+      <div className="p-3 sm:p-4 space-y-3">
+        <div className="animate-pulse space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 bg-muted rounded-lg" />
+            <div key={i} className="h-16 bg-muted rounded-lg" />
           ))}
         </div>
       </div>
@@ -221,17 +221,17 @@ export function RecycleBin() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-3 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Recycle Bin</h1>
-          <p className="text-muted-foreground">Restore or permanently delete items</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Recycle Bin</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Restore or permanently delete items</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Auto-delete after:</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">Auto-delete:</span>
           <Select value={autoDeleteDays.toString()} onValueChange={(v) => handleUpdateAutoDelete(parseInt(v))}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -246,20 +246,20 @@ export function RecycleBin() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All ({deletedItems.length})</TabsTrigger>
-          <TabsTrigger value="card">
+        <TabsList className="h-9">
+          <TabsTrigger value="all" className="text-xs">All ({deletedItems.length})</TabsTrigger>
+          <TabsTrigger value="card" className="text-xs">
             Cards ({deletedItems.filter(i => i.type === 'card').length})
           </TabsTrigger>
-          <TabsTrigger value="note">
+          <TabsTrigger value="note" className="text-xs">
             Notes ({deletedItems.filter(i => i.type === 'note').length})
           </TabsTrigger>
-          <TabsTrigger value="file">
+          <TabsTrigger value="file" className="text-xs">
             Files ({deletedItems.filter(i => i.type === 'file').length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="mt-4">
+        <TabsContent value={activeTab} className="mt-3">
           {filteredItems.length > 0 ? (
             <div className="space-y-2">
               {filteredItems.map((item) => {
@@ -328,10 +328,10 @@ export function RecycleBin() {
               })}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Trash2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2">Recycle bin is empty</p>
-              <p className="text-muted-foreground">
+            <div className="text-center py-8">
+              <Trash2 className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium mb-1">Recycle bin is empty</p>
+              <p className="text-xs text-muted-foreground">
                 Deleted items will appear here
               </p>
             </div>
