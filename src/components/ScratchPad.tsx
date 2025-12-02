@@ -91,28 +91,29 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   };
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
-      <Card className="flex-shrink-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+    <div className="p-3 sm:p-4 space-y-3">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <FileText className="h-5 w-5" />
             Quick Scratch Pad
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 pt-0">
           <Textarea
             placeholder="Jot down quick thoughts, ideas, or notes..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-32 resize-y"
+            className="min-h-24 resize-y"
           />
           <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={!content.trim()}>
+            <Button size="sm" onClick={handleSave} disabled={!content.trim()}>
               <Save className="h-4 w-4 mr-2" />
               Save Note
             </Button>
             <Button 
-              variant="outline" 
+              variant="outline"
+              size="sm"
               onClick={() => handleCreateCard(content)} 
               disabled={!content.trim()}
             >
@@ -124,18 +125,18 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
       </Card>
 
       {savedNotes.length > 0 && (
-        <div className="space-y-4 flex-1 overflow-y-auto">
-          <h3 className="text-lg font-semibold">Saved Notes</h3>
-          <div className="grid gap-3 pb-4">
+        <div className="space-y-3">
+          <h3 className="text-base font-semibold">Saved Notes</h3>
+          <div className="grid gap-2">
             {savedNotes.map((note) => (
               <Card key={note.id} className="border-l-4 border-l-accent">
-                <CardContent className="pt-4">
+                <CardContent className="py-3 px-4">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-xs text-muted-foreground mb-1">
                         {note.timestamp.toLocaleString()}
                       </p>
-                      <pre className="whitespace-pre-wrap text-sm font-mono">
+                      <pre className="whitespace-pre-wrap text-sm font-mono line-clamp-3">
                         {note.content}
                       </pre>
                     </div>
@@ -145,6 +146,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
                         variant="outline"
                         onClick={() => handleCreateCard(note.content)}
                         title="Convert to Zettel Card"
+                        className="h-7 text-xs"
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Card
@@ -154,6 +156,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
                         variant="ghost"
                         onClick={() => handleDeleteNote(note.id)}
                         title="Delete Note"
+                        className="h-7 w-7 p-0"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>

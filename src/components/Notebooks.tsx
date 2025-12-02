@@ -254,12 +254,12 @@ export function Notebooks() {
   }
 
   return (
-    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-3 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Notebooks</h1>
-          <p className="text-muted-foreground">Organize your content into collections</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Notebooks</h1>
+          <p className="text-sm text-muted-foreground">Organize your content into collections</p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
@@ -318,14 +318,14 @@ export function Notebooks() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 items-center">
+      <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search notebooks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-9"
           />
         </div>
 
@@ -333,10 +333,10 @@ export function Notebooks() {
           variant={showFavorites ? "default" : "outline"}
           size="sm"
           onClick={() => setShowFavorites(!showFavorites)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-1 h-9"
         >
           <Star className="h-4 w-4" />
-          Favorites
+          <span className="hidden sm:inline">Favorites</span>
         </Button>
       </div>
 
@@ -475,8 +475,8 @@ export function Notebooks() {
           );
         })
         ) : (
-          <div className="col-span-full text-center py-12">
-            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <div className="col-span-full text-center py-8">
+            <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium mb-2">
               {searchTerm || showFavorites 
                 ? 'No notebooks match your filters' 

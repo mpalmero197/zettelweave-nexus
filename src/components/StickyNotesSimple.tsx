@@ -112,25 +112,22 @@ export const StickyNotesSimple: React.FC = () => {
   });
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="p-3 sm:p-4 space-y-3">
       {/* Header with add button */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-muted-foreground">
-          {notes.length} note{notes.length !== 1 ? 's' : ''}
-        </span>
-        <Button
-          onClick={addNote}
-          size="sm"
-          className="h-8 gap-1.5"
-        >
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Sticky Notes</h1>
+          <p className="text-sm text-muted-foreground">{notes.length} note{notes.length !== 1 ? 's' : ''}</p>
+        </div>
+        <Button onClick={addNote} size="sm" className="gap-1.5">
           <Plus className="h-4 w-4" />
-          Add Note
+          <span className="hidden sm:inline">Add Note</span>
         </Button>
       </div>
 
       {/* Notes grid */}
       {notes.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 flex-1 auto-rows-min">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {sortedNotes.map((note) => (
             <Card
               key={note.id}
@@ -196,14 +193,10 @@ export const StickyNotesSimple: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-6 text-center">
-          <div className="rounded-full bg-muted/30 p-2.5 mb-2">
-            <Plus className="h-5 w-5 text-muted-foreground/50" />
-          </div>
+        <div className="text-center py-8">
+          <Plus className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
           <p className="text-sm text-muted-foreground">No sticky notes yet</p>
-          <p className="text-xs text-muted-foreground/70 mt-0.5">
-            Click "Add Note" to create one
-          </p>
+          <p className="text-xs text-muted-foreground/70">Click "Add Note" to create one</p>
         </div>
       )}
 

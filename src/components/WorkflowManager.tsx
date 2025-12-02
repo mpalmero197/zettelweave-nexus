@@ -197,23 +197,23 @@ export function WorkflowManager() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-3 sm:p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold flex items-center gap-2">
-            <Zap className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Zap className="h-6 w-6 text-primary" />
             Automated Workflows
-          </h2>
-          <p className="text-muted-foreground mt-1">
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Monitor topics and automatically save findings to notebooks
           </p>
         </div>
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Create Workflow
+              <span className="hidden sm:inline">Create Workflow</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -419,17 +419,17 @@ export function WorkflowManager() {
         </div>
 
         {!workflows || workflows.length === 0 && (
-          <Card className="p-12 text-center">
-            <Zap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-lg font-semibold mb-2">No Workflows Yet</p>
-            <p className="text-muted-foreground mb-4">
+          <div className="text-center py-8">
+            <Zap className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-30" />
+            <p className="text-sm font-semibold mb-1">No Workflows Yet</p>
+            <p className="text-xs text-muted-foreground mb-3">
               Create your first automated workflow to start monitoring topics
             </p>
-            <Button onClick={() => setIsCreateOpen(true)}>
+            <Button size="sm" onClick={() => setIsCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Workflow
             </Button>
-          </Card>
+          </div>
         )}
       </ScrollArea>
     </div>

@@ -279,12 +279,12 @@ export function Notes() {
   }
 
   return (
-    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
+    <div className="p-3 sm:p-4 space-y-3 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Notes</h1>
-          <p className="text-muted-foreground">Create and manage your documents</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Notes</h1>
+          <p className="text-sm text-muted-foreground">Create and manage your documents</p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
@@ -360,19 +360,19 @@ export function Notes() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 items-center">
+      <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search notes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-9"
           />
         </div>
         
         <Select value={selectedNotebook} onValueChange={setSelectedNotebook}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-40 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -488,8 +488,8 @@ export function Notes() {
             </Card>
           ))
         ) : (
-          <div className="col-span-full text-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <div className="col-span-full text-center py-8">
+            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium mb-2">
               {searchTerm || selectedNotebook !== 'all' || showFavorites 
                 ? 'No notes match your filters' 

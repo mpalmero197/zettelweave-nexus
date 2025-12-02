@@ -451,10 +451,8 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="search" className="mt-0">
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-2xl blur-2xl"></div>
-                    <div className="glass-card rounded-xl p-3 sm:p-4 md:p-6 shadow-xl hover:shadow-glow transition-all duration-500 animate-fade-in-up relative border border-border/30 hover:border-primary/30">
-                      {searchResults ? (
+                  <div className="p-3 sm:p-4">
+                    {searchResults ? (
                         <UnifiedSearchResults
                         query={searchResults.query}
                         cards={searchResults.cards}
@@ -517,11 +515,10 @@ const Index = () => {
                         }}
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-64 text-center">
+                      <div className="text-center py-8">
                         <p className="text-muted-foreground text-sm">Use the search bar above to find content across your notes, cards, and sticky notes.</p>
                       </div>
                     )}
-                    </div>
                   </div>
                 </TabsContent>
 
@@ -529,7 +526,7 @@ const Index = () => {
                   {hasPremium ? (
                     <Catalyst />
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Catalyst Writing Suite is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
@@ -560,9 +557,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="workflows" className="mt-0">
-                  <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
-                    <WorkflowManager />
-                  </div>
+                  <WorkflowManager />
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
@@ -658,7 +653,7 @@ const Index = () => {
                       />
                     </div>
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Knowledge Graph (3D) is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
@@ -670,13 +665,13 @@ const Index = () => {
 
                 <TabsContent value="whiteboard" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-xl p-3 min-h-[500px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
+                    <div className="h-[calc(100vh-10rem)]">
                       <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <InfiniteWhiteboard onCreateCard={handleCreateCard} />
                       </Suspense>
                     </div>
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Interactive Whiteboard is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
@@ -688,9 +683,8 @@ const Index = () => {
 
                 <TabsContent value="journal" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
-                      <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
-                        <BulletJournal 
+                    <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
+                      <BulletJournal
                           onCreateCard={handleCreateCard}
                           onAddHabit={(taskName) => {
                             // Trigger habit creation via global function exposed by HabitTracker
@@ -698,11 +692,10 @@ const Index = () => {
                               (window as any).__addHabitFromTask(taskName);
                             }
                           }}
-                        />
-                      </Suspense>
-                    </div>
+                      />
+                    </Suspense>
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Bullet Journal is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
@@ -714,11 +707,9 @@ const Index = () => {
 
                 <TabsContent value="habits" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
-                      <HabitTracker />
-                    </div>
+                    <HabitTracker />
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Habit Tracker is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
@@ -729,25 +720,21 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="stickynotes" className="mt-0">
-                  <div className="glass-card rounded-xl p-3 min-h-[500px] shadow-card hover:shadow-hover transition-all duration-500 relative animate-fade-in-up">
-                    <StickyNotesSimple />
-                  </div>
+                  <StickyNotesSimple />
                 </TabsContent>
 
                 <TabsContent value="scratchpad" className="mt-0">
-                  <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
-                    <ScratchPad onCreateCard={handleCreateCard} />
-                  </div>
+                  <ScratchPad onCreateCard={handleCreateCard} />
                 </TabsContent>
 
                 <TabsContent value="recorder" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 space-y-4 animate-fade-in-up">
+                    <div className="space-y-4">
                       <MediaRecorderComponent />
                       <RecordingsLibrary />
                     </div>
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Audio/Video Recording is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
@@ -759,11 +746,9 @@ const Index = () => {
 
                 <TabsContent value="collab" className="mt-0">
                   {hasPremium ? (
-                    <div className="glass-card rounded-xl p-3 sm:p-4 min-h-[400px] shadow-card hover:shadow-hover transition-all duration-500 animate-fade-in-up">
-                      <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
-                    </div>
+                    <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
                   ) : (
-                    <div className="glass-card rounded-xl p-6 shadow-card text-center">
+                    <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
                       <p className="text-muted-foreground mb-4 text-sm">Collaboration features are available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
