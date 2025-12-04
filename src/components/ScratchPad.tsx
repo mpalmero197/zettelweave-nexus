@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Save, FileText, Trash2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 
@@ -168,6 +168,55 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
           </div>
         </div>
       )}
+
+      {/* Chrome Extension Promo */}
+      <Card className="border-dashed border-primary/30 bg-primary/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Chrome className="h-5 w-5 text-primary" />
+            Chrome Extension
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Capture notes from anywhere on the web
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Install our Chrome extension to quickly jot down notes and sticky notes from any webpage without leaving your browser.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                window.open('/chrome-extension/manifest.json', '_blank');
+                toast.info("Download the extension folder and load it in Chrome", {
+                  description: "Go to chrome://extensions → Enable Developer Mode → Load unpacked → Select the downloaded folder",
+                  duration: 8000
+                });
+              }}
+              className="gap-1.5"
+            >
+              <Download className="h-4 w-4" />
+              Download Extension
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                toast.info("How to install:", {
+                  description: "1. Download extension files\n2. Open chrome://extensions\n3. Enable Developer Mode\n4. Click 'Load unpacked'\n5. Select the extension folder",
+                  duration: 10000
+                });
+              }}
+              className="gap-1.5 text-xs"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Installation Guide
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
