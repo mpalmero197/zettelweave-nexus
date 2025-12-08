@@ -2,64 +2,136 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink } from "lucide-react";
+import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ScratchPadProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-const STORAGE_KEY = "scratchpad:notes:v1";
+interface ScratchNote {
+  id: string;
+  content: string;
+  timestamp: Date;
+  synced?: boolean;
+}
 
 export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const [content, setContent] = useState("");
-  const [savedNotes, setSavedNotes] = useState<{ id: string; content: string; timestamp: Date }[]>([]);
+  const [savedNotes, setSavedNotes] = useState<ScratchNote[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { user } = useAuth();
 
-  // Load notes from localStorage on mount
+  // Load notes from Supabase if logged in, else localStorage
   useEffect(() => {
+    if (user) {
+      loadNotesFromCloud();
+    } else {
+      loadNotesFromLocal();
+    }
+  }, [user]);
+
+  const loadNotesFromLocal = () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem("scratchpad:notes:v1");
       if (saved) {
         const parsedNotes = JSON.parse(saved);
         const notesWithDates = parsedNotes.map((note: any) => ({
           ...note,
-          timestamp: new Date(note.timestamp)
+          timestamp: new Date(note.timestamp),
+          synced: false
         }));
         setSavedNotes(notesWithDates);
       }
     } catch (error) {
       console.error("Failed to load scratch notes:", error);
     }
-  }, []);
+  };
 
-  // Save notes to localStorage whenever notes change
-  useEffect(() => {
+  const loadNotesFromCloud = async () => {
+    if (!user) return;
+    
+    setIsSyncing(true);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedNotes));
-    } catch (error) {
-      console.error("Failed to save scratch notes:", error);
-    }
-  }, [savedNotes]);
+      const { data, error } = await supabase
+        .from('scratchpad_notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-  const handleSave = () => {
+      if (error) throw error;
+
+      const notes: ScratchNote[] = (data || []).map(note => ({
+        id: note.id,
+        content: note.content,
+        timestamp: new Date(note.created_at),
+        synced: true
+      }));
+
+      setSavedNotes(notes);
+      
+      // Also save to localStorage as backup
+      localStorage.setItem("scratchpad:notes:v1", JSON.stringify(notes));
+    } catch (error) {
+      console.error("Failed to load notes from cloud:", error);
+      // Fall back to localStorage
+      loadNotesFromLocal();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSave = async () => {
     if (!content.trim()) return;
     
-    const newNote = {
+    const newNote: ScratchNote = {
       id: crypto.randomUUID(),
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
+      synced: false
     };
-    
+
+    // Optimistic update
     setSavedNotes(prev => [newNote, ...prev]);
     setContent("");
-    toast("Note saved to scratch pad");
+    
+    if (user) {
+      // Save to cloud
+      try {
+        const { data, error } = await supabase
+          .from('scratchpad_notes')
+          .insert({ user_id: user.id, content: newNote.content })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Update with cloud ID
+        setSavedNotes(prev => prev.map(n => 
+          n.id === newNote.id 
+            ? { ...n, id: data.id, synced: true }
+            : n
+        ));
+        toast.success("Note saved and synced");
+      } catch (error) {
+        console.error("Failed to sync note:", error);
+        toast.error("Note saved locally, sync failed");
+      }
+    } else {
+      // Save to localStorage only
+      const updatedNotes = [newNote, ...savedNotes];
+      localStorage.setItem("scratchpad:notes:v1", JSON.stringify(updatedNotes));
+      toast.success("Note saved locally");
+    }
   };
 
   const handleCreateCard = (noteContent?: string) => {
     const contentToUse = noteContent || content;
     if (!contentToUse.trim()) {
-      toast("Cannot create card from empty content");
+      toast.error("Cannot create card from empty content");
       return;
     }
     
@@ -77,27 +149,75 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     };
     
     onCreateCard(newCard);
-    toast("Created zettel card from scratch note");
+    toast.success("Created zettel card from scratch note");
     
-    // Clear current content if creating from current input
     if (!noteContent) {
       setContent("");
     }
   };
 
-  const handleDeleteNote = (id: string) => {
+  const handleDeleteNote = async (id: string) => {
+    const noteToDelete = savedNotes.find(n => n.id === id);
+    
+    // Optimistic update
     setSavedNotes(prev => prev.filter(note => note.id !== id));
-    toast("Note deleted");
+    
+    if (user && noteToDelete?.synced) {
+      // Delete from cloud
+      try {
+        const { error } = await supabase
+          .from('scratchpad_notes')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Failed to delete from cloud:", error);
+      }
+    }
+    
+    // Update localStorage
+    const updatedNotes = savedNotes.filter(note => note.id !== id);
+    localStorage.setItem("scratchpad:notes:v1", JSON.stringify(updatedNotes));
+    toast.success("Note deleted");
+  };
+
+  const handleSync = () => {
+    if (user) {
+      loadNotesFromCloud();
+      toast.success("Syncing notes...");
+    } else {
+      toast.info("Sign in to sync notes across devices");
+    }
   };
 
   return (
     <div className="p-3 sm:p-4 space-y-3">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5" />
-            Quick Scratch Pad
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Quick Scratch Pad
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="h-8 gap-1.5"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {user ? 'Sync' : 'Sign in to sync'}
+            </Button>
+          </div>
+          {user && (
+            <CardDescription className="text-xs flex items-center gap-1">
+              <Cloud className="h-3 w-3" />
+              Synced to your account
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
           <Textarea
@@ -126,15 +246,21 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
 
       {savedNotes.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-base font-semibold">Saved Notes</h3>
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            Saved Notes
+            <span className="text-xs font-normal text-muted-foreground">
+              ({savedNotes.length})
+            </span>
+          </h3>
           <div className="grid gap-2">
             {savedNotes.map((note) => (
-              <Card key={note.id} className="border-l-4 border-l-accent">
+              <Card key={note.id} className={`border-l-4 ${note.synced ? 'border-l-primary' : 'border-l-accent'}`}>
                 <CardContent className="py-3 px-4">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
-                      <p className="text-xs text-muted-foreground mb-1">
+                      <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                         {note.timestamp.toLocaleString()}
+                        {note.synced && <Cloud className="h-3 w-3" />}
                       </p>
                       <pre className="whitespace-pre-wrap text-sm font-mono line-clamp-3">
                         {note.content}
@@ -177,12 +303,12 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
             Chrome Extension
           </CardTitle>
           <CardDescription className="text-xs">
-            Capture notes from anywhere on the web
+            Capture notes from anywhere • Syncs with your account
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
           <p className="text-xs text-muted-foreground">
-            Install our Chrome extension to quickly jot down notes and sticky notes from any webpage without leaving your browser.
+            Install our Chrome extension to quickly jot down notes from any webpage. Sign in with the same account to sync notes across devices.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
