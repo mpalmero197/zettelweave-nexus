@@ -5,52 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PendragonX Quick Notes</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       width: 320px;
       min-height: 400px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background: #0a0a0b;
       color: #e4e4e7;
     }
-    
     .header {
       padding: 12px 16px;
-      background: rgba(255,255,255,0.05);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
       display: flex;
       align-items: center;
       gap: 8px;
     }
+    .header img { width: 24px; height: 24px; border-radius: 4px; }
+    .header h1 { font-size: 14px; font-weight: 600; color: #fff; }
     
-    .header h1 {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
+    /* Auth Section */
+    .auth-bar {
+      padding: 8px 12px;
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
     }
-    
-    .logo {
-      width: 24px;
-      height: 24px;
-      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
+    .auth-section { display: flex; flex-direction: column; gap: 6px; }
+    .auth-section input {
+      padding: 6px 10px;
+      border: 1px solid #27272a;
+      border-radius: 4px;
+      background: #0a0a0b;
+      color: #e4e4e7;
       font-size: 12px;
     }
-    
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+    .auth-section input:focus { outline: none; border-color: #3b82f6; }
+    .auth-row { display: flex; gap: 6px; }
+    .auth-row input { flex: 1; }
+    #login-btn {
+      padding: 6px 12px;
+      background: #3b82f6;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 11px;
+      cursor: pointer;
     }
+    #login-btn:hover { background: #2563eb; }
+    #login-btn:disabled { background: #1e3a5f; }
+    .auth-error {
+      display: none;
+      padding: 4px 8px;
+      background: #450a0a;
+      border-radius: 4px;
+      color: #fca5a5;
+      font-size: 10px;
+    }
+    .user-section {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; }
+    #user-email { font-size: 11px; color: #a1a1aa; }
+    #logout-btn, #sync-btn {
+      padding: 4px 8px;
+      background: transparent;
+      border: 1px solid #3f3f46;
+      border-radius: 4px;
+      color: #a1a1aa;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    #logout-btn:hover, #sync-btn:hover { background: #27272a; color: #e4e4e7; }
+    .sync-status { font-size: 10px; color: #71717a; }
+    .sync-status.success { color: #4ade80; }
+    .sync-status.error { color: #f87171; }
+    .sync-status.syncing { color: #60a5fa; }
     
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 1px solid #27272a; }
     .tab {
       flex: 1;
       padding: 10px;
@@ -59,50 +93,26 @@
       color: #a1a1aa;
       cursor: pointer;
       font-size: 12px;
-      transition: all 0.2s;
     }
+    .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .tab.active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
     
-    .tab:hover {
-      color: #fff;
-      background: rgba(255,255,255,0.05);
-    }
-    
-    .tab.active {
-      color: #8b5cf6;
-      border-bottom: 2px solid #8b5cf6;
-    }
-    
-    .content {
-      padding: 12px;
-    }
-    
-    .scratch-area {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    
+    .content { padding: 12px; }
+    .scratch-area { display: flex; flex-direction: column; gap: 10px; }
     textarea {
       width: 100%;
-      min-height: 120px;
+      min-height: 100px;
       padding: 10px;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid #27272a;
       border-radius: 8px;
-      background: rgba(0,0,0,0.3);
+      background: #18181b;
       color: #e4e4e7;
       font-size: 13px;
       resize: vertical;
       font-family: inherit;
     }
-    
-    textarea:focus {
-      outline: none;
-      border-color: #8b5cf6;
-    }
-    
-    textarea::placeholder {
-      color: #71717a;
-    }
+    textarea:focus { outline: none; border-color: #3b82f6; }
+    textarea::placeholder { color: #52525b; }
     
     .btn {
       padding: 8px 16px;
@@ -111,48 +121,27 @@
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
-      transition: all 0.2s;
     }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
-    
-    .btn-secondary {
-      background: rgba(255,255,255,0.1);
-      color: #e4e4e7;
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(255,255,255,0.15);
-    }
-    
-    .actions {
-      display: flex;
-      gap: 8px;
-    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #27272a; color: #e4e4e7; }
+    .btn-secondary:hover { background: #3f3f46; }
+    .actions { display: flex; gap: 8px; }
     
     .notes-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 280px;
+      max-height: 240px;
       overflow-y: auto;
     }
-    
     .note-card {
       padding: 10px;
-      background: rgba(255,255,255,0.05);
+      background: #18181b;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid #27272a;
     }
-    
+    .note-card.synced { border-left: 2px solid #3b82f6; }
     .note-card p {
       font-size: 12px;
       line-height: 1.5;
@@ -160,94 +149,54 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
-    
     .note-meta {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-top: 8px;
       padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid #27272a;
     }
-    
-    .note-meta span {
-      font-size: 10px;
-      color: #71717a;
-    }
-    
-    .note-actions {
-      display: flex;
-      gap: 4px;
-    }
-    
+    .note-meta span { font-size: 10px; color: #71717a; }
+    .note-actions { display: flex; gap: 4px; }
     .note-actions button {
       padding: 4px 8px;
       font-size: 10px;
-      background: rgba(255,255,255,0.1);
+      background: #27272a;
       border: none;
       border-radius: 4px;
       color: #a1a1aa;
       cursor: pointer;
     }
+    .note-actions button:hover { background: #3f3f46; color: #fff; }
+    .note-actions button.delete:hover { background: #450a0a; color: #f87171; }
     
-    .note-actions button:hover {
-      background: rgba(255,255,255,0.2);
-      color: #fff;
-    }
+    .empty-state { text-align: center; padding: 24px 16px; color: #52525b; }
+    .empty-state svg { width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5; }
+    .empty-state p { font-size: 12px; }
     
-    .note-actions button.delete:hover {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 32px 16px;
-      color: #71717a;
-    }
-    
-    .empty-state svg {
-      width: 40px;
-      height: 40px;
-      margin-bottom: 12px;
-      opacity: 0.5;
-    }
-    
-    .empty-state p {
-      font-size: 12px;
-    }
-    
+    /* Sticky Notes */
     .sticky-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      max-height: 300px;
+      max-height: 280px;
       overflow-y: auto;
     }
-    
     .sticky-note {
       padding: 10px;
       border-radius: 4px;
       min-height: 80px;
-      font-size: 11px;
       position: relative;
     }
-    
     .sticky-note textarea {
       width: 100%;
-      height: 100%;
       min-height: 60px;
       background: transparent;
       border: none;
       color: #1a1a1a;
       font-size: 11px;
-      resize: none;
     }
-    
-    .sticky-note textarea:focus {
-      outline: none;
-    }
-    
     .sticky-delete {
       position: absolute;
       top: 4px;
@@ -258,63 +207,58 @@
       background: rgba(0,0,0,0.2);
       border: none;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 10px;
       color: #333;
       opacity: 0;
-      transition: opacity 0.2s;
     }
-    
-    .sticky-note:hover .sticky-delete {
-      opacity: 1;
-    }
-    
-    .color-picker {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-    
+    .sticky-note:hover .sticky-delete { opacity: 1; }
+    .color-picker { display: flex; gap: 6px; margin-bottom: 10px; }
     .color-btn {
       width: 24px;
       height: 24px;
       border-radius: 50%;
       border: 2px solid transparent;
       cursor: pointer;
-      transition: transform 0.2s;
     }
-    
-    .color-btn:hover {
-      transform: scale(1.1);
-    }
-    
-    .color-btn.active {
-      border-color: #fff;
-    }
+    .color-btn.active { border-color: #fff; }
     
     .footer {
       padding: 10px 12px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid #27272a;
       text-align: center;
     }
+    .footer a { font-size: 11px; color: #3b82f6; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
     
-    .footer a {
-      font-size: 11px;
-      color: #8b5cf6;
-      text-decoration: none;
-    }
-    
-    .footer a:hover {
-      text-decoration: underline;
-    }
+    .notes-list::-webkit-scrollbar { width: 4px; }
+    .notes-list::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="logo">P</div>
+    <img src="icon-48.png" alt="PendragonX">
     <h1>PendragonX Quick Notes</h1>
+  </div>
+  
+  <div class="auth-bar">
+    <div id="auth-section" class="auth-section">
+      <div class="auth-row">
+        <input type="email" id="auth-email" placeholder="Email">
+        <input type="password" id="auth-password" placeholder="Password">
+        <button id="login-btn">Sign In</button>
+      </div>
+      <div id="auth-error" class="auth-error"></div>
+    </div>
+    <div id="user-section" class="user-section">
+      <div class="user-info">
+        <span id="user-email">user@email.com</span>
+        <span id="sync-status" class="sync-status"></span>
+      </div>
+      <div style="display: flex; gap: 4px;">
+        <button id="sync-btn">⟳ Sync</button>
+        <button id="logout-btn">Sign Out</button>
+      </div>
+    </div>
   </div>
   
   <div class="tabs">
@@ -323,7 +267,6 @@
   </div>
   
   <div class="content">
-    <!-- Scratch Pad Tab -->
     <div id="scratch-tab" class="scratch-area">
       <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes..."></textarea>
       <div class="actions">
@@ -333,7 +276,6 @@
       <div id="notes-list" class="notes-list"></div>
     </div>
     
-    <!-- Sticky Notes Tab -->
     <div id="sticky-tab" style="display: none;">
       <div class="color-picker" id="color-picker"></div>
       <button class="btn btn-primary" id="add-sticky" style="margin-bottom: 10px; width: 100%;">+ Add Sticky Note</button>
