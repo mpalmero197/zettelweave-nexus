@@ -70,12 +70,12 @@ const themeOptions: ThemeOption[] = [
   },
   {
     value: 'midnight',
-    label: 'Midnight Sky',
-    description: 'Deep indigo & starlight',
-    primary: '235 65% 50%',
-    secondary: '260 55% 55%',
-    background: '230 25% 97%',
-    foreground: '230 50% 12%'
+    label: 'Cosmic Midnight',
+    description: 'Ethereal space & starlight',
+    primary: '250 85% 65%',
+    secondary: '190 100% 55%',
+    background: '240 50% 4%',
+    foreground: '220 30% 95%'
   }
 ];
 
