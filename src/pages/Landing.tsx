@@ -622,7 +622,7 @@ export default function Landing() {
               <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
               <span className="text-sm text-muted-foreground">© {currentYear} PendragonX. All rights reserved.</span>
             </div>
-            <div className="flex gap-6 text-sm text-muted-foreground">
+            <div className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <button onClick={() => scrollToSection('features')} className="hover:text-primary transition-colors">
                 Features
               </button>
@@ -634,6 +634,12 @@ export default function Landing() {
               </button>
               <button onClick={() => navigate('/privacy')} className="hover:text-primary transition-colors">
                 Privacy Policy
+              </button>
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('openCookieSettings'))} 
+                className="hover:text-primary transition-colors"
+              >
+                Cookie Settings
               </button>
             </div>
           </div>
