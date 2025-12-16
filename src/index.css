@@ -2295,3 +2295,45 @@
     }
   }
 }
+
+/* Disable theme background animations when preference is off */
+.no-theme-animations .theme-ocean.dark body::before,
+.no-theme-animations .theme-ocean.dark body::after,
+.no-theme-animations .theme-ocean:not(.dark) body::before,
+.no-theme-animations .theme-forest.dark body::before,
+.no-theme-animations .theme-forest.dark body::after,
+.no-theme-animations .theme-forest.dark #root::before,
+.no-theme-animations .theme-forest:not(.dark) body::before,
+.no-theme-animations .theme-sunset.dark body::before,
+.no-theme-animations .theme-sunset.dark body::after,
+.no-theme-animations .theme-sunset:not(.dark) body::before,
+.no-theme-animations .theme-lavender.dark body::before,
+.no-theme-animations .theme-lavender.dark body::after,
+.no-theme-animations .theme-lavender.dark #root::before,
+.no-theme-animations .theme-lavender.dark #root::after,
+.no-theme-animations .theme-lavender:not(.dark) body::before,
+.no-theme-animations .theme-midnight.dark body::before,
+.no-theme-animations .theme-midnight.dark body::after,
+.no-theme-animations .theme-midnight.dark #root::before {
+  display: none !important;
+  animation: none !important;
+}
+
+/* Also handle when class is directly on html */
+html.no-theme-animations.theme-ocean.dark body::before,
+html.no-theme-animations.theme-ocean.dark body::after,
+html.no-theme-animations.theme-forest.dark body::before,
+html.no-theme-animations.theme-forest.dark body::after,
+html.no-theme-animations.theme-forest.dark #root::before,
+html.no-theme-animations.theme-sunset.dark body::before,
+html.no-theme-animations.theme-sunset.dark body::after,
+html.no-theme-animations.theme-lavender.dark body::before,
+html.no-theme-animations.theme-lavender.dark body::after,
+html.no-theme-animations.theme-lavender.dark #root::before,
+html.no-theme-animations.theme-lavender.dark #root::after,
+html.no-theme-animations.theme-midnight.dark body::before,
+html.no-theme-animations.theme-midnight.dark body::after,
+html.no-theme-animations.theme-midnight.dark #root::before {
+  display: none !important;
+  animation: none !important;
+}

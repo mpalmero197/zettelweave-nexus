@@ -12,6 +12,15 @@ import { CosmicBackground } from "@/components/CosmicBackground";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
 
+// Initialize animation preference from localStorage on load
+const initAnimationPreference = () => {
+  const stored = localStorage.getItem('theme-animations-enabled');
+  if (stored === 'false') {
+    document.documentElement.classList.add('no-theme-animations');
+  }
+};
+initAnimationPreference();
+
 // Lightweight loading component
 const LoadingFallback = ({ message = "Loading..." }: { message?: string }) => (
   <div className="flex flex-col items-center justify-center min-h-screen">
