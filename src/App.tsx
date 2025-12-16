@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { MobileDetector } from "@/components/MobileDetector";
 import { MobileTouchHandler } from "@/components/MobileTouchHandler";
+import { CosmicBackground } from "@/components/CosmicBackground";
 import { Loader2 } from "lucide-react";
 
 // Lightweight loading component
@@ -50,6 +51,7 @@ const App = () => (
       <TooltipProvider>
         <MobileDetector>
           <MobileTouchHandler>
+            <CosmicBackground />
             <Toaster />
             <Sonner />
             <BrowserRouter>

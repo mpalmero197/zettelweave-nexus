@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type ThemeVariant = 'default' | 'ocean' | 'forest' | 'sunset' | 'lavender' | 'midnight';
+export type ThemeVariant = 'default' | 'ocean' | 'forest' | 'sunset' | 'lavender' | 'midnight' | 'aurora';
 
 const THEME_VARIANT_KEY = 'theme-variant';
 
@@ -11,7 +11,7 @@ export function useThemeVariant() {
   });
 
   useEffect(() => {
-    const variants: ThemeVariant[] = ['default', 'ocean', 'forest', 'sunset', 'lavender', 'midnight'];
+    const variants: ThemeVariant[] = ['default', 'ocean', 'forest', 'sunset', 'lavender', 'midnight', 'aurora'];
     const root = document.documentElement;
     
     // Remove all theme variant classes
