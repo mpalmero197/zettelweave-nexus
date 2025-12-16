@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { X, Cookie, ChevronDown, ChevronUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CookiePreferences {
   necessary: boolean;
@@ -12,6 +13,7 @@ interface CookiePreferences {
 }
 
 const COOKIE_CONSENT_KEY = "pendragonx_cookie_consent";
+const SESSION_ID_KEY = "pendragonx_session_id";
 
 const defaultPreferences: CookiePreferences = {
   necessary: true, // Always required
@@ -19,6 +21,65 @@ const defaultPreferences: CookiePreferences = {
   functional: false,
   marketing: false,
   timestamp: 0,
+};
+
+// Generate a unique session ID
+const getSessionId = (): string => {
+  let sessionId = localStorage.getItem(SESSION_ID_KEY);
+  if (!sessionId) {
+    sessionId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    localStorage.setItem(SESSION_ID_KEY, sessionId);
+  }
+  return sessionId;
+};
+
+// Detect device type
+const getDeviceType = (): string => {
+  const ua = navigator.userAgent;
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+    return 'tablet';
+  }
+  if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+    return 'mobile';
+  }
+  return 'desktop';
+};
+
+// Detect browser
+const getBrowser = (): string => {
+  const ua = navigator.userAgent;
+  if (ua.includes('Firefox')) return 'Firefox';
+  if (ua.includes('Edg')) return 'Edge';
+  if (ua.includes('Chrome')) return 'Chrome';
+  if (ua.includes('Safari')) return 'Safari';
+  if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
+  return 'Other';
+};
+
+// Save consent to database
+const saveConsentToDatabase = async (prefs: CookiePreferences) => {
+  try {
+    const sessionId = getSessionId();
+    const { data: user } = await supabase.auth.getUser();
+    
+    await supabase.from('cookie_consent_analytics').upsert({
+      session_id: sessionId,
+      user_id: user?.user?.id || null,
+      necessary: prefs.necessary,
+      analytics: prefs.analytics,
+      functional: prefs.functional,
+      marketing: prefs.marketing,
+      device_type: getDeviceType(),
+      browser: getBrowser(),
+      user_agent: navigator.userAgent.substring(0, 255),
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'session_id',
+    });
+  } catch (error) {
+    // Silently fail - don't block user experience
+    console.debug('Cookie consent tracking:', error);
+  }
 };
 
 export function CookieConsent() {
@@ -50,11 +111,14 @@ export function CookieConsent() {
     return () => window.removeEventListener('openCookieSettings', handleOpenCookieSettings);
   }, []);
 
-  const savePreferences = (prefs: CookiePreferences) => {
+  const savePreferences = async (prefs: CookiePreferences) => {
     const toSave = { ...prefs, timestamp: Date.now() };
     localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(toSave));
     setPreferences(toSave);
     setIsVisible(false);
+    
+    // Track consent in database
+    await saveConsentToDatabase(toSave);
   };
 
   const acceptAll = () => {

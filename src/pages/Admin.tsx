@@ -14,7 +14,8 @@ import { ContentModeration } from '@/components/admin/ContentModeration';
 import { DomainManagement } from '@/components/admin/DomainManagement';
 import { FeatureRequestsPanel } from '@/components/admin/FeatureRequestsPanel';
 import { ErrorReportsPanel } from '@/components/admin/ErrorReportsPanel';
-import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download, Lightbulb, Bug } from 'lucide-react';
+import { CookieAnalytics } from '@/components/admin/CookieAnalytics';
+import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download, Lightbulb, Bug, Cookie } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase } from '@/utils/codebaseExport';
 
@@ -199,15 +200,41 @@ export default function Admin() {
           </TabsList>
 
           <TabsContent value="overview">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics Dashboard</CardTitle>
-                <CardDescription>Platform-wide statistics and growth metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AnalyticsDashboard />
-              </CardContent>
-            </Card>
+            <Tabs defaultValue="analytics" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="analytics">Platform Analytics</TabsTrigger>
+                <TabsTrigger value="cookies">Cookie Analytics</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="analytics">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Analytics Dashboard</CardTitle>
+                    <CardDescription>Platform-wide statistics and growth metrics</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AnalyticsDashboard />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="cookies">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Cookie className="h-5 w-5" />
+                      Cookie Consent Analytics
+                    </CardTitle>
+                    <CardDescription>
+                      Track user privacy preferences and consent patterns to optimize your cookie strategy
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <CookieAnalytics />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="users">
