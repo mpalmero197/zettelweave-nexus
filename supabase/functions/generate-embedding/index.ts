@@ -42,6 +42,21 @@ serve(async (req) => {
     if (!embeddingResponse.ok) {
       const errorText = await embeddingResponse.text();
       console.error('Embedding API error:', embeddingResponse.status, errorText);
+      
+      // Return specific status codes for quota/rate limit errors
+      if (embeddingResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'OpenAI API quota exceeded. Please check your OpenAI billing at platform.openai.com',
+            code: 'quota_exceeded'
+          }),
+          { 
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
       throw new Error(`Failed to generate embedding: ${embeddingResponse.status}`);
     }
 
