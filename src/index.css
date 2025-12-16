@@ -159,160 +159,294 @@
     --shadow-active: 0 2px 10px hsl(271 80% 58% / 0.2);
   }
 
-  /* Ocean Theme Variant */
+  /* Ocean Theme Variant - Deep sea blues, teals, and aqua */
   .theme-ocean {
-    --primary: 200 70% 48%;
+    --background: 200 25% 98%;
+    --foreground: 200 50% 10%;
+    
+    --primary: 195 85% 42%;              /* Deep ocean blue */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 200 70% 55%;
+    --primary-hover: 195 85% 50%;
     
-    --secondary: 180 60% 45%;
+    --secondary: 175 70% 38%;            /* Sea teal */
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 180 60% 52%;
+    --secondary-hover: 175 70% 45%;
     
-    --accent: 195 55% 85%;
-    --accent-foreground: 0 0% 10%;
-    --accent-hover: 195 55% 80%;
+    --accent: 185 60% 88%;               /* Seafoam */
+    --accent-foreground: 200 50% 15%;
+    --accent-hover: 185 60% 82%;
     
-    --ring: 200 70% 48%;
+    --card: 195 30% 97%;
+    --card-foreground: 200 50% 10%;
     
+    --muted: 195 25% 94%;
+    --muted-foreground: 200 30% 40%;
     
-    --shadow-glow: 0 0 40px hsl(200 70% 48% / 0.25);
-    --shadow-glow-accent: 0 0 40px hsl(180 60% 45% / 0.25);
-    --shadow-card: 0 4px 20px hsl(200 70% 48% / 0.08);
+    --border: 195 30% 88%;
+    --ring: 195 85% 42%;
+    
+    --shadow-glow: 0 0 40px hsl(195 85% 50% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(175 70% 45% / 0.3);
+    --shadow-card: 0 4px 20px hsl(195 85% 42% / 0.1);
   }
 
   .theme-ocean.dark {
-    --primary: 200 75% 55%;
-    --primary-hover: 200 75% 62%;
+    --background: 200 40% 8%;            /* Deep ocean night */
+    --foreground: 185 30% 90%;
     
-    --secondary: 180 65% 52%;
-    --secondary-hover: 180 65% 58%;
+    --primary: 190 90% 50%;              /* Bright ocean blue */
+    --primary-hover: 190 90% 58%;
     
-    --accent: 195 60% 28%;
-    --accent-foreground: 0 0% 92%;
-    --accent-hover: 195 60% 33%;
+    --secondary: 170 75% 45%;            /* Glowing teal */
+    --secondary-hover: 170 75% 52%;
     
+    --accent: 195 50% 20%;
+    --accent-foreground: 185 30% 92%;
+    --accent-hover: 195 50% 25%;
     
-    --shadow-glow: 0 0 50px hsl(200 75% 55% / 0.5);
-    --shadow-glow-accent: 0 0 50px hsl(180 65% 52% / 0.5);
-    --shadow-card: 0 4px 20px hsl(200 75% 55% / 0.15);
+    --card: 200 45% 12%;
+    --card-foreground: 185 30% 92%;
+    
+    --muted: 200 35% 15%;
+    --muted-foreground: 195 25% 60%;
+    
+    --border: 200 35% 22%;
+    
+    --shadow-glow: 0 0 50px hsl(190 90% 50% / 0.5);
+    --shadow-glow-accent: 0 0 50px hsl(170 75% 45% / 0.5);
+    --shadow-card: 0 4px 20px hsl(190 90% 50% / 0.2);
   }
 
-  /* Forest Theme Variant */
+  /* Forest Theme Variant - Deep forest greens, moss, and earth tones */
   .theme-forest {
-    --primary: 130 50% 45%;
+    --background: 120 15% 97%;
+    --foreground: 150 40% 12%;
+    
+    --primary: 145 65% 32%;              /* Deep forest green */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 130 50% 52%;
+    --primary-hover: 145 65% 40%;
     
-    --secondary: 85 45% 40%;
+    --secondary: 90 45% 35%;             /* Moss green */
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 85 45% 47%;
+    --secondary-hover: 90 45% 42%;
     
-    --accent: 120 45% 85%;
-    --accent-foreground: 0 0% 10%;
-    --accent-hover: 120 45% 80%;
+    --accent: 130 40% 88%;               /* Light sage */
+    --accent-foreground: 150 40% 15%;
+    --accent-hover: 130 40% 82%;
     
-    --ring: 130 50% 45%;
+    --card: 130 20% 96%;
+    --card-foreground: 150 40% 12%;
     
+    --muted: 120 18% 93%;
+    --muted-foreground: 140 25% 40%;
     
-    --shadow-glow: 0 0 40px hsl(130 50% 45% / 0.25);
-    --shadow-glow-accent: 0 0 40px hsl(85 45% 40% / 0.25);
-    --shadow-card: 0 4px 20px hsl(130 50% 45% / 0.08);
+    --border: 130 25% 85%;
+    --ring: 145 65% 32%;
+    
+    --shadow-glow: 0 0 40px hsl(145 65% 38% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(90 45% 42% / 0.3);
+    --shadow-card: 0 4px 20px hsl(145 65% 32% / 0.1);
   }
 
   .theme-forest.dark {
-    --primary: 130 55% 52%;
-    --primary-hover: 130 55% 58%;
+    --background: 150 35% 8%;            /* Dark forest night */
+    --foreground: 120 20% 88%;
     
-    --secondary: 85 50% 47%;
-    --secondary-hover: 85 50% 53%;
+    --primary: 140 70% 42%;              /* Vibrant forest green */
+    --primary-hover: 140 70% 50%;
     
-    --accent: 120 50% 28%;
-    --accent-foreground: 0 0% 92%;
-    --accent-hover: 120 50% 33%;
+    --secondary: 85 55% 40%;             /* Bright moss */
+    --secondary-hover: 85 55% 48%;
     
+    --accent: 135 45% 18%;
+    --accent-foreground: 120 20% 92%;
+    --accent-hover: 135 45% 23%;
     
-    --shadow-glow: 0 0 50px hsl(130 55% 52% / 0.5);
-    --shadow-glow-accent: 0 0 50px hsl(85 50% 47% / 0.5);
-    --shadow-card: 0 4px 20px hsl(130 55% 52% / 0.15);
+    --card: 145 40% 11%;
+    --card-foreground: 120 20% 92%;
+    
+    --muted: 140 30% 14%;
+    --muted-foreground: 130 20% 55%;
+    
+    --border: 145 30% 20%;
+    
+    --shadow-glow: 0 0 50px hsl(140 70% 42% / 0.5);
+    --shadow-glow-accent: 0 0 50px hsl(85 55% 45% / 0.5);
+    --shadow-card: 0 4px 20px hsl(140 70% 42% / 0.2);
   }
 
-  /* Sunset Theme Variant */
+  /* Sunset Theme Variant - Warm oranges, coral pinks, and golden hour colors */
   .theme-sunset {
-    --primary: 15 85% 55%;
+    --background: 35 30% 98%;
+    --foreground: 15 50% 12%;
+    
+    --primary: 18 90% 52%;               /* Vibrant sunset orange */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 15 85% 62%;
+    --primary-hover: 18 90% 60%;
     
-    --secondary: 40 70% 50%;
+    --secondary: 340 70% 55%;            /* Sunset pink/coral */
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 40 70% 57%;
+    --secondary-hover: 340 70% 62%;
     
-    --accent: 30 70% 85%;
-    --accent-foreground: 0 0% 10%;
-    --accent-hover: 30 70% 80%;
+    --accent: 40 80% 90%;                /* Golden glow */
+    --accent-foreground: 15 50% 15%;
+    --accent-hover: 40 80% 85%;
     
-    --ring: 15 85% 55%;
+    --card: 35 35% 97%;
+    --card-foreground: 15 50% 12%;
     
+    --muted: 35 25% 93%;
+    --muted-foreground: 20 30% 45%;
     
-    --shadow-glow: 0 0 40px hsl(15 85% 55% / 0.25);
-    --shadow-glow-accent: 0 0 40px hsl(40 70% 50% / 0.25);
-    --shadow-card: 0 4px 20px hsl(15 85% 55% / 0.08);
+    --border: 35 30% 85%;
+    --ring: 18 90% 52%;
+    
+    --shadow-glow: 0 0 40px hsl(18 90% 55% / 0.35);
+    --shadow-glow-accent: 0 0 40px hsl(340 70% 55% / 0.3);
+    --shadow-card: 0 4px 20px hsl(18 90% 52% / 0.12);
   }
 
   .theme-sunset.dark {
-    --primary: 15 90% 60%;
-    --primary-hover: 15 90% 67%;
+    --background: 15 40% 8%;             /* Warm dark evening */
+    --foreground: 40 25% 90%;
     
-    --secondary: 40 75% 55%;
-    --secondary-hover: 40 75% 62%;
+    --primary: 22 95% 55%;               /* Glowing sunset orange */
+    --primary-hover: 22 95% 62%;
     
-    --accent: 30 65% 28%;
-    --accent-foreground: 0 0% 92%;
-    --accent-hover: 30 65% 33%;
+    --secondary: 345 75% 58%;            /* Warm coral pink */
+    --secondary-hover: 345 75% 65%;
     
+    --accent: 30 60% 22%;
+    --accent-foreground: 40 25% 92%;
+    --accent-hover: 30 60% 28%;
     
-    --shadow-glow: 0 0 50px hsl(15 90% 60% / 0.5);
-    --shadow-glow-accent: 0 0 50px hsl(40 75% 55% / 0.5);
-    --shadow-card: 0 4px 20px hsl(15 90% 60% / 0.15);
+    --card: 20 45% 11%;
+    --card-foreground: 40 25% 92%;
+    
+    --muted: 20 35% 14%;
+    --muted-foreground: 30 20% 55%;
+    
+    --border: 25 35% 22%;
+    
+    --shadow-glow: 0 0 50px hsl(22 95% 55% / 0.5);
+    --shadow-glow-accent: 0 0 50px hsl(345 75% 58% / 0.5);
+    --shadow-card: 0 4px 20px hsl(22 95% 55% / 0.2);
   }
 
-  /* Lavender Theme Variant */
+  /* Lavender Theme Variant - Soft purple, violet, and gentle blues */
   .theme-lavender {
-    --primary: 270 50% 60%;
+    --background: 270 20% 98%;
+    --foreground: 260 40% 15%;
+    
+    --primary: 265 55% 58%;              /* Soft lavender purple */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 270 50% 67%;
+    --primary-hover: 265 55% 65%;
     
-    --secondary: 240 60% 65%;
+    --secondary: 285 45% 55%;            /* Violet */
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 240 60% 72%;
+    --secondary-hover: 285 45% 62%;
     
-    --accent: 260 45% 85%;
-    --accent-foreground: 0 0% 10%;
-    --accent-hover: 260 45% 80%;
+    --accent: 270 50% 90%;               /* Light lavender */
+    --accent-foreground: 260 40% 18%;
+    --accent-hover: 270 50% 85%;
     
-    --ring: 270 50% 60%;
+    --card: 268 25% 97%;
+    --card-foreground: 260 40% 15%;
     
+    --muted: 268 20% 94%;
+    --muted-foreground: 265 25% 45%;
     
-    --shadow-glow: 0 0 40px hsl(270 50% 60% / 0.25);
-    --shadow-glow-accent: 0 0 40px hsl(240 60% 65% / 0.25);
-    --shadow-card: 0 4px 20px hsl(270 50% 60% / 0.08);
+    --border: 270 25% 88%;
+    --ring: 265 55% 58%;
+    
+    --shadow-glow: 0 0 40px hsl(265 55% 60% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(285 45% 55% / 0.3);
+    --shadow-card: 0 4px 20px hsl(265 55% 58% / 0.1);
   }
 
   .theme-lavender.dark {
-    --primary: 270 55% 65%;
-    --primary-hover: 270 55% 72%;
+    --background: 268 35% 10%;           /* Deep violet night */
+    --foreground: 270 25% 90%;
     
-    --secondary: 240 65% 70%;
-    --secondary-hover: 240 65% 77%;
+    --primary: 268 60% 62%;              /* Glowing lavender */
+    --primary-hover: 268 60% 70%;
     
-    --accent: 260 50% 28%;
-    --accent-foreground: 0 0% 92%;
-    --accent-hover: 260 50% 33%;
+    --secondary: 288 50% 58%;            /* Bright violet */
+    --secondary-hover: 288 50% 65%;
     
+    --accent: 270 45% 22%;
+    --accent-foreground: 270 25% 92%;
+    --accent-hover: 270 45% 28%;
     
-    --shadow-glow: 0 0 50px hsl(270 55% 65% / 0.5);
-    --shadow-glow-accent: 0 0 50px hsl(240 65% 70% / 0.5);
-    --shadow-card: 0 4px 20px hsl(270 55% 65% / 0.15);
+    --card: 268 40% 13%;
+    --card-foreground: 270 25% 92%;
+    
+    --muted: 268 30% 16%;
+    --muted-foreground: 270 20% 58%;
+    
+    --border: 268 30% 24%;
+    
+    --shadow-glow: 0 0 50px hsl(268 60% 62% / 0.5);
+    --shadow-glow-accent: 0 0 50px hsl(288 50% 58% / 0.5);
+    --shadow-card: 0 4px 20px hsl(268 60% 62% / 0.2);
+  }
+
+  /* Midnight Theme Variant - Deep blues, indigo, and starlight accents */
+  .theme-midnight {
+    --background: 230 25% 97%;
+    --foreground: 230 50% 12%;
+    
+    --primary: 235 65% 50%;              /* Deep midnight blue */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 235 65% 58%;
+    
+    --secondary: 260 55% 55%;            /* Indigo */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 260 55% 62%;
+    
+    --accent: 230 45% 88%;               /* Soft blue */
+    --accent-foreground: 230 50% 15%;
+    --accent-hover: 230 45% 82%;
+    
+    --card: 232 25% 96%;
+    --card-foreground: 230 50% 12%;
+    
+    --muted: 230 20% 93%;
+    --muted-foreground: 235 25% 45%;
+    
+    --border: 232 25% 85%;
+    --ring: 235 65% 50%;
+    
+    --shadow-glow: 0 0 40px hsl(235 65% 55% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(260 55% 55% / 0.3);
+    --shadow-card: 0 4px 20px hsl(235 65% 50% / 0.1);
+  }
+
+  .theme-midnight.dark {
+    --background: 232 45% 6%;            /* True midnight darkness */
+    --foreground: 230 25% 92%;
+    
+    --primary: 230 75% 58%;              /* Bright midnight blue */
+    --primary-hover: 230 75% 65%;
+    
+    --secondary: 265 60% 60%;            /* Glowing indigo */
+    --secondary-hover: 265 60% 67%;
+    
+    --accent: 235 50% 18%;
+    --accent-foreground: 230 25% 94%;
+    --accent-hover: 235 50% 24%;
+    
+    --card: 232 50% 10%;
+    --card-foreground: 230 25% 94%;
+    
+    --muted: 232 40% 13%;
+    --muted-foreground: 230 20% 55%;
+    
+    --border: 232 40% 20%;
+    
+    --shadow-glow: 0 0 50px hsl(230 75% 58% / 0.5);
+    --shadow-glow-accent: 0 0 50px hsl(265 60% 60% / 0.5);
+    --shadow-card: 0 4px 20px hsl(230 75% 58% / 0.2);
   }
 }
 

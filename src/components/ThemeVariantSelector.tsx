@@ -26,7 +26,7 @@ const themeOptions: ThemeOption[] = [
   {
     value: 'default',
     label: 'Purple Dream',
-    description: 'Vibrant purple & pink',
+    description: 'Vibrant purple & magenta',
     primary: '271 76% 53%',
     secondary: '346 60% 49%',
     background: '0 0% 100%',
@@ -34,39 +34,48 @@ const themeOptions: ThemeOption[] = [
   },
   {
     value: 'ocean',
-    label: 'Ocean Breeze',
-    description: 'Calming blues & teals',
-    primary: '200 70% 48%',
-    secondary: '180 60% 45%',
-    background: '0 0% 100%',
-    foreground: '0 0% 10%'
+    label: 'Ocean Depths',
+    description: 'Deep sea blues & teals',
+    primary: '195 85% 42%',
+    secondary: '175 70% 38%',
+    background: '200 25% 98%',
+    foreground: '200 50% 10%'
   },
   {
     value: 'forest',
-    label: 'Forest Path',
-    description: 'Natural greens & earth',
-    primary: '130 50% 45%',
-    secondary: '85 45% 40%',
-    background: '0 0% 100%',
-    foreground: '0 0% 10%'
+    label: 'Forest Canopy',
+    description: 'Deep greens & moss tones',
+    primary: '145 65% 32%',
+    secondary: '90 45% 35%',
+    background: '120 15% 97%',
+    foreground: '150 40% 12%'
   },
   {
     value: 'sunset',
-    label: 'Sunset Glow',
-    description: 'Warm oranges & reds',
-    primary: '15 85% 55%',
-    secondary: '40 70% 50%',
-    background: '0 0% 100%',
-    foreground: '0 0% 10%'
+    label: 'Golden Sunset',
+    description: 'Warm oranges & coral pinks',
+    primary: '18 90% 52%',
+    secondary: '340 70% 55%',
+    background: '35 30% 98%',
+    foreground: '15 50% 12%'
   },
   {
     value: 'lavender',
-    label: 'Lavender Fields',
-    description: 'Soft purples & blues',
-    primary: '270 50% 60%',
-    secondary: '240 60% 65%',
-    background: '0 0% 100%',
-    foreground: '0 0% 10%'
+    label: 'Lavender Dreams',
+    description: 'Soft purples & violets',
+    primary: '265 55% 58%',
+    secondary: '285 45% 55%',
+    background: '270 20% 98%',
+    foreground: '260 40% 15%'
+  },
+  {
+    value: 'midnight',
+    label: 'Midnight Sky',
+    description: 'Deep indigo & starlight',
+    primary: '235 65% 50%',
+    secondary: '260 55% 55%',
+    background: '230 25% 97%',
+    foreground: '230 50% 12%'
   }
 ];
 
