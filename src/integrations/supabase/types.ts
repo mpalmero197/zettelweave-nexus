@@ -415,6 +415,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cookie_consent_analytics: {
+        Row: {
+          analytics: boolean
+          browser: string | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          functional: boolean
+          id: string
+          marketing: boolean
+          necessary: boolean
+          session_id: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          analytics?: boolean
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          functional?: boolean
+          id?: string
+          marketing?: boolean
+          necessary?: boolean
+          session_id: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          analytics?: boolean
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          functional?: boolean
+          id?: string
+          marketing?: boolean
+          necessary?: boolean
+          session_id?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dashboard_layouts: {
         Row: {
           created_at: string
