@@ -39,6 +39,15 @@ export function CookieConsent() {
     } else {
       setIsVisible(true);
     }
+
+    // Listen for custom event to open cookie settings
+    const handleOpenCookieSettings = () => {
+      setIsVisible(true);
+      setShowDetails(true);
+    };
+    
+    window.addEventListener('openCookieSettings', handleOpenCookieSettings);
+    return () => window.removeEventListener('openCookieSettings', handleOpenCookieSettings);
   }, []);
 
   const savePreferences = (prefs: CookiePreferences) => {
