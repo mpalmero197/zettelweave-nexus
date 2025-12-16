@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CardActionsMenu } from "./CardActionsMenu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -38,6 +38,14 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
     const stored = localStorage.getItem('globalDictionaryEnabled');
     return stored !== null ? stored === 'true' : true;
   });
+
+  // Check if card is "new" (created within last 24 hours)
+  const isNewCard = () => {
+    const createdDate = new Date(card.created);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  };
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent click when clicking on buttons or interactive elements
@@ -140,6 +148,15 @@ export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpda
                 >
                   {categoryInfo.name}
                 </Badge>
+                {isNewCard() && (
+                  <Badge 
+                    variant="default" 
+                    className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white animate-pulse"
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    New
+                  </Badge>
+                )}
               </div>
               {/* Display detailed Dewey classification if available */}
               {card.category && card.category.includes('-') && (
