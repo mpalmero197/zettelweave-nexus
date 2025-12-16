@@ -76,6 +76,15 @@ const themeOptions: ThemeOption[] = [
     secondary: '190 100% 55%',
     background: '240 50% 4%',
     foreground: '220 30% 95%'
+  },
+  {
+    value: 'aurora',
+    label: 'Northern Aurora',
+    description: 'Magical northern lights',
+    primary: '160 90% 45%',
+    secondary: '190 100% 50%',
+    background: '220 60% 5%',
+    foreground: '180 30% 92%'
   }
 ];
 

@@ -489,6 +489,102 @@
   .theme-midnight.dark .shadow-glow {
     box-shadow: var(--shadow-glow), var(--nebula-glow);
   }
+
+  /* Aurora Theme Variant - Northern Lights with flowing greens, blues, purples */
+  .theme-aurora {
+    --background: 200 20% 97%;
+    --foreground: 180 40% 12%;
+    
+    --primary: 160 80% 42%;              /* Aurora green */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 160 80% 50%;
+    
+    --secondary: 200 90% 50%;            /* Aurora blue */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 200 90% 58%;
+    
+    --accent: 170 50% 88%;               /* Soft cyan */
+    --accent-foreground: 180 40% 15%;
+    --accent-hover: 170 50% 82%;
+    
+    --card: 190 25% 96%;
+    --card-foreground: 180 40% 12%;
+    
+    --muted: 190 20% 93%;
+    --muted-foreground: 185 25% 42%;
+    
+    --border: 185 28% 86%;
+    --ring: 160 80% 42%;
+    
+    --shadow-glow: 0 0 40px hsl(160 80% 48% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(200 90% 55% / 0.3);
+    --shadow-card: 0 4px 20px hsl(160 80% 42% / 0.1);
+    --aurora-glow: 0 0 60px hsl(160 90% 50% / 0.3);
+  }
+
+  .theme-aurora.dark {
+    --background: 220 60% 5%;            /* Deep night sky */
+    --foreground: 180 30% 92%;           /* Soft aurora light */
+    
+    --primary: 160 90% 45%;              /* Vibrant aurora green */
+    --primary-foreground: 220 60% 5%;
+    --primary-hover: 160 90% 52%;
+    
+    --secondary: 190 100% 50%;           /* Electric aurora cyan */
+    --secondary-foreground: 220 60% 5%;
+    --secondary-hover: 190 100% 58%;
+    
+    --accent: 280 70% 25%;               /* Aurora purple accent */
+    --accent-foreground: 180 30% 94%;
+    --accent-hover: 280 70% 32%;
+    
+    --card: 220 55% 8%;                  /* Dark sky card */
+    --card-foreground: 180 30% 94%;
+    
+    --muted: 220 45% 12%;
+    --muted-foreground: 180 25% 55%;
+    
+    --border: 200 40% 18%;
+    --input: 220 55% 10%;
+    --ring: 160 90% 45%;
+    
+    /* Magical aurora glow effects */
+    --shadow-glow: 0 0 60px hsl(160 90% 50% / 0.4), 0 0 120px hsl(190 100% 50% / 0.2);
+    --shadow-glow-accent: 0 0 50px hsl(190 100% 55% / 0.5), 0 0 100px hsl(280 70% 50% / 0.2);
+    --shadow-card: 0 4px 30px hsl(160 90% 45% / 0.2), 0 0 60px hsl(190 100% 50% / 0.1);
+    --aurora-glow: 0 0 80px hsl(160 100% 55% / 0.4), 0 0 150px hsl(280 80% 50% / 0.2);
+  }
+
+  /* Aurora theme special effects */
+  .theme-aurora.dark body {
+    background: 
+      radial-gradient(ellipse at 30% 10%, hsl(160 70% 25% / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 20%, hsl(190 80% 30% / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 30%, hsl(280 60% 25% / 0.08) 0%, transparent 60%),
+      hsl(220 60% 5%);
+  }
+
+  .theme-aurora.dark [class*="card"]:not(.no-cosmic-effect) {
+    background: linear-gradient(
+      135deg,
+      hsl(220 55% 8%) 0%,
+      hsl(210 50% 10%) 50%,
+      hsl(220 55% 8%) 100%
+    );
+    border-color: hsl(180 40% 20% / 0.5);
+  }
+
+  .theme-aurora.dark [class*="card"]:not(.no-cosmic-effect):hover {
+    border-color: hsl(160 70% 35% / 0.5);
+    box-shadow: 
+      0 8px 32px hsl(160 90% 45% / 0.2),
+      0 0 60px hsl(190 100% 50% / 0.1),
+      inset 0 1px 0 hsl(160 80% 50% / 0.1);
+  }
+
+  .theme-aurora.dark .shadow-glow {
+    box-shadow: var(--shadow-glow), var(--aurora-glow);
+  }
 }
 
 @layer base {
