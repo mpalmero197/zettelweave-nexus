@@ -21,6 +21,7 @@ import { ThemePreview } from '@/components/ThemePreview';
 import { ThemeVariantSelector } from '@/components/ThemeVariantSelector';
 import { ContrastChecker } from '@/components/ContrastChecker';
 import { CustomThemeBuilder } from '@/components/CustomThemeBuilder';
+import { useAnimationPreference } from '@/hooks/useAnimationPreference';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -40,6 +41,7 @@ const themes = [
 export function AccountManagement({ onClose }: AccountManagementProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { animationsEnabled, setAnimationsEnabled } = useAnimationPreference();
   
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup' | 'debug'>('profile');
   const [isLoading, setIsLoading] = useState(false);
@@ -896,6 +898,30 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Accessibility</h3>
                   <ContrastChecker />
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Performance</h3>
+                  
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Palette className="h-5 w-5 text-primary" />
+                        <div>
+                          <h4 className="font-medium">Background Animations</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Falling leaves, petals, and other theme effects
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={animationsEnabled}
+                        onCheckedChange={setAnimationsEnabled}
+                      />
+                    </div>
+                  </Card>
                 </div>
 
                 <Separator />
