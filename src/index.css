@@ -217,7 +217,100 @@
     --shadow-card: 0 4px 20px hsl(190 90% 50% / 0.2);
   }
 
-  /* Forest Theme Variant - Deep forest greens, moss, and earth tones */
+  /* Ocean theme wave effects */
+  .theme-ocean.dark body {
+    background: hsl(200 40% 8%);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .theme-ocean.dark body::before {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    left: -50%;
+    right: -50%;
+    height: 40vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 120% 80% at 50% 100%, hsl(195 90% 35% / 0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 100% 60% at 30% 100%, hsl(180 80% 40% / 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 70% 100%, hsl(200 85% 45% / 0.1) 0%, transparent 55%);
+    animation: ocean-wave 8s ease-in-out infinite;
+    filter: blur(30px);
+  }
+
+  .theme-ocean.dark body::after {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    left: -30%;
+    right: -30%;
+    height: 30vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 100% 70% at 60% 100%, hsl(190 95% 45% / 0.2) 0%, transparent 65%),
+      radial-gradient(ellipse 80% 50% at 40% 100%, hsl(175 85% 40% / 0.15) 0%, transparent 55%);
+    animation: ocean-wave 6s ease-in-out infinite reverse;
+    filter: blur(20px);
+  }
+
+  @keyframes ocean-wave {
+    0%, 100% {
+      transform: translateX(0) translateY(0) scaleY(1);
+    }
+    25% {
+      transform: translateX(3%) translateY(-5%) scaleY(1.1);
+    }
+    50% {
+      transform: translateX(-2%) translateY(3%) scaleY(0.95);
+    }
+    75% {
+      transform: translateX(-4%) translateY(-3%) scaleY(1.05);
+    }
+  }
+
+  /* Light mode ocean - subtle waves */
+  .theme-ocean:not(.dark) body::before {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    left: -30%;
+    right: -30%;
+    height: 25vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 100% 80% at 50% 100%, hsl(195 70% 70% / 0.1) 0%, transparent 60%);
+    animation: ocean-wave 10s ease-in-out infinite;
+    filter: blur(40px);
+  }
+
+  .theme-ocean body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-ocean.dark [class*="card"]:not(.no-cosmic-effect) {
+    background: linear-gradient(
+      180deg,
+      hsl(200 45% 12%) 0%,
+      hsl(195 40% 10%) 100%
+    );
+    border-color: hsl(190 50% 25% / 0.5);
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-ocean.dark [class*="card"]:not(.no-cosmic-effect):hover {
+    border-color: hsl(190 70% 40% / 0.6);
+    box-shadow: 
+      0 8px 32px hsl(190 90% 50% / 0.2),
+      0 0 40px hsl(180 80% 45% / 0.1);
+  }
+
   .theme-forest {
     --background: 120 15% 97%;
     --foreground: 150 40% 12%;
@@ -459,13 +552,92 @@
     --nebula-glow: 0 0 80px hsl(280 70% 55% / 0.4), 0 0 150px hsl(300 60% 40% / 0.2);
   }
 
-  /* Midnight theme special effects */
+  /* Midnight theme special effects - Starfield */
   .theme-midnight.dark body {
+    background: hsl(240 50% 4%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Nebula gradient layer */
+  .theme-midnight.dark body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
     background: 
-      radial-gradient(ellipse at 20% 20%, hsl(280 70% 20% / 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 80%, hsl(250 80% 25% / 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, hsl(195 60% 15% / 0.08) 0%, transparent 70%),
-      hsl(240 50% 4%);
+      radial-gradient(ellipse at 20% 20%, hsl(280 70% 20% / 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, hsl(250 80% 25% / 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(195 60% 15% / 0.1) 0%, transparent 70%);
+    animation: nebula-drift 30s ease-in-out infinite;
+  }
+
+  /* Animated stars layer */
+  .theme-midnight.dark body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: 
+      radial-gradient(1px 1px at 10% 10%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 20% 40%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1.5px 1.5px at 30% 20%, hsl(190 100% 80%) 100%, transparent),
+      radial-gradient(1px 1px at 40% 60%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(2px 2px at 50% 30%, hsl(250 100% 90%) 100%, transparent),
+      radial-gradient(1px 1px at 60% 80%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1.5px 1.5px at 70% 50%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 80% 15%, hsl(190 100% 85%) 100%, transparent),
+      radial-gradient(1px 1px at 90% 70%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(2px 2px at 15% 85%, hsl(280 100% 90%) 100%, transparent),
+      radial-gradient(1px 1px at 25% 55%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1.5px 1.5px at 35% 75%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 45% 45%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 55% 90%, hsl(190 100% 80%) 100%, transparent),
+      radial-gradient(2px 2px at 65% 25%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 75% 65%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1.5px 1.5px at 85% 35%, hsl(250 100% 85%) 100%, transparent),
+      radial-gradient(1px 1px at 95% 55%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 5% 30%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 12% 70%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1.5px 1.5px at 22% 25%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 32% 95%, hsl(190 100% 90%) 100%, transparent),
+      radial-gradient(1px 1px at 42% 5%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(2px 2px at 52% 75%, hsl(280 100% 85%) 100%, transparent),
+      radial-gradient(1px 1px at 62% 45%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 72% 85%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1.5px 1.5px at 82% 55%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 92% 20%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 8% 50%, hsl(0 0% 100%) 100%, transparent),
+      radial-gradient(1px 1px at 18% 90%, hsl(250 100% 90%) 100%, transparent);
+    background-size: 100% 100%;
+    animation: stars-twinkle 4s ease-in-out infinite;
+  }
+
+  @keyframes nebula-drift {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1) rotate(2deg);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes stars-twinkle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .theme-midnight body > * {
+    position: relative;
+    z-index: 1;
   }
 
   .theme-midnight.dark [class*="card"]:not(.no-cosmic-effect) {
@@ -476,6 +648,8 @@
       hsl(240 55% 7%) 100%
     );
     border-color: hsl(250 40% 22% / 0.6);
+    position: relative;
+    z-index: 1;
   }
 
   .theme-midnight.dark [class*="card"]:not(.no-cosmic-effect):hover {
