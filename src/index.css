@@ -368,7 +368,113 @@
     --shadow-card: 0 4px 20px hsl(140 70% 42% / 0.2);
   }
 
-  /* Sunset Theme Variant - Warm oranges, coral pinks, and golden hour colors */
+  /* Forest theme falling leaves effect */
+  .theme-forest.dark body {
+    background: hsl(150 35% 8%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .theme-forest.dark body::before {
+    content: '🍂 🍃 🍂 🍃 🍂 🍃 🍂 🍃 🍂 🍃';
+    position: fixed;
+    top: -50px;
+    left: 0;
+    right: 0;
+    font-size: 24px;
+    letter-spacing: 80px;
+    pointer-events: none;
+    z-index: 0;
+    animation: leaves-fall-1 15s linear infinite;
+    opacity: 0.4;
+    filter: blur(1px);
+  }
+
+  .theme-forest.dark body::after {
+    content: '🍃 🍂 🍃 🍂 🍃 🍂 🍃 🍂 🍃 🍂';
+    position: fixed;
+    top: -80px;
+    left: 40px;
+    right: 0;
+    font-size: 20px;
+    letter-spacing: 100px;
+    pointer-events: none;
+    z-index: 0;
+    animation: leaves-fall-2 20s linear infinite;
+    animation-delay: -5s;
+    opacity: 0.3;
+    filter: blur(2px);
+  }
+
+  @keyframes leaves-fall-1 {
+    0% {
+      transform: translateY(-50px) translateX(0) rotate(0deg);
+    }
+    100% {
+      transform: translateY(calc(100vh + 100px)) translateX(100px) rotate(360deg);
+    }
+  }
+
+  @keyframes leaves-fall-2 {
+    0% {
+      transform: translateY(-80px) translateX(0) rotate(0deg);
+    }
+    100% {
+      transform: translateY(calc(100vh + 100px)) translateX(-80px) rotate(-360deg);
+    }
+  }
+
+  /* Light mode forest - subtle canopy light */
+  .theme-forest:not(.dark) body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 60% 40% at 30% 0%, hsl(90 60% 70% / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 35% at 70% 0%, hsl(130 50% 65% / 0.06) 0%, transparent 45%);
+    animation: canopy-sway 8s ease-in-out infinite;
+    filter: blur(30px);
+  }
+
+  @keyframes canopy-sway {
+    0%, 100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    50% {
+      transform: translateX(3%);
+      opacity: 0.8;
+    }
+  }
+
+  .theme-forest body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-forest.dark [class*="card"]:not(.no-cosmic-effect) {
+    background: linear-gradient(
+      135deg,
+      hsl(145 40% 11%) 0%,
+      hsl(140 35% 13%) 100%
+    );
+    border-color: hsl(140 40% 22% / 0.5);
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-forest.dark [class*="card"]:not(.no-cosmic-effect):hover {
+    border-color: hsl(140 60% 35% / 0.6);
+    box-shadow: 
+      0 8px 32px hsl(140 70% 42% / 0.2),
+      0 0 40px hsl(90 55% 40% / 0.1);
+  }
+
   .theme-sunset {
     --background: 35 30% 98%;
     --foreground: 15 50% 12%;
@@ -424,6 +530,132 @@
     --shadow-glow: 0 0 50px hsl(22 95% 55% / 0.5);
     --shadow-glow-accent: 0 0 50px hsl(345 75% 58% / 0.5);
     --shadow-card: 0 4px 20px hsl(22 95% 55% / 0.2);
+  }
+
+  /* Sunset theme sun rays effect */
+  .theme-sunset.dark body {
+    background: hsl(15 40% 8%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .theme-sunset.dark body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      conic-gradient(
+        from 180deg at 50% 100%,
+        transparent 0deg,
+        hsl(25 100% 55% / 0.08) 15deg,
+        transparent 30deg,
+        hsl(35 100% 60% / 0.06) 45deg,
+        transparent 60deg,
+        hsl(20 95% 50% / 0.07) 75deg,
+        transparent 90deg,
+        hsl(40 100% 55% / 0.05) 105deg,
+        transparent 120deg,
+        hsl(15 90% 50% / 0.08) 135deg,
+        transparent 150deg,
+        hsl(30 100% 55% / 0.06) 165deg,
+        transparent 180deg
+      );
+    transform: translateX(-50%);
+    animation: sun-rays-rotate 60s linear infinite;
+    filter: blur(20px);
+  }
+
+  .theme-sunset.dark body::after {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 120% 80% at 50% 100%, hsl(22 95% 45% / 0.2) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 60% at 30% 100%, hsl(340 80% 50% / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 70% 50% at 70% 100%, hsl(40 90% 55% / 0.1) 0%, transparent 45%);
+    animation: sunset-glow 10s ease-in-out infinite;
+    filter: blur(30px);
+  }
+
+  @keyframes sun-rays-rotate {
+    0% {
+      transform: translateX(-50%) rotate(0deg);
+    }
+    100% {
+      transform: translateX(-50%) rotate(360deg);
+    }
+  }
+
+  @keyframes sunset-glow {
+    0%, 100% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scaleY(1.1);
+    }
+  }
+
+  /* Light mode sunset - warm golden hour */
+  .theme-sunset:not(.dark) body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 60%;
+    height: 50vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 100% 100% at 100% 0%, hsl(40 90% 70% / 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 80% at 80% 10%, hsl(25 85% 65% / 0.08) 0%, transparent 50%);
+    animation: golden-hour 12s ease-in-out infinite;
+    filter: blur(40px);
+  }
+
+  @keyframes golden-hour {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
+  }
+
+  .theme-sunset body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-sunset.dark [class*="card"]:not(.no-cosmic-effect) {
+    background: linear-gradient(
+      135deg,
+      hsl(20 45% 11%) 0%,
+      hsl(25 40% 13%) 100%
+    );
+    border-color: hsl(25 50% 25% / 0.5);
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-sunset.dark [class*="card"]:not(.no-cosmic-effect):hover {
+    border-color: hsl(22 70% 40% / 0.6);
+    box-shadow: 
+      0 8px 32px hsl(22 95% 55% / 0.2),
+      0 0 40px hsl(340 75% 50% / 0.1);
   }
 
   /* Lavender Theme Variant - Soft purple, violet, and gentle blues */
