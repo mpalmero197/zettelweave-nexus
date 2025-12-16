@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { MobileDetector } from "@/components/MobileDetector";
 import { MobileTouchHandler } from "@/components/MobileTouchHandler";
 import { CosmicBackground } from "@/components/CosmicBackground";
+import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
 
 // Lightweight loading component
@@ -56,6 +57,7 @@ const App = () => (
             <CosmicBackground />
             <Toaster />
             <Sonner />
+            <CookieConsent />
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={
