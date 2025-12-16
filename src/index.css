@@ -716,6 +716,141 @@
     --shadow-card: 0 4px 20px hsl(268 60% 62% / 0.2);
   }
 
+  /* Lavender theme floating petals effect */
+  .theme-lavender.dark body {
+    background: hsl(268 35% 10%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .theme-lavender.dark body::before {
+    content: '✿ ❀ ✿ ❀ ✿ ❀ ✿ ❀ ✿ ❀';
+    position: fixed;
+    top: -60px;
+    left: 0;
+    right: 0;
+    font-size: 22px;
+    letter-spacing: 90px;
+    pointer-events: none;
+    z-index: 0;
+    animation: petals-fall-1 18s linear infinite;
+    opacity: 0.35;
+    filter: blur(1px) hue-rotate(-10deg);
+  }
+
+  .theme-lavender.dark body::after {
+    content: '❀ ✿ ❀ ✿ ❀ ✿ ❀ ✿ ❀ ✿';
+    position: fixed;
+    top: -90px;
+    left: 50px;
+    right: 0;
+    font-size: 18px;
+    letter-spacing: 110px;
+    pointer-events: none;
+    z-index: 0;
+    animation: petals-fall-2 25s linear infinite;
+    animation-delay: -8s;
+    opacity: 0.25;
+    filter: blur(2px) hue-rotate(10deg);
+  }
+
+  @keyframes petals-fall-1 {
+    0% {
+      transform: translateY(-60px) translateX(0) rotate(0deg);
+    }
+    100% {
+      transform: translateY(calc(100vh + 100px)) translateX(80px) rotate(180deg);
+    }
+  }
+
+  @keyframes petals-fall-2 {
+    0% {
+      transform: translateY(-90px) translateX(0) rotate(0deg);
+    }
+    100% {
+      transform: translateY(calc(100vh + 100px)) translateX(-60px) rotate(-180deg);
+    }
+  }
+
+  /* Lavender ambient glow */
+  .theme-lavender.dark #root::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 20% 0%, hsl(270 60% 50% / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 80% 10%, hsl(290 55% 55% / 0.08) 0%, transparent 45%);
+    animation: lavender-glow 12s ease-in-out infinite;
+    filter: blur(40px);
+  }
+
+  @keyframes lavender-glow {
+    0%, 100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    50% {
+      opacity: 0.7;
+      transform: translateX(2%);
+    }
+  }
+
+  /* Light mode lavender - soft bloom effect */
+  .theme-lavender:not(.dark) body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45vh;
+    pointer-events: none;
+    z-index: 0;
+    background: 
+      radial-gradient(ellipse 70% 50% at 30% 0%, hsl(270 50% 80% / 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 40% at 70% 5%, hsl(285 45% 75% / 0.1) 0%, transparent 45%);
+    animation: lavender-bloom 10s ease-in-out infinite;
+    filter: blur(50px);
+  }
+
+  @keyframes lavender-bloom {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.03);
+    }
+  }
+
+  .theme-lavender body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-lavender.dark [class*="card"]:not(.no-cosmic-effect) {
+    background: linear-gradient(
+      135deg,
+      hsl(268 40% 13%) 0%,
+      hsl(275 35% 15%) 100%
+    );
+    border-color: hsl(270 40% 25% / 0.5);
+    position: relative;
+    z-index: 1;
+  }
+
+  .theme-lavender.dark [class*="card"]:not(.no-cosmic-effect):hover {
+    border-color: hsl(268 55% 45% / 0.6);
+    box-shadow: 
+      0 8px 32px hsl(268 60% 62% / 0.2),
+      0 0 40px hsl(288 50% 55% / 0.1);
+  }
+
   /* Midnight Theme Variant - Ethereal cosmic space with Milky Way vibes */
   .theme-midnight {
     --background: 240 20% 96%;
