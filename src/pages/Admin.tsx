@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
@@ -170,36 +171,73 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 gap-1 md:gap-2">
-            <TabsTrigger value="overview" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <BarChart className="h-4 w-4" />
-              <span className="hidden md:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <Users className="h-4 w-4" />
-              <span className="hidden md:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <Eye className="h-4 w-4" />
-              <span className="hidden md:inline">Content</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <ShieldAlert className="h-4 w-4" />
-              <span className="hidden md:inline">Security</span>
-            </TabsTrigger>
-            <TabsTrigger value="feedback" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <Lightbulb className="h-4 w-4" />
-              <span className="hidden md:inline">Feedback</span>
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <Settings className="h-4 w-4" />
-              <span className="hidden md:inline">System</span>
-            </TabsTrigger>
-            <TabsTrigger value="docs" className="flex items-center justify-center gap-2 px-2 md:px-4">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden md:inline">Docs</span>
-            </TabsTrigger>
-          </TabsList>
+          <TooltipProvider>
+            <TabsList className="grid w-full grid-cols-7 gap-1 md:gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="overview" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <BarChart className="h-4 w-4" />
+                    <span className="hidden md:inline">Overview</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>Overview</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="users" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <Users className="h-4 w-4" />
+                    <span className="hidden md:inline">Users</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>Users</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="content" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden md:inline">Content</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>Content</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="security" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <ShieldAlert className="h-4 w-4" />
+                    <span className="hidden md:inline">Security</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>Security</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="feedback" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <Lightbulb className="h-4 w-4" />
+                    <span className="hidden md:inline">Feedback</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>Feedback</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="system" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden md:inline">System</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>System</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="docs" className="flex items-center justify-center gap-2 px-2 md:px-4">
+                    <BookOpen className="h-4 w-4" />
+                    <span className="hidden md:inline">Docs</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="md:hidden"><p>Docs</p></TooltipContent>
+              </Tooltip>
+            </TabsList>
+          </TooltipProvider>
 
           <TabsContent value="overview">
             <Tabs defaultValue="analytics" className="w-full">
