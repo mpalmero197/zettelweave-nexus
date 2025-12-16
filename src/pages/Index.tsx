@@ -61,7 +61,8 @@ import {
   FileText,
   Palette,
   StickyNote,
-  Sparkles
+  Sparkles,
+  Filter
 } from "lucide-react";
 
 import HabitTracker from "@/components/HabitTracker";
@@ -110,6 +111,22 @@ const Index = () => {
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null);
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
+  const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
+
+  // Helper to check if a card is "new" (created within last 24 hours)
+  const isNewCard = (card: ZettelCardType) => {
+    const createdDate = new Date(card.created);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  };
+
+  // Get displayed cards based on filter
+  const displayedCards = showNewCardsOnly 
+    ? filteredCards.filter(isNewCard) 
+    : filteredCards;
+
+  const newCardsCount = filteredCards.filter(isNewCard).length;
 
   // Handle search results including web results
   const handleSearchResults = (results: {
@@ -403,6 +420,21 @@ const Index = () => {
                   cardCount={cards.length}
                 />
                 <Button
+                  variant={showNewCardsOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowNewCardsOnly(!showNewCardsOnly)}
+                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
+                  aria-label="Show new cards only"
+                >
+                  <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">New</span>
+                  {newCardsCount > 0 && (
+                    <span className="ml-1 bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                      {newCardsCount}
+                    </span>
+                  )}
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowRecommendations(!showRecommendations)}
@@ -568,28 +600,58 @@ const Index = () => {
                           <div key={i} className="h-40 bg-muted/50 rounded-lg animate-pulse" />
                         ))}
                       </div>
-                    ) : filteredCards.length === 0 ? (
+                    ) : displayedCards.length === 0 ? (
                       <div className="text-center py-8">
                         <FileText className="h-10 w-10 mx-auto mb-3 opacity-20 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground mb-3">
                           {cards.length === 0 
                             ? "Start building your knowledge base by creating your first card"
+                            : showNewCardsOnly
+                            ? "No new cards in the last 24 hours"
                             : "Try adjusting your search terms or filters"
                           }
                         </p>
-                        <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                        {showNewCardsOnly ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setShowNewCardsOnly(false)}
+                          >
+                            Show All Cards
+                          </Button>
+                        ) : (
+                          <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                        )}
                       </div>
                     ) : (
                       <div>
+                        {/* New Cards Filter Active Banner */}
+                        {showNewCardsOnly && (
+                          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-emerald-500" />
+                              <span className="text-sm font-medium">Showing {displayedCards.length} new card{displayedCards.length !== 1 ? 's' : ''} from the last 24 hours</span>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setShowNewCardsOnly(false)}
+                              className="text-xs"
+                            >
+                              Show All
+                            </Button>
+                          </div>
+                        )}
+
                         {/* Favorites Section */}
-                        {filteredCards.some(card => card.is_favorite) && (
+                        {displayedCards.some(card => card.is_favorite) && (
                           <div className="mb-4">
                             <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
                               <span className="text-yellow-500">★</span>
                               Favorites
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                              {filteredCards
+                              {displayedCards
                                 .filter(card => card.is_favorite)
                                 .map((card) => (
                                   <ZettelCard
@@ -611,13 +673,13 @@ const Index = () => {
                         )}
                         
                         {/* All Cards Section */}
-                        {filteredCards.some(card => !card.is_favorite) && (
+                        {displayedCards.some(card => !card.is_favorite) && (
                           <div>
-                            {filteredCards.some(card => card.is_favorite) && (
+                            {displayedCards.some(card => card.is_favorite) && (
                               <h2 className="text-base font-semibold mb-2">All Cards</h2>
                             )}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                              {filteredCards
+                              {displayedCards
                                 .filter(card => !card.is_favorite)
                                 .map((card) => (
                                   <ZettelCard
