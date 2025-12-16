@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -7,6 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Upload, 
   FileText, 
@@ -15,7 +25,12 @@ import {
   Image,
   Download,
   AlertCircle,
-  History
+  History,
+  Search,
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  Edit2
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -37,6 +52,21 @@ interface ParsedFile {
   size: number;
 }
 
+interface CategorizedFile {
+  id: string;
+  name: string;
+  content: string;
+  path: string;
+  type: 'markdown' | 'image' | 'other';
+  size: number;
+  category: string;
+  selected: boolean;
+  tags: string[];
+  preview: string;
+}
+
+type ImportStep = 'select' | 'preview' | 'importing';
+
 // Extended keywords for better categorization
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "000": ["computer", "data", "information", "system", "technology", "digital", "algorithm", "programming", "software", "code", "database", "internet", "network", "server", "api", "web", "application", "computing", "ai", "machine learning", "artificial intelligence"],
@@ -49,6 +79,19 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "700": ["art", "music", "painting", "creative", "design", "aesthetic", "beauty", "recreation", "sports", "games", "photography", "sculpture", "architecture", "film", "theater", "dance", "entertainment"],
   "800": ["literature", "poetry", "novel", "writing", "author", "story", "book", "narrative", "fiction", "drama", "essay", "prose", "verse", "literary", "playwright", "memoir", "biography"],
   "900": ["history", "geography", "historical", "past", "location", "place", "biographical", "war", "ancient", "medieval", "modern", "civilization", "empire", "revolution", "country", "nation", "continent", "travel"]
+};
+
+const CATEGORY_NAMES: Record<string, string> = {
+  "000": "Computer Science & Technology",
+  "100": "Philosophy & Psychology",
+  "200": "Religion & Spirituality",
+  "300": "Social Sciences",
+  "400": "Language & Linguistics",
+  "500": "Science & Mathematics",
+  "600": "Technology & Medicine",
+  "700": "Arts & Recreation",
+  "800": "Literature",
+  "900": "History & Geography"
 };
 
 function smartCategorize(content: string, title: string): string {
@@ -95,6 +138,8 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
   const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
+  const [categorizedFiles, setCategorizedFiles] = useState<CategorizedFile[]>([]);
+  const [importStep, setImportStep] = useState<ImportStep>('select');
   const [activeTab, setActiveTab] = useState("obsidian");
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [duplicatePairs, setDuplicatePairs] = useState<Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}>>([]);
@@ -102,6 +147,8 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
   const [processedCards, setProcessedCards] = useState<Partial<ZettelCardType>[]>([]);
   const [reimportPaths, setReimportPaths] = useState<string[]>([]);
   const [skipDuplicateCheck, setSkipDuplicateCheck] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const processObsidianVault = async (files: FileList) => {
@@ -192,6 +239,75 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     
     console.log(`Import complete: ${processedCount} files processed, ${errorCount} skipped`);
     toast.success(`Parsed ${parsed.length} files from Obsidian vault`);
+    
+    // Auto-categorize files for preview
+    await categorizeFilesForPreview(parsed);
+  };
+
+  const categorizeFilesForPreview = async (files: ParsedFile[]) => {
+    setIsProcessing(true);
+    setProgress(50);
+    setProgressMessage("Categorizing files...");
+    
+    const categorized: CategorizedFile[] = [];
+    const markdownFiles = files.filter(f => f.type === 'markdown');
+    const imageFiles = files.filter(f => f.type === 'image');
+    const BATCH_SIZE = 30;
+    
+    // Categorize markdown files
+    for (let i = 0; i < markdownFiles.length; i += BATCH_SIZE) {
+      const batch = markdownFiles.slice(i, Math.min(i + BATCH_SIZE, markdownFiles.length));
+      
+      for (const file of batch) {
+        const title = file.name.replace(/\.md$/, '');
+        const category = smartCategorize(file.content, title);
+        
+        // Extract tags
+        const tagMatches = file.content.match(/#[\w-]+/g);
+        const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))].slice(0, 5) : [];
+        
+        // Get preview (first paragraph)
+        const preview = file.content
+          .replace(/^#.*$/gm, '')
+          .replace(/!\[.*?\]\(.*?\)/g, '')
+          .trim()
+          .split('\n\n')[0]
+          ?.substring(0, 150) || '';
+        
+        categorized.push({
+          id: crypto.randomUUID(),
+          ...file,
+          category,
+          selected: true,
+          tags,
+          preview
+        });
+      }
+      
+      const progressPercent = 50 + ((Math.min(i + BATCH_SIZE, markdownFiles.length) / markdownFiles.length) * 40);
+      setProgress(progressPercent);
+      setProgressMessage(`Categorizing... ${Math.min(i + BATCH_SIZE, markdownFiles.length)}/${markdownFiles.length}`);
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    
+    // Add images with default category
+    for (const file of imageFiles) {
+      categorized.push({
+        id: crypto.randomUUID(),
+        ...file,
+        category: "700",
+        selected: true,
+        tags: ["image"],
+        preview: `Image file: ${file.name}`
+      });
+    }
+    
+    setCategorizedFiles(categorized);
+    setImportStep('preview');
+    setProgress(100);
+    setProgressMessage("Categorization complete!");
+    setIsProcessing(false);
   };
 
   const processNotionExport = async (files: FileList) => {
@@ -283,6 +399,203 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     
     console.log(`Import complete: ${processedCount} files processed, ${errorCount} skipped`);
     toast.success(`Parsed ${parsed.length} files from Notion export`);
+    
+    // Auto-categorize files for preview
+    await categorizeFilesForPreview(parsed);
+  };
+
+  // Preview helper functions
+  const handleCategoryChange = useCallback((fileId: string, newCategory: string) => {
+    setCategorizedFiles(prev => 
+      prev.map(f => f.id === fileId ? { ...f, category: newCategory } : f)
+    );
+  }, []);
+
+  const handleSelectionChange = useCallback((fileId: string, selected: boolean) => {
+    setCategorizedFiles(prev =>
+      prev.map(f => f.id === fileId ? { ...f, selected } : f)
+    );
+  }, []);
+
+  const handleSelectAll = useCallback((selected: boolean) => {
+    setCategorizedFiles(prev => prev.map(f => ({ ...f, selected })));
+  }, []);
+
+  const handleBulkCategoryChange = useCallback((category: string) => {
+    setCategorizedFiles(prev =>
+      prev.map(f => f.selected ? { ...f, category } : f)
+    );
+  }, []);
+
+  const filteredFiles = useMemo(() => {
+    return categorizedFiles.filter(file => {
+      const matchesSearch = searchQuery === '' ||
+        file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.preview.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = filterCategory === 'all' || file.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [categorizedFiles, searchQuery, filterCategory]);
+
+  const selectedCount = useMemo(() => 
+    categorizedFiles.filter(f => f.selected).length, 
+    [categorizedFiles]
+  );
+
+  const categoryStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    categorizedFiles.forEach(file => {
+      stats[file.category] = (stats[file.category] || 0) + 1;
+    });
+    return stats;
+  }, [categorizedFiles]);
+
+  const resetImport = useCallback(() => {
+    setImportStep('select');
+    setCategorizedFiles([]);
+    setParsedFiles([]);
+    setSearchQuery('');
+    setFilterCategory('all');
+  }, []);
+
+  // Convert categorized files (with user-adjusted categories) to cards
+  const convertCategorizedFilesToCards = async () => {
+    const selectedFiles = categorizedFiles.filter(f => f.selected);
+    if (selectedFiles.length === 0) {
+      toast.error('No files selected for import');
+      return;
+    }
+
+    setImportStep('importing');
+    setIsProcessing(true);
+    setProgress(0);
+    setProgressMessage("Converting to cards...");
+    
+    const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
+    const existingNumbers: string[] = [];
+    let convertedCount = 0;
+    let validationErrors = 0;
+    const BATCH_SIZE = 20;
+    
+    const markdownFiles = selectedFiles.filter(f => f.type === 'markdown');
+    const imageFiles = selectedFiles.filter(f => f.type === 'image');
+    
+    console.log(`Converting ${markdownFiles.length} markdown files to cards...`);
+    
+    // Process markdown files in batches
+    for (let batchStart = 0; batchStart < markdownFiles.length; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, markdownFiles.length);
+      
+      for (let i = batchStart; i < batchEnd; i++) {
+        const file = markdownFiles[i];
+        
+        // Extract title from filename or first heading
+        let title = file.name.replace(/\.md$/, '');
+        const firstHeading = file.content.match(/^#\s+(.+)$/m);
+        if (firstHeading) {
+          title = firstHeading[1];
+        }
+        
+        const sanitizedTitle = sanitizeCardInput(title);
+        const sanitizedContent = sanitizeCardInput(file.content);
+        
+        // Use the user-adjusted category from preview
+        const cardNumber = generateZettelNumber(file.category, existingNumbers);
+        existingNumbers.push(cardNumber);
+        
+        // Use existing tags plus source tag
+        const tags = [...file.tags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"];
+        
+        const sanitizedDescription = sanitizeCardInput(file.preview || "Imported from external source");
+        
+        // Extract wikilinks for auto-linking
+        const wikiLinkMatches = file.content.match(/\[\[([^\]]+)\]\]/g);
+        const linkedCardNumbers: string[] = [];
+        
+        if (wikiLinkMatches) {
+          wikiLinkMatches.slice(0, 50).forEach(link => {
+            const linkText = link.replace(/\[\[|\]\]/g, '');
+            if (linkText.length > 0 && linkText.length <= 100) {
+              linkedCardNumbers.push(linkText);
+            }
+          });
+        }
+        
+        const tempCard = {
+          title: sanitizedTitle,
+          content: sanitizedContent,
+          description: sanitizedDescription,
+          category: file.category, // Use user-adjusted category
+          number: cardNumber,
+          tags,
+          linkedCards: [],
+          imageUrl: undefined,
+          _linkedNumbers: linkedCardNumbers,
+          _filePath: file.path,
+          _fileName: file.name
+        } as any;
+        
+        const validation = validateZettelCard(tempCard);
+        if (!validation.valid) {
+          console.warn(`Skipping invalid card ${sanitizedTitle}: ${validation.errors.join(', ')}`);
+          validationErrors++;
+          continue;
+        }
+        
+        cards.push(tempCard);
+        convertedCount++;
+      }
+      
+      const progressPercent = (batchEnd / markdownFiles.length) * 80;
+      setProgress(progressPercent);
+      setProgressMessage(`Converting... ${convertedCount}/${markdownFiles.length}`);
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    
+    // Process images
+    for (const file of imageFiles) {
+      const sanitizedName = sanitizeCardInput(file.name);
+      const imgNumber = generateZettelNumber(file.category, existingNumbers);
+      existingNumbers.push(imgNumber);
+      
+      const imageCard = {
+        title: `Image: ${sanitizedName}`,
+        content: sanitizeCardInput(`Imported image from ${activeTab} vault.`),
+        description: sanitizeCardInput(`Image file: ${file.name}`),
+        category: file.category,
+        number: imgNumber,
+        tags: ["image", activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
+        linkedCards: [],
+        imageUrl: file.content,
+        _filePath: file.path,
+        _fileName: file.name
+      };
+      
+      const validation = validateZettelCard(imageCard);
+      if (validation.valid) {
+        cards.push(imageCard);
+      }
+    }
+    
+    setProgress(90);
+    setProgressMessage("Finalizing...");
+    
+    // Clean up temporary fields
+    const finalCards = cards.map(card => {
+      const { _linkedNumbers, _filePath, _fileName, ...cleanCard } = card as any;
+      return cleanCard;
+    });
+    
+    console.log(`Converted ${finalCards.length} cards, ${validationErrors} skipped`);
+    
+    if (validationErrors > 0) {
+      toast.warning(`${validationErrors} cards skipped due to validation errors`);
+    }
+    
+    await importCardsWithTracking(finalCards);
+    setIsProcessing(false);
+    resetImport();
   };
 
   const convertToZettelCards = async () => {
@@ -294,13 +607,10 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     const existingNumbers: string[] = [];
     let convertedCount = 0;
     let validationErrors = 0;
-    const totalMarkdown = parsedFiles.filter(f => f.type === 'markdown').length;
     const BATCH_SIZE = 20;
-    
-    console.log(`Converting ${totalMarkdown} markdown files to cards...`);
-    
     const markdownFiles = parsedFiles.filter(f => f.type === 'markdown');
     const imageFiles = parsedFiles.filter(f => f.type === 'image');
+    const totalMarkdown = markdownFiles.length;
     
     // Process markdown files in batches
     for (let batchStart = 0; batchStart < markdownFiles.length; batchStart += BATCH_SIZE) {
@@ -735,61 +1045,105 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           </div>
         )}
         
-        {parsedFiles.length > 50 && !isProcessing && (
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="skip-duplicate"
-                checked={skipDuplicateCheck}
-                onCheckedChange={setSkipDuplicateCheck}
-              />
-              <Label htmlFor="skip-duplicate" className="text-sm">
-                Skip duplicate detection (faster for large imports)
-              </Label>
-            </div>
-          </div>
-        )}
-        
-        {parsedFiles.length > 0 && !isProcessing && (
+        {/* Preview Step - Category Review */}
+        {importStep === 'preview' && categorizedFiles.length > 0 && !isProcessing && (
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Import Preview</CardTitle>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Review Categories
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={resetImport}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span>{parsedFiles.filter(f => f.type === 'markdown').length} Markdown files</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Image className="h-4 w-4" />
-                  <span>{parsedFiles.filter(f => f.type === 'image').length} Images</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4" />
-                  <span>{parsedFiles.filter(f => f.type === 'other').length} Other files</span>
-                </div>
-              </div>
-              
-              <div className="max-h-40 overflow-y-auto border rounded p-2">
-                {parsedFiles.slice(0, 10).map((file, index) => (
-                  <div key={index} className="flex items-center justify-between py-1 text-sm">
-                    <span className="truncate">{file.path}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      {(file.size / 1024).toFixed(1)}KB
-                    </span>
-                  </div>
+            <CardContent className="space-y-3">
+              {/* Category Stats */}
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(categoryStats).map(([cat, count]) => (
+                  <Badge
+                    key={cat}
+                    variant={filterCategory === cat ? 'default' : 'secondary'}
+                    className="cursor-pointer text-xs"
+                    onClick={() => setFilterCategory(filterCategory === cat ? 'all' : cat)}
+                  >
+                    {cat}: {count}
+                  </Badge>
                 ))}
-                {parsedFiles.length > 10 && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    ...and {parsedFiles.length - 10} more files
-                  </p>
-                )}
               </div>
-              
-              <Button onClick={convertToZettelCards} className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Import {parsedFiles.filter(f => f.type !== 'other').length} Items as Cards
+
+              {/* Search & Bulk Actions */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search files..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-8"
+                  />
+                </div>
+                <Select onValueChange={handleBulkCategoryChange}>
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue placeholder="Bulk assign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CATEGORY_NAMES).map(([code, name]) => (
+                      <SelectItem key={code} value={code}>{code} - {name.split(' ')[0]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Selection Controls */}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedCount === categorizedFiles.length}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  />
+                  <span className="text-muted-foreground">{selectedCount}/{categorizedFiles.length} selected</span>
+                </div>
+              </div>
+
+              {/* File List */}
+              <ScrollArea className="h-[280px] border rounded-md">
+                <div className="divide-y divide-border">
+                  {filteredFiles.map((file) => (
+                    <div key={file.id} className="flex items-center gap-2 p-2 hover:bg-muted/50">
+                      <Checkbox
+                        checked={file.selected}
+                        onCheckedChange={(checked) => handleSelectionChange(file.id, !!checked)}
+                      />
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{file.name.replace(/\.md$/, '')}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{file.preview}</p>
+                      </div>
+                      <Select
+                        value={file.category}
+                        onValueChange={(value) => handleCategoryChange(file.id, value)}
+                      >
+                        <SelectTrigger className="w-[100px] h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CATEGORY_NAMES).map(([code, name]) => (
+                            <SelectItem key={code} value={code}>{code}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              {/* Import Button */}
+              <Button onClick={convertCategorizedFilesToCards} className="w-full" disabled={selectedCount === 0}>
+                <Check className="h-4 w-4 mr-2" />
+                Import {selectedCount} Files
               </Button>
             </CardContent>
           </Card>
