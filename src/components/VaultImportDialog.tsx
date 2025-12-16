@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { 
   Upload, 
   FileText, 
@@ -22,7 +22,8 @@ import { toast } from "sonner";
 import { CardMergeDialog } from "./CardMergeDialog";
 import { ImportHistoryPanel } from "./ImportHistoryPanel";
 import { sanitizeCardInput, validateZettelCard } from "@/utils/security";
-import { generateFileHash, isFileImported, trackImport } from "@/utils/importTracking";
+import { trackImport } from "@/utils/importTracking";
+import { categorizeContent, generateZettelNumber, extractKeywords } from "@/utils/deweySystem";
 
 interface VaultImportDialogProps {
   onImportCards: (cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[]) => void;
@@ -36,201 +37,278 @@ interface ParsedFile {
   size: number;
 }
 
-interface NotionPage {
-  title: string;
-  content: string;
-  properties: Record<string, any>;
-  children: NotionPage[];
+// Extended keywords for better categorization
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "000": ["computer", "data", "information", "system", "technology", "digital", "algorithm", "programming", "software", "code", "database", "internet", "network", "server", "api", "web", "application", "computing", "ai", "machine learning", "artificial intelligence"],
+  "100": ["philosophy", "ethics", "logic", "psychology", "mind", "consciousness", "existence", "thought", "metaphysics", "epistemology", "morality", "reasoning", "cognitive", "perception", "behavior", "mental", "phenomenology"],
+  "200": ["religion", "god", "faith", "spiritual", "sacred", "prayer", "belief", "church", "bible", "quran", "buddhism", "hinduism", "christianity", "islam", "theology", "worship", "divine", "soul"],
+  "300": ["society", "culture", "politics", "economics", "social", "government", "law", "community", "education", "business", "finance", "trade", "commerce", "market", "democracy", "policy", "sociology", "anthropology", "institution"],
+  "400": ["language", "grammar", "vocabulary", "communication", "linguistics", "words", "speech", "translation", "syntax", "semantics", "phonetics", "writing system", "dictionary", "etymology"],
+  "500": ["science", "mathematics", "physics", "chemistry", "biology", "research", "experiment", "theory", "astronomy", "geology", "zoology", "botany", "ecology", "genetics", "evolution", "quantum", "molecule", "atom", "cell"],
+  "600": ["medicine", "health", "engineering", "applied", "practical", "medical", "disease", "treatment", "agriculture", "manufacturing", "construction", "mechanical", "electrical", "clinical", "diagnosis", "therapy"],
+  "700": ["art", "music", "painting", "creative", "design", "aesthetic", "beauty", "recreation", "sports", "games", "photography", "sculpture", "architecture", "film", "theater", "dance", "entertainment"],
+  "800": ["literature", "poetry", "novel", "writing", "author", "story", "book", "narrative", "fiction", "drama", "essay", "prose", "verse", "literary", "playwright", "memoir", "biography"],
+  "900": ["history", "geography", "historical", "past", "location", "place", "biographical", "war", "ancient", "medieval", "modern", "civilization", "empire", "revolution", "country", "nation", "continent", "travel"]
+};
+
+function smartCategorize(content: string, title: string): string {
+  // Focus on first paragraph for faster categorization
+  const firstParagraph = content
+    .replace(/^#.*$/gm, '') // Remove headings
+    .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Clean links
+    .trim()
+    .split('\n\n')[0] || '';
+  
+  const textToAnalyze = (title + " " + firstParagraph).toLowerCase();
+  
+  let bestMatch = "000";
+  let maxScore = 0;
+  
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (textToAnalyze.includes(keyword)) {
+        // Weight multi-word matches higher
+        score += keyword.includes(' ') ? 3 : 1;
+        // Count multiple occurrences
+        const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const matches = textToAnalyze.match(regex);
+        if (matches && matches.length > 1) {
+          score += matches.length - 1;
+        }
+      }
+    }
+    
+    if (score > maxScore) {
+      maxScore = score;
+      bestMatch = category;
+    }
+  }
+  
+  return bestMatch;
 }
 
 export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState("");
   const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
   const [activeTab, setActiveTab] = useState("obsidian");
-  const [viewMode, setViewMode] = useState<'import' | 'history'>('import');
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [duplicatePairs, setDuplicatePairs] = useState<Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}>>([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [processedCards, setProcessedCards] = useState<Partial<ZettelCardType>[]>([]);
-  const [skipExisting, setSkipExisting] = useState(true);
   const [reimportPaths, setReimportPaths] = useState<string[]>([]);
+  const [skipDuplicateCheck, setSkipDuplicateCheck] = useState(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const processObsidianVault = async (files: FileList) => {
     setIsProcessing(true);
     setProgress(0);
+    setProgressMessage("Reading files...");
+    abortControllerRef.current = new AbortController();
     
     const parsed: ParsedFile[] = [];
     const totalFiles = files.length;
     let processedCount = 0;
     let errorCount = 0;
-    let totalSize = 0;
     
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
-    const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total
+    // Increased limits for large imports
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
+    const BATCH_SIZE = 50; // Process in batches to prevent UI freeze
     
     console.log(`Starting Obsidian vault import: ${totalFiles} files`);
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setProgress((i / totalFiles) * 100);
+    // Process files in batches
+    for (let batchStart = 0; batchStart < files.length; batchStart += BATCH_SIZE) {
+      if (abortControllerRef.current?.signal.aborted) break;
       
-      // Check file size limits
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`Skipping large file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB limit)`);
-        errorCount++;
-        continue;
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, files.length);
+      const batchPromises: Promise<ParsedFile | null>[] = [];
+      
+      for (let i = batchStart; i < batchEnd; i++) {
+        const file = files[i];
+        
+        batchPromises.push((async (): Promise<ParsedFile | null> => {
+          try {
+            if (file.name.startsWith('.') || file.size > MAX_FILE_SIZE) {
+              return null;
+            }
+            
+            let type: 'markdown' | 'image' | 'other' = 'other';
+            if (file.name.endsWith('.md')) type = 'markdown';
+            else if (file.type.startsWith('image/')) type = 'image';
+            
+            if (type === 'other') return null;
+            
+            let content = '';
+            if (type === 'markdown') {
+              content = await file.text();
+            } else if (type === 'image') {
+              content = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target?.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+            }
+            
+            return {
+              name: file.name,
+              content,
+              path: file.webkitRelativePath || file.name,
+              type,
+              size: file.size
+            };
+          } catch {
+            return null;
+          }
+        })());
       }
       
-      totalSize += file.size;
-      if (totalSize > MAX_TOTAL_SIZE) {
-        toast.error('Import size limit exceeded (50MB). Please import in smaller batches.');
-        break;
-      }
+      const batchResults = await Promise.all(batchPromises);
       
-      try {
-        if (file.name.startsWith('.')) {
-          console.log(`Skipping hidden file: ${file.name}`);
-          continue;
+      for (const result of batchResults) {
+        if (result) {
+          parsed.push(result);
+          processedCount++;
+        } else {
+          errorCount++;
         }
-        
-        let type: 'markdown' | 'image' | 'other' = 'other';
-        if (file.name.endsWith('.md')) type = 'markdown';
-        else if (file.type.startsWith('image/')) type = 'image';
-        
-        let content = '';
-        if (type === 'markdown') {
-          content = await file.text();
-          console.log(`Processed markdown: ${file.name}`);
-        } else if (type === 'image') {
-          content = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = (e) => reject(e);
-            reader.readAsDataURL(file);
-          });
-          console.log(`Processed image: ${file.name}`);
-        }
-        
-        parsed.push({
-          name: file.name,
-          content,
-          path: file.webkitRelativePath || file.name,
-          type,
-          size: file.size
-        });
-        processedCount++;
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        errorCount++;
       }
+      
+      setProgress((batchEnd / totalFiles) * 50); // 50% for reading
+      setProgressMessage(`Reading files... ${processedCount}/${totalFiles}`);
+      
+      // Yield to UI thread
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
     
     setParsedFiles(parsed);
-    setProgress(100);
+    setProgress(50);
     setIsProcessing(false);
     
-    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors, total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
-    toast(`Parsed ${parsed.length} files from Obsidian vault (${errorCount} errors)`);
+    console.log(`Import complete: ${processedCount} files processed, ${errorCount} skipped`);
+    toast.success(`Parsed ${parsed.length} files from Obsidian vault`);
   };
 
   const processNotionExport = async (files: FileList) => {
     setIsProcessing(true);
     setProgress(0);
+    setProgressMessage("Reading files...");
+    abortControllerRef.current = new AbortController();
     
     const parsed: ParsedFile[] = [];
     const totalFiles = files.length;
     let processedCount = 0;
     let errorCount = 0;
-    let totalSize = 0;
     
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
-    const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const BATCH_SIZE = 50;
     
     console.log(`Starting Notion export import: ${totalFiles} files`);
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setProgress((i / totalFiles) * 100);
+    for (let batchStart = 0; batchStart < files.length; batchStart += BATCH_SIZE) {
+      if (abortControllerRef.current?.signal.aborted) break;
       
-      // Check file size limits
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`Skipping large file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB limit)`);
-        errorCount++;
-        continue;
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, files.length);
+      const batchPromises: Promise<ParsedFile | null>[] = [];
+      
+      for (let i = batchStart; i < batchEnd; i++) {
+        const file = files[i];
+        
+        batchPromises.push((async (): Promise<ParsedFile | null> => {
+          try {
+            if (file.name.startsWith('.') || file.size > MAX_FILE_SIZE) {
+              return null;
+            }
+            
+            let type: 'markdown' | 'image' | 'other' = 'other';
+            if (file.name.endsWith('.md') || file.name.endsWith('.txt')) type = 'markdown';
+            else if (file.type.startsWith('image/')) type = 'image';
+            
+            if (type === 'other') return null;
+            
+            let content = '';
+            if (type === 'markdown') {
+              content = await file.text();
+              content = content
+                .replace(/!\[.*?\]\((.*?)\)/g, '![]($1)')
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                .trim();
+            } else if (type === 'image') {
+              content = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target?.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+            }
+            
+            return {
+              name: file.name,
+              content,
+              path: file.webkitRelativePath || file.name,
+              type,
+              size: file.size
+            };
+          } catch {
+            return null;
+          }
+        })());
       }
       
-      totalSize += file.size;
-      if (totalSize > MAX_TOTAL_SIZE) {
-        toast.error('Import size limit exceeded (50MB). Please import in smaller batches.');
-        break;
-      }
+      const batchResults = await Promise.all(batchPromises);
       
-      try {
-        if (file.name.startsWith('.')) {
-          console.log(`Skipping hidden file: ${file.name}`);
-          continue;
+      for (const result of batchResults) {
+        if (result) {
+          parsed.push(result);
+          processedCount++;
+        } else {
+          errorCount++;
         }
-        
-        let type: 'markdown' | 'image' | 'other' = 'other';
-        if (file.name.endsWith('.md') || file.name.endsWith('.txt')) type = 'markdown';
-        else if (file.type.startsWith('image/')) type = 'image';
-        
-        let content = '';
-        if (type === 'markdown') {
-          content = await file.text();
-          // Clean up Notion export formatting
-          content = content
-            .replace(/!\[.*?\]\((.*?)\)/g, '![]($1)') // Fix image links
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove internal links
-            .trim();
-          console.log(`Processed markdown: ${file.name}`);
-        } else if (type === 'image') {
-          content = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = (e) => reject(e);
-            reader.readAsDataURL(file);
-          });
-          console.log(`Processed image: ${file.name}`);
-        }
-        
-        parsed.push({
-          name: file.name,
-          content,
-          path: file.webkitRelativePath || file.name,
-          type,
-          size: file.size
-        });
-        processedCount++;
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        errorCount++;
       }
+      
+      setProgress((batchEnd / totalFiles) * 50);
+      setProgressMessage(`Reading files... ${processedCount}/${totalFiles}`);
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
     
     setParsedFiles(parsed);
-    setProgress(100);
+    setProgress(50);
     setIsProcessing(false);
     
-    console.log(`Import complete: ${processedCount} files processed, ${errorCount} errors, total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
-    toast(`Parsed ${parsed.length} files from Notion export (${errorCount} errors)`);
+    console.log(`Import complete: ${processedCount} files processed, ${errorCount} skipped`);
+    toast.success(`Parsed ${parsed.length} files from Notion export`);
   };
 
   const convertToZettelCards = async () => {
+    setIsProcessing(true);
+    setProgress(50);
+    setProgressMessage("Categorizing cards...");
+    
     const cards: Omit<ZettelCardType, 'id' | 'created' | 'modified'>[] = [];
-    const cardsByNumber = new Map<string, number>();
+    const existingNumbers: string[] = [];
     let convertedCount = 0;
     let validationErrors = 0;
+    const totalMarkdown = parsedFiles.filter(f => f.type === 'markdown').length;
+    const BATCH_SIZE = 20;
     
-    const MAX_TAGS = 50;
-    const MAX_LINKS = 100;
+    console.log(`Converting ${totalMarkdown} markdown files to cards...`);
     
-    console.log(`Converting ${parsedFiles.length} parsed files to cards...`);
+    const markdownFiles = parsedFiles.filter(f => f.type === 'markdown');
+    const imageFiles = parsedFiles.filter(f => f.type === 'image');
     
-    for (const file of parsedFiles) {
-      if (file.type === 'markdown') {
+    // Process markdown files in batches
+    for (let batchStart = 0; batchStart < markdownFiles.length; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, markdownFiles.length);
+      
+      for (let i = batchStart; i < batchEnd; i++) {
+        const file = markdownFiles[i];
+        
         // Extract title from filename or first heading
         let title = file.name.replace(/\.md$/, '');
         const firstHeading = file.content.match(/^#\s+(.+)$/m);
@@ -238,59 +316,39 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           title = firstHeading[1];
         }
         
-        // Sanitize title and content
         const sanitizedTitle = sanitizeCardInput(title);
         const sanitizedContent = sanitizeCardInput(file.content);
         
-        // Extract card number from filename if it matches the custom format
-        let cardNumber = sanitizedTitle;
-        const numberMatch = sanitizedTitle.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
-        if (numberMatch) {
-          cardNumber = numberMatch[1];
-        }
+        // Smart categorization based on first paragraph
+        const category = smartCategorize(file.content, title);
+        const cardNumber = generateZettelNumber(category, existingNumbers);
+        existingNumbers.push(cardNumber);
         
-        // Extract tags from content with validation and limits
+        // Extract tags from content
         const tagMatches = file.content.match(/#[\w-]+/g);
         const extractedTags = tagMatches ? tagMatches.map(tag => tag.slice(1).substring(0, 50)) : [];
-        const uniqueTags = [...new Set(extractedTags)].slice(0, MAX_TAGS - 2);
+        const contentKeywords = extractKeywords(sanitizedTitle + " " + sanitizedContent);
+        const uniqueTags = [...new Set([...extractedTags, ...contentKeywords])].slice(0, 10);
         const tags = [...uniqueTags, activeTab === "obsidian" ? "obsidian" : "notion", "imported"];
-        
-        // Determine category based on folder structure or content
-        let category = "000"; // Default to General Knowledge
-        const pathParts = file.path.split('/');
-        if (pathParts.length > 1) {
-          const folder = pathParts[0].toLowerCase();
-          if (folder.includes('science')) category = "500";
-          else if (folder.includes('literature')) category = "800";
-          else if (folder.includes('history')) category = "900";
-          else if (folder.includes('art')) category = "700";
-          else if (folder.includes('philosophy')) category = "100";
-          else if (folder.includes('language')) category = "400";
-        }
-        const sanitizedCategory = sanitizeCardInput(category);
         
         // Generate description from first paragraph
         const firstParagraph = file.content
-          .replace(/^#.*$/gm, '') // Remove headings
-          .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+          .replace(/^#.*$/gm, '')
+          .replace(/!\[.*?\]\(.*?\)/g, '')
           .split('\n\n')[0]
           .trim()
           .substring(0, 200);
         const sanitizedDescription = sanitizeCardInput(firstParagraph || "Imported from external source");
         
-        // Extract wikilinks [[filename]] for auto-linking with validation
+        // Extract wikilinks for auto-linking
         const wikiLinkMatches = file.content.match(/\[\[([^\]]+)\]\]/g);
         const linkedCardNumbers: string[] = [];
         
         if (wikiLinkMatches) {
-          wikiLinkMatches.forEach(link => {
+          wikiLinkMatches.slice(0, 50).forEach(link => {
             const linkText = link.replace(/\[\[|\]\]/g, '');
-            // Validate link text length and content
             if (linkText.length > 0 && linkText.length <= 100) {
-              const linkNumberMatch = linkText.match(/^(\d+(?:\.\d+)*(?:\.[A-Za-z]+)?(?:\.\d+)*)/);
-              if (linkNumberMatch && linkedCardNumbers.length < MAX_LINKS) {
-                linkedCardNumbers.push(linkNumberMatch[1]);
-              }
+              linkedCardNumbers.push(linkText);
             }
           });
         }
@@ -299,92 +357,92 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           title: sanitizedTitle,
           content: sanitizedContent,
           description: sanitizedDescription,
-          category: sanitizedCategory,
+          category,
           number: cardNumber,
           tags,
-          linkedCards: [], // Will be populated after all cards are created
+          linkedCards: [],
           imageUrl: undefined,
-          _linkedNumbers: linkedCardNumbers // Temporary field for linking
+          _linkedNumbers: linkedCardNumbers,
+          _filePath: file.path,
+          _fileName: file.name
         } as any;
         
-        // Validate card before adding
         const validation = validateZettelCard(tempCard);
         if (!validation.valid) {
-          console.error(`Skipping invalid card ${sanitizedTitle}: ${validation.errors.join(', ')}`);
-          validationErrors++;
-          return;
-        }
-        
-        cards.push(tempCard);
-        
-        cardsByNumber.set(cardNumber, cards.length - 1);
-        convertedCount++;
-        console.log(`Converted card ${convertedCount}: ${cardNumber} - ${sanitizedTitle}`);
-      } else if (file.type === 'image') {
-        // Create card for standalone images
-        const imgIndex = cardsByNumber.size;
-        const sanitizedName = sanitizeCardInput(file.name);
-        
-        const imageCard = {
-          title: `Image: ${sanitizedName}`,
-          content: sanitizeCardInput(`Imported image from ${activeTab} vault.`),
-          description: sanitizeCardInput(`Image file: ${file.name}`),
-          category: "700", // Arts category
-          number: `700.${String(imgIndex + 1).padStart(3, '0')}`,
-          tags: ["image", activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
-          linkedCards: [],
-          imageUrl: file.content
-        };
-        
-        const validation = validateZettelCard(imageCard);
-        if (!validation.valid) {
-          console.error(`Skipping invalid image card ${sanitizedName}: ${validation.errors.join(', ')}`);
+          console.warn(`Skipping invalid card ${sanitizedTitle}: ${validation.errors.join(', ')}`);
           validationErrors++;
           continue;
         }
         
+        cards.push(tempCard);
+        convertedCount++;
+      }
+      
+      const progressPercent = 50 + ((batchEnd / markdownFiles.length) * 40);
+      setProgress(progressPercent);
+      setProgressMessage(`Categorizing... ${convertedCount}/${totalMarkdown}`);
+      
+      // Yield to UI
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    
+    // Process images
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      const sanitizedName = sanitizeCardInput(file.name);
+      const imgNumber = generateZettelNumber("700", existingNumbers);
+      existingNumbers.push(imgNumber);
+      
+      const imageCard = {
+        title: `Image: ${sanitizedName}`,
+        content: sanitizeCardInput(`Imported image from ${activeTab} vault.`),
+        description: sanitizeCardInput(`Image file: ${file.name}`),
+        category: "700",
+        number: imgNumber,
+        tags: ["image", activeTab === "obsidian" ? "obsidian" : "notion", "imported"],
+        linkedCards: [],
+        imageUrl: file.content,
+        _filePath: file.path,
+        _fileName: file.name
+      };
+      
+      const validation = validateZettelCard(imageCard);
+      if (validation.valid) {
         cards.push(imageCard);
       }
     }
     
+    setProgress(90);
+    setProgressMessage("Finalizing...");
     
-    // Second pass: resolve links by card number
+    // Clean up temporary fields
     const finalCards = cards.map(card => {
-      if ((card as any)._linkedNumbers) {
-        const linkedIds: string[] = [];
-        (card as any)._linkedNumbers.forEach((linkedNumber: string) => {
-          const linkedIndex = cardsByNumber.get(linkedNumber);
-          if (linkedIndex !== undefined) {
-            // We'll use the index as a temporary ID, will be replaced with actual IDs after import
-            linkedIds.push(linkedNumber);
-          }
-        });
-        const { _linkedNumbers, ...cleanCard } = card as any;
-        return { ...cleanCard, _pendingLinks: linkedIds };
-      }
-      return card;
+      const { _linkedNumbers, _filePath, _fileName, ...cleanCard } = card as any;
+      return cleanCard;
     });
     
-    console.log(`Final card count: ${finalCards.length} cards ready for import, ${validationErrors} skipped due to validation errors`);
+    console.log(`Converted ${finalCards.length} cards, ${validationErrors} skipped`);
     
     if (validationErrors > 0) {
-      toast.warning(`${validationErrors} cards were skipped due to validation errors. Check console for details.`);
+      toast.warning(`${validationErrors} cards skipped due to validation errors`);
     }
     
-    // Detect duplicates and similar cards
-    const duplicates = findDuplicatesAndSimilar(finalCards);
-    
-    if (duplicates.length > 0) {
-      console.log(`Found ${duplicates.length} duplicate/similar pairs`);
-      setDuplicatePairs(duplicates);
-      setProcessedCards(finalCards);
-      setCurrentPairIndex(0);
-      setMergeDialogOpen(true);
-      setIsProcessing(false);
-    } else {
-      // Import cards and track in import history
-      await importCardsWithTracking(finalCards);
+    // Skip duplicate check for large imports (>100 files)
+    if (!skipDuplicateCheck && finalCards.length <= 100) {
+      const duplicates = findDuplicatesAndSimilar(finalCards);
+      
+      if (duplicates.length > 0) {
+        console.log(`Found ${duplicates.length} duplicate pairs`);
+        setDuplicatePairs(duplicates);
+        setProcessedCards(finalCards);
+        setCurrentPairIndex(0);
+        setMergeDialogOpen(true);
+        setIsProcessing(false);
+        return;
+      }
     }
+    
+    await importCardsWithTracking(finalCards);
   };
 
   const importCardsWithTracking = async (finalCards: any[]) => {
@@ -421,19 +479,22 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     const pairs: Array<{card1: Partial<ZettelCardType>, card2: Partial<ZettelCardType>}> = [];
     const processed = new Set<number>();
     
-    for (let i = 0; i < cards.length; i++) {
+    // Limit comparison for performance - only check first 100 cards
+    const maxToCheck = Math.min(cards.length, 100);
+    
+    for (let i = 0; i < maxToCheck; i++) {
       if (processed.has(i)) continue;
       
-      for (let j = i + 1; j < cards.length; j++) {
+      for (let j = i + 1; j < maxToCheck; j++) {
         if (processed.has(j)) continue;
         
         const similarity = calculateCardSimilarity(cards[i], cards[j]);
         
-        // If cards are duplicates (>95% similar) or very similar (>75%)
-        if (similarity > 0.75) {
+        // Only flag very similar cards (>85%)
+        if (similarity > 0.85) {
           pairs.push({ card1: cards[i], card2: cards[j] });
-          processed.add(j); // Mark second card as processed
-          break; // Move to next card
+          processed.add(j);
+          break;
         }
       }
     }
@@ -565,17 +626,16 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
                   </p>
                 </div>
                 
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-muted/50 p-4 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-medium text-blue-900">Import Instructions</h4>
-                      <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                        <li>• Click "Choose Folder" and select your Obsidian vault directory</li>
-                        <li>• All .md files will be converted to zettel cards</li>
-                        <li>• Images will be preserved and linked</li>
-                        <li>• Tags and wikilinks will be extracted</li>
-                        <li>• Folder structure will determine categories</li>
+                      <h4 className="font-medium">Import Instructions</h4>
+                      <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                        <li>• Select your Obsidian vault folder - supports hundreds of files</li>
+                        <li>• Cards are auto-categorized by content analysis</li>
+                        <li>• Tags and wikilinks are preserved</li>
+                        <li>• First paragraph determines category (Dewey classification)</li>
                       </ul>
                     </div>
                   </div>
@@ -606,12 +666,12 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
                   </p>
                 </div>
                 
-                <div className="bg-green-50 p-4 rounded-lg">
+                <div className="bg-muted/50 p-4 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
                     <div>
-                      <h4 className="font-medium text-green-900">Export Instructions</h4>
-                      <ol className="text-sm text-green-700 mt-2 space-y-1">
+                      <h4 className="font-medium">Export Instructions</h4>
+                      <ol className="text-sm text-muted-foreground mt-2 space-y-1">
                         <li>1. In Notion, go to Settings & Members → Settings</li>
                         <li>2. Click "Export all workspace content"</li>
                         <li>3. Choose "Markdown & CSV" format</li>
@@ -668,10 +728,25 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         {isProcessing && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Processing files...</span>
+              <span className="text-sm font-medium">{progressMessage}</span>
               <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="w-full" />
+          </div>
+        )}
+        
+        {parsedFiles.length > 50 && !isProcessing && (
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="skip-duplicate"
+                checked={skipDuplicateCheck}
+                onCheckedChange={setSkipDuplicateCheck}
+              />
+              <Label htmlFor="skip-duplicate" className="text-sm">
+                Skip duplicate detection (faster for large imports)
+              </Label>
+            </div>
           </div>
         )}
         
