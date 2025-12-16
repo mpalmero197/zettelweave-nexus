@@ -629,6 +629,12 @@ export default function Landing() {
               <button onClick={() => scrollToSection('pricing')} className="hover:text-primary transition-colors">
                 Pricing
               </button>
+              <button onClick={() => navigate('/terms')} className="hover:text-primary transition-colors">
+                Terms of Service
+              </button>
+              <button onClick={() => navigate('/privacy')} className="hover:text-primary transition-colors">
+                Privacy Policy
+              </button>
             </div>
           </div>
         </div>
