@@ -56,12 +56,24 @@ export function getCategoryInfo(categoryCode: string) {
 }
 
 export function extractKeywords(text: string): string[] {
-  // Simple keyword extraction
+  const stopWords = new Set([
+    'this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'were', 'said', 
+    'each', 'which', 'their', 'time', 'more', 'very', 'what', 'know', 'just', 'first', 
+    'into', 'over', 'think', 'also', 'other', 'after', 'well', 'many', 'some', 'would', 
+    'make', 'like', 'him', 'her', 'see', 'two', 'way', 'who', 'may', 'say', 'she', 
+    'use', 'work', 'how', 'get', 'come', 'made', 'year', 'take', 'find', 'part', 
+    'give', 'hand', 'back', 'most', 'look', 'good', 'new', 'write', 'man', 'any', 
+    'could', 'show', 'try', 'ask', 'turn', 'move', 'live', 'seem', 'feel', 'might', 
+    'old', 'great', 'another', 'such', 'should', 'call', 'want', 'still', 'different', 
+    'own', 'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 
+    'her', 'was', 'one', 'our', 'out', 'day', 'has', 'than', 'being', 'does', 'here',
+    'then', 'when', 'them', 'these', 'only', 'about', 'because', 'where', 'before'
+  ]);
+
   const words = text.toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
-    .filter(word => word.length > 3)
-    .filter(word => !['this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'were', 'said', 'each', 'which', 'their', 'time', 'more', 'very', 'what', 'know', 'just', 'first', 'into', 'over', 'think', 'also', 'other', 'after', 'well', 'many', 'some', 'would', 'make', 'like', 'him', 'her', 'see', 'him', 'two', 'way', 'who', 'may', 'say', 'she', 'use', 'work', 'how', 'get', 'come', 'made', 'year', 'take', 'find', 'part', 'give', 'hand', 'back', 'most', 'look', 'good', 'new', 'write', 'man', 'any', 'could', 'show', 'try', 'ask', 'turn', 'move', 'live', 'seem', 'feel', 'might', 'old', 'great', 'another', 'such', 'should', 'call', 'want', 'still', 'different', 'own'].includes(word));
+    .filter(word => word.length > 3 && !stopWords.has(word));
 
   // Get unique words and their frequency
   const wordCount: Record<string, number> = {};
@@ -69,7 +81,7 @@ export function extractKeywords(text: string): string[] {
     wordCount[word] = (wordCount[word] || 0) + 1;
   });
 
-  // Return top keywords
+  // Return top keywords sorted by frequency
   return Object.entries(wordCount)
     .sort(([,a], [,b]) => b - a)
     .slice(0, 5)
