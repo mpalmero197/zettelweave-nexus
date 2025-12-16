@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -30,7 +31,15 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
-  Edit2
+  ChevronDown,
+  Edit2,
+  Eye,
+  EyeOff,
+  Zap,
+  Tag,
+  X,
+  Hash,
+  Sparkles
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -63,9 +72,11 @@ interface CategorizedFile {
   selected: boolean;
   tags: string[];
   preview: string;
+  keywords: string[];
 }
 
 type ImportStep = 'select' | 'preview' | 'importing';
+type ViewMode = 'list' | 'keywords';
 
 // Extended keywords for better categorization
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
@@ -94,12 +105,24 @@ const CATEGORY_NAMES: Record<string, string> = {
   "900": "History & Geography"
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  "000": "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "100": "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  "200": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "300": "bg-green-500/20 text-green-400 border-green-500/30",
+  "400": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  "500": "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  "600": "bg-red-500/20 text-red-400 border-red-500/30",
+  "700": "bg-pink-500/20 text-pink-400 border-pink-500/30",
+  "800": "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  "900": "bg-teal-500/20 text-teal-400 border-teal-500/30"
+};
+
 function smartCategorize(content: string, title: string): string {
-  // Focus on first paragraph for faster categorization
   const firstParagraph = content
-    .replace(/^#.*$/gm, '') // Remove headings
-    .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Clean links
+    .replace(/^#.*$/gm, '')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .trim()
     .split('\n\n')[0] || '';
   
@@ -112,9 +135,7 @@ function smartCategorize(content: string, title: string): string {
     let score = 0;
     for (const keyword of keywords) {
       if (textToAnalyze.includes(keyword)) {
-        // Weight multi-word matches higher
         score += keyword.includes(' ') ? 3 : 1;
-        // Count multiple occurrences
         const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
         const matches = textToAnalyze.match(regex);
         if (matches && matches.length > 1) {
@@ -130,6 +151,24 @@ function smartCategorize(content: string, title: string): string {
   }
   
   return bestMatch;
+}
+
+function extractFileKeywords(content: string): string[] {
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'all', 'each', 'every', 'some', 'any', 'no', 'not', 'can']);
+  
+  const words = content
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !stopWords.has(w));
+  
+  const wordCount: Record<string, number> = {};
+  words.forEach(w => { wordCount[w] = (wordCount[w] || 0) + 1; });
+  
+  return Object.entries(wordCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([word]) => word);
 }
 
 export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => {
@@ -149,7 +188,12 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
   const [skipDuplicateCheck, setSkipDuplicateCheck] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
+  const [quickImportMode, setQuickImportMode] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processObsidianVault = async (files: FileList) => {
     setIsProcessing(true);
@@ -266,6 +310,9 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         const tagMatches = file.content.match(/#[\w-]+/g);
         const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))].slice(0, 5) : [];
         
+        // Extract keywords for search
+        const keywords = extractFileKeywords(file.content);
+        
         // Get preview (first paragraph)
         const preview = file.content
           .replace(/^#.*$/gm, '')
@@ -280,7 +327,8 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           category,
           selected: true,
           tags,
-          preview
+          preview,
+          keywords
         });
       }
       
@@ -299,7 +347,8 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         category: "700",
         selected: true,
         tags: ["image"],
-        preview: `Image file: ${file.name}`
+        preview: `Image file: ${file.name}`,
+        keywords: []
       });
     }
     
@@ -431,11 +480,13 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     return categorizedFiles.filter(file => {
       const matchesSearch = searchQuery === '' ||
         file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        file.preview.toLowerCase().includes(searchQuery.toLowerCase());
+        file.preview.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.keywords.some(k => k.includes(searchQuery.toLowerCase()));
       const matchesCategory = filterCategory === 'all' || file.category === filterCategory;
-      return matchesSearch && matchesCategory;
+      const matchesKeyword = !selectedKeyword || file.keywords.includes(selectedKeyword);
+      return matchesSearch && matchesCategory && matchesKeyword;
     });
-  }, [categorizedFiles, searchQuery, filterCategory]);
+  }, [categorizedFiles, searchQuery, filterCategory, selectedKeyword]);
 
   const selectedCount = useMemo(() => 
     categorizedFiles.filter(f => f.selected).length, 
@@ -450,13 +501,55 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
     return stats;
   }, [categorizedFiles]);
 
+  // Extract all unique keywords from files
+  const allKeywords = useMemo(() => {
+    const keywordCount: Record<string, number> = {};
+    categorizedFiles.forEach(file => {
+      file.keywords.forEach(kw => {
+        keywordCount[kw] = (keywordCount[kw] || 0) + 1;
+      });
+    });
+    return Object.entries(keywordCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 30);
+  }, [categorizedFiles]);
+
+  // Group files by keyword
+  const filesByKeyword = useMemo(() => {
+    const groups: Record<string, CategorizedFile[]> = {};
+    categorizedFiles.forEach(file => {
+      file.keywords.forEach(kw => {
+        if (!groups[kw]) groups[kw] = [];
+        groups[kw].push(file);
+      });
+    });
+    return groups;
+  }, [categorizedFiles]);
+
   const resetImport = useCallback(() => {
     setImportStep('select');
     setCategorizedFiles([]);
     setParsedFiles([]);
     setSearchQuery('');
     setFilterCategory('all');
+    setSelectedKeyword(null);
+    setExpandedFileId(null);
+    setQuickImportMode(false);
   }, []);
+
+  // Quick import - skip preview and import directly
+  const handleQuickImport = useCallback(async (files: FileList) => {
+    setQuickImportMode(true);
+    if (activeTab === "obsidian") {
+      await processObsidianVault(files);
+    } else {
+      await processNotionExport(files);
+    }
+  }, [activeTab]);
+
+  // After categorization, if quick import mode, proceed directly
+  const categorizeFilesForPreviewRef = useRef(categorizeFilesForPreview);
+  categorizeFilesForPreviewRef.current = categorizeFilesForPreview;
 
   // Convert categorized files (with user-adjusted categories) to cards
   const convertCategorizedFilesToCards = async () => {
@@ -915,53 +1008,91 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           </TabsList>
           
           <TabsContent value="obsidian" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Obsidian Vault Import</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="obsidian-files">Select Vault Folder</Label>
+            <div className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-purple-500/5 to-blue-500/5 p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-purple-500/20 border border-purple-500/30">
+                    <FolderOpen className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Obsidian Vault Import</h3>
+                    <p className="text-sm text-muted-foreground">Import your entire knowledge base</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
                   <Input
+                    ref={fileInputRef}
                     id="obsidian-files"
                     type="file"
                     {...({ webkitdirectory: "" } as any)}
                     multiple
                     onChange={handleFileSelection}
                     disabled={isProcessing}
-                    className="cursor-pointer"
+                    className="hidden"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Select your entire Obsidian vault folder. All markdown files and images will be imported.
-                  </p>
-                </div>
-                
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Import Instructions</h4>
-                      <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                        <li>• Select your Obsidian vault folder - supports hundreds of files</li>
-                        <li>• Cards are auto-categorized by content analysis</li>
-                        <li>• Tags and wikilinks are preserved</li>
-                        <li>• First paragraph determines category (Dewey classification)</li>
-                      </ul>
-                    </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isProcessing}
+                      className="h-auto py-4 flex flex-col items-center gap-2 border-dashed border-2 hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Edit2 className="h-5 w-5" />
+                      <span className="text-sm font-medium">Review & Import</span>
+                      <span className="text-xs text-muted-foreground">Preview files first</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        setQuickImportMode(true);
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={isProcessing}
+                      className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    >
+                      <Zap className="h-5 w-5" />
+                      <span className="text-sm font-medium">Quick Import</span>
+                      <span className="text-xs opacity-80">Auto-categorize all</span>
+                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Badge variant="secondary" className="text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    AI Categorization
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    <Tag className="h-3 w-3 mr-1" />
+                    Preserves Tags
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    <FileText className="h-3 w-3 mr-1" />
+                    Wikilinks
+                  </Badge>
+                </div>
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="notion" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Notion Export Import</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="notion-files">Select Notion Export</Label>
+            <div className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30">
+                    <Database className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Notion Export Import</h3>
+                    <p className="text-sm text-muted-foreground">Import from Notion workspace export</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
                   <Input
                     id="notion-files"
                     type="file"
@@ -969,30 +1100,42 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
                     multiple
                     onChange={handleFileSelection}
                     disabled={isProcessing}
-                    className="cursor-pointer"
+                    className="hidden"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Select the unzipped Notion export folder. All pages and media will be imported.
-                  </p>
-                </div>
-                
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Export Instructions</h4>
-                      <ol className="text-sm text-muted-foreground mt-2 space-y-1">
-                        <li>1. In Notion, go to Settings & Members → Settings</li>
-                        <li>2. Click "Export all workspace content"</li>
-                        <li>3. Choose "Markdown & CSV" format</li>
-                        <li>4. Download and unzip the export</li>
-                        <li>5. Select the unzipped folder here</li>
-                      </ol>
-                    </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('notion-files')?.click()}
+                      disabled={isProcessing}
+                      className="h-auto py-4 flex flex-col items-center gap-2 border-dashed border-2 hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Edit2 className="h-5 w-5" />
+                      <span className="text-sm font-medium">Review & Import</span>
+                      <span className="text-xs text-muted-foreground">Preview files first</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        setQuickImportMode(true);
+                        document.getElementById('notion-files')?.click();
+                      }}
+                      disabled={isProcessing}
+                      className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                    >
+                      <Zap className="h-5 w-5" />
+                      <span className="text-sm font-medium">Quick Import</span>
+                      <span className="text-xs opacity-80">Auto-categorize all</span>
+                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                
+                <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                  <p className="font-medium mb-1">Export from Notion:</p>
+                  <p>Settings → Export → Markdown & CSV → Unzip and select folder</p>
+                </div>
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="history" className="space-y-4">
@@ -1045,108 +1188,243 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
           </div>
         )}
         
-        {/* Preview Step - Category Review */}
+        {/* Preview Step - Enhanced Category Review */}
         {importStep === 'preview' && categorizedFiles.length > 0 && !isProcessing && (
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Edit2 className="h-4 w-4" />
-                  Review Categories
-                </CardTitle>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <Button variant="ghost" size="sm" onClick={resetImport}>
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <h3 className="font-semibold">Review & Import</h3>
+                  <p className="text-xs text-muted-foreground">{categorizedFiles.length} files ready</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => { setViewMode('list'); setSelectedKeyword(null); }}
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'keywords' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('keywords')}
+                >
+                  <Hash className="h-4 w-4" />
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Category Stats */}
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(categoryStats).map(([cat, count]) => (
-                  <Badge
-                    key={cat}
-                    variant={filterCategory === cat ? 'default' : 'secondary'}
-                    className="cursor-pointer text-xs"
-                    onClick={() => setFilterCategory(filterCategory === cat ? 'all' : cat)}
+            </div>
+
+            {/* Category Stats with Colors */}
+            <div className="flex flex-wrap gap-1.5">
+              <Badge
+                variant={filterCategory === 'all' ? 'default' : 'outline'}
+                className="cursor-pointer text-xs"
+                onClick={() => setFilterCategory('all')}
+              >
+                All: {categorizedFiles.length}
+              </Badge>
+              {Object.entries(categoryStats).map(([cat, count]) => (
+                <Badge
+                  key={cat}
+                  variant="outline"
+                  className={`cursor-pointer text-xs transition-all ${filterCategory === cat ? CATEGORY_COLORS[cat] : 'opacity-70 hover:opacity-100'}`}
+                  onClick={() => setFilterCategory(filterCategory === cat ? 'all' : cat)}
+                >
+                  {cat} {CATEGORY_NAMES[cat]?.split(' ')[0]}: {count}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Search & Controls */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search files or keywords..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => setSearchQuery('')}
                   >
-                    {cat}: {count}
-                  </Badge>
-                ))}
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
+              <Select onValueChange={handleBulkCategoryChange}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Bulk assign..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border z-50">
+                  {Object.entries(CATEGORY_NAMES).map(([code, name]) => (
+                    <SelectItem key={code} value={code}>
+                      <span className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[code]?.split(' ')[0]}`} />
+                        {code} - {name.split(' ')[0]}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Search & Bulk Actions */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search files..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8"
-                  />
-                </div>
-                <Select onValueChange={handleBulkCategoryChange}>
-                  <SelectTrigger className="w-[140px] h-8">
-                    <SelectValue placeholder="Bulk assign" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CATEGORY_NAMES).map(([code, name]) => (
-                      <SelectItem key={code} value={code}>{code} - {name.split(' ')[0]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Selection Controls */}
+            <div className="flex items-center justify-between text-sm border-b pb-2">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={selectedCount === categorizedFiles.length && categorizedFiles.length > 0}
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                />
+                <span className="font-medium">{selectedCount} of {categorizedFiles.length} selected</span>
               </div>
+              {selectedKeyword && (
+                <Badge variant="secondary" className="gap-1">
+                  <Hash className="h-3 w-3" />
+                  {selectedKeyword}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 ml-1"
+                    onClick={() => setSelectedKeyword(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+            </div>
 
-              {/* Selection Controls */}
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selectedCount === categorizedFiles.length}
-                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  />
-                  <span className="text-muted-foreground">{selectedCount}/{categorizedFiles.length} selected</span>
-                </div>
-              </div>
-
-              {/* File List */}
-              <ScrollArea className="h-[280px] border rounded-md">
-                <div className="divide-y divide-border">
-                  {filteredFiles.map((file) => (
-                    <div key={file.id} className="flex items-center gap-2 p-2 hover:bg-muted/50">
-                      <Checkbox
-                        checked={file.selected}
-                        onCheckedChange={(checked) => handleSelectionChange(file.id, !!checked)}
-                      />
-                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{file.name.replace(/\.md$/, '')}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{file.preview}</p>
-                      </div>
-                      <Select
-                        value={file.category}
-                        onValueChange={(value) => handleCategoryChange(file.id, value)}
-                      >
-                        <SelectTrigger className="w-[100px] h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(CATEGORY_NAMES).map(([code, name]) => (
-                            <SelectItem key={code} value={code}>{code}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+            {/* Keywords View */}
+            {viewMode === 'keywords' && (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">Click a keyword to filter files:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {allKeywords.map(([keyword, count]) => (
+                    <Badge
+                      key={keyword}
+                      variant={selectedKeyword === keyword ? 'default' : 'outline'}
+                      className="cursor-pointer text-xs hover:bg-primary/10"
+                      onClick={() => setSelectedKeyword(selectedKeyword === keyword ? null : keyword)}
+                    >
+                      {keyword} ({count})
+                    </Badge>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
+            )}
 
-              {/* Import Button */}
-              <Button onClick={convertCategorizedFilesToCards} className="w-full" disabled={selectedCount === 0}>
-                <Check className="h-4 w-4 mr-2" />
-                Import {selectedCount} Files
-              </Button>
-            </CardContent>
-          </Card>
+            {/* File List */}
+            <ScrollArea className="h-[320px] border rounded-lg">
+              <div className="divide-y divide-border">
+                {filteredFiles.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No files match your search</p>
+                  </div>
+                ) : (
+                  filteredFiles.map((file) => (
+                    <Collapsible
+                      key={file.id}
+                      open={expandedFileId === file.id}
+                      onOpenChange={(open) => setExpandedFileId(open ? file.id : null)}
+                    >
+                      <div className="p-3 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={file.selected}
+                            onCheckedChange={(checked) => handleSelectionChange(file.id, !!checked)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium text-sm truncate">{file.name.replace(/\.md$/, '')}</span>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 ml-auto">
+                                  {expandedFileId === file.id ? (
+                                    <EyeOff className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Eye className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              </CollapsibleTrigger>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{file.preview}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${CATEGORY_COLORS[file.category]}`}
+                              >
+                                {file.category}
+                              </Badge>
+                              {file.keywords.slice(0, 3).map(kw => (
+                                <Badge
+                                  key={kw}
+                                  variant="outline"
+                                  className="text-xs cursor-pointer hover:bg-muted"
+                                  onClick={() => setSelectedKeyword(kw)}
+                                >
+                                  {kw}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <Select
+                            value={file.category}
+                            onValueChange={(value) => handleCategoryChange(file.id, value)}
+                          >
+                            <SelectTrigger className={`w-[90px] h-7 text-xs ${CATEGORY_COLORS[file.category]}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border z-50">
+                              {Object.entries(CATEGORY_NAMES).map(([code, name]) => (
+                                <SelectItem key={code} value={code}>
+                                  <span className={`${CATEGORY_COLORS[code]?.split(' ')[1]}`}>{code}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <CollapsibleContent>
+                          <div className="mt-3 ml-7 p-3 bg-muted/50 rounded-lg text-sm">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Document Preview:</p>
+                            <div className="max-h-40 overflow-y-auto text-xs whitespace-pre-wrap font-mono">
+                              {file.content.slice(0, 1000)}
+                              {file.content.length > 1000 && (
+                                <span className="text-muted-foreground">... (truncated)</span>
+                              )}
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Import Button */}
+            <Button
+              onClick={convertCategorizedFilesToCards}
+              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              disabled={selectedCount === 0}
+              size="lg"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Import {selectedCount} Files
+            </Button>
+          </div>
         )}
       </DialogContent>
       
