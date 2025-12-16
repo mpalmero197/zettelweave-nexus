@@ -144,58 +144,60 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 md:p-6">
       <div className="container mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Shield className="h-8 w-8 text-primary" />
-                Admin Panel
+        <div className="mb-4 md:mb-8">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
+                <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary shrink-0" />
+                <span className="truncate">Admin Panel</span>
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base hidden sm:block">
                 Complete control hub for PendragonX platform management
               </p>
             </div>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => window.location.href = '/'}
-              className="flex items-center gap-2"
+              className="shrink-0"
             >
-              Back to App
+              <span className="hidden sm:inline">Back to App</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </div>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 gap-2">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-7 gap-1 md:gap-2">
+            <TabsTrigger value="overview" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <BarChart className="h-4 w-4" />
-              Overview
+              <span className="hidden md:inline">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger value="users" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <Users className="h-4 w-4" />
-              Users
+              <span className="hidden md:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center gap-2">
+            <TabsTrigger value="content" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <Eye className="h-4 w-4" />
-              Content
+              <span className="hidden md:inline">Content</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="security" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <ShieldAlert className="h-4 w-4" />
-              Security
+              <span className="hidden md:inline">Security</span>
             </TabsTrigger>
-            <TabsTrigger value="feedback" className="flex items-center gap-2">
+            <TabsTrigger value="feedback" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <Lightbulb className="h-4 w-4" />
-              Feedback
+              <span className="hidden md:inline">Feedback</span>
             </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
+            <TabsTrigger value="system" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <Settings className="h-4 w-4" />
-              System
+              <span className="hidden md:inline">System</span>
             </TabsTrigger>
-            <TabsTrigger value="docs" className="flex items-center gap-2">
+            <TabsTrigger value="docs" className="flex items-center justify-center gap-2 px-2 md:px-4">
               <BookOpen className="h-4 w-4" />
-              Docs
+              <span className="hidden md:inline">Docs</span>
             </TabsTrigger>
           </TabsList>
 
