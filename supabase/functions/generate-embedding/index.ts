@@ -7,6 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// HuggingFace free embedding model - no API key required (rate limited)
+const HUGGINGFACE_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+const HUGGINGFACE_API_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${HUGGINGFACE_MODEL}`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -19,36 +23,33 @@ serve(async (req) => {
       throw new Error('Missing required fields: contentId, contentType, text');
     }
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
-
     console.log('Generating embedding for text length:', text.length);
 
-    // Generate embedding using OpenAI directly (Lovable AI doesn't support embeddings)
-    const embeddingResponse = await fetch("https://api.openai.com/v1/embeddings", {
+    // Truncate text if too long (model has 512 token limit, ~2000 chars safe)
+    const truncatedText = text.slice(0, 2000);
+
+    // Use HuggingFace's free inference API
+    const embeddingResponse = await fetch(HUGGINGFACE_API_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text,
+        inputs: truncatedText,
+        options: { wait_for_model: true }
       }),
     });
 
     if (!embeddingResponse.ok) {
       const errorText = await embeddingResponse.text();
-      console.error('Embedding API error:', embeddingResponse.status, errorText);
+      console.error('HuggingFace API error:', embeddingResponse.status, errorText);
       
-      // Return specific status codes for quota/rate limit errors
-      if (embeddingResponse.status === 429) {
+      // Return 429 for rate limits
+      if (embeddingResponse.status === 429 || embeddingResponse.status === 503) {
         return new Response(
           JSON.stringify({ 
-            error: 'OpenAI API quota exceeded. Please check your OpenAI billing at platform.openai.com',
-            code: 'quota_exceeded'
+            error: 'Embedding service is busy. Please try again later.',
+            code: 'rate_limited'
           }),
           { 
             status: 429,
@@ -61,7 +62,23 @@ serve(async (req) => {
     }
 
     const embeddingData = await embeddingResponse.json();
-    const embedding = embeddingData.data[0].embedding;
+    
+    // HuggingFace returns array directly for this model
+    let embedding = embeddingData;
+    
+    // If nested array (sometimes happens), flatten it
+    if (Array.isArray(embedding) && Array.isArray(embedding[0])) {
+      // Mean pooling for sentence embedding
+      const numTokens = embedding.length;
+      const dimensions = embedding[0].length;
+      embedding = new Array(dimensions).fill(0);
+      for (let i = 0; i < numTokens; i++) {
+        for (let j = 0; j < dimensions; j++) {
+          embedding[j] += embedding[i][j] / numTokens;
+        }
+      }
+    }
+    
     console.log('Successfully generated embedding with', embedding.length, 'dimensions');
 
     // Store embedding in database using user's auth token (respects RLS)
@@ -91,7 +108,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, embedding }),
+      JSON.stringify({ success: true, dimensions: embedding.length }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
