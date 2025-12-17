@@ -41,7 +41,7 @@ const themes = [
 export function AccountManagement({ onClose }: AccountManagementProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled } = useAnimationPreference();
+  const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions } = useAnimationPreference();
   
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup' | 'debug'>('profile');
   const [isLoading, setIsLoading] = useState(false);
@@ -952,6 +952,42 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                         Animations disabled due to OS preference. Turn off "Respect OS Preference" to override.
                       </p>
                     )}
+
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Settings className="h-5 w-5 text-primary" />
+                          <div>
+                            <h4 className="font-medium">Reduced Blur Effects</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Disable blur effects for better performance on low-end devices
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={reducedBlur}
+                          onCheckedChange={setReducedBlur}
+                        />
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Settings className="h-5 w-5 text-primary" />
+                          <div>
+                            <h4 className="font-medium">Simplified Transitions</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Use instant transitions instead of smooth animations
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={simplifiedTransitions}
+                          onCheckedChange={setSimplifiedTransitions}
+                        />
+                      </div>
+                    </Card>
                   </div>
                 </div>
 

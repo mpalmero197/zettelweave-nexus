@@ -12,19 +12,29 @@ import { CosmicBackground } from "@/components/CosmicBackground";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
 
-// Initialize animation preference from localStorage on load
-const initAnimationPreference = () => {
+// Initialize performance preferences from localStorage on load
+const initPerformancePreferences = () => {
   const animationsEnabled = localStorage.getItem('theme-animations-enabled') !== 'false';
   const respectOSPreference = localStorage.getItem('theme-animations-respect-os') !== 'false';
   const osReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reducedBlur = localStorage.getItem('theme-reduced-blur') === 'true';
+  const simplifiedTransitions = localStorage.getItem('theme-simplified-transitions') === 'true';
   
-  const shouldDisable = !animationsEnabled || (respectOSPreference && osReducedMotion);
+  const shouldDisableAnimations = !animationsEnabled || (respectOSPreference && osReducedMotion);
   
-  if (shouldDisable) {
+  if (shouldDisableAnimations) {
     document.documentElement.classList.add('no-theme-animations');
   }
+  
+  if (reducedBlur) {
+    document.documentElement.classList.add('reduced-blur');
+  }
+  
+  if (simplifiedTransitions) {
+    document.documentElement.classList.add('simplified-transitions');
+  }
 };
-initAnimationPreference();
+initPerformancePreferences();
 
 // Lightweight loading component
 const LoadingFallback = ({ message = "Loading..." }: { message?: string }) => (
