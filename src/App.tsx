@@ -14,8 +14,13 @@ import { Loader2 } from "lucide-react";
 
 // Initialize animation preference from localStorage on load
 const initAnimationPreference = () => {
-  const stored = localStorage.getItem('theme-animations-enabled');
-  if (stored === 'false') {
+  const animationsEnabled = localStorage.getItem('theme-animations-enabled') !== 'false';
+  const respectOSPreference = localStorage.getItem('theme-animations-respect-os') !== 'false';
+  const osReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  
+  const shouldDisable = !animationsEnabled || (respectOSPreference && osReducedMotion);
+  
+  if (shouldDisable) {
     document.documentElement.classList.add('no-theme-animations');
   }
 };

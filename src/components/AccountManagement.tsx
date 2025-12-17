@@ -41,7 +41,7 @@ const themes = [
 export function AccountManagement({ onClose }: AccountManagementProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { animationsEnabled, setAnimationsEnabled } = useAnimationPreference();
+  const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled } = useAnimationPreference();
   
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup' | 'debug'>('profile');
   const [isLoading, setIsLoading] = useState(false);
@@ -905,23 +905,54 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Performance</h3>
                   
-                  <Card className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Palette className="h-5 w-5 text-primary" />
-                        <div>
-                          <h4 className="font-medium">Background Animations</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Falling leaves, petals, and other theme effects
-                          </p>
+                  <div className="space-y-3">
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Palette className="h-5 w-5 text-primary" />
+                          <div>
+                            <h4 className="font-medium">Background Animations</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Falling leaves, petals, and other theme effects
+                            </p>
+                          </div>
                         </div>
+                        <Switch
+                          checked={animationsEnabled}
+                          onCheckedChange={setAnimationsEnabled}
+                        />
                       </div>
-                      <Switch
-                        checked={animationsEnabled}
-                        onCheckedChange={setAnimationsEnabled}
-                      />
-                    </div>
-                  </Card>
+                    </Card>
+
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Settings className="h-5 w-5 text-primary" />
+                          <div>
+                            <h4 className="font-medium">Respect OS Preference</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Auto-disable animations when OS prefers reduced motion
+                              {osReducedMotion && (
+                                <span className="block text-xs text-amber-500 mt-1">
+                                  Your OS currently prefers reduced motion
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={respectOSPreference}
+                          onCheckedChange={setRespectOSPreference}
+                        />
+                      </div>
+                    </Card>
+
+                    {!effectiveAnimationsEnabled && animationsEnabled && respectOSPreference && osReducedMotion && (
+                      <p className="text-xs text-muted-foreground px-1">
+                        Animations disabled due to OS preference. Turn off "Respect OS Preference" to override.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <Separator />
