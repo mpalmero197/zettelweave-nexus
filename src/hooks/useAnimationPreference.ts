@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 
 const ANIMATION_PREFERENCE_KEY = 'theme-animations-enabled';
 const RESPECT_OS_PREFERENCE_KEY = 'theme-animations-respect-os';
+const REDUCED_BLUR_KEY = 'theme-reduced-blur';
+const SIMPLIFIED_TRANSITIONS_KEY = 'theme-simplified-transitions';
 
 function getOSPrefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,6 +25,16 @@ export function useAnimationPreference() {
   const [respectOSPreference, setRespectOSPreferenceState] = useState<boolean>(() => {
     const stored = localStorage.getItem(RESPECT_OS_PREFERENCE_KEY);
     return stored !== null ? stored === 'true' : true;
+  });
+
+  const [reducedBlur, setReducedBlurState] = useState<boolean>(() => {
+    const stored = localStorage.getItem(REDUCED_BLUR_KEY);
+    return stored !== null ? stored === 'true' : false;
+  });
+
+  const [simplifiedTransitions, setSimplifiedTransitionsState] = useState<boolean>(() => {
+    const stored = localStorage.getItem(SIMPLIFIED_TRANSITIONS_KEY);
+    return stored !== null ? stored === 'true' : false;
   });
 
   const [osReducedMotion, setOsReducedMotion] = useState<boolean>(getOSPrefersReducedMotion);
@@ -53,12 +65,42 @@ export function useAnimationPreference() {
     localStorage.setItem(RESPECT_OS_PREFERENCE_KEY, String(respectOSPreference));
   }, [animationsEnabled, respectOSPreference, osReducedMotion]);
 
+  // Apply reduced blur
+  useEffect(() => {
+    const root = document.documentElement;
+    if (reducedBlur) {
+      root.classList.add('reduced-blur');
+    } else {
+      root.classList.remove('reduced-blur');
+    }
+    localStorage.setItem(REDUCED_BLUR_KEY, String(reducedBlur));
+  }, [reducedBlur]);
+
+  // Apply simplified transitions
+  useEffect(() => {
+    const root = document.documentElement;
+    if (simplifiedTransitions) {
+      root.classList.add('simplified-transitions');
+    } else {
+      root.classList.remove('simplified-transitions');
+    }
+    localStorage.setItem(SIMPLIFIED_TRANSITIONS_KEY, String(simplifiedTransitions));
+  }, [simplifiedTransitions]);
+
   const setAnimationsEnabled = useCallback((enabled: boolean) => {
     setAnimationsEnabledState(enabled);
   }, []);
 
   const setRespectOSPreference = useCallback((respect: boolean) => {
     setRespectOSPreferenceState(respect);
+  }, []);
+
+  const setReducedBlur = useCallback((reduced: boolean) => {
+    setReducedBlurState(reduced);
+  }, []);
+
+  const setSimplifiedTransitions = useCallback((simplified: boolean) => {
+    setSimplifiedTransitionsState(simplified);
   }, []);
 
   const toggleAnimations = useCallback(() => {
@@ -75,6 +117,10 @@ export function useAnimationPreference() {
     respectOSPreference,
     setRespectOSPreference,
     osReducedMotion,
-    effectiveAnimationsEnabled
+    effectiveAnimationsEnabled,
+    reducedBlur,
+    setReducedBlur,
+    simplifiedTransitions,
+    setSimplifiedTransitions
   };
 }
