@@ -14,23 +14,27 @@ import { Loader2 } from "lucide-react";
 
 // Initialize performance preferences from localStorage on load
 const initPerformancePreferences = () => {
+  const lowPowerMode = localStorage.getItem('theme-low-power-mode') === 'true';
   const animationsEnabled = localStorage.getItem('theme-animations-enabled') !== 'false';
   const respectOSPreference = localStorage.getItem('theme-animations-respect-os') !== 'false';
   const osReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const reducedBlur = localStorage.getItem('theme-reduced-blur') === 'true';
   const simplifiedTransitions = localStorage.getItem('theme-simplified-transitions') === 'true';
   
-  const shouldDisableAnimations = !animationsEnabled || (respectOSPreference && osReducedMotion);
+  // Low power mode overrides individual settings
+  const shouldDisableAnimations = lowPowerMode || !animationsEnabled || (respectOSPreference && osReducedMotion);
+  const shouldReduceBlur = lowPowerMode || reducedBlur;
+  const shouldSimplifyTransitions = lowPowerMode || simplifiedTransitions;
   
   if (shouldDisableAnimations) {
     document.documentElement.classList.add('no-theme-animations');
   }
   
-  if (reducedBlur) {
+  if (shouldReduceBlur) {
     document.documentElement.classList.add('reduced-blur');
   }
   
-  if (simplifiedTransitions) {
+  if (shouldSimplifyTransitions) {
     document.documentElement.classList.add('simplified-transitions');
   }
 };

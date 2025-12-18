@@ -41,7 +41,7 @@ const themes = [
 export function AccountManagement({ onClose }: AccountManagementProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions } = useAnimationPreference();
+  const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions, lowPowerMode, setLowPowerMode } = useAnimationPreference();
   
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup' | 'debug'>('profile');
   const [isLoading, setIsLoading] = useState(false);
@@ -906,6 +906,29 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                   <h3 className="text-lg font-medium mb-4">Performance</h3>
                   
                   <div className="space-y-3">
+                    <Card className="p-4 border-primary/20 bg-primary/5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Settings className="h-5 w-5 text-primary" />
+                          <div>
+                            <h4 className="font-medium">Low Power Mode</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Enable all performance optimizations at once
+                            </p>
+                            {lowPowerMode && (
+                              <span className="text-xs text-primary mt-1 block">
+                                All optimizations active
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={lowPowerMode}
+                          onCheckedChange={setLowPowerMode}
+                        />
+                      </div>
+                    </Card>
+
                     <Card className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
