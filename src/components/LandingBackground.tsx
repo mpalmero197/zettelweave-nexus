@@ -181,10 +181,11 @@ export function LandingBackground() {
           orb.x, orb.y, currentRadius
         );
 
-        const opacity = currentIsDark ? 0.2 : 0.35;
-        const lightness = currentIsDark ? color.l : Math.max(color.l - 10, 35);
-        gradient.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${lightness}%, ${opacity})`);
-        gradient.addColorStop(0.4, `hsla(${color.h}, ${color.s}%, ${lightness}%, ${opacity * 0.5})`);
+        const opacity = currentIsDark ? 0.4 : 0.55;
+        const saturation = Math.min(color.s + 15, 100);
+        const lightness = currentIsDark ? color.l : Math.max(color.l - 5, 40);
+        gradient.addColorStop(0, `hsla(${color.h}, ${saturation}%, ${lightness}%, ${opacity})`);
+        gradient.addColorStop(0.5, `hsla(${color.h}, ${saturation}%, ${lightness}%, ${opacity * 0.4})`);
         gradient.addColorStop(1, 'transparent');
 
         ctx.beginPath();
