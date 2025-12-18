@@ -194,9 +194,11 @@ export function LandingBackground() {
           orb.x, orb.y, currentRadius
         );
 
-        const opacity = currentIsDark ? 0.2 : 0.15;
-        gradient.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${color.l}%, ${opacity})`);
-        gradient.addColorStop(0.4, `hsla(${color.h}, ${color.s}%, ${color.l}%, ${opacity * 0.4})`);
+        // Higher opacity for light mode since background is brighter
+        const opacity = currentIsDark ? 0.2 : 0.35;
+        const lightness = currentIsDark ? color.l : Math.max(color.l - 15, 30);
+        gradient.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${lightness}%, ${opacity})`);
+        gradient.addColorStop(0.4, `hsla(${color.h}, ${color.s}%, ${lightness}%, ${opacity * 0.5})`);
         gradient.addColorStop(1, 'transparent');
 
         ctx.beginPath();
@@ -224,10 +226,11 @@ export function LandingBackground() {
       // Draw floating particles
       particles.forEach(particle => {
         const twinkle = Math.sin(time * 3 + particle.x) * 0.3 + 0.7;
-        const alpha = particle.opacity * twinkle * (currentIsDark ? 0.6 : 0.4);
+        // Higher visibility for light mode
+        const alpha = particle.opacity * twinkle * (currentIsDark ? 0.6 : 0.8);
 
         ctx.beginPath();
-        ctx.fillStyle = `hsla(${colors.primary.h}, ${colors.primary.s}%, ${currentIsDark ? 80 : 60}%, ${alpha})`;
+        ctx.fillStyle = `hsla(${colors.primary.h}, ${colors.primary.s}%, ${currentIsDark ? 80 : 40}%, ${alpha})`;
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
 
@@ -283,16 +286,16 @@ export function LandingBackground() {
       {/* CSS gradient overlays */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div 
-          className="absolute -top-1/4 left-1/2 -translate-x-1/2 w-[150%] h-[60%] rounded-full blur-[120px] opacity-30"
+          className={`absolute -top-1/4 left-1/2 -translate-x-1/2 w-[150%] h-[60%] rounded-full blur-[120px] ${isDark ? 'opacity-30' : 'opacity-50'}`}
           style={{
-            background: `radial-gradient(ellipse at center, hsla(${themeColors.primary.h}, ${themeColors.primary.s}%, ${themeColors.primary.l}%, 0.3), transparent 70%)`,
+            background: `radial-gradient(ellipse at center, hsla(${themeColors.primary.h}, ${themeColors.primary.s}%, ${isDark ? themeColors.primary.l : themeColors.primary.l - 10}%, ${isDark ? 0.3 : 0.5}), transparent 70%)`,
           }}
         />
         
         <div 
-          className="absolute -bottom-1/4 left-1/4 w-[80%] h-[50%] rounded-full blur-[100px] opacity-20"
+          className={`absolute -bottom-1/4 left-1/4 w-[80%] h-[50%] rounded-full blur-[100px] ${isDark ? 'opacity-20' : 'opacity-40'}`}
           style={{
-            background: `radial-gradient(ellipse at center, hsla(${themeColors.secondary.h}, ${themeColors.secondary.s}%, ${themeColors.secondary.l}%, 0.4), transparent 70%)`,
+            background: `radial-gradient(ellipse at center, hsla(${themeColors.secondary.h}, ${themeColors.secondary.s}%, ${isDark ? themeColors.secondary.l : themeColors.secondary.l - 10}%, ${isDark ? 0.4 : 0.6}), transparent 70%)`,
           }}
         />
       </div>
