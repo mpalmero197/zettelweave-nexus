@@ -4,6 +4,7 @@ const ANIMATION_PREFERENCE_KEY = 'theme-animations-enabled';
 const RESPECT_OS_PREFERENCE_KEY = 'theme-animations-respect-os';
 const REDUCED_BLUR_KEY = 'theme-reduced-blur';
 const SIMPLIFIED_TRANSITIONS_KEY = 'theme-simplified-transitions';
+const LOW_POWER_MODE_KEY = 'theme-low-power-mode';
 
 function getOSPrefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -34,6 +35,11 @@ export function useAnimationPreference() {
 
   const [simplifiedTransitions, setSimplifiedTransitionsState] = useState<boolean>(() => {
     const stored = localStorage.getItem(SIMPLIFIED_TRANSITIONS_KEY);
+    return stored !== null ? stored === 'true' : false;
+  });
+
+  const [lowPowerMode, setLowPowerModeState] = useState<boolean>(() => {
+    const stored = localStorage.getItem(LOW_POWER_MODE_KEY);
     return stored !== null ? stored === 'true' : false;
   });
 
@@ -87,6 +93,11 @@ export function useAnimationPreference() {
     localStorage.setItem(SIMPLIFIED_TRANSITIONS_KEY, String(simplifiedTransitions));
   }, [simplifiedTransitions]);
 
+  // Save low power mode preference
+  useEffect(() => {
+    localStorage.setItem(LOW_POWER_MODE_KEY, String(lowPowerMode));
+  }, [lowPowerMode]);
+
   const setAnimationsEnabled = useCallback((enabled: boolean) => {
     setAnimationsEnabledState(enabled);
   }, []);
@@ -101,6 +112,16 @@ export function useAnimationPreference() {
 
   const setSimplifiedTransitions = useCallback((simplified: boolean) => {
     setSimplifiedTransitionsState(simplified);
+  }, []);
+
+  const setLowPowerMode = useCallback((enabled: boolean) => {
+    setLowPowerModeState(enabled);
+    if (enabled) {
+      // Enable all performance optimizations
+      setAnimationsEnabledState(false);
+      setReducedBlurState(true);
+      setSimplifiedTransitionsState(true);
+    }
   }, []);
 
   const toggleAnimations = useCallback(() => {
@@ -121,6 +142,8 @@ export function useAnimationPreference() {
     reducedBlur,
     setReducedBlur,
     simplifiedTransitions,
-    setSimplifiedTransitions
+    setSimplifiedTransitions,
+    lowPowerMode,
+    setLowPowerMode
   };
 }
