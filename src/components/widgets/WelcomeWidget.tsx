@@ -16,7 +16,7 @@ export function WelcomeWidget({}: WelcomeWidgetProps) {
       <CardContent className="p-8 h-full flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-primary rounded-2xl shadow-lg">
+              <div className="p-3 bg-primary rounded-2xl shadow-lg">
                 <Sparkles className="h-7 w-7 text-white" />
               </div>
               <div>
@@ -39,7 +39,7 @@ export function WelcomeWidget({}: WelcomeWidgetProps) {
               trigger={
                 <Button 
                   size="lg" 
-                  className="w-full bg-gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 h-12 text-base"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 h-12 text-base"
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Create Your First Card
