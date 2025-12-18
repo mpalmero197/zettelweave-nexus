@@ -7,7 +7,7 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useEffect, useState } from "react";
-
+import { LandingBackground } from "@/components/LandingBackground";
 export default function Landing() {
   const navigate = useNavigate();
   const heroAnimation = useScrollAnimation(0.1);
@@ -37,8 +37,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Theme-aware animated background */}
+      <LandingBackground />
+
       {/* Embossed Logo Watermark - Parallax Effect */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
         <div 
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] md:w-[1400px] md:h-[1400px] transition-transform duration-700 ease-out"
           style={{
@@ -46,17 +49,12 @@ export default function Landing() {
             backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
-            opacity: 0.06,
-            filter: 'grayscale(100%) contrast(150%)',
+            opacity: 0.04,
+            filter: 'grayscale(100%) contrast(120%)',
             transform: `translate(calc(-50% + ${mousePosition.x}px), calc(-50% + ${mousePosition.y}px))`,
+            mixBlendMode: 'soft-light',
           }}
         />
-      </div>
-
-      {/* Ambient Glow Effects */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[120px]" />
       </div>
 
       {/* Persistent Header - Ultra Minimal */}
