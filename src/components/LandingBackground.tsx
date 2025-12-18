@@ -196,18 +196,25 @@ export function LandingBackground() {
         ctx.fill();
       });
 
-      // Draw floating particles
+      // Draw floating particles with glow
       particles.forEach(particle => {
         const particleColor = orbColors[particle.colorIndex];
         const twinkle = Math.sin(time * 3 + particle.x) * 0.3 + 0.7;
-        const alpha = particle.opacity * twinkle * (currentIsDark ? 0.8 : 1);
-        const particleSaturation = Math.min(particleColor.s + 10, 100);
-        const particleLightness = currentIsDark ? 70 : 50;
+        const alpha = particle.opacity * twinkle * (currentIsDark ? 0.6 : 0.75);
+        const particleSaturation = Math.min(particleColor.s - 5, 90);
+        const particleLightness = currentIsDark ? 75 : 60;
+
+        // Add glow effect
+        ctx.shadowColor = `hsla(${particleColor.h}, ${particleSaturation}%, ${particleLightness}%, ${alpha * 0.8})`;
+        ctx.shadowBlur = particle.size * 4;
 
         ctx.beginPath();
         ctx.fillStyle = `hsla(${particleColor.h}, ${particleSaturation}%, ${particleLightness}%, ${alpha})`;
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Reset shadow for next element
+        ctx.shadowBlur = 0;
 
         particle.y -= particle.speed;
         particle.x += Math.sin(time + particle.y * 0.01) * 0.3;
