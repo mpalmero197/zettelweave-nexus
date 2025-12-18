@@ -120,6 +120,7 @@ export function LandingBackground() {
       size: number;
       speed: number;
       opacity: number;
+      colorIndex: number;
     }
 
     const orbs: Orb[] = [];
@@ -139,13 +140,14 @@ export function LandingBackground() {
     }
 
     // Create particles
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: Math.random() * 2 + 1,
+        size: Math.random() * 4 + 2,
         speed: Math.random() * 0.5 + 0.2,
-        opacity: Math.random() * 0.5 + 0.3,
+        opacity: Math.random() * 0.5 + 0.5,
+        colorIndex: i % 3,
       });
     }
 
@@ -196,12 +198,14 @@ export function LandingBackground() {
 
       // Draw floating particles
       particles.forEach(particle => {
+        const particleColor = orbColors[particle.colorIndex];
         const twinkle = Math.sin(time * 3 + particle.x) * 0.3 + 0.7;
-        const alpha = particle.opacity * twinkle * (currentIsDark ? 0.6 : 0.8);
-        const particleLightness = currentIsDark ? 80 : 45;
+        const alpha = particle.opacity * twinkle * (currentIsDark ? 0.8 : 1);
+        const particleSaturation = Math.min(particleColor.s + 10, 100);
+        const particleLightness = currentIsDark ? 70 : 50;
 
         ctx.beginPath();
-        ctx.fillStyle = `hsla(${colors.primary.h}, ${colors.primary.s}%, ${particleLightness}%, ${alpha})`;
+        ctx.fillStyle = `hsla(${particleColor.h}, ${particleSaturation}%, ${particleLightness}%, ${alpha})`;
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
 
