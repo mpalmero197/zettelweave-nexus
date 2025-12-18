@@ -1,59 +1,47 @@
 import { useTheme } from 'next-themes';
 import { useThemeVariant } from '@/hooks/useThemeVariant';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-interface ThemeColors {
-  primary: { h: number; s: number; l: number };
-  secondary: { h: number; s: number; l: number };
-  accent: { h: number; s: number; l: number };
+interface HSLColor {
+  h: number;
+  s: number;
+  l: number;
 }
 
-const getThemeColors = (variant: string | undefined, isDark: boolean): ThemeColors => {
-  const baseColors: Record<string, ThemeColors> = {
-    light: {
-      primary: { h: 220, s: 70, l: 55 },
-      secondary: { h: 280, s: 50, l: 60 },
-      accent: { h: 200, s: 60, l: 50 },
-    },
-    dark: {
-      primary: { h: 250, s: 80, l: 65 },
-      secondary: { h: 280, s: 70, l: 60 },
-      accent: { h: 200, s: 80, l: 55 },
-    },
-    ocean: {
-      primary: { h: 200, s: 85, l: isDark ? 55 : 45 },
-      secondary: { h: 180, s: 75, l: isDark ? 50 : 40 },
-      accent: { h: 220, s: 80, l: isDark ? 60 : 50 },
-    },
-    forest: {
-      primary: { h: 140, s: 65, l: isDark ? 50 : 40 },
-      secondary: { h: 100, s: 55, l: isDark ? 45 : 35 },
-      accent: { h: 80, s: 60, l: isDark ? 55 : 45 },
-    },
-    sunset: {
-      primary: { h: 25, s: 90, l: isDark ? 55 : 50 },
-      secondary: { h: 350, s: 85, l: isDark ? 50 : 45 },
-      accent: { h: 45, s: 90, l: isDark ? 60 : 55 },
-    },
-    lavender: {
-      primary: { h: 280, s: 70, l: isDark ? 60 : 55 },
-      secondary: { h: 320, s: 65, l: isDark ? 55 : 50 },
-      accent: { h: 260, s: 65, l: isDark ? 65 : 60 },
-    },
-    midnight: {
-      primary: { h: 250, s: 85, l: 65 },
-      secondary: { h: 190, s: 90, l: 55 },
-      accent: { h: 280, s: 75, l: 70 },
-    },
-    aurora: {
-      primary: { h: 160, s: 85, l: 55 },
-      secondary: { h: 190, s: 85, l: 55 },
-      accent: { h: 280, s: 75, l: 65 },
-    },
-  };
+// Parse HSL from CSS variable value like "271 76% 53%"
+const parseHSL = (cssValue: string): HSLColor => {
+  const parts = cssValue.trim().split(/\s+/);
+  if (parts.length >= 3) {
+    return {
+      h: parseFloat(parts[0]) || 0,
+      s: parseFloat(parts[1]) || 50,
+      l: parseFloat(parts[2]) || 50,
+    };
+  }
+  return { h: 250, s: 70, l: 55 }; // fallback purple
+};
 
-  const themeKey = variant || (isDark ? 'dark' : 'light');
-  return baseColors[themeKey] || baseColors[isDark ? 'dark' : 'light'];
+// Get colors from CSS variables
+const getColorsFromCSS = (): { primary: HSLColor; secondary: HSLColor; accent: HSLColor } => {
+  if (typeof window === 'undefined') {
+    return {
+      primary: { h: 271, s: 76, l: 53 },
+      secondary: { h: 346, s: 60, l: 49 },
+      accent: { h: 271, s: 50, l: 85 },
+    };
+  }
+  
+  const styles = getComputedStyle(document.documentElement);
+  
+  const primary = styles.getPropertyValue('--primary').trim();
+  const secondary = styles.getPropertyValue('--secondary').trim();
+  const accent = styles.getPropertyValue('--accent').trim();
+  
+  return {
+    primary: parseHSL(primary),
+    secondary: parseHSL(secondary),
+    accent: parseHSL(accent),
+  };
 };
 
 export function LandingBackground() {
@@ -61,18 +49,20 @@ export function LandingBackground() {
   const { variant } = useThemeVariant();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
-  const colorsRef = useRef<ThemeColors>(getThemeColors(undefined, true));
-  const variantRef = useRef<string | undefined>(variant);
+  const colorsRef = useRef(getColorsFromCSS());
   const isDarkRef = useRef<boolean>(true);
 
   const isDark = resolvedTheme === 'dark';
   
-  // Update refs when theme changes
+  // Update colors when theme changes
   useEffect(() => {
-    colorsRef.current = getThemeColors(variant, isDark);
-    variantRef.current = variant;
-    isDarkRef.current = isDark;
-  }, [variant, isDark]);
+    // Small delay to let CSS variables update
+    const timer = setTimeout(() => {
+      colorsRef.current = getColorsFromCSS();
+      isDarkRef.current = isDark;
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [variant, isDark, resolvedTheme]);
 
   // Check for reduced motion preferences
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -86,7 +76,6 @@ export function LandingBackground() {
     
     checkReducedMotion();
     
-    // Observe class changes
     const observer = new MutationObserver(checkReducedMotion);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     
@@ -165,12 +154,11 @@ export function LandingBackground() {
     const animate = () => {
       time += 0.008;
       
+      // Read current colors from ref (updated when theme changes)
       const colors = colorsRef.current;
-      const currentVariant = variantRef.current;
       const currentIsDark = isDarkRef.current;
       const orbColors = [colors.primary, colors.secondary, colors.accent];
       
-      // Clear canvas
       ctx.clearRect(0, 0, width, height);
 
       // Draw orbs with soft glow
@@ -180,7 +168,6 @@ export function LandingBackground() {
         orb.x += orb.vx + Math.sin(time + orb.phase) * 0.5;
         orb.y += orb.vy + Math.cos(time + orb.phase) * 0.5;
 
-        // Wrap around edges
         if (orb.x < -orb.radius) orb.x = width + orb.radius;
         if (orb.x > width + orb.radius) orb.x = -orb.radius;
         if (orb.y < -orb.radius) orb.y = height + orb.radius;
@@ -194,9 +181,8 @@ export function LandingBackground() {
           orb.x, orb.y, currentRadius
         );
 
-        // Higher opacity for light mode since background is brighter
         const opacity = currentIsDark ? 0.2 : 0.35;
-        const lightness = currentIsDark ? color.l : Math.max(color.l - 15, 30);
+        const lightness = currentIsDark ? color.l : Math.max(color.l - 10, 35);
         gradient.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${lightness}%, ${opacity})`);
         gradient.addColorStop(0.4, `hsla(${color.h}, ${color.s}%, ${lightness}%, ${opacity * 0.5})`);
         gradient.addColorStop(1, 'transparent');
@@ -207,30 +193,14 @@ export function LandingBackground() {
         ctx.fill();
       });
 
-      // Draw subtle mesh/grid lines for some themes
-      if (currentVariant === 'midnight' || currentVariant === 'aurora') {
-        ctx.strokeStyle = `hsla(${colors.accent.h}, ${colors.accent.s}%, ${colors.accent.l}%, 0.03)`;
-        ctx.lineWidth = 1;
-
-        for (let y = 0; y < height; y += 80) {
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          for (let x = 0; x <= width; x += 20) {
-            const offsetY = Math.sin(x * 0.01 + time + y * 0.01) * 15;
-            ctx.lineTo(x, y + offsetY);
-          }
-          ctx.stroke();
-        }
-      }
-
       // Draw floating particles
       particles.forEach(particle => {
         const twinkle = Math.sin(time * 3 + particle.x) * 0.3 + 0.7;
-        // Higher visibility for light mode
         const alpha = particle.opacity * twinkle * (currentIsDark ? 0.6 : 0.8);
+        const particleLightness = currentIsDark ? 80 : 45;
 
         ctx.beginPath();
-        ctx.fillStyle = `hsla(${colors.primary.h}, ${colors.primary.s}%, ${currentIsDark ? 80 : 40}%, ${alpha})`;
+        ctx.fillStyle = `hsla(${colors.primary.h}, ${colors.primary.s}%, ${particleLightness}%, ${alpha})`;
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
 
@@ -256,9 +226,7 @@ export function LandingBackground() {
     };
   }, [prefersReducedMotion]);
 
-  const themeColors = getThemeColors(variant, isDark);
-
-  // Static fallback for reduced motion
+  // Static fallback for reduced motion - uses CSS variables directly
   if (prefersReducedMotion) {
     return (
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -266,10 +234,10 @@ export function LandingBackground() {
           className="absolute inset-0"
           style={{
             background: isDark 
-              ? `radial-gradient(ellipse at 30% 20%, hsla(${themeColors.primary.h}, ${themeColors.primary.s}%, ${themeColors.primary.l}%, 0.15), transparent 50%),
-                 radial-gradient(ellipse at 70% 80%, hsla(${themeColors.secondary.h}, ${themeColors.secondary.s}%, ${themeColors.secondary.l}%, 0.1), transparent 50%)`
-              : `radial-gradient(ellipse at 30% 20%, hsla(${themeColors.primary.h}, ${themeColors.primary.s}%, ${themeColors.primary.l}%, 0.1), transparent 50%),
-                 radial-gradient(ellipse at 70% 80%, hsla(${themeColors.secondary.h}, ${themeColors.secondary.s}%, ${themeColors.secondary.l}%, 0.08), transparent 50%)`,
+              ? `radial-gradient(ellipse at 30% 20%, hsl(var(--primary) / 0.15), transparent 50%),
+                 radial-gradient(ellipse at 70% 80%, hsl(var(--secondary) / 0.1), transparent 50%)`
+              : `radial-gradient(ellipse at 30% 20%, hsl(var(--primary) / 0.25), transparent 50%),
+                 radial-gradient(ellipse at 70% 80%, hsl(var(--secondary) / 0.2), transparent 50%)`,
           }}
         />
       </div>
@@ -283,19 +251,19 @@ export function LandingBackground() {
         className="fixed inset-0 pointer-events-none z-0"
       />
       
-      {/* CSS gradient overlays */}
+      {/* CSS gradient overlays using CSS variables */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div 
           className={`absolute -top-1/4 left-1/2 -translate-x-1/2 w-[150%] h-[60%] rounded-full blur-[120px] ${isDark ? 'opacity-30' : 'opacity-50'}`}
           style={{
-            background: `radial-gradient(ellipse at center, hsla(${themeColors.primary.h}, ${themeColors.primary.s}%, ${isDark ? themeColors.primary.l : themeColors.primary.l - 10}%, ${isDark ? 0.3 : 0.5}), transparent 70%)`,
+            background: `radial-gradient(ellipse at center, hsl(var(--primary) / ${isDark ? 0.3 : 0.5}), transparent 70%)`,
           }}
         />
         
         <div 
           className={`absolute -bottom-1/4 left-1/4 w-[80%] h-[50%] rounded-full blur-[100px] ${isDark ? 'opacity-20' : 'opacity-40'}`}
           style={{
-            background: `radial-gradient(ellipse at center, hsla(${themeColors.secondary.h}, ${themeColors.secondary.s}%, ${isDark ? themeColors.secondary.l : themeColors.secondary.l - 10}%, ${isDark ? 0.4 : 0.6}), transparent 70%)`,
+            background: `radial-gradient(ellipse at center, hsl(var(--secondary) / ${isDark ? 0.4 : 0.6}), transparent 70%)`,
           }}
         />
       </div>
