@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, DragEvent } from "react";
+import { useState, useRef, useCallback, DragEvent, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -39,14 +40,26 @@ import {
   Plus,
   Tag,
   Link,
-  Globe
+  Globe,
+  Clipboard,
+  History,
+  Clock
 } from "lucide-react";
 import { ZettelCard } from "@/types/zettel";
 import { categorizeContent, generateZettelNumber, extractKeywords } from "@/utils/deweySystem";
 import { toast } from "sonner";
 import { sanitizeCardInput, validateZettelCard } from "@/utils/security";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import mammoth from "mammoth";
+
+interface ImportHistoryItem {
+  id: string;
+  file_name: string;
+  file_hash: string;
+  source_type: string;
+  imported_at: string;
+}
 
 interface EnhancedImportDialogProps {
   existingCards: ZettelCard[];
@@ -129,6 +142,7 @@ const calculateSimilarity = (str1: string, str2: string): number => {
 };
 
 export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: EnhancedImportDialogProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<ImportStep>('select');
   const [files, setFiles] = useState<ParsedFile[]>([]);
@@ -140,15 +154,86 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   const [retryQueue, setRetryQueue] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [newTagInput, setNewTagInput] = useState<Record<string, string>>({});
-  const [importMode, setImportMode] = useState<'files' | 'url'>('files');
+  const [importMode, setImportMode] = useState<'files' | 'url' | 'clipboard'>('files');
   const [urlInput, setUrlInput] = useState('');
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [quickImport, setQuickImport] = useState(false);
   const [batchUrlMode, setBatchUrlMode] = useState(false);
+  const [clipboardText, setClipboardText] = useState('');
+  const [clipboardTitle, setClipboardTitle] = useState('');
+  const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [importedHashes, setImportedHashes] = useState<Set<string>>(new Set());
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  // Load import history when dialog opens
+  useEffect(() => {
+    if (open && user) {
+      loadImportHistory();
+    }
+  }, [open, user]);
+
+  const loadImportHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('import_history')
+        .select('id, file_name, file_hash, source_type, imported_at')
+        .eq('user_id', user.id)
+        .order('imported_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      
+      setImportHistory(data || []);
+      setImportedHashes(new Set((data || []).map(h => h.file_hash)));
+    } catch (err) {
+      console.error('Failed to load import history:', err);
+    }
+  };
+
+  // Generate a hash for content
+  const generateContentHash = async (content: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(content);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  // Check if content was previously imported
+  const checkImportHistory = async (content: string): Promise<boolean> => {
+    const hash = await generateContentHash(content);
+    return importedHashes.has(hash);
+  };
+
+  // Save to import history
+  const saveToImportHistory = async (fileName: string, content: string, sourceType: string, cardId?: string) => {
+    if (!user) return;
+    
+    try {
+      const hash = await generateContentHash(content);
+      
+      await supabase
+        .from('import_history')
+        .insert({
+          user_id: user.id,
+          file_name: fileName,
+          file_hash: hash,
+          file_path: sourceType === 'url' ? fileName : `local:${fileName}`,
+          source_type: sourceType,
+          card_id: cardId,
+        });
+      
+      setImportedHashes(prev => new Set([...prev, hash]));
+    } catch (err) {
+      console.error('Failed to save import history:', err);
+    }
+  };
 
   const resetState = useCallback(() => {
     setStep('select');
@@ -163,6 +248,9 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     setUrlInput('');
     setIsFetchingUrl(false);
     setBatchUrlMode(false);
+    setClipboardText('');
+    setClipboardTitle('');
+    setShowHistory(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -442,6 +530,14 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
 
     if (cards.length > 0) {
       onImportCards(cards);
+      
+      // Save to import history
+      for (const file of filesToImport) {
+        const sourceType = file.content.includes('**Source:**') ? 'url' : 
+                           importMode === 'clipboard' ? 'clipboard' : 'file';
+        await saveToImportHistory(file.name, file.content, sourceType);
+      }
+      
       toast.success(`Quick imported ${cards.length} cards!`);
     }
 
@@ -632,6 +728,92 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     toast.success(`Fetched ${successCount} webpage(s) successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
   };
 
+  const processClipboardContent = async () => {
+    const content = clipboardText.trim();
+    if (!content) {
+      toast.error('Please paste some text content');
+      return;
+    }
+
+    const title = clipboardTitle.trim() || `Clipboard Import ${new Date().toLocaleDateString()}`;
+
+    setStep('parsing');
+    setProgress(0);
+    setProgressMessage('Processing clipboard content...');
+
+    // Check if already imported
+    const alreadyImported = await checkImportHistory(content);
+    
+    // Check for duplicates against existing cards
+    const duplicateCheck = checkForDuplicatesFunc(content, title);
+    
+    let status: ParsedFile['status'] = 'success';
+    let duplicateCount = 0;
+    let similarCount = 0;
+
+    if (alreadyImported) {
+      status = 'duplicate';
+      duplicateCount = 1;
+    } else if (duplicateCheck.isDuplicate) {
+      status = 'duplicate';
+      duplicateCount = 1;
+    } else if (duplicateCheck.isSimilar) {
+      status = 'similar';
+      similarCount = 1;
+    }
+
+    const category = categorizeContent(content, title);
+    const tags = extractKeywords(title + " " + content).slice(0, 5);
+
+    const parsedFile: ParsedFile = {
+      id: crypto.randomUUID(),
+      name: title,
+      type: 'text',
+      content: content,
+      size: content.length,
+      status,
+      selected: status !== 'duplicate',
+      category,
+      tags,
+      preview: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+      similarTo: duplicateCheck.matchTitle || (alreadyImported ? 'Previously imported' : undefined),
+      similarityScore: duplicateCheck.score,
+    };
+
+    setProgress(100);
+    setFiles([parsedFile]);
+    setStats({
+      total: 1,
+      parsed: status === 'success' || status === 'similar' ? 1 : 0,
+      errors: 0,
+      duplicates: duplicateCount,
+      similar: similarCount,
+    });
+
+    // Quick import if enabled
+    if (quickImport && duplicateCount === 0) {
+      await performQuickImport([parsedFile]);
+      return;
+    }
+
+    setStep('review');
+    setProgressMessage('');
+  };
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setClipboardText(text);
+        toast.success('Pasted from clipboard');
+      } else {
+        toast.error('Clipboard is empty');
+      }
+    } catch {
+      toast.error('Unable to access clipboard. Please paste manually.');
+    }
+  };
+
   const retryFailedFile = async (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (!file || file.status !== 'error') return;
@@ -761,6 +943,14 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     if (cards.length > 0) {
       onImportCards(cards);
       
+      // Save to import history
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const sourceType = file.content.includes('**Source:**') ? 'url' : 
+                           importMode === 'clipboard' ? 'clipboard' : 'file';
+        await saveToImportHistory(file.name, file.content, sourceType);
+      }
+      
       if (validationErrors > 0) {
         toast.warning(`Imported ${cards.length} cards. ${validationErrors} skipped due to validation errors.`);
       } else {
@@ -816,148 +1006,254 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         {/* Step: Select Files */}
         {step === 'select' && (
           <div className="space-y-4 py-4">
-            <Tabs value={importMode} onValueChange={(v) => setImportMode(v as 'files' | 'url')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="files" className="gap-2">
-                  <Upload className="h-4 w-4" />
-                  Upload Files
-                </TabsTrigger>
-                <TabsTrigger value="url" className="gap-2">
-                  <Globe className="h-4 w-4" />
-                  Import from URL
-                </TabsTrigger>
-              </TabsList>
+            {/* History toggle button */}
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                className="gap-2"
+              >
+                <History className="h-4 w-4" />
+                {showHistory ? 'Hide History' : 'Import History'}
+                {importHistory.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">{importHistory.length}</Badge>
+                )}
+              </Button>
+            </div>
 
-              <TabsContent value="files" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Supported formats</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">.md .txt</Badge>
-                    <Badge variant="secondary">.docx</Badge>
-                    <Badge variant="secondary">.pdf</Badge>
-                    <Badge variant="secondary">.jpg .png .gif</Badge>
-                  </div>
-                </div>
-
-                {/* Drag and drop zone */}
-                <div 
-                  ref={dropZoneRef}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
-                    isDragging 
-                      ? 'border-primary bg-primary/10 scale-[1.02]' 
-                      : 'border-muted-foreground/25 hover:border-primary/50'
-                  }`}
-                >
-                  <Upload className={`h-10 w-10 mx-auto mb-3 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <p className={`text-sm mb-2 transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                    {isDragging ? 'Drop files here!' : 'Click to select files or drag and drop'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Maximum 10MB per file
-                  </p>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept={SUPPORTED_EXTENSIONS.join(',')}
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="url" className="space-y-4 mt-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Switch
-                    id="batch-url-mode"
-                    checked={batchUrlMode}
-                    onCheckedChange={setBatchUrlMode}
-                  />
-                  <Label htmlFor="batch-url-mode" className="text-sm">
-                    Batch mode (multiple URLs)
-                  </Label>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="url-input">{batchUrlMode ? 'Webpage URLs (one per line)' : 'Webpage URL'}</Label>
-                  {batchUrlMode ? (
+            {showHistory ? (
+              <div className="space-y-3">
+                <Label>Recently Imported</Label>
+                {importHistory.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No import history yet</p>
+                ) : (
+                  <ScrollArea className="h-[300px]">
                     <div className="space-y-2">
-                      <textarea
-                        id="url-input"
-                        placeholder={`https://example.com/article1\nhttps://example.com/article2\nhttps://example.com/article3`}
-                        value={urlInput}
-                        onChange={(e) => setUrlInput(e.target.value)}
-                        className="w-full min-h-[120px] p-3 rounded-md border border-input bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground">
-                          {urlInput.split('\n').filter(u => u.trim()).length} URL(s) entered
-                        </p>
+                      {importHistory.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border"
+                        >
+                          <div className="flex-shrink-0">
+                            {item.source_type === 'url' ? (
+                              <Globe className="h-4 w-4 text-muted-foreground" />
+                            ) : item.source_type === 'clipboard' ? (
+                              <Clipboard className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.file_name}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {new Date(item.imported_at).toLocaleDateString()}
+                              <Badge variant="outline" className="text-xs">{item.source_type}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
+            ) : (
+              <Tabs value={importMode} onValueChange={(v) => setImportMode(v as 'files' | 'url' | 'clipboard')} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="files" className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Files
+                  </TabsTrigger>
+                  <TabsTrigger value="url" className="gap-2">
+                    <Globe className="h-4 w-4" />
+                    URL
+                  </TabsTrigger>
+                  <TabsTrigger value="clipboard" className="gap-2">
+                    <Clipboard className="h-4 w-4" />
+                    Clipboard
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="files" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Supported formats</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">.md .txt</Badge>
+                      <Badge variant="secondary">.docx</Badge>
+                      <Badge variant="secondary">.pdf</Badge>
+                      <Badge variant="secondary">.jpg .png .gif</Badge>
+                    </div>
+                  </div>
+
+                  {/* Drag and drop zone */}
+                  <div 
+                    ref={dropZoneRef}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
+                      isDragging 
+                        ? 'border-primary bg-primary/10 scale-[1.02]' 
+                        : 'border-muted-foreground/25 hover:border-primary/50'
+                    }`}
+                  >
+                    <Upload className={`h-10 w-10 mx-auto mb-3 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <p className={`text-sm mb-2 transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                      {isDragging ? 'Drop files here!' : 'Click to select files or drag and drop'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Maximum 10MB per file
+                    </p>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept={SUPPORTED_EXTENSIONS.join(',')}
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="url" className="space-y-4 mt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Switch
+                      id="batch-url-mode"
+                      checked={batchUrlMode}
+                      onCheckedChange={setBatchUrlMode}
+                    />
+                    <Label htmlFor="batch-url-mode" className="text-sm">
+                      Batch mode (multiple URLs)
+                    </Label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="url-input">{batchUrlMode ? 'Webpage URLs (one per line)' : 'Webpage URL'}</Label>
+                    {batchUrlMode ? (
+                      <div className="space-y-2">
+                        <textarea
+                          id="url-input"
+                          placeholder={`https://example.com/article1\nhttps://example.com/article2\nhttps://example.com/article3`}
+                          value={urlInput}
+                          onChange={(e) => setUrlInput(e.target.value)}
+                          className="w-full min-h-[120px] p-3 rounded-md border border-input bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs text-muted-foreground">
+                            {urlInput.split('\n').filter(u => u.trim()).length} URL(s) entered
+                          </p>
+                          <Button 
+                            onClick={fetchUrlContent} 
+                            disabled={!urlInput.trim() || isFetchingUrl}
+                          >
+                            {isFetchingUrl ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Globe className="h-4 w-4 mr-2" />
+                            )}
+                            Fetch All
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="url-input"
+                            type="url"
+                            placeholder="https://example.com/article"
+                            value={urlInput}
+                            onChange={(e) => setUrlInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && fetchUrlContent()}
+                            className="pl-10"
+                          />
+                        </div>
                         <Button 
                           onClick={fetchUrlContent} 
                           disabled={!urlInput.trim() || isFetchingUrl}
                         >
                           {isFetchingUrl ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Globe className="h-4 w-4 mr-2" />
+                            <>
+                              <Globe className="h-4 w-4 mr-2" />
+                              Fetch
+                            </>
                           )}
-                          Fetch All
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="url-input"
-                          type="url"
-                          placeholder="https://example.com/article"
-                          value={urlInput}
-                          onChange={(e) => setUrlInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && fetchUrlContent()}
-                          className="pl-10"
-                        />
-                      </div>
-                      <Button 
-                        onClick={fetchUrlContent} 
-                        disabled={!urlInput.trim() || isFetchingUrl}
-                      >
-                        {isFetchingUrl ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Globe className="h-4 w-4 mr-2" />
-                            Fetch
-                          </>
-                        )}
+                    )}
+                    {!batchUrlMode && (
+                      <p className="text-xs text-muted-foreground">
+                        Enter a webpage URL to extract and import its content as a card
+                      </p>
+                    )}
+                  </div>
+
+                  <Alert className="bg-muted/50">
+                    <Globe className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      {batchUrlMode 
+                        ? 'Paste multiple URLs (one per line) to fetch them all at once. Invalid URLs will be skipped.'
+                        : 'The content will be converted to markdown format. Works best with articles, blog posts, and documentation pages.'
+                      }
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+
+                <TabsContent value="clipboard" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clipboard-title">Title (optional)</Label>
+                    <Input
+                      id="clipboard-title"
+                      placeholder="Give your content a title..."
+                      value={clipboardTitle}
+                      onChange={(e) => setClipboardTitle(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="clipboard-content">Content</Label>
+                      <Button variant="ghost" size="sm" onClick={pasteFromClipboard} className="gap-2">
+                        <Clipboard className="h-4 w-4" />
+                        Paste
                       </Button>
                     </div>
-                  )}
-                  {!batchUrlMode && (
-                    <p className="text-xs text-muted-foreground">
-                      Enter a webpage URL to extract and import its content as a card
-                    </p>
-                  )}
-                </div>
+                    <Textarea
+                      id="clipboard-content"
+                      placeholder="Paste or type your content here..."
+                      value={clipboardText}
+                      onChange={(e) => setClipboardText(e.target.value)}
+                      className="min-h-[150px] resize-y"
+                    />
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-muted-foreground">
+                        {clipboardText.length} characters
+                      </p>
+                      <Button 
+                        onClick={processClipboardContent} 
+                        disabled={!clipboardText.trim()}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Process
+                      </Button>
+                    </div>
+                  </div>
 
-                <Alert className="bg-muted/50">
-                  <Globe className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    {batchUrlMode 
-                      ? 'Paste multiple URLs (one per line) to fetch them all at once. Invalid URLs will be skipped.'
-                      : 'The content will be converted to markdown format. Works best with articles, blog posts, and documentation pages.'
-                    }
-                  </AlertDescription>
-                </Alert>
-              </TabsContent>
-            </Tabs>
+                  <Alert className="bg-muted/50">
+                    <Clipboard className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      Paste any text content directly to create a card. Great for quick notes, snippets, or content from other apps.
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+              </Tabs>
+            )}
 
             <div className="space-y-3 pt-2 border-t">
               <div className="flex items-center gap-2">
