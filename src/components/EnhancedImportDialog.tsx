@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, DragEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   FileUp, 
   Upload, 
@@ -23,17 +28,19 @@ import {
   RefreshCw,
   Copy,
   Trash2,
-  Eye,
   ChevronDown,
   ChevronRight,
   Loader2,
   FileWarning,
-  Files
+  Files,
+  Edit2,
+  X,
+  Plus,
+  Tag
 } from "lucide-react";
 import { ZettelCard } from "@/types/zettel";
 import { categorizeContent, generateZettelNumber, extractKeywords } from "@/utils/deweySystem";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { sanitizeCardInput, validateZettelCard } from "@/utils/security";
 import mammoth from "mammoth";
 
@@ -55,7 +62,7 @@ interface ParsedFile {
   category?: string;
   tags?: string[];
   preview?: string;
-  similarTo?: string; // Title of similar existing card
+  similarTo?: string;
   similarityScore?: number;
 }
 
@@ -78,12 +85,25 @@ const FILE_TYPE_ICONS: Record<string, typeof FileText> = {
   other: FileWarning,
 };
 
-// Supported file extensions
 const SUPPORTED_EXTENSIONS = [
   '.md', '.markdown', '.txt', 
   '.docx', 
   '.pdf', 
   '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'
+];
+
+// Category options for the dropdown
+const CATEGORY_OPTIONS = [
+  { value: "000", label: "000 - Computer Science & Technology" },
+  { value: "100", label: "100 - Philosophy & Psychology" },
+  { value: "200", label: "200 - Religion & Spirituality" },
+  { value: "300", label: "300 - Social Sciences" },
+  { value: "400", label: "400 - Language & Linguistics" },
+  { value: "500", label: "500 - Science & Mathematics" },
+  { value: "600", label: "600 - Technology & Medicine" },
+  { value: "700", label: "700 - Arts & Recreation" },
+  { value: "800", label: "800 - Literature" },
+  { value: "900", label: "900 - History & Geography" },
 ];
 
 const calculateSimilarity = (str1: string, str2: string): number => {
@@ -114,9 +134,12 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   const [checkDuplicates, setCheckDuplicates] = useState(true);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [retryQueue, setRetryQueue] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [newTagInput, setNewTagInput] = useState<Record<string, string>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const resetState = useCallback(() => {
     setStep('select');
@@ -126,6 +149,8 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     setStats({ total: 0, parsed: 0, errors: 0, duplicates: 0, similar: 0 });
     setExpandedFile(null);
     setRetryQueue([]);
+    setIsDragging(false);
+    setNewTagInput({});
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -169,8 +194,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   };
 
   const parsePdfFile = async (file: File): Promise<string> => {
-    // PDF requires server-side processing
-    // For now, return a placeholder message
     return `[PDF Content from: ${file.name}]\n\nPDF text extraction is limited in the browser. Consider using an online PDF to text converter for full content extraction, or the content will be referenced as a file attachment.`;
   };
 
@@ -202,18 +225,16 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     }
   };
 
-  const checkForDuplicates = (content: string, title: string): { isDuplicate: boolean; isSimilar: boolean; matchTitle?: string; score?: number } => {
+  const checkForDuplicatesFunc = (content: string, title: string): { isDuplicate: boolean; isSimilar: boolean; matchTitle?: string; score?: number } => {
     if (!checkDuplicates || existingCards.length === 0) {
       return { isDuplicate: false, isSimilar: false };
     }
 
     for (const card of existingCards) {
-      // Check for exact title match
       if (card.title.toLowerCase() === title.toLowerCase()) {
         return { isDuplicate: true, isSimilar: false, matchTitle: card.title, score: 1 };
       }
 
-      // Check content similarity
       const similarity = calculateSimilarity(content, card.content);
       if (similarity > 0.9) {
         return { isDuplicate: true, isSimilar: false, matchTitle: card.title, score: similarity };
@@ -259,7 +280,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         selected: true,
       };
 
-      // Skip unsupported files
       if (fileType === 'other') {
         parsedFile.status = 'error';
         parsedFile.error = 'Unsupported file format';
@@ -269,7 +289,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         continue;
       }
 
-      // Skip files over 10MB
       if (file.size > 10 * 1024 * 1024) {
         parsedFile.status = 'error';
         parsedFile.error = 'File too large (max 10MB)';
@@ -283,15 +302,13 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         const content = await parseFile(file, fileType);
         parsedFile.content = content;
         
-        // Extract title from filename or first heading
         let title = file.name.replace(/\.[^/.]+$/, '');
         const headingMatch = content.match(/^#\s+(.+)$/m);
         if (headingMatch) {
           title = headingMatch[1];
         }
 
-        // Check for duplicates
-        const duplicateCheck = checkForDuplicates(content, title);
+        const duplicateCheck = checkForDuplicatesFunc(content, title);
         
         if (duplicateCheck.isDuplicate) {
           parsedFile.status = 'duplicate';
@@ -308,12 +325,10 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
           parsedFile.status = 'success';
         }
 
-        // Auto-categorize
         const category = categorizeContent(content, title);
         parsedFile.category = category;
         parsedFile.tags = extractKeywords(title + " " + content).slice(0, 5);
         
-        // Generate preview
         const cleanContent = content
           .replace(/^#.*$/gm, '')
           .replace(/!\[.*?\]\(.*?\)/g, '')
@@ -341,7 +356,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         similar: similarCount
       });
 
-      // Yield to UI
       await new Promise(resolve => setTimeout(resolve, 0));
     }
 
@@ -349,6 +363,38 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     setStep('review');
     setProgressMessage('');
   };
+
+  // Drag and drop handlers
+  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set dragging to false if leaving the dropzone entirely
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = e.dataTransfer?.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      processFiles(droppedFiles);
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -359,8 +405,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   const retryFailedFile = async (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (!file || file.status !== 'error') return;
-
-    // Since we can't re-read the original file, mark for retry on next import
     setRetryQueue(prev => [...prev, file.name]);
     toast.info(`"${file.name}" will be included in next import attempt`);
   };
@@ -385,6 +429,33 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     setFiles(prev => prev.filter(f => f.id !== fileId));
   };
 
+  // Category and tag editing
+  const updateFileCategory = (fileId: string, newCategory: string) => {
+    setFiles(prev => prev.map(f => 
+      f.id === fileId ? { ...f, category: newCategory } : f
+    ));
+  };
+
+  const addTagToFile = (fileId: string, tag: string) => {
+    const trimmedTag = tag.trim().toLowerCase();
+    if (!trimmedTag) return;
+    
+    setFiles(prev => prev.map(f => {
+      if (f.id !== fileId) return f;
+      const currentTags = f.tags || [];
+      if (currentTags.includes(trimmedTag)) return f;
+      return { ...f, tags: [...currentTags, trimmedTag].slice(0, 10) };
+    }));
+    setNewTagInput(prev => ({ ...prev, [fileId]: '' }));
+  };
+
+  const removeTagFromFile = (fileId: string, tagToRemove: string) => {
+    setFiles(prev => prev.map(f => {
+      if (f.id !== fileId) return f;
+      return { ...f, tags: (f.tags || []).filter(t => t !== tagToRemove) };
+    }));
+  };
+
   const importSelectedFiles = async () => {
     const selectedFiles = files.filter(f => f.selected);
     if (selectedFiles.length === 0) {
@@ -404,7 +475,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
       
-      // Extract title
       let title = file.name.replace(/\.[^/.]+$/, '');
       const headingMatch = file.content.match(/^#\s+(.+)$/m);
       if (headingMatch) {
@@ -414,7 +484,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
       const sanitizedTitle = sanitizeCardInput(title);
       const sanitizedContent = sanitizeCardInput(file.content);
       
-      // Clean content for description
       const cleanContent = file.content
         .replace(/^#.*$/gm, '')
         .replace(/!\[.*?\]\(.*?\)/g, '')
@@ -425,6 +494,7 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
       
       const description = cleanContent.substring(0, 150) + (cleanContent.length > 150 ? '...' : '');
       
+      // Use user-edited category
       const category = file.category || categorizeContent(file.content, title);
       const number = generateZettelNumber(category, existingNumbers);
       existingNumbers.push(number);
@@ -433,6 +503,7 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         title: sanitizedTitle,
         content: sanitizedContent,
         description: sanitizeCardInput(description),
+        // Use user-edited tags
         tags: file.tags || [],
         category,
         number,
@@ -493,7 +564,6 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   };
 
   const selectedCount = files.filter(f => f.selected).length;
-  const FileIcon = (type: ParsedFile['type']) => FILE_TYPE_ICONS[type] || FileText;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetState(); }}>
@@ -526,13 +596,23 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
               </div>
             </div>
 
+            {/* Drag and drop zone */}
             <div 
-              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              ref={dropZoneRef}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
+                isDragging 
+                  ? 'border-primary bg-primary/10 scale-[1.02]' 
+                  : 'border-muted-foreground/25 hover:border-primary/50'
+              }`}
             >
-              <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Click to select files or drag and drop
+              <Upload className={`h-10 w-10 mx-auto mb-3 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+              <p className={`text-sm mb-2 transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                {isDragging ? 'Drop files here!' : 'Click to select files or drag and drop'}
               </p>
               <p className="text-xs text-muted-foreground">
                 Maximum 10MB per file
@@ -599,6 +679,14 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
               {stats.duplicates > 0 && <Badge variant="outline" className="border-amber-500 text-amber-500">{stats.duplicates} Duplicates</Badge>}
               {stats.similar > 0 && <Badge variant="outline" className="border-amber-500 text-amber-500">{stats.similar} Similar</Badge>}
             </div>
+
+            {/* Info alert */}
+            <Alert className="bg-primary/5 border-primary/20">
+              <Edit2 className="h-4 w-4" />
+              <AlertDescription>
+                Expand each file to edit its category and tags before importing.
+              </AlertDescription>
+            </Alert>
 
             {/* Duplicate/Error alerts */}
             {(stats.duplicates > 0 || stats.errors > 0) && (
@@ -690,9 +778,9 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
                         </div>
                       </div>
                       
-                      {/* Expanded content */}
+                      {/* Expanded content with editable category and tags */}
                       {isExpanded && (
-                        <div className="px-4 pb-3 pt-1 border-t space-y-2">
+                        <div className="px-4 pb-3 pt-1 border-t space-y-3">
                           {file.error && (
                             <p className="text-sm text-destructive">{file.error}</p>
                           )}
@@ -708,18 +796,74 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
                             <p className="text-xs text-muted-foreground line-clamp-3">{file.preview}</p>
                           )}
                           
-                          {file.category && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">Category:</span>
-                              <Badge variant="outline">{file.category}</Badge>
+                          {/* Editable Category */}
+                          {file.status !== 'error' && (
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Category</Label>
+                              <Select
+                                value={file.category || "000"}
+                                onValueChange={(value) => updateFileCategory(file.id, value)}
+                              >
+                                <SelectTrigger className="h-8 text-xs bg-background">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover z-50">
+                                  {CATEGORY_OPTIONS.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           )}
                           
-                          {file.tags && file.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {file.tags.map(tag => (
-                                <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                              ))}
+                          {/* Editable Tags */}
+                          {file.status !== 'error' && (
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Tag className="h-3 w-3" />
+                                Tags
+                              </Label>
+                              <div className="flex flex-wrap gap-1">
+                                {(file.tags || []).map(tag => (
+                                  <Badge 
+                                    key={tag} 
+                                    variant="secondary" 
+                                    className="text-xs gap-1 pr-1"
+                                  >
+                                    {tag}
+                                    <button
+                                      onClick={() => removeTagFromFile(file.id, tag)}
+                                      className="ml-1 hover:text-destructive transition-colors"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Add tag..."
+                                  value={newTagInput[file.id] || ''}
+                                  onChange={(e) => setNewTagInput(prev => ({ ...prev, [file.id]: e.target.value }))}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      addTagToFile(file.id, newTagInput[file.id] || '');
+                                    }
+                                  }}
+                                  className="h-7 text-xs flex-1"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2"
+                                  onClick={() => addTagToFile(file.id, newTagInput[file.id] || '')}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
