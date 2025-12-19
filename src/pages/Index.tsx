@@ -7,6 +7,7 @@ import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
 import { VaultImportDialog } from "@/components/VaultImportDialog";
+import { EnhancedImportDialog } from "@/components/EnhancedImportDialog";
 import { GraphView } from "@/components/GraphViewNew";
 import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
@@ -392,6 +393,7 @@ const Index = () => {
             <div className="sticky top-14 sm:top-20 z-30 bg-card/98 backdrop-blur-xl border border-border/40 rounded-lg px-2 py-1.5 sm:py-2 mb-2 shadow-md hover:shadow-lg hover:border-primary/30 transition-all duration-300">
               <div className="flex items-center justify-center max-w-7xl mx-auto gap-1 sm:gap-1.5 flex-wrap">
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                <EnhancedImportDialog existingCards={cards} onImportCards={handleImportCards} />
                 <VaultImportDialog onImportCards={handleImportCards} />
                 <Button
                   variant="outline"

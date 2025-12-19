@@ -1,3 +1,8 @@
+// Re-export the enhanced import dialog as the default ImportDialog
+// This provides backward compatibility while using the new enhanced version
+export { EnhancedImportDialog as ImportDialog } from "./EnhancedImportDialog";
+
+// The original SimpleImportDialog is kept below for reference only
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,13 +12,14 @@ import { FileUp, Upload, FileText } from "lucide-react";
 import { ZettelCard } from "@/types/zettel";
 import { categorizeContent, generateZettelNumber, extractKeywords } from "@/utils/deweySystem";
 
-interface ImportDialogProps {
+interface SimpleImportDialogProps {
   existingCards: ZettelCard[];
   onImportCards: (cards: Omit<ZettelCard, 'id' | 'created' | 'modified'>[]) => void;
   trigger?: React.ReactNode;
 }
 
-export function ImportDialog({ existingCards, onImportCards, trigger }: ImportDialogProps) {
+// Legacy simple import dialog - kept for reference
+export function SimpleImportDialog({ existingCards, onImportCards, trigger }: SimpleImportDialogProps) {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<FileList | null>(null);
   const [parsing, setParsing] = useState(false);
@@ -95,7 +101,7 @@ export function ImportDialog({ existingCards, onImportCards, trigger }: ImportDi
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" className="bg-gradient-card hover:bg-secondary-hover">
+          <Button variant="outline" className="bg-secondary hover:bg-secondary/80">
             <FileUp className="h-4 w-4 mr-2" />
             Import Files
           </Button>
