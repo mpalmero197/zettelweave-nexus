@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Select,
   SelectContent,
@@ -36,12 +37,15 @@ import {
   Edit2,
   X,
   Plus,
-  Tag
+  Tag,
+  Link,
+  Globe
 } from "lucide-react";
 import { ZettelCard } from "@/types/zettel";
 import { categorizeContent, generateZettelNumber, extractKeywords } from "@/utils/deweySystem";
 import { toast } from "sonner";
 import { sanitizeCardInput, validateZettelCard } from "@/utils/security";
+import { supabase } from "@/integrations/supabase/client";
 import mammoth from "mammoth";
 
 interface EnhancedImportDialogProps {
@@ -136,6 +140,9 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   const [retryQueue, setRetryQueue] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [newTagInput, setNewTagInput] = useState<Record<string, string>>({});
+  const [importMode, setImportMode] = useState<'files' | 'url'>('files');
+  const [urlInput, setUrlInput] = useState('');
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -151,6 +158,8 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     setRetryQueue([]);
     setIsDragging(false);
     setNewTagInput({});
+    setUrlInput('');
+    setIsFetchingUrl(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -402,6 +411,98 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     }
   };
 
+  const fetchUrlContent = async () => {
+    const trimmedUrl = urlInput.trim();
+    if (!trimmedUrl) {
+      toast.error('Please enter a URL');
+      return;
+    }
+
+    // Basic URL validation
+    let formattedUrl = trimmedUrl;
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = `https://${formattedUrl}`;
+    }
+
+    try {
+      new URL(formattedUrl);
+    } catch {
+      toast.error('Please enter a valid URL');
+      return;
+    }
+
+    setIsFetchingUrl(true);
+    setStep('parsing');
+    setProgress(0);
+    setProgressMessage('Fetching webpage content...');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-url-content', {
+        body: { url: formattedUrl },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch URL');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to fetch URL content');
+      }
+
+      setProgress(50);
+      setProgressMessage('Processing content...');
+
+      const { title, description, content, hostname, image } = data.data;
+
+      // Check for duplicates
+      const duplicateCheck = checkForDuplicatesFunc(content, title);
+      
+      let status: ParsedFile['status'] = 'success';
+      if (duplicateCheck.isDuplicate) {
+        status = 'duplicate';
+      } else if (duplicateCheck.isSimilar) {
+        status = 'similar';
+      }
+
+      const category = categorizeContent(content, title);
+      const tags = extractKeywords(title + " " + content).slice(0, 5);
+
+      const parsedFile: ParsedFile = {
+        id: crypto.randomUUID(),
+        name: title || hostname,
+        type: 'text',
+        content: `# ${title}\n\n**Source:** [${hostname}](${formattedUrl})\n\n${content}`,
+        size: content.length,
+        status,
+        selected: status !== 'duplicate',
+        category,
+        tags,
+        preview: (description || content.substring(0, 200)) + (content.length > 200 ? '...' : ''),
+        similarTo: duplicateCheck.matchTitle,
+        similarityScore: duplicateCheck.score,
+      };
+
+      setProgress(100);
+      setFiles([parsedFile]);
+      setStats({
+        total: 1,
+        parsed: status === 'success' || status === 'similar' ? 1 : 0,
+        errors: 0,
+        duplicates: status === 'duplicate' ? 1 : 0,
+        similar: status === 'similar' ? 1 : 0,
+      });
+      setStep('review');
+      toast.success('Webpage content fetched successfully');
+    } catch (err) {
+      console.error('URL fetch error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to fetch URL content');
+      setStep('select');
+    } finally {
+      setIsFetchingUrl(false);
+      setProgressMessage('');
+    }
+  };
+
   const retryFailedFile = async (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (!file || file.status !== 'error') return;
@@ -586,48 +687,106 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
         {/* Step: Select Files */}
         {step === 'select' && (
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Supported formats</Label>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">.md .txt</Badge>
-                <Badge variant="secondary">.docx</Badge>
-                <Badge variant="secondary">.pdf</Badge>
-                <Badge variant="secondary">.jpg .png .gif</Badge>
-              </div>
-            </div>
+            <Tabs value={importMode} onValueChange={(v) => setImportMode(v as 'files' | 'url')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="files" className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Files
+                </TabsTrigger>
+                <TabsTrigger value="url" className="gap-2">
+                  <Globe className="h-4 w-4" />
+                  Import from URL
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Drag and drop zone */}
-            <div 
-              ref={dropZoneRef}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
-                isDragging 
-                  ? 'border-primary bg-primary/10 scale-[1.02]' 
-                  : 'border-muted-foreground/25 hover:border-primary/50'
-              }`}
-            >
-              <Upload className={`h-10 w-10 mx-auto mb-3 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
-              <p className={`text-sm mb-2 transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {isDragging ? 'Drop files here!' : 'Click to select files or drag and drop'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Maximum 10MB per file
-              </p>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={SUPPORTED_EXTENSIONS.join(',')}
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
+              <TabsContent value="files" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Supported formats</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">.md .txt</Badge>
+                    <Badge variant="secondary">.docx</Badge>
+                    <Badge variant="secondary">.pdf</Badge>
+                    <Badge variant="secondary">.jpg .png .gif</Badge>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-2">
+                {/* Drag and drop zone */}
+                <div 
+                  ref={dropZoneRef}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
+                    isDragging 
+                      ? 'border-primary bg-primary/10 scale-[1.02]' 
+                      : 'border-muted-foreground/25 hover:border-primary/50'
+                  }`}
+                >
+                  <Upload className={`h-10 w-10 mx-auto mb-3 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className={`text-sm mb-2 transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {isDragging ? 'Drop files here!' : 'Click to select files or drag and drop'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Maximum 10MB per file
+                  </p>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept={SUPPORTED_EXTENSIONS.join(',')}
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="url" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="url-input">Webpage URL</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="url-input"
+                        type="url"
+                        placeholder="https://example.com/article"
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && fetchUrlContent()}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Button 
+                      onClick={fetchUrlContent} 
+                      disabled={!urlInput.trim() || isFetchingUrl}
+                    >
+                      {isFetchingUrl ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Globe className="h-4 w-4 mr-2" />
+                          Fetch
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enter a webpage URL to extract and import its content as a card
+                  </p>
+                </div>
+
+                <Alert className="bg-muted/50">
+                  <Globe className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    The content will be converted to markdown format. Works best with articles, blog posts, and documentation pages.
+                  </AlertDescription>
+                </Alert>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex items-center gap-2 pt-2 border-t">
               <Switch
                 id="check-duplicates"
                 checked={checkDuplicates}
