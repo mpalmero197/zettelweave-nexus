@@ -106,6 +106,15 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: 'AI service is temporarily busy. Please wait a moment and try again.',
+          isRateLimit: true
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 

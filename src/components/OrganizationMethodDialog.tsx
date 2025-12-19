@@ -45,9 +45,12 @@ export function OrganizationMethodDialog({
       }
       
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error changing organization method:', error);
-      toast.error(`Failed to change organization method: ${error.message}`);
+      const isRateLimit = error?.message?.includes('rate') || error?.message?.includes('busy');
+      toast.error(isRateLimit 
+        ? 'AI service is temporarily busy. Please wait a moment and try again.'
+        : `Failed to change organization method: ${error.message}`);
     } finally {
       setIsReorganizing(false);
     }
