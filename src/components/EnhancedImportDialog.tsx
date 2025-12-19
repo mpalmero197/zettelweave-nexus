@@ -143,6 +143,8 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   const [importMode, setImportMode] = useState<'files' | 'url'>('files');
   const [urlInput, setUrlInput] = useState('');
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const [quickImport, setQuickImport] = useState(false);
+  const [batchUrlMode, setBatchUrlMode] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -160,6 +162,7 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     setNewTagInput({});
     setUrlInput('');
     setIsFetchingUrl(false);
+    setBatchUrlMode(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -369,8 +372,80 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
     }
 
     setFiles(parsedFiles);
-    setStep('review');
     setProgressMessage('');
+
+    // Quick import: skip review and import directly if enabled and no errors/duplicates
+    if (quickImport && errorCount === 0 && duplicateCount === 0) {
+      // Auto-import all successfully parsed files
+      const filesToImport = parsedFiles.filter(f => f.status === 'success' || f.status === 'similar');
+      if (filesToImport.length > 0) {
+        await performQuickImport(filesToImport);
+        return;
+      }
+    }
+    
+    setStep('review');
+  };
+
+  const performQuickImport = async (filesToImport: ParsedFile[]) => {
+    setStep('importing');
+    setProgress(0);
+    setProgressMessage('Quick importing cards...');
+
+    const cards: Omit<ZettelCard, 'id' | 'created' | 'modified'>[] = [];
+    const existingNumbers = existingCards.map(c => c.number);
+
+    for (let i = 0; i < filesToImport.length; i++) {
+      const file = filesToImport[i];
+      
+      let title = file.name.replace(/\.[^/.]+$/, '');
+      const headingMatch = file.content.match(/^#\s+(.+)$/m);
+      if (headingMatch) {
+        title = headingMatch[1];
+      }
+
+      const sanitizedTitle = sanitizeCardInput(title);
+      const sanitizedContent = sanitizeCardInput(file.content);
+      
+      const cleanContent = file.content
+        .replace(/^#.*$/gm, '')
+        .replace(/!\[.*?\]\(.*?\)/g, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/`(.*?)`/g, '$1')
+        .trim();
+      
+      const description = cleanContent.substring(0, 150) + (cleanContent.length > 150 ? '...' : '');
+      const category = file.category || categorizeContent(file.content, title);
+      const number = generateZettelNumber(category, existingNumbers);
+      existingNumbers.push(number);
+
+      const card = {
+        title: sanitizedTitle,
+        content: sanitizedContent,
+        description: sanitizeCardInput(description),
+        tags: file.tags || [],
+        category,
+        number,
+        linkedCards: [],
+        author: "Imported",
+        imageUrl: file.type === 'image' ? file.content.match(/\(([^)]+)\)/)?.[1] : undefined,
+      };
+
+      const validation = validateZettelCard(card);
+      if (validation.valid) {
+        cards.push(card);
+      }
+
+      setProgress(((i + 1) / filesToImport.length) * 100);
+    }
+
+    if (cards.length > 0) {
+      onImportCards(cards);
+      toast.success(`Quick imported ${cards.length} cards!`);
+    }
+
+    setStep('complete');
   };
 
   // Drag and drop handlers
@@ -412,95 +487,149 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
   };
 
   const fetchUrlContent = async () => {
-    const trimmedUrl = urlInput.trim();
-    if (!trimmedUrl) {
+    const trimmedInput = urlInput.trim();
+    if (!trimmedInput) {
       toast.error('Please enter a URL');
       return;
     }
 
-    // Basic URL validation
-    let formattedUrl = trimmedUrl;
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = `https://${formattedUrl}`;
+    // Handle batch mode - split by newlines
+    const urls = batchUrlMode 
+      ? trimmedInput.split('\n').map(u => u.trim()).filter(u => u.length > 0)
+      : [trimmedInput];
+
+    if (urls.length === 0) {
+      toast.error('Please enter at least one URL');
+      return;
     }
 
-    try {
-      new URL(formattedUrl);
-    } catch {
-      toast.error('Please enter a valid URL');
+    // Validate all URLs
+    const validatedUrls: string[] = [];
+    for (const url of urls) {
+      let formattedUrl = url;
+      if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+      try {
+        new URL(formattedUrl);
+        validatedUrls.push(formattedUrl);
+      } catch {
+        if (!batchUrlMode) {
+          toast.error('Please enter a valid URL');
+          return;
+        }
+        // In batch mode, skip invalid URLs
+      }
+    }
+
+    if (validatedUrls.length === 0) {
+      toast.error('No valid URLs found');
       return;
     }
 
     setIsFetchingUrl(true);
     setStep('parsing');
     setProgress(0);
-    setProgressMessage('Fetching webpage content...');
+    setProgressMessage(`Fetching ${validatedUrls.length} webpage(s)...`);
 
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-url-content', {
-        body: { url: formattedUrl },
-      });
+    const parsedFiles: ParsedFile[] = [];
+    let successCount = 0;
+    let errorCount = 0;
+    let duplicateCount = 0;
+    let similarCount = 0;
 
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch URL');
+    for (let i = 0; i < validatedUrls.length; i++) {
+      const formattedUrl = validatedUrls[i];
+      setProgressMessage(`Fetching ${i + 1} of ${validatedUrls.length}...`);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-url-content', {
+          body: { url: formattedUrl },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch URL');
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to fetch URL content');
+        }
+
+        const { title, description, content, hostname } = data.data;
+
+        // Check for duplicates
+        const duplicateCheck = checkForDuplicatesFunc(content, title);
+        
+        let status: ParsedFile['status'] = 'success';
+        if (duplicateCheck.isDuplicate) {
+          status = 'duplicate';
+          duplicateCount++;
+        } else if (duplicateCheck.isSimilar) {
+          status = 'similar';
+          similarCount++;
+        } else {
+          successCount++;
+        }
+
+        const category = categorizeContent(content, title);
+        const tags = extractKeywords(title + " " + content).slice(0, 5);
+
+        parsedFiles.push({
+          id: crypto.randomUUID(),
+          name: title || hostname,
+          type: 'text',
+          content: `# ${title}\n\n**Source:** [${hostname}](${formattedUrl})\n\n${content}`,
+          size: content.length,
+          status,
+          selected: status !== 'duplicate',
+          category,
+          tags,
+          preview: (description || content.substring(0, 200)) + (content.length > 200 ? '...' : ''),
+          similarTo: duplicateCheck.matchTitle,
+          similarityScore: duplicateCheck.score,
+        });
+      } catch (err) {
+        console.error('URL fetch error:', err);
+        errorCount++;
+        parsedFiles.push({
+          id: crypto.randomUUID(),
+          name: formattedUrl,
+          type: 'text',
+          content: '',
+          size: 0,
+          status: 'error',
+          selected: false,
+          error: err instanceof Error ? err.message : 'Failed to fetch',
+        });
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to fetch URL content');
-      }
-
-      setProgress(50);
-      setProgressMessage('Processing content...');
-
-      const { title, description, content, hostname, image } = data.data;
-
-      // Check for duplicates
-      const duplicateCheck = checkForDuplicatesFunc(content, title);
-      
-      let status: ParsedFile['status'] = 'success';
-      if (duplicateCheck.isDuplicate) {
-        status = 'duplicate';
-      } else if (duplicateCheck.isSimilar) {
-        status = 'similar';
-      }
-
-      const category = categorizeContent(content, title);
-      const tags = extractKeywords(title + " " + content).slice(0, 5);
-
-      const parsedFile: ParsedFile = {
-        id: crypto.randomUUID(),
-        name: title || hostname,
-        type: 'text',
-        content: `# ${title}\n\n**Source:** [${hostname}](${formattedUrl})\n\n${content}`,
-        size: content.length,
-        status,
-        selected: status !== 'duplicate',
-        category,
-        tags,
-        preview: (description || content.substring(0, 200)) + (content.length > 200 ? '...' : ''),
-        similarTo: duplicateCheck.matchTitle,
-        similarityScore: duplicateCheck.score,
-      };
-
-      setProgress(100);
-      setFiles([parsedFile]);
-      setStats({
-        total: 1,
-        parsed: status === 'success' || status === 'similar' ? 1 : 0,
-        errors: 0,
-        duplicates: status === 'duplicate' ? 1 : 0,
-        similar: status === 'similar' ? 1 : 0,
-      });
-      setStep('review');
-      toast.success('Webpage content fetched successfully');
-    } catch (err) {
-      console.error('URL fetch error:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to fetch URL content');
-      setStep('select');
-    } finally {
-      setIsFetchingUrl(false);
-      setProgressMessage('');
+      setProgress(((i + 1) / validatedUrls.length) * 100);
     }
+
+    setFiles(parsedFiles);
+    setStats({
+      total: validatedUrls.length,
+      parsed: successCount,
+      errors: errorCount,
+      duplicates: duplicateCount,
+      similar: similarCount,
+    });
+
+    // Quick import if enabled and no errors/duplicates
+    if (quickImport && errorCount === 0 && duplicateCount === 0) {
+      const filesToImport = parsedFiles.filter(f => f.status === 'success' || f.status === 'similar');
+      if (filesToImport.length > 0) {
+        await performQuickImport(filesToImport);
+        setIsFetchingUrl(false);
+        setProgressMessage('');
+        return;
+      }
+    }
+
+    setStep('review');
+    setIsFetchingUrl(false);
+    setProgressMessage('');
+    toast.success(`Fetched ${successCount} webpage(s) successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
   };
 
   const retryFailedFile = async (fileId: string) => {
@@ -743,58 +872,120 @@ export function EnhancedImportDialog({ existingCards, onImportCards, trigger }: 
               </TabsContent>
 
               <TabsContent value="url" className="space-y-4 mt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Switch
+                    id="batch-url-mode"
+                    checked={batchUrlMode}
+                    onCheckedChange={setBatchUrlMode}
+                  />
+                  <Label htmlFor="batch-url-mode" className="text-sm">
+                    Batch mode (multiple URLs)
+                  </Label>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="url-input">Webpage URL</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
+                  <Label htmlFor="url-input">{batchUrlMode ? 'Webpage URLs (one per line)' : 'Webpage URL'}</Label>
+                  {batchUrlMode ? (
+                    <div className="space-y-2">
+                      <textarea
                         id="url-input"
-                        type="url"
-                        placeholder="https://example.com/article"
+                        placeholder={`https://example.com/article1\nhttps://example.com/article2\nhttps://example.com/article3`}
                         value={urlInput}
                         onChange={(e) => setUrlInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && fetchUrlContent()}
-                        className="pl-10"
+                        className="w-full min-h-[120px] p-3 rounded-md border border-input bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
                       />
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">
+                          {urlInput.split('\n').filter(u => u.trim()).length} URL(s) entered
+                        </p>
+                        <Button 
+                          onClick={fetchUrlContent} 
+                          disabled={!urlInput.trim() || isFetchingUrl}
+                        >
+                          {isFetchingUrl ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Globe className="h-4 w-4 mr-2" />
+                          )}
+                          Fetch All
+                        </Button>
+                      </div>
                     </div>
-                    <Button 
-                      onClick={fetchUrlContent} 
-                      disabled={!urlInput.trim() || isFetchingUrl}
-                    >
-                      {isFetchingUrl ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Globe className="h-4 w-4 mr-2" />
-                          Fetch
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Enter a webpage URL to extract and import its content as a card
-                  </p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="url-input"
+                          type="url"
+                          placeholder="https://example.com/article"
+                          value={urlInput}
+                          onChange={(e) => setUrlInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && fetchUrlContent()}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button 
+                        onClick={fetchUrlContent} 
+                        disabled={!urlInput.trim() || isFetchingUrl}
+                      >
+                        {isFetchingUrl ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Globe className="h-4 w-4 mr-2" />
+                            Fetch
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  {!batchUrlMode && (
+                    <p className="text-xs text-muted-foreground">
+                      Enter a webpage URL to extract and import its content as a card
+                    </p>
+                  )}
                 </div>
 
                 <Alert className="bg-muted/50">
                   <Globe className="h-4 w-4" />
                   <AlertDescription className="text-sm">
-                    The content will be converted to markdown format. Works best with articles, blog posts, and documentation pages.
+                    {batchUrlMode 
+                      ? 'Paste multiple URLs (one per line) to fetch them all at once. Invalid URLs will be skipped.'
+                      : 'The content will be converted to markdown format. Works best with articles, blog posts, and documentation pages.'
+                    }
                   </AlertDescription>
                 </Alert>
               </TabsContent>
             </Tabs>
 
-            <div className="flex items-center gap-2 pt-2 border-t">
-              <Switch
-                id="check-duplicates"
-                checked={checkDuplicates}
-                onCheckedChange={setCheckDuplicates}
-              />
-              <Label htmlFor="check-duplicates" className="text-sm">
-                Check for duplicates against existing cards
-              </Label>
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="check-duplicates"
+                  checked={checkDuplicates}
+                  onCheckedChange={setCheckDuplicates}
+                />
+                <Label htmlFor="check-duplicates" className="text-sm">
+                  Check for duplicates against existing cards
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="quick-import"
+                  checked={quickImport}
+                  onCheckedChange={setQuickImport}
+                />
+                <Label htmlFor="quick-import" className="text-sm flex items-center gap-2">
+                  Quick import
+                  <Badge variant="secondary" className="text-xs">Skip review</Badge>
+                </Label>
+              </div>
+              {quickImport && (
+                <p className="text-xs text-muted-foreground ml-10">
+                  Files will be imported immediately without review. Duplicates and errors will still trigger the review step.
+                </p>
+              )}
             </div>
           </div>
         )}
