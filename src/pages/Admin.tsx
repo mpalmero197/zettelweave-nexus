@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminOverview } from '@/components/admin/AdminOverview';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { DocumentationViewer } from '@/components/admin/DocumentationViewer';
-import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
 import { SecurityMonitor } from '@/components/admin/SecurityMonitor';
 import { AdminAuditLog } from '@/components/admin/AdminAuditLog';
 import { ContentModeration } from '@/components/admin/ContentModeration';
@@ -16,7 +15,7 @@ import { DomainManagement } from '@/components/admin/DomainManagement';
 import { FeatureRequestsPanel } from '@/components/admin/FeatureRequestsPanel';
 import { ErrorReportsPanel } from '@/components/admin/ErrorReportsPanel';
 import { CookieAnalytics } from '@/components/admin/CookieAnalytics';
-import { Shield, Users, Settings, AlertTriangle, BookOpen, Activity, BarChart, Eye, ShieldAlert, Download, Lightbulb, Bug, Cookie } from 'lucide-react';
+import { Shield, AlertTriangle, Download, Cookie } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase } from '@/utils/codebaseExport';
 
@@ -24,6 +23,7 @@ export default function Admin() {
   const { user, loading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [activeSection, setActiveSection] = useState('overview-analytics');
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
 
@@ -39,7 +39,6 @@ export default function Admin() {
 
     setIsExporting(true);
     try {
-      // Log the codebase export action
       await supabase.rpc('log_security_event', {
         p_user_id: user.id,
         p_event_type: 'codebase_export',
@@ -76,7 +75,6 @@ export default function Admin() {
       }
 
       try {
-        // Check if user has admin role
         const { data, error } = await supabase
           .rpc('has_role', { _user_id: user.id, _role: 'admin' });
         
@@ -105,10 +103,13 @@ export default function Admin() {
 
   if (loading || checkingAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <Shield className="h-12 w-12 mx-auto mb-4 animate-pulse text-primary" />
-          <p className="text-muted-foreground">Checking admin access...</p>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+            <Shield className="h-16 w-16 mx-auto mb-4 text-primary relative z-10 animate-pulse" />
+          </div>
+          <p className="text-muted-foreground mt-4">Verifying admin credentials...</p>
         </div>
       </div>
     );
@@ -116,13 +117,23 @@ export default function Admin() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-96">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-96 border-destructive/20">
           <CardHeader className="text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-            <CardTitle>Access Denied</CardTitle>
+            <div className="mx-auto p-4 rounded-full bg-destructive/10 w-fit mb-4">
+              <AlertTriangle className="h-10 w-10 text-destructive" />
+            </div>
+            <CardTitle>Authentication Required</CardTitle>
             <CardDescription>Please log in to access the admin panel</CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button 
+              className="w-full" 
+              onClick={() => window.location.href = '/auth'}
+            >
+              Go to Login
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -130,277 +141,132 @@ export default function Admin() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-96">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-96 border-destructive/20">
           <CardHeader className="text-center">
-            <Shield className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <div className="mx-auto p-4 rounded-full bg-destructive/10 w-fit mb-4">
+              <Shield className="h-10 w-10 text-destructive" />
+            </div>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              You don't have admin privileges to access this section
+              You don't have administrator privileges to access this section
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => window.location.href = '/app'}
+            >
+              Return to App
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background p-3 md:p-6">
-      <div className="container mx-auto">
-        <div className="mb-4 md:mb-8">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
-                <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary shrink-0" />
-                <span className="truncate">Admin Panel</span>
-              </h1>
-              <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base hidden sm:block">
-                Complete control hub for PendragonX platform management
-              </p>
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'overview':
+      case 'overview-analytics':
+        return <AdminOverview />;
+      case 'overview-cookies':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Cookie className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Cookie Consent Analytics</h1>
+                <p className="text-muted-foreground">Track user privacy preferences and consent patterns</p>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.href = '/'}
-              className="shrink-0"
-            >
-              <span className="hidden sm:inline">Back to App</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
+            <CookieAnalytics />
           </div>
-        </div>
-
-        <Tabs defaultValue="overview" className="w-full">
-          <TooltipProvider>
-            <TabsList className="grid w-full grid-cols-7 gap-1 md:gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="overview" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <BarChart className="h-4 w-4" />
-                    <span className="hidden md:inline">Overview</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>Overview</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="users" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <Users className="h-4 w-4" />
-                    <span className="hidden md:inline">Users</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>Users</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="content" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden md:inline">Content</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>Content</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="security" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <ShieldAlert className="h-4 w-4" />
-                    <span className="hidden md:inline">Security</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>Security</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="feedback" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <Lightbulb className="h-4 w-4" />
-                    <span className="hidden md:inline">Feedback</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>Feedback</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="system" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden md:inline">System</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>System</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="docs" className="flex items-center justify-center gap-2 px-2 md:px-4">
-                    <BookOpen className="h-4 w-4" />
-                    <span className="hidden md:inline">Docs</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="md:hidden"><p>Docs</p></TooltipContent>
-              </Tooltip>
-            </TabsList>
-          </TooltipProvider>
-
-          <TabsContent value="overview">
-            <Tabs defaultValue="analytics" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="analytics">Platform Analytics</TabsTrigger>
-                <TabsTrigger value="cookies">Cookie Analytics</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="analytics">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Analytics Dashboard</CardTitle>
-                    <CardDescription>Platform-wide statistics and growth metrics</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <AnalyticsDashboard />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="cookies">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Cookie className="h-5 w-5" />
-                      Cookie Consent Analytics
-                    </CardTitle>
-                    <CardDescription>
-                      Track user privacy preferences and consent patterns to optimize your cookie strategy
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <CookieAnalytics />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="users">
-            <UserManagement />
-          </TabsContent>
-
-          <TabsContent value="content">
-            <ContentModeration />
-          </TabsContent>
-
-          <TabsContent value="security">
-            <Tabs defaultValue="audit" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="audit">Audit Log</TabsTrigger>
-                <TabsTrigger value="monitor">Security Monitor</TabsTrigger>
-                <TabsTrigger value="domains">Domain Management</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="audit">
-                <AdminAuditLog />
-              </TabsContent>
-              
-              <TabsContent value="monitor">
-                <SecurityMonitor />
-              </TabsContent>
-              
-              <TabsContent value="domains">
-                <DomainManagement />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="feedback">
-            <Tabs defaultValue="features" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="features">Feature Requests</TabsTrigger>
-                <TabsTrigger value="errors">Error Reports</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="features">
-                <FeatureRequestsPanel />
-              </TabsContent>
-              
-              <TabsContent value="errors">
-                <ErrorReportsPanel />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="system">
-            <Tabs defaultValue="settings" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="settings">System Settings</TabsTrigger>
-                <TabsTrigger value="export">Export & Backup</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="settings">
-                <SystemSettings />
-              </TabsContent>
-              
-              <TabsContent value="export">
-            <Card>
+        );
+      case 'users':
+        return <UserManagement />;
+      case 'content':
+        return <ContentModeration />;
+      case 'security-audit':
+        return <AdminAuditLog />;
+      case 'security-monitor':
+        return <SecurityMonitor />;
+      case 'security-domains':
+        return <DomainManagement />;
+      case 'feedback-features':
+        return <FeatureRequestsPanel />;
+      case 'feedback-errors':
+        return <ErrorReportsPanel />;
+      case 'system-settings':
+        return <SystemSettings />;
+      case 'system-export':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Download className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Export & Backup</h1>
+                <p className="text-muted-foreground">Download your complete site codebase</p>
+              </div>
+            </div>
+            
+            <Card className="border-primary/10">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  Site Export & Backup
-                </CardTitle>
-                <CardDescription>
-                  Download your complete site codebase for hosting on any platform
-                </CardDescription>
+                <CardTitle>What's Included</CardTitle>
+                <CardDescription>Complete source code for deployment anywhere</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-6 border rounded-lg bg-muted/50">
-                  <h3 className="text-lg font-semibold mb-3">What's Included</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">✓</span>
-                      <span>Complete source code (all React components, hooks, utilities)</span>
+              <CardContent>
+                <ul className="space-y-3">
+                  {[
+                    'Complete source code (all React components, hooks, utilities)',
+                    'Configuration files (Vite, Tailwind, TypeScript, etc.)',
+                    'Supabase backend functions and database schema',
+                    'Package.json with all dependencies',
+                    'Deployment instructions and README'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                      </div>
+                      <span className="text-sm">{item}</span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">✓</span>
-                      <span>Configuration files (Vite, Tailwind, TypeScript, etc.)</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">✓</span>
-                      <span>Supabase backend functions and database schema</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">✓</span>
-                      <span>Package.json with all dependencies</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">✓</span>
-                      <span>Deployment instructions and README</span>
-                    </li>
-                  </ul>
-                </div>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
 
-                <div className="p-6 border rounded-lg bg-primary/5">
-                  <h3 className="text-lg font-semibold mb-3">Deployment Options</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Once downloaded, you can deploy your site to any hosting platform:
-                  </p>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-primary"></span>
-                      <span><strong>Netlify/Vercel:</strong> Connect repo and auto-deploy</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-primary"></span>
-                      <span><strong>AWS S3/CloudFront:</strong> Static hosting with CDN</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-primary"></span>
-                      <span><strong>Custom VPS:</strong> Full control with nginx/apache</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-primary"></span>
-                      <span><strong>GitHub Pages:</strong> Free hosting for public repos</span>
-                    </li>
-                  </ul>
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Deployment Options</CardTitle>
+                <CardDescription>Deploy to any hosting platform</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { name: 'Netlify/Vercel', desc: 'Connect repo and auto-deploy' },
+                    { name: 'AWS S3/CloudFront', desc: 'Static hosting with CDN' },
+                    { name: 'Custom VPS', desc: 'Full control with nginx/apache' },
+                    { name: 'GitHub Pages', desc: 'Free hosting for public repos' }
+                  ].map((option, i) => (
+                    <div key={i} className="p-3 rounded-lg border border-border bg-muted/30">
+                      <h4 className="font-medium text-sm">{option.name}</h4>
+                      <p className="text-xs text-muted-foreground">{option.desc}</p>
+                    </div>
+                  ))}
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="flex items-center justify-between p-6 border rounded-lg">
+            <Card className="border-primary/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold mb-1">Export Complete Site</h3>
+                    <h3 className="font-semibold">Export Complete Site</h3>
                     <p className="text-sm text-muted-foreground">
                       Download a ZIP file containing your entire codebase
                     </p>
@@ -409,30 +275,43 @@ export default function Admin() {
                     onClick={handleExportCodebase}
                     disabled={isExporting}
                     size="lg"
-                    className="flex items-center gap-2"
+                    className="gap-2"
                   >
                     <Download className="h-4 w-4" />
                     {isExporting ? 'Exporting...' : 'Export Site'}
                   </Button>
                 </div>
-
-                <div className="p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/10">
-                  <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                    <strong>Note:</strong> After exporting, you'll need to set up your Supabase credentials 
-                    in the .env file and configure your database. See the included README for instructions.
-                  </p>
-                </div>
               </CardContent>
             </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
 
-          <TabsContent value="docs">
-            <DocumentationViewer />
-          </TabsContent>
-        </Tabs>
-      </div>
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="pt-6">
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  <strong>Note:</strong> After exporting, you'll need to set up your Supabase credentials 
+                  in the .env file and configure your database. See the included README for instructions.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      case 'docs':
+        return <DocumentationViewer />;
+      default:
+        return <AdminOverview />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      <AdminSidebar 
+        activeSection={activeSection} 
+        onSectionChange={setActiveSection} 
+      />
+      <main className="flex-1 overflow-auto">
+        <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+          {renderContent()}
+        </div>
+      </main>
     </div>
   );
 }
