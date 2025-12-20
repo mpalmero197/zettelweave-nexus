@@ -1,9 +1,16 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 
 export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEOHead 
+        title="Terms of Service - PendragonX"
+        description="Read the PendragonX Terms of Service. Understand your rights and responsibilities when using our AI-powered knowledge management platform."
+        canonicalUrl="https://pendragonx.com/terms"
+        noIndex={false}
+      />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="w-4 h-4" />

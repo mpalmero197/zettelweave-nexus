@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Brain, Shield, Eye, EyeOff } from "lucide-react";
 import { setSecurityHeaders } from "@/utils/security";
 import pendragonLogo from '@/assets/pendragon-logo.png';
+import { SEOHead } from "@/components/SEOHead";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -112,6 +113,11 @@ export default function Auth() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background p-4" role="main">
+      <SEOHead 
+        title="Sign In - PendragonX"
+        description="Sign in or create your PendragonX account. Start building your personal knowledge management system with AI-powered insights."
+        canonicalUrl="https://pendragonx.com/auth"
+      />
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-3 mb-2">

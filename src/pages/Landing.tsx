@@ -1,13 +1,52 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Network, Brain, Layout, FileText, Check, Crown, Sparkles, Heart, Zap, Users, ArrowRight, ChevronDown } from "lucide-react";
+import { Network, Brain, Layout, FileText, Check, Crown, Sparkles, Heart, Zap, Users, ArrowRight, ChevronDown, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useEffect, useState } from "react";
 import { LandingBackground } from "@/components/LandingBackground";
+import { SEOHead, createFAQSchema } from "@/components/SEOHead";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+// FAQ data for structured data and display
+const faqs = [
+  {
+    question: "What is PendragonX?",
+    answer: "PendragonX is an AI-powered knowledge management system based on the Zettelkasten method. It helps you capture, connect, and discover insights across all your notes, ideas, and research using visual knowledge graphs and intelligent AI assistance."
+  },
+  {
+    question: "What is the Zettelkasten method?",
+    answer: "Zettelkasten (German for 'slip box') is a personal knowledge management system developed by sociologist Niklas Luhmann. It involves creating atomic notes that are interconnected through links, allowing you to build a 'second brain' that surfaces unexpected connections between ideas."
+  },
+  {
+    question: "Is PendragonX free to use?",
+    answer: "Yes! PendragonX offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, and unlimited notebooks. Premium features like unlimited cards, AI assistance, and advanced knowledge graphs are available for $4.99/month."
+  },
+  {
+    question: "How does the AI assistant work?",
+    answer: "PendragonX's AI assistant understands the context of your entire knowledge base. It can answer questions using your notes, suggest connections between ideas, help generate content, and surface relevant insights you may have forgotten."
+  },
+  {
+    question: "Can I import notes from other apps?",
+    answer: "Yes! PendragonX supports importing from popular note-taking apps including Obsidian vaults, Notion exports, Roam Research, and standard Markdown files. Your existing knowledge seamlessly integrates into the system."
+  },
+  {
+    question: "Is my data secure and private?",
+    answer: "Absolutely. PendragonX uses end-to-end encryption for sensitive content, and your data is stored securely in enterprise-grade cloud infrastructure. You maintain full ownership of your data and can export it anytime."
+  },
+  {
+    question: "What devices does PendragonX work on?",
+    answer: "PendragonX is a progressive web app (PWA) that works on any device with a modern web browser. Install it on your desktop, tablet, or phone for offline access and a native app-like experience."
+  },
+  {
+    question: "How is PendragonX different from other note-taking apps?",
+    answer: "Unlike traditional note-taking apps, PendragonX focuses on knowledge connections. Our 3D knowledge graph visualization, AI-powered linking suggestions, and Zettelkasten-first approach help you see the bigger picture and discover insights that linear note apps miss."
+  }
+];
+
 export default function Landing() {
   const navigate = useNavigate();
   const heroAnimation = useScrollAnimation(0.1);
@@ -15,6 +54,7 @@ export default function Landing() {
   const featuresAnimation = useScrollAnimation(0.1);
   const galleryAnimation = useScrollAnimation(0.1);
   const pricingAnimation = useScrollAnimation(0.1);
+  const faqAnimation = useScrollAnimation(0.1);
   const ctaAnimation = useScrollAnimation(0.1);
   const currentYear = new Date().getFullYear();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -37,6 +77,15 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* SEO Head with FAQ structured data */}
+      <SEOHead 
+        title="PendragonX - AI-Powered Knowledge Management & Zettelkasten System"
+        description="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools. Start free today."
+        keywords="zettelkasten, knowledge management, note-taking, second brain, PKM, personal knowledge management, AI notes, knowledge graph, connected thinking, productivity"
+        canonicalUrl="https://pendragonx.com/"
+        jsonLd={createFAQSchema(faqs)}
+      />
+      
       {/* Theme-aware animated background */}
       <LandingBackground />
 
@@ -477,8 +526,58 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Final CTA - Dramatic */}
+      {/* FAQ Section - AEO Optimized */}
       <section 
+        id="faq"
+        ref={faqAnimation.ref}
+        className={cn(
+          "py-32 transition-all duration-1000",
+          faqAnimation.isVisible ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <div className="container">
+          <div className="max-w-4xl mx-auto">
+            {/* Section Header */}
+            <div className="text-center mb-16">
+              <p className="text-primary font-medium mb-4 tracking-wide uppercase text-sm">FAQ</p>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                Everything you need to know about PendragonX
+              </p>
+            </div>
+
+            {/* FAQ Accordion */}
+            <Accordion type="single" collapsible className="space-y-4">
+              {faqs.map((faq, index) => (
+                <AccordionItem 
+                  key={index} 
+                  value={`faq-${index}`}
+                  className={cn(
+                    "border border-border/50 rounded-xl px-6 bg-card/50 transition-all duration-500",
+                    faqAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                  )}
+                  style={{ transitionDelay: `${index * 50}ms` }}
+                >
+                  <AccordionTrigger className="text-left hover:no-underline py-6">
+                    <div className="flex items-start gap-4">
+                      <HelpCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span className="text-lg font-medium">{faq.question}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-6 pl-9 text-muted-foreground leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA - Dramatic */}
+      <section
         ref={ctaAnimation.ref}
         className="py-32 relative overflow-hidden"
       >
