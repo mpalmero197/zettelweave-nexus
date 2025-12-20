@@ -21,7 +21,8 @@ import {
   StickyNote,
   Plus,
   File,
-  Database
+  Database,
+  HeartPulse
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -176,6 +177,15 @@ const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     icon: Database,
     defaultSize: { w: 6, h: 5 },
     minSize: { w: 4, h: 4 },
+  },
+  {
+    type: 'tool-health',
+    name: 'System Health',
+    description: 'Monitor tool and edge function health status',
+    icon: HeartPulse,
+    defaultSize: { w: 2, h: 2 },
+    minSize: { w: 2, h: 2 },
+    maxSize: { w: 3, h: 3 }
   }
 ];
 

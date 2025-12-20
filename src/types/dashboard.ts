@@ -30,7 +30,8 @@ export type WidgetType =
   | 'content-summarizer'
   | 'task-manager'
   | 'documents'
-  | 'database';
+  | 'database'
+  | 'tool-health';
 
 export interface DashboardLayout {
   id: string;
