@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
+import { SEOBreadcrumb } from "@/components/SEOBreadcrumb";
 
 export default function TermsOfService() {
   return (
@@ -12,10 +13,10 @@ export default function TermsOfService() {
         noIndex={false}
       />
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </Link>
+        <SEOBreadcrumb 
+          items={[{ label: "Terms of Service" }]} 
+          className="mb-6"
+        />
         
         <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
         <p className="text-muted-foreground mb-8">Last Updated: December 16, 2024</p>
