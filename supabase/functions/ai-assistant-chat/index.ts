@@ -140,6 +140,7 @@ serve(async (req) => {
         console.log("Perplexity response status:", perplexityResponse.status);
         
         if (perplexityResponse.ok) {
+          const perplexityData = await perplexityResponse.json();
           console.log("Perplexity response received", {
             hasChoices: perplexityData?.choices?.length > 0,
             timestamp: new Date().toISOString()
