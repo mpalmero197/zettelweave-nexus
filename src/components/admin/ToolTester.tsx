@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Play, 
   CheckCircle2, 
@@ -14,9 +15,15 @@ import {
   Download,
   RefreshCw,
   Wrench,
-  AlertTriangle
+  AlertTriangle,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Calendar
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { format } from 'date-fns';
 
 interface ToolTestResult {
   name: string;
@@ -33,6 +40,17 @@ interface TestReport {
   failed: number;
   duration: number;
   results: ToolTestResult[];
+}
+
+interface HistoricalTest {
+  id: string;
+  created_at: string;
+  total_tests: number;
+  passed: number;
+  failed: number;
+  duration_ms: number;
+  results: ToolTestResult[];
+  triggered_by: string;
 }
 
 const EDGE_FUNCTIONS = [
@@ -93,7 +111,35 @@ export function ToolTester() {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [report, setReport] = useState<TestReport | null>(null);
+  const [history, setHistory] = useState<HistoricalTest[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [activeTab, setActiveTab] = useState('run');
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await (supabase
+        .from('tool_test_history' as any)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30) as any);
+
+      if (error) {
+        console.error('Error fetching history:', error);
+      } else {
+        setHistory(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const updateResult = (name: string, update: Partial<ToolTestResult>) => {
     setResults(prev => prev.map(r => r.name === name ? { ...r, ...update } : r));
@@ -102,7 +148,6 @@ export function ToolTester() {
   const testEdgeFunction = async (funcName: string): Promise<ToolTestResult> => {
     const startTime = Date.now();
     try {
-      // Send OPTIONS request first to check if function is reachable
       const { data, error } = await supabase.functions.invoke(funcName, {
         body: { test: true, ping: true },
       });
@@ -110,7 +155,6 @@ export function ToolTester() {
       const duration = Date.now() - startTime;
 
       if (error) {
-        // Check if it's an expected auth error or validation error (function is working)
         if (error.message?.includes('Missing required') || 
             error.message?.includes('validation') ||
             error.message?.includes('required field')) {
@@ -149,7 +193,6 @@ export function ToolTester() {
   const testDatabaseTable = async (tableName: string): Promise<ToolTestResult> => {
     const startTime = Date.now();
     try {
-      // Use a type assertion to handle dynamic table names
       const { count, error } = await (supabase
         .from(tableName as any)
         .select('*', { count: 'exact', head: true }) as any);
@@ -282,13 +325,12 @@ export function ToolTester() {
     }
   };
 
-  const runAllTests = async () => {
+  const runAllTests = async (saveToHistory = true) => {
     const startTime = Date.now();
     setIsRunning(true);
     setProgress(0);
     setReport(null);
 
-    // Initialize all tests as pending
     const allTests: ToolTestResult[] = [
       { name: 'auth:session', status: 'pending' },
       { name: 'storage:buckets', status: 'pending' },
@@ -303,7 +345,6 @@ export function ToolTester() {
     let completed = 0;
     const finalResults: ToolTestResult[] = [];
 
-    // Test auth first
     updateResult('auth:session', { status: 'running' });
     const authResult = await testAuthSystem();
     finalResults.push(authResult);
@@ -311,7 +352,6 @@ export function ToolTester() {
     completed++;
     setProgress((completed / totalTests) * 100);
 
-    // Test storage
     updateResult('storage:buckets', { status: 'running' });
     const storageResult = await testStorageBuckets();
     finalResults.push(storageResult);
@@ -319,7 +359,6 @@ export function ToolTester() {
     completed++;
     setProgress((completed / totalTests) * 100);
 
-    // Test realtime
     updateResult('realtime:connection', { status: 'running' });
     const realtimeResult = await testRealtimeConnection();
     finalResults.push(realtimeResult);
@@ -327,7 +366,6 @@ export function ToolTester() {
     completed++;
     setProgress((completed / totalTests) * 100);
 
-    // Test edge functions (in batches of 3 to avoid rate limiting)
     for (let i = 0; i < EDGE_FUNCTIONS.length; i += 3) {
       const batch = EDGE_FUNCTIONS.slice(i, i + 3);
       
@@ -344,11 +382,9 @@ export function ToolTester() {
         setProgress((completed / totalTests) * 100);
       });
       
-      // Small delay between batches
       await new Promise(r => setTimeout(r, 200));
     }
 
-    // Test database tables (in batches of 5)
     for (let i = 0; i < DATABASE_TABLES.length; i += 5) {
       const batch = DATABASE_TABLES.slice(i, i + 5);
       
@@ -383,11 +419,60 @@ export function ToolTester() {
     setResults(finalResults);
     setIsRunning(false);
 
+    // Save to history
+    if (saveToHistory) {
+      try {
+        await (supabase
+          .from('tool_test_history' as any)
+          .insert({
+            total_tests: totalTests,
+            passed,
+            failed,
+            duration_ms: totalDuration,
+            results: finalResults,
+            triggered_by: 'manual'
+          }) as any);
+        
+        fetchHistory();
+      } catch (err) {
+        console.error('Failed to save test history:', err);
+      }
+    }
+
     toast({
       title: failed === 0 ? "All Tests Passed" : "Tests Completed",
       description: `${passed}/${totalTests} tests passed in ${(totalDuration / 1000).toFixed(2)}s`,
       variant: failed === 0 ? "default" : "destructive",
     });
+  };
+
+  const runScheduledTest = async () => {
+    toast({
+      title: "Running Scheduled Test",
+      description: "Triggering the run-tool-tests edge function...",
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('run-tool-tests', {
+        body: { triggered_by: 'admin_manual' }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Scheduled Test Complete",
+        description: `${data.passed}/${data.total_tests} tests passed`,
+        variant: data.failed === 0 ? "default" : "destructive",
+      });
+
+      fetchHistory();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to run scheduled test",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyReport = () => {
@@ -434,6 +519,25 @@ export function ToolTester() {
   const failedTests = results.filter(r => r.status === 'error');
   const passedTests = results.filter(r => r.status === 'success');
 
+  // Prepare chart data
+  const chartData = [...history].reverse().map(h => ({
+    date: format(new Date(h.created_at), 'MMM dd'),
+    passed: h.passed,
+    failed: h.failed,
+    passRate: Math.round((h.passed / h.total_tests) * 100),
+    duration: h.duration_ms / 1000
+  }));
+
+  const latestPassRate = history.length > 0 
+    ? Math.round((history[0].passed / history[0].total_tests) * 100) 
+    : 0;
+  
+  const previousPassRate = history.length > 1 
+    ? Math.round((history[1].passed / history[1].total_tests) * 100) 
+    : latestPassRate;
+
+  const trendUp = latestPassRate >= previousPassRate;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -445,170 +549,399 @@ export function ToolTester() {
           <h1 className="text-2xl font-bold">Tool Functionality Tester</h1>
           <p className="text-muted-foreground">Verify all edge functions, database tables, and system components</p>
         </div>
-        <Button 
-          onClick={runAllTests} 
-          disabled={isRunning}
-          size="lg"
-          className="gap-2"
-        >
-          {isRunning ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Testing...
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4" />
-              Run All Tests
-            </>
-          )}
-        </Button>
       </div>
 
-      {/* Progress */}
-      {isRunning && (
-        <Card className="border-primary/20">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Testing in progress...</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="run" className="gap-2">
+            <Play className="h-4 w-4" />
+            Run Tests
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="h-4 w-4" />
+            History & Trends
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Summary */}
-      {report && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border-primary/10">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Tests</p>
-                  <p className="text-2xl font-bold">{report.totalTests}</p>
-                </div>
-                <Wrench className="h-8 w-8 text-primary/20" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-green-500/20 bg-green-500/5">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Passed</p>
-                  <p className="text-2xl font-bold text-green-600">{report.passed}</p>
-                </div>
-                <CheckCircle2 className="h-8 w-8 text-green-500/30" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className={`${report.failed > 0 ? 'border-destructive/20 bg-destructive/5' : 'border-primary/10'}`}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Failed</p>
-                  <p className={`text-2xl font-bold ${report.failed > 0 ? 'text-destructive' : ''}`}>
-                    {report.failed}
-                  </p>
-                </div>
-                <XCircle className={`h-8 w-8 ${report.failed > 0 ? 'text-destructive/30' : 'text-muted/20'}`} />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-primary/10">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Duration</p>
-                  <p className="text-2xl font-bold">{(report.duration / 1000).toFixed(2)}s</p>
-                </div>
-                <Clock className="h-8 w-8 text-primary/20" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <TabsContent value="run" className="space-y-6 mt-6">
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => runAllTests(true)} 
+              disabled={isRunning}
+              size="lg"
+              className="gap-2"
+            >
+              {isRunning ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Run All Tests
+                </>
+              )}
+            </Button>
+            <Button 
+              onClick={runScheduledTest} 
+              disabled={isRunning}
+              variant="outline"
+              size="lg"
+              className="gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              Run via Edge Function
+            </Button>
+          </div>
 
-      {/* Error Report Actions */}
-      {report && failedTests.length > 0 && (
-        <Card className="border-destructive/20 bg-destructive/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              {failedTests.length} Test{failedTests.length > 1 ? 's' : ''} Failed
-            </CardTitle>
-            <CardDescription>Download or copy the error report for debugging</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={copyReport} className="gap-2">
-                <Copy className="h-4 w-4" />
-                Copy Error Report (JSON)
-              </Button>
-              <Button variant="outline" onClick={downloadReport} className="gap-2">
-                <Download className="h-4 w-4" />
-                Download Full Report
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Results */}
-      {results.length > 0 && (
-        <Card className="border-primary/10">
-          <CardHeader>
-            <CardTitle>Test Results</CardTitle>
-            <CardDescription>
-              {passedTests.length} passed, {failedTests.length} failed, {results.filter(r => r.status === 'pending' || r.status === 'running').length} pending
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-2">
-                {results.map((result) => (
-                  <div 
-                    key={result.name}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                      result.status === 'error' 
-                        ? 'border-destructive/20 bg-destructive/5' 
-                        : result.status === 'success'
-                        ? 'border-green-500/20 bg-green-500/5'
-                        : 'border-border bg-muted/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(result.status)}
-                      <div>
-                        <p className="font-medium text-sm">{result.name}</p>
-                        {result.error && (
-                          <p className="text-xs text-destructive mt-0.5">{result.error}</p>
-                        )}
-                        {result.details && result.status === 'success' && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{result.details}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {result.duration && (
-                        <Badge variant="secondary" className="text-xs">
-                          {result.duration}ms
-                        </Badge>
-                      )}
-                    </div>
+          {/* Progress */}
+          {isRunning && (
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Testing in progress...</span>
+                    <span>{Math.round(progress)}%</span>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
+                  <Progress value={progress} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Summary */}
+          {report && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="border-primary/10">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Tests</p>
+                      <p className="text-2xl font-bold">{report.totalTests}</p>
+                    </div>
+                    <Wrench className="h-8 w-8 text-primary/20" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-green-500/20 bg-green-500/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Passed</p>
+                      <p className="text-2xl font-bold text-green-600">{report.passed}</p>
+                    </div>
+                    <CheckCircle2 className="h-8 w-8 text-green-500/30" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className={`${report.failed > 0 ? 'border-destructive/20 bg-destructive/5' : 'border-primary/10'}`}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Failed</p>
+                      <p className={`text-2xl font-bold ${report.failed > 0 ? 'text-destructive' : ''}`}>
+                        {report.failed}
+                      </p>
+                    </div>
+                    <XCircle className={`h-8 w-8 ${report.failed > 0 ? 'text-destructive/30' : 'text-muted/20'}`} />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-primary/10">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Duration</p>
+                      <p className="text-2xl font-bold">{(report.duration / 1000).toFixed(2)}s</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-primary/20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Error Report Actions */}
+          {report && failedTests.length > 0 && (
+            <Card className="border-destructive/20 bg-destructive/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  {failedTests.length} Test{failedTests.length > 1 ? 's' : ''} Failed
+                </CardTitle>
+                <CardDescription>Download or copy the error report for debugging</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={copyReport} className="gap-2">
+                    <Copy className="h-4 w-4" />
+                    Copy Error Report (JSON)
+                  </Button>
+                  <Button variant="outline" onClick={downloadReport} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Download Full Report
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Results */}
+          {results.length > 0 && (
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Test Results</CardTitle>
+                <CardDescription>
+                  {passedTests.length} passed, {failedTests.length} failed, {results.filter(r => r.status === 'pending' || r.status === 'running').length} pending
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-2">
+                    {results.map((result) => (
+                      <div 
+                        key={result.name}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          result.status === 'error' 
+                            ? 'border-destructive/20 bg-destructive/5' 
+                            : result.status === 'success'
+                            ? 'border-green-500/20 bg-green-500/5'
+                            : 'border-border bg-muted/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon(result.status)}
+                          <div>
+                            <p className="font-medium text-sm">{result.name}</p>
+                            {result.error && (
+                              <p className="text-xs text-destructive mt-0.5">{result.error}</p>
+                            )}
+                            {result.details && result.status === 'success' && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{result.details}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {result.duration && (
+                            <Badge variant="secondary" className="text-xs">
+                              {result.duration}ms
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6 mt-6">
+          {/* Trend Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-primary/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Latest Pass Rate</p>
+                    <p className="text-2xl font-bold">{latestPassRate}%</p>
+                  </div>
+                  {trendUp ? (
+                    <TrendingUp className="h-8 w-8 text-green-500/50" />
+                  ) : (
+                    <TrendingDown className="h-8 w-8 text-destructive/50" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-primary/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Test Runs</p>
+                    <p className="text-2xl font-bold">{history.length}</p>
+                  </div>
+                  <History className="h-8 w-8 text-primary/20" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-primary/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Scheduled Tests</p>
+                    <p className="text-2xl font-bold">{history.filter(h => h.triggered_by === 'scheduled').length}</p>
+                  </div>
+                  <Calendar className="h-8 w-8 text-primary/20" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Pass Rate Chart */}
+          {chartData.length > 0 && (
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Pass Rate Trend
+                </CardTitle>
+                <CardDescription>Test pass rate over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorPassRate" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                        formatter={(value: number) => [`${value}%`, 'Pass Rate']}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="passRate" 
+                        stroke="hsl(var(--primary))" 
+                        fillOpacity={1} 
+                        fill="url(#colorPassRate)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pass/Fail Chart */}
+          {chartData.length > 0 && (
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Passed vs Failed Tests</CardTitle>
+                <CardDescription>Test results distribution over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Line type="monotone" dataKey="passed" stroke="hsl(130, 50%, 45%)" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="failed" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* History Table */}
+          <Card className="border-primary/10">
+            <CardHeader>
+              <CardTitle>Test Run History</CardTitle>
+              <CardDescription>Recent test executions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : history.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No test history yet. Run your first test!
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2">
+                    {history.map((test) => (
+                      <div 
+                        key={test.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          {test.failed === 0 ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-destructive" />
+                          )}
+                          <div>
+                            <p className="font-medium text-sm">
+                              {format(new Date(test.created_at), 'MMM dd, yyyy HH:mm')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {test.passed}/{test.total_tests} passed • {(test.duration_ms / 1000).toFixed(2)}s
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {test.triggered_by}
+                          </Badge>
+                          <Badge 
+                            variant={test.failed === 0 ? "default" : "destructive"}
+                            className="text-xs"
+                          >
+                            {Math.round((test.passed / test.total_tests) * 100)}%
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Cron Setup Info */}
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <Calendar className="h-5 w-5" />
+                Daily Automated Tests
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mb-4">
+                To enable daily automated tests, set up a cron job in your Supabase project that calls 
+                the <code className="bg-amber-500/20 px-1 rounded">run-tool-tests</code> edge function.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('https://supabase.com/dashboard/project/sckglgjydlbztxjupbsk/integrations/cron-jobs', '_blank')}
+              >
+                Configure Cron Job
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
