@@ -1,9 +1,16 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEOHead 
+        title="Privacy Policy - PendragonX"
+        description="Learn how PendragonX protects your privacy. We never sell, trade, or rent your personal information. Your data belongs to you."
+        canonicalUrl="https://pendragonx.com/privacy"
+        noIndex={false}
+      />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="w-4 h-4" />
