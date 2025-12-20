@@ -9,6 +9,8 @@ import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Ch
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
+import { SEOHead } from '@/components/SEOHead';
+import { SEOBreadcrumb } from '@/components/SEOBreadcrumb';
 
 export default function Subscription() {
   const { user, loading: authLoading } = useAuth();
@@ -46,7 +48,18 @@ export default function Subscription() {
 
   return (
     <div className="min-h-screen bg-background p-6">
+      <SEOHead 
+        title="Subscription - PendragonX"
+        description="Manage your PendragonX subscription and billing. Upgrade to Premium for unlimited cards, AI features, and more."
+        canonicalUrl="https://pendragonx.com/subscription"
+        noIndex={true}
+      />
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Breadcrumb */}
+        <SEOBreadcrumb 
+          items={[{ label: "Subscription" }]} 
+        />
+        
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-primary">

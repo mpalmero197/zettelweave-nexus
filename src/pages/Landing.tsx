@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Network, Brain, Layout, FileText, Check, Crown, Sparkles, Heart, Zap, Users, ArrowRight, ChevronDown, HelpCircle } from "lucide-react";
+import { Network, Brain, Layout, FileText, Check, Crown, Sparkles, Heart, Zap, Users, ArrowRight, ChevronDown, HelpCircle, BookOpen, PenTool, Link2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useEffect, useState } from "react";
 import { LandingBackground } from "@/components/LandingBackground";
-import { SEOHead, createFAQSchema } from "@/components/SEOHead";
+import { SEOHead, createFAQSchema, createHowToSchema } from "@/components/SEOHead";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // FAQ data for structured data and display
@@ -47,12 +47,48 @@ const faqs = [
   }
 ];
 
+// HowTo data for structured data and display
+const howToSteps = [
+  {
+    name: "Create Your Account",
+    text: "Sign up for a free PendragonX account using your email. No credit card required.",
+    icon: BookOpen
+  },
+  {
+    name: "Create Your First Card",
+    text: "Click the 'New Card' button and write a single, atomic idea. Keep it focused on one concept.",
+    icon: PenTool
+  },
+  {
+    name: "Add Tags and Categories",
+    text: "Organize your card with relevant tags and select a category using the Dewey or Luhmann system.",
+    icon: FileText
+  },
+  {
+    name: "Link Related Ideas",
+    text: "Connect your card to related cards using the link feature. PendragonX will also suggest connections automatically.",
+    icon: Link2
+  },
+  {
+    name: "Explore Your Knowledge Graph",
+    text: "View your growing network of ideas in the 3D knowledge graph. Discover unexpected connections between concepts.",
+    icon: Search
+  }
+];
+
+const howToSchema = createHowToSchema({
+  name: "How to Create Your First Zettelkasten Card in PendragonX",
+  description: "Learn how to create and connect your first knowledge card in PendragonX's AI-powered Zettelkasten system in just 5 simple steps.",
+  steps: howToSteps.map(step => ({ name: step.name, text: step.text }))
+});
+
 export default function Landing() {
   const navigate = useNavigate();
   const heroAnimation = useScrollAnimation(0.1);
   const valueAnimation = useScrollAnimation(0.1);
   const featuresAnimation = useScrollAnimation(0.1);
   const galleryAnimation = useScrollAnimation(0.1);
+  const howToAnimation = useScrollAnimation(0.1);
   const pricingAnimation = useScrollAnimation(0.1);
   const faqAnimation = useScrollAnimation(0.1);
   const ctaAnimation = useScrollAnimation(0.1);
@@ -77,13 +113,13 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* SEO Head with FAQ structured data */}
+      {/* SEO Head with FAQ and HowTo structured data */}
       <SEOHead 
         title="PendragonX - AI-Powered Knowledge Management & Zettelkasten System"
         description="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools. Start free today."
         keywords="zettelkasten, knowledge management, note-taking, second brain, PKM, personal knowledge management, AI notes, knowledge graph, connected thinking, productivity"
         canonicalUrl="https://pendragonx.com/"
-        jsonLd={createFAQSchema(faqs)}
+        jsonLd={[createFAQSchema(faqs), howToSchema]}
       />
       
       {/* Theme-aware animated background */}
@@ -427,8 +463,101 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing - Clean & Clear */}
+      {/* How To Get Started - Step by Step Guide */}
       <section 
+        id="how-to"
+        ref={howToAnimation.ref}
+        className={cn(
+          "py-32 bg-muted/30 transition-all duration-1000",
+          howToAnimation.isVisible ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <div className="container">
+          <div className="max-w-5xl mx-auto">
+            {/* Section Header */}
+            <div className="text-center mb-16">
+              <p className="text-primary font-medium mb-4 tracking-wide uppercase text-sm">Get Started</p>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Create Your First Card in 5 Steps
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                Building your second brain is easier than you think
+              </p>
+            </div>
+
+            {/* Steps */}
+            <div className="relative">
+              {/* Connecting line */}
+              <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary to-primary/50 hidden md:block" />
+              
+              <div className="space-y-8 md:space-y-12">
+                {howToSteps.map((step, index) => {
+                  const Icon = step.icon;
+                  const isEven = index % 2 === 0;
+                  
+                  return (
+                    <div 
+                      key={index}
+                      className={cn(
+                        "relative flex flex-col md:flex-row items-start gap-6 transition-all duration-500",
+                        isEven ? "md:flex-row" : "md:flex-row-reverse",
+                        howToAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                      )}
+                      style={{ transitionDelay: `${index * 100}ms` }}
+                    >
+                      {/* Content */}
+                      <div className={cn(
+                        "flex-1 md:w-[calc(50%-3rem)]",
+                        isEven ? "md:text-right md:pr-12" : "md:text-left md:pl-12"
+                      )}>
+                        <Card className="inline-block text-left border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
+                          <CardContent className="p-6">
+                            <div className={cn(
+                              "flex items-start gap-4",
+                              isEven ? "md:flex-row-reverse" : ""
+                            )}>
+                              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                <Icon className="h-6 w-6 text-primary" />
+                              </div>
+                              <div className={isEven ? "md:text-right" : ""}>
+                                <h3 className="text-lg font-semibold mb-2">{step.name}</h3>
+                                <p className="text-muted-foreground">{step.text}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Step number - center */}
+                      <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg z-10">
+                        {index + 1}
+                      </div>
+
+                      {/* Spacer for the other side */}
+                      <div className="hidden md:block flex-1 md:w-[calc(50%-3rem)]" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="text-center mt-16">
+              <Button 
+                size="lg"
+                className="text-lg px-10 h-14 rounded-full"
+                onClick={() => navigate('/auth')}
+              >
+                Start Building Your Knowledge
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing - Clean & Clear */}
+      <section
         id="pricing" 
         ref={pricingAnimation.ref}
         className={cn(
