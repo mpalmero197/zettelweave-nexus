@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import { SEOHead } from "@/components/SEOHead";
+import { SEOHead, ogImages } from "@/components/SEOHead";
 import { SEOBreadcrumb } from "@/components/SEOBreadcrumb";
 
 export default function PrivacyPolicy() {
@@ -10,6 +10,7 @@ export default function PrivacyPolicy() {
         title="Privacy Policy - PendragonX"
         description="Learn how PendragonX protects your privacy. We never sell, trade, or rent your personal information. Your data belongs to you."
         canonicalUrl="https://pendragonx.com/privacy"
+        ogImage={ogImages.privacy}
         noIndex={false}
       />
       <div className="max-w-4xl mx-auto px-6 py-12">

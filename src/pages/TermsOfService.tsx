@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import { SEOHead } from "@/components/SEOHead";
+import { SEOHead, ogImages } from "@/components/SEOHead";
 import { SEOBreadcrumb } from "@/components/SEOBreadcrumb";
 
 export default function TermsOfService() {
@@ -10,6 +10,7 @@ export default function TermsOfService() {
         title="Terms of Service - PendragonX"
         description="Read the PendragonX Terms of Service. Understand your rights and responsibilities when using our AI-powered knowledge management platform."
         canonicalUrl="https://pendragonx.com/terms"
+        ogImage={ogImages.terms}
         noIndex={false}
       />
       <div className="max-w-4xl mx-auto px-6 py-12">

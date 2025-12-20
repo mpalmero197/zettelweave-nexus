@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useEffect, useState } from "react";
 import { LandingBackground } from "@/components/LandingBackground";
-import { SEOHead, createFAQSchema, createHowToSchema } from "@/components/SEOHead";
+import { SEOHead, createFAQSchema, createHowToSchema, ogImages } from "@/components/SEOHead";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // FAQ data for structured data and display
@@ -119,6 +119,7 @@ export default function Landing() {
         description="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools. Start free today."
         keywords="zettelkasten, knowledge management, note-taking, second brain, PKM, personal knowledge management, AI notes, knowledge graph, connected thinking, productivity"
         canonicalUrl="https://pendragonx.com/"
+        ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
       />
       

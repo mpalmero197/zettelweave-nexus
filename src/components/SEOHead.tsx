@@ -16,6 +16,21 @@ const defaultDescription = 'Transform your thinking with PendragonX. Revolutiona
 const defaultImage = 'https://storage.googleapis.com/gpt-engineer-file-uploads/Y2B2K0ExlLhjZt1L59MceqNQLdp1/social-images/social-1758934637901-PendragonLogo-01.jpg';
 const baseUrl = 'https://pendragonx.com';
 
+// Page-specific Open Graph images for better social sharing
+export const ogImages = {
+  home: defaultImage,
+  auth: `${baseUrl}/screenshots/zettelkasten-ui.jpg`,
+  dashboard: `${baseUrl}/screenshots/zettelkasten-ui.jpg`,
+  graph: `${baseUrl}/screenshots/graph-view.jpg`,
+  whiteboard: `${baseUrl}/screenshots/whiteboard.jpg`,
+  aiSearch: `${baseUrl}/screenshots/ai-search.jpg`,
+  privacy: defaultImage,
+  terms: defaultImage,
+  subscription: defaultImage,
+  install: defaultImage,
+  settings: `${baseUrl}/screenshots/zettelkasten-ui.jpg`,
+};
+
 export const SEOHead = ({
   title = defaultTitle,
   description = defaultDescription,
