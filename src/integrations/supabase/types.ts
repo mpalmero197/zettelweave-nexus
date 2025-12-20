@@ -1113,6 +1113,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_test_history: {
+        Row: {
+          created_at: string
+          duration_ms: number
+          failed: number
+          id: string
+          passed: number
+          results: Json
+          total_tests: number
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms: number
+          failed: number
+          id?: string
+          passed: number
+          results: Json
+          total_tests: number
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number
+          failed?: number
+          id?: string
+          passed?: number
+          results?: Json
+          total_tests?: number
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       user_activity_logs: {
         Row: {
           activity_type: string
