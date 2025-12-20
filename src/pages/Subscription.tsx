@@ -9,7 +9,7 @@ import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Ch
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
-import { SEOHead } from '@/components/SEOHead';
+import { SEOHead, ogImages } from '@/components/SEOHead';
 import { SEOBreadcrumb } from '@/components/SEOBreadcrumb';
 
 export default function Subscription() {
@@ -52,6 +52,7 @@ export default function Subscription() {
         title="Subscription - PendragonX"
         description="Manage your PendragonX subscription and billing. Upgrade to Premium for unlimited cards, AI features, and more."
         canonicalUrl="https://pendragonx.com/subscription"
+        ogImage={ogImages.subscription}
         noIndex={true}
       />
       <div className="max-w-4xl mx-auto space-y-6">

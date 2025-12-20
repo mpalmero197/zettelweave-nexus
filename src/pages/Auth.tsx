@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Brain, Shield, Eye, EyeOff } from "lucide-react";
 import { setSecurityHeaders } from "@/utils/security";
 import pendragonLogo from '@/assets/pendragon-logo.png';
-import { SEOHead } from "@/components/SEOHead";
+import { SEOHead, ogImages } from "@/components/SEOHead";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -117,6 +117,7 @@ export default function Auth() {
         title="Sign In - PendragonX"
         description="Sign in or create your PendragonX account. Start building your personal knowledge management system with AI-powered insights."
         canonicalUrl="https://pendragonx.com/auth"
+        ogImage={ogImages.auth}
       />
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
