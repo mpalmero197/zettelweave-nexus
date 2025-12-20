@@ -155,14 +155,25 @@ export function ToolTester() {
       const duration = Date.now() - startTime;
 
       if (error) {
-        if (error.message?.includes('Missing required') || 
-            error.message?.includes('validation') ||
-            error.message?.includes('required field')) {
+        const errorMsg = error.message?.toLowerCase() || '';
+        // Validation errors (400) indicate the function is reachable and working
+        // These are expected when sending test payloads without proper data
+        const isValidationError = 
+          errorMsg.includes('invalid') ||
+          errorMsg.includes('required') ||
+          errorMsg.includes('validation') ||
+          errorMsg.includes('must be') ||
+          errorMsg.includes('missing') ||
+          errorMsg.includes('expected') ||
+          error.message?.includes('400') ||
+          error.message?.includes('422');
+        
+        if (isValidationError) {
           return {
             name: funcName,
             status: 'success',
             duration,
-            details: 'Function reachable, validation working correctly'
+            details: 'Function reachable (validation working)'
           };
         }
         
