@@ -19,6 +19,7 @@ import { CustomNoteWidget } from "./widgets/CustomNoteWidget";
 import { FavoritesWidget } from "./widgets/FavoritesWidget";
 import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
 import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
+import { ToolHealthWidget } from "./widgets/ToolHealthWidget";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -121,6 +122,9 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
         
         case 'database':
           return <DatabaseWidget />;
+        
+        case 'tool-health':
+          return <ToolHealthWidget />;
         
         default:
           return (
