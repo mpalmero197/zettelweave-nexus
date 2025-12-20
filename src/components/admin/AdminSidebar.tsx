@@ -78,7 +78,8 @@ const navItems: NavItem[] = [
     icon: <Settings className="h-5 w-5" />,
     subItems: [
       { id: 'settings', label: 'System Settings' },
-      { id: 'export', label: 'Export & Backup' }
+      { id: 'export', label: 'Export & Backup' },
+      { id: 'tools', label: 'Test Tools' }
     ]
   },
   { 

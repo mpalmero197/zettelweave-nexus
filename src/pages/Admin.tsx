@@ -15,7 +15,8 @@ import { DomainManagement } from '@/components/admin/DomainManagement';
 import { FeatureRequestsPanel } from '@/components/admin/FeatureRequestsPanel';
 import { ErrorReportsPanel } from '@/components/admin/ErrorReportsPanel';
 import { CookieAnalytics } from '@/components/admin/CookieAnalytics';
-import { Shield, AlertTriangle, Download, Cookie } from 'lucide-react';
+import { ToolTester } from '@/components/admin/ToolTester';
+import { Shield, AlertTriangle, Download, Cookie, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase } from '@/utils/codebaseExport';
 
@@ -294,6 +295,8 @@ export default function Admin() {
             </Card>
           </div>
         );
+      case 'system-tools':
+        return <ToolTester />;
       case 'docs':
         return <DocumentationViewer />;
       default:
