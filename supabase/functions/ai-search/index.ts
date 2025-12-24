@@ -20,6 +20,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const isPing = await req.clone().json().then((b: any) => !!b?.ping).catch(() => false);
+  if (isPing) {
+    return new Response(JSON.stringify({ ok: true, pong: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  }
+
   try {
     // Validate authentication from JWT token
     const authHeader = req.headers.get('Authorization');
