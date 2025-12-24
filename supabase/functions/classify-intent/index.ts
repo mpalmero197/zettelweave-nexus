@@ -10,6 +10,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const isPing = await req.clone().json().then((b: any) => !!b?.ping).catch(() => false);
+  if (isPing) {
+    return new Response(JSON.stringify({ ok: true, pong: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  }
+
   try {
     const { query } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
