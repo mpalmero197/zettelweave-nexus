@@ -155,10 +155,21 @@ export function ToolTester() {
       const duration = Date.now() - startTime;
 
       if (error) {
-        const errorMsg = error.message?.toLowerCase() || '';
+        const duration = Date.now() - startTime;
+
+        // supabase-js uses FunctionsHttpError for non-2xx; the status is usually in error.context.status
+        const status = (error as any)?.context?.status as number | undefined;
+        const statusText = (error as any)?.context?.statusText as string | undefined;
+        const errorMsg = (error.message || '').toLowerCase();
+
+        // For our "ping" tests we only need to know the function is reachable.
+        // Many functions will (correctly) return 400/401/403/422 because the payload is incomplete or auth is required.
+        const isExpectedStatus = status === 400 || status === 401 || status === 403 || status === 422;
+        const isNotFound = status === 404;
+
         // Validation/expected errors indicate the function is reachable and working
-        // These are expected when sending test payloads without proper data
-        const isExpectedError = 
+        const isExpectedError =
+          isExpectedStatus ||
           // Validation keywords
           errorMsg.includes('invalid') ||
           errorMsg.includes('required') ||
@@ -166,36 +177,31 @@ export function ToolTester() {
           errorMsg.includes('must be') ||
           errorMsg.includes('missing') ||
           errorMsg.includes('expected') ||
-          errorMsg.includes('array') ||
           errorMsg.includes('parameters') ||
-          errorMsg.includes('data') ||
-          errorMsg.includes('input') ||
           // Specific expected errors from functions
           errorMsg.includes('no stripe customer') ||
-          errorMsg.includes('customer found') ||
-          errorMsg.includes('query') ||
-          errorMsg.includes('prompt') ||
-          errorMsg.includes('content') ||
-          errorMsg.includes('text') ||
-          errorMsg.includes('url') ||
-          errorMsg.includes('word') ||
-          errorMsg.includes('title') ||
-          errorMsg.includes('citation') ||
-          errorMsg.includes('chapter') ||
-          // HTTP status codes
-          error.message?.includes('400') ||
-          error.message?.includes('422') ||
-          error.message?.includes('500');
-        
+          errorMsg.includes('no url provided') ||
+          errorMsg.includes('missing required fields') ||
+          errorMsg.includes('missing sub claim');
+
+        if (isNotFound) {
+          return {
+            name: funcName,
+            status: 'error',
+            duration,
+            error: `Function not found (${status})`
+          };
+        }
+
         if (isExpectedError) {
           return {
             name: funcName,
             status: 'success',
             duration,
-            details: 'Function reachable (validation working)'
+            details: `Function reachable${status ? ` (${status}${statusText ? ` ${statusText}` : ''})` : ''}`
           };
         }
-        
+
         return {
           name: funcName,
           status: 'error',
