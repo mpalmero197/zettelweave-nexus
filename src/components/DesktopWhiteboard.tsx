@@ -206,7 +206,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     // Handle Bezier pen tool
     const handleBezierClick = (e: any) => {
       if (activeTool === "bezier") {
-        const pointer = fabricCanvas.getPointer(e.e);
+        const pointer = fabricCanvas.getScenePoint(e.e);
         const newPoints = [...bezierPoints, { x: pointer.x, y: pointer.y }];
         setBezierPoints(newPoints);
 
