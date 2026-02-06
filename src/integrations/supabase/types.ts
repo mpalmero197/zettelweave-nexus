@@ -41,6 +41,221 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_findings: {
+        Row: {
+          action_taken: boolean
+          agent_id: string
+          content: string | null
+          created_at: string
+          finding_type: string
+          id: string
+          is_dismissed: boolean
+          is_read: boolean
+          metadata: Json | null
+          relevance_score: number | null
+          run_id: string | null
+          source_id: string | null
+          source_type: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: boolean
+          agent_id: string
+          content?: string | null
+          created_at?: string
+          finding_type: string
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          relevance_score?: number | null
+          run_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: boolean
+          agent_id?: string
+          content?: string | null
+          created_at?: string
+          finding_type?: string
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          relevance_score?: number | null
+          run_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_findings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_notifications: {
+        Row: {
+          action_url: string | null
+          agent_id: string | null
+          created_at: string
+          finding_id: string | null
+          id: string
+          is_read: boolean
+          message: string
+          notification_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          agent_id?: string | null
+          created_at?: string
+          finding_id?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          notification_type?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          agent_id?: string | null
+          created_at?: string
+          finding_id?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          notification_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_notifications_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_notifications_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "agent_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_runs: {
+        Row: {
+          agent_id: string
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          items_found: number | null
+          items_processed: number | null
+          results: Json | null
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_found?: number | null
+          items_processed?: number | null
+          results?: Json | null
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_found?: number | null
+          items_processed?: number | null
+          results?: Json | null
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents: {
+        Row: {
+          agent_type: string
+          config: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          run_frequency_minutes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_type: string
+          config?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          run_frequency_minutes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_type?: string
+          config?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          run_frequency_minutes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string
