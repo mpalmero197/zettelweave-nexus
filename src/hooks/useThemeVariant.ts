@@ -1,39 +1,22 @@
 import { useEffect, useState } from 'react';
 
-export type ThemeVariant = 'default' | 'ocean' | 'forest' | 'sunset' | 'lavender' | 'midnight' | 'aurora';
+const THEME_KEY = 'theme-mode';
 
-const THEME_VARIANT_KEY = 'theme-variant';
+export type ThemeVariant = 'default';
 
 export function useThemeVariant() {
-  const [variant, setVariantState] = useState<ThemeVariant>(() => {
-    const stored = localStorage.getItem(THEME_VARIANT_KEY);
-    return (stored as ThemeVariant) || 'default';
-  });
+  const [variant] = useState<ThemeVariant>('default');
 
-  useEffect(() => {
-    const variants: ThemeVariant[] = ['default', 'ocean', 'forest', 'sunset', 'lavender', 'midnight', 'aurora'];
-    const root = document.documentElement;
-    
-    // Remove all theme variant classes
-    variants.forEach(v => {
-      root.classList.remove(`theme-${v}`);
-    });
-
-    // Add current variant class (skip for default)
-    if (variant !== 'default') {
-      root.classList.add(`theme-${variant}`);
-    }
-
-    // Store preference
-    localStorage.setItem(THEME_VARIANT_KEY, variant);
-    
-    // Force repaint
-    void root.offsetHeight;
-  }, [variant]);
-
-  const setVariant = (newVariant: ThemeVariant) => {
-    setVariantState(newVariant);
+  const setVariant = () => {
+    // No-op - simplified to just light/dark mode via next-themes
   };
+
+  // Clean up any old theme classes on mount
+  useEffect(() => {
+    const root = document.documentElement;
+    const oldThemes = ['theme-ocean', 'theme-forest', 'theme-sunset', 'theme-lavender', 'theme-midnight', 'theme-aurora', 'theme-default'];
+    oldThemes.forEach(t => root.classList.remove(t));
+  }, []);
 
   return { variant, setVariant };
 }
