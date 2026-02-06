@@ -20,6 +20,7 @@ import {
   LogOut,
   FileEdit,
   CreditCard,
+  Bot,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -92,6 +93,18 @@ export function MinimalSidebar({
           </div>
           <NavButton tab="catalyst" icon={Lightbulb} label="Catalyst" />
           <NavButton tab="collab" icon={Users} label="Collab" />
+          
+          <Separator className="my-2" />
+          
+          <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            Automation
+          </div>
+          <Link to="/agents">
+            <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
+              <Bot className="h-4 w-4 mr-3" />
+              Agents
+            </Button>
+          </Link>
           
           <Separator className="my-2" />
           

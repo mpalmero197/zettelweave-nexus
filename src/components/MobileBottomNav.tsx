@@ -1,7 +1,8 @@
-import { Home, FileText, Calendar, Folders, Settings } from 'lucide-react';
+import { Home, FileText, Calendar, Bot, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useOfflineMode } from '@/hooks/useOfflineMode';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -10,14 +11,23 @@ interface MobileBottomNavProps {
 
 export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps) {
   const { isOnline } = useOfflineMode();
+  const navigate = useNavigate();
   
   const navItems = [
     { id: 'dashboard', label: 'Home', icon: Home, ariaLabel: 'Navigate to dashboard' },
     { id: 'cards', label: 'Cards', icon: FileText, ariaLabel: 'Navigate to cards' },
+    { id: 'agents', label: 'Agents', icon: Bot, ariaLabel: 'Navigate to agents', isRoute: true, route: '/agents' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, ariaLabel: 'Navigate to calendar' },
-    { id: 'notebooks', label: 'Notebooks', icon: Folders, ariaLabel: 'Navigate to notebooks' },
     { id: 'settings', label: 'Settings', icon: Settings, ariaLabel: 'Navigate to settings' },
   ];
+
+  const handleNavClick = (item: typeof navItems[0]) => {
+    if (item.isRoute && item.route) {
+      navigate(item.route);
+    } else {
+      onTabChange(item.id);
+    }
+  };
 
   return (
     <nav 
@@ -45,7 +55,7 @@ export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => handleNavClick(item)}
               className={cn(
                 'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl',
                 'transition-all duration-300 ease-out touch-manipulation',

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Brain, Menu, Search, Sun, Moon } from "lucide-react";
+import { Bot, Menu, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   Sheet,
@@ -14,6 +14,7 @@ import pendragonLogo from '@/assets/pendragon-logo.png';
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
+import { Link } from "react-router-dom";
 
 interface MinimalHeaderProps {
   user: any;
@@ -99,6 +100,25 @@ export function MinimalHeader({
               <Search className="h-4 w-4" />
             </Button>
           )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 hover-scale hidden md:flex"
+                  asChild
+                >
+                  <Link to="/agents" aria-label="Agents">
+                    <Bot className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>AI Agents</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <ThemeVariantSelector />
           <FeatureRequestDialog />
           <CreateCardDialog 
