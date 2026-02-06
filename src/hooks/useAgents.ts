@@ -5,13 +5,16 @@ import { Agent, AgentRun, AgentFinding, AgentNotification, AgentType, AgentConfi
 import { toast } from 'sonner';
 
 export const useAgents = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [findings, setFindings] = useState<AgentFinding[]>([]);
   const [notifications, setNotifications] = useState<AgentNotification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Combined loading state: true while auth is loading OR data is being fetched
+  const loading = authLoading || dataLoading;
 
   const fetchAgents = useCallback(async () => {
     if (!user) return;
@@ -315,15 +318,18 @@ export const useAgents = () => {
 
   useEffect(() => {
     if (user) {
-      setLoading(true);
+      setDataLoading(true);
       Promise.all([
         fetchAgents(),
         fetchRuns(),
         fetchFindings(),
         fetchNotifications()
-      ]).finally(() => setLoading(false));
+      ]).finally(() => setDataLoading(false));
+    } else if (!authLoading) {
+      // User is not logged in and auth has finished loading
+      setDataLoading(false);
     }
-  }, [user, fetchAgents, fetchRuns, fetchFindings, fetchNotifications]);
+  }, [user, authLoading, fetchAgents, fetchRuns, fetchFindings, fetchNotifications]);
 
   // Subscribe to real-time notifications
   useEffect(() => {
