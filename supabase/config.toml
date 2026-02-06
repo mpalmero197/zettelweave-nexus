@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.run-tool-tests]
 verify_jwt = false
+
+[functions.execute-agent]
+verify_jwt = true

@@ -56,6 +56,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Install = lazy(() => import("./pages/Install"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Agents = lazy(() => import("./pages/Agents"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -128,6 +129,13 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<LoadingFallback message="Loading settings..." />}>
                       <Settings />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/agents" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingFallback message="Loading agents..." />}>
+                      <Agents />
                     </Suspense>
                   </ProtectedRoute>
                 } />
