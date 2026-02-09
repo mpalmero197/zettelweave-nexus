@@ -48,35 +48,34 @@ export function QuickCaptureWidget({ onCreateCard }: QuickCaptureWidgetProps) {
   };
 
   return (
-    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-xl">
-          <div className="p-2 bg-accent rounded-xl">
-            <Edit3 className="h-5 w-5 text-accent-foreground" />
-          </div>
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <Edit3 className="h-3.5 w-3.5" aria-hidden="true" />
           Quick Capture
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <Textarea
           placeholder="Jot down quick thoughts..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="min-h-32 resize-y"
+          className="min-h-28 resize-y text-sm"
+          aria-label="Quick capture text"
         />
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={!content.trim()} size={isMobile ? "icon" : "default"}>
-            <Save className="h-4 w-4" />
-            {!isMobile && <span className="ml-2">Save Note</span>}
+          <Button size="sm" onClick={handleSave} disabled={!content.trim()}>
+            <Save className="h-3.5 w-3.5" />
+            {!isMobile && <span className="ml-1.5">Save</span>}
           </Button>
           <Button 
             variant="outline" 
+            size="sm"
             onClick={handleCreateCard} 
             disabled={!content.trim()}
-            size={isMobile ? "icon" : "default"}
           >
-            <Plus className="h-4 w-4" />
-            {!isMobile && <span className="ml-2">Create Card</span>}
+            <Plus className="h-3.5 w-3.5" />
+            {!isMobile && <span className="ml-1.5">Card</span>}
           </Button>
         </div>
       </CardContent>

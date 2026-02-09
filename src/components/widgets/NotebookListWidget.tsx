@@ -23,48 +23,28 @@ export function NotebookListWidget() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      fetchNotebooks();
-    }
+    if (user) fetchNotebooks();
   }, [user]);
 
   const fetchNotebooks = async () => {
     if (!user) return;
-
     try {
       const { data, error } = await supabase
         .from('notebooks')
-        .select(`
-          id,
-          name,
-          description,
-          color,
-          is_favorite,
-          created_at
-        `)
+        .select('id, name, description, color, is_favorite, created_at')
         .eq('user_id', user.id)
         .order('is_favorite', { ascending: false })
         .order('name', { ascending: true });
 
       if (error) throw error;
 
-      // Get note counts for each notebook
-      const notebooksWithCounts = await Promise.all(
-        (data || []).map(async (notebook) => {
-          const { count } = await supabase
-            .from('notes')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('notebook_id', notebook.id);
-
-          return {
-            ...notebook,
-            note_count: count || 0
-          };
+      const withCounts = await Promise.all(
+        (data || []).map(async (nb) => {
+          const { count } = await supabase.from('notes').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('notebook_id', nb.id);
+          return { ...nb, note_count: count || 0 };
         })
       );
-
-      setNotebooks(notebooksWithCounts);
+      setNotebooks(withCounts);
     } catch (error) {
       console.error('Error fetching notebooks:', error);
     } finally {
@@ -72,35 +52,27 @@ export function NotebookListWidget() {
     }
   };
 
-  const toggleFavorite = async (notebookId: string, isFavorite: boolean) => {
+  const toggleFavorite = async (id: string, isFav: boolean) => {
     try {
-      const { error } = await supabase
-        .from('notebooks')
-        .update({ is_favorite: !isFavorite })
-        .eq('id', notebookId)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
+      await supabase.from('notebooks').update({ is_favorite: !isFav }).eq('id', id).eq('user_id', user?.id);
       fetchNotebooks();
     } catch (error) {
-      console.error('Error updating notebook favorite:', error);
+      console.error('Error updating notebook:', error);
     }
   };
 
   if (loading) {
     return (
-      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <BookOpen className="h-4 w-4" />
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
             Notebooks
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-muted/30 rounded-lg animate-pulse" />
-            ))}
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-muted rounded-md animate-pulse" />)}
           </div>
         </CardContent>
       </Card>
@@ -108,60 +80,36 @@ export function NotebookListWidget() {
   }
 
   return (
-    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <BookOpen className="h-4 w-4" />
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
           Notebooks
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
-        <ScrollArea className="h-full max-h-[300px]">
-          <div className="space-y-3">
+      <CardContent>
+        <ScrollArea className="max-h-72">
+          <div className="space-y-1">
             {notebooks.length > 0 ? (
-              notebooks.map((notebook) => (
-                <div key={notebook.id} className="p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0" 
-                        style={{ backgroundColor: notebook.color }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-medium truncate">{notebook.name}</h4>
-                        {notebook.description && (
-                          <p className="text-xs text-muted-foreground truncate">{notebook.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Badge variant="outline" className="text-xs">
-                        {notebook.note_count} notes
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleFavorite(notebook.id, notebook.is_favorite)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Star className={`h-3 w-3 ${
-                          notebook.is_favorite 
-                            ? 'fill-yellow-400 text-yellow-400' 
-                            : 'text-muted-foreground'
-                        }`} />
-                      </Button>
-                    </div>
+              notebooks.map((nb) => (
+                <div key={nb.id} className="flex items-center gap-2.5 p-2 rounded-md hover:bg-accent/50 transition-colors">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: nb.color }} aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{nb.name}</p>
+                    {nb.description && <p className="text-[10px] text-muted-foreground truncate">{nb.description}</p>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant="outline" className="text-[10px]">{nb.note_count} notes</Badge>
+                    <Button variant="ghost" size="sm" onClick={() => toggleFavorite(nb.id, nb.is_favorite)} className="h-6 w-6 p-0" aria-label="Toggle favorite">
+                      <Star className={`h-2.5 w-2.5 ${nb.is_favorite ? 'text-foreground fill-foreground' : 'text-muted-foreground'}`} />
+                    </Button>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-6">
-                <BookOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground mb-2">No notebooks yet</p>
-                <Button size="sm" variant="outline" className="text-xs">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Create Notebook
-                </Button>
+              <div className="text-center py-8">
+                <BookOpen className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+                <p className="text-sm text-muted-foreground">No notebooks yet</p>
               </div>
             )}
           </div>

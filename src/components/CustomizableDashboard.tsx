@@ -20,13 +20,12 @@ import { FavoritesWidget } from "./widgets/FavoritesWidget";
 import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
 import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
 import { ToolHealthWidget } from "./widgets/ToolHealthWidget";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { DashboardWidget, WidgetType } from "@/types/dashboard";
-import { ZettelCard as ZettelCardType } from "@/types/zettel";
-import { Brain, Eye, EyeOff, Trash2, Sparkles } from "lucide-react";
+import { DashboardWidget } from "@/types/dashboard";
+import { Brain, Eye, EyeOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface CustomizableDashboardProps {
   onCreateCard?: (card: any) => void;
@@ -35,31 +34,16 @@ interface CustomizableDashboardProps {
   onNavigate?: (tab: string) => void;
 }
 
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  is_favorite: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavigate }: CustomizableDashboardProps) {
   const { widgets, isLoading, removeWidget, updateWidget, saveLayout, resetToDefault } = useDashboardLayout();
 
   const renderWidget = (widget: DashboardWidget) => {
     if (!widget.isVisible) return null;
 
-    const widgetStyle = {
-      gridColumn: `span ${widget.position.w}`,
-      gridRow: `span ${widget.position.h}`,
-      minHeight: `${widget.position.h * 120}px`
-    };
-
     const handleRemoveWidget = (e: React.MouseEvent) => {
       e.stopPropagation();
       removeWidget(widget.id);
-      toast.success(`Removed ${widget.title} widget`);
+      toast.success(`Removed ${widget.title}`);
     };
 
     const handleToggleVisibility = (e: React.MouseEvent) => {
@@ -69,73 +53,30 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
 
     const widgetContent = (() => {
       switch (widget.type) {
-        case 'welcome':
-          return <WelcomeWidget />;
-        
-        case 'stats':
-          return <StatsWidget onNavigate={onNavigate} />;
-        
-        case 'recent-cards':
-          return <RecentCardsWidget onEdit={onEdit} />;
-        
-        case 'recent-notes':
-          return <RecentNotesWidget onOpenNote={onOpenNote} />;
-        
-        case 'quick-capture':
-          return <QuickCaptureWidget onCreateCard={onCreateCard} />;
-        
-        case 'calendar-events':
-          return <CalendarEventsWidget />;
-        
-        case 'activity-feed':
-          return <ActivityFeedWidget />;
-        
-        case 'favorites':
-          return <FavoritesWidget />;
-        
-        case 'notebook-list':
-          return <NotebookListWidget />;
-        
-        case 'task-tracker':
-          return <TaskTrackerWidget />;
-        
-        case 'habit-tracker':
-          return <HabitTrackerWidget />;
-        
-        case 'weather':
-          return <WeatherWidget />;
-        
-        case 'quotes':
-          return <QuotesWidget />;
-        
-        case 'custom-note':
-          return <CustomNoteWidget />;
-        
-        case 'content-summarizer':
-          return <ContentSummarizerWidget />;
-        
-        case 'task-manager':
-          return <TaskManagerWidget />;
-        
-        case 'documents':
-          return <DocumentsWidget />;
-        
-        case 'database':
-          return <DatabaseWidget />;
-        
-        case 'tool-health':
-          return <ToolHealthWidget />;
-        
+        case 'welcome': return <WelcomeWidget />;
+        case 'stats': return <StatsWidget onNavigate={onNavigate} />;
+        case 'recent-cards': return <RecentCardsWidget onEdit={onEdit} />;
+        case 'recent-notes': return <RecentNotesWidget onOpenNote={onOpenNote} />;
+        case 'quick-capture': return <QuickCaptureWidget onCreateCard={onCreateCard} />;
+        case 'calendar-events': return <CalendarEventsWidget />;
+        case 'activity-feed': return <ActivityFeedWidget />;
+        case 'favorites': return <FavoritesWidget />;
+        case 'notebook-list': return <NotebookListWidget />;
+        case 'task-tracker': return <TaskTrackerWidget />;
+        case 'habit-tracker': return <HabitTrackerWidget />;
+        case 'weather': return <WeatherWidget />;
+        case 'quotes': return <QuotesWidget />;
+        case 'custom-note': return <CustomNoteWidget />;
+        case 'content-summarizer': return <ContentSummarizerWidget />;
+        case 'task-manager': return <TaskManagerWidget />;
+        case 'documents': return <DocumentsWidget />;
+        case 'database': return <DatabaseWidget />;
+        case 'tool-health': return <ToolHealthWidget />;
         default:
           return (
-            <Card className="h-full bg-card border border-border/50">
-              <CardContent className="p-6 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Unknown widget type: {widget.type}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="h-full flex items-center justify-center border border-border rounded-lg bg-card p-4">
+              <p className="text-sm text-muted-foreground">Unknown widget: {widget.type}</p>
+            </div>
           );
       }
     })();
@@ -143,22 +84,24 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
     return (
       <div className="relative group h-full">
         {/* Widget Controls */}
-        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleToggleVisibility}
-            className="h-8 w-8 p-0 bg-background hover:bg-background"
+            className="h-7 w-7 p-0 bg-card border border-border"
+            aria-label={widget.isVisible ? 'Hide widget' : 'Show widget'}
           >
-            {widget.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            {widget.isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleRemoveWidget}
-            className="h-8 w-8 p-0 bg-background hover:bg-destructive/10 text-destructive"
+            className="h-7 w-7 p-0 bg-card border border-border text-destructive hover:text-destructive"
+            aria-label="Remove widget"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
         
@@ -179,34 +122,31 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
 
   return (
     <div className="w-full bg-background">
-      <div className="w-full max-w-[1600px] mx-auto p-2 sm:p-3 space-y-3">
-        {/* Modern Dashboard Header */}
-        <div className="animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                Dashboard
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Your knowledge hub at a glance
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetToDefault}
-                className="h-8 text-xs"
-              >
-                Reset Layout
-              </Button>
-              <DashboardWidgetSidebar />
-            </div>
+      <div className="w-full max-w-[1600px] mx-auto p-3 md:p-4 space-y-4">
+        {/* Header */}
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">
+              Dashboard
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {format(new Date(), 'EEEE, MMMM d')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetToDefault}
+              className="h-8 text-xs"
+            >
+              Reset
+            </Button>
+            <DashboardWidgetSidebar />
           </div>
         </div>
 
-        {/* Resizable Grid Layout */}
+        {/* Widget Grid */}
         {visibleWidgets.length > 0 ? (
           <ResizableGrid
             widgets={visibleWidgets}
@@ -215,10 +155,10 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
             {renderWidget}
           </ResizableGrid>
         ) : (
-          <div className="text-center py-8 animate-fade-in">
-            <Brain className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
-            <h3 className="text-base font-semibold text-foreground mb-1">No widgets to display</h3>
-            <p className="text-xs text-muted-foreground mb-3">Add widgets to customize your dashboard</p>
+          <div className="text-center py-16 border border-dashed border-border rounded-lg">
+            <Brain className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" aria-hidden="true" />
+            <h3 className="text-sm font-medium text-foreground mb-1">No widgets</h3>
+            <p className="text-xs text-muted-foreground mb-4">Add widgets to customize your dashboard</p>
             <DashboardWidgetSidebar />
           </div>
         )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sun, Cloud, CloudRain, Snowflake, Wind, Thermometer, Droplets } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Snowflake, Wind, Droplets } from 'lucide-react';
 
 interface WeatherData {
   location: string;
@@ -11,128 +11,64 @@ interface WeatherData {
   icon: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
 }
 
-const weatherIcons = {
-  sunny: Sun,
-  cloudy: Cloud,
-  rainy: CloudRain,
-  snowy: Snowflake,
-};
+const icons = { sunny: Sun, cloudy: Cloud, rainy: CloudRain, snowy: Snowflake };
 
 export function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchWeather();
-  }, []);
+  useEffect(() => { fetchWeather(); }, []);
 
-  const fetchWeather = async () => {
-    try {
-      // Get user's location
-      if (!navigator.geolocation) {
-        throw new Error('Geolocation not supported');
+  const fetchWeather = () => {
+    if (!navigator.geolocation) { setLoading(false); return; }
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setWeather({
+          location: 'Current Location',
+          temperature: Math.floor(Math.random() * 30) + 10,
+          condition: ['Sunny', 'Cloudy', 'Partly Cloudy', 'Light Rain'][Math.floor(Math.random() * 4)],
+          humidity: Math.floor(Math.random() * 40) + 40,
+          windSpeed: Math.floor(Math.random() * 20) + 5,
+          icon: ['sunny', 'cloudy', 'rainy', 'snowy'][Math.floor(Math.random() * 4)] as any,
+        });
+        setLoading(false);
+      },
+      () => {
+        setWeather({ location: 'Default', temperature: 22, condition: 'Partly Cloudy', humidity: 65, windSpeed: 12, icon: 'cloudy' });
+        setLoading(false);
       }
-
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            // For demo purposes, using mock data
-            // In a real app, you'd use a weather API like OpenWeatherMap
-            const mockWeather: WeatherData = {
-              location: 'Current Location',
-              temperature: Math.floor(Math.random() * 30) + 10, // Random temp between 10-40°C
-              condition: ['Sunny', 'Cloudy', 'Partly Cloudy', 'Light Rain'][Math.floor(Math.random() * 4)],
-              humidity: Math.floor(Math.random() * 40) + 40, // 40-80%
-              windSpeed: Math.floor(Math.random() * 20) + 5, // 5-25 km/h
-              icon: ['sunny', 'cloudy', 'rainy', 'snowy'][Math.floor(Math.random() * 4)] as any,
-            };
-
-            setWeather(mockWeather);
-            setError(null);
-          } catch (err) {
-            setError('Failed to fetch weather data');
-          } finally {
-            setLoading(false);
-          }
-        },
-        () => {
-          // Location access denied, use default location
-          const mockWeather: WeatherData = {
-            location: 'Default Location',
-            temperature: 22,
-            condition: 'Partly Cloudy',
-            humidity: 65,
-            windSpeed: 12,
-            icon: 'cloudy',
-          };
-          setWeather(mockWeather);
-          setLoading(false);
-        }
-      );
-    } catch (err) {
-      setError('Weather unavailable');
-      setLoading(false);
-    }
+    );
   };
 
-  if (loading) {
+  if (loading || !weather) {
     return (
-      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
+      <Card className="h-full">
         <CardContent className="p-4 h-full flex items-center justify-center">
-          <div className="text-center">
-            <Sun className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-pulse" />
-            <p className="text-xs text-muted-foreground">Loading weather...</p>
-          </div>
+          <Sun className="h-6 w-6 text-muted-foreground/30 animate-pulse" aria-hidden="true" />
         </CardContent>
       </Card>
     );
   }
 
-  if (error || !weather) {
-    return (
-      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-        <CardContent className="p-4 h-full flex items-center justify-center">
-          <div className="text-center">
-            <Cloud className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">{error || 'Weather unavailable'}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const WeatherIcon = weatherIcons[weather.icon];
+  const Icon = icons[weather.icon];
 
   return (
-    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <WeatherIcon className="h-4 w-4" />
+    <Card className="h-full">
+      <CardHeader className="pb-1">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
           Weather
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="space-y-3">
-          {/* Main weather display */}
-          <div className="text-center">
-            <WeatherIcon className="h-12 w-12 mx-auto mb-2 text-primary" />
-            <div className="text-2xl font-bold">{weather.temperature}°C</div>
-            <div className="text-xs text-muted-foreground">{weather.condition}</div>
-            <div className="text-xs text-muted-foreground">{weather.location}</div>
-          </div>
-
-          {/* Weather details */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-1">
-              <Droplets className="h-3 w-3 text-blue-500" />
-              <span>{weather.humidity}%</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Wind className="h-3 w-3 text-gray-500" />
-              <span>{weather.windSpeed} km/h</span>
-            </div>
-          </div>
+      <CardContent className="pt-0">
+        <div className="text-center py-2">
+          <Icon className="h-10 w-10 mx-auto mb-1.5 text-foreground" aria-hidden="true" />
+          <p className="text-2xl font-bold text-foreground tabular-nums">{weather.temperature}°C</p>
+          <p className="text-xs text-muted-foreground">{weather.condition}</p>
+        </div>
+        <div className="flex justify-center gap-4 text-xs text-muted-foreground mt-2">
+          <span className="flex items-center gap-1"><Droplets className="h-3 w-3" aria-hidden="true" />{weather.humidity}%</span>
+          <span className="flex items-center gap-1"><Wind className="h-3 w-3" aria-hidden="true" />{weather.windSpeed} km/h</span>
         </div>
       </CardContent>
     </Card>

@@ -3,163 +3,68 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Quote, RefreshCw } from 'lucide-react';
 
-interface QuoteData {
-  text: string;
-  author: string;
-  category: string;
-}
-
-const inspirationalQuotes: QuoteData[] = [
-  {
-    text: "The only way to do great work is to love what you do.",
-    author: "Steve Jobs",
-    category: "Motivation"
-  },
-  {
-    text: "Knowledge is power. Information is liberating.",
-    author: "Kofi Annan",
-    category: "Knowledge"
-  },
-  {
-    text: "The beautiful thing about learning is that no one can take it away from you.",
-    author: "B.B. King",
-    category: "Learning"
-  },
-  {
-    text: "Innovation distinguishes between a leader and a follower.",
-    author: "Steve Jobs",
-    category: "Innovation"
-  },
-  {
-    text: "The best time to plant a tree was 20 years ago. The second best time is now.",
-    author: "Chinese Proverb",
-    category: "Action"
-  },
-  {
-    text: "What we know is a drop, what we don't know is an ocean.",
-    author: "Isaac Newton",
-    category: "Wisdom"
-  },
-  {
-    text: "The expert in anything was once a beginner.",
-    author: "Helen Hayes",
-    category: "Growth"
-  },
-  {
-    text: "Focus on being productive instead of busy.",
-    author: "Tim Ferriss",
-    category: "Productivity"
-  },
-  {
-    text: "The way to get started is to quit talking and begin doing.",
-    author: "Walt Disney",
-    category: "Action"
-  },
-  {
-    text: "Your limitation—it's only your imagination.",
-    author: "Unknown",
-    category: "Mindset"
-  }
+const quotes = [
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Knowledge is power. Information is liberating.", author: "Kofi Annan" },
+  { text: "The beautiful thing about learning is that no one can take it away from you.", author: "B.B. King" },
+  { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+  { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+  { text: "What we know is a drop, what we don't know is an ocean.", author: "Isaac Newton" },
+  { text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+  { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+  { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+  { text: "Your limitation—it's only your imagination.", author: "Unknown" },
 ];
 
 export function QuotesWidget() {
-  const [currentQuote, setCurrentQuote] = useState<QuoteData | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [current, setCurrent] = useState<typeof quotes[0] | null>(null);
+  const [spinning, setSpinning] = useState(false);
 
   useEffect(() => {
-    // Check if we have a quote for today
     const today = new Date().toDateString();
-    const savedQuoteData = localStorage.getItem('dailyQuote');
-    
-    if (savedQuoteData) {
+    const saved = localStorage.getItem('dailyQuote');
+    if (saved) {
       try {
-        const { quote, date } = JSON.parse(savedQuoteData);
-        if (date === today) {
-          setCurrentQuote(quote);
-          return;
-        }
-      } catch (error) {
-        console.error('Error parsing saved quote:', error);
-      }
+        const { quote, date } = JSON.parse(saved);
+        if (date === today) { setCurrent(quote); return; }
+      } catch {}
     }
-
-    // Get new quote for today
-    generateDailyQuote();
+    pick();
   }, []);
 
-  const generateDailyQuote = () => {
-    const today = new Date().toDateString();
-    const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
-    const quote = inspirationalQuotes[randomIndex];
-    
-    setCurrentQuote(quote);
-    
-    // Save to localStorage with today's date
-    localStorage.setItem('dailyQuote', JSON.stringify({
-      quote,
-      date: today
-    }));
+  const pick = () => {
+    const q = quotes[Math.floor(Math.random() * quotes.length)];
+    setCurrent(q);
+    localStorage.setItem('dailyQuote', JSON.stringify({ quote: q, date: new Date().toDateString() }));
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    
-    // Simulate API delay for smooth animation
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
-    const newQuote = inspirationalQuotes[randomIndex];
-    
-    setCurrentQuote(newQuote);
-    setIsRefreshing(false);
+  const refresh = async () => {
+    setSpinning(true);
+    await new Promise(r => setTimeout(r, 400));
+    pick();
+    setSpinning(false);
   };
 
-  if (!currentQuote) {
-    return (
-      <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-        <CardContent className="p-4 h-full flex items-center justify-center">
-          <div className="text-center">
-            <Quote className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-pulse" />
-            <p className="text-xs text-muted-foreground">Loading inspiration...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!current) return null;
 
   return (
-    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-sm">
+    <Card className="h-full">
+      <CardHeader className="pb-1">
+        <CardTitle className="flex items-center justify-between text-sm font-medium text-muted-foreground uppercase tracking-wide">
           <div className="flex items-center gap-2">
-            <Quote className="h-4 w-4" />
-            Daily Quote
+            <Quote className="h-3.5 w-3.5" aria-hidden="true" />
+            Quote
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-6 w-6 p-0"
-          >
-            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <Button variant="ghost" size="sm" onClick={refresh} disabled={spinning} className="h-6 w-6 p-0" aria-label="New quote">
+            <RefreshCw className={`h-3 w-3 ${spinning ? 'animate-spin' : ''}`} />
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="space-y-3">
-          <div className="relative">
-            <Quote className="h-4 w-4 text-primary/30 absolute -top-1 -left-1" />
-            <blockquote className="text-sm italic leading-relaxed pl-4">
-              "{currentQuote.text}"
-            </blockquote>
-          </div>
-          
-          <div className="text-right">
-            <p className="text-xs font-medium">— {currentQuote.author}</p>
-            <p className="text-xs text-muted-foreground">{currentQuote.category}</p>
-          </div>
-        </div>
+      <CardContent className="pt-0">
+        <blockquote className="text-sm italic leading-relaxed text-foreground">
+          "{current.text}"
+        </blockquote>
+        <p className="text-xs text-muted-foreground mt-2 text-right">— {current.author}</p>
       </CardContent>
     </Card>
   );
