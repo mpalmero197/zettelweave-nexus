@@ -51,10 +51,13 @@ import {
   exportForGhost 
 } from '@/utils/catalystSocialExportUtils';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
-import { CatalystEditor } from '@/components/CatalystEditor';
 import { CatalystImportDialog } from '@/components/CatalystImportDialog';
 import { CatalystStatsBar } from '@/components/catalyst/CatalystStatsBar';
 import { CatalystOutlinePanel } from '@/components/catalyst/CatalystOutlinePanel';
+import { CatalystSplitEditor } from '@/components/catalyst/CatalystSplitEditor';
+import { CatalystWritingGoals } from '@/components/catalyst/CatalystWritingGoals';
+import { CatalystSnapshots } from '@/components/catalyst/CatalystSnapshots';
+import { CatalystComments } from '@/components/catalyst/CatalystComments';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -919,7 +922,7 @@ export function Catalyst() {
               </CardHeader>
             )}
             <CardContent className={isFullscreen ? 'p-0 flex-1' : 'p-0'}>
-              <CatalystEditor
+              <CatalystSplitEditor
                 content={editorContent}
                 onChange={setEditorContent}
                 onWordCountChange={setWordCount}
@@ -947,9 +950,9 @@ export function Catalyst() {
             <CardContent className="space-y-4">
               <Tabs value={activeAssistantTab} onValueChange={setActiveAssistantTab}>
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="suggestions">AI</TabsTrigger>
-                  <TabsTrigger value="outline">Outline</TabsTrigger>
-                  <TabsTrigger value="plagiarism">Check</TabsTrigger>
+                  <TabsTrigger value="suggestions" className="text-xs">AI</TabsTrigger>
+                  <TabsTrigger value="outline" className="text-xs">Outline</TabsTrigger>
+                  <TabsTrigger value="tools" className="text-xs">Tools</TabsTrigger>
                 </TabsList>
 
                 {/* Outline Tab */}
@@ -1084,60 +1087,83 @@ export function Catalyst() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="plagiarism" className="space-y-3 mt-4">
-                  <Button
-                    onClick={handleCheckPlagiarism}
-                    disabled={isCheckingPlagiarism}
-                    className="w-full"
-                  >
-                    {isCheckingPlagiarism ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4 mr-2" />
-                    )}
-                    Check Originality
-                  </Button>
-
-                  {plagiarismResult && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        {plagiarismResult.isPlagiarized ? (
-                          <AlertCircle className="h-5 w-5 text-destructive" />
+                <TabsContent value="tools" className="space-y-3 mt-4">
+                  <Tabs defaultValue="goals">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="goals" className="text-[10px] px-1">Goals</TabsTrigger>
+                      <TabsTrigger value="snapshots" className="text-[10px] px-1">History</TabsTrigger>
+                      <TabsTrigger value="comments" className="text-[10px] px-1">Notes</TabsTrigger>
+                      <TabsTrigger value="plagiarism" className="text-[10px] px-1">Check</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="goals" className="mt-3">
+                      <CatalystWritingGoals
+                        documentId={currentDocId}
+                        currentWordCount={wordCount}
+                      />
+                    </TabsContent>
+                    <TabsContent value="snapshots" className="mt-3">
+                      <CatalystSnapshots
+                        documentId={currentDocId}
+                        currentContent={editorContent}
+                        wordCount={wordCount}
+                        onRestore={(content) => setEditorContent(content)}
+                      />
+                    </TabsContent>
+                    <TabsContent value="comments" className="mt-3">
+                      <CatalystComments documentId={currentDocId} />
+                    </TabsContent>
+                    <TabsContent value="plagiarism" className="mt-3 space-y-3">
+                      <Button
+                        onClick={handleCheckPlagiarism}
+                        disabled={isCheckingPlagiarism}
+                        className="w-full"
+                      >
+                        {isCheckingPlagiarism ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
-                          <CheckCircle2 className="h-5 w-5 text-success" />
+                          <Search className="h-4 w-4 mr-2" />
                         )}
-                        <div>
-                          <p className="text-sm font-medium">
-                            Originality: {plagiarismResult.originalityScore}%
-                          </p>
-                          <Progress value={plagiarismResult.originalityScore} className="h-2 mt-1" />
-                        </div>
-                      </div>
+                        Check Originality
+                      </Button>
 
-                      {plagiarismResult.issues.length > 0 && (
-                        <ScrollArea className="h-[300px] border rounded-lg p-3">
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Issues Found:</p>
-                            {plagiarismResult.issues.map((issue, i) => (
-                              <div key={i} className="text-xs bg-destructive/10 p-2 rounded">
-                                {issue}
-                              </div>
-                            ))}
-                            {plagiarismResult.suggestions.length > 0 && (
-                              <>
-                                <p className="text-sm font-medium mt-3">Suggestions:</p>
-                                {plagiarismResult.suggestions.map((suggestion, i) => (
-                                  <div key={i} className="text-xs bg-primary/10 p-2 rounded">
-                                    {suggestion}
-                                  </div>
-                                ))}
-                              </>
+                      {plagiarismResult && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            {plagiarismResult.isPlagiarized ? (
+                              <AlertCircle className="h-5 w-5 text-destructive" />
+                            ) : (
+                              <CheckCircle2 className="h-5 w-5 text-green-500" />
                             )}
+                            <div>
+                              <p className="text-sm font-medium">
+                                Originality: {plagiarismResult.originalityScore}%
+                              </p>
+                              <Progress value={plagiarismResult.originalityScore} className="h-2 mt-1" />
+                            </div>
                           </div>
-                        </ScrollArea>
+
+                          {plagiarismResult.issues.length > 0 && (
+                            <ScrollArea className="h-[200px] border rounded-lg p-3">
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium">Issues:</p>
+                                {plagiarismResult.issues.map((issue, i) => (
+                                  <div key={i} className="text-xs bg-destructive/10 p-2 rounded">{issue}</div>
+                                ))}
+                                {plagiarismResult.suggestions.length > 0 && (
+                                  <>
+                                    <p className="text-sm font-medium mt-2">Suggestions:</p>
+                                    {plagiarismResult.suggestions.map((s, i) => (
+                                      <div key={i} className="text-xs bg-primary/10 p-2 rounded">{s}</div>
+                                    ))}
+                                  </>
+                                )}
+                              </div>
+                            </ScrollArea>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
+                    </TabsContent>
+                  </Tabs>
                 </TabsContent>
               </Tabs>
             </CardContent>
