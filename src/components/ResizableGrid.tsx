@@ -31,24 +31,24 @@ export function ResizableGrid({
   const convertWidgetsToLayout = useCallback((widgets: DashboardWidget[]): Layout[] => {
     return widgets.map(widget => {
       const minSizes: { [key: string]: { w: number; h: number } } = {
-        'welcome': { w: 2, h: 3 },
-        'stats': { w: 2, h: 3 },
-        'quick-capture': { w: 2, h: 4 },
-        'recent-cards': { w: 2, h: 4 },
-        'recent-notes': { w: 2, h: 4 },
-        'content-summarizer': { w: 2, h: 4 },
-        'task-manager': { w: 2, h: 4 },
-        'task-tracker': { w: 2, h: 4 },
-        'favorites': { w: 2, h: 4 },
-        'calendar-events': { w: 2, h: 4 },
-        'habit-tracker': { w: 2, h: 3 },
-        'weather': { w: 2, h: 3 },
-        'quotes': { w: 2, h: 3 },
-        'notebook-list': { w: 2, h: 4 },
-        'activity-feed': { w: 2, h: 4 }
+        'welcome': { w: 4, h: 2 },
+        'stats': { w: 3, h: 2 },
+        'quick-capture': { w: 4, h: 3 },
+        'recent-cards': { w: 4, h: 3 },
+        'recent-notes': { w: 4, h: 3 },
+        'content-summarizer': { w: 4, h: 3 },
+        'task-manager': { w: 4, h: 3 },
+        'task-tracker': { w: 4, h: 3 },
+        'favorites': { w: 4, h: 3 },
+        'calendar-events': { w: 4, h: 3 },
+        'habit-tracker': { w: 3, h: 3 },
+        'weather': { w: 3, h: 2 },
+        'quotes': { w: 4, h: 2 },
+        'notebook-list': { w: 4, h: 3 },
+        'activity-feed': { w: 6, h: 3 }
       };
       
-      const minSize = minSizes[widget.type] || { w: 2, h: 3 };
+      const minSize = minSizes[widget.type] || { w: 3, h: 2 };
       
       return {
         i: widget.id,
@@ -59,7 +59,7 @@ export function ResizableGrid({
         minW: minSize.w,
         minH: minSize.h,
         maxW: 12,
-        maxH: 12,
+        maxH: 8,
       };
     });
   }, []);
@@ -100,13 +100,11 @@ export function ResizableGrid({
     const createOptimizedLayout = () => {
       const arranged: DashboardWidget[] = [];
       const layoutGroups = [
-        { widgets: ['welcome'], layout: [{ w: 12, h: 3 }] },
-        { widgets: ['quick-capture', 'stats'], layout: [{ w: 8, h: 4 }, { w: 4, h: 4 }] },
+        { widgets: ['welcome'], layout: [{ w: 12, h: 2 }] },
+        { widgets: ['quick-capture', 'stats'], layout: [{ w: 8, h: 3 }, { w: 4, h: 3 }] },
         { widgets: ['recent-cards', 'recent-notes'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
-        { widgets: ['task-tracker', 'task-manager', 'calendar-events'], layout: [{ w: 4, h: 4 }, { w: 4, h: 4 }, { w: 4, h: 4 }] },
+        { widgets: ['task-tracker', 'calendar-events'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
         { widgets: ['notebook-list', 'favorites'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
-        { widgets: ['content-summarizer', 'habit-tracker'], layout: [{ w: 8, h: 4 }, { w: 4, h: 4 }] },
-        { widgets: ['weather', 'quotes'], layout: [{ w: 4, h: 3 }, { w: 8, h: 3 }] },
         { widgets: ['activity-feed'], layout: [{ w: 12, h: 4 }] }
       ];
       
@@ -168,7 +166,7 @@ export function ResizableGrid({
         onLayoutChange={handleLayoutChange}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={80}
+        rowHeight={70}
         isDraggable={isDraggable && !isLocked}
         isResizable={isResizable && !isLocked}
         compactType="vertical"
