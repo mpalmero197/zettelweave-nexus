@@ -27,7 +27,10 @@ import {
   FileUp,
   Trash2,
   Share2,
-  Globe
+  Globe,
+  List,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +53,8 @@ import {
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { CatalystEditor } from '@/components/CatalystEditor';
 import { CatalystImportDialog } from '@/components/CatalystImportDialog';
+import { CatalystStatsBar } from '@/components/catalyst/CatalystStatsBar';
+import { CatalystOutlinePanel } from '@/components/catalyst/CatalystOutlinePanel';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -121,6 +126,11 @@ export function Catalyst() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [recommendations, setRecommendations] = useState<Array<{id: string; type: string; title: string; content: string; relevance: string}>>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [sessionStartWordCount] = useState(0);
+  const [sessionStartTime] = useState(() => new Date());
+  const [activeAssistantTab, setActiveAssistantTab] = useState('suggestions');
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
@@ -894,25 +904,37 @@ export function Catalyst() {
         </div>
 
         {/* Editor */}
-        <div className="lg:col-span-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Document Editor</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {wordCount.toLocaleString()} words
-                  </Badge>
+        <div className={`lg:col-span-6 ${isFullscreen ? 'catalyst-fullscreen' : ''}`}>
+          <Card className={isFullscreen ? 'border-0 shadow-none rounded-none h-full' : ''}>
+            {!isFullscreen && (
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Document Editor</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {wordCount.toLocaleString()} words
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
+              </CardHeader>
+            )}
+            <CardContent className={isFullscreen ? 'p-0 flex-1' : 'p-0'}>
               <CatalystEditor
                 content={editorContent}
                 onChange={setEditorContent}
                 onWordCountChange={setWordCount}
+                focusMode={focusMode}
+                onToggleFocusMode={() => setFocusMode(!focusMode)}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
               />
             </CardContent>
+            <CatalystStatsBar
+              content={editorContent}
+              wordCount={wordCount}
+              sessionStartWordCount={sessionStartWordCount}
+              sessionStartTime={sessionStartTime}
+            />
           </Card>
         </div>
 
@@ -920,14 +942,34 @@ export function Catalyst() {
         <div className="lg:col-span-3">
           <Card className="h-full">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">AI Assistant</CardTitle>
+              <CardTitle className="text-base">Writing Tools</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Tabs defaultValue="suggestions">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
-                  <TabsTrigger value="plagiarism">Originality</TabsTrigger>
+              <Tabs value={activeAssistantTab} onValueChange={setActiveAssistantTab}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="suggestions">AI</TabsTrigger>
+                  <TabsTrigger value="outline">Outline</TabsTrigger>
+                  <TabsTrigger value="plagiarism">Check</TabsTrigger>
                 </TabsList>
+
+                {/* Outline Tab */}
+                <TabsContent value="outline" className="mt-4">
+                  <CatalystOutlinePanel
+                    content={editorContent}
+                    onHeadingClick={(headingText) => {
+                      // Scroll to heading in the editor
+                      const editorEl = document.querySelector('.ProseMirror');
+                      if (!editorEl) return;
+                      const headings = editorEl.querySelectorAll('h1, h2, h3, h4');
+                      for (const heading of headings) {
+                        if (heading.textContent?.trim() === headingText) {
+                          heading.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          break;
+                        }
+                      }
+                    }}
+                  />
+                </TabsContent>
 
                 <TabsContent value="suggestions" className="space-y-3 mt-4">
                   <div className="space-y-2">
