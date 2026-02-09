@@ -5,141 +5,130 @@ import { DashboardWidget, DashboardLayout } from '@/types/dashboard';
 import { toast } from 'sonner';
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
-  // Hero Section - Welcome banner
+  // Row 1: Welcome full-width
   {
     id: 'welcome',
     type: 'welcome',
     title: 'Welcome',
-    position: { x: 0, y: 0, w: 12, h: 3 },
+    position: { x: 0, y: 0, w: 12, h: 2 },
     isVisible: true
   },
-  
-  // Quick Actions Row - Most used features
+  // Row 2: Quick Capture + Stats
   {
     id: 'quick-capture',
     type: 'quick-capture',
     title: 'Quick Capture',
-    position: { x: 0, y: 3, w: 8, h: 4 },
+    position: { x: 0, y: 2, w: 8, h: 3 },
     isVisible: true
   },
   {
     id: 'stats',
     type: 'stats',
     title: 'Statistics',
-    position: { x: 8, y: 3, w: 4, h: 4 },
+    position: { x: 8, y: 2, w: 4, h: 3 },
     isVisible: true
   },
-  
-  // Primary Content Row - Recent activity
+  // Row 3: Recent Cards + Recent Notes
   {
     id: 'recent-cards',
     type: 'recent-cards',
     title: 'Recent Cards',
-    position: { x: 0, y: 7, w: 6, h: 4 },
+    position: { x: 0, y: 5, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'recent-notes',
     type: 'recent-notes',
     title: 'Recent Notes',
-    position: { x: 6, y: 7, w: 6, h: 4 },
+    position: { x: 6, y: 5, w: 6, h: 4 },
     isVisible: true
   },
-  
-  // Productivity Row - Tasks and planning
+  // Row 4: Tasks + Calendar
   {
     id: 'task-tracker',
     type: 'task-tracker',
     title: 'Quick Tasks',
-    position: { x: 0, y: 11, w: 4, h: 4 },
-    isVisible: true
-  },
-  {
-    id: 'task-manager',
-    type: 'task-manager',
-    title: 'Task Manager',
-    position: { x: 4, y: 11, w: 4, h: 4 },
+    position: { x: 0, y: 9, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'calendar-events',
     type: 'calendar-events',
     title: 'Upcoming Events',
-    position: { x: 8, y: 11, w: 4, h: 4 },
+    position: { x: 6, y: 9, w: 6, h: 4 },
     isVisible: true
   },
-  
-  // Knowledge & Tools Row
+  // Row 5: Notebooks + Favorites
   {
     id: 'notebook-list',
     type: 'notebook-list',
-    title: 'Knowledge',
-    position: { x: 0, y: 15, w: 6, h: 4 },
+    title: 'Notebooks',
+    position: { x: 0, y: 13, w: 6, h: 4 },
     isVisible: true
   },
   {
     id: 'favorites',
     type: 'favorites',
     title: 'Favorites',
-    position: { x: 6, y: 15, w: 6, h: 4 },
+    position: { x: 6, y: 13, w: 6, h: 4 },
     isVisible: true
   },
-  
-  // Content Tools Row
+  // Hidden by default — user can add from sidebar
+  {
+    id: 'task-manager',
+    type: 'task-manager',
+    title: 'Task Manager',
+    position: { x: 0, y: 17, w: 6, h: 4 },
+    isVisible: false
+  },
+  {
+    id: 'activity-feed',
+    type: 'activity-feed',
+    title: 'Recent Activity',
+    position: { x: 0, y: 17, w: 12, h: 4 },
+    isVisible: false
+  },
   {
     id: 'content-summarizer',
     type: 'content-summarizer',
     title: 'Content Summarizer',
-    position: { x: 0, y: 19, w: 8, h: 4 },
-    isVisible: true
+    position: { x: 0, y: 21, w: 8, h: 4 },
+    isVisible: false
   },
   {
     id: 'habit-tracker',
     type: 'habit-tracker',
     title: 'Habits',
-    position: { x: 8, y: 19, w: 4, h: 4 },
-    isVisible: true
+    position: { x: 8, y: 21, w: 4, h: 3 },
+    isVisible: false
   },
-  
-  // Insights Row - Less critical info
   {
     id: 'weather',
     type: 'weather',
     title: 'Weather',
-    position: { x: 0, y: 23, w: 4, h: 3 },
-    isVisible: true
+    position: { x: 0, y: 25, w: 4, h: 3 },
+    isVisible: false
   },
   {
     id: 'quotes',
     type: 'quotes',
     title: 'Daily Quote',
-    position: { x: 4, y: 23, w: 8, h: 3 },
-    isVisible: true
+    position: { x: 4, y: 25, w: 8, h: 3 },
+    isVisible: false
   },
-  
-  // Knowledge Management Row
   {
     id: 'documents',
     type: 'documents',
     title: 'Documents',
-    position: { x: 0, y: 26, w: 6, h: 5 },
-    isVisible: true
+    position: { x: 0, y: 28, w: 6, h: 4 },
+    isVisible: false
   },
   {
     id: 'database',
     type: 'database',
     title: 'Database',
-    position: { x: 6, y: 26, w: 6, h: 5 },
-    isVisible: true
-  },
-  
-  // Activity Feed - Full width footer
-  {
-    id: 'activity-feed',
-    type: 'activity-feed',
-    title: 'Recent Activity',
-    position: { x: 0, y: 31, w: 12, h: 4 },
-    isVisible: true
+    position: { x: 6, y: 28, w: 6, h: 4 },
+    isVisible: false
   }
 ];
 
