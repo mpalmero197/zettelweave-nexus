@@ -1,28 +1,20 @@
 import * as React from "react"
-import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
-
-// Unified Card Design System - Beautiful styling inspired by WelcomeWidget
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const isMobile = useIsMobile();
-  
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-2xl bg-card text-card-foreground",
-        "glass-card shadow-material-2 hover:shadow-material-3",
-        "transition-all duration-300 gpu-accelerate",
-        className
-      )}
-      {...props}
-    />
-  );
-})
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+      "transition-shadow duration-200",
+      className
+    )}
+    {...props}
+  />
+))
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
@@ -31,7 +23,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-4 md:p-6", className)}
+    className={cn("flex flex-col space-y-1 p-4 md:p-5", className)}
     {...props}
   />
 ))
@@ -44,8 +36,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-lg md:text-2xl font-semibold leading-none tracking-tight",
-      "bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent",
+      "text-base font-semibold leading-none tracking-tight text-foreground",
       className
     )}
     {...props}
@@ -71,7 +62,7 @@ const CardContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div 
     ref={ref} 
-    className={cn("p-4 md:p-6 pt-0 relative", className)} 
+    className={cn("p-4 md:p-5 pt-0", className)} 
     {...props} 
   />
 ))
@@ -83,7 +74,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-4 md:p-6 pt-0 gap-2", className)}
+    className={cn("flex items-center p-4 md:p-5 pt-0 gap-2", className)}
     {...props}
   />
 ))

@@ -13,16 +13,13 @@ import {
   FileText, 
   Brain, 
   Calendar,
-  TrendingUp,
   Activity,
   Plus,
   Notebook,
-  Lightbulb,
-  Target,
   Sparkles,
   Edit3
 } from 'lucide-react';
-import { format, isToday, isYesterday, startOfDay, subDays } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { ScratchPad } from './ScratchPad';
 import { useSubscription } from '@/hooks/useSubscription';
 import { UpgradeBanner } from './UpgradeBanner';
@@ -79,7 +76,6 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
     if (!user) return;
 
     try {
-      // Fetch notes
       const { data: notesData } = await supabase
         .from('notes')
         .select('*')
@@ -87,14 +83,12 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
         .order('updated_at', { ascending: false })
         .limit(5);
 
-      // Fetch notebooks
       const { data: notebooksData } = await supabase
         .from('notebooks')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      // Fetch calendar events
       const { data: eventsData } = await supabase
         .from('calendar_events')
         .select('*')
@@ -138,15 +132,10 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 animate-fade-in">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="p-4 space-y-4 animate-fade-in">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
+            <div key={i} className="h-20 bg-muted/50 rounded-lg animate-pulse" />
           ))}
         </div>
       </div>
@@ -154,441 +143,332 @@ export function Dashboard({ onCreateCard, onEdit, onOpenNote }: DashboardProps =
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="p-6 space-y-8">
+    <div className="bg-background">
+      <div className="p-4 space-y-6">
         {/* Upgrade Banner for Free Users */}
         {!hasPremium && <UpgradeBanner />}
 
         {/* Welcome Header */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-3xl blur-3xl opacity-30" />
-          <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary rounded-2xl shadow-material-2">
-                      <Sparkles className="h-6 w-6 text-primary-foreground" />
-                    </div>
-                    <h1 className="text-4xl font-bold text-foreground">
-                      Welcome back!
-                    </h1>
-                  </div>
-                  <p className="text-muted-foreground text-lg">Your knowledge universe awaits</p>
-                </div>
-                <div className="flex gap-3">
-                  <Button 
-                    size="lg" 
-                    variant="default"
-                    onClick={onCreateCard}
-                  >
-                    <Plus className="h-5 w-5" />
-                    <span className="hidden md:inline ml-2">Quick Create</span>
-                  </Button>
-                </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">Your knowledge at a glance</p>
+          </div>
+          <Button size="sm" onClick={onCreateCard} aria-label="Create new card">
+            <Plus className="h-4 w-4 mr-1.5" />
+            <span className="hidden sm:inline">New Card</span>
+          </Button>
+        </div>
+
+        {/* Stats Overview - Clean, minimal */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" role="list" aria-label="Statistics overview">
+          {[
+            { label: 'Cards', value: cards.length, icon: Brain },
+            { label: 'Notes', value: notes.length, icon: FileText },
+            { label: 'Notebooks', value: notebooks.length, icon: BookOpen },
+            { label: "Today's Events", value: todaysEvents.length, icon: Calendar },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card"
+              role="listitem"
+              aria-label={`${stat.label}: ${stat.value}`}
+            >
+              <stat.icon className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Capture & Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Edit3 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  Quick Capture
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScratchPad onCreateCard={onCreateCard} />
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                Quick Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Connections</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {cards.reduce((acc, card) => acc + (card.linkedCards?.length || 0), 0)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Categories</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {new Set(cards.map(card => card.category)).size}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Favorites</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {favoriteCards.length + favoriteNotes.length}
+                </span>
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Stats Overview - Glassmorphic Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
-            <Card className="relative bg-card/70 backdrop-blur-xl border border-primary/20 hover:border-primary/40 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-              <CardContent className="relative p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Zettel Cards</p>
-                    <p className="text-3xl font-bold text-primary">{cards.length}</p>
-                  </div>
-                  <div className="p-4 bg-primary/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                    <Brain className="h-7 w-7 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
-            <Card className="relative bg-card/70 backdrop-blur-xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
-              <CardContent className="relative p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Notes</p>
-                    <p className="text-3xl font-bold text-blue-600">{notes.length}</p>
-                  </div>
-                  <div className="p-4 bg-blue-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                    <FileText className="h-7 w-7 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-500/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
-            <Card className="relative bg-card/70 backdrop-blur-xl border border-green-500/20 hover:border-green-500/40 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
-              <CardContent className="relative p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Notebooks</p>
-                    <p className="text-3xl font-bold text-green-600">{notebooks.length}</p>
-                  </div>
-                  <div className="p-4 bg-green-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                    <BookOpen className="h-7 w-7 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-500/10 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
-            <Card className="relative bg-card/70 backdrop-blur-xl border border-orange-500/20 hover:border-orange-500/40 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
-              <CardContent className="relative p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Today's Events</p>
-                    <p className="text-3xl font-bold text-orange-600">{todaysEvents.length}</p>
-                  </div>
-                  <div className="p-4 bg-orange-500/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                    <Calendar className="h-7 w-7 text-orange-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Quick Actions & Scratchpad */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-primary/5 to-accent/10 rounded-3xl blur-2xl opacity-40" />
-              <Card className="relative bg-card/70 backdrop-blur-xl border border-border/50 rounded-3xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent" />
-                <CardHeader className="relative">
-                  <CardTitle className="flex items-center gap-3 text-xl">
-                    <div className="p-2 bg-gradient-accent rounded-xl">
-                      <Edit3 className="h-5 w-5 text-accent-foreground" />
-                    </div>
-                    Quick Capture
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <ScratchPad onCreateCard={onCreateCard} />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-            <Card className="bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-              <CardHeader className="relative">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Quick Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">This Week</span>
-                  <span className="text-sm font-semibold text-primary">+{Math.floor(Math.random() * 10)} cards</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Connections</span>
-                  <span className="text-sm font-semibold text-green-600">{cards.reduce((acc, card) => acc + (card.linkedCards?.length || 0), 0)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Categories</span>
-                  <span className="text-sm font-semibold text-blue-600">{new Set(cards.map(card => card.category)).size}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="recent" className="w-full">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20 rounded-2xl blur-xl" />
-            <TabsList className="relative grid w-full grid-cols-4 bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl p-2 shadow-lg">
-              <TabsTrigger 
-                value="recent" 
-                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
-              >
-                <Clock className="h-4 w-4" />
-                <span className="hidden sm:inline">Recent</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="favorites" 
-                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
-              >
-                <Star className="h-4 w-4" />
-                <span className="hidden sm:inline">Favorites</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="notebooks" 
-                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
-              >
-                <Notebook className="h-4 w-4" />
-                <span className="hidden sm:inline">Notebooks</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="calendar" 
-                className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all duration-300"
-              >
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Upcoming</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-lg p-1" aria-label="Dashboard sections">
+            <TabsTrigger value="recent" className="flex items-center gap-1.5 text-sm rounded-md">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Recent</span>
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="flex items-center gap-1.5 text-sm rounded-md">
+              <Star className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Favorites</span>
+            </TabsTrigger>
+            <TabsTrigger value="notebooks" className="flex items-center gap-1.5 text-sm rounded-md">
+              <Notebook className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Notebooks</span>
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-1.5 text-sm rounded-md">
+              <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Upcoming</span>
+            </TabsTrigger>
+          </TabsList>
 
-          <TabsContent value="recent" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="recent" className="mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Recent Cards */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl blur-xl opacity-50" />
-                <Card className="relative bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-                  <CardHeader className="relative">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-xl">
-                        <Brain className="h-5 w-5 text-primary" />
-                      </div>
-                      Recent Zettel Cards
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="relative space-y-3">
-                    {recentCards.length > 0 ? (
-                      recentCards.map((card) => (
-                        <div 
-                          key={card.id} 
-                          className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer"
-                          onClick={() => onEdit?.(card)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => e.key === 'Enter' && onEdit?.(card)}
-                          aria-label={`Open card: ${card.title}`}
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-sm group-hover:text-primary transition-colors">{card.title}</p>
-                            <p className="text-xs text-muted-foreground">{card.number} • {getTimeAgo(card.updated_at || card.modified)}</p>
-                          </div>
-                          {card.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Brain className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Recent Cards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {recentCards.length > 0 ? (
+                    recentCards.map((card) => (
+                      <div 
+                        key={card.id} 
+                        className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-md transition-colors cursor-pointer"
+                        onClick={() => onEdit?.(card)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && onEdit?.(card)}
+                        aria-label={`Open card: ${card.title}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{card.title}</p>
+                          <p className="text-xs text-muted-foreground">{card.number} · {getTimeAgo(card.updated_at || card.modified)}</p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-12">
-                        <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                        <p className="text-sm text-muted-foreground">No cards yet</p>
+                        {card.is_favorite && <Star className="h-3.5 w-3.5 text-foreground fill-foreground shrink-0 ml-2" aria-label="Favorited" />}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Brain className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+                      <p className="text-sm text-muted-foreground">No cards yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Recent Notes */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-2xl blur-xl opacity-50" />
-                <Card className="relative bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
-                  <CardHeader className="relative">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/10 rounded-xl">
-                        <FileText className="h-5 w-5 text-blue-600" />
-                      </div>
-                      Recent Notes
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="relative space-y-3">
-                    {notes.length > 0 ? (
-                      notes.map((note) => (
-                        <div 
-                          key={note.id} 
-                          className="group flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer"
-                          onClick={() => onOpenNote?.(note)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => e.key === 'Enter' && onOpenNote?.(note)}
-                          aria-label={`Open note: ${note.title}`}
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">{note.title}</p>
-                            <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>
-                          </div>
-                          {note.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Recent Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {notes.length > 0 ? (
+                    notes.map((note) => (
+                      <div 
+                        key={note.id} 
+                        className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-md transition-colors cursor-pointer"
+                        onClick={() => onOpenNote?.(note)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && onOpenNote?.(note)}
+                        aria-label={`Open note: ${note.title}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{note.title}</p>
+                          <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-12">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                        <p className="text-sm text-muted-foreground">No notes yet</p>
+                        {note.is_favorite && <Star className="h-3.5 w-3.5 text-foreground fill-foreground shrink-0 ml-2" aria-label="Favorited" />}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+                      <p className="text-sm text-muted-foreground">No notes yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
-        <TabsContent value="favorites" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Favorite Cards */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-primary" />
-                  Favorite Cards
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {favoriteCards.length > 0 ? (
-                  favoriteCards.slice(0, 5).map((card) => (
-                    <div key={card.id} className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <p className="font-medium text-sm">{card.title}</p>
-                      <p className="text-xs text-muted-foreground">{card.number}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No favorite cards</p>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="favorites" className="mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Brain className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Favorite Cards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {favoriteCards.length > 0 ? (
+                    favoriteCards.slice(0, 5).map((card) => (
+                      <div key={card.id} className="p-3 rounded-md border border-border">
+                        <p className="font-medium text-sm">{card.title}</p>
+                        <p className="text-xs text-muted-foreground">{card.number}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">No favorite cards</p>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Favorite Notes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  Favorite Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {favoriteNotes.length > 0 ? (
-                  favoriteNotes.slice(0, 5).map((note) => (
-                    <div key={note.id} className="p-3 bg-blue-500/5 rounded-lg border border-blue-500/20">
-                      <p className="font-medium text-sm">{note.title}</p>
-                      <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No favorite notes</p>
-                )}
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Favorite Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {favoriteNotes.length > 0 ? (
+                    favoriteNotes.slice(0, 5).map((note) => (
+                      <div key={note.id} className="p-3 rounded-md border border-border">
+                        <p className="font-medium text-sm">{note.title}</p>
+                        <p className="text-xs text-muted-foreground">{getTimeAgo(note.updated_at)}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">No favorite notes</p>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Favorite Notebooks */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-green-600" />
-                  Favorite Notebooks
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {favoriteNotebooks.length > 0 ? (
-                  favoriteNotebooks.slice(0, 5).map((notebook) => (
-                    <div key={notebook.id} className="p-3 bg-green-500/5 rounded-lg border border-green-500/20">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: notebook.color }}
-                        />
-                        <p className="font-medium text-sm">{notebook.name}</p>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    Favorite Notebooks
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {favoriteNotebooks.length > 0 ? (
+                    favoriteNotebooks.slice(0, 5).map((notebook) => (
+                      <div key={notebook.id} className="p-3 rounded-md border border-border">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: notebook.color }}
+                            aria-hidden="true"
+                          />
+                          <p className="font-medium text-sm">{notebook.name}</p>
+                        </div>
+                        {notebook.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{notebook.description}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">No favorite notebooks</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="notebooks" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {notebooks.length > 0 ? (
+                notebooks.map((notebook) => (
+                  <Card key={notebook.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: notebook.color }}
+                            aria-hidden="true"
+                          />
+                          <h3 className="font-semibold text-sm">{notebook.name}</h3>
+                        </div>
+                        {notebook.is_favorite && <Star className="h-3.5 w-3.5 text-foreground fill-foreground" aria-label="Favorited" />}
                       </div>
                       {notebook.description && (
-                        <p className="text-xs text-muted-foreground mt-1">{notebook.description}</p>
+                        <p className="text-xs text-muted-foreground mb-2">{notebook.description}</p>
                       )}
+                      <p className="text-xs text-muted-foreground">{getTimeAgo(notebook.created_at)}</p>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <BookOpen className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+                  <p className="text-sm font-medium mb-1">No notebooks yet</p>
+                  <p className="text-xs text-muted-foreground">Create your first notebook to organize your content</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="calendar" className="mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  Upcoming Events
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {calendarEvents.length > 0 ? (
+                  calendarEvents.map((event) => (
+                    <div key={event.id} className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors">
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(event.event_date), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {event.source_type.replace('_', ' ')}
+                      </Badge>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No favorite notebooks</p>
+                  <div className="text-center py-8">
+                    <Calendar className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+                    <p className="text-sm text-muted-foreground">No upcoming events</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="notebooks" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {notebooks.length > 0 ? (
-              notebooks.map((notebook) => (
-                <Card key={notebook.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
-                          style={{ backgroundColor: notebook.color }}
-                        />
-                        <h3 className="font-semibold">{notebook.name}</h3>
-                      </div>
-                      {notebook.is_favorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
-                    </div>
-                    {notebook.description && (
-                      <p className="text-sm text-muted-foreground mb-3">{notebook.description}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">Created {getTimeAgo(notebook.created_at)}</p>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2">No notebooks yet</p>
-                <p className="text-muted-foreground">Create your first notebook to organize your content</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="calendar" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-orange-600" />
-                Upcoming Events & Reminders
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {calendarEvents.length > 0 ? (
-                calendarEvents.map((event) => (
-                  <div key={event.id} className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
-                    <div className="p-2 bg-orange-500/10 rounded-lg">
-                      <Calendar className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(event.event_date), 'MMM d, yyyy')} • From {event.source_type.replace('_', ' ')}
-                      </p>
-                      {event.description && (
-                        <p className="text-xs text-muted-foreground mt-1">{event.description}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {event.source_type.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg font-medium mb-2">No upcoming events</p>
-                  <p className="text-muted-foreground">Events from your notes and cards will appear here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+          </TabsContent>
         </Tabs>
       </div>
     </div>

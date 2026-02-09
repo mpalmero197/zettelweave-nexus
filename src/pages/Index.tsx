@@ -364,10 +364,9 @@ const Index = () => {
 
       {/* Compact AI Search Bar - Mobile Optimized */}
       {activeTab === "search" && (
-        <div className="sticky top-12 z-40 bg-background/98 backdrop-blur-xl border-b border-border/40 px-2 sm:px-3 py-2 sm:py-3 shadow-lg">
+        <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
           <div className="max-w-3xl mx-auto flex items-center gap-2">
-            <div className="flex-1 relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl sm:rounded-2xl blur-lg sm:blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+            <div className="flex-1">
               <AISearchBar 
                 cards={cards} 
                 onSearchResults={(results) => {
@@ -379,7 +378,6 @@ const Index = () => {
                   }
                 }}
                 onQueryChange={setCurrentQuery}
-                className="relative z-10"
               />
             </div>
             <SearchHistorySidebar
@@ -394,11 +392,11 @@ const Index = () => {
       )}
 
       {/* Main Content - Mobile Optimized */}
-      <main className="pb-16 md:pb-2 px-1.5 sm:px-2 md:px-3 relative min-h-screen" role="main">
+      <main id="main-content" className="pb-16 md:pb-2 px-1.5 sm:px-2 md:px-3 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
-            <div className="sticky top-14 sm:top-20 z-30 bg-card/98 backdrop-blur-xl border border-border/40 rounded-lg px-2 py-1.5 sm:py-2 mb-2 shadow-md hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+            <div className="sticky top-14 sm:top-20 z-30 bg-card border border-border rounded-lg px-2 py-1.5 sm:py-2 mb-2">
               <div className="flex items-center justify-center max-w-7xl mx-auto gap-1 sm:gap-1.5 flex-wrap">
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                 <EnhancedImportDialog existingCards={cards} onImportCards={handleImportCards} />
