@@ -1,53 +1,36 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
-import { Sparkles, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useZettelCards } from "@/hooks/useZettelCards";
 
-interface WelcomeWidgetProps {
-  // No longer needs onCreateCard prop
-}
-
-export function WelcomeWidget({}: WelcomeWidgetProps) {
+export function WelcomeWidget() {
   const { cards, createCard } = useZettelCards();
   
   return (
-    <Card className="glass-card shadow-material-2 hover:shadow-material-3 transition-all duration-300">
-      <CardContent className="p-8 h-full flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary rounded-2xl shadow-lg">
-                <Sparkles className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Welcome back!
-                </h1>
-                <p className="text-muted-foreground text-base lg:text-lg">Your knowledge universe awaits</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Build your second brain with zettel cards, organize notes, and create connections between ideas.
-            </p>
-            <CreateCardDialog
-              existingCards={cards}
-              onCreateCard={createCard}
-              organizationMethod="dewey"
-              trigger={
-                <Button 
-                  size="lg" 
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 h-12 text-base"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Create Your First Card
-                </Button>
-              }
-            />
-          </div>
-        </CardContent>
+    <Card className="h-full">
+      <CardContent className="p-6 h-full flex flex-col justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Build your second brain with zettel cards, organize notes, and create connections between ideas.
+          </p>
+        </div>
+        
+        <CreateCardDialog
+          existingCards={cards}
+          onCreateCard={createCard}
+          organizationMethod="dewey"
+          trigger={
+            <Button className="w-full mt-4">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Card
+            </Button>
+          }
+        />
+      </CardContent>
     </Card>
   );
 }
