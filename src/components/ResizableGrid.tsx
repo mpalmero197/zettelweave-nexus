@@ -28,10 +28,8 @@ export function ResizableGrid({
   const [isLocked, setIsLocked] = useState(true);
   const [layouts, setLayouts] = useState<{ [key: string]: Layout[] }>({});
 
-  // Convert widgets to grid layout format
   const convertWidgetsToLayout = useCallback((widgets: DashboardWidget[]): Layout[] => {
     return widgets.map(widget => {
-      // Mobile-first minimum sizes - standardized to 2 heights for clean layout
       const minSizes: { [key: string]: { w: number; h: number } } = {
         'welcome': { w: 2, h: 3 },
         'stats': { w: 2, h: 3 },
@@ -66,19 +64,13 @@ export function ResizableGrid({
     });
   }, []);
 
-  // Convert grid layout back to widgets
   const convertLayoutToWidgets = useCallback((layout: Layout[], originalWidgets: DashboardWidget[]): DashboardWidget[] => {
     return originalWidgets.map(widget => {
       const layoutItem = layout.find(item => item.i === widget.id);
       if (layoutItem) {
         return {
           ...widget,
-          position: {
-            x: layoutItem.x,
-            y: layoutItem.y,
-            w: layoutItem.w,
-            h: layoutItem.h,
-          }
+          position: { x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h }
         };
       }
       return widget;
@@ -88,77 +80,47 @@ export function ResizableGrid({
   useEffect(() => {
     const initialLayout = convertWidgetsToLayout(widgets);
     setLayouts({
-      lg: initialLayout,
-      md: initialLayout,
-      sm: initialLayout,
-      xs: initialLayout,
-      xxs: initialLayout,
+      lg: initialLayout, md: initialLayout, sm: initialLayout, xs: initialLayout, xxs: initialLayout,
     });
   }, [widgets, convertWidgetsToLayout]);
 
   const handleLayoutChange = (layout: Layout[], allLayouts: { [key: string]: Layout[] }) => {
     if (isLocked) return;
-
     setLayouts(allLayouts);
-    
-    // Update widgets with new positions
     const updatedWidgets = convertLayoutToWidgets(layout, widgets);
     onLayoutChange(updatedWidgets);
   };
 
   const toggleLock = () => {
     setIsLocked(!isLocked);
-    toast.success(isLocked ? 'Grid unlocked - you can now resize and move widgets' : 'Grid locked - widgets are now fixed in place');
+    toast.success(isLocked ? 'Grid unlocked' : 'Grid locked');
   };
 
   const resetLayout = () => {
-    // Create a clean, professional layout inspired by modern productivity apps
     const createOptimizedLayout = () => {
       const arranged: DashboardWidget[] = [];
-      
-      // Priority groups with intentional visual hierarchy
       const layoutGroups = [
-        // Hero: Welcome banner (full width)
         { widgets: ['welcome'], layout: [{ w: 12, h: 3 }] },
-        
-        // Quick Actions: Primary interaction area
         { widgets: ['quick-capture', 'stats'], layout: [{ w: 8, h: 4 }, { w: 4, h: 4 }] },
-        
-        // Recent Activity: Two equal columns
         { widgets: ['recent-cards', 'recent-notes'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
-        
-        // Productivity: Three equal columns
         { widgets: ['task-tracker', 'task-manager', 'calendar-events'], layout: [{ w: 4, h: 4 }, { w: 4, h: 4 }, { w: 4, h: 4 }] },
-        
-        // Knowledge: Two equal columns
         { widgets: ['notebook-list', 'favorites'], layout: [{ w: 6, h: 4 }, { w: 6, h: 4 }] },
-        
-        // Tools: Asymmetric for visual interest
         { widgets: ['content-summarizer', 'habit-tracker'], layout: [{ w: 8, h: 4 }, { w: 4, h: 4 }] },
-        
-        // Insights: Compact info widgets
         { widgets: ['weather', 'quotes'], layout: [{ w: 4, h: 3 }, { w: 8, h: 3 }] },
-        
-        // Footer: Full width activity
         { widgets: ['activity-feed'], layout: [{ w: 12, h: 4 }] }
       ];
       
       let currentY = 0;
-      
       layoutGroups.forEach(group => {
         let x = 0;
         group.widgets.forEach((widgetType, index) => {
           const widget = widgets.find(w => w.type === widgetType);
           if (widget) {
             const size = group.layout[index];
-            arranged.push({
-              ...widget,
-              position: { x, y: currentY, w: size.w, h: size.h }
-            });
+            arranged.push({ ...widget, position: { x, y: currentY, w: size.w, h: size.h } });
             x += size.w;
           }
         });
-        // Move to next row (use max height from group)
         const maxHeight = Math.max(...group.layout.map(l => l.h));
         currentY += maxHeight;
       });
@@ -166,76 +128,63 @@ export function ResizableGrid({
       return arranged;
     };
     
-    const optimizedLayout = createOptimizedLayout();
-    onLayoutChange(optimizedLayout);
-    toast.success('Dashboard optimized with professional layout');
+    onLayoutChange(createOptimizedLayout());
+    toast.success('Layout optimized');
   };
 
   const visibleWidgets = widgets.filter(w => w.isVisible);
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Grid Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={isLocked ? "default" : "outline"}
-            size="sm"
-            onClick={toggleLock}
-            className="flex items-center gap-2 h-8 text-xs"
-          >
-            {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-            <span className="hidden sm:inline">{isLocked ? 'Locked' : 'Unlocked'}</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={resetLayout}
-            className="flex items-center gap-2 h-8 text-xs"
-          >
-            <Grid3X3 className="h-3 w-3" />
-            <span className="hidden sm:inline">Optimize</span>
-          </Button>
-        </div>
+      <div className="flex items-center gap-2 mb-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleLock}
+          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+        >
+          {isLocked ? <Lock className="h-3 w-3 mr-1.5" /> : <Unlock className="h-3 w-3 mr-1.5" />}
+          {isLocked ? 'Locked' : 'Unlocked'}
+        </Button>
         
-        <div className="text-xs text-muted-foreground hidden md:block">
-          {isLocked ? 'Widgets locked' : 'Drag to move, resize from corners'}
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={resetLayout}
+          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Grid3X3 className="h-3 w-3 mr-1.5" />
+          Optimize
+        </Button>
+
+        {!isLocked && (
+          <span className="text-[10px] text-muted-foreground/60 hidden md:inline">Drag to move · Resize from corners</span>
+        )}
       </div>
 
-      {/* Responsive Grid */}
-      <div className="animate-fade-in">
-        <ResponsiveGridLayout
-          className="layout"
-          layouts={layouts}
-          onLayoutChange={handleLayoutChange}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-          rowHeight={80}
-          isDraggable={isDraggable && !isLocked}
-          isResizable={isResizable && !isLocked}
-          compactType="vertical"
-          preventCollision={false}
-          margin={[16, 16]}
-          containerPadding={[0, 0]}
-          useCSSTransforms={true}
-          transformScale={1}
-          isBounded={false}
-        >
-          {visibleWidgets.map((widget, index) => (
-            <div 
-              key={widget.id} 
-              className="grid-item"
-              style={{
-                animationDelay: `${index * 50}ms`
-              }}
-            >
-              {children(widget)}
-            </div>
-          ))}
-        </ResponsiveGridLayout>
-      </div>
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={layouts}
+        onLayoutChange={handleLayoutChange}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={80}
+        isDraggable={isDraggable && !isLocked}
+        isResizable={isResizable && !isLocked}
+        compactType="vertical"
+        preventCollision={false}
+        margin={[12, 12]}
+        containerPadding={[0, 0]}
+        useCSSTransforms={true}
+        transformScale={1}
+        isBounded={false}
+      >
+        {visibleWidgets.map((widget) => (
+          <div key={widget.id} className="grid-item">
+            {children(widget)}
+          </div>
+        ))}
+      </ResponsiveGridLayout>
     </div>
   );
 }
