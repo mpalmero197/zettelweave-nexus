@@ -389,6 +389,51 @@
   }
 }
 
+/* Catalyst Focus Mode - dims non-active paragraphs */
+.catalyst-focus-mode > *:not(:focus-within) {
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.catalyst-focus-mode > *:focus-within,
+.catalyst-focus-mode > *:hover {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.catalyst-focus-mode .is-editor-empty:first-child::before {
+  opacity: 0.5;
+}
+
+/* Catalyst Fullscreen Mode */
+.catalyst-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: hsl(var(--background));
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.catalyst-fullscreen .ProseMirror {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  min-height: 100vh;
+}
+
+/* TipTap placeholder styling */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+  opacity: 0.5;
+  font-style: italic;
+}
+
 /* Performance preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
