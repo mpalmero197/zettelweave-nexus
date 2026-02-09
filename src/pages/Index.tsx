@@ -54,7 +54,10 @@ import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { FriendsPanel } from "@/components/friends/FriendsPanel";
 import { ChatPopup } from "@/components/friends/ChatPopup";
-import { FloatingChatBubble } from "@/components/FloatingChatBubble"; import { SecurityNotice } from "@/components/SecurityNotice"; import { Footer } from "@/components/Footer";
+import { FloatingChatBubble } from "@/components/FloatingChatBubble";
+import { SecurityNotice } from "@/components/SecurityNotice";
+import { Footer } from "@/components/Footer";
+import { toast } from "sonner";
 import { 
   Plus, 
   Download, 
@@ -67,16 +70,12 @@ import {
   Filter
 } from "lucide-react";
 
-import HabitTracker from "@/components/HabitTracker"; import { toast } from "sonner";
+import HabitTracker from "@/components/HabitTracker";
 
 // Lazy load heavy components for better performance
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
 const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"));
-
 const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
-// (imports moved above)
-//
-//
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
