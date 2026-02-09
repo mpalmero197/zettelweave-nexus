@@ -373,6 +373,7 @@ export type Database = {
           level: number
           order_index: number
           parent_id: string | null
+          status: string
           title: string
           updated_at: string
           user_id: string
@@ -386,6 +387,7 @@ export type Database = {
           level?: number
           order_index?: number
           parent_id?: string | null
+          status?: string
           title: string
           updated_at?: string
           user_id: string
@@ -399,6 +401,7 @@ export type Database = {
           level?: number
           order_index?: number
           parent_id?: string | null
+          status?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -486,6 +489,53 @@ export type Database = {
           },
         ]
       }
+      catalyst_comments: {
+        Row: {
+          anchor_text: string | null
+          created_at: string
+          document_id: string
+          id: string
+          position_end: number | null
+          position_start: number | null
+          resolved: boolean
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_text?: string | null
+          created_at?: string
+          document_id: string
+          id?: string
+          position_end?: number | null
+          position_start?: number | null
+          resolved?: boolean
+          text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_text?: string | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          position_end?: number | null
+          position_start?: number | null
+          resolved?: boolean
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalyst_comments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalyst_documents: {
         Row: {
           content: string
@@ -521,6 +571,44 @@ export type Database = {
           word_count?: number | null
         }
         Relationships: []
+      }
+      catalyst_snapshots: {
+        Row: {
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          title: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          document_id: string
+          id?: string
+          title?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          title?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalyst_snapshots_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       catalyst_writing_goals: {
         Row: {
