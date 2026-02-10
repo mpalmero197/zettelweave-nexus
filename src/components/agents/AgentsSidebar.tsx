@@ -8,6 +8,7 @@ import {
   LayoutDashboard, 
   Lightbulb, 
   Bell,
+  GitBranch,
   Search,
   Link,
   FileText,
@@ -16,7 +17,8 @@ import {
   Calendar,
   Quote,
   CheckSquare,
-  Brain
+  Brain,
+  Wand2
 } from 'lucide-react';
 import { Agent, AgentType } from '@/types/agents';
 
@@ -30,7 +32,8 @@ const AGENT_ICONS: Record<AgentType, React.ElementType> = {
   daily_digest: Calendar,
   citation: Quote,
   task_extraction: CheckSquare,
-  spaced_repetition: Brain
+  spaced_repetition: Brain,
+  custom: Wand2
 };
 
 interface AgentsSidebarProps {
@@ -39,7 +42,7 @@ interface AgentsSidebarProps {
   onSelectAgent: (agentId: string) => void;
   onCreateAgent: () => void;
   currentView: string;
-  onViewChange: (view: 'overview' | 'detail' | 'findings' | 'notifications') => void;
+  onViewChange: (view: 'overview' | 'detail' | 'findings' | 'notifications' | 'pipelines') => void;
   unreadNotifications: number;
   unreadFindings: number;
 }
@@ -108,6 +111,15 @@ export function AgentsSidebar({
                 {unreadNotifications}
               </Badge>
             )}
+          </Button>
+
+          <Button
+            variant={currentView === 'pipelines' ? 'secondary' : 'ghost'}
+            className="w-full justify-start"
+            onClick={() => onViewChange('pipelines')}
+          >
+            <GitBranch className="h-4 w-4 mr-2" />
+            Pipelines
           </Button>
         </div>
 

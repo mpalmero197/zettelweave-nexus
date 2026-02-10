@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AgentConfigFields } from './AgentConfigFields';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ export function AgentDetail({ agent, onBack }: AgentDetailProps) {
   const [editedName, setEditedName] = useState(agent.name);
   const [editedDescription, setEditedDescription] = useState(agent.description || '');
   const [editedFrequency, setEditedFrequency] = useState(agent.run_frequency_minutes.toString());
+  const [editedConfig, setEditedConfig] = useState(agent.config);
 
   const definition = AGENT_DEFINITIONS.find(d => d.type === agent.agent_type);
   const agentRuns = runs.filter(r => r.agent_id === agent.id);
@@ -47,7 +49,8 @@ export function AgentDetail({ agent, onBack }: AgentDetailProps) {
     await updateAgent(agent.id, {
       name: editedName,
       description: editedDescription,
-      run_frequency_minutes: parseInt(editedFrequency) || 60
+      run_frequency_minutes: parseInt(editedFrequency) || 60,
+      config: editedConfig
     });
     setIsEditing(false);
   };
@@ -231,6 +234,21 @@ export function AgentDetail({ agent, onBack }: AgentDetailProps) {
                   </SelectContent>
                 </Select>
               </div>
+
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Agent-Specific Settings</CardTitle>
+                  <CardDescription className="text-xs">Fine-tune how this agent behaves</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AgentConfigFields
+                    agentType={agent.agent_type as any}
+                    config={editedConfig}
+                    onChange={setEditedConfig}
+                    disabled={!isEditing}
+                  />
+                </CardContent>
+              </Card>
 
               {isEditing && (
                 <div className="flex gap-2 pt-4">

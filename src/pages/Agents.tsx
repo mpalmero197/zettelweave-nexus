@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAgents } from '@/hooks/useAgents';
 import { AgentsSidebar } from '@/components/agents/AgentsSidebar';
 import { AgentsOverview } from '@/components/agents/AgentsOverview';
@@ -6,14 +6,16 @@ import { AgentDetail } from '@/components/agents/AgentDetail';
 import { AgentFindings } from '@/components/agents/AgentFindings';
 import { AgentNotifications } from '@/components/agents/AgentNotifications';
 import { CreateAgentDialog } from '@/components/agents/CreateAgentDialog';
+import { AgentPipelineBuilder, Pipeline, PipelineStep } from '@/components/agents/AgentPipelineBuilder';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import pendragonLogo from '@/assets/pendragon-logo.png';
+import { toast } from 'sonner';
 
-type AgentView = 'overview' | 'detail' | 'findings' | 'notifications';
+type AgentView = 'overview' | 'detail' | 'findings' | 'notifications' | 'pipelines';
 
 export default function Agents() {
   const isMobile = useIsMobile();
@@ -21,6 +23,9 @@ export default function Agents() {
   const [currentView, setCurrentView] = useState<AgentView>('overview');
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
+  // Local pipeline state (stored in-memory; could be persisted to DB later)
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
 
   const selectedAgent = agents.find(a => a.id === selectedAgentId);
 
@@ -34,6 +39,29 @@ export default function Agents() {
     setCurrentView('overview');
   };
 
+  const handleCreatePipeline = useCallback(async (name: string, description: string, steps: Omit<PipelineStep, 'id'>[]) => {
+    const pipeline: Pipeline = {
+      id: crypto.randomUUID(),
+      name,
+      description,
+      steps: steps.map(s => ({ ...s, id: crypto.randomUUID() })),
+      is_enabled: true,
+      created_at: new Date().toISOString(),
+    };
+    setPipelines(prev => [...prev, pipeline]);
+    toast.success(`Pipeline "${name}" created`);
+  }, []);
+
+  const handleDeletePipeline = useCallback(async (pipelineId: string) => {
+    setPipelines(prev => prev.filter(p => p.id !== pipelineId));
+    toast.success('Pipeline deleted');
+  }, []);
+
+  const handleRunPipeline = useCallback(async (pipelineId: string) => {
+    toast.info('Pipeline execution started (sequential agent runs)');
+    // In a full implementation, this would trigger sequential agent runs
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -44,7 +72,6 @@ export default function Agents() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Simple Header */}
       <header className="h-12 border-b bg-background/95 backdrop-blur sticky top-0 z-50 flex items-center px-4 gap-4">
         <Link to="/">
           <img src={pendragonLogo} alt="Pendragon" className="h-8 w-8" />
@@ -70,7 +97,7 @@ export default function Agents() {
             onSelectAgent={handleSelectAgent}
             onCreateAgent={() => setShowCreateDialog(true)}
             currentView={currentView}
-            onViewChange={setCurrentView}
+            onViewChange={setCurrentView as any}
             unreadNotifications={unreadCount}
             unreadFindings={findings.filter(f => !f.is_read).length}
           />
@@ -103,6 +130,16 @@ export default function Agents() {
             <AgentNotifications
               notifications={notifications}
               agents={agents}
+            />
+          )}
+
+          {currentView === 'pipelines' && (
+            <AgentPipelineBuilder
+              agents={agents}
+              pipelines={pipelines}
+              onCreatePipeline={handleCreatePipeline}
+              onDeletePipeline={handleDeletePipeline}
+              onRunPipeline={handleRunPipeline}
             />
           )}
         </main>

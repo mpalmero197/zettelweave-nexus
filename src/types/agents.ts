@@ -8,7 +8,8 @@ export type AgentType =
   | 'daily_digest'
   | 'citation'
   | 'task_extraction'
-  | 'spaced_repetition';
+  | 'spaced_repetition'
+  | 'custom';
 
 export type AgentStatus = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -69,6 +70,11 @@ export interface AgentConfig {
   // Spaced repetition
   cards_per_session?: number;
   difficulty_multiplier?: number;
+
+  // Custom agent
+  custom_instructions?: string;
+  custom_input_source?: 'all' | 'cards' | 'notes' | 'documents';
+  custom_output_format?: 'findings' | 'cards' | 'notes' | 'summary';
 }
 
 export interface AgentRun {
@@ -204,5 +210,13 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     icon: 'Brain',
     defaultConfig: { cards_per_session: 10, difficulty_multiplier: 2.5 },
     capabilities: ['SM-2 algorithm', 'Review scheduling', 'Difficulty tracking', 'Memory optimization']
+  },
+  {
+    type: 'custom',
+    name: 'Custom Agent',
+    description: 'Create a fully custom agent with your own instructions and behavior',
+    icon: 'Wand2',
+    defaultConfig: { custom_instructions: '', custom_input_source: 'all', custom_output_format: 'findings' },
+    capabilities: ['Custom instructions', 'Flexible input', 'Configurable output', 'User-defined behavior']
   }
 ];
