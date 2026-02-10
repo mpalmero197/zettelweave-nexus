@@ -17,7 +17,8 @@ import {
   Quote,
   CheckSquare,
   Brain,
-  Bot
+  Bot,
+  Wand2
 } from 'lucide-react';
 import { Agent, AgentFinding, AgentType } from '@/types/agents';
 import { useAgents } from '@/hooks/useAgents';
@@ -33,7 +34,8 @@ const AGENT_ICONS: Record<AgentType, React.ElementType> = {
   daily_digest: Calendar,
   citation: Quote,
   task_extraction: CheckSquare,
-  spaced_repetition: Brain
+  spaced_repetition: Brain,
+  custom: Wand2
 };
 
 interface AgentFindingsProps {
