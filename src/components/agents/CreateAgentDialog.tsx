@@ -25,7 +25,7 @@ import {
   Wand2
 } from 'lucide-react';
 import { AgentType, AGENT_DEFINITIONS } from '@/types/agents';
-import { useAgents } from '@/hooks/useAgents';
+import { AgentConfig } from '@/types/agents';
 
 const AGENT_ICONS: Record<AgentType, React.ElementType> = {
   research: Search,
@@ -44,10 +44,10 @@ const AGENT_ICONS: Record<AgentType, React.ElementType> = {
 interface CreateAgentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  createAgent: (agentType: AgentType, name: string, description: string, config: AgentConfig, runFrequencyMinutes?: number) => Promise<any>;
 }
 
-export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps) {
-  const { createAgent } = useAgents();
+export function CreateAgentDialog({ open, onOpenChange, createAgent }: CreateAgentDialogProps) {
   const [step, setStep] = useState<'select' | 'configure'>('select');
   const [selectedType, setSelectedType] = useState<AgentType | null>(null);
   const [name, setName] = useState('');
