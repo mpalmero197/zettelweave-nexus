@@ -19,7 +19,7 @@ type AgentView = 'overview' | 'detail' | 'findings' | 'notifications' | 'pipelin
 
 export default function Agents() {
   const isMobile = useIsMobile();
-  const { agents, findings, notifications, unreadCount, loading } = useAgents();
+  const { agents, findings, notifications, unreadCount, loading, createAgent } = useAgents();
   const [currentView, setCurrentView] = useState<AgentView>('overview');
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -148,6 +148,7 @@ export default function Agents() {
       <CreateAgentDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
+        createAgent={createAgent}
       />
     </div>
   );
