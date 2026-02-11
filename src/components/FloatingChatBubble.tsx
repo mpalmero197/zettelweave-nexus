@@ -278,6 +278,7 @@ export function FloatingChatBubble() {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setIsOpen(false)}
+                aria-label="Close messages panel"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -408,6 +409,7 @@ export function FloatingChatBubble() {
           size="lg"
           onClick={() => setIsOpen(!isOpen)}
           className="h-14 w-14 rounded-full shadow-2xl relative"
+          aria-label={isOpen ? "Close messages panel" : "Open messages and friends"}
         >
           {isOpen ? (
             <X className="h-6 w-6" />

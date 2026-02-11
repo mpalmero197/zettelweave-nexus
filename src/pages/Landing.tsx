@@ -217,7 +217,7 @@ export default function Landing() {
                 <div className="aspect-[16/10] overflow-hidden bg-muted">
                   <img 
                     src={`/screenshots/${item.screenshot}.jpg`}
-                    alt={item.title}
+                    alt={`Screenshot of PendragonX ${item.title} — ${item.desc}`}
                     className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                     loading="lazy"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
