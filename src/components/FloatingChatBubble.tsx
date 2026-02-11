@@ -362,8 +362,8 @@ export function FloatingChatBubble() {
                             </Avatar>
                             <div className={cn(
                               "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card",
-                              friend.user_status === 'online' ? 'bg-green-500' :
-                              friend.user_status === 'idle' ? 'bg-yellow-500' : 'bg-gray-400'
+                            friend.user_status === 'online' ? 'bg-primary' :
+                            friend.user_status === 'idle' ? 'bg-accent' : 'bg-muted-foreground/50'
                             )} />
                           </div>
                           <div className="flex-1 min-w-0">
