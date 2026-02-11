@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Shield, LogIn, Key, Download, AlertTriangle, RefreshCw, Monitor } from 'lucide-react';
+import { Shield, LogIn, Key, Download, AlertTriangle, RefreshCw, Monitor, Mail, ShieldOff, ShieldCheck, UserX, UserCog, Lock, Unlock } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface AuditEvent {
@@ -26,6 +26,16 @@ const eventConfig: Record<string, { label: string; icon: typeof Shield; color: s
   codebase_export: { label: 'Data Export', icon: Download, color: 'bg-blue-500/10 text-blue-500' },
   failed_login: { label: 'Failed Login', icon: AlertTriangle, color: 'bg-destructive/10 text-destructive' },
   token_refresh: { label: 'Session Refreshed', icon: RefreshCw, color: 'bg-muted text-muted-foreground' },
+  email_change: { label: 'Email Changed', icon: Mail, color: 'bg-amber-500/10 text-amber-500' },
+  email_change_requested: { label: 'Email Change Requested', icon: Mail, color: 'bg-blue-500/10 text-blue-500' },
+  session_revoked: { label: 'Session Revoked', icon: ShieldOff, color: 'bg-destructive/10 text-destructive' },
+  sessions_revoked_all: { label: 'All Sessions Revoked', icon: ShieldOff, color: 'bg-destructive/10 text-destructive' },
+  account_deleted: { label: 'Account Deleted', icon: UserX, color: 'bg-destructive/10 text-destructive' },
+  mfa_enabled: { label: 'MFA Enabled', icon: ShieldCheck, color: 'bg-emerald-500/10 text-emerald-500' },
+  mfa_disabled: { label: 'MFA Disabled', icon: ShieldOff, color: 'bg-amber-500/10 text-amber-500' },
+  profile_updated: { label: 'Profile Updated', icon: UserCog, color: 'bg-blue-500/10 text-blue-500' },
+  encryption_enabled: { label: 'Encryption Enabled', icon: Lock, color: 'bg-emerald-500/10 text-emerald-500' },
+  encryption_disabled: { label: 'Encryption Disabled', icon: Unlock, color: 'bg-amber-500/10 text-amber-500' },
 };
 
 function getEventInfo(type: string) {
