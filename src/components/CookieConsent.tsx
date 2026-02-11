@@ -167,6 +167,7 @@ export function CookieConsent() {
               size="icon"
               onClick={rejectAll}
               className="shrink-0"
+              aria-label="Close cookie preferences"
             >
               <X className="h-4 w-4" />
             </Button>
