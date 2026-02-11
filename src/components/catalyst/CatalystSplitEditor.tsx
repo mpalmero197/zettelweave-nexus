@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { CatalystEditor } from '@/components/CatalystEditor';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -86,7 +87,7 @@ export function CatalystSplitEditor({
             <ScrollArea className="flex-1">
               <div
                 className="prose prose-sm max-w-none p-6 text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: referenceContent }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(referenceContent) }}
               />
             </ScrollArea>
           </div>

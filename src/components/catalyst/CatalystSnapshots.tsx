@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import DOMPurify from 'dompurify';
 
 interface CatalystSnapshotsProps {
   documentId: string | null;
@@ -160,7 +161,7 @@ export function CatalystSnapshots({ documentId, currentContent, wordCount, onRes
           <ScrollArea className="h-[400px] border rounded-lg p-4">
             <div
               className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: previewSnapshot?.content || '' }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewSnapshot?.content || '') }}
             />
           </ScrollArea>
           <DialogFooter>
