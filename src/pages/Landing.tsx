@@ -67,7 +67,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto flex h-14 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2.5">
             <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
-            <span className="text-lg font-semibold tracking-tight">PendragonX</span>
+            <span className="hidden sm:inline text-lg font-semibold tracking-tight">PendragonX</span>
           </div>
           
           <nav className="hidden md:flex gap-8">
