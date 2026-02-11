@@ -52,7 +52,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <SEOHead 
         title="PendragonX - AI-Powered Knowledge Management & Zettelkasten System"
         description="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools. Start free today."
@@ -406,6 +406,6 @@ export default function Landing() {
           </nav>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
