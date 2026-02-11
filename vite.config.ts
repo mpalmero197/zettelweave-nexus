@@ -91,6 +91,8 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'toast-vendor': ['sonner', '@radix-ui/react-toast'],
         },
       },
     },

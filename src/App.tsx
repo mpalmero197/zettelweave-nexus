@@ -1,7 +1,4 @@
-import { Suspense, lazy } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -11,6 +8,30 @@ import { MobileTouchHandler } from "@/components/MobileTouchHandler";
 import { CosmicBackground } from "@/components/CosmicBackground";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
+
+// Lazy load heavy UI shell components not needed for initial render
+const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const LazySonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const LazyTooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
+
+const DeferredShell = ({ children }: { children: React.ReactNode }) => {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    // Defer loading shell components until after first paint
+    const id = requestIdleCallback?.(() => setReady(true)) ?? setTimeout(() => setReady(true), 50);
+    return () => { if (typeof id === 'number') cancelIdleCallback?.(id) ?? clearTimeout(id); };
+  }, []);
+  if (!ready) return <>{children}</>;
+  return (
+    <Suspense fallback={<>{children}</>}>
+      <LazyTooltipProvider>
+        {children}
+        <LazyToaster />
+        <LazySonner />
+      </LazyTooltipProvider>
+    </Suspense>
+  );
+};
 
 // Initialize performance preferences from localStorage on load
 const initPerformancePreferences = () => {
@@ -80,12 +101,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <TooltipProvider>
-        <MobileDetector>
-          <MobileTouchHandler>
+      <MobileDetector>
+        <MobileTouchHandler>
+          <DeferredShell>
             <CosmicBackground />
-            <Toaster />
-            <Sonner />
             <CookieConsent />
             <BrowserRouter>
               <Routes>
@@ -162,9 +181,9 @@ const App = () => (
                 } />
               </Routes>
             </BrowserRouter>
-          </MobileTouchHandler>
-        </MobileDetector>
-      </TooltipProvider>
+          </DeferredShell>
+        </MobileTouchHandler>
+      </MobileDetector>
     </ThemeProvider>
   </QueryClientProvider>
 );
