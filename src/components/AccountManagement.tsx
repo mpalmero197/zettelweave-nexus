@@ -22,6 +22,7 @@ import { ThemeVariantSelector } from '@/components/ThemeVariantSelector';
 import { ContrastChecker } from '@/components/ContrastChecker';
 import { CustomThemeBuilder } from '@/components/CustomThemeBuilder';
 import { useAnimationPreference } from '@/hooks/useAnimationPreference';
+import { SecurityActivityLog } from '@/components/SecurityActivityLog';
 
 interface AccountManagementProps {
   onClose: () => void;
@@ -43,7 +44,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { toast } = useToast();
   const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions, lowPowerMode, setLowPowerMode } = useAnimationPreference();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance' | 'backup' | 'debug'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'backup' | 'debug'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -619,6 +620,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
+    { id: 'activity', label: 'Activity Log', icon: BookOpen },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'debug', label: 'Debug Logs', icon: Bug },
     ...(user?.email === 'mpalmero197@gmail.com' ? [{ id: 'backup', label: 'Backup', icon: Download }] : []),
@@ -857,6 +859,18 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       </div>
                     }
                   />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'activity' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-1">Security Activity Log</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Review your recent login history and account security events.
+                  </p>
+                  <SecurityActivityLog />
                 </div>
               </div>
             )}
