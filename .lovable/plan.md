@@ -1,113 +1,98 @@
 
 
-# Whiteboard Complete Overhaul
+# Calendar Complete Overhaul
 
-## Problems With the Current Whiteboard
+## Problems With the Current Calendar
 
-### Critical Bugs
-- **Canvas re-creates on every color/size/grid change**: The `useEffect` at line 90 has `[penColor, penSize, showGrid]` as dependencies, meaning the entire Fabric canvas is destroyed and rebuilt whenever you pick a new color or toggle the grid. All drawn content is lost.
-- **Undo/redo is broken**: `history` and `historyIndex` state variables are declared but never populated -- the undo/redo buttons do nothing.
-- **No actual grid rendered**: Toggling "grid" just changes the background from `#F8F9FA` to `#FFFFFF` -- there are no grid lines or dots.
+### Layout Issues
+- **Cramped grid layout**: Calendar takes 2/3 and events take 1/3 on desktop, but the DayPicker calendar is tiny and doesn't scale well. Wasted space everywhere.
+- **Three separate sections** (calendar grid, selected day events, all upcoming events) feel disconnected and repetitive.
+- **No month/week/agenda view toggle** -- stuck with a single small month view.
 
 ### Design Issues
-- **Toolbar is cluttered**: Three separate Sheet panels (Drawing, Shapes, Lines) slide over the canvas to show sub-tools. This is disruptive and hides your work.
-- **Fixed 800px height**: The desktop canvas is locked at `h-[800px]`, not truly infinite or even responsive.
-- **No keyboard shortcuts**: No way to quickly switch tools, undo, or delete without clicking.
-- **Mobile version is too basic**: No zoom, no undo, no stroke size control, limited tools.
+- **Generic Card wrappers** add unnecessary borders and padding around everything, making it feel like a settings page, not a calendar.
+- **Event indicators** are just colored blobs on the day -- no sense of how many events or what type.
+- **Empty states** are boring and unhelpful.
+- **The "All Upcoming Events" section** at the bottom is just a flat list with no visual hierarchy or grouping.
 
-## The New Whiteboard Vision
+### UX Issues
+- **No inline event creation** -- must open a dialog to add anything, even a quick event.
+- **No way to edit events** -- only delete (and only manual ones).
+- **No drag or quick-click to create** on a date.
+- **Event source badges** take up space but aren't actionable.
 
-A clean, Excalidraw-inspired whiteboard with a floating toolbar, working undo/redo, a real dot grid, proper infinite canvas, and keyboard shortcuts.
+## The New Calendar Vision
+
+A clean, modern calendar with a prominent month grid showing event dots, an elegant slide-in day detail panel, grouped upcoming events, and quick inline event creation.
 
 ## Technical Plan
 
-### 1. Fix the Canvas Initialization Bug
-**File: `src/components/DesktopWhiteboard.tsx`** (rewrite)
+### 1. Redesign the Main Layout
+**File: `src/components/Calendar.tsx`** (rewrite)
 
-Separate canvas creation from tool configuration:
-- Canvas init `useEffect` depends only on `[]` (mount once)
-- Pen color, size, and brush settings update in a separate `useEffect` that modifies the existing canvas without recreating it
-- Grid rendering done via canvas overlay objects, not background color
+Replace the 3-card grid with a single cohesive layout:
+- Top: Slim header with month/year title, prev/next navigation arrows, and "Today" quick-jump button, plus the Add Event button
+- Center: Full-width custom month grid (not using the tiny DayPicker) with proper day cells that show small colored event dots (max 3 dots per day)
+- Right panel (desktop) / Bottom sheet (mobile): Selected day detail panel showing that day's events in a timeline-style layout
 
-### 2. Implement Working Undo/Redo
-- Save canvas JSON state after every `object:added`, `object:removed`, `object:modified` event
-- Cap history at 50 entries to prevent memory bloat
-- `historyIndex` tracks current position; undo/redo restore from the stack
-- Keyboard shortcuts: Ctrl+Z / Ctrl+Shift+Z
+### 2. Build a Custom Month Grid
+Replace the default `DayPicker` with a custom CSS grid calendar:
+- 7-column grid for days of the week
+- Each day cell is a clickable square with the date number and up to 3 small colored dots indicating events
+- Selected day gets a ring highlight, today gets a subtle filled background
+- Days with events show a small count badge if more than 3 events
+- Smooth transitions when changing months with prev/next buttons
+- Outside-month days shown at reduced opacity
 
-### 3. Render a Real Dot Grid
-- Draw small circles in a pattern across the canvas using Fabric objects with `selectable: false` and `evented: false`
-- Grid dots are light grey, spaced 30px apart
-- Toggle shows/hides the grid group without recreating the canvas
-- Grid adjusts when panning/zooming
+### 3. Redesign the Day Detail Panel
+Replace the separate Card with an integrated side panel:
+- Shows the selected date prominently at the top with day name
+- Events displayed as a clean timeline with colored left-border strips (by source type)
+- Time shown inline, description expandable on click
+- Quick "Add event" input at the bottom of the panel (just a text field + Enter to create, no dialog needed for simple events)
+- Full dialog still available via a "More options" link for description and time
 
-### 4. Redesign the Toolbar as a Single Floating Bar
-Replace the three Sheet-based sub-menus with a single compact floating toolbar:
+### 4. Group Upcoming Events by Date
+Replace the flat "All Upcoming Events" list:
+- Group events by date with sticky date headers ("Today", "Tomorrow", "Wednesday", "Feb 18", etc.)
+- Show as a compact agenda view below the calendar grid
+- Limit to next 7 days, with a "Show more" to expand
 
-```text
-+------------------------------------------------------+
-| Select | Pan | Pen | Shapes v | Text | Sticky | ...  |
-+------------------------------------------------------+
-```
+### 5. Inline Quick-Add
+- Clicking a day in the grid selects it AND shows a subtle text input in the detail panel
+- Typing and pressing Enter creates a quick event (title only, on that date)
+- For full details (time, description), a small "+" icon opens the dialog pre-filled with the selected date
 
-- **Shapes dropdown**: A small popover (not a Sheet) showing Rectangle, Circle, Triangle, Star, Hexagon as icon buttons in a 3x2 grid
-- **Color/size**: A small popover from a color swatch button showing the palette + stroke slider inline
-- **Actions**: Undo, Redo, Delete, Clear, Export grouped at the end
-- All buttons are icon-only with tooltips for clean appearance
+### 6. Edit Support
+- Clicking an event in the detail panel opens an inline edit mode (title becomes an input, time/description editable)
+- Save on blur or Enter, cancel on Escape
+- Delete via a small trash icon that appears on hover
 
-### 5. Make the Canvas Truly Responsive
-- Replace fixed `h-[800px]` with `h-full` filling the parent container
-- Add `ResizeObserver` to update canvas dimensions when the container resizes
-- Smooth zoom with mouse wheel (Ctrl+scroll) clamped to 25%-400%
+### 7. Visual Polish
+- Day cells use subtle hover states (`bg-accent/30`) and smooth selection ring (`ring-2 ring-primary`)
+- Event dots use source-type colors: primary (zettel), blue (note), purple (scratch pad), yellow (sticky), orange (manual)
+- Glassmorphic detail panel matching the app's existing `widget-card` style (`bg-card/80 backdrop-blur`)
+- Warm, spacious typography -- month title in semibold, day numbers in tabular-nums for alignment
+- Mobile: Calendar grid cells are smaller but still tappable (min 44px), detail panel slides up from bottom
 
-### 6. Add Keyboard Shortcuts
-| Key | Action |
-|-----|--------|
-| V | Select tool |
-| H | Pan tool |
-| P | Pen tool |
-| R | Rectangle |
-| O | Circle |
-| T | Text |
-| S | Sticky note |
-| E | Eraser |
-| Delete/Backspace | Delete selected |
-| Ctrl+Z | Undo |
-| Ctrl+Shift+Z | Redo |
-| Ctrl+A | Select all |
-| +/- | Zoom in/out |
-
-### 7. Overhaul Mobile Whiteboard
-**File: `src/components/MobileWhiteboard.tsx`** (rewrite)
-
-- Add pinch-to-zoom support using touch events
-- Add undo button to the bottom toolbar (most important missing feature)
-- Add stroke size toggle (thin/medium/thick) as a simple 3-state button
-- Improve the bottom toolbar layout: primary tools on main row, color picker slides up as a secondary row only when a drawing tool is active (keep current pattern but polish)
-- Fix canvas init to not depend on `penColor`
-
-### 8. Visual Polish
-- Floating toolbar uses `bg-card/90 backdrop-blur-xl rounded-2xl shadow-lg border` for a modern glass look
-- Active tool button gets a subtle filled background with smooth transition
-- Canvas background uses a warm off-white (`#FAFAF8`) instead of pure white
-- Sticky notes get slightly rounded corners and a subtle rotation (1-3 degrees random) for a natural look
-- Zoom percentage badge displayed at bottom-right corner
+### 8. CalendarEventsWidget Polish
+**File: `src/components/widgets/CalendarEventsWidget.tsx`** (minor update)
+- Keep as-is since it's already clean, just ensure it matches the new source-type color scheme
 
 ## Files Changed
 
 | File | Action |
 |------|--------|
-| `src/components/DesktopWhiteboard.tsx` | Rewrite (fix canvas bug, toolbar redesign, undo/redo, dot grid, keyboard shortcuts, responsive sizing) |
-| `src/components/MobileWhiteboard.tsx` | Rewrite (pinch zoom, undo, stroke size, polish) |
-| `src/components/InfiniteWhiteboard.tsx` | Minor update (pass through any new props if needed) |
+| `src/components/Calendar.tsx` | Rewrite (custom month grid, integrated detail panel, inline quick-add, edit support, grouped agenda, visual overhaul) |
+| `src/components/widgets/CalendarEventsWidget.tsx` | Minor color consistency update |
 
 ## What This Achieves
 
-- **No more data loss** when changing colors or stroke size
-- **Working undo/redo** with keyboard shortcuts
-- **Real dot grid** instead of a background color toggle
-- **Clean single toolbar** instead of three disruptive Sheet panels
-- **Responsive canvas** that fills available space
-- **Keyboard-driven workflow** for power users
-- **Better mobile experience** with pinch zoom and undo
+- **Beautiful month grid** with event dot indicators instead of a tiny DayPicker
+- **Integrated day panel** instead of disconnected cards
+- **Quick inline event creation** without opening dialogs for simple events
+- **Edit support** for existing events
+- **Grouped agenda view** for upcoming events with date headers
+- **Responsive design** that works well on both desktop and mobile
+- **Consistent visual language** with glassmorphic styling matching the rest of the app
 
