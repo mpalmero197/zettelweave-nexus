@@ -1,115 +1,96 @@
 
-# Dashboard Overhaul: A Clean, Cohesive Redesign
+# Graph View Complete Overhaul
 
-## What's Wrong Now
-The current dashboard relies on `react-grid-layout`, which is a heavy dependency that introduces forced reflows, complex lock/unlock mechanics, and a clunky editing experience. The widgets themselves are visually monotonous -- every single one is a `Card` with the same structure, same spacing, same grey icon header. There's no visual hierarchy, no personality, and no reason to enjoy looking at it.
+## Problems With the Current Graph
 
-## The New Dashboard Vision
+The app has **two** graph components (`GraphView.tsx` at 941 lines and `GraphViewNew.tsx` at 781 lines) doing similar things, creating confusion and bloat. The active one (`GraphViewNew.tsx`, imported as `GraphView`) has these issues:
 
-Replace the heavy grid-layout system with a **lightweight, CSS-only layout** using CSS Grid. This eliminates the `react-grid-layout` dependency entirely, removing forced reflows and improving performance. The design shifts to a **magazine-style layout** with clear visual hierarchy.
+- **Physics are broken**: The d3-force simulation re-creates on every render because `nodes.length` is in the dependency array, causing flickering and wasted CPU cycles. The simulation mutates node objects directly which conflicts with React Flow's state model.
+- **No visual identity**: Nodes are plain dots with text labels floating above them -- no color coding, no visual weight, no personality.
+- **Edges are dull**: All edges look identical -- thin grey lines with no differentiation between strong and weak connections.
+- **Layouts are static**: Circular, hierarchical, and category layouts just compute positions once with no animation or transition between them.
+- **Desktop controls are cramped**: A 240px-wide panel stuffed with buttons and dropdowns.
+- **No hover interactions**: No way to explore connections by hovering (the old `GraphView.tsx` had this but the active one doesn't).
 
-### Design Principles
-- **Hero zone** at the top: a greeting + quick capture merged into one elegant banner
-- **Stat pills** instead of boxed stat cards: inline, glanceable counters
-- **Content sections** with clean dividers instead of identical card boxes
-- **Subtle depth** via `backdrop-blur` and gradient borders on key widgets
-- **No drag-to-rearrange complexity** for the default view; widget visibility still controlled via the sidebar
+## The New Graph Vision
 
----
+A clean, performant, Obsidian-inspired knowledge graph with:
+- **Color-coded nodes** by category with subtle glow effects
+- **Smooth animated transitions** between layouts
+- **Working physics** that actually settles properly
+- **Hover-to-highlight** connection paths
+- **Elegant edge styling** that differentiates link types
+- **Minimal, floating controls** that don't obstruct the view
 
 ## Technical Plan
 
-### 1. Replace ResizableGrid with a CSS Grid Layout Component
-**File: `src/components/DashboardGrid.tsx`** (new)
+### 1. Rewrite GraphViewNew.tsx (the active component)
 
-A simple component that uses CSS Grid with named template areas. No third-party grid library. Layout adapts responsively via `grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))` and explicit area assignments for the hero section.
+**Node Design:**
+- Replace text+dot with compact circular nodes colored by Dewey category
+- Node size scales with connection count (more links = larger node)
+- Title displayed inside/below the node, truncated to fit
+- On hover: node glows, connected nodes highlight, unconnected nodes fade to 20% opacity
+- On click: opens card (existing behavior preserved)
 
-### 2. Redesign the Welcome + Quick Capture as a Hero Banner
-**File: `src/components/widgets/WelcomeWidget.tsx`** (rewrite)
+**Edge Design:**
+- Direct links: solid lines with subtle gradient from source to target category color
+- Width scales with link strength (shared tags = thicker)
+- On hover over a node: connected edges brighten, others fade
+- Remove arrow markers for cleaner look (Obsidian style)
 
-Merge the welcome message and quick capture into a single hero banner:
-- Time-aware greeting ("Good morning", "Good afternoon", "Good evening")
-- Inline quick capture textarea that expands on focus
-- Stats displayed as compact pill badges within the banner
-- Subtle gradient border using CSS `border-image`
+**Physics Fix:**
+- Move simulation setup into a stable `useRef`-based pattern that doesn't re-create on every render
+- Use `alphaTarget` for smooth start/stop instead of recreating the simulation
+- Add proper cleanup with `simulation.stop()` before creating new ones
+- Fix the dependency array to only include truly changing values (edge list hash, not `nodes.length`)
+- Add velocity capping to prevent nodes from flying off-screen
+- Tune forces: stronger center gravity (0.05), moderate charge (-800), link distance proportional to graph density
 
-### 3. Redesign StatsWidget as Inline Stat Pills
-**File: `src/components/widgets/StatsWidget.tsx`** (rewrite)
+**Layout Transitions:**
+- When switching layouts, animate nodes from current position to target position using `requestAnimationFrame` interpolation over 600ms
+- No jarring snap -- smooth easing
 
-Instead of a 2x2 grid in a card, render stats as a horizontal row of minimal pill-shaped counters. Each pill shows the number and label. Clickable to navigate.
+**Hover Interactions (from old GraphView, improved):**
+- `onNodeMouseEnter`: find all connected node IDs, set them as highlighted
+- `onNodeMouseLeave`: clear highlights
+- Highlighted nodes: full opacity + glow; non-highlighted: 0.15 opacity
+- Highlighted edges: full opacity + thicker; non-highlighted: 0.05 opacity
 
-### 4. Modernize List Widgets with Unified Styling
-**Files: RecentCardsWidget, RecentNotesWidget, TaskTrackerWidget, CalendarEventsWidget, FavoritesWidget, NotebookListWidget** (update each)
+### 2. Simplify Controls
 
-Apply consistent styling updates:
-- Remove the uppercase tracking-wide header style; use a simpler `text-sm font-medium` with left-aligned icon
-- Add a subtle left-border accent color per widget type for visual differentiation
-- Improve empty states with more helpful messaging and a call-to-action button
-- Use consistent `rounded-xl` corners and `bg-card/80 backdrop-blur-sm` for glassmorphism effect
+**Desktop:**
+- Floating pill-shaped toolbar at top-center with: search input, layout dropdown, physics toggle, reset button
+- Stats badge at bottom-left corner
+- Remove fullscreen toggle (React Flow already supports it via Controls)
+- Remove separate auto-link/clear buttons from the graph (keep them in card management)
 
-### 5. Rewrite CustomizableDashboard.tsx
-**File: `src/components/CustomizableDashboard.tsx`** (rewrite)
+**Mobile:**
+- Keep the existing FAB + expandable panel pattern (it works well)
+- Clean up the panel content to match the simplified desktop controls
 
-- Remove `ResizableGrid` usage
-- Use the new `DashboardGrid` CSS grid component
-- Layout structure:
-  ```text
-  +------------------------------------------+
-  |          Hero (Welcome + Capture)         |
-  +------------------------------------------+
-  |  Stat Pills (inline horizontal row)      |
-  +--------------------+---------------------+
-  |   Recent Cards     |   Recent Notes      |
-  +--------------------+---------------------+
-  |   Quick Tasks      |   Upcoming Events   |
-  +--------------------+---------------------+
-  |   Notebooks        |   Favorites         |
-  +--------------------+---------------------+
-  ```
-- Widgets that are toggled on via the sidebar appear below in auto-flow grid cells
-- Remove lock/unlock and optimize buttons (no longer needed without drag-and-drop)
+### 3. Delete GraphView.tsx (the old unused one)
 
-### 6. Update grid-layout.css
-**File: `src/styles/grid-layout.css`** (rewrite)
+The old 941-line `GraphView.tsx` is not imported anywhere active. It will be removed to reduce codebase confusion.
 
-Replace react-grid-layout styles with simple CSS grid utility classes for the new dashboard layout.
+### 4. Update grid-layout.css
 
-### 7. Simplify DashboardWidgetSidebar
-**File: `src/components/DashboardWidgetSidebar.tsx`** (update)
-
-Keep the toggle-visibility functionality but simplify the UI. Remove size badges (no longer relevant without grid resizing).
-
-### 8. Update useDashboardLayout Hook
-**File: `src/hooks/useDashboardLayout.ts`** (update)
-
-Remove position coordinates from the default widget definitions since layout is now CSS-driven. Keep `isVisible` toggle and persistence. Simplify the `saveLayout` to only track visibility order.
-
----
-
-## What This Achieves
-- **Removes `react-grid-layout`** dependency -- eliminates forced reflows entirely
-- **Faster rendering** -- CSS Grid is GPU-accelerated, no JS layout calculations
-- **Cohesive design** -- every widget shares a visual language with subtle differentiators
-- **Better hierarchy** -- the hero banner draws focus, stats are glanceable, content lists are scannable
-- **Accessible** -- proper heading levels, ARIA landmarks, keyboard navigation preserved
-- **Mobile-first** -- CSS Grid collapses to single column naturally
+Add graph-specific utility styles for node glow effects and edge animations using CSS custom properties, keeping them lightweight.
 
 ## Files Changed
+
 | File | Action |
 |------|--------|
-| `src/components/DashboardGrid.tsx` | Create (new CSS grid layout) |
-| `src/components/CustomizableDashboard.tsx` | Rewrite (use new grid, hero layout) |
-| `src/components/widgets/WelcomeWidget.tsx` | Rewrite (hero banner with capture + stats) |
-| `src/components/widgets/StatsWidget.tsx` | Rewrite (inline stat pills) |
-| `src/components/widgets/RecentCardsWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/RecentNotesWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/TaskTrackerWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/CalendarEventsWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/FavoritesWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/NotebookListWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/ActivityFeedWidget.tsx` | Update (modern styling) |
-| `src/components/widgets/QuickCaptureWidget.tsx` | Update (integrate into hero or restyle) |
-| `src/components/DashboardWidgetSidebar.tsx` | Simplify |
-| `src/hooks/useDashboardLayout.ts` | Simplify (remove position data) |
-| `src/styles/grid-layout.css` | Rewrite for CSS grid |
-| `src/components/ResizableGrid.tsx` | Keep file but no longer imported by dashboard |
+| `src/components/GraphViewNew.tsx` | Rewrite (new node design, fixed physics, hover interactions, simplified controls) |
+| `src/components/GraphView.tsx` | Delete (unused legacy component) |
+| `src/styles/grid-layout.css` | Add graph glow/animation utilities |
+
+## What This Achieves
+
+- **Single graph component** instead of two competing ones
+- **Fixed physics** that settle smoothly without flickering or infinite re-renders
+- **Visual hierarchy** through color-coded, size-weighted nodes
+- **Discoverable connections** via hover-to-highlight interaction
+- **Smooth layout transitions** instead of jarring position snaps
+- **Cleaner controls** that don't compete with the graph for attention
+- **Better performance** by eliminating simulation recreation bugs
