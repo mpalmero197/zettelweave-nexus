@@ -1,16 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
-import { format, isSameDay, parseISO } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, Clock, FileText, Brain, StickyNote, Lightbulb } from 'lucide-react';
+import {
+  format, isSameDay, isSameMonth, parseISO, startOfMonth, endOfMonth,
+  startOfWeek, endOfWeek, eachDayOfInterval, addMonths, subMonths,
+  isToday, isTomorrow, isThisWeek, isBefore, startOfDay
+} from 'date-fns';
+import {
+  ChevronLeft, ChevronRight, Plus, Trash2, Pencil, X, Check,
+  Calendar as CalendarIcon
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+/* ------------------------------------------------------------------ */
+/*  Types & constants                                                  */
+/* ------------------------------------------------------------------ */
 
 interface CalendarEvent {
   id: string;
@@ -18,49 +27,82 @@ interface CalendarEvent {
   description: string;
   event_date: string;
   event_time?: string;
-  source_type: string; // Keep as string for more flexibility
+  source_type: string;
   source_id: string;
   created_at: string;
 }
 
-const sourceTypeConfig = {
-  zettel_card: { icon: Brain, color: 'text-primary', bg: 'bg-primary/10', label: 'Zettel Card' },
-  note: { icon: FileText, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Note' },
-  scratch_pad: { icon: Lightbulb, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Scratch Pad' },
-  sticky_note: { icon: StickyNote, color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'Sticky Note' },
-  manual: { icon: CalendarIcon, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Manual Event' }
+const SOURCE_DOT_COLORS: Record<string, string> = {
+  zettel_card: 'bg-primary',
+  note: 'bg-blue-500',
+  scratch_pad: 'bg-purple-500',
+  sticky_note: 'bg-yellow-500',
+  manual: 'bg-orange-500',
 };
+
+const SOURCE_BORDER_COLORS: Record<string, string> = {
+  zettel_card: 'border-l-primary',
+  note: 'border-l-blue-500',
+  scratch_pad: 'border-l-purple-500',
+  sticky_note: 'border-l-yellow-500',
+  manual: 'border-l-orange-500',
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  zettel_card: 'Zettel',
+  note: 'Note',
+  scratch_pad: 'Scratch Pad',
+  sticky_note: 'Sticky',
+  manual: 'Event',
+};
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/* ------------------------------------------------------------------ */
+/*  Helper: format event time                                          */
+/* ------------------------------------------------------------------ */
+function formatTime(t?: string) {
+  if (!t) return null;
+  try { return format(new Date(`2000-01-01T${t}`), 'h:mm a'); }
+  catch { return t; }
+}
+
+function dateLabel(d: Date) {
+  if (isToday(d)) return 'Today';
+  if (isTomorrow(d)) return 'Tomorrow';
+  if (isThisWeek(d)) return format(d, 'EEEE');
+  return format(d, 'EEE, MMM d');
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 export function Calendar() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedEvents, setSelectedEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddEvent, setShowAddEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    event_time: ''
-  });
 
-  useEffect(() => {
-    if (user) {
-      fetchEvents();
-    }
-  }, [user]);
+  // Quick-add
+  const [quickTitle, setQuickTitle] = useState('');
+  const quickRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    // Filter events for selected date
-    const dayEvents = events.filter(event => 
-      isSameDay(parseISO(event.event_date), selectedDate)
-    );
-    setSelectedEvents(dayEvents);
-  }, [selectedDate, events]);
+  // Full add dialog
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState({ title: '', description: '', event_time: '' });
 
-  const fetchEvents = async () => {
+  // Inline edit
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState({ title: '', description: '', event_time: '' });
+
+  /* ---------- data ---------- */
+
+  const fetchEvents = useCallback(async () => {
     if (!user) return;
-
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -68,298 +110,433 @@ export function Calendar() {
         .select('*')
         .eq('user_id', user.id)
         .order('event_date', { ascending: true });
-
-      if (error) {
-        console.error('Calendar events fetch error:', error);
-        throw error;
-      }
-      
-      console.log('Calendar events loaded:', data?.length || 0);
+      if (error) throw error;
       setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching calendar events:', error);
-      setEvents([]); // Reset to empty array on error
+    } catch (e) {
+      console.error('Error fetching calendar events:', e);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const addEvent = async () => {
-    if (!user || !newEvent.title.trim()) return;
+  useEffect(() => { if (user) fetchEvents(); }, [user, fetchEvents]);
 
+  /* ---------- derived ---------- */
+
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    for (const ev of events) {
+      const key = ev.event_date; // yyyy-MM-dd
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(ev);
+    }
+    return map;
+  }, [events]);
+
+  const calendarDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(currentMonth));
+    const end = endOfWeek(endOfMonth(currentMonth));
+    return eachDayOfInterval({ start, end });
+  }, [currentMonth]);
+
+  const selectedDayEvents = useMemo(
+    () => events.filter(ev => isSameDay(parseISO(ev.event_date), selectedDate))
+      .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || '')),
+    [events, selectedDate]
+  );
+
+  const upcomingGrouped = useMemo(() => {
+    const today = startOfDay(new Date());
+    const upcoming = events
+      .filter(ev => !isBefore(parseISO(ev.event_date), today))
+      .sort((a, b) => a.event_date.localeCompare(b.event_date) || (a.event_time || '').localeCompare(b.event_time || ''));
+
+    const groups: { date: Date; label: string; events: CalendarEvent[] }[] = [];
+    let lastKey = '';
+    for (const ev of upcoming) {
+      if (ev.event_date !== lastKey) {
+        lastKey = ev.event_date;
+        const d = parseISO(ev.event_date);
+        groups.push({ date: d, label: dateLabel(d), events: [] });
+      }
+      groups[groups.length - 1].events.push(ev);
+    }
+    return groups.slice(0, 7); // max 7 date groups
+  }, [events]);
+
+  /* ---------- actions ---------- */
+
+  const addEvent = async (title: string, description = '', event_time = '') => {
+    if (!user || !title.trim()) return;
     try {
-      const { error } = await supabase
-        .from('calendar_events')
-        .insert({
-          user_id: user.id,
-          title: newEvent.title,
-          description: newEvent.description,
-          event_date: format(selectedDate, 'yyyy-MM-dd'),
-          event_time: newEvent.event_time || null,
-          source_type: 'manual',
-          source_id: crypto.randomUUID()
-        });
-
-      if (error) throw error;
-
-      setNewEvent({ title: '', description: '', event_time: '' });
-      setShowAddEvent(false);
+      await supabase.from('calendar_events').insert({
+        user_id: user.id,
+        title: title.trim(),
+        description,
+        event_date: format(selectedDate, 'yyyy-MM-dd'),
+        event_time: event_time || null,
+        source_type: 'manual',
+        source_id: crypto.randomUUID(),
+      });
       fetchEvents();
-    } catch (error) {
-      console.error('Error adding event:', error);
-    }
+    } catch (e) { console.error('Error adding event:', e); }
   };
 
-  const deleteEvent = async (eventId: string) => {
+  const updateEvent = async (id: string) => {
+    if (!editFields.title.trim()) return;
     try {
-      const { error } = await supabase
-        .from('calendar_events')
-        .delete()
-        .eq('id', eventId);
-
-      if (error) throw error;
+      await supabase.from('calendar_events').update({
+        title: editFields.title.trim(),
+        description: editFields.description,
+        event_time: editFields.event_time || null,
+      }).eq('id', id);
+      setEditingId(null);
       fetchEvents();
-    } catch (error) {
-      console.error('Error deleting event:', error);
-    }
+    } catch (e) { console.error('Error updating event:', e); }
   };
 
-  // Get dates that have events
-  const eventDates = events.map(event => parseISO(event.event_date));
-
-  const modifiers = {
-    hasEvents: eventDates
+  const deleteEvent = async (id: string) => {
+    try {
+      await supabase.from('calendar_events').delete().eq('id', id);
+      fetchEvents();
+    } catch (e) { console.error('Error deleting event:', e); }
   };
 
-  const modifiersStyles = {
-    hasEvents: {
-      backgroundColor: 'hsl(var(--primary))',
-      color: 'hsl(var(--primary-foreground))',
-      fontWeight: 'bold'
-    }
+  const handleQuickAdd = () => {
+    if (!quickTitle.trim()) return;
+    addEvent(quickTitle);
+    setQuickTitle('');
   };
+
+  const handleFullAdd = () => {
+    addEvent(newEvent.title, newEvent.description, newEvent.event_time);
+    setNewEvent({ title: '', description: '', event_time: '' });
+    setShowAddDialog(false);
+  };
+
+  const startEdit = (ev: CalendarEvent) => {
+    setEditingId(ev.id);
+    setEditFields({ title: ev.title, description: ev.description || '', event_time: ev.event_time || '' });
+  };
+
+  /* ---------- loading ---------- */
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-4 space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="p-4">
-                <div className="h-72 bg-muted/30 rounded-lg animate-pulse" />
-              </CardContent>
-            </Card>
-          </div>
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-14 bg-muted/30 rounded-lg animate-pulse" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="p-4 space-y-4 animate-pulse">
+        <div className="h-8 w-48 bg-muted/40 rounded-lg" />
+        <div className="h-[360px] bg-muted/30 rounded-xl" />
       </div>
     );
   }
 
+  /* ---------- render ---------- */
+
   return (
-    <div className="p-3 sm:p-4 space-y-3 animate-fade-in">
-      {/* Header */}
+    <div className="p-3 sm:p-4 space-y-4 animate-fade-in">
+      {/* ===== HEADER ===== */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Calendar</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Track events and reminders from your knowledge base</p>
-        </div>
-        <Dialog open={showAddEvent} onOpenChange={setShowAddEvent}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Event</span>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(m => subMonths(m, 1))} aria-label="Previous month">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-lg sm:text-xl font-semibold text-foreground tabular-nums min-w-[160px] text-center">
+            {format(currentMonth, 'MMMM yyyy')}
+          </h2>
+          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(m => addMonths(m, 1))} aria-label="Next month">
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+          {!isSameMonth(currentMonth, new Date()) && (
+            <Button variant="outline" size="sm" className="ml-1 text-xs h-7"
+              onClick={() => { setCurrentMonth(new Date()); setSelectedDate(new Date()); }}>
+              Today
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Calendar Event</DialogTitle>
-              <DialogDescription>
-                Create a new calendar event with optional time and description
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Title</label>
-                <Input
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Event title"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <Textarea
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Event description (optional)"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Time (optional)</label>
-                <Input
-                  type="time"
-                  value={newEvent.event_time}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, event_time: e.target.value }))}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowAddEvent(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={addEvent} disabled={!newEvent.title.trim()}>
-                  Add Event
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+          )}
+        </div>
+        <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Add Event</span>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Calendar */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                {format(selectedDate, 'MMMM yyyy')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                modifiers={modifiers}
-                modifiersStyles={modifiersStyles}
-                className={cn("w-full pointer-events-auto")}
-              />
-              <div className="mt-4 p-3 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                  Dates with events are highlighted in blue
-                </p>
+      {/* ===== MAIN LAYOUT ===== */}
+      <div className={cn(
+        "flex gap-4",
+        isMobile ? "flex-col" : "flex-row"
+      )}>
+        {/* ---- MONTH GRID ---- */}
+        <div className={cn(
+          "widget-card p-3 sm:p-4",
+          isMobile ? "w-full" : "flex-1 min-w-0"
+        )}>
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 mb-1">
+            {WEEKDAYS.map(d => (
+              <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1.5">
+                {d}
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div className="grid grid-cols-7 gap-px">
+            {calendarDays.map(day => {
+              const key = format(day, 'yyyy-MM-dd');
+              const dayEvents = eventsByDate.get(key) || [];
+              const isSelected = isSameDay(day, selectedDate);
+              const isCurrentMonth = isSameMonth(day, currentMonth);
+              const today = isToday(day);
+
+              // unique source types for dots (max 3)
+              const dotTypes = [...new Set(dayEvents.map(e => e.source_type))].slice(0, 3);
+              const extraCount = dayEvents.length > 3 ? dayEvents.length - 3 : 0;
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedDate(day)}
+                  className={cn(
+                    "relative flex flex-col items-center justify-start rounded-lg transition-all duration-150",
+                    "min-h-[44px] sm:min-h-[52px] py-1.5",
+                    "hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    !isCurrentMonth && "opacity-35",
+                    today && !isSelected && "bg-accent/60",
+                    isSelected && "ring-2 ring-primary bg-primary/10"
+                  )}
+                  aria-label={format(day, 'EEEE, MMMM d')}
+                  aria-pressed={isSelected}
+                >
+                  <span className={cn(
+                    "text-sm tabular-nums leading-none",
+                    today && "font-bold text-primary",
+                    isSelected && "font-bold"
+                  )}>
+                    {format(day, 'd')}
+                  </span>
+
+                  {/* Event dots */}
+                  {dotTypes.length > 0 && (
+                    <div className="flex items-center gap-[3px] mt-1">
+                      {dotTypes.map(type => (
+                        <span key={type} className={cn(
+                          "w-[5px] h-[5px] rounded-full",
+                          SOURCE_DOT_COLORS[type] || 'bg-muted-foreground'
+                        )} />
+                      ))}
+                      {extraCount > 0 && (
+                        <span className="text-[8px] text-muted-foreground leading-none">+{extraCount}</span>
+                      )}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dot legend */}
+          <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-border/50">
+            {Object.entries(SOURCE_DOT_COLORS).map(([type, color]) => (
+              <div key={type} className="flex items-center gap-1.5">
+                <span className={cn("w-2 h-2 rounded-full", color)} />
+                <span className="text-[10px] text-muted-foreground">{SOURCE_LABELS[type]}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Events for Selected Date */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              {format(selectedDate, 'MMM d, yyyy')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {selectedEvents.length > 0 ? (
-              selectedEvents.map((event) => {
-                const config = sourceTypeConfig[event.source_type];
-                const Icon = config.icon;
+        {/* ---- DAY DETAIL PANEL ---- */}
+        <div className={cn(
+          "widget-card p-4 flex flex-col",
+          isMobile ? "w-full" : "w-[320px] shrink-0"
+        )}>
+          {/* Date header */}
+          <div className="mb-3">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              {format(selectedDate, 'EEEE')}
+            </p>
+            <p className="text-2xl font-bold text-foreground tabular-nums leading-tight">
+              {format(selectedDate, 'MMMM d')}
+            </p>
+          </div>
 
+          {/* Events list */}
+          <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[320px] sm:max-h-[400px]">
+            {selectedDayEvents.length > 0 ? selectedDayEvents.map(ev => {
+              const isEditing = editingId === ev.id;
+
+              if (isEditing) {
                 return (
-                  <div key={event.id} className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={cn("p-1.5 rounded-lg", config.bg)}>
-                          <Icon className={cn("h-4 w-4", config.color)} />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-sm">{event.title}</h4>
-                          {event.event_time && (
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(`2000-01-01T${event.event_time}`), 'h:mm a')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {config.label}
-                      </Badge>
-                    </div>
-                    
-                    {event.description && (
-                      <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
-                    )}
-
-                    {event.source_type === 'manual' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteEvent(event.id)}
-                        className="text-destructive hover:text-destructive h-6 px-2 text-xs"
-                      >
-                        Delete
+                  <div key={ev.id} className="p-2.5 rounded-lg border border-border bg-muted/30 space-y-2">
+                    <Input
+                      value={editFields.title}
+                      onChange={e => setEditFields(f => ({ ...f, title: e.target.value }))}
+                      className="h-8 text-sm"
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') updateEvent(ev.id);
+                        if (e.key === 'Escape') setEditingId(null);
+                      }}
+                    />
+                    <Input
+                      type="time"
+                      value={editFields.event_time}
+                      onChange={e => setEditFields(f => ({ ...f, event_time: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                    <Textarea
+                      value={editFields.description}
+                      onChange={e => setEditFields(f => ({ ...f, description: e.target.value }))}
+                      className="text-sm min-h-[48px]"
+                      rows={2}
+                      placeholder="Description (optional)"
+                    />
+                    <div className="flex gap-1.5 justify-end">
+                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditingId(null)}>
+                        <X className="h-3.5 w-3.5" />
                       </Button>
-                    )}
+                      <Button size="sm" className="h-7 px-2" onClick={() => updateEvent(ev.id)}>
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="text-center py-8">
-                <CalendarIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium mb-2">No events this day</p>
-                <p className="text-xs text-muted-foreground">
-                  Add events manually or they'll appear automatically from your notes and cards
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              }
 
-      {/* All Upcoming Events */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Upcoming Events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {events
-              .filter(event => new Date(event.event_date) >= new Date())
-              .slice(0, 10)
-              .map((event) => {
-                const config = sourceTypeConfig[event.source_type];
-                const Icon = config.icon;
-
-                return (
-                  <div key={event.id} className="flex items-center gap-4 p-3 bg-muted/20 rounded-lg">
-                    <div className={cn("p-2 rounded-lg", config.bg)}>
-                      <Icon className={cn("h-4 w-4", config.color)} />
+              return (
+                <div
+                  key={ev.id}
+                  className={cn(
+                    "group relative pl-3 pr-2 py-2 rounded-lg border-l-[3px] transition-colors",
+                    "hover:bg-accent/30",
+                    SOURCE_BORDER_COLORS[ev.source_type] || 'border-l-muted-foreground'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {ev.event_time && (
+                          <span className="text-xs text-muted-foreground">{formatTime(ev.event_time)}</span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground/60">{SOURCE_LABELS[ev.source_type]}</span>
+                      </div>
+                      {ev.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{ev.description}</p>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(event.event_date), 'MMM d, yyyy')}
-                        {event.event_time && ` at ${format(new Date(`2000-01-01T${event.event_time}`), 'h:mm a')}`}
-                      </p>
+                    {/* hover actions */}
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {ev.source_type === 'manual' && (
+                        <>
+                          <button onClick={() => startEdit(ev)} className="p-1 rounded hover:bg-accent" aria-label="Edit event">
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                          <button onClick={() => deleteEvent(ev.id)} className="p-1 rounded hover:bg-destructive/20" aria-label="Delete event">
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </button>
+                        </>
+                      )}
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {config.label}
-                    </Badge>
                   </div>
-                );
-              })}
-            
-            {events.filter(event => new Date(event.event_date) >= new Date()).length === 0 && (
-              <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground">No upcoming events</p>
+                </div>
+              );
+            }) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <CalendarIcon className="h-8 w-8 text-muted-foreground/20 mb-2" />
+                <p className="text-sm text-muted-foreground">No events</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5">Type below to add one</p>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Quick-add input */}
+          <div className="mt-3 pt-3 border-t border-border/50 flex gap-1.5">
+            <Input
+              ref={quickRef}
+              value={quickTitle}
+              onChange={e => setQuickTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+              placeholder="Quick add event…"
+              className="h-8 text-sm flex-1"
+            />
+            <Button size="sm" variant="ghost" className="h-8 px-2 shrink-0" onClick={() => setShowAddDialog(true)} aria-label="Add with details">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== UPCOMING AGENDA ===== */}
+      {upcomingGrouped.length > 0 && (
+        <div className="widget-card p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Upcoming</h3>
+          <div className="space-y-3">
+            {upcomingGrouped.map(group => (
+              <div key={group.label}>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.events.map(ev => (
+                    <button
+                      key={ev.id}
+                      onClick={() => { setSelectedDate(parseISO(ev.event_date)); setCurrentMonth(parseISO(ev.event_date)); }}
+                      className={cn(
+                        "w-full flex items-center gap-3 pl-3 pr-2 py-2 rounded-lg text-left transition-colors",
+                        "hover:bg-accent/30 border-l-[3px]",
+                        SOURCE_BORDER_COLORS[ev.source_type] || 'border-l-muted-foreground'
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
+                        {ev.event_time && (
+                          <span className="text-xs text-muted-foreground">{formatTime(ev.event_time)}</span>
+                        )}
+                      </div>
+                      <span className={cn("w-2 h-2 rounded-full shrink-0", SOURCE_DOT_COLORS[ev.source_type] || 'bg-muted-foreground')} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ===== FULL ADD DIALOG ===== */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Event — {format(selectedDate, 'MMM d')}</DialogTitle>
+            <DialogDescription>Add a calendar event with optional time and description.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <Input
+              value={newEvent.title}
+              onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
+              placeholder="Event title"
+              autoFocus
+              onKeyDown={e => e.key === 'Enter' && newEvent.title.trim() && handleFullAdd()}
+            />
+            <Input
+              type="time"
+              value={newEvent.event_time}
+              onChange={e => setNewEvent(p => ({ ...p, event_time: e.target.value }))}
+            />
+            <Textarea
+              value={newEvent.description}
+              onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
+              placeholder="Description (optional)"
+              rows={3}
+            />
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+              <Button onClick={handleFullAdd} disabled={!newEvent.title.trim()}>Add Event</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
