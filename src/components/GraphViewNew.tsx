@@ -13,23 +13,39 @@ import {
   BackgroundVariant,
   Panel,
   ConnectionLineType,
-  addEdge,
-  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
-import { Search, Layout, RotateCcw, Maximize2, Minimize2, Link2Off, Link2, Zap, ZapOff, ChevronDown, ChevronUp, MapIcon, ZoomIn, ZoomOut, Locate, X, Menu, Filter } from 'lucide-react';
+import { Search, RotateCcw, Zap, ZapOff, Menu, X, ZoomIn, ZoomOut, Locate } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import * as d3Force from 'd3-force';
+
+// Category color map - HSL values for each Dewey category
+const CATEGORY_COLORS: Record<string, string> = {
+  '000': '199 89% 48%',  // cyan
+  '100': '271 76% 53%',  // purple
+  '200': '25 95% 53%',   // orange
+  '300': '346 77% 50%',  // rose
+  '400': '172 66% 50%',  // teal
+  '500': '221 83% 53%',  // blue
+  '600': '142 71% 45%',  // green
+  '700': '38 92% 50%',   // amber
+  '800': '280 68% 60%',  // violet
+  '900': '0 72% 51%',    // red
+};
+
+function getCategoryHSL(category: string): string {
+  const key = category.charAt(0) + '00';
+  return CATEGORY_COLORS[key] || CATEGORY_COLORS['000'];
+}
 
 interface GraphViewProps {
   cards: ZettelCard[];
@@ -43,27 +59,60 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'force' | 'circular' | 'hierarchical' | 'category'>('force');
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [physicsEnabled, setPhysicsEnabled] = useState(false);
-  const [showControls, setShowControls] = useState(!isMobile);
-  const [showMinimap, setShowMinimap] = useState(!isMobile);
-  const { autoLinkAll, clearAllLinks, isAutoLinking, isClearingLinks } = useZettelCards();
+  const [physicsEnabled, setPhysicsEnabled] = useState(true);
+  const [showControls, setShowControls] = useState(false);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const simulationRef = useRef<d3Force.Simulation<any, any> | null>(null);
-  const animationFrameRef = useRef<number>();
+  const nodesDataRef = useRef<any[]>([]);
+  const edgeHashRef = useRef<string>('');
+  const isAnimatingRef = useRef(false);
 
-  // Filter cards based on search
+  // Filter cards
   const filteredCards = useMemo(() => {
     if (!searchTerm) return cards;
+    const term = searchTerm.toLowerCase();
     return cards.filter(card =>
-      card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      card.title.toLowerCase().includes(term) ||
+      card.content.toLowerCase().includes(term) ||
+      card.tags.some(tag => tag.toLowerCase().includes(term))
     );
   }, [cards, searchTerm]);
 
-  // Calculate node positions based on layout type
-  const getNodePositions = useCallback((cards: ZettelCard[]) => {
-    const positions: { [key: string]: { x: number; y: number } } = {};
+  // Compute connection counts for node sizing
+  const connectionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredCards.forEach(card => {
+      counts[card.id] = (counts[card.id] || 0);
+      card.linkedCards.forEach(linkedId => {
+        counts[card.id] = (counts[card.id] || 0) + 1;
+        counts[linkedId] = (counts[linkedId] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [filteredCards]);
+
+  // Compute connected node IDs for hover highlight
+  const connectedMap = useMemo(() => {
+    const map: Record<string, Set<string>> = {};
+    filteredCards.forEach(card => {
+      if (!map[card.id]) map[card.id] = new Set();
+      card.linkedCards.forEach(linkedId => {
+        map[card.id].add(linkedId);
+        if (!map[linkedId]) map[linkedId] = new Set();
+        map[linkedId].add(card.id);
+      });
+    });
+    return map;
+  }, [filteredCards]);
+
+  // Edge hash to detect real changes
+  const currentEdgeHash = useMemo(() => {
+    return filteredCards.map(c => `${c.id}:${c.linkedCards.sort().join(',')}`).join('|');
+  }, [filteredCards]);
+
+  // Compute target positions for non-force layouts
+  const getTargetPositions = useCallback((cards: ZettelCard[]) => {
+    const positions: Record<string, { x: number; y: number }> = {};
     const radius = Math.max(300, cards.length * 20);
 
     switch (layoutType) {
@@ -77,500 +126,521 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         });
         break;
 
-      case 'hierarchical':
-        // Build a proper hierarchy based on card numbers
-        const cardsByLevel: { [level: number]: ZettelCard[] } = {};
-        const maxLevel = cards.reduce((max, card) => {
+      case 'hierarchical': {
+        const cardsByLevel: Record<number, ZettelCard[]> = {};
+        cards.forEach(card => {
           const level = card.number.split('.').length;
           if (!cardsByLevel[level]) cardsByLevel[level] = [];
           cardsByLevel[level].push(card);
-          return Math.max(max, level);
-        }, 0);
-
-        // Position cards: parents at top (y=0), children below
+        });
         Object.entries(cardsByLevel).forEach(([levelStr, levelCards]) => {
           const level = parseInt(levelStr);
-          const cardsInLevel = levelCards.length;
-          
           levelCards.forEach((card, index) => {
             positions[card.id] = {
-              x: (index - cardsInLevel / 2) * 250,
-              y: (level - 1) * 200, // Parents (level 1) at y=0, children below
+              x: (index - levelCards.length / 2) * 250,
+              y: (level - 1) * 200,
             };
           });
         });
         break;
+      }
 
-      case 'category':
-        const categoryGroups: { [key: string]: ZettelCard[] } = {};
+      case 'category': {
+        const groups: Record<string, ZettelCard[]> = {};
         cards.forEach(card => {
-          const mainCategory = card.category.charAt(0);
-          if (!categoryGroups[mainCategory]) {
-            categoryGroups[mainCategory] = [];
-          }
-          categoryGroups[mainCategory].push(card);
+          const key = card.category.charAt(0);
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(card);
         });
-
-        let categoryIndex = 0;
-        Object.entries(categoryGroups).forEach(([category, categoryCards]) => {
-          const centerX = (categoryIndex * 400) - (Object.keys(categoryGroups).length * 200);
-          const centerY = 0;
-          
-          categoryCards.forEach((card, index) => {
-            const angle = (index * 2 * Math.PI) / categoryCards.length;
-            const categoryRadius = Math.max(100, categoryCards.length * 15);
-            
+        let catIdx = 0;
+        const totalCats = Object.keys(groups).length;
+        Object.entries(groups).forEach(([, groupCards]) => {
+          const angle = (catIdx * 2 * Math.PI) / totalCats;
+          const cx = Math.cos(angle) * 400;
+          const cy = Math.sin(angle) * 400;
+          const subRadius = Math.max(80, groupCards.length * 15);
+          groupCards.forEach((card, i) => {
+            const a = (i * 2 * Math.PI) / groupCards.length;
             positions[card.id] = {
-              x: centerX + Math.cos(angle) * categoryRadius,
-              y: centerY + Math.sin(angle) * categoryRadius,
+              x: cx + Math.cos(a) * subRadius,
+              y: cy + Math.sin(a) * subRadius,
             };
           });
-          categoryIndex++;
+          catIdx++;
         });
         break;
+      }
 
-      default: // force layout - Obsidian radial style: parent in center, children around it
-        // Identify all linked relationships
-        const linkMap: Map<string, string[]> = new Map();
-        const allLinkedCards: Set<string> = new Set();
-        
-        cards.forEach(card => {
-          if (card.linkedCards && card.linkedCards.length > 0) {
-            linkMap.set(card.id, card.linkedCards);
-            allLinkedCards.add(card.id);
-            card.linkedCards.forEach(id => allLinkedCards.add(id));
-          }
-        });
-
-        // Find the card with most connections (main hub)
-        let mainHubId = '';
-        let maxConnections = 0;
-        linkMap.forEach((children, parentId) => {
-          if (children.length > maxConnections) {
-            maxConnections = children.length;
-            mainHubId = parentId;
-          }
-        });
-
-        // Position main hub in center
-        if (mainHubId) {
-          positions[mainHubId] = { x: 0, y: 0 };
-          
-          const children = linkMap.get(mainHubId) || [];
-          const childRadius = 300; // Distance from center
-          
-          // Evenly distribute children around the parent
-          children.forEach((childId, index) => {
-            const angle = (index * 2 * Math.PI) / children.length;
-            positions[childId] = {
-              x: Math.cos(angle) * childRadius,
-              y: Math.sin(angle) * childRadius,
-            };
-          });
-
-          // Position other parent cards (if any) in their own clusters
-          linkMap.forEach((children, parentId) => {
-            if (parentId !== mainHubId && !positions[parentId]) {
-              // Place in outer ring if not already positioned
-              const outerRadius = 600;
-              const angle = Math.random() * 2 * Math.PI;
-              positions[parentId] = {
-                x: Math.cos(angle) * outerRadius,
-                y: Math.sin(angle) * outerRadius,
-              };
-              
-              // Position their children around them
-              children.forEach((childId, index) => {
-                if (!positions[childId]) {
-                  const childAngle = (index * 2 * Math.PI) / children.length;
-                  const smallRadius = 200;
-                  positions[childId] = {
-                    x: positions[parentId].x + Math.cos(childAngle) * smallRadius,
-                    y: positions[parentId].y + Math.sin(childAngle) * smallRadius,
-                  };
-                }
-              });
-            }
-          });
-        }
-
-        // Position unlinked cards on outer circle
-        const unlinkedCards = cards.filter(card => !allLinkedCards.has(card.id));
-        const outerRadius = 800;
-        unlinkedCards.forEach((card, index) => {
-          const angle = (index * 2 * Math.PI) / Math.max(unlinkedCards.length, 1);
+      default: // force - use grid as initial positions
+        cards.forEach((card, index) => {
+          const cols = Math.ceil(Math.sqrt(cards.length));
           positions[card.id] = {
-            x: Math.cos(angle) * outerRadius,
-            y: Math.sin(angle) * outerRadius,
+            x: (index % cols) * 150 - (cols * 75),
+            y: Math.floor(index / cols) * 150 - (Math.ceil(cards.length / cols) * 75),
           };
         });
-         break;
+        break;
     }
-
     return positions;
   }, [layoutType]);
 
-  // Create nodes from cards
-  const initialNodes = useMemo(() => {
-    const positions = getNodePositions(filteredCards);
-    
-    // Identify parent cards (cards with children)
-    const parentIds = new Set<string>();
+  // Build edges
+  const graphEdges = useMemo(() => {
+    const edges: Edge[] = [];
     filteredCards.forEach(card => {
-      if (card.linkedCards && card.linkedCards.length > 0) {
-        parentIds.add(card.id);
-      }
+      card.linkedCards.forEach(linkedCardId => {
+        if (filteredCards.find(c => c.id === linkedCardId)) {
+          // Compute shared tags for edge weight
+          const targetCard = filteredCards.find(c => c.id === linkedCardId);
+          const sharedTags = targetCard
+            ? card.tags.filter(t => targetCard.tags.includes(t)).length
+            : 0;
+          const weight = Math.min(1 + sharedTags * 0.5, 3);
+
+          const sourceHSL = getCategoryHSL(card.category);
+          const targetHSL = targetCard ? getCategoryHSL(targetCard.category) : sourceHSL;
+
+          const isHoverHighlighted = hoveredNodeId &&
+            (card.id === hoveredNodeId || linkedCardId === hoveredNodeId);
+          const isHoverDimmed = hoveredNodeId && !isHoverHighlighted;
+
+          edges.push({
+            id: `${card.id}-${linkedCardId}`,
+            source: card.id,
+            target: linkedCardId,
+            type: 'default',
+            style: {
+              stroke: isHoverHighlighted
+                ? `hsl(${sourceHSL})`
+                : isHoverDimmed
+                  ? 'hsl(var(--foreground) / 0.05)'
+                  : `hsl(${sourceHSL} / 0.35)`,
+              strokeWidth: isHoverHighlighted ? weight + 1 : weight,
+              transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
+            },
+            animated: false,
+          });
+        }
+      });
     });
-    
+    return edges;
+  }, [filteredCards, hoveredNodeId]);
+
+  // Build nodes with custom rendering
+  const graphNodes = useMemo(() => {
+    const positions = getTargetPositions(filteredCards);
+
     return filteredCards.map((card): Node => {
-      const position = positions[card.id] || { x: 0, y: 0 };
-      const isParent = parentIds.has(card.id);
+      const hsl = getCategoryHSL(card.category);
+      const conns = connectionCounts[card.id] || 0;
+      const nodeSize = Math.max(isMobile ? 14 : 20, Math.min(isMobile ? 28 : 44, (isMobile ? 14 : 20) + conns * (isMobile ? 3 : 4)));
+
+      const isHovered = hoveredNodeId === card.id;
+      const isConnected = hoveredNodeId ? connectedMap[hoveredNodeId]?.has(card.id) : false;
+      const isDimmed = hoveredNodeId && !isHovered && !isConnected;
+      const isSearchMatch = searchTerm && (
+        card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+
+      const opacity = isDimmed ? 0.15 : 1;
+      const glowSize = isHovered ? 12 : isConnected ? 6 : 0;
 
       return {
         id: card.id,
         type: 'default',
-        position,
+        position: positions[card.id] || { x: 0, y: 0 },
         data: {
           label: (
-            <div className="flex flex-col items-center gap-2">
-              <div className={cn(
-                "text-foreground font-semibold text-center max-w-[180px] leading-tight px-2",
-                isParent ? "text-base" : "text-sm"
-              )}>
-                {card.title}
-              </div>
-              <div 
-                className={cn(
-                  "rounded-full border-2 border-foreground/40 bg-background hover:border-primary hover:bg-primary/20 transition-all cursor-pointer shadow-md",
-                  isParent ? "w-4 h-4" : "w-3 h-3"
-                )}
+            <div
+              className="graph-node-container"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: isMobile ? '2px' : '4px',
+                opacity,
+                transition: 'opacity 0.25s ease',
+              }}
+            >
+              <div
+                className="graph-node-circle"
+                style={{
+                  width: `${nodeSize}px`,
+                  height: `${nodeSize}px`,
+                  borderRadius: '50%',
+                  background: `hsl(${hsl})`,
+                  boxShadow: glowSize > 0
+                    ? `0 0 ${glowSize}px ${glowSize / 2}px hsl(${hsl} / 0.5)`
+                    : `0 1px 3px hsl(0 0% 0% / 0.15)`,
+                  border: isSearchMatch
+                    ? '2px solid hsl(var(--primary))'
+                    : isHovered
+                      ? '2px solid hsl(var(--foreground) / 0.6)'
+                      : '1.5px solid hsl(var(--background) / 0.8)',
+                  transition: 'box-shadow 0.25s ease, border 0.2s ease, transform 0.2s ease',
+                  transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                  cursor: 'pointer',
+                }}
               />
+              {!isMobile && (
+                <div
+                  style={{
+                    maxWidth: '100px',
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    color: isDimmed ? 'hsl(var(--muted-foreground) / 0.3)' : 'hsl(var(--foreground) / 0.85)',
+                    textAlign: 'center',
+                    lineHeight: '1.2',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    transition: 'color 0.2s ease',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {card.title.length > 16 ? card.title.slice(0, 15) + '…' : card.title}
+                </div>
+              )}
             </div>
-          )
+          ),
         },
         style: {
           background: 'transparent',
           border: 'none',
           padding: 0,
+          width: 'auto',
+          height: 'auto',
         },
         draggable: true,
       };
     });
-  }, [filteredCards, getNodePositions]);
+  }, [filteredCards, getTargetPositions, connectionCounts, hoveredNodeId, connectedMap, searchTerm, isMobile]);
 
-  // Create edges from card links - STRICTLY UNIDIRECTIONAL
-  const initialEdges = useMemo(() => {
-    const edges: Edge[] = [];
-    
-    filteredCards.forEach(card => {
-      // Only create edges from this card to its linked cards (parent -> child)
-      card.linkedCards.forEach(linkedCardId => {
-        if (filteredCards.find(c => c.id === linkedCardId)) {
-          edges.push({
-            id: `${card.id}-${linkedCardId}`,
-            source: card.id,
-            target: linkedCardId,
-            type: 'straight',
-            style: {
-              stroke: 'hsl(var(--foreground) / 0.25)',
-              strokeWidth: 2,
-            },
-            animated: false,
-            markerEnd: undefined, // No arrow - cleaner Obsidian style
-          });
-        }
-      });
-    });
+  const [nodes, setNodes, onNodesChange] = useNodesState(graphNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(graphEdges);
 
-    return edges;
-  }, [filteredCards]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  // Physics simulation for Obsidian-style force layout
+  // Sync edges when they change
   useEffect(() => {
-    if (physicsEnabled && layoutType === 'force' && nodes.length > 0) {
-      // Convert edges to d3 link format
-      const d3Links = edges.map(edge => ({
-        source: edge.source,
-        target: edge.target,
-      }));
+    setEdges(graphEdges);
+  }, [graphEdges, setEdges]);
 
-      // Create force simulation - Obsidian-style physics with enhanced repulsion and collision
-      const simulation = d3Force.forceSimulation(nodes as any)
-        .force('charge', d3Force.forceManyBody()
-          .strength(-2000) // Stronger repulsion for better spacing
-          .distanceMax(800)
-        )
-        .force('link', d3Force.forceLink(d3Links)
-          .id((d: any) => d.id)
-          .distance(200) // Spring-like attraction between linked nodes
-          .strength(0.5) // Stronger attraction for parent-child
-        )
-        .force('center', d3Force.forceCenter(0, 0).strength(0.03)) // Gentle gravity to center
-        .force('collision', d3Force.forceCollide()
-          .radius(150) // Larger collision radius to prevent overlap
-          .strength(1.2) // Strong collision detection
-        )
-        .force('x', d3Force.forceX(0).strength(0.01)) // Weak horizontal centering
-        .force('y', d3Force.forceY(0).strength(0.01)) // Weak vertical centering
-        .alphaDecay(0.008) // Even slower decay for organic settling
-        .velocityDecay(0.4); // Lower damping for more natural movement
-
-      simulationRef.current = simulation;
-
-      // Update node positions on each tick
-      simulation.on('tick', () => {
-        setNodes((nds) =>
-          nds.map((node) => {
-            const simNode = simulation.nodes().find((n: any) => n.id === node.id);
-            if (simNode) {
-              return {
-                ...node,
-                position: { x: simNode.x || 0, y: simNode.y || 0 },
-              };
-            }
-            return node;
-          })
-        );
-      });
-
-      return () => {
-        simulation.stop();
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
-    } else {
-      // Stop simulation when physics is disabled
+  // --- STABLE PHYSICS SIMULATION ---
+  useEffect(() => {
+    // Only run physics for force layout
+    if (!physicsEnabled || layoutType !== 'force' || filteredCards.length === 0) {
       if (simulationRef.current) {
         simulationRef.current.stop();
         simulationRef.current = null;
       }
+      // For non-force layouts, set positions directly with animation
+      if (layoutType !== 'force') {
+        const targets = getTargetPositions(filteredCards);
+        animateToPositions(targets);
+      } else {
+        setNodes(graphNodes);
+      }
+      return;
     }
-  }, [physicsEnabled, layoutType, nodes.length, edges, setNodes]);
 
-  // Subscribe to realtime updates for instant graph updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('zettel-cards-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'zettel_cards'
-        },
-        () => {
-          // When any card is updated (including linked_cards changes),
-          // the query will automatically refetch due to invalidation
-          console.log('Zettel card updated - graph will refresh');
-        }
+    // Build simulation data
+    const simNodes = filteredCards.map(card => {
+      const existing = nodesDataRef.current.find(n => n.id === card.id);
+      return {
+        id: card.id,
+        x: existing?.x ?? (Math.random() - 0.5) * 600,
+        y: existing?.y ?? (Math.random() - 0.5) * 600,
+        vx: existing?.vx ?? 0,
+        vy: existing?.vy ?? 0,
+      };
+    });
+
+    const simLinks = filteredCards.flatMap(card =>
+      card.linkedCards
+        .filter(lid => filteredCards.some(c => c.id === lid))
+        .map(lid => ({ source: card.id, target: lid }))
+    );
+
+    // Stop old simulation
+    if (simulationRef.current) {
+      simulationRef.current.stop();
+    }
+
+    const density = Math.max(1, filteredCards.length / 10);
+    const linkDist = Math.max(80, 120 + density * 8);
+
+    const simulation = d3Force.forceSimulation(simNodes)
+      .force('charge', d3Force.forceManyBody()
+        .strength(-800)
+        .distanceMax(600)
       )
-      .subscribe();
+      .force('link', d3Force.forceLink(simLinks)
+        .id((d: any) => d.id)
+        .distance(linkDist)
+        .strength(0.4)
+      )
+      .force('center', d3Force.forceCenter(0, 0).strength(0.05))
+      .force('collision', d3Force.forceCollide().radius(isMobile ? 30 : 50).strength(0.8))
+      .force('x', d3Force.forceX(0).strength(0.02))
+      .force('y', d3Force.forceY(0).strength(0.02))
+      .alphaDecay(0.02)
+      .velocityDecay(0.35);
+
+    simulationRef.current = simulation;
+
+    simulation.on('tick', () => {
+      // Velocity capping
+      simNodes.forEach(n => {
+        const maxV = 15;
+        if (Math.abs(n.vx || 0) > maxV) n.vx = Math.sign(n.vx || 0) * maxV;
+        if (Math.abs(n.vy || 0) > maxV) n.vy = Math.sign(n.vy || 0) * maxV;
+      });
+
+      nodesDataRef.current = simNodes;
+
+      setNodes(nds =>
+        nds.map(node => {
+          const sim = simNodes.find(s => s.id === node.id);
+          if (sim) {
+            return {
+              ...node,
+              position: { x: sim.x || 0, y: sim.y || 0 },
+            };
+          }
+          return node;
+        })
+      );
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      simulation.stop();
     };
+    // Only re-create when the actual graph structure changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [physicsEnabled, layoutType, currentEdgeHash, filteredCards.length]);
+
+  // Update node visuals (hover, search) without recreating simulation
+  useEffect(() => {
+    if (physicsEnabled && layoutType === 'force') {
+      // Only update node data/style, preserve positions from simulation
+      setNodes(nds =>
+        nds.map(node => {
+          const matchingGraphNode = graphNodes.find(gn => gn.id === node.id);
+          if (matchingGraphNode) {
+            return {
+              ...node,
+              data: matchingGraphNode.data,
+              style: matchingGraphNode.style,
+            };
+          }
+          return node;
+        })
+      );
+    } else if (layoutType !== 'force') {
+      // Non-force: update data but keep animated positions
+      setNodes(nds =>
+        nds.map(node => {
+          const matchingGraphNode = graphNodes.find(gn => gn.id === node.id);
+          if (matchingGraphNode) {
+            return {
+              ...node,
+              data: matchingGraphNode.data,
+              style: matchingGraphNode.style,
+            };
+          }
+          return node;
+        })
+      );
+    } else {
+      setNodes(graphNodes);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoveredNodeId, searchTerm]);
+
+  // Animated layout transitions
+  const animateToPositions = useCallback((targets: Record<string, { x: number; y: number }>) => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
+    setNodes(nds => {
+      const startPositions = Object.fromEntries(nds.map(n => [n.id, { ...n.position }]));
+      const duration = 500;
+      const startTime = performance.now();
+
+      const animate = (time: number) => {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        setNodes(current =>
+          current.map(node => {
+            const start = startPositions[node.id];
+            const target = targets[node.id];
+            if (!start || !target) return node;
+            return {
+              ...node,
+              position: {
+                x: start.x + (target.x - start.x) * eased,
+                y: start.y + (target.y - start.y) * eased,
+              },
+            };
+          })
+        );
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          isAnimatingRef.current = false;
+        }
+      };
+
+      requestAnimationFrame(animate);
+      return nds; // Return unchanged for initial call
+    });
+  }, [setNodes]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('zettel-cards-graph')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'zettel_cards' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Update nodes when initialNodes change (only if physics is off)
-  useMemo(() => {
-    if (!physicsEnabled) {
-      setNodes(initialNodes);
-    }
-  }, [initialNodes, setNodes, physicsEnabled]);
+  // Hover handlers
+  const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
+    setHoveredNodeId(node.id);
+  }, []);
 
-  // Update edges when initialEdges change
-  useMemo(() => {
-    setEdges(initialEdges);
-  }, [initialEdges, setEdges]);
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNodeId(null);
+  }, []);
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+  // Click handler
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     const card = filteredCards.find(c => c.id === node.id);
-    if (card && onCardSelect) {
-      onCardSelect(card);
-    }
+    if (card && onCardSelect) onCardSelect(card);
   }, [filteredCards, onCardSelect]);
 
+  // Connect handler
   const onConnect = useCallback((params: any) => {
     const sourceCard = filteredCards.find(c => c.id === params.source);
     const targetCard = filteredCards.find(c => c.id === params.target);
-    
     if (sourceCard && targetCard && onCardUpdate) {
-      // Prevent duplicate links
       if ((sourceCard.linkedCards || []).includes(targetCard.id)) {
         toast.error('Link already exists');
         return;
       }
-      
-      // STRICTLY UNIDIRECTIONAL: Only update source card to link to target
-      // This is a manual link, so it persists regardless of hierarchy
-      const updatedSourceCard = {
-        ...sourceCard,
-        linkedCards: [...(sourceCard.linkedCards || []), targetCard.id]
-      };
-      
-      // Immediately add edge to the graph
-      const newEdge = {
-        id: `${params.source}-${params.target}`,
-        source: params.source,
-        target: params.target,
-        type: 'straight',
-        style: {
-          stroke: 'hsl(var(--foreground) / 0.25)',
-          strokeWidth: 2,
-        },
-        animated: false,
-      };
-      
-      setEdges((eds) => [...eds, newEdge]);
-      onCardUpdate(updatedSourceCard);
-      
+      const updated = { ...sourceCard, linkedCards: [...(sourceCard.linkedCards || []), targetCard.id] };
+      onCardUpdate(updated);
       toast.success(`Linked "${sourceCard.title}" → "${targetCard.title}"`);
     }
-  }, [filteredCards, onCardUpdate, setEdges]);
+  }, [filteredCards, onCardUpdate]);
 
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
-    event.stopPropagation();
-    
+  // Edge click to remove link
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     const sourceCard = filteredCards.find(c => c.id === edge.source);
     const targetCard = filteredCards.find(c => c.id === edge.target);
-    
     if (sourceCard && targetCard && onCardUpdate) {
-      // Remove the link from source card
-      const updatedSourceCard = {
+      const updated = {
         ...sourceCard,
-        linkedCards: (sourceCard.linkedCards || []).filter(id => id !== targetCard.id)
+        linkedCards: (sourceCard.linkedCards || []).filter(id => id !== targetCard.id),
       };
-      
-      onCardUpdate(updatedSourceCard);
-      
+      onCardUpdate(updated);
+      setEdges(eds => eds.filter(e => e.id !== edge.id));
       toast(`Unlinked "${sourceCard.title}" from "${targetCard.title}"`);
-      
-      // Remove the edge from the graph
-      setEdges((eds) => eds.filter(e => e.id !== edge.id));
     }
   }, [filteredCards, onCardUpdate, setEdges]);
 
   const resetLayout = useCallback(() => {
-    const positions = getNodePositions(filteredCards);
-    setNodes((nds) =>
-      nds.map((node) => ({
-        ...node,
-        position: positions[node.id] || { x: 0, y: 0 },
-      }))
-    );
-    // Restart simulation if physics is enabled
-    if (physicsEnabled && simulationRef.current) {
+    if (physicsEnabled && layoutType === 'force' && simulationRef.current) {
       simulationRef.current.alpha(1).restart();
+    } else {
+      const positions = getTargetPositions(filteredCards);
+      animateToPositions(positions);
     }
-  }, [filteredCards, getNodePositions, setNodes, physicsEnabled]);
-
-  const handleAutoLink = useCallback(() => {
-    autoLinkAll();
-  }, [autoLinkAll]);
-
-  const handleClearAllLinks = useCallback(() => {
-    clearAllLinks();
-  }, [clearAllLinks]);
-
-  const handleZoomIn = useCallback(() => {
-    zoomIn({ duration: 300 });
-  }, [zoomIn]);
-
-  const handleZoomOut = useCallback(() => {
-    zoomOut({ duration: 300 });
-  }, [zoomOut]);
-
-  const handleFitView = useCallback(() => {
-    fitView({ padding: 0.2, duration: 300 });
-  }, [fitView]);
+    setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 600);
+  }, [filteredCards, getTargetPositions, physicsEnabled, layoutType, fitView, animateToPositions]);
 
   return (
-    <div className={cn(
-      "relative w-full h-full bg-background overflow-hidden",
-      isFullscreen && "fixed inset-0 z-50",
-      className
-    )}>
+    <div className={cn("relative w-full h-full bg-background overflow-hidden", className)}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
         onEdgeClick={onEdgeClick}
         onConnect={onConnect}
         fitView
-        fitViewOptions={{ padding: 0.1 }}
-        minZoom={0.1}
-        maxZoom={2}
-        className="bg-background"
-        connectionLineType={ConnectionLineType.Straight}
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.05}
+        maxZoom={2.5}
+        className="graph-canvas"
+        connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'straight',
+          type: 'default',
           animated: false,
-          style: {
-            stroke: 'hsl(var(--foreground) / 0.2)',
-            strokeWidth: 1.5,
-          },
+          style: { stroke: 'hsl(var(--foreground) / 0.15)', strokeWidth: 1 },
         }}
-        nodesDraggable={true}
-        nodesConnectable={true}
-        elementsSelectable={true}
+        nodesDraggable
+        nodesConnectable
         selectNodesOnDrag={false}
-        panOnDrag={[1, 2]}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
+        panOnDrag={[0, 1, 2]}
+        zoomOnScroll
+        zoomOnPinch
+        proOptions={{ hideAttribution: true }}
       >
-        <Background 
-          variant={BackgroundVariant.Dots} 
-          gap={isMobile ? 30 : 20} 
-          size={1}
-          color="hsl(var(--border))"
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={isMobile ? 28 : 22}
+          size={0.8}
+          color="hsl(var(--border) / 0.5)"
         />
-        
-        {/* Hide default controls on mobile, we'll use custom ones */}
+
         {!isMobile && (
-          <Controls 
-            className="bg-card border border-border rounded-lg shadow-card"
+          <Controls
+            className="graph-controls"
             showInteractive={false}
           />
         )}
-        
-        {/* Collapsible MiniMap */}
-        {showMinimap && (
-          <MiniMap 
-            className={cn(
-              "bg-card border border-border rounded-lg shadow-card transition-all",
-              isMobile && "!w-24 !h-20"
-            )}
-            nodeColor="hsl(var(--primary))"
-            maskColor="hsl(var(--muted) / 0.1)"
-          />
-        )}
 
+        <MiniMap
+          className={cn(
+            "graph-minimap",
+            isMobile && "!w-20 !h-16"
+          )}
+          nodeColor={(node) => {
+            const card = filteredCards.find(c => c.id === node.id);
+            if (card) return `hsl(${getCategoryHSL(card.category)})`;
+            return 'hsl(var(--muted))';
+          }}
+          maskColor="hsl(var(--background) / 0.85)"
+          pannable
+          zoomable={false}
+        />
 
-        {/* Mobile-Optimized Minimal Controls */}
+        {/* === CONTROLS === */}
         {isMobile ? (
           <>
-            {/* Floating Action Menu Button */}
+            {/* FAB toggle */}
             <Panel position="top-right" className="m-3">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setShowControls(!showControls)}
-                className="h-11 w-11 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
-                aria-label="Menu"
+                className="h-11 w-11 bg-card/95 backdrop-blur-md shadow-lg rounded-full touch-manipulation"
               >
                 {showControls ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </Panel>
 
-            {/* Expandable Controls Menu */}
             {showControls && (
-              <Panel position="top-center" className="bg-transparent w-full px-4 mt-16">
+              <Panel position="top-center" className="w-full px-4 mt-16">
                 <div className="bg-card/98 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 space-y-3 max-w-sm mx-auto">
                   <Input
                     placeholder="Search cards..."
@@ -578,115 +648,77 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="h-10"
                   />
-                  
-                  <Select value={layoutType} onValueChange={(value: any) => setLayoutType(value)}>
+                  <Select value={layoutType} onValueChange={(v: any) => setLayoutType(v)}>
                     <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Layout" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="force">Force Layout</SelectItem>
+                      <SelectItem value="force">Force</SelectItem>
                       <SelectItem value="circular">Circular</SelectItem>
                       <SelectItem value="hierarchical">Hierarchical</SelectItem>
                       <SelectItem value="category">Category</SelectItem>
                     </SelectContent>
                   </Select>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleAutoLink}
-                      disabled={isAutoLinking}
-                      className="h-10 touch-manipulation"
-                    >
-                      <Link2 className="h-4 w-4 mr-2" />
-                      Link All
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={resetLayout} className="flex-1 h-10">
+                      <RotateCcw className="h-4 w-4 mr-1" /> Reset
                     </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleClearAllLinks}
-                      disabled={isClearingLinks}
-                      className="h-10 touch-manipulation"
-                    >
-                      <Link2Off className="h-4 w-4 mr-2" />
-                      Clear
-                    </Button>
+                    {layoutType === 'force' && (
+                      <Button
+                        variant={physicsEnabled ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPhysicsEnabled(!physicsEnabled)}
+                        className="flex-1 h-10"
+                      >
+                        {physicsEnabled ? <Zap className="h-4 w-4 mr-1" /> : <ZapOff className="h-4 w-4 mr-1" />}
+                        Physics
+                      </Button>
+                    )}
                   </div>
-
-                  <div className="pt-2 border-t border-border text-xs text-muted-foreground text-center">
-                    {filteredCards.length} cards • {initialEdges.length} links
+                  <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
+                    {filteredCards.length} nodes · {graphEdges.length} edges
                   </div>
                 </div>
               </Panel>
             )}
 
-            {/* Minimal Zoom Controls - Vertical Stack */}
+            {/* Zoom controls */}
             <Panel position="bottom-right" className="mb-20 mr-3">
               <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleZoomIn}
-                  className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
-                  aria-label="Zoom in"
-                >
-                  <ZoomIn className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleZoomOut}
-                  className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
-                  aria-label="Zoom out"
-                >
-                  <ZoomOut className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleFitView}
-                  className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
-                  aria-label="Fit view"
-                >
-                  <Locate className="h-5 w-5" />
-                </Button>
+                {[
+                  { icon: ZoomIn, action: () => zoomIn({ duration: 200 }), label: 'Zoom in' },
+                  { icon: ZoomOut, action: () => zoomOut({ duration: 200 }), label: 'Zoom out' },
+                  { icon: Locate, action: () => fitView({ padding: 0.2, duration: 300 }), label: 'Fit view' },
+                ].map(({ icon: Icon, action, label }) => (
+                  <Button
+                    key={label}
+                    variant="outline"
+                    size="icon"
+                    onClick={action}
+                    className="h-12 w-12 bg-card/95 backdrop-blur-md shadow-lg rounded-full touch-manipulation"
+                    aria-label={label}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </Button>
+                ))}
               </div>
             </Panel>
-
-            {/* Minimap Toggle - Bottom Left */}
-            {showMinimap && (
-              <Panel position="bottom-left" className="mb-20 ml-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowMinimap(false)}
-                  className="h-10 w-10 bg-card/95 backdrop-blur-md shadow-lg touch-manipulation rounded-full"
-                  aria-label="Hide map"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </Panel>
-            )}
           </>
         ) : (
-          /* Desktop Compact Controls */
           <>
-            <Panel position="top-left" className="bg-transparent">
-              <div className="bg-card/90 backdrop-blur-sm border border-border rounded-md shadow-sm p-2 space-y-1.5 w-[240px]">
-                <div className="flex items-center gap-1.5">
-                  <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                  <Input
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1 h-7 text-xs bg-background/50"
-                  />
-                </div>
-                
-                <Select value={layoutType} onValueChange={(value: any) => setLayoutType(value)}>
-                  <SelectTrigger className="h-7 text-xs bg-background/50">
+            {/* Desktop: floating pill toolbar */}
+            <Panel position="top-center" className="mt-3">
+              <div className="graph-toolbar">
+                <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <Input
+                  placeholder="Search…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-7 w-40 text-xs bg-transparent border-none shadow-none focus-visible:ring-0 px-1"
+                />
+                <div className="w-px h-5 bg-border" />
+                <Select value={layoutType} onValueChange={(v: any) => setLayoutType(v)}>
+                  <SelectTrigger className="h-7 w-28 text-xs border-none bg-transparent shadow-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -696,73 +728,31 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                     <SelectItem value="category">Category</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <div className="flex gap-1.5">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={resetLayout}
-                    className="flex-1 h-7 text-xs bg-background/50 px-2"
+                <div className="w-px h-5 bg-border" />
+                {layoutType === 'force' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPhysicsEnabled(!physicsEnabled);
+                      toast(physicsEnabled ? 'Physics off' : 'Physics on');
+                    }}
+                    className="h-7 w-7 p-0"
                   >
-                    <RotateCcw className="h-3 w-3" />
+                    {physicsEnabled ? <Zap className="h-3.5 w-3.5 text-primary" /> : <ZapOff className="h-3.5 w-3.5" />}
                   </Button>
-                  
-                  {layoutType === 'force' && (
-                    <Button 
-                      variant={physicsEnabled ? "default" : "outline"}
-                      size="sm" 
-                      onClick={() => {
-                        setPhysicsEnabled(!physicsEnabled);
-                        toast(physicsEnabled ? "Physics disabled" : "Physics enabled");
-                      }}
-                      className="h-7 text-xs px-2"
-                    >
-                      {physicsEnabled ? <Zap className="h-3 w-3" /> : <ZapOff className="h-3 w-3" />}
-                    </Button>
-                  )}
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="h-7 bg-background/50 px-2"
-                  >
-                    {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
-                  </Button>
-                </div>
-
-                <div className="flex gap-1.5">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleAutoLink}
-                    disabled={isAutoLinking}
-                    className="flex-1 h-7 text-xs bg-background/50 px-2"
-                  >
-                    <Link2 className="h-3 w-3 mr-1" />
-                    Link
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleClearAllLinks}
-                    disabled={isClearingLinks}
-                    className="flex-1 h-7 text-xs bg-background/50 px-2"
-                  >
-                    <Link2Off className="h-3 w-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
+                )}
+                <Button variant="ghost" size="sm" onClick={resetLayout} className="h-7 w-7 p-0">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </Panel>
 
-            <Panel position="top-right" className="bg-transparent">
-              <div className="bg-card/90 backdrop-blur-sm border border-border rounded-md shadow-sm p-2">
-                <div className="text-xs text-muted-foreground">
-                  {filteredCards.length} cards • {initialEdges.length} links
-                  {physicsEnabled && <span className="text-primary ml-1">⚡</span>}
-                </div>
+            {/* Stats badge */}
+            <Panel position="bottom-left" className="mb-3 ml-3">
+              <div className="graph-stats-badge">
+                {filteredCards.length} nodes · {graphEdges.length} edges
+                {physicsEnabled && layoutType === 'force' && <Zap className="h-3 w-3 text-primary inline ml-1" />}
               </div>
             </Panel>
           </>
