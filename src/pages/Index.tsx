@@ -437,7 +437,7 @@ const Index = () => {
                   <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="text-xs sm:text-sm">New</span>
                   {newCardsCount > 0 && (
-                    <span className="ml-1 bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
                       {newCardsCount}
                     </span>
                   )}
@@ -635,9 +635,9 @@ const Index = () => {
                       <div>
                         {/* New Cards Filter Active Banner */}
                         {showNewCardsOnly && (
-                          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
+                          <div className="mb-4 p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Sparkles className="h-4 w-4 text-emerald-500" />
+                              <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
                               <span className="text-sm font-medium">Showing {displayedCards.length} new card{displayedCards.length !== 1 ? 's' : ''} from the last 24 hours</span>
                             </div>
                             <Button 
@@ -655,7 +655,7 @@ const Index = () => {
                         {displayedCards.some(card => card.is_favorite) && (
                           <div className="mb-4">
                             <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
-                              <span className="text-yellow-500">★</span>
+                              <span className="text-accent-foreground" aria-hidden="true">★</span>
                               Favorites
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">

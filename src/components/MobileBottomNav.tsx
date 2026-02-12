@@ -42,7 +42,8 @@ export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps
           PendragonX
         </span>
         <div 
-          className={`h-1.5 w-1.5 rounded-full transition-all ${isOnline ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]' : 'bg-muted-foreground/40'}`}
+          className={`h-1.5 w-1.5 rounded-full transition-all ${isOnline ? 'bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.4)]' : 'bg-muted-foreground/40'}`}
+          role="status"
           aria-label={isOnline ? 'Online' : 'Offline'}
         />
       </div>

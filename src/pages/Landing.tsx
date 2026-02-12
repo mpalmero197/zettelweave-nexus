@@ -62,37 +62,43 @@ export default function Landing() {
         jsonLd={[createFAQSchema(faqs), howToSchema]}
       />
 
+      {/* Skip to content */}
+      <a href="#main-hero" className="skip-to-main focus-visible:ring-2 focus-visible:ring-offset-2">
+        Skip to main content
+      </a>
+
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-border">
+      <header className="fixed top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-border" role="banner">
         <div className="max-w-6xl mx-auto flex h-14 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2.5">
-            <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
+            <img src={pendragonLogo} alt="" className="h-7 w-7 object-contain" aria-hidden="true" />
             <span className="hidden sm:inline text-lg font-semibold tracking-tight">PendragonX</span>
           </div>
           
-          <nav className="hidden md:flex gap-8">
+          <nav className="hidden md:flex gap-8" aria-label="Main navigation">
             <button onClick={() => scrollToSection('features')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</button>
             <button onClick={() => scrollToSection('pricing')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</button>
+            <button onClick={() => scrollToSection('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</button>
           </nav>
 
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>Sign In</Button>
             <Button size="sm" onClick={() => navigate('/auth')}>
               Get Started
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section ref={heroAnimation.ref} className="min-h-[90vh] flex items-center justify-center pt-14">
+      <section id="main-hero" ref={heroAnimation.ref} className="min-h-[90vh] flex items-center justify-center pt-14" aria-labelledby="hero-heading">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <div className={cn(
             "space-y-6 transition-all duration-700",
             heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           )}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
+            <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
               Think
               <span className="block text-primary">Brilliantly</span>
             </h1>
@@ -113,18 +119,18 @@ export default function Landing() {
 
             <div className="pt-4 flex items-center justify-center gap-6 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 No credit card required
               </span>
               <span className="hidden sm:flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 10,000+ knowledge workers
               </span>
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" aria-hidden="true">
           <ChevronDown className="h-5 w-5 text-muted-foreground/50" />
         </div>
       </section>
@@ -152,7 +158,7 @@ export default function Landing() {
                 "bg-card p-8 transition-all duration-500",
                 valueAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               )} style={{ transitionDelay: `${i * 100}ms` }}>
-                <item.icon className="h-5 w-5 text-muted-foreground mb-4" />
+                <item.icon className="h-5 w-5 text-muted-foreground mb-4" aria-hidden="true" />
                 <h3 className="text-base font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
@@ -183,7 +189,7 @@ export default function Landing() {
                 "p-6 rounded-lg border border-border bg-card transition-all duration-500",
                 featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               )} style={{ transitionDelay: `${i * 80}ms` }}>
-                <feature.icon className="h-5 w-5 text-muted-foreground mb-3" />
+                <feature.icon className="h-5 w-5 text-muted-foreground mb-3" aria-hidden="true" />
                 <h3 className="text-base font-semibold mb-1.5">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
@@ -390,14 +396,14 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6">
+      <footer className="border-t border-border py-6" role="contentinfo">
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
-            <img src={pendragonLogo} alt="PendragonX" className="h-5 w-5 object-contain" />
+            <img src={pendragonLogo} alt="" className="h-5 w-5 object-contain" aria-hidden="true" />
             <span className="font-medium">PendragonX</span>
             <span className="text-muted-foreground">© {currentYear}</span>
           </div>
-          <nav className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground">
+          <nav className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground" aria-label="Footer navigation">
             <button onClick={() => scrollToSection('features')} className="hover:text-foreground transition-colors">Features</button>
             <button onClick={() => scrollToSection('pricing')} className="hover:text-foreground transition-colors">Pricing</button>
             <button onClick={() => navigate('/terms')} className="hover:text-foreground transition-colors">Terms</button>
