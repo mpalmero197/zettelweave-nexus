@@ -1,44 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, Path, PencilBrush, Shadow, Polygon, Triangle, Group, ActiveSelection, FabricObject, FabricImage } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, PencilBrush, Shadow, Polygon, Triangle, Group, FabricObject, FabricImage } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { 
-  MousePointer2,
-  Pen,
-  Highlighter,
-  Eraser,
-  Square,
-  Circle as CircleIcon,
-  Minus,
-  ArrowRight,
-  Type,
-  StickyNote,
-  Image as ImageIcon,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Trash2,
-  Download,
-  Palette,
-  Grid3x3,
-  Menu,
-  Move,
-  Group as GroupIcon,
-  Ungroup,
-  Copy,
-  Clipboard,
-  CornerUpLeft,
-  CornerUpRight,
-  Lock,
-  Unlock,
-  LayersIcon,
-  Star,
-  Pentagon,
-  Hexagon,
-  Triangle as TriangleIcon,
-  Hand
+  MousePointer2, Pen, Eraser, Square, Circle as CircleIcon, Type, StickyNote,
+  Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Trash2, Download, Palette,
+  Grid3x3, Hand, Star, Hexagon, Triangle as TriangleIcon, Minus, ArrowRight,
+  Undo2, Redo2
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -48,45 +19,48 @@ interface DesktopWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "pen" | "bezier" | "highlighter" | "eraser" | "rectangle" | "circle" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "triangle" | "star" | "polygon";
+type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan";
 
 const penColors = [
-  { name: "Black", value: "#000000" },
+  { name: "Black", value: "#1a1a1a" },
   { name: "Red", value: "#E74C3C" },
   { name: "Blue", value: "#3498DB" },
   { name: "Green", value: "#2ECC71" },
   { name: "Yellow", value: "#F1C40F" },
   { name: "Purple", value: "#9B59B6" },
   { name: "Orange", value: "#E67E22" },
-  { name: "Pink", value: "#FF69B4" }
+  { name: "Pink", value: "#FF69B4" },
 ];
 
-const stickyColors = [
-  "#FFF4A3", "#FFE4A3", "#FFD4A3", 
-  "#C4E4FF", "#D4F4DD", "#FFE4F4"
-];
+const stickyColors = ["#FFF4A3", "#FFE4A3", "#FFD4A3", "#C4E4FF", "#D4F4DD", "#FFE4F4"];
+
+const GRID_SPACING = 30;
+const HISTORY_LIMIT = 50;
 
 export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
+  const fabricRef = useRef<FabricCanvas | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("pen");
-  const [penColor, setPenColor] = useState("#000000");
+  const [penColor, setPenColor] = useState("#1a1a1a");
   const [penSize, setPenSize] = useState(2);
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(true);
   const [isReady, setIsReady] = useState(false);
-  const [isPanning, setIsPanning] = useState(false);
-  const [clipboard, setClipboard] = useState<FabricObject[]>([]);
-  const [history, setHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-  const [bezierPoints, setBezierPoints] = useState<{x: number, y: number}[]>([]);
-  const [currentBezierPath, setCurrentBezierPath] = useState<Path | null>(null);
-  const [showShapeMenu, setShowShapeMenu] = useState(false);
-  const [showDrawMenu, setShowDrawMenu] = useState(false);
-  const [showLineMenu, setShowLineMenu] = useState(false);
+  const gridObjectsRef = useRef<FabricObject[]>([]);
+  
+  // Undo/Redo
+  const historyRef = useRef<string[]>([]);
+  const historyIndexRef = useRef(-1);
+  const isRestoringRef = useRef(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
+  // Panning refs
+  const isPanningRef = useRef(false);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  // --- Canvas init (mount once) ---
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
@@ -94,418 +68,405 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       const container = containerRef.current!;
       const width = container.clientWidth || 1200;
       const height = container.clientHeight || 800;
+      if (width === 0 || height === 0) { setTimeout(initCanvas, 100); return; }
 
-      if (width === 0 || height === 0) {
-        setTimeout(initCanvas, 100);
-        return;
-      }
-
-      const canvas = new FabricCanvas(canvasRef.current, {
+      const canvas = new FabricCanvas(canvasRef.current!, {
         width,
         height,
-        backgroundColor: showGrid ? "#F8F9FA" : "#FFFFFF",
+        backgroundColor: "#FAFAF8",
         selection: true,
       });
 
       const brush = new PencilBrush(canvas);
-      brush.color = penColor;
-      brush.width = penSize;
-      brush.shadow = new Shadow({
-        blur: 3,
-        offsetX: 0,
-        offsetY: 0,
-        affectStroke: true,
-        color: penColor,
-      });
+      brush.color = "#1a1a1a";
+      brush.width = 2;
       canvas.freeDrawingBrush = brush;
 
-      setFabricCanvas(canvas);
+      fabricRef.current = canvas;
       setIsReady(true);
-      toast.success("Desktop whiteboard ready!");
+
+      // Save initial state
+      saveHistory(canvas);
     };
 
-    const timer = setTimeout(initCanvas, 100);
-    return () => clearTimeout(timer);
-  }, [penColor, penSize, showGrid]);
+    const timer = setTimeout(initCanvas, 50);
 
-  // Handle panning separately with proper dependencies
+    // ResizeObserver for responsive canvas
+    const ro = new ResizeObserver((entries) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          canvas.setDimensions({ width, height });
+          canvas.renderAll();
+        }
+      }
+    });
+    if (containerRef.current) ro.observe(containerRef.current);
+
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+      fabricRef.current?.dispose();
+      fabricRef.current = null;
+    };
+  }, []);
+
+  // --- History management ---
+  const saveHistory = useCallback((canvas: FabricCanvas) => {
+    if (isRestoringRef.current) return;
+    const json = JSON.stringify(canvas.toJSON());
+    const h = historyRef.current;
+    // Truncate forward history
+    historyRef.current = h.slice(0, historyIndexRef.current + 1);
+    historyRef.current.push(json);
+    if (historyRef.current.length > HISTORY_LIMIT) historyRef.current.shift();
+    historyIndexRef.current = historyRef.current.length - 1;
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(false);
+  }, []);
+
+  // Listen for canvas changes to save history
   useEffect(() => {
-    if (!fabricCanvas) return;
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const onModified = () => saveHistory(canvas);
+    canvas.on('object:added', onModified);
+    canvas.on('object:removed', onModified);
+    canvas.on('object:modified', onModified);
+
+    return () => {
+      canvas.off('object:added', onModified);
+      canvas.off('object:removed', onModified);
+      canvas.off('object:modified', onModified);
+    };
+  }, [isReady, saveHistory]);
+
+  const handleUndo = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || historyIndexRef.current <= 0) return;
+    isRestoringRef.current = true;
+    historyIndexRef.current--;
+    canvas.loadFromJSON(JSON.parse(historyRef.current[historyIndexRef.current])).then(() => {
+      canvas.renderAll();
+      isRestoringRef.current = false;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || historyIndexRef.current >= historyRef.current.length - 1) return;
+    isRestoringRef.current = true;
+    historyIndexRef.current++;
+    canvas.loadFromJSON(JSON.parse(historyRef.current[historyIndexRef.current])).then(() => {
+      canvas.renderAll();
+      isRestoringRef.current = false;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+    });
+  }, []);
+
+  // --- Dot grid ---
+  const renderGrid = useCallback((canvas: FabricCanvas) => {
+    // Remove old grid
+    gridObjectsRef.current.forEach(obj => canvas.remove(obj));
+    gridObjectsRef.current = [];
+
+    const w = canvas.width! / (canvas.getZoom() || 1);
+    const h = canvas.height! / (canvas.getZoom() || 1);
+    const vt = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
+    const offsetX = -vt[4] / (canvas.getZoom() || 1);
+    const offsetY = -vt[5] / (canvas.getZoom() || 1);
+    const startX = Math.floor(offsetX / GRID_SPACING) * GRID_SPACING;
+    const startY = Math.floor(offsetY / GRID_SPACING) * GRID_SPACING;
+
+    for (let x = startX; x < offsetX + w + GRID_SPACING; x += GRID_SPACING) {
+      for (let y = startY; y < offsetY + h + GRID_SPACING; y += GRID_SPACING) {
+        const dot = new Circle({
+          left: x - 1,
+          top: y - 1,
+          radius: 1,
+          fill: "#ccc",
+          selectable: false,
+          evented: false,
+          hasControls: false,
+          hasBorders: false,
+        });
+        canvas.add(dot);
+        canvas.sendObjectToBack(dot);
+        gridObjectsRef.current.push(dot);
+      }
+    }
+    canvas.renderAll();
+  }, []);
+
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !isReady) return;
+    if (showGrid) {
+      renderGrid(canvas);
+    } else {
+      gridObjectsRef.current.forEach(obj => canvas.remove(obj));
+      gridObjectsRef.current = [];
+      canvas.renderAll();
+    }
+  }, [showGrid, isReady, renderGrid]);
+
+  // --- Update brush when color/size changes (NOT recreating canvas) ---
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = penColor;
+      canvas.freeDrawingBrush.width = penSize;
+    }
+  }, [penColor, penSize]);
+
+  // --- Tool mode switching ---
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    canvas.isDrawingMode = activeTool === "pen";
+    
+    if (activeTool === "pen" && canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = penColor;
+      canvas.freeDrawingBrush.width = penSize;
+    }
+
+    // Eraser click-to-delete
+    const handleEraserClick = (e: any) => {
+      if (activeTool === "eraser" && e.target) {
+        canvas.remove(e.target);
+        canvas.renderAll();
+      }
+    };
+
+    if (activeTool === "eraser") {
+      canvas.isDrawingMode = false;
+      canvas.on('mouse:down', handleEraserClick);
+    }
+
+    return () => {
+      canvas.off('mouse:down', handleEraserClick);
+    };
+  }, [activeTool, penColor, penSize, isReady]);
+
+  // --- Panning ---
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
 
     const handleMouseDown = (opt: any) => {
       if (activeTool === 'pan') {
-        setIsPanning(true);
-        fabricCanvas.selection = false;
+        isPanningRef.current = true;
+        canvas.selection = false;
+        canvas.isDrawingMode = false;
         const pointer = opt.pointer;
-        if (pointer) {
-          lastPosRef.current = { x: pointer.x, y: pointer.y };
-        }
+        if (pointer) lastPosRef.current = { x: pointer.x, y: pointer.y };
       }
     };
 
     const handleMouseMove = (opt: any) => {
-      if (activeTool === 'pan' && isPanning && lastPosRef.current) {
+      if (activeTool === 'pan' && isPanningRef.current && lastPosRef.current) {
         const pointer = opt.pointer;
-        if (pointer && fabricCanvas.viewportTransform) {
-          fabricCanvas.viewportTransform[4] += pointer.x - lastPosRef.current.x;
-          fabricCanvas.viewportTransform[5] += pointer.y - lastPosRef.current.y;
-          fabricCanvas.requestRenderAll();
+        if (pointer && canvas.viewportTransform) {
+          canvas.viewportTransform[4] += pointer.x - lastPosRef.current.x;
+          canvas.viewportTransform[5] += pointer.y - lastPosRef.current.y;
+          canvas.requestRenderAll();
           lastPosRef.current = { x: pointer.x, y: pointer.y };
         }
       }
     };
 
     const handleMouseUp = () => {
-      if (isPanning) {
-        setIsPanning(false);
-        fabricCanvas.selection = true;
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        canvas.selection = true;
         lastPosRef.current = null;
+        if (showGrid) renderGrid(canvas);
       }
     };
 
-    fabricCanvas.on('mouse:down', handleMouseDown);
-    fabricCanvas.on('mouse:move', handleMouseMove);
-    fabricCanvas.on('mouse:up', handleMouseUp);
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
 
     return () => {
-      fabricCanvas.off('mouse:down', handleMouseDown);
-      fabricCanvas.off('mouse:move', handleMouseMove);
-      fabricCanvas.off('mouse:up', handleMouseUp);
+      canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
     };
-  }, [fabricCanvas, activeTool, isPanning]);
+  }, [activeTool, isReady, showGrid, renderGrid]);
 
+  // --- Mouse wheel zoom ---
   useEffect(() => {
-    if (!fabricCanvas) return;
+    const canvas = fabricRef.current;
+    if (!canvas) return;
 
-    fabricCanvas.isDrawingMode = activeTool === "pen" || activeTool === "highlighter";
-    
-    if (fabricCanvas.freeDrawingBrush) {
-      if (activeTool === "pen") {
-        fabricCanvas.freeDrawingBrush.color = penColor;
-        fabricCanvas.freeDrawingBrush.width = penSize;
-      } else if (activeTool === "highlighter") {
-        fabricCanvas.freeDrawingBrush.color = penColor + "80";
-        fabricCanvas.freeDrawingBrush.width = penSize * 4;
-      }
-    }
-
-    // Handle eraser mode - click to delete objects
-    const handleObjectClick = (e: any) => {
-      if (activeTool === "eraser" && e.target) {
-        fabricCanvas.remove(e.target);
-        fabricCanvas.renderAll();
-        toast.success("Object deleted");
-      }
+    const handleWheel = (opt: any) => {
+      const e = opt.e as WheelEvent;
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY;
+      let newZoom = canvas.getZoom() * (delta > 0 ? 0.95 : 1.05);
+      newZoom = Math.max(0.25, Math.min(4, newZoom));
+      const point = canvas.getScenePoint(e);
+      canvas.zoomToPoint(point, newZoom);
+      setZoom(Math.round(newZoom * 100));
+      if (showGrid) renderGrid(canvas);
+      canvas.renderAll();
     };
 
-    if (activeTool === "eraser") {
-      fabricCanvas.isDrawingMode = false;
-      fabricCanvas.on('mouse:down', handleObjectClick);
-    }
+    canvas.on('mouse:wheel', handleWheel);
+    return () => { canvas.off('mouse:wheel', handleWheel); };
+  }, [isReady, showGrid, renderGrid]);
 
-    // Handle Bezier pen tool
-    const handleBezierClick = (e: any) => {
-      if (activeTool === "bezier") {
-        const pointer = fabricCanvas.getScenePoint(e.e);
-        const newPoints = [...bezierPoints, { x: pointer.x, y: pointer.y }];
-        setBezierPoints(newPoints);
+  // --- Keyboard shortcuts ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      // Don't capture when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-        if (newPoints.length === 1) {
-          // First point - start path
-          const pathString = `M ${pointer.x} ${pointer.y}`;
-          const path = new Path(pathString, {
-            stroke: penColor,
-            strokeWidth: penSize,
-            fill: '',
-            selectable: false,
-          });
-          fabricCanvas.add(path);
-          setCurrentBezierPath(path);
-        } else if (newPoints.length > 1 && currentBezierPath) {
-          // Add line to point
-          const pathData = newPoints.map((p, i) => {
-            if (i === 0) return `M ${p.x} ${p.y}`;
-            return `L ${p.x} ${p.y}`;
-          }).join(' ');
-          
-          currentBezierPath.set('path', pathData as any);
-          fabricCanvas.renderAll();
-        }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) { e.preventDefault(); handleRedo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') { e.preventDefault(); canvas.discardActiveObject(); const sel = canvas.getObjects().filter(o => o.selectable); if (sel.length) { /* select all */ } return; }
+      if (e.key === 'Delete' || e.key === 'Backspace') { handleDeleteSelected(); return; }
+
+      switch (e.key.toLowerCase()) {
+        case 'v': setActiveTool('select'); break;
+        case 'h': setActiveTool('pan'); break;
+        case 'p': setActiveTool('pen'); break;
+        case 'r': handleToolClick('rectangle'); break;
+        case 'o': handleToolClick('circle'); break;
+        case 't': handleToolClick('text'); break;
+        case 's': handleToolClick('sticky'); break;
+        case 'e': setActiveTool('eraser'); break;
+        case '=': case '+': handleZoomIn(); break;
+        case '-': handleZoomOut(); break;
       }
     };
 
-    const handleBezierKeyDown = (e: KeyboardEvent) => {
-      if (activeTool === "bezier" && (e.key === "Enter" || e.key === "Escape")) {
-        if (currentBezierPath && bezierPoints.length > 1) {
-          currentBezierPath.set('selectable', true);
-          fabricCanvas.renderAll();
-          toast.success("Path completed");
-        }
-        setBezierPoints([]);
-        setCurrentBezierPath(null);
-      }
-    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
-    if (activeTool === "bezier") {
-      fabricCanvas.isDrawingMode = false;
-      fabricCanvas.selection = false;
-      fabricCanvas.on('mouse:down', handleBezierClick);
-      window.addEventListener('keydown', handleBezierKeyDown);
-      toast.info("Click to add points. Press Enter to finish.");
-    } else {
-      fabricCanvas.selection = true;
-    }
-
-    return () => {
-      fabricCanvas.off('mouse:down', handleObjectClick);
-      fabricCanvas.off('mouse:down', handleBezierClick);
-      window.removeEventListener('keydown', handleBezierKeyDown);
-    };
-  }, [activeTool, penColor, penSize, fabricCanvas, bezierPoints, currentBezierPath]);
-
+  // --- Tool actions ---
   const handleToolClick = (tool: Tool) => {
     setActiveTool(tool);
-    if (!fabricCanvas) return;
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const cx = canvas.width! / 2;
+    const cy = canvas.height! / 2;
 
     if (tool === "rectangle") {
-      const rect = new Rect({
-        left: fabricCanvas.width! / 2 - 75,
-        top: fabricCanvas.height! / 2 - 50,
-        fill: "transparent",
-        stroke: penColor,
-        strokeWidth: penSize,
-        width: 150,
-        height: 100,
-        rx: 8,
-        ry: 8,
-      });
-      fabricCanvas.add(rect);
-      fabricCanvas.setActiveObject(rect);
-      fabricCanvas.renderAll();
-      toast.success("Rectangle added");
+      const rect = new Rect({ left: cx - 75, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: penSize, width: 150, height: 100, rx: 8, ry: 8 });
+      canvas.add(rect); canvas.setActiveObject(rect); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "circle") {
-      const circle = new Circle({
-        left: fabricCanvas.width! / 2 - 50,
-        top: fabricCanvas.height! / 2 - 50,
-        fill: "transparent",
-        stroke: penColor,
-        strokeWidth: penSize,
-        radius: 50,
-      });
-      fabricCanvas.add(circle);
-      fabricCanvas.setActiveObject(circle);
-      fabricCanvas.renderAll();
-      toast.success("Circle added");
-    } else if (tool === "text") {
-      const text = new FabricText("Double-click to edit", {
-        left: fabricCanvas.width! / 2 - 100,
-        top: fabricCanvas.height! / 2,
-        fill: penColor,
-        fontSize: 24,
-        fontFamily: 'Arial',
-      });
-      fabricCanvas.add(text);
-      fabricCanvas.setActiveObject(text);
-      fabricCanvas.renderAll();
-      toast.success("Text added");
-    } else if (tool === "sticky") {
-      const stickyColor = stickyColors[Math.floor(Math.random() * stickyColors.length)];
-      const sticky = new Rect({
-        left: 0,
-        top: 0,
-        fill: stickyColor,
-        width: 200,
-        height: 200,
-        stroke: '#DDD',
-        strokeWidth: 1,
-        shadow: new Shadow({ color: 'rgba(0,0,0,0.1)', blur: 10, offsetX: 0, offsetY: 5 }),
-        rx: 4,
-        ry: 4
-      });
-      
-      const stickyText = new FabricText("Double-click to edit", {
-        left: 10,
-        top: 10,
-        fill: "#333",
-        fontSize: 14,
-        fontFamily: 'Arial',
-        width: 180,
-      });
-      
-      const stickyGroup = new Group([sticky, stickyText], {
-        left: fabricCanvas.width! / 2 - 100,
-        top: fabricCanvas.height! / 2 - 100,
-      });
-      
-      fabricCanvas.add(stickyGroup);
-      fabricCanvas.setActiveObject(stickyGroup);
-      fabricCanvas.renderAll();
-      toast.success("Sticky note added");
+      const circle = new Circle({ left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: penSize, radius: 50 });
+      canvas.add(circle); canvas.setActiveObject(circle); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "triangle") {
-      const triangle = new Triangle({
-        left: fabricCanvas.width! / 2 - 50,
-        top: fabricCanvas.height! / 2 - 50,
-        fill: "transparent",
-        stroke: penColor,
-        strokeWidth: penSize,
-        width: 100,
-        height: 100,
-      });
-      fabricCanvas.add(triangle);
-      fabricCanvas.setActiveObject(triangle);
-      fabricCanvas.renderAll();
-      toast.success("Triangle added");
-    } else if (tool === "line") {
-      const line = new Line([50, 50, 200, 50], {
-        left: fabricCanvas.width! / 2 - 100,
-        top: fabricCanvas.height! / 2,
-        stroke: penColor,
-        strokeWidth: penSize,
-      });
-      fabricCanvas.add(line);
-      fabricCanvas.setActiveObject(line);
-      fabricCanvas.renderAll();
-      toast.success("Line added");
-    } else if (tool === "arrow") {
-      const arrowLine = new Line([0, 0, 150, 0], {
-        stroke: penColor,
-        strokeWidth: penSize,
-      });
-      
-      const arrowHead = new Triangle({
-        left: 150,
-        top: -10,
-        width: 20,
-        height: 20,
-        fill: penColor,
-        angle: 90,
-      });
-      
-      const arrow = new Group([arrowLine, arrowHead], {
-        left: fabricCanvas.width! / 2 - 75,
-        top: fabricCanvas.height! / 2,
-      });
-      
-      fabricCanvas.add(arrow);
-      fabricCanvas.setActiveObject(arrow);
-      fabricCanvas.renderAll();
-      toast.success("Arrow added");
+      const tri = new Triangle({ left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: penSize, width: 100, height: 100 });
+      canvas.add(tri); canvas.setActiveObject(tri); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "star") {
-      const starPoints = [];
-      const spikes = 5;
-      const outerRadius = 50;
-      const innerRadius = 25;
-      const centerX = 0;
-      const centerY = 0;
-      
-      for (let i = 0; i < spikes * 2; i++) {
-        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-        const angle = (i * Math.PI) / spikes - Math.PI / 2;
-        starPoints.push({
-          x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle),
-        });
+      const pts = [];
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? 50 : 25;
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        pts.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
       }
-      
-      const star = new Polygon(starPoints, {
-        left: fabricCanvas.width! / 2 - 50,
-        top: fabricCanvas.height! / 2 - 50,
-        fill: "transparent",
-        stroke: penColor,
-        strokeWidth: penSize,
-      });
-      
-      fabricCanvas.add(star);
-      fabricCanvas.setActiveObject(star);
-      fabricCanvas.renderAll();
-      toast.success("Star added");
+      const star = new Polygon(pts, { left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: penSize });
+      canvas.add(star); canvas.setActiveObject(star); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "polygon") {
-      const hexPoints = [];
-      const sides = 6;
-      const radius = 50;
-      
-      for (let i = 0; i < sides; i++) {
-        const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
-        hexPoints.push({
-          x: radius * Math.cos(angle),
-          y: radius * Math.sin(angle),
-        });
+      const pts = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * 2 * Math.PI) / 6 - Math.PI / 2;
+        pts.push({ x: 50 * Math.cos(angle), y: 50 * Math.sin(angle) });
       }
-      
-      const hexagon = new Polygon(hexPoints, {
-        left: fabricCanvas.width! / 2 - 50,
-        top: fabricCanvas.height! / 2 - 50,
-        fill: "transparent",
-        stroke: penColor,
-        strokeWidth: penSize,
-      });
-      
-      fabricCanvas.add(hexagon);
-      fabricCanvas.setActiveObject(hexagon);
-      fabricCanvas.renderAll();
-      toast.success("Hexagon added");
-    } else if (tool === "eraser") {
-      fabricCanvas.isDrawingMode = false;
-      toast.info("Click objects to delete them");
+      const hex = new Polygon(pts, { left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: penSize });
+      canvas.add(hex); canvas.setActiveObject(hex); canvas.renderAll(); setActiveTool("select");
+    } else if (tool === "line") {
+      const line = new Line([0, 0, 150, 0], { left: cx - 75, top: cy, stroke: penColor, strokeWidth: penSize });
+      canvas.add(line); canvas.setActiveObject(line); canvas.renderAll(); setActiveTool("select");
+    } else if (tool === "arrow") {
+      const arrowLine = new Line([0, 0, 130, 0], { stroke: penColor, strokeWidth: penSize });
+      const arrowHead = new Triangle({ left: 130, top: -8, width: 16, height: 16, fill: penColor, angle: 90 });
+      const arrow = new Group([arrowLine, arrowHead], { left: cx - 75, top: cy });
+      canvas.add(arrow); canvas.setActiveObject(arrow); canvas.renderAll(); setActiveTool("select");
+    } else if (tool === "text") {
+      const text = new FabricText("Double-click to edit", { left: cx - 100, top: cy, fill: penColor, fontSize: 24, fontFamily: 'Inter, Arial, sans-serif' });
+      canvas.add(text); canvas.setActiveObject(text); canvas.renderAll(); setActiveTool("select");
+    } else if (tool === "sticky") {
+      const color = stickyColors[Math.floor(Math.random() * stickyColors.length)];
+      const rotation = (Math.random() - 0.5) * 6; // -3 to 3 degrees
+      const bg = new Rect({ left: 0, top: 0, fill: color, width: 200, height: 200, stroke: '#e0ddd5', strokeWidth: 1, shadow: new Shadow({ color: 'rgba(0,0,0,0.08)', blur: 12, offsetY: 4 }), rx: 6, ry: 6 });
+      const txt = new FabricText("Note...", { left: 14, top: 14, fill: "#444", fontSize: 15, fontFamily: 'Inter, Arial, sans-serif', width: 172 });
+      const group = new Group([bg, txt], { left: cx - 100, top: cy - 100, angle: rotation, subTargetCheck: true });
+      canvas.add(group); canvas.setActiveObject(group); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "image") {
       const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
+      input.type = 'file'; input.accept = 'image/*';
       input.onchange = (e: any) => {
         const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const imgElement = document.createElement('img');
-            imgElement.src = event.target?.result as string;
-            imgElement.onload = () => {
-              const img = new FabricImage(imgElement, {
-                left: fabricCanvas.width! / 2 - 100,
-                top: fabricCanvas.height! / 2 - 100,
-                scaleX: 0.5,
-                scaleY: 0.5,
-              });
-              fabricCanvas.add(img);
-              fabricCanvas.setActiveObject(img);
-              fabricCanvas.renderAll();
-              toast.success("Image added");
-            };
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = document.createElement('img');
+          img.src = ev.target?.result as string;
+          img.onload = () => {
+            const fi = new FabricImage(img, { left: cx - 100, top: cy - 100, scaleX: 0.5, scaleY: 0.5 });
+            canvas.add(fi); canvas.setActiveObject(fi); canvas.renderAll();
           };
-          reader.readAsDataURL(file);
-        }
+        };
+        reader.readAsDataURL(file);
       };
       input.click();
+      setActiveTool("select");
     }
   };
 
   const handleZoomIn = () => {
-    if (!fabricCanvas) return;
-    const newZoom = Math.min(zoom + 10, 200);
-    setZoom(newZoom);
-    fabricCanvas.setZoom(newZoom / 100);
-    fabricCanvas.renderAll();
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const nz = Math.min(zoom + 10, 400);
+    setZoom(nz);
+    canvas.setZoom(nz / 100);
+    if (showGrid) renderGrid(canvas);
+    canvas.renderAll();
   };
 
   const handleZoomOut = () => {
-    if (!fabricCanvas) return;
-    const newZoom = Math.max(zoom - 10, 50);
-    setZoom(newZoom);
-    fabricCanvas.setZoom(newZoom / 100);
-    fabricCanvas.renderAll();
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const nz = Math.max(zoom - 10, 25);
+    setZoom(nz);
+    canvas.setZoom(nz / 100);
+    if (showGrid) renderGrid(canvas);
+    canvas.renderAll();
   };
 
   const handleClear = () => {
-    if (!fabricCanvas) return;
-    if (!confirm("Clear entire whiteboard?")) return;
-    fabricCanvas.clear();
-    fabricCanvas.backgroundColor = showGrid ? "#F8F9FA" : "#FFFFFF";
-    fabricCanvas.renderAll();
+    const canvas = fabricRef.current;
+    if (!canvas || !confirm("Clear entire whiteboard?")) return;
+    canvas.clear();
+    canvas.backgroundColor = "#FAFAF8";
+    canvas.renderAll();
+    if (showGrid) renderGrid(canvas);
     toast.success("Whiteboard cleared");
   };
 
   const handleExport = () => {
-    if (!fabricCanvas) return;
-    const dataURL = fabricCanvas.toDataURL({ multiplier: 2, format: 'png', quality: 1 });
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const dataURL = canvas.toDataURL({ multiplier: 2, format: 'png', quality: 1 });
     const link = document.createElement('a');
     link.download = `whiteboard-${Date.now()}.png`;
     link.href = dataURL;
@@ -516,295 +477,142 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   };
 
   const handleDeleteSelected = () => {
-    if (!fabricCanvas) return;
-    const activeObjects = fabricCanvas.getActiveObjects();
-    if (activeObjects.length > 0) {
-      activeObjects.forEach(obj => fabricCanvas.remove(obj));
-      fabricCanvas.discardActiveObject();
-      fabricCanvas.renderAll();
-      toast.success("Deleted selected objects");
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const active = canvas.getActiveObjects();
+    if (active.length > 0) {
+      active.forEach(obj => canvas.remove(obj));
+      canvas.discardActiveObject();
+      canvas.renderAll();
     }
   };
 
+  const ToolBtn = ({ tool, icon: Icon, label, onClick }: { tool?: Tool; icon: any; label: string; onClick?: () => void }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant={tool && activeTool === tool ? "default" : "ghost"}
+          size="icon"
+          className={cn("h-9 w-9 rounded-xl transition-all", tool && activeTool === tool && "shadow-md")}
+          onClick={onClick || (() => tool && (["rectangle","circle","triangle","star","polygon","line","arrow","text","sticky","image"].includes(tool) ? handleToolClick(tool) : setActiveTool(tool)))}
+        >
+          <Icon className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+
   return (
-    <div ref={containerRef} className="relative w-full h-[800px] bg-gradient-to-br from-background via-background/95 to-background rounded-xl overflow-hidden">
-      {/* Top Toolbar */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-card/95 backdrop-blur-xl px-4 py-2 rounded-xl shadow-lg border border-border">
-        {/* Selection Tools */}
-        <Button
-          variant={activeTool === "select" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => setActiveTool("select")}
-          title="Select"
-        >
-          <MousePointer2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "pan" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => setActiveTool("pan")}
-          title="Pan"
-        >
-          <Hand className="h-4 w-4" />
-        </Button>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        {/* Drawing Tools Group */}
-        <Sheet open={showDrawMenu} onOpenChange={setShowDrawMenu}>
-          <SheetTrigger asChild>
-            <Button
-              variant={["pen", "bezier", "highlighter"].includes(activeTool) ? "default" : "ghost"}
-              size="icon"
-              title="Drawing Tools"
-            >
-              <Pen className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="top" className="h-auto">
-            <SheetHeader>
-              <SheetTitle>Drawing Tools</SheetTitle>
-            </SheetHeader>
-            <div className="flex gap-2 mt-4 justify-center">
-              <Button
-                variant={activeTool === "pen" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("pen"); setShowDrawMenu(false); }}
-              >
-                <Pen className="h-5 w-5 mb-1" />
-                <span className="text-xs">Freehand</span>
+    <TooltipProvider delayDuration={300}>
+      <div ref={containerRef} className="relative w-full h-full min-h-[600px] bg-[#FAFAF8] rounded-xl overflow-hidden">
+        {/* Floating Toolbar */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 whiteboard-toolbar">
+          {/* Selection */}
+          <ToolBtn tool="select" icon={MousePointer2} label="Select (V)" />
+          <ToolBtn tool="pan" icon={Hand} label="Pan (H)" />
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          
+          {/* Drawing */}
+          <ToolBtn tool="pen" icon={Pen} label="Draw (P)" />
+          <ToolBtn tool="eraser" icon={Eraser} label="Eraser (E)" />
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          
+          {/* Shapes Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant={["rectangle","circle","triangle","star","polygon","line","arrow"].includes(activeTool) ? "default" : "ghost"} size="icon" className="h-9 w-9 rounded-xl">
+                <Square className="h-4 w-4" />
               </Button>
-              <Button
-                variant={activeTool === "bezier" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { setActiveTool("bezier"); setShowDrawMenu(false); }}
-              >
-                <Pen className="h-5 w-5 mb-1" />
-                <span className="text-xs">Pen Tool</span>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" side="bottom">
+              <div className="grid grid-cols-4 gap-1">
+                {([
+                  ["rectangle", Square, "Rectangle (R)"],
+                  ["circle", CircleIcon, "Circle (O)"],
+                  ["triangle", TriangleIcon, "Triangle"],
+                  ["star", Star, "Star"],
+                  ["polygon", Hexagon, "Hexagon"],
+                  ["line", Minus, "Line"],
+                  ["arrow", ArrowRight, "Arrow"],
+                ] as [Tool, any, string][]).map(([t, I, l]) => (
+                  <Tooltip key={t}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => handleToolClick(t)}>
+                        <I className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">{l}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          
+          {/* Content */}
+          <ToolBtn tool="text" icon={Type} label="Text (T)" />
+          <ToolBtn tool="sticky" icon={StickyNote} label="Sticky (S)" />
+          <ToolBtn tool="image" icon={ImageIcon} label="Image" />
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          
+          {/* Color & Size Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                <div className="h-5 w-5 rounded-full border-2 border-border" style={{ backgroundColor: penColor }} />
               </Button>
-              <Button
-                variant={activeTool === "highlighter" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("highlighter"); setShowDrawMenu(false); }}
-              >
-                <Highlighter className="h-5 w-5 mb-1" />
-                <span className="text-xs">Highlighter</span>
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        {/* Shape Tools Group */}
-        <Sheet open={showShapeMenu} onOpenChange={setShowShapeMenu}>
-          <SheetTrigger asChild>
-            <Button
-              variant={["rectangle", "circle", "triangle", "star", "polygon"].includes(activeTool) ? "default" : "ghost"}
-              size="icon"
-              title="Shape Tools"
-            >
-              <Square className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="top" className="h-auto">
-            <SheetHeader>
-              <SheetTitle>Shape Tools</SheetTitle>
-            </SheetHeader>
-            <div className="flex gap-2 mt-4 justify-center">
-              <Button
-                variant={activeTool === "rectangle" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("rectangle"); setShowShapeMenu(false); }}
-              >
-                <Square className="h-5 w-5 mb-1" />
-                <span className="text-xs">Rectangle</span>
-              </Button>
-              <Button
-                variant={activeTool === "circle" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("circle"); setShowShapeMenu(false); }}
-              >
-                <CircleIcon className="h-5 w-5 mb-1" />
-                <span className="text-xs">Circle</span>
-              </Button>
-              <Button
-                variant={activeTool === "triangle" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("triangle"); setShowShapeMenu(false); }}
-              >
-                <TriangleIcon className="h-5 w-5 mb-1" />
-                <span className="text-xs">Triangle</span>
-              </Button>
-              <Button
-                variant={activeTool === "star" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("star"); setShowShapeMenu(false); }}
-              >
-                <Star className="h-5 w-5 mb-1" />
-                <span className="text-xs">Star</span>
-              </Button>
-              <Button
-                variant={activeTool === "polygon" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("polygon"); setShowShapeMenu(false); }}
-              >
-                <Hexagon className="h-5 w-5 mb-1" />
-                <span className="text-xs">Hexagon</span>
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        {/* Line Tools Group */}
-        <Sheet open={showLineMenu} onOpenChange={setShowLineMenu}>
-          <SheetTrigger asChild>
-            <Button
-              variant={["line", "arrow"].includes(activeTool) ? "default" : "ghost"}
-              size="icon"
-              title="Line Tools"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="top" className="h-auto">
-            <SheetHeader>
-              <SheetTitle>Line Tools</SheetTitle>
-            </SheetHeader>
-            <div className="flex gap-2 mt-4 justify-center">
-              <Button
-                variant={activeTool === "line" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("line"); setShowLineMenu(false); }}
-              >
-                <Minus className="h-5 w-5 mb-1" />
-                <span className="text-xs">Line</span>
-              </Button>
-              <Button
-                variant={activeTool === "arrow" ? "default" : "outline"}
-                className="flex-col h-20 w-20"
-                onClick={() => { handleToolClick("arrow"); setShowLineMenu(false); }}
-              >
-                <ArrowRight className="h-5 w-5 mb-1" />
-                <span className="text-xs">Arrow</span>
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        {/* Content Tools */}
-        <Button
-          variant={activeTool === "text" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("text")}
-          title="Text"
-        >
-          <Type className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "sticky" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("sticky")}
-          title="Sticky Note"
-        >
-          <StickyNote className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={activeTool === "image" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("image")}
-          title="Upload Image"
-        >
-          <ImageIcon className="h-4 w-4" />
-        </Button>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        <Button
-          variant={activeTool === "eraser" ? "default" : "ghost"}
-          size="icon"
-          onClick={() => handleToolClick("eraser")}
-          title="Eraser"
-        >
-          <Eraser className="h-4 w-4" />
-        </Button>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        {/* Color Picker Sheet */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" title="Colors">
-              <Palette className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right">
-            <SheetHeader>
-              <SheetTitle>Colors & Stroke</SheetTitle>
-            </SheetHeader>
-            <div className="space-y-6 mt-6">
-              <div>
-                <label className="text-sm font-medium mb-3 block">Color</label>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3" side="bottom">
+              <div className="space-y-3">
                 <div className="grid grid-cols-4 gap-2">
                   {penColors.map(({ name, value }) => (
                     <button
                       key={value}
                       onClick={() => setPenColor(value)}
-                      className={cn(
-                        "w-12 h-12 rounded-lg border-2",
-                        penColor === value ? "border-foreground scale-110 shadow-lg" : "border-border"
-                      )}
+                      className={cn("w-10 h-10 rounded-lg border-2 transition-all", penColor === value ? "border-foreground scale-110 shadow-md" : "border-border hover:scale-105")}
                       style={{ backgroundColor: value }}
                       title={name}
                     />
                   ))}
                 </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Stroke: {penSize}px</label>
+                  <Slider value={[penSize]} onValueChange={([v]) => setPenSize(v)} min={1} max={20} step={1} />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-3 block">Stroke Size: {penSize}px</label>
-                <Slider
-                  value={[penSize]}
-                  onValueChange={([value]) => setPenSize(value)}
-                  min={1}
-                  max={20}
-                  step={1}
-                />
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        <Button variant="outline" size="icon" onClick={handleZoomIn} title="Zoom In">
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleZoomOut} title="Zoom Out">
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={() => setShowGrid(!showGrid)} title="Toggle Grid">
-          <Grid3x3 className="h-4 w-4" />
-        </Button>
-        
-        <Separator orientation="vertical" className="h-6" />
-        
-        <Button variant="outline" size="icon" onClick={handleDeleteSelected} title="Delete">
-          <Trash2 className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleClear} title="Clear All">
-          <RotateCcw className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleExport} title="Export">
-          <Download className="h-4 w-4" />
-        </Button>
-      </div>
+            </PopoverContent>
+          </Popover>
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          
+          {/* Actions */}
+          <ToolBtn icon={Undo2} label="Undo (Ctrl+Z)" onClick={handleUndo} />
+          <ToolBtn icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={handleRedo} />
+          <ToolBtn icon={Trash2} label="Delete (Del)" onClick={handleDeleteSelected} />
+          <ToolBtn icon={RotateCcw} label="Clear All" onClick={handleClear} />
+          <ToolBtn icon={Download} label="Export PNG" onClick={handleExport} />
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          
+          <ToolBtn icon={ZoomOut} label="Zoom Out (-)" onClick={handleZoomOut} />
+          <span className="text-xs text-muted-foreground font-medium min-w-[3ch] text-center">{zoom}%</span>
+          <ToolBtn icon={ZoomIn} label="Zoom In (+)" onClick={handleZoomIn} />
+          <ToolBtn icon={Grid3x3} label="Toggle Grid" onClick={() => setShowGrid(!showGrid)} />
+        </div>
 
-      {/* Canvas */}
-      <canvas ref={canvasRef} className="block" />
-    </div>
+        {/* Zoom badge */}
+        <div className="absolute bottom-4 right-4 z-10 whiteboard-zoom-badge">
+          {zoom}%
+        </div>
+
+        {/* Canvas */}
+        <canvas ref={canvasRef} className="block" />
+      </div>
+    </TooltipProvider>
   );
 };
