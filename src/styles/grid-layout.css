@@ -203,11 +203,15 @@
 }
 
 .whiteboard-mobile-toolbar {
-  background: hsl(var(--card) / 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: hsl(var(--card) / 0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid hsl(var(--border));
-  box-shadow: 0 -4px 20px hsl(var(--foreground) / 0.06);
+  box-shadow: 0 -2px 12px hsl(var(--foreground) / 0.05);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 4px);
 }
 
 /* Reduced motion */
