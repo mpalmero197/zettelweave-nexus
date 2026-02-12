@@ -223,29 +223,30 @@ export default function Auth() {
                     </div>
                     {password && (
                       <div className="mt-2">
-                        <div className="flex items-center gap-1 mb-1">
+                        <div className="flex items-center gap-1 mb-1" role="meter" aria-label="Password strength" aria-valuenow={passwordStrength.score} aria-valuemin={0} aria-valuemax={5}>
                           {[1, 2, 3, 4, 5].map((level) => (
                             <div
                               key={level}
                               className={`h-1 w-full rounded ${
                                 level <= passwordStrength.score
                                   ? level <= 2
-                                    ? "bg-red-500"
+                                    ? "bg-destructive"
                                     : level <= 3
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                  : "bg-gray-200"
+                                      ? "bg-accent-foreground/60"
+                                      : "bg-primary"
+                                  : "bg-muted"
                               }`}
                             />
                           ))}
                         </div>
                         <p
+                          aria-live="polite"
                           className={`text-xs ${
                             passwordStrength.score <= 2
-                              ? "text-red-600"
+                              ? "text-destructive"
                               : passwordStrength.score <= 3
-                                ? "text-yellow-600"
-                                : "text-green-600"
+                                ? "text-muted-foreground"
+                                : "text-foreground"
                           }`}
                         >
                           {passwordStrength.feedback}
