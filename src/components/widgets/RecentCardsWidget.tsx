@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, Star, ArrowUpRight } from "lucide-react";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
@@ -23,14 +22,12 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          <Brain className="h-3.5 w-3.5" aria-hidden="true" />
-          Recent Cards
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-0.5 overflow-y-auto max-h-72">
+    <div className="widget-card widget-accent-cards p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
+        <h3 className="text-sm font-medium text-foreground">Recent Cards</h3>
+      </div>
+      <div className="space-y-0.5">
         {recentCards.length > 0 ? (
           recentCards.map((card) => (
             <button
@@ -40,7 +37,7 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
               aria-label={`Open card: ${card.title}`}
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{card.title}</p>
+                <p className="text-sm font-medium truncate text-foreground">{card.title}</p>
                 <p className="text-xs text-muted-foreground">{card.number} · {getTimeAgo(card.updated_at || card.modified)}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0 ml-2">
@@ -51,11 +48,11 @@ export function RecentCardsWidget({ onEdit }: RecentCardsWidgetProps) {
           ))
         ) : (
           <div className="text-center py-8">
-            <Brain className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground">No cards yet</p>
+            <Brain className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+            <p className="text-xs text-muted-foreground">No cards yet — capture your first thought above</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
