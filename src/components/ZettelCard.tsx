@@ -1,285 +1,343 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star, Sparkles } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star, Trash2, Download, Share2, Printer, Bot, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CardActionsMenu } from "./CardActionsMenu";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import { AIEditDialog } from "./AIEditDialog";
+import { SimilarContentDialog } from "./SimilarContentDialog";
+import { useSimilarContent } from "@/hooks/useSimilarContent";
+import { exportCardAsImage, shareToSocial, printCards } from "@/utils/exportUtils";
+import { toast } from "sonner";
 
 interface ZettelCardProps {
   card: ZettelCardType;
   onEdit?: (card: ZettelCardType) => void;
   onLink?: (card: ZettelCardType) => void;
-  onWordHover?: (word: string, element: HTMLElement) => void;
   onDelete?: (card: ZettelCardType) => void;
   onUpdate?: (card: ZettelCardType) => void;
+  variant?: "default" | "compact";
   className?: string;
 }
 
 const cardColors = [
-  { name: "Blue", value: "210", bg: "bg-blue-500", border: "border-blue-600", text: "text-white" },
-  { name: "Green", value: "142", bg: "bg-green-500", border: "border-green-600", text: "text-white" },
-  { name: "Purple", value: "280", bg: "bg-purple-500", border: "border-purple-600", text: "text-white" },
-  { name: "Orange", value: "25", bg: "bg-orange-500", border: "border-orange-600", text: "text-white" },
-  { name: "Pink", value: "320", bg: "bg-pink-500", border: "border-pink-600", text: "text-white" },
-  { name: "Teal", value: "180", bg: "bg-teal-500", border: "border-teal-600", text: "text-white" },
-  { name: "Red", value: "0", bg: "bg-red-500", border: "border-red-600", text: "text-white" },
-  { name: "Yellow", value: "60", bg: "bg-yellow-500", border: "border-yellow-600", text: "text-gray-900" },
-  { name: "Default", value: "", bg: "", border: "", text: "" }
+  { name: "Blue", value: "210" },
+  { name: "Green", value: "142" },
+  { name: "Purple", value: "280" },
+  { name: "Orange", value: "25" },
+  { name: "Pink", value: "320" },
+  { name: "Teal", value: "180" },
+  { name: "Red", value: "0" },
+  { name: "Yellow", value: "60" },
+  { name: "Default", value: "" }
 ];
 
-export function ZettelCard({ card, onEdit, onLink, onWordHover, onDelete, onUpdate, className }: ZettelCardProps) {
-  const categoryInfo = getCategoryInfo(card.category);
-  const currentColor = cardColors.find(c => c.value === card.cardColor) || cardColors[cardColors.length - 1];
-  const [globalDictionaryEnabled, setGlobalDictionaryEnabled] = useState(() => {
-    const stored = localStorage.getItem('globalDictionaryEnabled');
-    return stored !== null ? stored === 'true' : true;
-  });
+const COLOR_MAP: Record<string, string> = {
+  "210": "hsl(210 70% 55%)",
+  "142": "hsl(142 60% 45%)",
+  "280": "hsl(280 60% 55%)",
+  "25": "hsl(25 90% 55%)",
+  "320": "hsl(320 60% 55%)",
+  "180": "hsl(180 55% 42%)",
+  "0": "hsl(0 70% 55%)",
+  "60": "hsl(60 80% 48%)",
+};
 
-  // Check if card is "new" (created within last 24 hours)
-  const isNewCard = () => {
-    const createdDate = new Date(card.created);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
-    return hoursDiff <= 24;
+function getRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant = "default", className }: ZettelCardProps) {
+  const categoryInfo = getCategoryInfo(card.category);
+  const [showAIEdit, setShowAIEdit] = useState(false);
+  const [showSimilarDialog, setShowSimilarDialog] = useState(false);
+  const { loading: similarLoading, similarItems, findSimilar, mergeContent } = useSimilarContent();
+
+  const isNew = () => {
+    const h = (Date.now() - new Date(card.created).getTime()) / 3600000;
+    return h <= 24;
   };
 
+  const topBorderColor = card.cardColor && COLOR_MAP[card.cardColor]
+    ? COLOR_MAP[card.cardColor]
+    : `hsl(var(--category-${categoryInfo.color}))`;
+
   const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent click when clicking on buttons or interactive elements
-    if ((e.target as HTMLElement).closest('button')) {
-      return;
-    }
-    // Trigger the onEdit callback to open the card viewer
+    if ((e.target as HTMLElement).closest('button, [role="menuitem"]')) return;
     onEdit?.(card);
   };
 
-  const handleWordHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'SPAN' && target.dataset.word) {
-      onWordHover?.(target.dataset.word, target);
-    }
+  const toggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate?.({ ...card, is_favorite: !card.is_favorite });
   };
 
   const changeCardColor = (colorValue: string) => {
-    if (onUpdate) {
-      onUpdate({
-        ...card,
-        cardColor: colorValue
-      });
-    }
+    onUpdate?.({ ...card, cardColor: colorValue });
   };
 
-  const toggleFavorite = () => {
-    if (onUpdate) {
-      onUpdate({
-        ...card,
-        is_favorite: !card.is_favorite
-      });
-    }
+  const handleExportImage = async () => {
+    const el = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement;
+    if (el) await exportCardAsImage(el, `zettel-${card.number}`);
   };
 
-
-  const renderContentWithHoverWords = (content: string) => {
-    // Split content into words and wrap each in a span for hover detection
-    return content.split(/(\s+)/).map((part, index) => {
-      if (part.trim() && part.match(/^[a-zA-Z]+$/)) {
-        return (
-          <span 
-            key={index}
-            data-word={part.toLowerCase()}
-            className="hover:bg-accent/20 hover:rounded-sm cursor-help transition-colors"
-            onMouseEnter={handleWordHover}
-          >
-            {part}
-          </span>
-        );
-      }
-      return part;
-    });
+  const handleFindSimilar = async () => {
+    const results = await findSimilar(card.id, 'zettel_card');
+    if (results.length > 0) setShowSimilarDialog(true);
   };
 
-  return (
-    <Card
-      data-card-id={card.id}
-      onClick={handleCardClick}
-      className={cn(
-        "group rounded-xl shadow-card hover:shadow-hover transition-all duration-300 animate-fade-in-up cursor-pointer overflow-hidden",
-        "border border-border/60 dark:border-border/50",
-        "hover:-translate-y-1 hover:shadow-glow backdrop-blur-sm",
-        currentColor.bg || "bg-card/80",
-        currentColor.border && `border-l-4 ${currentColor.border}`,
-        className
-      )}
-      style={!currentColor.bg ? {
-        borderLeft: `4px solid hsl(var(--category-${categoryInfo.color}))`
-      } : undefined}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex flex-col gap-1.5 mb-2">
-              <div className="flex items-center gap-2">
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "text-xs font-mono",
-                    currentColor.text && "border-primary/30 bg-primary/10"
-                  )}
-                  style={!currentColor.text ? { 
-                    borderColor: `hsl(var(--category-${categoryInfo.color}))`,
-                    color: `hsl(var(--category-${categoryInfo.color}))`
-                  } : undefined}
-                >
-                  {card.number}
-                </Badge>
-                <Badge 
-                  variant="secondary" 
-                  className={cn(
-                    "text-xs",
-                    currentColor.text && "border-primary/30 bg-primary/20"
-                  )}
-                  style={!currentColor.bg ? {
-                    backgroundColor: `hsl(var(--category-${categoryInfo.color}) / 0.15)`,
-                    color: `hsl(var(--category-${categoryInfo.color}))`
-                  } : undefined}
-                >
-                  {categoryInfo.name}
-                </Badge>
-                {isNewCard() && (
-                  <Badge 
-                    variant="default" 
-                    className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white animate-pulse"
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    New
-                  </Badge>
-                )}
-              </div>
-              {/* Display detailed Dewey classification if available */}
-              {card.category && card.category.includes('-') && (
-                <p className={cn(
-                  "text-xs italic",
-                  currentColor.text ? `${currentColor.text} opacity-90` : "text-muted-foreground"
-                )}>
-                  {card.category}
-                </p>
-              )}
-            </div>
-            <CardTitle className={cn("text-xl md:text-2xl leading-snug mb-1", currentColor.text || "text-foreground")}>
-              {card.title}
-            </CardTitle>
-            {card.description && (
-              <p className={cn("text-sm md:text-base line-clamp-3", currentColor.text || "text-muted-foreground")}>
-                {card.description}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} 
-              aria-label={card.is_favorite ? "Remove from favorites" : "Add to favorites"} 
-              className={cn("hover:bg-accent/50", card.is_favorite ? "text-yellow-500" : (currentColor.text || "text-muted-foreground hover:text-foreground"))}
-            >
-              <Star className={cn("h-4 w-4", card.is_favorite && "fill-yellow-500")} />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit?.(card); }} aria-label="Edit card" className={cn("hover:bg-accent/50", currentColor.text || "text-muted-foreground hover:text-foreground")}>
-              <Edit3 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLink?.(card); }} aria-label="Link card" className={cn("hover:bg-accent/50", currentColor.text || "text-muted-foreground hover:text-foreground")}>
-              <Link2 className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" aria-label="Change card color" onClick={(e) => e.stopPropagation()} className={cn("hover:bg-accent/20", currentColor.text || "text-muted-foreground")}>
-                  <Palette className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end"  className="z-50 bg-popover/95 backdrop-blur-sm"  onClick={(e) => e.stopPropagation()}>
-                {cardColors.map((color) => (
-                  <DropdownMenuItem
-                    key={color.name}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      changeCardColor(color.value);
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <div 
-                      className={cn("w-4 h-4 rounded border", color.bg, color.border)}
-                      style={color.value ? undefined : { backgroundColor: `hsl(var(--category-${categoryInfo.color}))` }}
-                    />
-                    {color.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <CardActionsMenu
-              card={card}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onUpdate={onUpdate}
-            />
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-3">
-        <div 
-          className={cn("text-[0.95rem] leading-7 line-clamp-6", currentColor.text || "text-foreground/90")}
-          onMouseMove={globalDictionaryEnabled ? handleWordHover : undefined}
+  const handleMerge = async (sourceId: string, destinationId: string, mergedContent: string) => {
+    await mergeContent(sourceId, destinationId, mergedContent, 'zettel_card');
+    toast.success('Content merged successfully');
+    onUpdate?.({ ...card, content: mergedContent });
+  };
+
+  const visibleTags = card.tags?.slice(0, 2) || [];
+  const extraTags = (card.tags?.length || 0) - 2;
+
+  // ─── Compact list variant ───
+  if (variant === "compact") {
+    return (
+      <>
+        <div
+          data-card-id={card.id}
+          onClick={handleCardClick}
+          className={cn(
+            "group flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors",
+            "bg-card/80 backdrop-blur-sm border border-border/40 hover:bg-accent/30",
+            className
+          )}
         >
-          {globalDictionaryEnabled ? renderContentWithHoverWords(card.content) : card.content}
-        </div>
-        
-        {/* Media display */}
-        {(card.image_url || card.video_url) && (
-          <div className="space-y-2">
-            {card.image_url && (
-              <img 
-                src={card.image_url} 
-                alt="Card image" 
-                className="w-full max-h-48 object-cover rounded-md border"
-              />
-            )}
-            {card.video_url && (
-              <video 
-                src={card.video_url} 
-                controls 
-                className="w-full max-h-48 object-cover rounded-md border"
-              />
-            )}
-          </div>
-        )}
-        
-        {card.tags && card.tags.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap">
-            <Tag className={cn("h-3 w-3", currentColor.text ? "opacity-80" : "text-muted-foreground")} />
-            {card.tags.map((tag, index) => (
-              <Badge key={index} variant="outline" className={cn("text-xs", currentColor.text && "border-primary/30 bg-primary/10")}>
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-        
-        <div className={cn("flex items-center justify-between text-xs pt-2 border-t", currentColor.text ? "border-primary/20 opacity-80" : "text-muted-foreground border-border/50")}>
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {new Date(card.created).toLocaleDateString()}
-          </div>
-          {card.linkedCards && card.linkedCards.length > 0 && (
-            <div className="flex items-center gap-1">
-              <Link2 className="h-3 w-3" />
-              {card.linkedCards.length} links
+          {/* Category dot */}
+          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: topBorderColor }} />
+
+          {/* Title */}
+          <span className="text-sm font-medium truncate flex-1 text-foreground">{card.title}</span>
+
+          {/* Tags */}
+          {visibleTags.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1">
+              {visibleTags.map((tag, i) => (
+                <span key={i} className="text-[0.65rem] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{tag}</span>
+              ))}
+              {extraTags > 0 && <span className="text-[0.65rem] text-muted-foreground">+{extraTags}</span>}
             </div>
           )}
+
+          {/* Date */}
+          <span className="text-[0.65rem] text-muted-foreground shrink-0 tabular-nums">{getRelativeDate(card.created)}</span>
+
+          {/* New dot */}
+          {isNew() && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+
+          {/* Favorite star (only when favorited) */}
+          {card.is_favorite && (
+            <button onClick={toggleFavorite} className="shrink-0 text-yellow-500">
+              <Star className="h-3.5 w-3.5 fill-yellow-500" />
+            </button>
+          )}
+
+          {/* Actions menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onEdit?.(card)}><Edit3 className="mr-2 h-3.5 w-3.5" />View / Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(e as any); }}>
+                <Star className="mr-2 h-3.5 w-3.5" />{card.is_favorite ? "Unfavorite" : "Favorite"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onLink?.(card)}><Link2 className="mr-2 h-3.5 w-3.5" />Link</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onDelete?.(card)} className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </CardContent>
-    </Card>
+
+        {showAIEdit && (
+          <AIEditDialog card={card} onCardUpdate={(c) => { onUpdate?.(c); setShowAIEdit(false); }} trigger={null} />
+        )}
+        <SimilarContentDialog
+          open={showSimilarDialog} onOpenChange={setShowSimilarDialog}
+          currentItem={{ id: card.id, title: card.title, content: card.content, created_at: card.created, type: 'zettel_card' }}
+          similarItems={similarItems} onMerge={handleMerge}
+        />
+      </>
+    );
+  }
+
+  // ─── Default grid card ───
+  return (
+    <>
+      <div
+        data-card-id={card.id}
+        onClick={handleCardClick}
+        className={cn(
+          "widget-card group relative rounded-xl cursor-pointer overflow-hidden transition-shadow hover:shadow-md",
+          className
+        )}
+        style={{ borderTop: `3px solid ${topBorderColor}` }}
+      >
+        <div className="p-3 sm:p-4 space-y-2">
+          {/* Header row: title + actions */}
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                {/* New dot */}
+                {isNew() && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+                <h3 className="text-sm font-semibold truncate text-foreground">{card.title}</h3>
+              </div>
+              {card.description && (
+                <p className="text-xs text-muted-foreground line-clamp-1">{card.description}</p>
+              )}
+            </div>
+
+            {/* Inline favorite (only when favorited) */}
+            {card.is_favorite && (
+              <button onClick={toggleFavorite} className="shrink-0 mt-0.5 text-yellow-500 hover:text-yellow-400 transition-colors">
+                <Star className="h-3.5 w-3.5 fill-yellow-500" />
+              </button>
+            )}
+
+            {/* Actions dropdown - visible on hover or always on mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 z-50 bg-popover/95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={() => onEdit?.(card)}>
+                  <Edit3 className="mr-2 h-3.5 w-3.5" />View / Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(e as any); }}>
+                  <Star className="mr-2 h-3.5 w-3.5" />{card.is_favorite ? "Unfavorite" : "Favorite"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onLink?.(card)}>
+                  <Link2 className="mr-2 h-3.5 w-3.5" />Link Cards
+                </DropdownMenuItem>
+
+                {/* Color submenu */}
+                <DropdownMenuSeparator />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Palette className="mr-2 h-3.5 w-3.5" />Change Color
+                    </DropdownMenuItem>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="left" className="w-36 z-[60] bg-popover/95 backdrop-blur-sm">
+                    {cardColors.map((color) => (
+                      <DropdownMenuItem key={color.name} onClick={() => changeCardColor(color.value)} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: color.value ? (COLOR_MAP[color.value] || "hsl(var(--muted))") : `hsl(var(--category-${categoryInfo.color}))` }} />
+                        <span className="text-xs">{color.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowAIEdit(true)}>
+                  <Bot className="mr-2 h-3.5 w-3.5" />AI Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleFindSimilar} disabled={similarLoading}>
+                  <Copy className="mr-2 h-3.5 w-3.5" />{similarLoading ? "Searching..." : "Find Similar"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportImage}>
+                  <Download className="mr-2 h-3.5 w-3.5" />Export Image
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => printCards([card])}>
+                  <Printer className="mr-2 h-3.5 w-3.5" />Print
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => shareToSocial(card, 'twitter')}>
+                  <Share2 className="mr-2 h-3.5 w-3.5" />Share Twitter
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => shareToSocial(card, 'linkedin')}>
+                  <Share2 className="mr-2 h-3.5 w-3.5" />Share LinkedIn
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onDelete?.(card)} className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Content preview */}
+          <p className="text-[0.8rem] leading-relaxed line-clamp-3 text-foreground/80">{card.content}</p>
+
+          {/* Media */}
+          {(card.image_url || card.video_url) && (
+            <div className="space-y-1.5">
+              {card.image_url && (
+                <img src={card.image_url} alt="Card image" className="w-full max-h-32 object-cover rounded-md border border-border/40" />
+              )}
+              {card.video_url && (
+                <video src={card.video_url} controls className="w-full max-h-32 object-cover rounded-md border border-border/40" />
+              )}
+            </div>
+          )}
+
+          {/* Tags */}
+          {visibleTags.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {visibleTags.map((tag, i) => (
+                <span key={i} className="text-[0.65rem] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{tag}</span>
+              ))}
+              {extraTags > 0 && <span className="text-[0.65rem] text-muted-foreground">+{extraTags}</span>}
+            </div>
+          )}
+
+          {/* Footer: category dot + number + date + links */}
+          <div className="flex items-center gap-2 text-[0.7rem] text-muted-foreground pt-1 border-t border-border/30">
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: topBorderColor }} />
+            <span className="font-mono">{card.number}</span>
+            <span className="text-border">·</span>
+            <span className="tabular-nums">{getRelativeDate(card.created)}</span>
+            {card.linkedCards && card.linkedCards.length > 0 && (
+              <>
+                <span className="text-border">·</span>
+                <span className="flex items-center gap-0.5">
+                  <Link2 className="h-2.5 w-2.5" />{card.linkedCards.length}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showAIEdit && (
+        <AIEditDialog card={card} onCardUpdate={(c) => { onUpdate?.(c); setShowAIEdit(false); }} trigger={null} />
+      )}
+      <SimilarContentDialog
+        open={showSimilarDialog} onOpenChange={setShowSimilarDialog}
+        currentItem={{ id: card.id, title: card.title, content: card.content, created_at: card.created, type: 'zettel_card' }}
+        similarItems={similarItems} onMerge={handleMerge}
+      />
+    </>
   );
 }

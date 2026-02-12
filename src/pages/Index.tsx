@@ -1,5 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Navigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ import { FloatingChatBubble } from "@/components/FloatingChatBubble";
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 import { 
   Plus, 
   Download, 
@@ -67,8 +69,15 @@ import {
   Palette,
   StickyNote,
   Sparkles,
-  Filter
+  Filter,
+  Search,
+  LayoutGrid,
+  List,
+  ArrowUpDown,
+  MoreHorizontal,
+  Star
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import HabitTracker from "@/components/HabitTracker";
 
@@ -100,6 +109,10 @@ const Index = () => {
   } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [cardSearch, setCardSearch] = useState("");
+  const [cardSort, setCardSort] = useState<"recent" | "created" | "alpha" | "category">("recent");
+  const [cardView, setCardView] = useState<"grid" | "list">("grid");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>(() => {
@@ -122,10 +135,30 @@ const Index = () => {
     return hoursDiff <= 24;
   };
 
-  // Get displayed cards based on filter
-  const displayedCards = showNewCardsOnly 
-    ? filteredCards.filter(isNewCard) 
-    : filteredCards;
+  // Compute displayed cards with search, filter, and sort
+  const displayedCards = (() => {
+    let result = filteredCards;
+    if (showFavoritesOnly) result = result.filter(c => c.is_favorite);
+    if (showNewCardsOnly) result = result.filter(isNewCard);
+    if (cardSearch.trim()) {
+      const q = cardSearch.toLowerCase();
+      result = result.filter(c =>
+        c.title.toLowerCase().includes(q) ||
+        c.content.toLowerCase().includes(q) ||
+        c.tags?.some(t => t.toLowerCase().includes(q))
+      );
+    }
+    result = [...result].sort((a, b) => {
+      switch (cardSort) {
+        case "created": return new Date(b.created).getTime() - new Date(a.created).getTime();
+        case "alpha": return a.title.localeCompare(b.title);
+        case "category": return (a.category || "").localeCompare(b.category || "");
+        case "recent":
+        default: return new Date(b.modified || b.created).getTime() - new Date(a.modified || a.created).getTime();
+      }
+    });
+    return result;
+  })();
 
   const newCardsCount = filteredCards.filter(isNewCard).length;
 
@@ -396,83 +429,103 @@ const Index = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
-            <div className="sticky top-14 sm:top-20 z-30 bg-card border border-border rounded-lg px-2 py-1.5 sm:py-2 mb-2">
-              <div className="flex items-center justify-center max-w-7xl mx-auto gap-1 sm:gap-1.5 flex-wrap">
+            <div className="sticky top-14 sm:top-20 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
+              <div className="flex items-center gap-2 max-w-7xl mx-auto">
+                {/* Create button */}
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
-                <EnhancedImportDialog existingCards={cards} onImportCards={handleImportCards} />
-                <VaultImportDialog onImportCards={handleImportCards} />
+
+                {/* Inline search */}
+                <div className="flex-1 relative max-w-xs">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={cardSearch}
+                    onChange={(e) => setCardSearch(e.target.value)}
+                    placeholder="Search cards..."
+                    className="h-8 pl-7 text-xs bg-background/60"
+                  />
+                </div>
+
+                {/* Card count */}
+                <span className="text-xs text-muted-foreground hidden sm:inline tabular-nums">{displayedCards.length} cards</span>
+
+                {/* Favorites toggle */}
                 <Button
-                  variant="outline"
+                  variant={showFavoritesOnly ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => exportToPDF(filteredCards)}
-                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
-                  aria-label="Export to PDF"
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  className="h-8 w-8 p-0"
+                  aria-label="Show favorites only"
                 >
-                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">PDF</span>
+                  <Star className={cn("h-3.5 w-3.5", showFavoritesOnly && "fill-primary-foreground")} />
                 </Button>
+
+                {/* Sort dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Sort cards">
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => setCardSort("recent")} className={cardSort === "recent" ? "bg-accent" : ""}>Recently Modified</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCardSort("created")} className={cardSort === "created" ? "bg-accent" : ""}>Recently Created</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCardSort("alpha")} className={cardSort === "alpha" ? "bg-accent" : ""}>Alphabetical</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCardSort("category")} className={cardSort === "category" ? "bg-accent" : ""}>Category</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* View toggle */}
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => printCards(filteredCards)}
-                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
-                  aria-label="Print cards"
+                  onClick={() => setCardView(cardView === "grid" ? "list" : "grid")}
+                  className="h-8 w-8 p-0"
+                  aria-label="Toggle view"
                 >
-                  <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">Print</span>
+                  {cardView === "grid" ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
                 </Button>
-                <OrganizationMethodDialog
-                  currentMethod={organizationMethod}
-                  onMethodChange={setOrganizationMethod}
-                  onReorganizeCards={handleReorganizeCards}
-                  cardCount={cards.length}
-                />
-                <Button
-                  variant={showNewCardsOnly ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setShowNewCardsOnly(!showNewCardsOnly)}
-                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
-                  aria-label="Show new cards only"
-                >
-                  <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="text-xs sm:text-sm">New</span>
-                  {newCardsCount > 0 && (
-                    <span className="ml-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
-                      {newCardsCount}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowRecommendations(!showRecommendations)}
-                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
-                  aria-label="AI Recommendations"
-                >
-                  <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">AI</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (filteredCards.length > 0) {
-                      handleOpenSmartLinking(filteredCards[0].id);
-                    } else {
-                      toast.error("Create some cards first to use Smart Linking");
-                    }
-                  }}
-                  className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 touch-manipulation"
-                  aria-label="Smart Linking"
-                >
-                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="sr-only md:not-sr-only text-xs sm:text-sm">Links</span>
-                </Button>
-                <DeleteAllCardsDialog 
-                  onDeleteAll={deleteAllCards}
-                  isDeleting={isDeletingAll}
-                  cardCount={cards.length}
-                />
+
+                {/* More actions dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="More actions">
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setShowNewCardsOnly(!showNewCardsOnly)}>
+                      <Filter className="mr-2 h-3.5 w-3.5" />
+                      {showNewCardsOnly ? "Show All" : `New Cards${newCardsCount > 0 ? ` (${newCardsCount})` : ""}`}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}><EnhancedImportDialog existingCards={cards} onImportCards={handleImportCards} /></div></DropdownMenuItem>
+                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}><VaultImportDialog onImportCards={handleImportCards} /></div></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportToPDF(filteredCards)}>
+                      <Download className="mr-2 h-3.5 w-3.5" />Export PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => printCards(filteredCards)}>
+                      <Printer className="mr-2 h-3.5 w-3.5" />Print
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowRecommendations(!showRecommendations)}>
+                      <Lightbulb className="mr-2 h-3.5 w-3.5" />AI Recommendations
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      if (filteredCards.length > 0) handleOpenSmartLinking(filteredCards[0].id);
+                      else toast.error("Create some cards first");
+                    }}>
+                      <Sparkles className="mr-2 h-3.5 w-3.5" />Smart Linking
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
+                      <OrganizationMethodDialog currentMethod={organizationMethod} onMethodChange={setOrganizationMethod} onReorganizeCards={handleReorganizeCards} cardCount={cards.length} />
+                    </div></DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
+                      <DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} />
+                    </div></DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           )}
@@ -605,108 +658,61 @@ const Index = () => {
                     {isLoading ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                         {[...Array(8)].map((_, i) => (
-                          <div key={i} className="h-40 bg-muted/50 rounded-lg animate-pulse" />
+                          <div key={i} className="h-32 bg-muted/50 rounded-lg animate-pulse" />
                         ))}
                       </div>
                     ) : displayedCards.length === 0 ? (
-                      <div className="text-center py-8">
-                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-20 text-muted-foreground" />
+                      <div className="text-center py-12">
+                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-15 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground mb-3">
-                          {cards.length === 0 
+                          {cards.length === 0
                             ? "Start building your knowledge base by creating your first card"
+                            : cardSearch.trim()
+                            ? `No cards matching "${cardSearch}"`
+                            : showFavoritesOnly
+                            ? "No favorite cards yet"
                             : showNewCardsOnly
                             ? "No new cards in the last 24 hours"
-                            : "Try adjusting your search terms or filters"
+                            : "No cards found"
                           }
                         </p>
-                        {showNewCardsOnly ? (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setShowNewCardsOnly(false)}
-                          >
-                            Show All Cards
-                          </Button>
-                        ) : (
+                        {cards.length === 0 && (
                           <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
                         )}
                       </div>
+                    ) : cardView === "list" ? (
+                      <div className="space-y-1">
+                        {displayedCards.map((card) => (
+                          <ZettelCard
+                            key={card.id}
+                            card={card}
+                            variant="compact"
+                            onEdit={setViewingCard}
+                            onLink={(card) => {
+                              setEditingCard(card);
+                              toast.success("Link card feature - select cards to link");
+                            }}
+                            onDelete={handleDeleteCard}
+                            onUpdate={handleUpdateCard}
+                          />
+                        ))}
+                      </div>
                     ) : (
-                      <div>
-                        {/* New Cards Filter Active Banner */}
-                        {showNewCardsOnly && (
-                          <div className="mb-4 p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
-                              <span className="text-sm font-medium">Showing {displayedCards.length} new card{displayedCards.length !== 1 ? 's' : ''} from the last 24 hours</span>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => setShowNewCardsOnly(false)}
-                              className="text-xs"
-                            >
-                              Show All
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Favorites Section */}
-                        {displayedCards.some(card => card.is_favorite) && (
-                          <div className="mb-4">
-                            <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
-                              <span className="text-accent-foreground" aria-hidden="true">★</span>
-                              Favorites
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                              {displayedCards
-                                .filter(card => card.is_favorite)
-                                .map((card) => (
-                                  <ZettelCard
-                                    key={card.id}
-                                    card={card}
-                                    onEdit={setViewingCard}
-                                    onLink={(card) => {
-                                      setEditingCard(card);
-                                      toast.success("Link card feature - select cards to link");
-                                    }}
-                                    onDelete={handleDeleteCard}
-                                    onUpdate={handleUpdateCard}
-                                    onWordHover={handleWordHover}
-                                    className="h-fit"
-                                  />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* All Cards Section */}
-                        {displayedCards.some(card => !card.is_favorite) && (
-                          <div>
-                            {displayedCards.some(card => card.is_favorite) && (
-                              <h2 className="text-base font-semibold mb-2">All Cards</h2>
-                            )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                              {displayedCards
-                                .filter(card => !card.is_favorite)
-                                .map((card) => (
-                                  <ZettelCard
-                                    key={card.id}
-                                    card={card}
-                                    onEdit={setViewingCard}
-                                    onLink={(card) => {
-                                      setEditingCard(card);
-                                      toast.success("Link card feature - select cards to link");
-                                    }}
-                                    onDelete={handleDeleteCard}
-                                    onUpdate={handleUpdateCard}
-                                    onWordHover={handleWordHover}
-                                    className="h-fit"
-                                  />
-                                ))}
-                            </div>
-                          </div>
-                        )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+                        {displayedCards.map((card) => (
+                          <ZettelCard
+                            key={card.id}
+                            card={card}
+                            onEdit={setViewingCard}
+                            onLink={(card) => {
+                              setEditingCard(card);
+                              toast.success("Link card feature - select cards to link");
+                            }}
+                            onDelete={handleDeleteCard}
+                            onUpdate={handleUpdateCard}
+                            className="h-fit"
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
