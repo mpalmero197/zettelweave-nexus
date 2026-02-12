@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText, PencilBrush, Group, Shadow, Triangle, Polygon, FabricObject } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Textbox, PencilBrush, Group, Shadow, Triangle, Polygon, FabricObject } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { 
@@ -239,13 +239,13 @@ export function MobileWhiteboard() {
       const hex = new Polygon(pts, { left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
       canvas.add(hex); canvas.setActiveObject(hex); canvas.renderAll(); setActiveTool("pan");
     } else if (tool === "text") {
-      const text = new FabricText("Tap to edit", { left: cx - 80, top: cy, fill: penColor, fontSize: 22, fontFamily: 'Inter, Arial, sans-serif' });
+      const text = new Textbox("Tap to edit", { left: cx - 80, top: cy, fill: penColor, fontSize: 22, fontFamily: 'Inter, Arial, sans-serif', width: 180, editable: true });
       canvas.add(text); canvas.setActiveObject(text); canvas.renderAll(); setActiveTool("pan");
     } else if (tool === "sticky") {
       const color = stickyColors[Math.floor(Math.random() * stickyColors.length)];
       const rotation = (Math.random() - 0.5) * 6;
       const bg = new Rect({ left: 0, top: 0, fill: color, width: 180, height: 180, stroke: '#e0ddd5', strokeWidth: 1, shadow: new Shadow({ color: 'rgba(0,0,0,0.08)', blur: 10, offsetY: 4 }), rx: 6, ry: 6 });
-      const txt = new FabricText("Note...", { left: 12, top: 12, fill: "#444", fontSize: 14, fontFamily: 'Inter, Arial, sans-serif', width: 156 });
+      const txt = new Textbox("Note...", { left: 12, top: 12, fill: "#444", fontSize: 14, fontFamily: 'Inter, Arial, sans-serif', width: 156, editable: true });
       const group = new Group([bg, txt], { left: cx - 90, top: cy - 90, angle: rotation, subTargetCheck: true });
       canvas.add(group); canvas.setActiveObject(group); canvas.renderAll(); setActiveTool("pan");
     }
