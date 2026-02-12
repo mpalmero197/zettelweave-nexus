@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, FabricText, Line, PencilBrush, Shadow, Polygon, Triangle, Group, FabricObject, FabricImage } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Textbox, Line, PencilBrush, Shadow, Polygon, Triangle, Group, FabricObject, FabricImage } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -34,7 +34,6 @@ const penColors = [
 
 const stickyColors = ["#FFF4A3", "#FFE4A3", "#FFD4A3", "#C4E4FF", "#D4F4DD", "#FFE4F4"];
 
-const GRID_SPACING = 30;
 const HISTORY_LIMIT = 50;
 
 export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
@@ -47,8 +46,6 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(true);
   const [isReady, setIsReady] = useState(false);
-  const gridObjectsRef = useRef<FabricObject[]>([]);
-  
   // Undo/Redo
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
@@ -170,51 +167,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     });
   }, []);
 
-  // --- Dot grid ---
-  const renderGrid = useCallback((canvas: FabricCanvas) => {
-    // Remove old grid
-    gridObjectsRef.current.forEach(obj => canvas.remove(obj));
-    gridObjectsRef.current = [];
-
-    const w = canvas.width! / (canvas.getZoom() || 1);
-    const h = canvas.height! / (canvas.getZoom() || 1);
-    const vt = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
-    const offsetX = -vt[4] / (canvas.getZoom() || 1);
-    const offsetY = -vt[5] / (canvas.getZoom() || 1);
-    const startX = Math.floor(offsetX / GRID_SPACING) * GRID_SPACING;
-    const startY = Math.floor(offsetY / GRID_SPACING) * GRID_SPACING;
-
-    for (let x = startX; x < offsetX + w + GRID_SPACING; x += GRID_SPACING) {
-      for (let y = startY; y < offsetY + h + GRID_SPACING; y += GRID_SPACING) {
-        const dot = new Circle({
-          left: x - 1,
-          top: y - 1,
-          radius: 1,
-          fill: "#ccc",
-          selectable: false,
-          evented: false,
-          hasControls: false,
-          hasBorders: false,
-        });
-        canvas.add(dot);
-        canvas.sendObjectToBack(dot);
-        gridObjectsRef.current.push(dot);
-      }
-    }
-    canvas.renderAll();
-  }, []);
-
-  useEffect(() => {
-    const canvas = fabricRef.current;
-    if (!canvas || !isReady) return;
-    if (showGrid) {
-      renderGrid(canvas);
-    } else {
-      gridObjectsRef.current.forEach(obj => canvas.remove(obj));
-      gridObjectsRef.current = [];
-      canvas.renderAll();
-    }
-  }, [showGrid, isReady, renderGrid]);
+  // Grid is now CSS-based, no Fabric objects needed
 
   // --- Update brush when color/size changes (NOT recreating canvas) ---
   useEffect(() => {
@@ -288,7 +241,6 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
         isPanningRef.current = false;
         canvas.selection = true;
         lastPosRef.current = null;
-        if (showGrid) renderGrid(canvas);
       }
     };
 
@@ -301,7 +253,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
     };
-  }, [activeTool, isReady, showGrid, renderGrid]);
+  }, [activeTool, isReady]);
 
   // --- Mouse wheel zoom ---
   useEffect(() => {
@@ -319,21 +271,22 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       const point = canvas.getScenePoint(e);
       canvas.zoomToPoint(point, newZoom);
       setZoom(Math.round(newZoom * 100));
-      if (showGrid) renderGrid(canvas);
       canvas.renderAll();
     };
 
     canvas.on('mouse:wheel', handleWheel);
     return () => { canvas.off('mouse:wheel', handleWheel); };
-  }, [isReady, showGrid, renderGrid]);
+  }, [isReady]);
 
   // --- Keyboard shortcuts ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
-      // Don't capture when typing in inputs
+      // Don't capture when typing in inputs or editing text on canvas
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const activeObj = canvas.getActiveObject();
+      if (activeObj && (activeObj as any).isEditing) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) { e.preventDefault(); handleRedo(); return; }
@@ -402,13 +355,13 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       const arrow = new Group([arrowLine, arrowHead], { left: cx - 75, top: cy });
       canvas.add(arrow); canvas.setActiveObject(arrow); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "text") {
-      const text = new FabricText("Double-click to edit", { left: cx - 100, top: cy, fill: penColor, fontSize: 24, fontFamily: 'Inter, Arial, sans-serif' });
+      const text = new Textbox("Type here...", { left: cx - 100, top: cy, fill: penColor, fontSize: 24, fontFamily: 'Inter, Arial, sans-serif', width: 200, editable: true });
       canvas.add(text); canvas.setActiveObject(text); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "sticky") {
       const color = stickyColors[Math.floor(Math.random() * stickyColors.length)];
       const rotation = (Math.random() - 0.5) * 6; // -3 to 3 degrees
       const bg = new Rect({ left: 0, top: 0, fill: color, width: 200, height: 200, stroke: '#e0ddd5', strokeWidth: 1, shadow: new Shadow({ color: 'rgba(0,0,0,0.08)', blur: 12, offsetY: 4 }), rx: 6, ry: 6 });
-      const txt = new FabricText("Note...", { left: 14, top: 14, fill: "#444", fontSize: 15, fontFamily: 'Inter, Arial, sans-serif', width: 172 });
+      const txt = new Textbox("Note...", { left: 14, top: 14, fill: "#444", fontSize: 15, fontFamily: 'Inter, Arial, sans-serif', width: 172, editable: true });
       const group = new Group([bg, txt], { left: cx - 100, top: cy - 100, angle: rotation, subTargetCheck: true });
       canvas.add(group); canvas.setActiveObject(group); canvas.renderAll(); setActiveTool("select");
     } else if (tool === "image") {
@@ -439,7 +392,6 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     const nz = Math.min(zoom + 10, 400);
     setZoom(nz);
     canvas.setZoom(nz / 100);
-    if (showGrid) renderGrid(canvas);
     canvas.renderAll();
   };
 
@@ -449,7 +401,6 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     const nz = Math.max(zoom - 10, 25);
     setZoom(nz);
     canvas.setZoom(nz / 100);
-    if (showGrid) renderGrid(canvas);
     canvas.renderAll();
   };
 
@@ -459,7 +410,6 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     canvas.clear();
     canvas.backgroundColor = "#FAFAF8";
     canvas.renderAll();
-    if (showGrid) renderGrid(canvas);
     toast.success("Whiteboard cleared");
   };
 
@@ -505,7 +455,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div ref={containerRef} className="relative w-full h-full min-h-[600px] bg-[#FAFAF8] rounded-xl overflow-hidden">
+      <div ref={containerRef} className={cn("relative w-full h-full min-h-[600px] rounded-xl overflow-hidden", showGrid ? "whiteboard-dot-grid" : "bg-[#FAFAF8]")}>
         {/* Floating Toolbar */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 whiteboard-toolbar">
           {/* Selection */}

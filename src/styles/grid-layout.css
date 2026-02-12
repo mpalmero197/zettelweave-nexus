@@ -171,6 +171,12 @@
 }
 
 /* ===== Whiteboard Styles ===== */
+.whiteboard-dot-grid {
+  background-color: #FAFAF8;
+  background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
 .whiteboard-toolbar {
   display: flex;
   align-items: center;
