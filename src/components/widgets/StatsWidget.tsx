@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Brain, FileText, BookOpen, Calendar } from "lucide-react";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { useState, useEffect } from "react";
@@ -44,23 +43,19 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
   ];
 
   return (
-    <Card className="h-full">
-      <CardContent className="p-4 h-full">
-        <div className="grid grid-cols-2 gap-3 h-full">
-          {items.map((stat) => (
-            <button
-              key={stat.label}
-              onClick={() => onNavigate?.(stat.tab)}
-              className="text-left p-3 rounded-md border border-border hover:bg-accent/50 transition-colors"
-              aria-label={`${stat.label}: ${stat.value}`}
-            >
-              <stat.icon className="h-4 w-4 text-muted-foreground mb-2" aria-hidden="true" />
-              <p className="text-xl font-bold text-foreground tabular-nums">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <nav className="flex flex-wrap gap-2" aria-label="Quick stats">
+      {items.map((stat) => (
+        <button
+          key={stat.label}
+          onClick={() => onNavigate?.(stat.tab)}
+          className="stat-pill"
+          aria-label={`${stat.value} ${stat.label} — click to view`}
+        >
+          <stat.icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <span className="font-semibold text-foreground tabular-nums">{stat.value}</span>
+          <span className="text-muted-foreground">{stat.label}</span>
+        </button>
+      ))}
+    </nav>
   );
 }

@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Star, Brain, FileText, BookOpen, Heart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,75 +60,58 @@ export function FavoritesWidget() {
     }
   };
 
-  if (loading) {
-    return (
-      <Card className="h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            <Star className="h-3.5 w-3.5" aria-hidden="true" />
-            Favorites
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded-md animate-pulse" />)}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          <Star className="h-3.5 w-3.5" aria-hidden="true" />
-          Favorites
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-72">
-          <div className="space-y-1">
-            {favorites.length > 0 ? (
-              favorites.map((item) => {
-                const Icon = typeIcons[item.type];
-                return (
-                  <div key={`${item.type}-${item.id}`} className="flex items-center gap-2.5 p-2 rounded-md hover:bg-accent/50 transition-colors">
-                    {item.type === 'notebook' && item.color ? (
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                    ) : (
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{item.title}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Badge variant="outline" className="text-[10px]">{typeLabels[item.type]}</Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFavorite(item.id, item.type)}
-                        className="h-6 w-6 p-0"
-                        aria-label="Remove from favorites"
-                      >
-                        <Star className="h-2.5 w-2.5 text-foreground fill-foreground" />
-                      </Button>
-                    </div>
+    <div className="widget-card widget-accent-favorites p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Star className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <h3 className="text-sm font-medium text-foreground">Favorites</h3>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted/50 rounded-md animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="space-y-1 max-h-72 overflow-y-auto">
+          {favorites.length > 0 ? (
+            favorites.map((item) => {
+              const Icon = typeIcons[item.type];
+              return (
+                <div key={`${item.type}-${item.id}`} className="flex items-center gap-2.5 p-2 rounded-md hover:bg-accent/50 transition-colors">
+                  {item.type === 'notebook' && item.color ? (
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
+                  ) : (
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{item.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
+                    </p>
                   </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8">
-                <Heart className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
-                <p className="text-sm text-muted-foreground">No favorites yet</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant="outline" className="text-[10px]">{typeLabels[item.type]}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFavorite(item.id, item.type)}
+                      className="h-6 w-6 p-0"
+                      aria-label="Remove from favorites"
+                    >
+                      <Star className="h-2.5 w-2.5 text-foreground fill-foreground" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-8">
+              <Heart className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+              <p className="text-xs text-muted-foreground">Star cards, notes, or notebooks to see them here</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

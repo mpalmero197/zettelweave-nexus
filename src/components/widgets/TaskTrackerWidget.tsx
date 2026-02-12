@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckSquare, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -47,17 +44,18 @@ export function TaskTrackerWidget() {
   const completed = tasks.filter(t => t.completed);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          <div className="flex items-center gap-2">
-            <CheckSquare className="h-3.5 w-3.5" aria-hidden="true" />
-            Tasks
-          </div>
-          {pending.length > 0 && <Badge variant="outline" className="text-[10px]">{pending.length}</Badge>}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <div className="widget-card widget-accent-tasks p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <CheckSquare className="h-4 w-4 text-destructive/70" aria-hidden="true" />
+          <h3 className="text-sm font-medium text-foreground">Tasks</h3>
+        </div>
+        {pending.length > 0 && (
+          <span className="text-[10px] text-muted-foreground tabular-nums">{pending.length} pending</span>
+        )}
+      </div>
+
+      <div className="space-y-3">
         <div className="flex gap-2">
           <Input
             value={newTaskTitle}
@@ -86,43 +84,41 @@ export function TaskTrackerWidget() {
           ))}
         </div>
 
-        <ScrollArea className="max-h-60">
-          <div className="space-y-0.5">
-            {pending.map((task) => (
-              <div key={task.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors">
-                <Checkbox checked={false} onCheckedChange={() => toggleTask(task.id)} aria-label={`Complete: ${task.title}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs truncate">{task.title}</p>
-                  <span className="text-[10px] text-muted-foreground">{format(new Date(task.created_at), 'MMM d')}</span>
+        <div className="space-y-0.5 max-h-52 overflow-y-auto">
+          {pending.map((task) => (
+            <div key={task.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors">
+              <Checkbox checked={false} onCheckedChange={() => toggleTask(task.id)} aria-label={`Complete: ${task.title}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs truncate">{task.title}</p>
+                <span className="text-[10px] text-muted-foreground">{format(new Date(task.created_at), 'MMM d')}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-6 w-6 p-0 text-destructive" aria-label="Delete task">
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          {completed.length > 0 && (
+            <>
+              <p className="text-[10px] text-muted-foreground pt-2 px-1">Completed</p>
+              {completed.slice(0, 3).map((task) => (
+                <div key={task.id} className="flex items-center gap-2 p-2 rounded-md opacity-50">
+                  <Checkbox checked onCheckedChange={() => toggleTask(task.id)} aria-label={`Uncomplete: ${task.title}`} />
+                  <p className="text-xs truncate line-through flex-1">{task.title}</p>
+                  <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-6 w-6 p-0 text-destructive" aria-label="Delete task">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-6 w-6 p-0 text-destructive" aria-label="Delete task">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-            {completed.length > 0 && (
-              <>
-                <p className="text-[10px] text-muted-foreground pt-2 px-1">Completed</p>
-                {completed.slice(0, 3).map((task) => (
-                  <div key={task.id} className="flex items-center gap-2 p-2 rounded-md opacity-50">
-                    <Checkbox checked onCheckedChange={() => toggleTask(task.id)} aria-label={`Uncomplete: ${task.title}`} />
-                    <p className="text-xs truncate line-through flex-1">{task.title}</p>
-                    <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-6 w-6 p-0 text-destructive" aria-label="Delete task">
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </>
-            )}
-            {tasks.length === 0 && (
-              <div className="text-center py-6">
-                <CheckSquare className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
-                <p className="text-xs text-muted-foreground">No tasks yet</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+              ))}
+            </>
+          )}
+          {tasks.length === 0 && (
+            <div className="text-center py-6">
+              <CheckSquare className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
+              <p className="text-xs text-muted-foreground">No tasks yet</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
