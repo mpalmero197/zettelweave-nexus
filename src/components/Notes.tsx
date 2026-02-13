@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { format, formatDistanceToNowStrict } from 'date-fns';
-import { 
-  FileText, Plus, Star, Search, Edit, Trash2, BookOpen, MoreHorizontal,
-  LayoutGrid, List, ArrowUpDown, Copy, Expand, StarOff, Pencil
+import { formatDistanceToNowStrict } from 'date-fns';
+import {
+  FileText, Plus, Star, Search, Edit, Trash2, MoreHorizontal,
+  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
@@ -19,7 +20,6 @@ import { useSimilarContent } from '@/hooks/useSimilarContent';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EditNoteDialog } from './EditNoteDialog';
 import { HexColorPicker } from 'react-colorful';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Note {
   id: string;
@@ -71,7 +71,7 @@ export function Notes() {
   // Notebook management
   const [editingNotebook, setEditingNotebook] = useState<Notebook | null>(null);
   const [newNotebookName, setNewNotebookName] = useState('');
-  const [newNotebookColor, setNewNotebookColor] = useState('#3b82f6');
+  const [newNotebookColor, setNewNotebookColor] = useState('#6366f1');
   const [showNewNotebook, setShowNewNotebook] = useState(false);
 
   const [newNote, setNewNote] = useState({
@@ -122,7 +122,6 @@ export function Notes() {
     }
   };
 
-  // Compute note counts per notebook
   const notebookCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     let uncategorized = 0;
@@ -136,7 +135,6 @@ export function Notes() {
     return { counts, uncategorized };
   }, [notes]);
 
-  // Filter and sort notes
   const displayedNotes = useMemo(() => {
     let filtered = notes;
 
@@ -294,7 +292,7 @@ export function Notes() {
         .insert({ user_id: user.id, name: newNotebookName.trim(), color: newNotebookColor });
       if (error) throw error;
       setNewNotebookName('');
-      setNewNotebookColor('#3b82f6');
+      setNewNotebookColor('#6366f1');
       setShowNewNotebook(false);
       fetchNotebooks();
       toast.success('Notebook created');
@@ -322,7 +320,6 @@ export function Notes() {
   const deleteNotebook = async (nbId: string) => {
     if (!confirm('Delete this notebook? Notes inside will become uncategorized.')) return;
     try {
-      // Unassign notes first
       await supabase.from('notes').update({ notebook_id: null }).eq('notebook_id', nbId);
       const { error } = await supabase.from('notebooks').delete().eq('id', nbId);
       if (error) throw error;
@@ -335,200 +332,287 @@ export function Notes() {
     }
   };
 
-  const getNotebookColor = (notebookId?: string) => {
-    if (!notebookId) return 'hsl(var(--muted-foreground))';
+  const getNotebookColor = useCallback((notebookId?: string) => {
+    if (!notebookId) return 'hsl(var(--muted-foreground) / 0.3)';
     const notebook = notebooks.find(nb => nb.id === notebookId);
-    return notebook?.color || 'hsl(var(--muted-foreground))';
-  };
+    return notebook?.color || 'hsl(var(--muted-foreground) / 0.3)';
+  }, [notebooks]);
 
-  const getNotebookName = (notebookId?: string) => {
+  const getNotebookName = useCallback((notebookId?: string) => {
     if (!notebookId) return 'Uncategorized';
     const notebook = notebooks.find(nb => nb.id === notebookId);
     return notebook?.name || 'Unknown';
-  };
+  }, [notebooks]);
+
+  // Preset colors for quick selection
+  const presetColors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6b7280'];
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-4 space-y-4">
+      <div className="p-4 space-y-3">
+        <div className="h-10 bg-muted/30 rounded-lg animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-28 bg-muted/40 rounded-lg animate-pulse" />
+            <div key={i} className="h-32 bg-muted/20 rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
     );
   }
 
-  // Notebook sidebar item
-  const NotebookItem = ({ id, name, color, count, active }: { id: string; name: string; color?: string; count: number; active: boolean }) => (
+  // === NOTEBOOK SIDEBAR ITEM ===
+  const NotebookSidebarItem = ({ id, name, color, count, active }: {
+    id: string; name: string; color?: string; count: number; active: boolean;
+  }) => (
     <button
       onClick={() => setSelectedNotebook(id)}
-      className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
-        active ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+        active
+          ? 'bg-primary/10 text-primary font-medium shadow-sm'
+          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
       }`}
     >
-      {color && <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />}
-      {!color && <FileText className="h-3.5 w-3.5 flex-shrink-0" />}
+      {color ? (
+        <div
+          className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+          style={{ backgroundColor: color, boxShadow: active ? `0 0 8px ${color}40` : 'none' }}
+        />
+      ) : (
+        <FileText className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
+      )}
       <span className="truncate flex-1 text-left">{name}</span>
-      <span className="text-xs tabular-nums opacity-60">{count}</span>
+      <span className={`text-[11px] tabular-nums px-1.5 py-0.5 rounded-full ${
+        active ? 'bg-primary/15 text-primary' : 'bg-muted/60 text-muted-foreground/70'
+      }`}>
+        {count}
+      </span>
     </button>
   );
 
-  // Note card component
-  const NoteCard = ({ note }: { note: Note }) => {
+  // === NOTE CARD (GRID) ===
+  const NoteCardGrid = ({ note }: { note: Note }) => {
     const nbColor = getNotebookColor(note.notebook_id);
-    
-    if (viewMode === 'list') {
-      return (
-        <div className="widget-card flex items-center gap-3 px-3 py-2 group" style={{ borderLeft: `3px solid ${nbColor}` }}>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {note.is_favorite && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
-              <span className="text-sm font-medium truncate">{note.title}</span>
-              {note.tags?.slice(0, 2).map((tag, i) => (
-                <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0 h-4 hidden sm:inline-flex">{tag}</Badge>
-              ))}
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">{getRelativeDate(note.updated_at)}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className={`h-7 w-7 p-0 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
-              <DropdownMenuItem onClick={() => toggleFavorite(note)}>
-                <Star className="mr-2 h-3.5 w-3.5" />{note.is_favorite ? 'Unfavorite' : 'Favorite'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditingNote(note)}>
-                <Edit className="mr-2 h-3.5 w-3.5" />Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleFindSimilarNote(note)} disabled={similarLoading}>
-                <Copy className="mr-2 h-3.5 w-3.5" />Find Similar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => deleteNote(note.id)} className="text-destructive">
-                <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    }
+    const nbName = getNotebookName(note.notebook_id);
 
     return (
-      <div className="widget-card p-3 group animate-fade-in" style={{ borderLeft: `3px solid ${nbColor}` }}>
-        {/* Title row */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            {note.is_favorite && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
-            <h3 className="text-sm font-medium truncate">{note.title}</h3>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 flex-shrink-0 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
-              <DropdownMenuItem onClick={() => toggleFavorite(note)}>
-                <Star className="mr-2 h-3.5 w-3.5" />{note.is_favorite ? 'Unfavorite' : 'Favorite'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditingNote(note)}>
-                <Edit className="mr-2 h-3.5 w-3.5" />Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleFindSimilarNote(note)} disabled={similarLoading}>
-                <Copy className="mr-2 h-3.5 w-3.5" />Find Similar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => deleteNote(note.id)} className="text-destructive">
-                <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      <div
+        className="group relative rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:border-border cursor-pointer"
+        style={{ borderTopWidth: '3px', borderTopColor: nbColor }}
+        onClick={() => setEditingNote(note)}
+      >
+        {/* Favorite indicator */}
+        {note.is_favorite && (
+          <Star className="absolute top-3 right-3 h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+        )}
+
+        {/* Title */}
+        <h3 className="text-sm font-semibold text-foreground pr-8 mb-1.5 line-clamp-1">
+          {note.title}
+        </h3>
+
+        {/* Notebook label */}
+        {note.notebook_id && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 mb-2">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nbColor }} />
+            {nbName}
+          </span>
+        )}
 
         {/* Content preview */}
-        <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
-          {note.content || 'No content...'}
+        <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3">
+          {note.content || 'Empty note...'}
         </p>
 
         {/* Tags */}
         {note.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {note.tags.slice(0, 2).map((tag, i) => (
-              <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{tag}</Badge>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {note.tags.slice(0, 3).map((tag, i) => (
+              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">
+                {tag}
+              </span>
             ))}
-            {note.tags.length > 2 && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">+{note.tags.length - 2}</Badge>
+            {note.tags.length > 3 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/40 text-muted-foreground/60">
+                +{note.tags.length - 3}
+              </span>
             )}
           </div>
         )}
 
         {/* Footer */}
-        <div className="text-[11px] text-muted-foreground tabular-nums">
-          {getRelativeDate(note.updated_at)} ago
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+            {getRelativeDate(note.updated_at)} ago
+          </span>
+
+          {/* Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-6 w-6 p-0 ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-70'} hover:opacity-100 transition-opacity`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note); }}>
+                <Star className="mr-2 h-3.5 w-3.5" />
+                {note.is_favorite ? 'Unfavorite' : 'Favorite'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingNote(note); }}>
+                <Edit className="mr-2 h-3.5 w-3.5" />Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFindSimilarNote(note); }} disabled={similarLoading}>
+                <Copy className="mr-2 h-3.5 w-3.5" />Find Similar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }} className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+      </div>
+    );
+  };
+
+  // === NOTE CARD (LIST) ===
+  const NoteCardList = ({ note }: { note: Note }) => {
+    const nbColor = getNotebookColor(note.notebook_id);
+
+    return (
+      <div
+        className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/40 bg-card/60 hover:bg-card/90 hover:border-border/70 transition-all duration-150 cursor-pointer"
+        style={{ borderLeftWidth: '3px', borderLeftColor: nbColor }}
+        onClick={() => setEditingNote(note)}
+      >
+        <div className="flex-1 min-w-0 flex items-center gap-2.5">
+          {note.is_favorite && <Star className="h-3 w-3 text-amber-400 fill-amber-400 flex-shrink-0" />}
+          <span className="text-sm font-medium truncate">{note.title}</span>
+          {note.tags?.slice(0, 2).map((tag, i) => (
+            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/50 text-muted-foreground hidden sm:inline">{tag}</span>
+          ))}
+        </div>
+        <span className="text-[11px] text-muted-foreground/50 tabular-nums flex-shrink-0">{getRelativeDate(note.updated_at)}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost" size="sm"
+              className={`h-6 w-6 p-0 flex-shrink-0 ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-70'} hover:opacity-100 transition-opacity`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note); }}>
+              <Star className="mr-2 h-3.5 w-3.5" />{note.is_favorite ? 'Unfavorite' : 'Favorite'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingNote(note); }}>
+              <Edit className="mr-2 h-3.5 w-3.5" />Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFindSimilarNote(note); }} disabled={similarLoading}>
+              <Copy className="mr-2 h-3.5 w-3.5" />Find Similar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }} className="text-destructive focus:text-destructive">
+              <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   };
 
   return (
     <div className="flex gap-0 animate-fade-in min-h-[calc(100vh-8rem)]">
-      {/* Notebook Sidebar - Desktop */}
+      {/* ============ NOTEBOOK SIDEBAR (Desktop) ============ */}
       {!isMobile && (
-        <div className="w-48 flex-shrink-0 border-r border-border/50 pr-2 mr-2 py-3 space-y-1">
-          <div className="flex items-center justify-between px-2 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notebooks</span>
-            <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setShowNewNotebook(!showNewNotebook)}>
+        <aside className="w-52 flex-shrink-0 border-r border-border/40 py-4 pr-3 mr-1 space-y-1 overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 mb-3">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary/70" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Notebooks</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 rounded-md hover:bg-primary/10 hover:text-primary"
+              onClick={() => setShowNewNotebook(!showNewNotebook)}
+            >
               <Plus className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          {/* Inline new notebook */}
+          {/* New notebook inline form */}
           {showNewNotebook && (
-            <div className="px-2 py-1.5 space-y-1.5 border border-border/50 rounded-md bg-card/50 mb-1">
+            <div className="mx-2 p-3 space-y-2.5 rounded-lg border border-primary/20 bg-primary/[0.03]">
               <Input
                 value={newNotebookName}
                 onChange={(e) => setNewNotebookName(e.target.value)}
-                placeholder="Name..."
-                className="h-7 text-xs"
+                placeholder="Notebook name..."
+                className="h-8 text-xs bg-background/80 border-border/50"
                 onKeyDown={(e) => e.key === 'Enter' && createNotebook()}
+                autoFocus
               />
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="w-5 h-5 rounded-full border border-border" style={{ backgroundColor: newNotebookColor }} />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-2" align="start">
-                    <HexColorPicker color={newNotebookColor} onChange={setNewNotebookColor} style={{ width: '160px', height: '120px' }} />
-                  </PopoverContent>
-                </Popover>
-                <Button size="sm" className="h-6 text-xs px-2 flex-1" onClick={createNotebook} disabled={!newNotebookName.trim()}>
-                  Add
+              {/* Color presets */}
+              <div className="flex items-center gap-1 flex-wrap">
+                {presetColors.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setNewNotebookColor(c)}
+                    className={`w-5 h-5 rounded-full transition-transform ${newNotebookColor === c ? 'scale-125 ring-2 ring-offset-1 ring-offset-background ring-primary/50' : 'hover:scale-110'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-1.5">
+                <Button size="sm" className="h-7 text-xs px-3 flex-1" onClick={createNotebook} disabled={!newNotebookName.trim()}>
+                  Create
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => setShowNewNotebook(false)}>
+                  <X className="h-3 w-3" />
                 </Button>
               </div>
             </div>
           )}
 
-          <NotebookItem id="all" name="All Notes" count={notes.length} active={selectedNotebook === 'all'} />
-          
+          {/* All Notes */}
+          <NotebookSidebarItem id="all" name="All Notes" count={notes.length} active={selectedNotebook === 'all'} />
+
+          {/* Separator */}
+          {notebooks.length > 0 && <div className="h-px bg-border/30 mx-3 my-2" />}
+
+          {/* Notebook list */}
           {notebooks.map(nb => (
             <div key={nb.id} className="group/nb relative">
-              <NotebookItem id={nb.id} name={nb.name} color={nb.color || '#6b7280'} count={notebookCounts.counts[nb.id] || 0} active={selectedNotebook === nb.id} />
+              <NotebookSidebarItem
+                id={nb.id}
+                name={nb.name}
+                color={nb.color || '#6b7280'}
+                count={notebookCounts.counts[nb.id] || 0}
+                active={selectedNotebook === nb.id}
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="absolute right-0 top-0.5 h-6 w-6 p-0 opacity-0 group-hover/nb:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-5 w-5 p-0 rounded opacity-0 group-hover/nb:opacity-60 hover:!opacity-100 transition-opacity"
+                  >
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuContent align="end" className="w-36">
                   <DropdownMenuItem onClick={() => setEditingNotebook(nb)}>
                     <Pencil className="mr-2 h-3.5 w-3.5" />Edit
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => deleteNotebook(nb.id)} className="text-destructive">
+                  <DropdownMenuItem onClick={() => deleteNotebook(nb.id)} className="text-destructive focus:text-destructive">
                     <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -536,19 +620,27 @@ export function Notes() {
             </div>
           ))}
 
-          <NotebookItem id="none" name="Uncategorized" count={notebookCounts.uncategorized} active={selectedNotebook === 'none'} />
-        </div>
+          {/* Uncategorized */}
+          {notebookCounts.uncategorized > 0 && (
+            <>
+              <div className="h-px bg-border/30 mx-3 my-2" />
+              <NotebookSidebarItem id="none" name="Uncategorized" count={notebookCounts.uncategorized} active={selectedNotebook === 'none'} />
+            </>
+          )}
+        </aside>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 p-3 space-y-2">
+      {/* ============ MAIN CONTENT ============ */}
+      <div className="flex-1 py-3 px-2 sm:px-3 space-y-3 overflow-y-auto">
         {/* Mobile notebook chips */}
         {isMobile && (
           <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
             <button
               onClick={() => setSelectedNotebook('all')}
-              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                selectedNotebook === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                selectedNotebook === 'all'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-card border border-border/60 text-muted-foreground'
               }`}
             >
               All ({notes.length})
@@ -557,163 +649,243 @@ export function Notes() {
               <button
                 key={nb.id}
                 onClick={() => setSelectedNotebook(nb.id)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  selectedNotebook === nb.id ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                  selectedNotebook === nb.id
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-card border border-border/60 text-muted-foreground'
                 }`}
               >
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: nb.color || '#6b7280' }} />
                 {nb.name} ({notebookCounts.counts[nb.id] || 0})
               </button>
             ))}
+            {notebookCounts.uncategorized > 0 && (
+              <button
+                onClick={() => setSelectedNotebook('none')}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                  selectedNotebook === 'none'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-card border border-border/60 text-muted-foreground'
+                }`}
+              >
+                Loose ({notebookCounts.uncategorized})
+              </button>
+            )}
             <button
-              onClick={() => setSelectedNotebook('none')}
-              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                selectedNotebook === 'none' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'
-              }`}
+              onClick={() => setShowNewNotebook(true)}
+              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs border border-dashed border-border/60 text-muted-foreground/60 hover:text-muted-foreground hover:border-border transition-colors"
             >
-              Uncategorized ({notebookCounts.uncategorized})
+              <Plus className="h-3 w-3" />
             </button>
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="sticky top-14 sm:top-20 z-20 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2">
-          <div className="flex items-center gap-2">
-            {/* Quick add */}
-            <div className="flex-1 relative max-w-sm">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search notes..."
-                className="h-8 pl-7 text-xs bg-background/60"
-              />
+        {/* Mobile new notebook dialog */}
+        {isMobile && showNewNotebook && (
+          <div className="p-3 rounded-xl border border-primary/20 bg-primary/[0.03] space-y-2.5">
+            <Input
+              value={newNotebookName}
+              onChange={(e) => setNewNotebookName(e.target.value)}
+              placeholder="Notebook name..."
+              className="h-8 text-xs"
+              onKeyDown={(e) => e.key === 'Enter' && createNotebook()}
+              autoFocus
+            />
+            <div className="flex items-center gap-1 flex-wrap">
+              {presetColors.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setNewNotebookColor(c)}
+                  className={`w-6 h-6 rounded-full ${newNotebookColor === c ? 'ring-2 ring-offset-1 ring-offset-background ring-primary/50 scale-110' : ''}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
             </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="h-8 text-xs flex-1" onClick={createNotebook} disabled={!newNotebookName.trim()}>Create</Button>
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowNewNotebook(false)}>Cancel</Button>
+            </div>
+          </div>
+        )}
 
-            {/* Note count */}
-            <span className="text-xs text-muted-foreground hidden sm:inline tabular-nums">{displayedNotes.length} notes</span>
+        {/* ===== TOOLBAR ===== */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search */}
+          <div className="flex-1 relative min-w-[140px] max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search notes..."
+              className="h-9 pl-8 text-xs bg-card/60 border-border/50 rounded-lg"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
 
-            {/* Sort */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={() => setSortBy('recent')} className={sortBy === 'recent' ? 'bg-accent' : ''}>Recently Modified</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('created')} className={sortBy === 'created' ? 'bg-accent' : ''}>Recently Created</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('alpha')} className={sortBy === 'alpha' ? 'bg-accent' : ''}>Alphabetical</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('favorites')} className={sortBy === 'favorites' ? 'bg-accent' : ''}>Favorites First</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {/* Note count */}
+          <span className="text-[11px] text-muted-foreground/60 tabular-nums hidden sm:inline">
+            {displayedNotes.length} note{displayedNotes.length !== 1 ? 's' : ''}
+          </span>
 
-            {/* View toggle */}
-            <Button variant="ghost" size="sm" onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')} className="h-8 w-8 p-0">
-              {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
-            </Button>
+          {/* Sort */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-xs text-muted-foreground">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {sortBy === 'recent' ? 'Recent' : sortBy === 'created' ? 'Created' : sortBy === 'alpha' ? 'A–Z' : 'Favorites'}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {[
+                { key: 'recent' as const, label: 'Recently Modified' },
+                { key: 'created' as const, label: 'Recently Created' },
+                { key: 'alpha' as const, label: 'Alphabetical' },
+                { key: 'favorites' as const, label: 'Favorites First' },
+              ].map(opt => (
+                <DropdownMenuItem key={opt.key} onClick={() => setSortBy(opt.key)} className={sortBy === opt.key ? 'bg-accent font-medium' : ''}>
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Create button */}
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="h-8 gap-1.5 text-xs">
-                  <Plus className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">New Note</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Create New Note</DialogTitle>
-                  <DialogDescription>Create a new note with optional notebook and tags</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Note title"
-                    value={newNote.title}
-                    onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
-                  />
-                  <Textarea
-                    placeholder="Write your note content here..."
-                    value={newNote.content}
-                    onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-                    rows={8}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Notebook</label>
-                      <Select 
-                        value={newNote.notebook_id || 'no-notebook'} 
-                        onValueChange={(value) => setNewNote(prev => ({ ...prev, notebook_id: value === 'no-notebook' ? '' : value }))}
-                      >
-                        <SelectTrigger><SelectValue placeholder="Select notebook" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="no-notebook">No Notebook</SelectItem>
-                          {notebooks.map(notebook => (
-                            <SelectItem key={notebook.id} value={notebook.id}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: notebook.color }} />
-                                {notebook.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Tags (comma separated)</label>
-                      <Input
-                        placeholder="tag1, tag2, tag3"
-                        onChange={(e) => {
-                          const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
-                          setNewNote(prev => ({ ...prev, tags }));
-                        }}
-                      />
-                    </div>
+          {/* View toggle */}
+          <Button
+            variant="ghost" size="sm"
+            onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
+            className="h-8 w-8 p-0 text-muted-foreground"
+          >
+            {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+          </Button>
+
+          {/* Create note */}
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="h-8 gap-1.5 text-xs rounded-lg">
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">New Note</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Note</DialogTitle>
+                <DialogDescription>Create a new note with optional notebook and tags</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Note title"
+                  value={newNote.title}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
+                />
+                <Textarea
+                  placeholder="Write your note content here..."
+                  value={newNote.content}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                  rows={8}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Notebook</label>
+                    <Select
+                      value={newNote.notebook_id || 'no-notebook'}
+                      onValueChange={(value) => setNewNote(prev => ({ ...prev, notebook_id: value === 'no-notebook' ? '' : value }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select notebook" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no-notebook">No Notebook</SelectItem>
+                        {notebooks.map(notebook => (
+                          <SelectItem key={notebook.id} value={notebook.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: notebook.color }} />
+                              {notebook.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-                    <Button onClick={createNote} disabled={!newNote.title.trim()}>Create Note</Button>
+                  <div>
+                    <label className="text-sm font-medium">Tags (comma separated)</label>
+                    <Input
+                      placeholder="tag1, tag2, tag3"
+                      onChange={(e) => {
+                        const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
+                        setNewNote(prev => ({ ...prev, tags }));
+                      }}
+                    />
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+                  <Button onClick={createNote} disabled={!newNote.title.trim()}>Create Note</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {/* Quick Add Bar */}
+        {/* ===== QUICK ADD BAR ===== */}
         <div className="flex gap-2">
-          <Input
-            value={quickTitle}
-            onChange={(e) => setQuickTitle(e.target.value)}
-            placeholder="Quick note... press Enter"
-            className="h-8 text-xs flex-1 bg-card/60 border-border/50"
-            onKeyDown={(e) => e.key === 'Enter' && quickCreateNote()}
-          />
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowCreateDialog(true)}>
+          <div className="flex-1 relative">
+            <Plus className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
+            <Input
+              value={quickTitle}
+              onChange={(e) => setQuickTitle(e.target.value)}
+              placeholder={selectedNotebook !== 'all' && selectedNotebook !== 'none'
+                ? `Quick note in ${getNotebookName(selectedNotebook)}...`
+                : 'Quick note... press Enter'
+              }
+              className="h-9 pl-8 text-xs bg-card/40 border-border/40 border-dashed rounded-lg placeholder:text-muted-foreground/40"
+              onKeyDown={(e) => e.key === 'Enter' && quickCreateNote()}
+            />
+          </div>
+          <Button
+            variant="ghost" size="sm"
+            className="h-9 w-9 p-0 text-muted-foreground/50 hover:text-muted-foreground"
+            onClick={() => setShowCreateDialog(true)}
+            title="Full editor"
+          >
             <Expand className="h-3.5 w-3.5" />
           </Button>
         </div>
 
-        {/* Notes Grid/List */}
+        {/* ===== NOTES GRID / LIST ===== */}
         {displayedNotes.length > 0 ? (
           viewMode === 'list' ? (
-            <div className="space-y-1">
-              {displayedNotes.map(note => <NoteCard key={note.id} note={note} />)}
+            <div className="space-y-1.5">
+              {displayedNotes.map(note => <NoteCardList key={note.id} note={note} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-              {displayedNotes.map(note => <NoteCard key={note.id} note={note} />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {displayedNotes.map(note => <NoteCardGrid key={note.id} note={note} />)}
             </div>
           )
         ) : (
-          <div className="text-center py-12">
-            <FileText className="h-10 w-10 mx-auto mb-3 opacity-15 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mb-1">
-              {searchTerm ? `No notes matching "${searchTerm}"` : notes.length === 0 ? 'Create your first note to get started' : 'No notes in this notebook'}
-            </p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
+              <FileText className="h-7 w-7 text-muted-foreground/20" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm text-muted-foreground/70">
+                {searchTerm ? `No notes matching "${searchTerm}"` : notes.length === 0 ? 'No notes yet' : 'No notes in this notebook'}
+              </p>
+              {notes.length === 0 && (
+                <p className="text-xs text-muted-foreground/40">
+                  Type in the quick-add bar above or click New Note to get started
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      {/* ============ DIALOGS ============ */}
 
       {/* Edit Note Dialog */}
       {editingNote && (
@@ -734,24 +906,37 @@ export function Notes() {
               <DialogTitle>Edit Notebook</DialogTitle>
               <DialogDescription>Update notebook name and color</DialogDescription>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Input
                 value={editingNotebook.name}
                 onChange={(e) => setEditingNotebook({ ...editingNotebook, name: e.target.value })}
                 placeholder="Notebook name"
               />
-              <div className="flex items-center gap-2">
-                <span className="text-sm">Color:</span>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Color</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {presetColors.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setEditingNotebook({ ...editingNotebook, color: c })}
+                      className={`w-6 h-6 rounded-full transition-transform ${editingNotebook.color === c ? 'scale-125 ring-2 ring-offset-1 ring-offset-background ring-primary/50' : 'hover:scale-110'}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="w-6 h-6 rounded-full border border-border" style={{ backgroundColor: editingNotebook.color }} />
+                    <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                      <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: editingNotebook.color }} />
+                      Custom color...
+                    </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-2">
-                    <HexColorPicker color={editingNotebook.color} onChange={(c) => setEditingNotebook({ ...editingNotebook, color: c })} style={{ width: '160px', height: '120px' }} />
+                  <PopoverContent className="w-auto p-3">
+                    <HexColorPicker color={editingNotebook.color} onChange={(c) => setEditingNotebook({ ...editingNotebook, color: c })} style={{ width: '180px', height: '140px' }} />
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-1">
                 <Button variant="outline" onClick={() => setEditingNotebook(null)}>Cancel</Button>
                 <Button onClick={() => updateNotebook(editingNotebook)}>Save</Button>
               </div>
