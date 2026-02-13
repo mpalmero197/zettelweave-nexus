@@ -67,8 +67,7 @@ export function MinimalSidebar({
           </div>
           <NavButton tab="cards" icon={FileText} label="Cards" />
           <NavButton tab="graph" icon={BarChart3} label="Graph" />
-          <NavButton tab="notes" icon={BookOpen} label="Notes" />
-          <NavButton tab="notebooks" icon={FolderOpen} label="Notebooks" />
+          <NavButton tab="notes" icon={BookOpen} label="Notes & Notebooks" />
           <NavButton tab="files" icon={FolderOpen} label="Files" />
           
           <Separator className="my-2" />
