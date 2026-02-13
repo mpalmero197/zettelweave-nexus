@@ -139,15 +139,15 @@ function updateAuthUI() {
   const syncStatus = document.getElementById('sync-status');
 
   if (authToken && userEmail) {
-    loginScreen.style.display = 'none';
-    userBar.style.display = 'flex';
-    appContent.style.display = 'block';
-    userEmailEl.textContent = userEmail;
-    syncStatus.textContent = '';
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (userBar) userBar.style.display = 'flex';
+    if (appContent) appContent.style.display = 'block';
+    if (userEmailEl) userEmailEl.textContent = userEmail;
+    if (syncStatus) syncStatus.textContent = '';
   } else {
-    loginScreen.style.display = 'flex';
-    userBar.style.display = 'none';
-    appContent.style.display = 'none';
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (userBar) userBar.style.display = 'none';
+    if (appContent) appContent.style.display = 'none';
   }
 }
 
