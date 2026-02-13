@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatPopup } from '@/components/friends/ChatPopup';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime } from '@/utils/chatUtils';
 
 interface Friend {
   id: string;
@@ -104,9 +105,14 @@ export function FloatingChatBubble() {
 
       if (!friendships) return;
 
-      const friendIds = friendships.map(f => 
+      const friendIds = friendships.map(f =>
         f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1
       );
+
+      if (friendIds.length === 0) {
+        setFriends([]);
+        return;
+      }
 
       const { data: profiles } = await supabase
         .from('profiles')
@@ -130,44 +136,74 @@ export function FloatingChatBubble() {
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
-      if (!messages) return;
+      if (!messages || messages.length === 0) {
+        setMessageThreads([]);
+        setTotalUnread(0);
+        return;
+      }
 
-      const threadMap = new Map<string, MessagePreview>();
-      let unreadCount = 0;
+      // Collect unique other-user IDs and latest message per thread
+      const threadMap = new Map<string, { message: string; created_at: string }>();
+      const otherUserIds: string[] = [];
 
       for (const msg of messages) {
         const otherUserId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-        
         if (!threadMap.has(otherUserId)) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, avatar_url')
-            .eq('user_id', otherUserId)
-            .single();
-
-          const { count } = await supabase
-            .from('chat_messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('sender_id', otherUserId)
-            .eq('receiver_id', user.id)
-            .is('read_at', null);
-
-          threadMap.set(otherUserId, {
-            id: otherUserId,
-            sender_id: otherUserId,
-            sender_name: profile?.display_name || 'Unknown User',
-            sender_avatar: profile?.avatar_url,
-            message: msg.message,
-            created_at: msg.created_at,
-            unread_count: count || 0
-          });
-
-          unreadCount += count || 0;
+          threadMap.set(otherUserId, { message: msg.message, created_at: msg.created_at });
+          otherUserIds.push(otherUserId);
         }
       }
 
-      setMessageThreads(Array.from(threadMap.values()));
-      setTotalUnread(unreadCount);
+      if (otherUserIds.length === 0) {
+        setMessageThreads([]);
+        setTotalUnread(0);
+        return;
+      }
+
+      // Batch profile lookup — fixes N+1
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', otherUserIds);
+
+      const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
+      for (const p of (profiles || [])) {
+        profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
+      }
+
+      // Count unread per thread in one query
+      const { data: unreadMessages } = await supabase
+        .from('chat_messages')
+        .select('sender_id')
+        .eq('receiver_id', user.id)
+        .is('read_at', null)
+        .in('sender_id', otherUserIds);
+
+      const unreadMap = new Map<string, number>();
+      let totalUnreadCount = 0;
+      for (const um of (unreadMessages || [])) {
+        const c = (unreadMap.get(um.sender_id) || 0) + 1;
+        unreadMap.set(um.sender_id, c);
+        totalUnreadCount++;
+      }
+
+      // Build threads
+      const threads: MessagePreview[] = otherUserIds.map(uid => {
+        const thread = threadMap.get(uid)!;
+        const profile = profileMap.get(uid);
+        return {
+          id: uid,
+          sender_id: uid,
+          sender_name: profile?.display_name || 'Unknown User',
+          sender_avatar: profile?.avatar_url ?? undefined,
+          message: thread.message,
+          created_at: thread.created_at,
+          unread_count: unreadMap.get(uid) || 0,
+        };
+      });
+
+      setMessageThreads(threads);
+      setTotalUnread(totalUnreadCount);
     } catch (error) {
       console.error('Error loading message threads:', error);
     }
@@ -184,25 +220,33 @@ export function FloatingChatBubble() {
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
 
-      if (!requests) return;
+      if (!requests || requests.length === 0) {
+        setFriendRequests([]);
+        return;
+      }
 
-      const requestsWithProfiles = await Promise.all(
-        requests.map(async (req) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, avatar_url')
-            .eq('user_id', req.sender_id)
-            .single();
+      // Batch profile lookup
+      const senderIds = requests.map(r => r.sender_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', senderIds);
 
-          return {
-            id: req.id,
-            sender_id: req.sender_id,
-            sender_name: profile?.display_name || 'Unknown User',
-            sender_avatar: profile?.avatar_url,
-            created_at: req.created_at
-          };
-        })
-      );
+      const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
+      for (const p of (profiles || [])) {
+        profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
+      }
+
+      const requestsWithProfiles = requests.map(req => {
+        const profile = profileMap.get(req.sender_id);
+        return {
+          id: req.id,
+          sender_id: req.sender_id,
+          sender_name: profile?.display_name || 'Unknown User',
+          sender_avatar: profile?.avatar_url ?? undefined,
+          created_at: req.created_at,
+        };
+      });
 
       setFriendRequests(requestsWithProfiles);
     } catch (error) {
@@ -210,39 +254,30 @@ export function FloatingChatBubble() {
     }
   };
 
-  // Calculate panel position based on bubble location
   const getPanelPosition = () => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const panelWidth = 384; // w-96 = 24rem = 384px
-    const panelHeight = 500; // approximate height
-    
-    // Determine if bubble is in right half or left half
+
     const isRight = position.x > viewportWidth / 2;
     const isBottom = position.y > viewportHeight / 2;
-    
-    // Position panel opposite to bubble position
-    let left = 'auto';
-    let right = 'auto';
-    let top = 'auto';
-    let bottom = 'auto';
-    
+
+    let left: string | undefined;
+    let right: string | undefined;
+    let top: string | undefined;
+    let bottom: string | undefined;
+
     if (isRight) {
-      // Bubble on right, panel on left
       right = `${viewportWidth - position.x}px`;
     } else {
-      // Bubble on left, panel on right
-      left = `${position.x + 60}px`; // 60px = bubble width
+      left = `${position.x + 60}px`;
     }
-    
+
     if (isBottom) {
-      // Bubble on bottom, panel above
       bottom = `${viewportHeight - position.y}px`;
     } else {
-      // Bubble on top, panel below
-      top = `${position.y + 60}px`; // 60px = bubble height
+      top = `${position.y + 60}px`;
     }
-    
+
     return { left, right, top, bottom };
   };
 
@@ -250,11 +285,10 @@ export function FloatingChatBubble() {
 
   return (
     <>
-      {/* Floating Chat Bubble - Draggable */}
-      <div 
-        className="flex flex-col items-end gap-3" 
-        style={{ 
-          position: 'fixed', 
+      <div
+        className="flex flex-col items-end gap-3"
+        style={{
+          position: 'fixed',
           left: `${position.x}px`,
           top: `${position.y}px`,
           zIndex: 9999,
@@ -263,20 +297,24 @@ export function FloatingChatBubble() {
         onMouseDown={handleMouseDown}
       >
         {isOpen && (
-          <Card 
-            className="w-96 shadow-2xl border-2 glass-card animate-fade-in-up"
+          <Card
+            className={cn(
+              'w-96 border border-border bg-card shadow-[var(--shadow-material-5)]',
+              'rounded-2xl overflow-hidden',
+              'animate-scale-in origin-bottom-left'
+            )}
             style={{
               position: 'fixed',
               ...getPanelPosition(),
               zIndex: 9998,
             }}
           >
-            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg font-semibold">Messages & Friends</CardTitle>
+            <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base font-semibold">Messages</CardTitle>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7 rounded-full"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close messages panel"
               >
@@ -285,85 +323,100 @@ export function FloatingChatBubble() {
             </CardHeader>
             <CardContent className="p-0">
               <Tabs defaultValue="messages" className="w-full">
-                <TabsList className="w-full grid grid-cols-3 rounded-none border-b">
-                  <TabsTrigger value="messages" className="relative">
+                <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-transparent h-10">
+                  <TabsTrigger value="messages" className="relative text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
                     Messages
                     {totalUnread > 0 && (
-                      <Badge variant="destructive" className="ml-2 h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                      <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] animate-chat-badge-pulse">
                         {totalUnread}
                       </Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="friends">
-                    <Users className="h-4 w-4 mr-1" />
+                  <TabsTrigger value="friends" className="text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                    <Users className="h-3.5 w-3.5 mr-1" />
                     Friends
                   </TabsTrigger>
-                  <TabsTrigger value="requests" className="relative">
+                  <TabsTrigger value="requests" className="relative text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
                     Requests
                     {friendRequests.length > 0 && (
-                      <Badge variant="destructive" className="ml-2 h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                      <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] animate-chat-badge-pulse">
                         {friendRequests.length}
                       </Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
 
-                <ScrollArea className="h-[400px]">
-                  <TabsContent value="messages" className="p-4 space-y-2 mt-0">
+                <ScrollArea className="h-[380px]">
+                  <TabsContent value="messages" className="p-2 space-y-0.5 mt-0">
                     {messageThreads.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">No messages yet</p>
+                      <div className="text-center py-16 text-muted-foreground">
+                        <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium">No messages yet</p>
+                        <p className="text-xs mt-1 opacity-70">Start a conversation with a friend</p>
                       </div>
                     ) : (
                       messageThreads.map((thread) => (
                         <button
                           key={thread.id}
                           onClick={() => setActiveChatFriend({ id: thread.sender_id, name: thread.sender_name, avatar: thread.sender_avatar })}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                          className={cn(
+                            'w-full flex items-center gap-3 p-2.5 rounded-xl transition-colors text-left',
+                            'hover:bg-accent/60',
+                            thread.unread_count > 0 && 'bg-accent/30'
+                          )}
                         >
-                          <Avatar className="h-10 w-10 ring-2 ring-border">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage src={thread.sender_avatar} />
-                            <AvatarFallback>{thread.sender_name ? thread.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                            <AvatarFallback className="text-xs">{thread.sender_name ? thread.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="font-medium text-sm truncate">{thread.sender_name}</p>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <p className={cn('text-sm truncate', thread.unread_count > 0 ? 'font-semibold' : 'font-medium')}>
+                                {thread.sender_name}
+                              </p>
+                              <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">
+                                {formatRelativeTime(thread.created_at)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <p className={cn('text-xs truncate', thread.unread_count > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+                                {thread.message}
+                              </p>
                               {thread.unread_count > 0 && (
-                                <Badge variant="destructive" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                                <Badge variant="destructive" className="h-4 min-w-4 p-0 flex items-center justify-center text-[10px] flex-shrink-0 ml-2 animate-chat-badge-pulse">
                                   {thread.unread_count}
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">{thread.message}</p>
                           </div>
                         </button>
                       ))
                     )}
                   </TabsContent>
 
-                  <TabsContent value="friends" className="p-4 space-y-2 mt-0">
+                  <TabsContent value="friends" className="p-2 space-y-0.5 mt-0">
                     {friends.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">No friends yet</p>
+                      <div className="text-center py-16 text-muted-foreground">
+                        <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium">No friends yet</p>
+                        <p className="text-xs mt-1 opacity-70">Search for users to connect</p>
                       </div>
                     ) : (
                       friends.map((friend) => (
                         <button
                           key={friend.id}
                           onClick={() => setActiveChatFriend({ id: friend.id, name: friend.display_name, avatar: friend.avatar_url })}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                          className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent/60 transition-colors text-left"
                         >
-                          <div className="relative">
-                            <Avatar className="h-10 w-10 ring-2 ring-border">
+                          <div className="relative flex-shrink-0">
+                            <Avatar className="h-10 w-10">
                               <AvatarImage src={friend.avatar_url} />
-                              <AvatarFallback>{friend.display_name ? friend.display_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                              <AvatarFallback className="text-xs">{friend.display_name ? friend.display_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
                             </Avatar>
                             <div className={cn(
-                              "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card",
-                            friend.user_status === 'online' ? 'bg-primary' :
-                            friend.user_status === 'idle' ? 'bg-accent' : 'bg-muted-foreground/50'
+                              'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card',
+                              friend.user_status === 'online' ? 'bg-primary animate-chat-online-pulse' :
+                              friend.user_status === 'idle' ? 'bg-accent-foreground/40' : 'bg-muted-foreground/30'
                             )} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -375,25 +428,28 @@ export function FloatingChatBubble() {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="requests" className="p-4 space-y-2 mt-0">
+                  <TabsContent value="requests" className="p-2 space-y-0.5 mt-0">
                     {friendRequests.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <UserPlus className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">No pending requests</p>
+                      <div className="text-center py-16 text-muted-foreground">
+                        <UserPlus className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium">No pending requests</p>
+                        <p className="text-xs mt-1 opacity-70">Friend requests will appear here</p>
                       </div>
                     ) : (
                       friendRequests.map((request) => (
                         <div
                           key={request.id}
-                          className="flex items-center gap-3 p-3 rounded-lg border border-border"
+                          className="flex items-center gap-3 p-2.5 rounded-xl border border-border/50"
                         >
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage src={request.sender_avatar} />
-                            <AvatarFallback>{request.sender_name ? request.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                            <AvatarFallback className="text-xs">{request.sender_name ? request.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{request.sender_name}</p>
-                            <p className="text-xs text-muted-foreground">Sent friend request</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {formatRelativeTime(request.created_at)}
+                            </p>
                           </div>
                         </div>
                       ))
@@ -408,8 +464,12 @@ export function FloatingChatBubble() {
         <Button
           size="lg"
           onClick={() => setIsOpen(!isOpen)}
-          className="h-14 w-14 rounded-full shadow-2xl relative"
-          aria-label={isOpen ? "Close messages panel" : "Open messages and friends"}
+          className={cn(
+            'h-14 w-14 rounded-full shadow-[var(--shadow-material-4)] relative',
+            'transition-transform duration-200',
+            isOpen && 'rotate-0'
+          )}
+          aria-label={isOpen ? 'Close messages panel' : 'Open messages and friends'}
         >
           {isOpen ? (
             <X className="h-6 w-6" />
@@ -417,9 +477,9 @@ export function FloatingChatBubble() {
             <>
               <MessageCircle className="h-6 w-6" />
               {totalBadgeCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-6 min-w-6 p-0 flex items-center justify-center text-xs rounded-full"
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-5 min-w-5 p-0 flex items-center justify-center text-[10px] rounded-full animate-chat-badge-pulse"
                 >
                   {totalBadgeCount}
                 </Badge>
@@ -429,7 +489,6 @@ export function FloatingChatBubble() {
         </Button>
       </div>
 
-      {/* Active Chat Popup */}
       {activeChatFriend && (
         <ChatPopup
           friendId={activeChatFriend.id}

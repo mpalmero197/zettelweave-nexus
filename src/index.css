@@ -477,6 +477,76 @@
   }
 }
 
+/* Chat animations */
+.animate-chat-msg-in {
+  animation: chatMsgIn 0.2s ease-out both;
+}
+
+@keyframes chatMsgIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--muted-foreground));
+  animation: chatTypingBounce 1.2s ease-in-out infinite;
+}
+
+.chat-typing-dot.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.chat-typing-dot.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+@keyframes chatTypingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-chat-badge-pulse {
+  animation: chatBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes chatBadgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-chat-online-pulse {
+  animation: chatOnlinePulse 3s ease-in-out infinite;
+}
+
+@keyframes chatOnlinePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 /* Screen reader only - visually hidden but accessible */
 .sr-only-focusable:not(:focus):not(:focus-within) {
   position: absolute;
