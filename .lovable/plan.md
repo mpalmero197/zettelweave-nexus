@@ -1,91 +1,99 @@
 
 
-# Cards Section Complete Overhaul
+# Notes and Notebooks Complete Overhaul
 
 ## Current Problems
 
-### ZettelCard Component
-- **Button overload**: Each card shows 5-6 buttons in the header (Favorite, Edit, Link, Color Palette, Actions Menu) creating visual clutter
-- **Oversized titles**: `text-xl md:text-2xl` titles dominate the card, wasting space
-- **Dictionary word-hover wrapping**: Every word gets wrapped in a span with hover handlers -- heavy DOM and unnecessary by default
-- **"New" badge with animate-pulse**: Distracting perpetual animation
-- **Color system via full background fills**: Colored cards (blue, green, etc.) override the entire card background making text hard to read
-- **Redundant metadata**: Category badge, Dewey number badge, detailed classification text, date, and link count all compete for attention
+### Notes Component
+- **Button clutter on each card**: 4 action buttons (Favorite, Edit, Similar, Delete) shown on hover, crowding the card header
+- **Generic Card wrappers**: Heavy `Card > CardContent` nesting with excessive padding
+- **No sorting options**: Can only filter by notebook and favorites, no way to sort by date, title, or alphabetically
+- **Full dialog for creation**: Must open a heavyweight dialog just to create a simple note -- no quick-add option
+- **No view toggle**: Grid-only view, no list/compact option
+- **Disconnected from Notebooks**: Notebook filter is a dropdown buried in the toolbar -- no visual connection to the notebook concept
 
-### Cards Tab Layout (Index.tsx)
-- **Cluttered toolbar**: 10+ buttons crammed into a sticky bar (Create, Import, Vault Import, PDF, Print, Organization Method, New Filter, AI, Smart Links, Delete All)
-- **Favorites duplicated**: Favorite cards shown in a separate section AND in the main grid -- redundant
-- **No sorting or view options**: Only a grid view with no way to sort by date, title, category, or switch to list/compact view
-- **No inline search**: Must use the global AI search bar on a different tab to filter cards
+### Notebooks Component
+- **N+1 query problem**: Fires separate queries for notes AND cards for EVERY notebook on load -- extremely slow with many notebooks
+- **Oversized notebook icons**: 48x48 rounded squares with BookOpen icons waste space
+- **Collapsible content is awkward**: Expanding a notebook inside a grid card stretches the layout and pushes other cards around
+- **Actions hidden behind hover**: Favorite, Edit, Delete all invisible until hover -- unusable on mobile
+- **No way to open/browse a notebook**: Clicking a notebook doesn't navigate to its contents -- you can only expand to see 5 items
 
-### CardViewer (Detail View)
-- Already decent but disconnected from the card list experience
-
-### EditCardDialog
-- Functional but visually plain -- standard form layout with no visual hierarchy
+### EditNoteDialog
+- Already solid with markdown toolbar and preview -- keep mostly as-is
 
 ## The New Vision
 
-A clean, modern card collection with a streamlined toolbar, compact but beautiful card tiles, inline search/sort, and a refined card design that puts content first.
+Merge Notes and Notebooks into a unified, cohesive experience. Notebooks become a sidebar/filter panel, and notes are the main content area. One view, not two separate tabs.
 
 ## Technical Plan
 
-### 1. Redesign ZettelCard Component
-**File: `src/components/ZettelCard.tsx`** (rewrite)
+### 1. Unify Notes and Notebooks into a Single Component
+**File: `src/components/Notes.tsx`** (rewrite)
 
-- **Slim card design**: Remove the oversized title (`text-xl md:text-2xl` -> `text-sm font-semibold`), tighten padding
-- **Category color as a subtle top border**: Replace full-background color fills with a thin `border-top: 3px solid` using the category color. Keep the card background neutral (`bg-card`)
-- **Hide buttons by default**: Only show a single "..." menu button on hover (or always on mobile). Move Favorite, Edit, Link, Color into the dropdown. Star icon shown inline only when favorited
-- **Remove word-hover wrapping**: Drop the `renderContentWithHoverWords` function entirely -- it wraps every word in a span, bloating the DOM. Dictionary can be triggered via selection or right-click instead
-- **Content preview**: Show 2-3 lines of content with `line-clamp-3` in smaller text
-- **Compact metadata footer**: Single line with category dot, number, and relative date ("2d ago")
-- **Tags inline**: Show max 2 tags as tiny pills, "+N more" for overflow
-- **Remove "New" badge animation**: Show a small dot indicator instead of a pulsing badge
+Instead of two separate tabs, create a single "Notes" view with:
+- **Left sidebar (desktop) / Top chips (mobile)**: Notebook list as compact clickable items with color dots and note counts. "All Notes" at the top, then each notebook, then "Uncategorized"
+- **Main area**: Note cards grid/list with the selected notebook's notes
+- **This eliminates the need for the separate Notebooks tab** -- notebook management (create, edit, delete) happens via a small "+" button and context menu in the sidebar
 
-### 2. Streamline the Cards Toolbar
-**File: `src/pages/Index.tsx`** (cards tab section)
+### 2. Redesign the Notebook Sidebar
+Built into the Notes component:
+- Compact list of notebooks: color dot, name, count -- one line each
+- Selected notebook highlighted with subtle background
+- "All Notes" shows everything, clicking a notebook filters to it
+- Small "+" icon to create a new notebook inline (just name + color picker, no dialog)
+- Right-click or "..." menu on each notebook for Edit, Delete, Favorite
+- On mobile: horizontal scrollable chip bar at the top instead of a sidebar
 
-- **Primary actions only**: Keep Create (+) button prominent. Group Import, Export, Print, Organization Method, Delete All into a single "More" dropdown
-- **Add inline search**: Add a compact search input directly in the cards toolbar that filters cards by title/content/tags in real-time (no need for the global AI search tab)
-- **Add sort control**: Dropdown to sort by: Recently Modified (default), Recently Created, Alphabetical, Category
-- **Add view toggle**: Grid (default) vs Compact List view
-- **Remove separate Favorites section**: Instead, allow sorting by "Favorites first" or show a small star filter toggle
+### 3. Slim Down Note Cards
+Replace heavy Card wrappers with lightweight `widget-card` glassmorphic tiles:
+- Thin colored left border (3px) matching the notebook color instead of a colored dot
+- `text-sm font-medium` title (not `text-lg font-semibold`)
+- 2-3 lines of content preview with `line-clamp-3`
+- Tags as tiny inline pills (max 2 shown)
+- Footer: relative date ("2d ago") only
+- Single "..." dropdown on hover for all actions (Favorite, Edit, Find Similar, Delete)
+- Favorited star shown inline when active
 
-### 3. Add Compact List View
-**File: `src/components/ZettelCard.tsx`** (add variant prop)
+### 4. Add Quick-Add Note
+- Persistent slim input bar at the top of the notes area: "Quick note..." text field
+- Press Enter to create a note with just a title (assigned to currently selected notebook)
+- Small expand icon to open the full creation dialog for content/tags
 
-- Add a `variant="compact"` mode that renders the card as a single-row list item:
-  - Category color dot | Title | Tags (max 2) | Date | Star icon | "..." menu
-  - No content preview, no description -- just the essentials
-- Controlled by the view toggle in the toolbar
+### 5. Add Sort and View Controls
+- Sort dropdown: Recently Modified (default), Recently Created, Alphabetical, Favorites First
+- View toggle: Grid (default) vs Compact List
+- Note count indicator: "24 notes"
 
-### 4. Polish the Card Grid
-**File: `src/pages/Index.tsx`** (cards tab)
+### 6. Optimize Data Fetching
+- Fetch all notes in one query (already done in Notes)
+- Fetch all notebooks in one query with note counts using a single aggregated query instead of N+1
+- Filter client-side by notebook selection
 
-- **Consistent card heights**: Use `grid-auto-rows: minmax(0, auto)` so cards don't stretch unevenly in the masonry
-- **Better empty state**: Warmer empty state with a subtle illustration prompt and clear CTA
-- **Smooth transitions**: `animate-fade-in` on cards appearing, no jarring layout shifts
-- **Card count indicator**: Show "42 cards" in the toolbar area
+### 7. Update Index.tsx
+- Remove the separate "notebooks" tab
+- The "notes" tab now contains the unified Notes + Notebooks experience
+- Update any navigation references
 
-### 5. Visual Polish
-- Cards use `widget-card` glassmorphic style from `grid-layout.css` for consistency with Calendar/Dashboard
-- Hover state: subtle shadow lift (`hover:shadow-md`) without the current aggressive `-translate-y-1`
-- Category colors shown as small colored dots or thin top borders, not full card backgrounds
-- Responsive: 1 column on mobile, 2 on tablet, 3 on desktop, 4 on wide screens (same as current but with better card sizing)
+### 8. Keep EditNoteDialog
+- No changes needed -- it's already well-built with markdown support
 
 ## Files Changed
 
 | File | Action |
 |------|--------|
-| `src/components/ZettelCard.tsx` | Rewrite -- slim design, hidden actions, no word-hover wrapping, compact variant |
-| `src/pages/Index.tsx` | Update cards tab -- streamlined toolbar, inline search, sort, view toggle, remove favorites duplication |
+| `src/components/Notes.tsx` | Rewrite -- unified notebook sidebar + notes grid, quick-add, sort, view toggle, slim cards |
+| `src/components/Notebooks.tsx` | Keep file but it will no longer be used as a standalone tab (remove from Index.tsx tab) |
+| `src/pages/Index.tsx` | Remove "notebooks" tab, keep "notes" tab with unified component |
 
 ## What This Achieves
 
-- **Cleaner cards** that put content first instead of buttons and badges
-- **Streamlined toolbar** with only essential actions visible
-- **Inline search and sort** so users can find cards without switching tabs
-- **Grid and list views** for different browsing preferences
-- **Better performance** by removing per-word DOM wrapping and reducing button count per card
-- **Visual consistency** with the Calendar and Dashboard overhauls using the same glassmorphic widget style
+- **One cohesive view** instead of two disconnected tabs
+- **Notebooks as navigation** instead of a separate management screen
+- **Slimmer, faster note cards** with less DOM and cleaner design
+- **Quick-add** for rapid note capture without opening dialogs
+- **Sort and view controls** for flexible browsing
+- **Better performance** by eliminating N+1 notebook queries
+- **Mobile-friendly** notebook chips instead of a hidden sidebar
+- **Visual consistency** with the Cards and Calendar overhauls using the same glassmorphic widget style
 
