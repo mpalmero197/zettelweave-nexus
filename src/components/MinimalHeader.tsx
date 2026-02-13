@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Bot, Menu, Search } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -40,8 +41,18 @@ export function MinimalHeader({
   isAdmin,
   onSearchClick,
 }: MinimalHeaderProps) {
-  const { isOnline } = useOfflineMode();
+  const { isOnline: hookOnline } = useOfflineMode();
+  const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const { theme, setTheme } = useTheme();
+  const isOnline = hookOnline && browserOnline;
+
+  useEffect(() => {
+    const on = () => setBrowserOnline(true);
+    const off = () => setBrowserOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
   
   return (
     <header className="h-11 border-b border-border bg-background sticky top-0 z-50" role="banner">
@@ -68,10 +79,15 @@ export function MinimalHeader({
           <div className="hidden md:flex items-center gap-1.5">
             <img src={pendragonLogo} alt="PendragonX" className="h-5 w-5 object-contain" />
             <span className="text-sm font-semibold text-foreground">PendragonX</span>
-            <div 
-              className={`h-1.5 w-1.5 rounded-full ml-0.5 ${isOnline ? 'bg-foreground/40' : 'bg-muted-foreground/20'}`}
-              aria-label={isOnline ? 'Online' : 'Offline'}
-            />
+            <div className="relative ml-0.5">
+              <div 
+                className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}
+                aria-label={isOnline ? 'Online' : 'Offline'}
+              />
+              {isOnline && (
+                <div className="absolute inset-0 h-2 w-2 rounded-full bg-green-500 animate-ping opacity-40" />
+              )}
+            </div>
           </div>
         </div>
 
