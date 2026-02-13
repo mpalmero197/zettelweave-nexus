@@ -1,40 +1,36 @@
 
-# Make Chrome Extension Downloadable as ZIP
+
+# Fix Chrome Extension ZIP Structure
 
 ## Problem
-The "Download Extension" button currently opens `manifest.json` in a new tab -- completely useless for installing the extension. Users need all 6 files packaged together.
+The ZIP bundles files inside a `pendragonx-extension/` subfolder. When Windows extracts `pendragonx-chrome-extension.zip`, the result is:
 
-## Solution
-Use the already-installed **JSZip** library to fetch all chrome extension files from `public/chrome-extension/`, bundle them into a ZIP, and trigger a browser download. Also fix the footer link in `popup.html` to point to the actual published URL.
+```text
+pendragonx-chrome-extension/
+  pendragonx-extension/
+    manifest.json
+    popup.html
+    ...
+```
 
-## Changes
+Users naturally select the outer folder, but Chrome needs the folder containing `manifest.json` directly -- that's the inner one. This is confusing and error-prone.
 
-### 1. `src/components/ScratchPad.tsx`
-- Import `JSZip` and `file-saver`'s `saveAs`
-- Replace the broken `window.open('/chrome-extension/manifest.json')` with a `handleDownloadExtension` function that:
-  1. Fetches all 6 extension files (`manifest.json`, `popup.html`, `popup.js`, `icon-16.png`, `icon-48.png`, `icon-128.png`)
-  2. Adds them to a JSZip instance under a `pendragonx-extension/` folder
-  3. Generates the ZIP blob and triggers download as `pendragonx-chrome-extension.zip`
-  4. Shows a toast with installation instructions
-- Add a loading state while ZIP is being generated
-- Improve the installation guide with numbered steps in a cleaner format
+## Fix
 
-### 2. `public/chrome-extension/popup.html`
-- Update the footer link from `https://pendragonx.com` to `https://pendragonx.lovable.app` (the actual published URL)
+### `src/components/ScratchPad.tsx`
+Remove the `zip.folder("pendragonx-extension")` call and add files directly to the ZIP root. This way, when extracted, the user gets a single folder with all files at the top level:
 
-### 3. `public/chrome-extension/popup.js`
-- No changes needed -- the Supabase URL and anon key are already correct
+```text
+pendragonx-chrome-extension/
+  manifest.json
+  popup.html
+  popup.js
+  icon-16.png
+  icon-48.png
+  icon-128.png
+```
 
-## Technical Details
+**Specific change:** Replace `const folder = zip.folder("pendragonx-extension")!;` with just using `zip` directly, and change all `folder.file(...)` calls to `zip.file(...)`.
 
-The extension files to bundle:
-| File | Type |
-|------|------|
-| manifest.json | JSON (text) |
-| popup.html | HTML (text) |
-| popup.js | JS (text) |
-| icon-16.png | Image (binary) |
-| icon-48.png | Image (binary) |
-| icon-128.png | Image (binary) |
+This is a ~4 line change in the `handleDownloadExtension` function.
 
-JSZip handles both text and binary content. Images are fetched as `arrayBuffer` and text files as `text`. The ZIP is generated with `type: 'blob'` and downloaded via `file-saver`.
