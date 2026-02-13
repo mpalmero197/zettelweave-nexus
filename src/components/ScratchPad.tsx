@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud } from "lucide-react";
+import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud, Loader2 } from "lucide-react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +25,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const [content, setContent] = useState("");
   const [savedNotes, setSavedNotes] = useState<ScratchNote[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { user } = useAuth();
 
   // Load notes from Supabase if logged in, else localStorage
@@ -183,6 +186,42 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     toast.success("Note deleted");
   };
 
+  const handleDownloadExtension = async () => {
+    setIsDownloading(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder("pendragonx-extension")!;
+
+      const textFiles = ["manifest.json", "popup.html", "popup.js"];
+      const imageFiles = ["icon-16.png", "icon-48.png", "icon-128.png"];
+
+      const textPromises = textFiles.map(async (file) => {
+        const res = await fetch(`/chrome-extension/${file}`);
+        folder.file(file, await res.text());
+      });
+
+      const imagePromises = imageFiles.map(async (file) => {
+        const res = await fetch(`/chrome-extension/${file}`);
+        folder.file(file, await res.arrayBuffer());
+      });
+
+      await Promise.all([...textPromises, ...imagePromises]);
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      saveAs(blob, "pendragonx-chrome-extension.zip");
+
+      toast.success("Extension downloaded!", {
+        description: "1. Unzip the file\n2. Go to chrome://extensions\n3. Enable Developer Mode\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
+        duration: 10000,
+      });
+    } catch (error) {
+      console.error("Failed to generate extension ZIP:", error);
+      toast.error("Failed to download extension");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleSync = () => {
     if (user) {
       loadNotesFromCloud();
@@ -314,24 +353,23 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                window.open('/chrome-extension/manifest.json', '_blank');
-                toast.info("Download the extension folder and load it in Chrome", {
-                  description: "Go to chrome://extensions → Enable Developer Mode → Load unpacked → Select the downloaded folder",
-                  duration: 8000
-                });
-              }}
+              onClick={handleDownloadExtension}
+              disabled={isDownloading}
               className="gap-1.5"
             >
-              <Download className="h-4 w-4" />
-              Download Extension
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloading ? "Packaging..." : "Download Extension"}
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => {
                 toast.info("How to install:", {
-                  description: "1. Download extension files\n2. Open chrome://extensions\n3. Enable Developer Mode\n4. Click 'Load unpacked'\n5. Select the extension folder",
+                  description: "1. Download & unzip the file\n2. Open chrome://extensions\n3. Enable Developer Mode (top right)\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
                   duration: 10000
                 });
               }}
