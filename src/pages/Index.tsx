@@ -52,8 +52,7 @@ import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
 import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
-import { FriendsPanel } from "@/components/friends/FriendsPanel";
-import { ChatPopup } from "@/components/friends/ChatPopup";
+import { CollabStudio } from "@/components/friends/CollabStudio";
 import { FloatingChatBubble } from "@/components/FloatingChatBubble";
 import { SecurityNotice } from "@/components/SecurityNotice";
 import { Footer } from "@/components/Footer";
@@ -121,7 +120,7 @@ const Index = () => {
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
   const [viewingCard, setViewingCard] = useState<ZettelCardType | null>(null);
   const [showAccountManagement, setShowAccountManagement] = useState(false);
-  const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null);
+  const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null); // kept for FloatingChatBubble
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
   const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
@@ -814,7 +813,7 @@ const Index = () => {
 
                 <TabsContent value="collab" className="mt-0">
                   {hasPremium ? (
-                    <FriendsPanel onOpenChat={(id, name) => setActiveChatFriend({ id, name })} />
+                    <CollabStudio />
                   ) : (
                     <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
@@ -894,13 +893,7 @@ const Index = () => {
         />
       )}
 
-      {activeChatFriend && (
-        <ChatPopup
-          friendId={activeChatFriend.id}
-          friendName={activeChatFriend.name}
-          onClose={() => setActiveChatFriend(null)}
-        />
-      )}
+      {/* Chat is now inline in CollabStudio */}
       
 
       <SmartLinkingSidebar
