@@ -39,11 +39,11 @@ function loadData() {
     selectedColor = result[STORAGE_KEYS.SELECTED_COLOR] || STICKY_COLORS[0];
     authToken = result[STORAGE_KEYS.AUTH_TOKEN] || null;
     userEmail = result[STORAGE_KEYS.USER_EMAIL] || null;
-    
+
     renderScratchNotes();
     renderStickyNotes();
     updateAuthUI();
-    
+
     // Auto-sync if logged in
     if (authToken) {
       syncFromCloud();
@@ -67,11 +67,17 @@ function setupAuth() {
   const loginBtn = document.getElementById('login-btn');
   const logoutBtn = document.getElementById('logout-btn');
   const syncBtn = document.getElementById('sync-btn');
-  
+
   loginBtn?.addEventListener('click', handleLogin);
   logoutBtn?.addEventListener('click', handleLogout);
   syncBtn?.addEventListener('click', () => {
     if (authToken) syncFromCloud();
+  });
+
+  // Allow Enter key to submit login
+  const passwordInput = document.getElementById('auth-password');
+  passwordInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleLogin();
   });
 }
 
@@ -80,33 +86,33 @@ async function handleLogin() {
   const password = document.getElementById('auth-password').value;
   const errorEl = document.getElementById('auth-error');
   const loginBtn = document.getElementById('login-btn');
-  
+
   if (!email || !password) {
-    errorEl.textContent = 'Enter email and password';
+    errorEl.textContent = 'Please enter your email and password.';
     errorEl.style.display = 'block';
     return;
   }
-  
+
   loginBtn.disabled = true;
-  loginBtn.textContent = 'Signing in...';
+  loginBtn.textContent = 'Signing in…';
   errorEl.style.display = 'none';
-  
+
   try {
     const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
       body: JSON.stringify({ email, password })
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.error_description || data.msg || 'Login failed');
-    
+
     authToken = data.access_token;
     userEmail = data.user.email;
     saveData();
     updateAuthUI();
     syncFromCloud();
-    
+
     document.getElementById('auth-email').value = '';
     document.getElementById('auth-password').value = '';
   } catch (error) {
@@ -126,31 +132,33 @@ function handleLogout() {
 }
 
 function updateAuthUI() {
-  const authSection = document.getElementById('auth-section');
-  const userSection = document.getElementById('user-section');
+  const loginScreen = document.getElementById('login-screen');
+  const userBar = document.getElementById('user-bar');
+  const appContent = document.getElementById('app-content');
   const userEmailEl = document.getElementById('user-email');
   const syncStatus = document.getElementById('sync-status');
-  
+
   if (authToken && userEmail) {
-    authSection.style.display = 'none';
-    userSection.style.display = 'flex';
+    loginScreen.style.display = 'none';
+    userBar.style.display = 'flex';
+    appContent.style.display = 'block';
     userEmailEl.textContent = userEmail;
     syncStatus.textContent = '';
   } else {
-    authSection.style.display = 'block';
-    userSection.style.display = 'none';
-    syncStatus.textContent = 'Sign in to sync notes';
+    loginScreen.style.display = 'flex';
+    userBar.style.display = 'none';
+    appContent.style.display = 'none';
   }
 }
 
 // Cloud sync functions
 async function syncFromCloud() {
   if (!authToken) return;
-  
+
   const syncStatus = document.getElementById('sync-status');
-  syncStatus.textContent = 'Syncing...';
+  syncStatus.textContent = 'Syncing…';
   syncStatus.className = 'sync-status syncing';
-  
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
       method: 'GET',
@@ -159,7 +167,7 @@ async function syncFromCloud() {
         'apikey': SUPABASE_ANON_KEY
       }
     });
-    
+
     if (!response.ok) {
       if (response.status === 401) {
         handleLogout();
@@ -167,15 +175,11 @@ async function syncFromCloud() {
       }
       throw new Error('Sync failed');
     }
-    
+
     const data = await response.json();
     const cloudNotes = data.notes || [];
-    
+
     // Merge cloud notes with local (cloud takes priority for same IDs)
-    const localIds = new Set(scratchNotes.map(n => n.id));
-    const cloudIds = new Set(cloudNotes.map(n => n.id));
-    
-    // Add cloud notes that aren't local
     cloudNotes.forEach(cloudNote => {
       const localNote = scratchNotes.find(n => n.id === cloudNote.id);
       if (!localNote) {
@@ -189,12 +193,12 @@ async function syncFromCloud() {
         localNote.synced = true;
       }
     });
-    
+
     // Sort by timestamp
     scratchNotes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     saveData();
     renderScratchNotes();
-    
+
     syncStatus.textContent = 'Synced ✓';
     syncStatus.className = 'sync-status success';
     setTimeout(() => { syncStatus.textContent = ''; }, 2000);
@@ -206,7 +210,7 @@ async function syncFromCloud() {
 
 async function syncNoteToCloud(note) {
   if (!authToken) return;
-  
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
       method: 'POST',
@@ -217,10 +221,9 @@ async function syncNoteToCloud(note) {
       },
       body: JSON.stringify({ content: note.content })
     });
-    
+
     if (response.ok) {
       const data = await response.json();
-      // Update local note with cloud ID
       const localNote = scratchNotes.find(n => n.id === note.id);
       if (localNote && data.note) {
         localNote.id = data.note.id;
@@ -236,7 +239,7 @@ async function syncNoteToCloud(note) {
 
 async function deleteNoteFromCloud(noteId) {
   if (!authToken) return;
-  
+
   try {
     await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
       method: 'DELETE',
@@ -259,7 +262,7 @@ function setupTabs() {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      
+
       const tabName = tab.dataset.tab;
       document.getElementById('scratch-tab').style.display = tabName === 'scratch' ? 'flex' : 'none';
       document.getElementById('sticky-tab').style.display = tabName === 'sticky' ? 'block' : 'none';
@@ -272,7 +275,7 @@ function setupScratchPad() {
   const input = document.getElementById('scratch-input');
   const saveBtn = document.getElementById('save-scratch');
   const clearBtn = document.getElementById('clear-scratch');
-  
+
   saveBtn.addEventListener('click', () => {
     const content = input.value.trim();
     if (content) {
@@ -286,18 +289,18 @@ function setupScratchPad() {
       saveData();
       renderScratchNotes();
       input.value = '';
-      
+
       // Sync to cloud if logged in
       if (authToken) syncNoteToCloud(newNote);
     }
   });
-  
+
   clearBtn.addEventListener('click', () => { input.value = ''; });
 }
 
 function renderScratchNotes() {
   const container = document.getElementById('notes-list');
-  
+
   if (scratchNotes.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -309,7 +312,7 @@ function renderScratchNotes() {
     `;
     return;
   }
-  
+
   container.innerHTML = scratchNotes.map(note => `
     <div class="note-card ${note.synced ? 'synced' : ''}" data-id="${note.id}">
       <p>${escapeHtml(note.content)}</p>
@@ -322,7 +325,7 @@ function renderScratchNotes() {
       </div>
     </div>
   `).join('');
-  
+
   container.querySelectorAll('.note-card').forEach(card => {
     const id = card.dataset.id;
     card.querySelector('.copy').addEventListener('click', () => {
@@ -353,7 +356,7 @@ function renderColorPicker() {
   container.innerHTML = STICKY_COLORS.map(color => `
     <button class="color-btn ${color === selectedColor ? 'active' : ''}" style="background: ${color};" data-color="${color}"></button>
   `).join('');
-  
+
   container.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedColor = btn.dataset.color;
@@ -366,19 +369,19 @@ function renderColorPicker() {
 
 function renderStickyNotes() {
   const container = document.getElementById('sticky-grid');
-  
+
   if (stickyNotes.length === 0) {
     container.innerHTML = `<div class="empty-state" style="grid-column: span 2;"><p>No sticky notes yet</p></div>`;
     return;
   }
-  
+
   container.innerHTML = stickyNotes.map(note => `
     <div class="sticky-note" style="background: ${note.color};" data-id="${note.id}">
       <button class="sticky-delete">×</button>
       <textarea placeholder="Write something...">${escapeHtml(note.content)}</textarea>
     </div>
   `).join('');
-  
+
   container.querySelectorAll('.sticky-note').forEach(sticky => {
     const id = sticky.dataset.id;
     sticky.querySelector('textarea').addEventListener('input', (e) => {

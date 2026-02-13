@@ -7,132 +7,176 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      width: 320px;
-      min-height: 400px;
+      width: 340px;
+      min-height: 420px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0a0a0b;
       color: #e4e4e7;
+      overflow-x: hidden;
     }
+
+    /* Header */
     .header {
-      padding: 12px 16px;
+      padding: 10px 14px;
       background: #18181b;
       border-bottom: 1px solid #27272a;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .header img { width: 24px; height: 24px; border-radius: 4px; }
-    .header h1 { font-size: 14px; font-weight: 600; color: #fff; }
-    
-    /* Auth Section */
-    .auth-bar {
-      padding: 8px 12px;
-      background: #18181b;
-      border-bottom: 1px solid #27272a;
+    .header img { width: 22px; height: 22px; border-radius: 4px; }
+    .header h1 { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+
+    /* Login screen — shown when not authenticated */
+    .login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 28px 32px;
+      text-align: center;
+      min-height: 340px;
     }
-    .auth-section { display: flex; flex-direction: column; gap: 6px; }
-    .auth-section input {
-      padding: 6px 10px;
+    .login-screen .logo-large { width: 56px; height: 56px; border-radius: 12px; margin-bottom: 16px; }
+    .login-screen h2 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .login-screen .subtitle { font-size: 12px; color: #71717a; margin-bottom: 24px; line-height: 1.4; }
+    .login-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .login-form input {
+      width: 100%;
+      padding: 9px 12px;
       border: 1px solid #27272a;
-      border-radius: 4px;
-      background: #0a0a0b;
+      border-radius: 8px;
+      background: #18181b;
       color: #e4e4e7;
-      font-size: 12px;
+      font-size: 13px;
+      transition: border-color 0.15s;
     }
-    .auth-section input:focus { outline: none; border-color: #3b82f6; }
-    .auth-row { display: flex; gap: 6px; }
-    .auth-row input { flex: 1; }
+    .login-form input:focus { outline: none; border-color: #3b82f6; }
+    .login-form input::placeholder { color: #52525b; }
     #login-btn {
-      padding: 6px 12px;
+      width: 100%;
+      padding: 9px;
       background: #3b82f6;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
       color: white;
-      font-size: 11px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
     }
     #login-btn:hover { background: #2563eb; }
-    #login-btn:disabled { background: #1e3a5f; }
+    #login-btn:disabled { background: #1e3a5f; cursor: wait; }
     .auth-error {
       display: none;
-      padding: 4px 8px;
+      padding: 6px 10px;
       background: #450a0a;
-      border-radius: 4px;
+      border-radius: 6px;
       color: #fca5a5;
-      font-size: 10px;
+      font-size: 11px;
+      text-align: left;
     }
-    .user-section {
+    .login-footer { margin-top: 20px; font-size: 11px; color: #52525b; }
+    .login-footer a { color: #3b82f6; text-decoration: none; }
+    .login-footer a:hover { text-decoration: underline; }
+
+    /* Logged-in user bar */
+    .user-bar {
       display: none;
-      justify-content: space-between;
+      padding: 8px 14px;
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
       align-items: center;
+      gap: 8px;
     }
-    .user-info { display: flex; align-items: center; gap: 8px; }
-    #user-email { font-size: 11px; color: #a1a1aa; }
-    #logout-btn, #sync-btn {
+    .user-bar .user-email {
+      flex: 1;
+      font-size: 11px;
+      color: #a1a1aa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .user-bar .sync-status { font-size: 10px; color: #71717a; white-space: nowrap; }
+    .user-bar .sync-status.success { color: #4ade80; }
+    .user-bar .sync-status.error { color: #f87171; }
+    .user-bar .sync-status.syncing { color: #60a5fa; }
+    .icon-btn {
       padding: 4px 8px;
       background: transparent;
       border: 1px solid #3f3f46;
-      border-radius: 4px;
+      border-radius: 6px;
       color: #a1a1aa;
       font-size: 10px;
       cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
     }
-    #logout-btn:hover, #sync-btn:hover { background: #27272a; color: #e4e4e7; }
-    .sync-status { font-size: 10px; color: #71717a; }
-    .sync-status.success { color: #4ade80; }
-    .sync-status.error { color: #f87171; }
-    .sync-status.syncing { color: #60a5fa; }
-    
+    .icon-btn:hover { background: #27272a; color: #e4e4e7; }
+
+    /* App content — hidden until logged in */
+    .app-content { display: none; }
+
     /* Tabs */
     .tabs { display: flex; border-bottom: 1px solid #27272a; }
     .tab {
       flex: 1;
-      padding: 10px;
+      padding: 9px;
       background: none;
       border: none;
-      color: #a1a1aa;
+      color: #71717a;
       cursor: pointer;
       font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
     }
-    .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
-    .tab.active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
-    
-    .content { padding: 12px; }
+    .tab:hover { color: #d4d4d8; background: rgba(255,255,255,0.03); }
+    .tab.active { color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
+
+    .content { padding: 12px 14px; }
+
+    /* Scratch Pad */
     .scratch-area { display: flex; flex-direction: column; gap: 10px; }
     textarea {
       width: 100%;
-      min-height: 100px;
+      min-height: 88px;
+      max-height: 140px;
       padding: 10px;
       border: 1px solid #27272a;
       border-radius: 8px;
       background: #18181b;
       color: #e4e4e7;
       font-size: 13px;
-      resize: vertical;
+      resize: none;
       font-family: inherit;
+      line-height: 1.5;
+      transition: border-color 0.15s;
     }
     textarea:focus { outline: none; border-color: #3b82f6; }
     textarea::placeholder { color: #52525b; }
-    
+
     .btn {
-      padding: 8px 16px;
+      padding: 7px 14px;
       border-radius: 6px;
       border: none;
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
+      transition: all 0.15s;
     }
     .btn-primary { background: #3b82f6; color: white; }
     .btn-primary:hover { background: #2563eb; }
-    .btn-secondary { background: #27272a; color: #e4e4e7; }
+    .btn-secondary { background: #27272a; color: #d4d4d8; }
     .btn-secondary:hover { background: #3f3f46; }
     .actions { display: flex; gap: 8px; }
-    
+
+    /* Notes list */
     .notes-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      max-height: 240px;
+      gap: 6px;
+      max-height: 200px;
       overflow-y: auto;
     }
     .note-card {
@@ -140,7 +184,9 @@
       background: #18181b;
       border-radius: 8px;
       border: 1px solid #27272a;
+      transition: border-color 0.15s;
     }
+    .note-card:hover { border-color: #3f3f46; }
     .note-card.synced { border-left: 2px solid #3b82f6; }
     .note-card p {
       font-size: 12px;
@@ -148,55 +194,64 @@
       color: #d4d4d8;
       white-space: pre-wrap;
       word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .note-meta {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #27272a;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #1e1e21;
     }
-    .note-meta span { font-size: 10px; color: #71717a; }
+    .note-meta span { font-size: 10px; color: #52525b; }
     .note-actions { display: flex; gap: 4px; }
     .note-actions button {
-      padding: 4px 8px;
+      padding: 3px 8px;
       font-size: 10px;
       background: #27272a;
       border: none;
       border-radius: 4px;
       color: #a1a1aa;
       cursor: pointer;
+      transition: all 0.15s;
     }
     .note-actions button:hover { background: #3f3f46; color: #fff; }
     .note-actions button.delete:hover { background: #450a0a; color: #f87171; }
-    
-    .empty-state { text-align: center; padding: 24px 16px; color: #52525b; }
-    .empty-state svg { width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5; }
+
+    .empty-state { text-align: center; padding: 20px 16px; color: #3f3f46; }
+    .empty-state svg { width: 28px; height: 28px; margin-bottom: 6px; opacity: 0.4; }
     .empty-state p { font-size: 12px; }
-    
+
     /* Sticky Notes */
     .sticky-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      max-height: 280px;
+      max-height: 240px;
       overflow-y: auto;
     }
     .sticky-note {
-      padding: 10px;
-      border-radius: 4px;
-      min-height: 80px;
+      padding: 8px;
+      border-radius: 6px;
+      min-height: 72px;
       position: relative;
     }
     .sticky-note textarea {
       width: 100%;
-      min-height: 60px;
+      min-height: 52px;
+      max-height: 80px;
       background: transparent;
       border: none;
       color: #1a1a1a;
       font-size: 11px;
+      padding: 2px;
+      line-height: 1.4;
     }
+    .sticky-note textarea:focus { outline: none; }
     .sticky-delete {
       position: absolute;
       top: 4px;
@@ -204,89 +259,106 @@
       width: 16px;
       height: 16px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.15);
       border: none;
       cursor: pointer;
       font-size: 10px;
       color: #333;
       opacity: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
     }
     .sticky-note:hover .sticky-delete { opacity: 1; }
     .color-picker { display: flex; gap: 6px; margin-bottom: 10px; }
     .color-btn {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       border: 2px solid transparent;
       cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
     }
+    .color-btn:hover { transform: scale(1.1); }
     .color-btn.active { border-color: #fff; }
-    
+
     .footer {
-      padding: 10px 12px;
+      padding: 10px 14px;
       border-top: 1px solid #27272a;
       text-align: center;
     }
     .footer a { font-size: 11px; color: #3b82f6; text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
-    
-    .notes-list::-webkit-scrollbar { width: 4px; }
-    .notes-list::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+
+    /* Scrollbar */
+    .notes-list::-webkit-scrollbar,
+    .sticky-grid::-webkit-scrollbar { width: 4px; }
+    .notes-list::-webkit-scrollbar-thumb,
+    .sticky-grid::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+    .notes-list::-webkit-scrollbar-track,
+    .sticky-grid::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
   <div class="header">
     <img src="icon-48.png" alt="PendragonX">
-    <h1>PendragonX Quick Notes</h1>
+    <h1>PendragonX</h1>
+    <span id="header-version" style="font-size:10px; color:#3f3f46;">v1.0</span>
   </div>
-  
-  <div class="auth-bar">
-    <div id="auth-section" class="auth-section">
-      <div class="auth-row">
-        <input type="email" id="auth-email" placeholder="Email">
-        <input type="password" id="auth-password" placeholder="Password">
-        <button id="login-btn">Sign In</button>
-      </div>
+
+  <!-- Login Screen (shown when not authenticated) -->
+  <div id="login-screen" class="login-screen">
+    <img src="icon-128.png" alt="PendragonX" class="logo-large">
+    <h2>Welcome back</h2>
+    <p class="subtitle">Sign in to your PendragonX account to capture and sync notes across devices.</p>
+    <div class="login-form">
+      <input type="email" id="auth-email" placeholder="Email address" autocomplete="email">
+      <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
       <div id="auth-error" class="auth-error"></div>
+      <button id="login-btn">Sign In</button>
     </div>
-    <div id="user-section" class="user-section">
-      <div class="user-info">
-        <span id="user-email">user@email.com</span>
-        <span id="sync-status" class="sync-status"></span>
+    <p class="login-footer">
+      Don't have an account? <a href="https://pendragonx.lovable.app" target="_blank">Sign up</a>
+    </p>
+  </div>
+
+  <!-- Logged-in user bar -->
+  <div id="user-bar" class="user-bar">
+    <span id="user-email" class="user-email">user@email.com</span>
+    <span id="sync-status" class="sync-status"></span>
+    <button id="sync-btn" class="icon-btn">⟳ Sync</button>
+    <button id="logout-btn" class="icon-btn">Sign Out</button>
+  </div>
+
+  <!-- App content (hidden until authenticated) -->
+  <div id="app-content" class="app-content">
+    <div class="tabs">
+      <button class="tab active" data-tab="scratch">Scratch Pad</button>
+      <button class="tab" data-tab="sticky">Sticky Notes</button>
+    </div>
+
+    <div class="content">
+      <div id="scratch-tab" class="scratch-area">
+        <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes..." rows="3"></textarea>
+        <div class="actions">
+          <button class="btn btn-primary" id="save-scratch">Save Note</button>
+          <button class="btn btn-secondary" id="clear-scratch">Clear</button>
+        </div>
+        <div id="notes-list" class="notes-list"></div>
       </div>
-      <div style="display: flex; gap: 4px;">
-        <button id="sync-btn">⟳ Sync</button>
-        <button id="logout-btn">Sign Out</button>
+
+      <div id="sticky-tab" style="display: none;">
+        <div class="color-picker" id="color-picker"></div>
+        <button class="btn btn-primary" id="add-sticky" style="width: 100%; margin-bottom: 10px;">+ Add Sticky Note</button>
+        <div id="sticky-grid" class="sticky-grid"></div>
       </div>
     </div>
-  </div>
-  
-  <div class="tabs">
-    <button class="tab active" data-tab="scratch">Scratch Pad</button>
-    <button class="tab" data-tab="sticky">Sticky Notes</button>
-  </div>
-  
-  <div class="content">
-    <div id="scratch-tab" class="scratch-area">
-      <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes..."></textarea>
-      <div class="actions">
-        <button class="btn btn-primary" id="save-scratch">Save Note</button>
-        <button class="btn btn-secondary" id="clear-scratch">Clear</button>
-      </div>
-      <div id="notes-list" class="notes-list"></div>
-    </div>
-    
-    <div id="sticky-tab" style="display: none;">
-      <div class="color-picker" id="color-picker"></div>
-      <button class="btn btn-primary" id="add-sticky" style="margin-bottom: 10px; width: 100%;">+ Add Sticky Note</button>
-      <div id="sticky-grid" class="sticky-grid"></div>
+
+    <div class="footer">
+      <a href="https://pendragonx.lovable.app" target="_blank">Open PendragonX App →</a>
     </div>
   </div>
-  
-  <div class="footer">
-    <a href="https://pendragonx.lovable.app" target="_blank">Open PendragonX App →</a>
-  </div>
-  
-  <script src="popup.js"></script>
 </body>
+<script src="popup.js"></script>
 </html>
