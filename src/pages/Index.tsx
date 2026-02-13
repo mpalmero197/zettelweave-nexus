@@ -28,7 +28,7 @@ import { AudioManager } from "@/components/AudioManager";
 import { ScratchPad } from "@/components/ScratchPad";
 import { Catalyst } from "@/components/Catalyst";
 import { StickyNotesSimple } from "@/components/StickyNotesSimple";
-import { Notebooks } from "@/components/Notebooks";
+// Notebooks is now integrated into Notes component
 import { Calendar } from "@/components/Calendar";
 import { FileManager } from "@/components/FileManager";
 import { RecycleBin } from "@/components/RecycleBin";
@@ -631,10 +631,6 @@ const Index = () => {
 
                 <TabsContent value="notes" className="mt-0">
                   <Notes />
-                </TabsContent>
-
-                <TabsContent value="notebooks" className="mt-0">
-                  <Notebooks />
                 </TabsContent>
 
                 <TabsContent value="calendar" className="mt-0">
