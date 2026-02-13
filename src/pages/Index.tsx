@@ -22,8 +22,7 @@ import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
 import { Notes } from "@/components/Notes";
-import { MediaRecorder as MediaRecorderComponent } from "@/components/MediaRecorder";
-import { RecordingsLibrary } from "@/components/RecordingsLibrary";
+import { RecorderStudio } from "@/components/RecorderStudio";
 import { AudioManager } from "@/components/AudioManager";
 import { ScratchPad } from "@/components/ScratchPad";
 import { Catalyst } from "@/components/Catalyst";
@@ -801,10 +800,7 @@ const Index = () => {
 
                 <TabsContent value="recorder" className="mt-0">
                   {hasPremium ? (
-                    <div className="space-y-4">
-                      <MediaRecorderComponent />
-                      <RecordingsLibrary />
-                    </div>
+                    <RecorderStudio />
                   ) : (
                     <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
