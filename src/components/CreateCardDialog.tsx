@@ -194,7 +194,7 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm" className="h-8 w-8 p-0 bg-gradient-primary hover:bg-primary-hover transition-all">
+          <Button size="sm" className="h-8 w-8 p-0 bg-primary hover:bg-primary/90 transition-all">
             <Plus className="h-4 w-4" />
           </Button>
         )}
