@@ -82,10 +82,18 @@ function setupAuth() {
 }
 
 async function handleLogin() {
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
+  const authEmailEl = document.getElementById('auth-email');
+  const authPasswordEl = document.getElementById('auth-password');
   const errorEl = document.getElementById('auth-error');
   const loginBtn = document.getElementById('login-btn');
+
+  if (!authEmailEl || !authPasswordEl || !errorEl || !loginBtn) {
+    console.error('Login elements not found');
+    return;
+  }
+
+  const email = authEmailEl.value.trim();
+  const password = authPasswordEl.value;
 
   if (!email || !password) {
     errorEl.textContent = 'Please enter your email and password.';
@@ -113,8 +121,8 @@ async function handleLogin() {
     updateAuthUI();
     syncFromCloud();
 
-    document.getElementById('auth-email').value = '';
-    document.getElementById('auth-password').value = '';
+    authEmailEl.value = '';
+    authPasswordEl.value = '';
   } catch (error) {
     errorEl.textContent = error.message;
     errorEl.style.display = 'block';
@@ -156,8 +164,10 @@ async function syncFromCloud() {
   if (!authToken) return;
 
   const syncStatus = document.getElementById('sync-status');
-  syncStatus.textContent = 'Syncing…';
-  syncStatus.className = 'sync-status syncing';
+  if (syncStatus) {
+    syncStatus.textContent = 'Syncing…';
+    syncStatus.className = 'sync-status syncing';
+  }
 
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
@@ -199,12 +209,16 @@ async function syncFromCloud() {
     saveData();
     renderScratchNotes();
 
-    syncStatus.textContent = 'Synced ✓';
-    syncStatus.className = 'sync-status success';
-    setTimeout(() => { syncStatus.textContent = ''; }, 2000);
+    if (syncStatus) {
+      syncStatus.textContent = 'Synced ✓';
+      syncStatus.className = 'sync-status success';
+      setTimeout(() => { if (syncStatus) syncStatus.textContent = ''; }, 2000);
+    }
   } catch (error) {
-    syncStatus.textContent = error.message;
-    syncStatus.className = 'sync-status error';
+    if (syncStatus) {
+      syncStatus.textContent = error.message;
+      syncStatus.className = 'sync-status error';
+    }
   }
 }
 
