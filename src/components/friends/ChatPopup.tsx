@@ -274,8 +274,8 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
               {isFirstInCluster ? (
                 <Avatar className="h-7 w-7">
                   <AvatarImage src={friendAvatar} />
-                  <AvatarFallback className="text-[10px]">
-                    {friendName.substring(0, 2).toUpperCase()}
+                <AvatarFallback className="text-[10px]">
+                    {(friendName ?? '').substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               ) : null}
@@ -338,14 +338,14 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
           <Avatar className="h-9 w-9">
             <AvatarImage src={friendAvatar} />
             <AvatarFallback className="text-xs font-medium">
-              {friendName.substring(0, 2).toUpperCase()}
+              {(friendName ?? '').substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-card animate-chat-online-pulse" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{friendName}</p>
+          <p className="font-semibold text-sm truncate">{friendName ?? 'Unknown'}</p>
           <p className="text-[11px] text-muted-foreground">Online</p>
         </div>
 
@@ -404,13 +404,13 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
               <div className="flex flex-col items-center justify-center h-full text-center px-6">
                 <Avatar className="h-16 w-16 mb-4">
                   <AvatarImage src={friendAvatar} />
-                  <AvatarFallback className="text-lg">
-                    {friendName.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
+                <AvatarFallback className="text-lg">
+                  {(friendName ?? '').substring(0, 2).toUpperCase()}
+                </AvatarFallback>
                 </Avatar>
                 <p className="text-sm font-medium mb-1">Start a conversation</p>
                 <p className="text-xs text-muted-foreground">
-                  Say hi to {friendName} 👋
+                  Say hi to {friendName ?? 'them'} 👋
                 </p>
               </div>
             ) : (
