@@ -194,13 +194,14 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
       const textFiles = ["manifest.json", "popup.html", "popup.js"];
       const imageFiles = ["icon-16.png", "icon-48.png", "icon-128.png"];
 
+      const cacheBuster = `?t=${Date.now()}`;
       const textPromises = textFiles.map(async (file) => {
-        const res = await fetch(`/chrome-extension/${file}`);
+        const res = await fetch(`/chrome-extension/${file}${cacheBuster}`);
         zip.file(file, await res.text());
       });
 
       const imagePromises = imageFiles.map(async (file) => {
-        const res = await fetch(`/chrome-extension/${file}`);
+        const res = await fetch(`/chrome-extension/${file}${cacheBuster}`);
         zip.file(file, await res.arrayBuffer());
       });
 

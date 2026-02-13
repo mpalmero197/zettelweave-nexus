@@ -272,14 +272,16 @@ async function deleteNoteFromCloud(noteId) {
 // Setup tabs
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab');
+  const scratchTab = document.getElementById('scratch-tab');
+  const stickyTab = document.getElementById('sticky-tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
 
       const tabName = tab.dataset.tab;
-      document.getElementById('scratch-tab').style.display = tabName === 'scratch' ? 'flex' : 'none';
-      document.getElementById('sticky-tab').style.display = tabName === 'sticky' ? 'block' : 'none';
+      if (scratchTab) scratchTab.style.display = tabName === 'scratch' ? 'flex' : 'none';
+      if (stickyTab) stickyTab.style.display = tabName === 'sticky' ? 'block' : 'none';
     });
   });
 }
@@ -289,6 +291,7 @@ function setupScratchPad() {
   const input = document.getElementById('scratch-input');
   const saveBtn = document.getElementById('save-scratch');
   const clearBtn = document.getElementById('clear-scratch');
+  if (!input || !saveBtn || !clearBtn) return;
 
   saveBtn.addEventListener('click', () => {
     const content = input.value.trim();
@@ -314,6 +317,7 @@ function setupScratchPad() {
 
 function renderScratchNotes() {
   const container = document.getElementById('notes-list');
+  if (!container) return;
 
   if (scratchNotes.length === 0) {
     container.innerHTML = `
@@ -358,7 +362,9 @@ function renderScratchNotes() {
 
 // Sticky Notes
 function setupStickyNotes() {
-  document.getElementById('add-sticky').addEventListener('click', () => {
+  const addStickyBtn = document.getElementById('add-sticky');
+  if (!addStickyBtn) return;
+  addStickyBtn.addEventListener('click', () => {
     stickyNotes.push({ id: Date.now().toString(), content: '', color: selectedColor });
     saveData();
     renderStickyNotes();
@@ -367,6 +373,7 @@ function setupStickyNotes() {
 
 function renderColorPicker() {
   const container = document.getElementById('color-picker');
+  if (!container) return;
   container.innerHTML = STICKY_COLORS.map(color => `
     <button class="color-btn ${color === selectedColor ? 'active' : ''}" style="background: ${color};" data-color="${color}"></button>
   `).join('');
@@ -383,6 +390,7 @@ function renderColorPicker() {
 
 function renderStickyNotes() {
   const container = document.getElementById('sticky-grid');
+  if (!container) return;
 
   if (stickyNotes.length === 0) {
     container.innerHTML = `<div class="empty-state" style="grid-column: span 2;"><p>No sticky notes yet</p></div>`;
