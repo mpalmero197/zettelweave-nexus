@@ -21,6 +21,7 @@ import {
   FileEdit,
   CreditCard,
   Bot,
+  Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -113,6 +114,12 @@ export function MinimalSidebar({
       </ScrollArea>
 
       <div className="p-3 border-t border-border/50 space-y-1">
+        <Link to="/install">
+          <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
+            <Download className="h-4 w-4 mr-3" />
+            Install App
+          </Button>
+        </Link>
         {isAdmin && (
           <Link to="/admin">
             <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
