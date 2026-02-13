@@ -190,19 +190,18 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     setIsDownloading(true);
     try {
       const zip = new JSZip();
-      const folder = zip.folder("pendragonx-extension")!;
 
       const textFiles = ["manifest.json", "popup.html", "popup.js"];
       const imageFiles = ["icon-16.png", "icon-48.png", "icon-128.png"];
 
       const textPromises = textFiles.map(async (file) => {
         const res = await fetch(`/chrome-extension/${file}`);
-        folder.file(file, await res.text());
+        zip.file(file, await res.text());
       });
 
       const imagePromises = imageFiles.map(async (file) => {
         const res = await fetch(`/chrome-extension/${file}`);
-        folder.file(file, await res.arrayBuffer());
+        zip.file(file, await res.arrayBuffer());
       });
 
       await Promise.all([...textPromises, ...imagePromises]);
