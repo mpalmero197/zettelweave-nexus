@@ -15,9 +15,6 @@ import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { SmartLinkingSidebar } from "@/components/SmartLinkingSidebar";
-import { MobileOptimizedLayout } from "@/components/MobileOptimizedLayout";
-import { MobileDetector } from "@/components/MobileDetector";
-import { MinimalHeader } from "@/components/MinimalHeader";
 import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
@@ -34,10 +31,6 @@ import { RecycleBin } from "@/components/RecycleBin";
 import { WorkflowManager } from "@/components/WorkflowManager";
 import { OfflineModeIndicator } from "@/components/OfflineModeIndicator";
 import { IntelligentCacheIndicator } from "@/components/IntelligentCacheIndicator";
-import { OfflineDataManager } from "@/components/OfflineDataManager";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { MobileHeader } from "@/components/MobileHeader";
-import { MobileNavigation } from "@/components/MobileNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,8 +46,6 @@ import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog"
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { CollabStudio } from "@/components/friends/CollabStudio";
-import { FloatingChatBubble } from "@/components/FloatingChatBubble";
-import { SecurityNotice } from "@/components/SecurityNotice";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -353,6 +344,16 @@ const Index = () => {
     }
   };
 
+  // Listen for tab change events from AppLayout
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail;
+      if (tab) setActiveTab(tab);
+    };
+    window.addEventListener("app-tab-change", handler);
+    return () => window.removeEventListener("app-tab-change", handler);
+  }, []);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -367,31 +368,6 @@ const Index = () => {
 
   return (
     <>
-    <OfflineDataManager />
-    <MobileDetector>
-      <MobileOptimizedLayout>
-      <SecurityNotice />
-
-      {/* Minimal Header */}
-      <MinimalHeader
-        user={user}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onSignOut={handleSignOut}
-        onAccountSettings={() => setShowAccountManagement(true)}
-        onCreateCard={handleCreateCard}
-        existingCards={cards}
-        organizationMethod={organizationMethod}
-        isAdmin={isAdmin}
-        onSearchClick={() => {
-          setActiveTab("search");
-          // Focus search input if needed
-          setTimeout(() => {
-            const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
-            searchInput?.focus();
-          }, 100);
-        }}
-      />
 
       {/* Compact AI Search Bar - Mobile Optimized */}
       {activeTab === "search" && (
@@ -905,17 +881,6 @@ const Index = () => {
       />
       
       <Footer />
-      </MobileOptimizedLayout>
-    </MobileDetector>
-    
-    {/* PWA Install Prompt */}
-    <PWAInstallPrompt />
-    
-    {/* Mobile Navigation */}
-    <MobileNavigation isAdmin={isAdmin} />
-    
-    {/* Floating Chat Bubble - Outside all containers for true viewport fixed positioning */}
-    <FloatingChatBubble />
     </>
   );
 

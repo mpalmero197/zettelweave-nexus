@@ -305,7 +305,7 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="flex" style={{ minHeight: 'calc(100vh - 2.75rem)' }}>
       <AdminSidebar 
         activeSection={activeSection} 
         onSectionChange={setActiveSection} 

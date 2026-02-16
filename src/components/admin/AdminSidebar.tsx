@@ -17,8 +17,7 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  Lock,
-  Home
+  Lock
 } from 'lucide-react';
 
 interface NavItem {
@@ -206,18 +205,6 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
         </div>
       )}
 
-      {/* Footer */}
-      <div className="p-2 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("w-full gap-2", collapsed && "px-2")}
-          onClick={() => window.location.href = '/app'}
-        >
-          <Home className="h-4 w-4" />
-          {!collapsed && <span>Back to App</span>}
-        </Button>
-      </div>
     </div>
   );
 }

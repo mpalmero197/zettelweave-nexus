@@ -82,6 +82,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
+// Lazy load persistent layout
+const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
+
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -118,46 +121,45 @@ const App = () => (
                     <Landing />
                   </Suspense>
                 } />
-                <Route path="/install" element={
-                  <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
-                    <Install />
-                  </Suspense>
-                } />
-                <Route path="/app" element={
+                {/* All authenticated pages share the persistent AppLayout */}
+                <Route element={
                   <ProtectedRoute>
+                    <Suspense fallback={<LoadingFallback message="Loading..." />}>
+                      <AppLayout />
+                    </Suspense>
+                  </ProtectedRoute>
+                }>
+                  <Route path="/app" element={
                     <Suspense fallback={<LoadingFallback message="Loading workspace..." />}>
                       <Index />
                     </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin" element={
-                  <ProtectedRoute>
+                  } />
+                  <Route path="/admin" element={
                     <Suspense fallback={<LoadingFallback message="Loading admin panel..." />}>
                       <Admin />
                     </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/subscription" element={
-                  <ProtectedRoute>
+                  } />
+                  <Route path="/subscription" element={
                     <Suspense fallback={<LoadingFallback message="Loading subscription..." />}>
                       <Subscription />
                     </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
                     <Suspense fallback={<LoadingFallback message="Loading settings..." />}>
                       <Settings />
                     </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/agents" element={
-                  <ProtectedRoute>
+                  } />
+                  <Route path="/agents" element={
                     <Suspense fallback={<LoadingFallback message="Loading agents..." />}>
                       <Agents />
                     </Suspense>
-                  </ProtectedRoute>
-                } />
+                  } />
+                  <Route path="/install" element={
+                    <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
+                      <Install />
+                    </Suspense>
+                  } />
+                </Route>
                 <Route path="/" element={
                   <Suspense fallback={<LoadingFallback />}>
                     <Landing />
