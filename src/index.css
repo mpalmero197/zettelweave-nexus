@@ -691,3 +691,9 @@ select:focus-visible,
     box-shadow: 0 0 0 5px hsl(45, 90%, 55%, 0.2);
   }
 }
+
+/* Changelog timeline connector */
+.changelog-line {
+  width: 2px;
+  background: linear-gradient(to bottom, hsl(var(--primary)), hsl(var(--border)));
+}

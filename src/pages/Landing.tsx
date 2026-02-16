@@ -79,6 +79,7 @@ export default function Landing() {
             <button onClick={() => scrollToSection('features')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</button>
             <button onClick={() => scrollToSection('pricing')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</button>
             <button onClick={() => scrollToSection('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</button>
+            <button onClick={() => navigate('/changelog')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</button>
           </nav>
 
           <div className="flex gap-2">
@@ -408,6 +409,7 @@ export default function Landing() {
             <button onClick={() => scrollToSection('pricing')} className="hover:text-foreground transition-colors">Pricing</button>
             <button onClick={() => navigate('/terms')} className="hover:text-foreground transition-colors">Terms</button>
             <button onClick={() => navigate('/privacy')} className="hover:text-foreground transition-colors">Privacy</button>
+            <button onClick={() => navigate('/changelog')} className="hover:text-foreground transition-colors">Changelog</button>
             <button onClick={() => window.dispatchEvent(new CustomEvent('openCookieSettings'))} className="hover:text-foreground transition-colors">Cookies</button>
           </nav>
         </div>
