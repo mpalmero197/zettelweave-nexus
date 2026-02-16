@@ -95,6 +95,7 @@ export function AppLayout() {
       case "stickynotes":
       case "catalyst":
       case "collab":
+      case "mindmap":
       case "recorder":
       case "recycle":
       case "search":
