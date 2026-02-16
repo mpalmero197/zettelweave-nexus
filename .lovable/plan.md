@@ -1,95 +1,125 @@
-
-
-# Changelog Timeline -- Landing Page Addition
+# Vault Import System -- Complete Overhaul
 
 ## Overview
 
-Add a beautiful, clean changelog page accessible from the landing page footer (next to "Terms"), displaying a vertical timeline of all PendragonX updates derived from the project's migration history and feature milestones.
+Merge the two separate import dialogs (EnhancedImportDialog + VaultImportDialog) into a single, unified **Import Studio** that consolidates all import methods into one powerful interface with better UX, more source types, actual link resolution, and a post-import summary report.
 
-## Changelog Data
+## Current Problems
 
-Based on database migration timestamps and feature development history:
+- **Two separate dialogs** that overlap in functionality and confuse users
+- **PDF import is a placeholder** -- just shows "requires server-side processing"
+- **No link resolution** -- wikilinks are extracted but never resolved to actual card IDs after import
+- **No Roam Research support** -- mentioned in changelog but not implemented
+- **No structured data import** -- no CSV/JSON support for bulk data
+- **No folder structure awareness** -- Obsidian folder hierarchy is thrown away
+- **No import summary report** -- user has no idea what happened after import
+- **No drag-and-drop for folders** -- only file picker button
+- **Duplicate detection between the two dialogs is inconsistent** -- different algorithms
 
-| Date | Update |
-|------|--------|
-| Sep 2, 2025 | **Project Launch** -- Core Zettelkasten card system, notes, notebooks, and authentication |
-| Sep 7, 2025 | **Database Foundation** -- User preferences, profiles, file storage, and RLS security policies |
-| Sep 26, 2025 | **Knowledge Graph** -- 2D/3D graph visualization, card linking, and Dewey/Luhmann organization |
-| Sep 27, 2025 | **Calendar & Events** -- Calendar integration linked to cards and notes |
-| Sep 29, 2025 | **AI Search** -- Vector embeddings and semantic search across knowledge base |
-| Oct 1, 2025 | **File Manager** -- Document uploads (PDF, DOCX, XLSX) with built-in viewer |
-| Oct 2, 2025 | **Recycle Bin** -- Soft-delete with configurable auto-cleanup (7/15/30/60 days) |
-| Oct 3, 2025 | **AI Assistant** -- Context-aware AI chat using your own notes |
-| Oct 5, 2025 | **Whiteboard** -- Infinite canvas with drawing tools, shapes, and sticky notes |
-| Oct 7, 2025 | **Audio & Recording** -- Meeting recorder with AI transcription |
-| Oct 18, 2025 | **Bullet Journal & Habits** -- Daily planning and habit tracking with streaks |
-| Oct 20, 2025 | **Dashboard Widgets** -- Customizable drag-and-drop dashboard with 15+ widgets |
-| Oct 24, 2025 | **Admin Panel** -- User management, content monitoring, security audit logs |
-| Oct 25, 2025 | **Catalyst Writing Platform** -- Long-form writing with hierarchical chapters |
-| Oct 26, 2025 | **Catalyst AI Tools** -- AI chapter generation, citation management, writing goals, export (PDF/DOCX/EPUB) |
-| Oct 29, 2025 | **Mobile Optimization** -- Touch-optimized whiteboard, responsive layouts, PWA support |
-| Nov 2, 2025 | **Theme System** -- 8 theme options with live preview and performance preferences |
-| Nov 10, 2025 | **Encryption & Security** -- End-to-end encryption toggle, security activity log |
-| Nov 11, 2025 | **Smart Linking** -- AI-powered content recommendations and similar content detection |
-| Nov 24, 2025 | **Import System** -- Obsidian vault, Notion, Roam Research, and markdown import |
-| Nov 25, 2025 | **Offline Mode** -- Intelligent caching, offline data manager, PWA install prompt |
-| Dec 8, 2025 | **Workflow Automation** -- Automated workflows and agent pipeline builder |
-| Dec 16, 2025 | **Landing Page Redesign** -- SEO optimization, FAQ schema, Open Graph images |
-| Dec 20, 2025 | **Friends & Collaboration** -- Chat, contact sidebar, collaborative studio |
-| Feb 5, 2026 | **Account Management Overhaul** -- Avatar editor, profile settings, debug logs |
-| Feb 6, 2026 | **Subscription System** -- Stripe integration, premium tiers, card limits |
-| Feb 9, 2026 | **Agents Feature** -- AI agent creation, pipeline builder, activity feed |
-| Feb 11, 2026 | **Agent Command Center** -- Fleet dashboard with SVG status rings and unified timeline |
-| Feb 15, 2026 | **Persistent Navigation** -- Shared AppLayout with consistent header/sidebar across all pages |
-| Feb 16, 2026 | **Mind Map Studio** -- XMind-style mind mapping with minimap, 3 layout modes, context menus, and organic branches |
-| Feb 16, 2026 | **Online/Offline Indicator** -- Green/amber status dot with pulse animation in header |
+## New Unified Architecture
 
-## Design
+Replace both `EnhancedImportDialog` and `VaultImportDialog` with a single `ImportStudio` component.
 
-A dedicated `/changelog` page with a vertical timeline:
+```text
++------------------------------------------------------------------+
+|  Import Studio                                                    |
++------------------------------------------------------------------+
+|  [Files] [URL] [Clipboard] [Obsidian] [Notion] [Roam] [CSV/JSON] |
++------------------------------------------------------------------+
+|                                                                   |
+|  (Source-specific UI)                                             |
+|                                                                   |
+|  Options:                                                        |
+|  [x] Check duplicates  [x] Resolve wikilinks  [ ] Quick import  |
+|                                                                   |
++------------------------------------------------------------------+
+|  [Import] or [Review First]                                      |
++------------------------------------------------------------------+
 
-- Left side: Date pill (month + day + year)
-- Center: Vertical line with dot connectors (primary color dot at each entry)
-- Right side: Title (bold) + short description
-- Alternating subtle background tints per year for visual grouping
-- Scroll-animated entrance (staggered fade-in like the existing landing page sections)
-- Mobile: Single-column layout with date above each entry
+After import:
++------------------------------------------------------------------+
+|  Import Summary                                                  |
+|  32 cards created | 5 links resolved | 2 duplicates skipped      |
+|  [View Cards] [Import More] [Close]                              |
++------------------------------------------------------------------+
+```
 
 ## File Changes
 
-### 1. New file: `src/pages/Changelog.tsx`
+### 1. New file: `src/components/ImportStudio.tsx`
 
-A standalone page matching the landing page style (same header, footer, scroll animations). Contains:
-- The timeline data array
-- A vertical timeline component with dots, connecting lines, and staggered animations
-- Responsive layout (side-by-side on desktop, stacked on mobile)
-- Same Pendragon branding header as Landing page
-- Footer with same links
+The single unified import component (~800 lines). Key sections:
 
-### 2. Edit: `src/App.tsx`
+**Source tabs** (7 tabs):
 
-Add a lazy-loaded route for `/changelog`:
+- **Files**: Drag-and-drop zone + file picker (from EnhancedImportDialog). Supports MD, TXT, DOCX, PDF, images.
+- **URL**: Single URL + batch URL mode (from EnhancedImportDialog)
+- **Clipboard**: Paste text with optional title (from EnhancedImportDialog)
+- **Obsidian**: Folder picker with `webkitdirectory` for vault import. Processes `.md` files, extracts `#tags`, resolves `[[wikilinks]]`, preserves folder path as metadata.
+- **Notion**: Folder picker for Notion Markdown+CSV export. Cleans Notion-specific link formatting.
+- **Roam Research**: JSON file upload. Parses Roam's JSON export format (`[{title, children: [{string, children}]}]`), flattens nested bullet structure into markdown, extracts `[[page references]]` and `#tags`.
+- **CSV/JSON**: Upload CSV or JSON files. Auto-detects columns/fields. User maps columns to card fields (title, content, tags, category) via dropdowns. Preview table before import.
+
+**Review step** (enhanced from VaultImportDialog's preview):
+
+- Unified file list with category badges, keyword tags, and content preview
+- Search and filter by category
+- Bulk category assignment
+- Select/deselect all
+- Per-file category and tag editing
+- Duplicate indicators with similarity scores
+
+**Wikilink resolution** (new):
+After all cards are created, a post-processing pass matches `[[Page Name]]` references in card content to the titles of other imported cards, and populates the `linkedCards` array with the resolved card IDs. This turns extracted wikilinks into actual PendragonX card links.
+
+**Import summary report** (new):
+A completion screen showing:
+
+- Cards created count
+- Links resolved count
+- Duplicates skipped count
+- Errors encountered (with file names)
+- Category distribution breakdown (mini bar chart)
+- Button to view imported cards, import more, or close
+
+**Roam Research JSON parser** (inline helper):
+
 ```
-const Changelog = lazy(() => import("./pages/Changelog"));
-// Route: <Route path="/changelog" element={...} />
-```
-
-### 3. Edit: `src/pages/Landing.tsx`
-
-Add a "Changelog" link in the footer nav (line 406-412), next to "Terms":
-```
-<button onClick={() => navigate('/changelog')} className="hover:text-foreground transition-colors">Changelog</button>
-```
-
-Also add "Changelog" to the landing page header nav for discoverability.
-
-### 4. Minimal CSS in `src/index.css`
-
-One utility class for the timeline connector line:
-```css
-.changelog-line {
-  width: 2px;
-  background: linear-gradient(to bottom, hsl(var(--primary)), hsl(var(--border)));
+function parseRoamJSON(json): ParsedFile[] {
+  // Roam exports as [{title, children: [{string, children}]}]
+  // Flatten each page's nested bullets into markdown with indentation
+  // Extract [[references]] and #tags
 }
 ```
 
+**CSV/JSON parser** (inline helper):
+
+```
+function parseCSV(text): {headers: string[], rows: string[][]}
+function parseJSON(text): {fields: string[], records: object[]}
+// User maps fields to: title, content, description, tags, category
+```
+
+### 2. Edit: `src/pages/Index.tsx`
+
+- Remove imports of both `EnhancedImportDialog` and `VaultImportDialog`
+- Add import for `ImportStudio`
+- Replace the two separate dropdown menu items with a single "Import" item that opens `ImportStudio`
+- Pass `existingCards` and `onImportCards` props (same interface)
+
+### 3. Edit: `src/components/ImportDialog.tsx`
+
+- Update the re-export to point to `ImportStudio` instead of `EnhancedImportDialog`
+
+### 4. Keep existing files
+
+- `EnhancedImportDialog.tsx` and `VaultImportDialog.tsx` remain in the codebase for backward compatibility but are no longer used from Index.tsx
+- `ImportHistoryPanel.tsx` continues to be used within ImportStudio's History tab
+
+## Technical Details
+
+- **No new dependencies**: CSV parsing done with simple `split()` logic (no papaparse needed). Roam JSON is standard `JSON.parse()`.
+- **Backward compatible**: `ImportStudio` accepts the same `onImportCards` callback. Existing card creation logic unchanged.
+- **Wikilink resolution algorithm**: After import, iterate all new cards. For each `[[link text]]` found in content, search all new cards for a matching title (case-insensitive). If found, add to `linkedCards` array. This is O(n*m) but bounded by the number of wikilinks per card (capped at 50).
+- **CSV field mapping**: User sees a preview table (first 5 rows) and selects which column maps to title, content, tags (comma-separated), and category. Unmapped columns are appended to content as key-value pairs.
+- **Folder path preservation**: For Obsidian/Notion imports, the relative folder path is stored as a tag (e.g., `folder:Projects/Research`) so users can filter by original structure.
