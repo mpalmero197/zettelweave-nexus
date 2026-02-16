@@ -81,6 +81,7 @@ const Agents = lazy(() => import("./pages/Agents"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Changelog = lazy(() => import("./pages/Changelog"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -175,6 +176,12 @@ const App = () => (
                     <PrivacyPolicy />
                   </Suspense>
                 } />
+                <Route path="/changelog" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Changelog />
+                  </Suspense>
+                } />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={
                   <Suspense fallback={<LoadingFallback message="Loading page..." />}>
