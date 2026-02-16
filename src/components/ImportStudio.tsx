@@ -62,6 +62,8 @@ interface ImportStudioProps {
   existingCards: ZettelCard[];
   onImportCards: (cards: Omit<ZettelCard, "id" | "created" | "modified">[]) => void;
   trigger?: React.ReactNode;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 interface ParsedItem {
@@ -212,9 +214,11 @@ const parseRoamJSON = (json: any[]): ParsedItem[] => {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function ImportStudio({ existingCards, onImportCards, trigger }: ImportStudioProps) {
+export function ImportStudio({ existingCards, onImportCards, trigger, externalOpen, onExternalOpenChange }: ImportStudioProps) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
   const [step, setStep] = useState<ImportStep>("source");
   const [sourceTab, setSourceTab] = useState<SourceTab>("files");
   const [items, setItems] = useState<ParsedItem[]>([]);
@@ -266,7 +270,11 @@ export function ImportStudio({ existingCards, onImportCards, trigger }: ImportSt
   }, []);
 
   const handleOpenChange = (o: boolean) => {
-    setOpen(o);
+    if (isControlled) {
+      onExternalOpenChange?.(o);
+    } else {
+      setInternalOpen(o);
+    }
     if (!o) resetState();
   };
 
@@ -684,14 +692,16 @@ export function ImportStudio({ existingCards, onImportCards, trigger }: ImportSt
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="sm" className="w-full justify-start text-sm gap-2">
-            <Upload className="h-3.5 w-3.5" />
-            Import Studio
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button variant="ghost" size="sm" className="w-full justify-start text-sm gap-2">
+              <Upload className="h-3.5 w-3.5" />
+              Import Studio
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

@@ -63,7 +63,8 @@ import {
   List,
   ArrowUpDown,
   MoreHorizontal,
-  Star
+  Star,
+  Upload
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -115,6 +116,7 @@ const Index = () => {
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
   const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
+  const [showImportStudio, setShowImportStudio] = useState(false);
 
   // Helper to check if a card is "new" (created within last 24 hours)
   const isNewCard = (card: ZettelCardType) => {
@@ -472,7 +474,9 @@ const Index = () => {
                       {showNewCardsOnly ? "Show All" : `New Cards${newCardsCount > 0 ? ` (${newCardsCount})` : ""}`}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}><ImportStudio existingCards={cards} onImportCards={handleImportCards} /></div></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowImportStudio(true)}>
+                      <Upload className="mr-2 h-3.5 w-3.5" />Import Studio
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => exportToPDF(filteredCards)}>
                       <Download className="mr-2 h-3.5 w-3.5" />Export PDF
                     </DropdownMenuItem>
@@ -883,6 +887,13 @@ const Index = () => {
         currentCardId={smartLinkingCardId}
         allCards={cards}
         onLinkAccepted={handleAcceptLink}
+      />
+      
+      <ImportStudio
+        existingCards={cards}
+        onImportCards={handleImportCards}
+        externalOpen={showImportStudio}
+        onExternalOpenChange={setShowImportStudio}
       />
       
       <Footer />
