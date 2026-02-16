@@ -20,93 +20,42 @@ serve(async (req) => {
       });
     }
 
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!PERPLEXITY_API_KEY || !LOVABLE_API_KEY) {
-      console.error("Missing API keys");
+    if (!LOVABLE_API_KEY) {
+      console.error("Missing LOVABLE_API_KEY");
       return new Response(JSON.stringify({ error: "Server configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Step 1: Research with Perplexity
-    console.log("Researching subject:", subject);
-    const perplexityRes = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a research assistant. Provide comprehensive, well-organized information about the given subject. Cover the main topics, subtopics, and key details. Use clear headings and bullet points. Be thorough but concise.",
-          },
-          {
-            role: "user",
-            content: `Research the following subject thoroughly and provide well-organized information covering all major aspects, subtopics, and key details: "${subject.trim()}"`,
-          },
-        ],
-        max_tokens: 2000,
-      }),
-    });
+    console.log("Generating mind map for:", subject.trim());
 
-    if (!perplexityRes.ok) {
-      const status = perplexityRes.status;
-      console.error("Perplexity error:", status);
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "Research service error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const perplexityData = await perplexityRes.json();
-    const research = perplexityData.choices?.[0]?.message?.content;
-    if (!research) {
-      return new Response(JSON.stringify({ error: "No research results returned" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log("Research complete, structuring mind map...");
-
-    // Step 2: Structure with Lovable AI Gateway using tool calling
-    const structureRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "system",
-            content: `You are a mind map structuring expert. Given research content about a subject, organize it into a hierarchical mind map structure. Rules:
+            content: `You are a mind map expert with deep knowledge across all subjects. Given a subject, create a comprehensive, well-researched mind map structure covering all major aspects. Rules:
 - The root node is the main subject
 - Create 4-8 main branches (major topics)
-- Each branch should have 2-5 sub-items
+- Each branch should have 2-5 sub-items with specific, useful details
 - Maximum depth is 3 levels (root -> branch -> sub-item)
 - Keep node text concise (2-6 words max)
 - Add a relevant emoji to each node for visual clarity
 - Total nodes should not exceed 50
+- Include real, accurate information — not generic placeholders
 - Make the structure logical and easy to understand`,
           },
           {
             role: "user",
-            content: `Structure this research into a mind map about "${subject.trim()}":\n\n${research}`,
+            content: `Create a detailed, well-researched mind map about: "${subject.trim()}"`,
           },
         ],
         tools: [
@@ -114,7 +63,7 @@ serve(async (req) => {
             type: "function",
             function: {
               name: "create_mind_map",
-              description: "Create a structured mind map from research content",
+              description: "Create a structured mind map with researched content",
               parameters: {
                 type: "object",
                 properties: {
@@ -160,8 +109,8 @@ serve(async (req) => {
       }),
     });
 
-    if (!structureRes.ok) {
-      const status = structureRes.status;
+    if (!response.ok) {
+      const status = response.status;
       console.error("AI Gateway error:", status);
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
@@ -175,16 +124,16 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "AI structuring service error" }), {
+      return new Response(JSON.stringify({ error: "AI service error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const structureData = await structureRes.json();
-    const toolCall = structureData.choices?.[0]?.message?.tool_calls?.[0];
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "create_mind_map") {
-      console.error("Unexpected AI response structure:", JSON.stringify(structureData));
+      console.error("Unexpected AI response:", JSON.stringify(data));
       return new Response(JSON.stringify({ error: "Failed to structure mind map" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -202,7 +151,7 @@ serve(async (req) => {
       });
     }
 
-    console.log("Mind map structured successfully:", mindMapData.root.text, "with", mindMapData.branches?.length, "branches");
+    console.log("Mind map generated:", mindMapData.root.text, "with", mindMapData.branches?.length, "branches");
 
     return new Response(JSON.stringify(mindMapData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
