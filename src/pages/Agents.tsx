@@ -7,10 +7,8 @@ import { AgentPipelineBuilder, Pipeline, PipelineStep } from '@/components/agent
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Bot, GitBranch, LayoutDashboard } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bot, GitBranch, LayoutDashboard } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import pendragonLogo from '@/assets/pendragon-logo.png';
 import { toast } from 'sonner';
 
 type AgentView = 'command-center' | 'pipelines';
@@ -62,26 +60,21 @@ export default function Agents() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Compact header */}
-      <header className="h-12 border-b bg-background/95 backdrop-blur sticky top-0 z-50 flex items-center px-4 gap-3">
-        <Link to="/">
-          <img src={pendragonLogo} alt="Pendragon" className="h-7 w-7" />
-        </Link>
-        <div className="h-5 w-px bg-border" />
+    <div className="flex flex-col">
+      {/* Sub-header with view tabs */}
+      <div className="border-b bg-background/95 backdrop-blur flex items-center px-4 py-2 gap-3">
         <div className="flex items-center gap-1.5">
           <Bot className="h-4 w-4 text-primary" />
           <span className="font-semibold text-sm">Command Center</span>
         </div>
 
-        {/* Tab navigation */}
         <div className="flex items-center gap-1 ml-4">
           <Button
             variant={currentView === 'command-center' ? 'secondary' : 'ghost'}
@@ -102,15 +95,7 @@ export default function Agents() {
             Pipelines
           </Button>
         </div>
-
-        <div className="flex-1" />
-        <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-          <Link to="/">
-            <ArrowLeft className="h-3 w-3 mr-1" />
-            Dashboard
-          </Link>
-        </Button>
-      </header>
+      </div>
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-6">

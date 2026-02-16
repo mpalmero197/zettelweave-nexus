@@ -47,7 +47,7 @@ export default function Subscription() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="bg-background p-6">
       <SEOHead 
         title="Subscription - PendragonX"
         description="Manage your PendragonX subscription and billing. Upgrade to Premium for unlimited cards, AI features, and more."
@@ -133,10 +133,6 @@ export default function Subscription() {
                   Manage Billing
                 </Button>
               )}
-              
-              <Button onClick={() => navigate('/')} variant="outline">
-                Back to Home
-              </Button>
             </div>
           </CardContent>
         </Card>
