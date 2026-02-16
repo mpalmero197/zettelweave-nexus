@@ -1,6 +1,6 @@
-// Re-export the enhanced import dialog as the default ImportDialog
-// This provides backward compatibility while using the new enhanced version
-export { EnhancedImportDialog as ImportDialog } from "./EnhancedImportDialog";
+// Re-export the unified Import Studio as the default ImportDialog
+// This provides backward compatibility while using the new unified version
+export { ImportStudio as ImportDialog } from "./ImportStudio";
 
 // The original SimpleImportDialog is kept below for reference only
 import { useState } from "react";

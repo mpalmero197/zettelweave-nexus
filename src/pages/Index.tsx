@@ -8,8 +8,7 @@ import { AISearchBar } from "@/components/AISearchBar";
 import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
-import { VaultImportDialog } from "@/components/VaultImportDialog";
-import { EnhancedImportDialog } from "@/components/EnhancedImportDialog";
+import { ImportStudio } from "@/components/ImportStudio";
 import { GraphView } from "@/components/GraphViewNew";
 import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
@@ -473,8 +472,7 @@ const Index = () => {
                       {showNewCardsOnly ? "Show All" : `New Cards${newCardsCount > 0 ? ` (${newCardsCount})` : ""}`}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}><EnhancedImportDialog existingCards={cards} onImportCards={handleImportCards} /></div></DropdownMenuItem>
-                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}><VaultImportDialog onImportCards={handleImportCards} /></div></DropdownMenuItem>
+                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}><ImportStudio existingCards={cards} onImportCards={handleImportCards} /></div></DropdownMenuItem>
                     <DropdownMenuItem onClick={() => exportToPDF(filteredCards)}>
                       <Download className="mr-2 h-3.5 w-3.5" />Export PDF
                     </DropdownMenuItem>
