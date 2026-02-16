@@ -74,6 +74,7 @@ import HabitTracker from "@/components/HabitTracker";
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
 const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"));
 const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
+const MindMap = lazy(() => import("@/components/MindMap"));
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -725,6 +726,12 @@ const Index = () => {
                       </Button>
                     </div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="mindmap" className="mt-0">
+                  <Suspense fallback={<FastLoadingFallback message="Loading mind map..." />}>
+                    <MindMap />
+                  </Suspense>
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">

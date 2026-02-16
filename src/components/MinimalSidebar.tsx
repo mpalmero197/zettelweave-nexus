@@ -8,6 +8,7 @@ import {
   BookOpen,
   FolderOpen,
   Palette,
+  GitBranch,
   CalendarIcon,
   StickyNote,
   Target,
@@ -74,6 +75,7 @@ export function MinimalSidebar({
           <Separator className="my-2" />
           
           <NavButton tab="whiteboard" icon={Palette} label="Whiteboard" />
+          <NavButton tab="mindmap" icon={GitBranch} label="Mind Map" />
           
           <Separator className="my-2" />
           
