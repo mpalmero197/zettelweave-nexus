@@ -37,7 +37,7 @@ const changelogData = [
   { date: "Feb 9, 2026", title: "Agents Feature", description: "AI agent creation, pipeline builder, activity feed" },
   { date: "Feb 11, 2026", title: "Agent Command Center", description: "Fleet dashboard with SVG status rings and unified timeline" },
   { date: "Feb 15, 2026", title: "Persistent Navigation", description: "Shared AppLayout with consistent header/sidebar across all pages" },
-  { date: "Feb 16, 2026", title: "Mind Map Studio", description: "XMind-style mind mapping with minimap, 3 layout modes, context menus, and organic branches" },
+  { date: "Feb 16, 2026", title: "Mind Map Studio", description: "Premium mind mapping with minimap, 3 layout modes, context menus, and organic branches" },
   { date: "Feb 16, 2026", title: "Online/Offline Indicator", description: "Green/amber status dot with pulse animation in header" },
 ];
 
