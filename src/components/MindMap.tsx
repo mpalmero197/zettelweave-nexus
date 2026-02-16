@@ -5,14 +5,19 @@ import {
   Plus, Trash2, ZoomIn, ZoomOut, Maximize2, Download, ChevronDown,
   Undo2, Redo2, Palette, RotateCcw, GitBranch, Search, X, ChevronUp,
   ChevronRight, Copy, Edit3, Star, AlertCircle, Smile, StickyNote,
-  Map, Layout, Network, Building2
+  Map, Layout, Network, Building2, Sparkles, Loader2
 } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub,
   ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger,
   ContextMenuSeparator
 } from '@/components/ui/context-menu';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── Types ────────────────────────────────────────────────────
 type Priority = 'none' | 'low' | 'medium' | 'high';
@@ -268,6 +273,11 @@ export default function MindMap() {
 
   // Minimap
   const [minimapOpen, setMinimapOpen] = useState(true);
+
+  // AI Generate
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiSubject, setAiSubject] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Drag
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -572,6 +582,72 @@ export default function MindMap() {
     setHintsDismissed(true);
     localStorage.setItem(HINTS_KEY, '1');
   }, []);
+
+  // ── AI Generate ──
+  const aiGenerateMindMap = useCallback(async () => {
+    if (!aiSubject.trim()) return;
+    setAiLoading(true);
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('generate-mindmap', {
+        body: { subject: aiSubject.trim() },
+      });
+
+      if (fnError) throw new Error(fnError.message || 'Failed to generate mind map');
+      if (fnData?.error) throw new Error(fnData.error);
+
+      const { root, branches } = fnData;
+      if (!root || !branches?.length) throw new Error('Invalid response structure');
+
+      // Convert AI result to MindMapData
+      const rootId = uid();
+      const nodes: Record<string, MindMapNode> = {};
+      nodes[rootId] = {
+        id: rootId, text: root.text || aiSubject.trim(), children: [], collapsed: false,
+        color: BRANCH_COLORS[0], x: 0, y: 0, parentId: null, emoji: root.emoji || '🧠', note: '', priority: 'none',
+      };
+
+      for (let i = 0; i < branches.length && i < 8; i++) {
+        const branch = branches[i];
+        const branchId = uid();
+        const branchColor = BRANCH_COLORS[i % BRANCH_COLORS.length];
+        nodes[branchId] = {
+          id: branchId, text: branch.text, children: [], collapsed: false,
+          color: branchColor, x: 0, y: 0, parentId: rootId, emoji: branch.emoji || '', note: '', priority: 'none',
+        };
+        nodes[rootId].children.push(branchId);
+
+        if (branch.children) {
+          for (let j = 0; j < branch.children.length && j < 5; j++) {
+            const child = branch.children[j];
+            const childId = uid();
+            nodes[childId] = {
+              id: childId, text: child.text, children: [], collapsed: false,
+              color: branchColor, x: 0, y: 0, parentId: branchId, emoji: child.emoji || '', note: '', priority: 'none',
+            };
+            nodes[branchId].children.push(childId);
+          }
+        }
+      }
+
+      const newData: MindMapData = { rootId, nodes };
+      pushHistory(data);
+      const laid = layoutTree(newData, layoutMode);
+      setData(laid);
+      setSelectedId(null);
+      setEditingId(null);
+      setAiDialogOpen(false);
+      setAiSubject('');
+
+      // Fit to screen after render
+      setTimeout(() => fitToScreen(), 100);
+      toast.success(`Mind map generated with ${Object.keys(nodes).length} nodes`);
+    } catch (err: any) {
+      console.error('AI mind map error:', err);
+      toast.error(err.message || 'Failed to generate mind map');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiSubject, data, pushHistory, layoutMode, fitToScreen]);
 
   // ── Drag to rearrange ──
   const handleNodeDragStart = useCallback((nodeId: string, e: React.PointerEvent) => {
@@ -969,6 +1045,9 @@ export default function MindMap() {
         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={resetMap}>
           New
         </Button>
+        <Button variant="default" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setAiDialogOpen(true)}>
+          <Sparkles className="h-3 w-3 mr-1" />AI Generate
+        </Button>
       </div>
 
       {/* Canvas */}
@@ -1148,6 +1227,60 @@ export default function MindMap() {
           </div>
         )}
       </div>
+
+      {/* AI Generate Dialog */}
+      <Dialog open={aiDialogOpen} onOpenChange={(open) => { if (!aiLoading) setAiDialogOpen(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Mind Map Generator
+            </DialogTitle>
+            <DialogDescription>
+              Enter a subject and AI will research it online and create a structured mind map.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Input
+              placeholder="e.g. Part 107 exam preparation"
+              value={aiSubject}
+              onChange={(e) => setAiSubject(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !aiLoading && aiSubject.trim()) aiGenerateMindMap(); }}
+              disabled={aiLoading}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {['Part 107 exam prep', 'Machine Learning basics', 'Project management', 'React architecture', 'Startup funding'].map(s => (
+                <button
+                  key={s}
+                  className="px-2.5 py-1 text-xs rounded-full bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setAiSubject(s)}
+                  disabled={aiLoading}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAiDialogOpen(false)} disabled={aiLoading}>
+              Cancel
+            </Button>
+            <Button onClick={aiGenerateMindMap} disabled={aiLoading || !aiSubject.trim()}>
+              {aiLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  Researching…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  Generate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
