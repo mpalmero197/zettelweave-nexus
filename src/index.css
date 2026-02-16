@@ -633,3 +633,61 @@ select:focus-visible,
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
+
+/* --- Mind Map Studio --- */
+
+.mindmap-node-glow {
+  animation: mindmapGlow 3s ease-in-out infinite;
+}
+
+@keyframes mindmapGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 14px currentColor);
+  }
+}
+
+.mindmap-action-ring button {
+  animation: mindmapActionIn 0.15s ease-out both;
+}
+
+.mindmap-action-ring button:nth-child(1) { animation-delay: 0s; }
+.mindmap-action-ring button:nth-child(2) { animation-delay: 0.03s; }
+.mindmap-action-ring button:nth-child(3) { animation-delay: 0.06s; }
+
+@keyframes mindmapActionIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.mindmap-minimap {
+  background: hsl(var(--card) / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 6px;
+  box-shadow: 0 4px 16px hsl(var(--card-shadow));
+}
+
+.mindmap-search-highlight {
+  animation: mindmapSearchPulse 1.5s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes mindmapSearchPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px hsl(45, 90%, 55%, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 5px hsl(45, 90%, 55%, 0.2);
+  }
+}
