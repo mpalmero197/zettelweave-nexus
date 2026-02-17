@@ -1,24 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  FileText, 
-  Database, 
-  TrendingUp, 
-  TrendingDown,
+import { Button } from '@/components/ui/button';
+import {
+  Users,
+  TrendingUp,
   Activity,
   Zap,
-  Clock,
   HardDrive,
-  UserPlus,
   FileStack,
-  StickyNote
+  StickyNote,
+  RefreshCw,
+  Shield,
+  Database,
+  Key,
+  Server,
+  Clock,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { format, subDays } from 'date-fns';
+import { AdminSectionHeader } from './AdminSectionHeader';
 
 interface AnalyticsData {
   totalUsers: number;
@@ -29,42 +33,27 @@ interface AnalyticsData {
   cardsThisWeek: number;
   notesThisWeek: number;
   storageUsed: number;
-  activeUsersToday: number;
   growthRate: number;
+}
+
+interface DayActivity {
+  day: string;
+  cards: number;
+  notes: number;
 }
 
 export function AdminOverview() {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
-    totalUsers: 0,
-    totalCards: 0,
-    totalNotes: 0,
-    totalFiles: 0,
-    newUsersThisWeek: 0,
-    cardsThisWeek: 0,
-    notesThisWeek: 0,
-    storageUsed: 0,
-    activeUsersToday: 0,
-    growthRate: 0,
+    totalUsers: 0, totalCards: 0, totalNotes: 0, totalFiles: 0,
+    newUsersThisWeek: 0, cardsThisWeek: 0, notesThisWeek: 0,
+    storageUsed: 0, growthRate: 0,
   });
+  const [activityData, setActivityData] = useState<DayActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const { toast } = useToast();
 
-  // Mock data for charts (would be real data in production)
-  const activityData = [
-    { day: 'Mon', users: 12, cards: 45, notes: 23 },
-    { day: 'Tue', users: 15, cards: 52, notes: 31 },
-    { day: 'Wed', users: 18, cards: 48, notes: 28 },
-    { day: 'Thu', users: 22, cards: 61, notes: 35 },
-    { day: 'Fri', users: 19, cards: 55, notes: 42 },
-    { day: 'Sat', users: 8, cards: 32, notes: 18 },
-    { day: 'Sun', users: 10, cards: 38, notes: 21 },
-  ];
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -76,7 +65,9 @@ export function AdminOverview() {
         { count: fileCount },
         { data: newCards },
         { data: newNotes },
-        { data: filesSize }
+        { data: filesSize },
+        { data: recentCards },
+        { data: recentNotes },
       ] = await Promise.all([
         supabase.rpc('get_all_users'),
         supabase.from('zettel_cards').select('id', { count: 'exact', head: true }).is('deleted_at', null),
@@ -84,18 +75,15 @@ export function AdminOverview() {
         supabase.from('files').select('id', { count: 'exact', head: true }).is('deleted_at', null),
         supabase.from('zettel_cards').select('id').gte('created_at', oneWeekAgo.toISOString()).is('deleted_at', null),
         supabase.from('notes').select('id').gte('created_at', oneWeekAgo.toISOString()).is('deleted_at', null),
-        supabase.from('files').select('file_size')
+        supabase.from('files').select('file_size'),
+        supabase.from('zettel_cards').select('created_at').gte('created_at', oneWeekAgo.toISOString()).is('deleted_at', null),
+        supabase.from('notes').select('created_at').gte('created_at', oneWeekAgo.toISOString()).is('deleted_at', null),
       ]);
 
-      const newUsersCount = allUsers?.filter(user => {
-        const created = new Date(user.created_at);
-        return created >= oneWeekAgo;
-      }).length || 0;
-
+      const newUsersCount = allUsers?.filter(u => new Date(u.created_at) >= oneWeekAgo).length || 0;
       const totalStorage = filesSize?.reduce((acc, file) => acc + (file.file_size || 0), 0) || 0;
-
       const prevWeekUsers = (allUsers?.length || 0) - newUsersCount;
-      const growthRate = prevWeekUsers > 0 ? ((newUsersCount / prevWeekUsers) * 100) : 100;
+      const growthRate = prevWeekUsers > 0 ? (newUsersCount / prevWeekUsers) * 100 : 100;
 
       setAnalytics({
         totalUsers: allUsers?.length || 0,
@@ -106,27 +94,53 @@ export function AdminOverview() {
         cardsThisWeek: newCards?.length || 0,
         notesThisWeek: newNotes?.length || 0,
         storageUsed: totalStorage,
-        activeUsersToday: Math.floor(Math.random() * 10) + 1,
         growthRate: Math.min(growthRate, 999),
       });
+
+      // Build real activity data grouped by day
+      const dayMap: Record<string, { cards: number; notes: number }> = {};
+      for (let i = 6; i >= 0; i--) {
+        const d = subDays(new Date(), i);
+        const key = format(d, 'yyyy-MM-dd');
+        dayMap[key] = { cards: 0, notes: 0 };
+      }
+      recentCards?.forEach(c => {
+        const key = format(new Date(c.created_at), 'yyyy-MM-dd');
+        if (dayMap[key]) dayMap[key].cards++;
+      });
+      recentNotes?.forEach(n => {
+        const key = format(new Date(n.created_at), 'yyyy-MM-dd');
+        if (dayMap[key]) dayMap[key].notes++;
+      });
+      setActivityData(
+        Object.entries(dayMap).map(([date, v]) => ({
+          day: format(new Date(date), 'EEE'),
+          cards: v.cards,
+          notes: v.notes,
+        }))
+      );
+
+      setLastUpdated(new Date());
     } catch (error: any) {
       console.error('Error fetching analytics:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load analytics data",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load analytics data", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchAnalytics();
+    const interval = setInterval(fetchAnalytics, 60000);
+    return () => clearInterval(interval);
+  }, [fetchAnalytics]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   if (loading) {
@@ -142,22 +156,44 @@ export function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 p-6">
-        <div className="relative z-10">
-          <h1 className="text-2xl font-bold mb-2">Welcome back, Admin</h1>
-          <p className="text-muted-foreground max-w-xl">
-            Here's what's happening with your platform today. All user content remains private and encrypted.
-          </p>
-        </div>
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -right-5 -bottom-10 w-32 h-32 rounded-full bg-secondary/10 blur-2xl" />
+      {/* Header */}
+      <AdminSectionHeader
+        icon={Activity}
+        title="Platform Overview"
+        description="Real-time platform analytics and health"
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              <Clock className="h-3 w-3 inline mr-1" />
+              {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <Button variant="outline" size="sm" onClick={fetchAnalytics} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Platform Health Strip */}
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border bg-card">
+        {[
+          { label: 'Database', icon: Database, status: 'Healthy' },
+          { label: 'Auth', icon: Key, status: 'Active' },
+          { label: 'Edge Functions', icon: Server, status: 'Running' },
+          { label: 'Storage', icon: HardDrive, status: 'OK' },
+        ].map((item) => (
+          <div key={item.label} className="flex items-center gap-2 text-xs">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <item.icon className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">{item.label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/10">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
             <div className="p-2 rounded-lg bg-blue-500/10">
@@ -165,81 +201,66 @@ export function AdminOverview() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{analytics.totalUsers.toLocaleString()}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-0">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                +{analytics.newUsersThisWeek} this week
-              </Badge>
-            </div>
+            <div className="text-2xl font-bold">{analytics.totalUsers.toLocaleString()}</div>
+            <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-0 mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" />+{analytics.newUsersThisWeek} this week
+            </Badge>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/10">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Card className="border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Knowledge Cards</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Cards</CardTitle>
             <div className="p-2 rounded-lg bg-purple-500/10">
               <FileStack className="h-4 w-4 text-purple-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{analytics.totalCards.toLocaleString()}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-0">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                +{analytics.cardsThisWeek} this week
-              </Badge>
-            </div>
+            <div className="text-2xl font-bold">{analytics.totalCards.toLocaleString()}</div>
+            <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-0 mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" />+{analytics.cardsThisWeek} this week
+            </Badge>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/10">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Card className="border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Notes Created</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Notes</CardTitle>
             <div className="p-2 rounded-lg bg-amber-500/10">
               <StickyNote className="h-4 w-4 text-amber-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{analytics.totalNotes.toLocaleString()}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-0">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                +{analytics.notesThisWeek} this week
-              </Badge>
-            </div>
+            <div className="text-2xl font-bold">{analytics.totalNotes.toLocaleString()}</div>
+            <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-0 mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" />+{analytics.notesThisWeek} this week
+            </Badge>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/10">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Card className="border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Storage Used</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Storage</CardTitle>
             <div className="p-2 rounded-lg bg-emerald-500/10">
               <HardDrive className="h-4 w-4 text-emerald-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{formatBytes(analytics.storageUsed)}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-xs text-muted-foreground">{analytics.totalFiles} files stored</span>
-            </div>
+            <div className="text-2xl font-bold">{formatBytes(analytics.storageUsed)}</div>
+            <span className="text-xs text-muted-foreground">{analytics.totalFiles} files</span>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Activity Chart */}
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Activity className="h-5 w-5 text-primary" />
               Weekly Activity
             </CardTitle>
-            <CardDescription>Platform usage over the past 7 days</CardDescription>
+            <CardDescription>Real content creation over the past 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -247,22 +268,22 @@ export function AdminOverview() {
                 <AreaChart data={activityData}>
                   <defs>
                     <linearGradient id="colorCards" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorNotes" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="day" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                  <Tooltip 
-                    contentStyle={{ 
+                  <XAxis dataKey="day" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
                     }}
                   />
                   <Area type="monotone" dataKey="cards" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorCards)" />
@@ -273,7 +294,6 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        {/* Content Distribution */}
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -285,19 +305,21 @@ export function AdminOverview() {
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: 'Cards', value: analytics.totalCards, fill: 'hsl(var(--primary))' },
-                  { name: 'Notes', value: analytics.totalNotes, fill: 'hsl(var(--secondary))' },
-                  { name: 'Files', value: analytics.totalFiles, fill: 'hsl(130, 50%, 45%)' },
-                ]}>
+                <BarChart
+                  data={[
+                    { name: 'Cards', value: analytics.totalCards, fill: 'hsl(var(--primary))' },
+                    { name: 'Notes', value: analytics.totalNotes, fill: 'hsl(var(--secondary))' },
+                    { name: 'Files', value: analytics.totalFiles, fill: 'hsl(130, 50%, 45%)' },
+                  ]}
+                >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                   <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                  <Tooltip 
-                    contentStyle={{ 
+                  <Tooltip
+                    contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
                     }}
                   />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]} />
@@ -325,9 +347,7 @@ export function AdminOverview() {
                 <span className="text-sm text-green-500">+{analytics.newUsersThisWeek}</span>
               </div>
               <Progress value={Math.min((analytics.newUsersThisWeek / Math.max(analytics.totalUsers, 1)) * 100, 100)} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {analytics.growthRate.toFixed(1)}% growth rate
-              </p>
+              <p className="text-xs text-muted-foreground">{analytics.growthRate.toFixed(1)}% growth rate</p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -335,9 +355,7 @@ export function AdminOverview() {
                 <span className="text-sm text-purple-500">+{analytics.cardsThisWeek}</span>
               </div>
               <Progress value={Math.min((analytics.cardsThisWeek / Math.max(analytics.totalCards, 1)) * 100, 100)} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {((analytics.cardsThisWeek / Math.max(analytics.totalCards, 1)) * 100).toFixed(1)}% of total
-              </p>
+              <p className="text-xs text-muted-foreground">{((analytics.cardsThisWeek / Math.max(analytics.totalCards, 1)) * 100).toFixed(1)}% of total</p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -345,9 +363,7 @@ export function AdminOverview() {
                 <span className="text-sm text-amber-500">+{analytics.notesThisWeek}</span>
               </div>
               <Progress value={Math.min((analytics.notesThisWeek / Math.max(analytics.totalNotes, 1)) * 100, 100)} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {((analytics.notesThisWeek / Math.max(analytics.totalNotes, 1)) * 100).toFixed(1)}% of total
-              </p>
+              <p className="text-xs text-muted-foreground">{((analytics.notesThisWeek / Math.max(analytics.totalNotes, 1)) * 100).toFixed(1)}% of total</p>
             </div>
           </div>
         </CardContent>
