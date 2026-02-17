@@ -1509,7 +1509,6 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
 
       {/* Save As Dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
