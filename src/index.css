@@ -697,3 +697,30 @@ select:focus-visible,
   width: 2px;
   background: linear-gradient(to bottom, hsl(var(--primary)), hsl(var(--border)));
 }
+
+/* Mobile touch target improvements */
+.mobile [role="menuitem"],
+.mobile [data-radix-collection-item] {
+  min-height: 44px;
+}
+
+.mobile [data-radix-dropdown-menu-content],
+.mobile [data-radix-select-content] {
+  z-index: 60;
+}
+
+/* Swipe transition */
+.tab-swipe-enter {
+  animation: tabSwipeIn 0.2s ease-out;
+}
+
+@keyframes tabSwipeIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

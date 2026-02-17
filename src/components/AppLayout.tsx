@@ -119,7 +119,7 @@ export function AppLayout() {
 
           {/* Persistent Header */}
           <header
-            className="h-11 border-b border-border bg-background sticky top-0 z-50"
+            className="h-10 md:h-11 border-b border-border bg-background sticky top-0 z-50"
             role="banner"
           >
             <div className="h-full px-2 md:px-4 flex items-center justify-between gap-2">
@@ -198,7 +198,7 @@ export function AppLayout() {
           {/* Page Content */}
           <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
 
-          <MobileNavigation isAdmin={isAdmin} />
+          <MobileNavigation isAdmin={isAdmin} activeTab={activeTab} onTabChange={handleTabChange} />
         </MobileOptimizedLayout>
       </MobileDetector>
 

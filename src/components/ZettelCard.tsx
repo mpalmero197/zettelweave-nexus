@@ -223,7 +223,7 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                  className="h-8 w-8 md:h-6 md:w-6 p-0 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreHorizontal className="h-4 w-4" />

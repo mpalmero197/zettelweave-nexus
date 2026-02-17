@@ -373,7 +373,7 @@ const Index = () => {
 
       {/* Compact AI Search Bar - Mobile Optimized */}
       {activeTab === "search" && (
-        <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
+        <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
           <div className="max-w-3xl mx-auto flex items-center gap-2">
             <div className="flex-1">
               <AISearchBar 
@@ -401,11 +401,11 @@ const Index = () => {
       )}
 
       {/* Main Content - Mobile Optimized */}
-      <main id="main-content" className="pb-16 md:pb-2 px-1.5 sm:px-2 md:px-3 relative min-h-screen" role="main">
+      <main id="main-content" className="pb-20 md:pb-2 px-2 md:px-3 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
-            <div className="sticky top-14 sm:top-20 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
+            <div className="sticky top-10 md:top-14 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
               <div className="flex items-center gap-2 max-w-7xl mx-auto">
                 {/* Create button */}
                 <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
@@ -429,17 +429,17 @@ const Index = () => {
                   variant={showFavoritesOnly ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 md:h-8 md:w-8 p-0"
                   aria-label="Show favorites only"
                 >
-                  <Star className={cn("h-3.5 w-3.5", showFavoritesOnly && "fill-primary-foreground")} />
+                  <Star className={cn("h-4 w-4 md:h-3.5 md:w-3.5", showFavoritesOnly && "fill-primary-foreground")} />
                 </Button>
 
                 {/* Sort dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Sort cards">
-                      <ArrowUpDown className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="sm" className="h-10 w-10 md:h-8 md:w-8 p-0" aria-label="Sort cards">
+                      <ArrowUpDown className="h-4 w-4 md:h-3.5 md:w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
@@ -455,17 +455,17 @@ const Index = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setCardView(cardView === "grid" ? "list" : "grid")}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 md:h-8 md:w-8 p-0"
                   aria-label="Toggle view"
                 >
-                  {cardView === "grid" ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+                  {cardView === "grid" ? <List className="h-4 w-4 md:h-3.5 md:w-3.5" /> : <LayoutGrid className="h-4 w-4 md:h-3.5 md:w-3.5" />}
                 </Button>
 
                 {/* More actions dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="More actions">
-                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="sm" className="h-10 w-10 md:h-8 md:w-8 p-0" aria-label="More actions">
+                      <MoreHorizontal className="h-4 w-4 md:h-3.5 md:w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -896,7 +896,9 @@ const Index = () => {
         onExternalOpenChange={setShowImportStudio}
       />
       
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </>
   );
 
