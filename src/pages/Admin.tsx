@@ -19,9 +19,11 @@ import { ToolTester } from '@/components/admin/ToolTester';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { Shield, AlertTriangle, Download, Cookie, Wrench, Menu, Search, RefreshCw, ChevronRight } from 'lucide-react';
+import { Shield, AlertTriangle, Download, Cookie, Wrench, Menu, Search, RefreshCw, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { exportCodebase } from '@/utils/codebaseExport';
+import { exportCodebase, type ExportResult } from '@/utils/codebaseExport';
+import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getAllAdminSections } from '@/components/admin/adminNavItems';
 
@@ -31,6 +33,12 @@ export default function Admin() {
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [activeSection, setActiveSection] = useState('overview-analytics');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportStage, setExportStage] = useState('');
+  const [exportResult, setExportResult] = useState<ExportResult | null>(null);
+  const [exportIncludeUserData, setExportIncludeUserData] = useState(true);
+  const [exportIncludeDocker, setExportIncludeDocker] = useState(true);
+  const [exportIncludeDeployScripts, setExportIncludeDeployScripts] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
@@ -77,6 +85,9 @@ export default function Admin() {
       return;
     }
     setIsExporting(true);
+    setExportProgress(0);
+    setExportStage('Starting...');
+    setExportResult(null);
     try {
       await supabase.rpc('log_security_event', {
         p_user_id: user.id,
@@ -88,8 +99,17 @@ export default function Admin() {
           source: 'admin_panel',
         },
       });
-      await exportCodebase(user.email);
-      toast({ title: "Success", description: "Site exported successfully! Check your downloads." });
+      const result = await exportCodebase(user.email, {
+        includeUserData: exportIncludeUserData,
+        includeDocker: exportIncludeDocker,
+        includeDeployScripts: exportIncludeDeployScripts,
+        onProgress: (stage, percent) => {
+          setExportStage(stage);
+          setExportProgress(percent);
+        },
+      });
+      setExportResult(result);
+      toast({ title: "Success", description: `Exported ${result.filesIncluded} files. Check your downloads.` });
     } catch (error) {
       console.error('Export error:', error);
       toast({ title: "Export Failed", description: "Failed to export codebase.", variant: "destructive" });
@@ -208,7 +228,7 @@ export default function Admin() {
             <AdminSectionHeader
               icon={Download}
               title="Export & Backup"
-              description="Download your complete site codebase"
+              description="Download your complete site codebase with full deployment instructions"
               actions={
                 <Button onClick={handleExportCodebase} disabled={isExporting} className="gap-2">
                   <Download className="h-4 w-4" />
@@ -217,6 +237,78 @@ export default function Admin() {
               }
             />
 
+            {/* Progress bar */}
+            {isExporting && (
+              <Card className="border-primary/20">
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{exportStage}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{exportProgress}%</span>
+                  </div>
+                  <Progress value={exportProgress} className="h-2" />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Export result summary */}
+            {exportResult && !isExporting && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Export completed successfully</p>
+                      <p className="text-xs text-muted-foreground">
+                        {exportResult.filesIncluded} files packaged · {exportResult.filesSkipped.length} skipped · {(exportResult.totalSize / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                      {exportResult.filesSkipped.length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                            View {exportResult.filesSkipped.length} skipped files
+                          </summary>
+                          <ul className="mt-1 text-xs text-muted-foreground space-y-0.5 max-h-32 overflow-auto">
+                            {exportResult.filesSkipped.map((f, i) => <li key={i} className="font-mono">{f}</li>)}
+                          </ul>
+                        </details>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Export options */}
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Export Options</CardTitle>
+                <CardDescription>Choose what to include in the export package</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <Checkbox checked={exportIncludeUserData} onCheckedChange={(v) => setExportIncludeUserData(!!v)} />
+                  <div>
+                    <p className="text-sm font-medium">Include user data</p>
+                    <p className="text-xs text-muted-foreground">Export database rows via edge function</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <Checkbox checked={exportIncludeDocker} onCheckedChange={(v) => setExportIncludeDocker(!!v)} />
+                  <div>
+                    <p className="text-sm font-medium">Include Docker config</p>
+                    <p className="text-xs text-muted-foreground">docker-compose, Dockerfile, nginx config</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <Checkbox checked={exportIncludeDeployScripts} onCheckedChange={(v) => setExportIncludeDeployScripts(!!v)} />
+                  <div>
+                    <p className="text-sm font-medium">Include deployment scripts</p>
+                    <p className="text-xs text-muted-foreground">Bash and Windows setup scripts</p>
+                  </div>
+                </label>
+              </CardContent>
+            </Card>
+
+            {/* What's included */}
             <Card className="border-primary/10">
               <CardHeader>
                 <CardTitle>What's Included</CardTitle>
@@ -225,16 +317,16 @@ export default function Admin() {
               <CardContent>
                 <ul className="space-y-3">
                   {[
-                    'Complete source code (all React components, hooks, utilities)',
-                    'Configuration files (Vite, Tailwind, TypeScript, etc.)',
-                    'Supabase backend functions and database schema',
-                    'Package.json with all dependencies',
-                    'Deployment instructions and README',
+                    'All React components, hooks, utilities, and pages (~250 files)',
+                    'Configuration files (Vite, Tailwind, TypeScript, ESLint)',
+                    'All Supabase edge functions (30+ functions)',
+                    'Complete database schema with RLS policies and functions',
+                    'Package.json with synced dependency versions',
+                    'Comprehensive README with Vercel, Netlify, Cloudflare & Docker deploy guides',
+                    'Export manifest listing included and skipped files',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                      </div>
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{item}</span>
                     </li>
                   ))}
@@ -250,10 +342,10 @@ export default function Admin() {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { name: 'Netlify/Vercel', desc: 'Connect repo and auto-deploy' },
-                    { name: 'AWS S3/CloudFront', desc: 'Static hosting with CDN' },
-                    { name: 'Custom VPS', desc: 'Full control with nginx/apache' },
-                    { name: 'GitHub Pages', desc: 'Free hosting for public repos' },
+                    { name: 'Vercel', desc: 'Auto-detects Vite, zero-config deploy' },
+                    { name: 'Netlify', desc: 'Connect repo, add redirect rule' },
+                    { name: 'Cloudflare Pages', desc: 'Edge-deployed, fast globally' },
+                    { name: 'Docker (Self-hosted)', desc: 'Full Supabase stack included' },
                   ].map((option, i) => (
                     <div key={i} className="p-3 rounded-lg border border-border bg-muted/30">
                       <h4 className="font-medium text-sm">{option.name}</h4>
@@ -267,7 +359,7 @@ export default function Admin() {
             <Card className="border-amber-500/30 bg-amber-500/5">
               <CardContent className="pt-6">
                 <p className="text-sm text-amber-700 dark:text-amber-400">
-                  <strong>Note:</strong> After exporting, you'll need to set up your Supabase credentials in the .env file and configure your database. See the included README for instructions.
+                  <strong>Note:</strong> After exporting, edit the <code className="text-xs bg-muted px-1 py-0.5 rounded">.env</code> file with your Supabase credentials, run the database migrations, and deploy edge functions. The included README has step-by-step instructions.
                 </p>
               </CardContent>
             </Card>
