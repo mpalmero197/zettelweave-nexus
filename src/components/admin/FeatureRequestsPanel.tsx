@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lightbulb, TrendingUp, Clock } from "lucide-react";
+import { Lightbulb, TrendingUp, Clock, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { AdminSectionHeader } from "./AdminSectionHeader";
 
 interface FeatureRequest {
   id: string;
@@ -22,6 +23,7 @@ interface FeatureRequest {
 export function FeatureRequestsPanel() {
   const [requests, setRequests] = useState<FeatureRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortByVotes, setSortByVotes] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -79,8 +81,23 @@ export function FeatureRequestsPanel() {
     );
   }
 
+  const sortedRequests = sortByVotes
+    ? [...requests].sort((a, b) => b.votes - a.votes)
+    : requests;
+
   return (
     <div className="space-y-4">
+      <AdminSectionHeader
+        icon={Lightbulb}
+        title="Feature Requests"
+        description="User-submitted feature requests and enhancement suggestions"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => setSortByVotes(!sortByVotes)} className="gap-1.5">
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            {sortByVotes ? 'Recent' : 'Top Votes'}
+          </Button>
+        }
+      />
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -125,7 +142,7 @@ export function FeatureRequestsPanel() {
         <CardContent>
           <ScrollArea className="h-[600px] pr-4">
             <div className="space-y-4">
-              {requests.map((request) => (
+              {sortedRequests.map((request) => (
                 <Card key={request.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">

@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Ban, Key, Shield, Trash2, RefreshCw, Download, Filter, CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { AdminSectionHeader } from './AdminSectionHeader';
 
 interface User {
   id: string;
@@ -342,39 +344,33 @@ export function UserManagement() {
     );
   }
 
+  const isMobile = useIsMobile();
+
   return (
     <>
+      <AdminSectionHeader
+        icon={Users}
+        title="User Management"
+        description="Manage all registered users, their roles, and account status"
+        actions={
+          <div className="flex gap-2">
+            {selectedUsers.size > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setDialogType('bulk-role')}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Bulk ({selectedUsers.size})
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        }
+      />
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                User Management
-              </CardTitle>
-              <CardDescription>
-                Manage all registered users, their roles, and account status
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              {selectedUsers.size > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setDialogType('bulk-role')}
-                >
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  Bulk Update ({selectedUsers.size})
-                </Button>
-              )}
-              <Button variant="outline" onClick={exportToCSV}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            </div>
-          </div>
-
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Search</Label>
               <Input
@@ -417,59 +413,18 @@ export function UserManagement() {
           <div className="text-sm text-muted-foreground mb-2">
             Showing {filteredUsers.length} of {users.length} users
           </div>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Display Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Sign In</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedUsers.has(user.id)}
-                        onCheckedChange={() => toggleUserSelection(user.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{user.email}</TableCell>
-                    <TableCell>{user.display_name || '-'}</TableCell>
-                    <TableCell>
-                      {user.roles && user.roles.length > 0 ? (
-                        <div className="flex gap-1">
-                          {user.roles.map((role) => (
-                            <Badge key={role} variant={getRoleBadgeVariant(role)}>
-                              {role}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <Badge variant="outline">user</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(user.created_at), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {user.last_sign_in_at 
-                        ? format(new Date(user.last_sign_in_at), 'MMM dd, yyyy')
-                        : 'Never'
-                      }
-                    </TableCell>
-                    <TableCell>
+
+          {/* Mobile: Card view */}
+          {isMobile ? (
+            <div className="space-y-3">
+              {filteredUsers.map((user) => (
+                <Card key={user.id} className="border-border">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{user.email}</p>
+                        <p className="text-xs text-muted-foreground">{user.display_name || 'No display name'}</p>
+                      </div>
                       {user.banned_until ? (
                         <Badge variant="destructive">Banned</Badge>
                       ) : user.email_confirmed_at ? (
@@ -477,37 +432,109 @@ export function UserManagement() {
                       ) : (
                         <Badge variant="secondary">Pending</Badge>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openDialog('role', user)}
-                        >
-                          <Shield className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openDialog('password', user)}
-                        >
-                          <Key className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openDialog('ban', user)}
-                        >
-                          <Ban className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {user.roles && user.roles.length > 0 ? (
+                        user.roles.map((role) => (
+                          <Badge key={role} variant={getRoleBadgeVariant(role)} className="text-[10px]">{role}</Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">user</Badge>
+                      )}
+                      <span className="text-[10px] text-muted-foreground ml-auto">
+                        Joined {format(new Date(user.created_at), 'MMM dd, yyyy')}
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openDialog('role', user)}>
+                        <Shield className="h-3 w-3 mr-1" /> Role
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openDialog('password', user)}>
+                        <Key className="h-3 w-3 mr-1" /> Pass
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openDialog('ban', user)}>
+                        <Ban className="h-3 w-3 mr-1" /> Ban
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            /* Desktop: Table view */
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Display Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Last Sign In</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.has(user.id)}
+                          onCheckedChange={() => toggleUserSelection(user.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{user.email}</TableCell>
+                      <TableCell>{user.display_name || '-'}</TableCell>
+                      <TableCell>
+                        {user.roles && user.roles.length > 0 ? (
+                          <div className="flex gap-1">
+                            {user.roles.map((role) => (
+                              <Badge key={role} variant={getRoleBadgeVariant(role)}>{role}</Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <Badge variant="outline">user</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{format(new Date(user.created_at), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>
+                        {user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'MMM dd, yyyy') : 'Never'}
+                      </TableCell>
+                      <TableCell>
+                        {user.banned_until ? (
+                          <Badge variant="destructive">Banned</Badge>
+                        ) : user.email_confirmed_at ? (
+                          <Badge variant="default">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Pending</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" onClick={() => openDialog('role', user)}>
+                            <Shield className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openDialog('password', user)}>
+                            <Key className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openDialog('ban', user)}>
+                            <Ban className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
