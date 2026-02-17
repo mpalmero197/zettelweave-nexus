@@ -39,6 +39,7 @@ export function UserManagement() {
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -343,8 +344,6 @@ export function UserManagement() {
       </Card>
     );
   }
-
-  const isMobile = useIsMobile();
 
   return (
     <>
