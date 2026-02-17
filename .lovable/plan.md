@@ -1,152 +1,148 @@
 
 
-# Mobile UI and Touch Usability Overhaul
+# Mind Map Save/Recall, ZettelCard Integration, and Study Guide Generator
 
 ## Overview
 
-Improve mobile usability, touch interactions, and visual consistency across the entire application. The changes focus on three pillars: consistent touch-friendly spacing and tap targets, unified toolbar/action bar patterns across all tabs, and polished bottom navigation with swipe support. All changes are CSS/component-level -- no new dependencies, no heavy libraries.
+Three major enhancements to the Mind Map feature: (1) persist mind maps to the database so users can save, name, and recall multiple maps; (2) allow nodes to link to ZettelCards and open them inline; (3) add a "Generate Study Guide" feature that uses AI to produce a structured study guide (like NotebookLM) from the mind map content.
 
-## Current Problems
+## 1. Database: `mind_maps` Table
 
-- **Dual bottom navigation**: Both `MobileNavigation` and `MobileBottomNav` exist but serve overlapping roles. `MobileNavigation` is rendered by `AppLayout` (only Home/Admin/Settings), while `MobileBottomNav` is defined but not used in the main layout. This creates confusion about which nav is active.
-- **Logo bar in bottom nav takes vertical space**: `MobileBottomNav` has a logo/status row above the nav items -- redundant since the header already shows the logo.
-- **Inconsistent action bar patterns**: Cards tab has a sticky toolbar, but Notes, Calendar, Files, StickyNotes, ScratchPad, and RecycleBin each implement their own ad-hoc header patterns with different spacing, heights, and button sizes.
-- **Touch targets too small in some areas**: Many interactive elements (dropdown triggers, filter buttons, sort toggles) use `h-8 w-8` (32px) which is below the 44px WCAG recommendation on mobile.
-- **No swipe navigation between tabs**: Users must tap the hamburger menu, find the section, and tap again. No gesture-based tab switching.
-- **Cards grid not optimized for one-handed use**: Card action menus (edit, delete, link) require precise taps on small icons.
-- **Sticky bars stack poorly**: On cards tab, the AppLayout header (44px) + cards toolbar stack to ~88px of fixed UI, leaving less content space on small screens.
-- **Main content padding inconsistent**: `px-1.5 sm:px-2 md:px-3` varies across tabs vs the outer `main` tag.
-- **Footer renders on mobile**: The `Footer` component at the bottom of Index.tsx adds unnecessary content below the bottom nav.
+Create a new `mind_maps` table to store saved maps:
 
-## Architecture Changes
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | Default `gen_random_uuid()` |
+| user_id | uuid NOT NULL | Owner |
+| title | text NOT NULL | User-given name |
+| description | text | Optional summary |
+| map_data | jsonb NOT NULL | The full `MindMapData` JSON (nodes + rootId) |
+| layout_mode | text | `radial`, `tree`, or `orgchart` |
+| is_favorite | boolean | Default false |
+| created_at | timestamptz | Default now() |
+| updated_at | timestamptz | Default now() |
 
-### 1. Unify Bottom Navigation
+RLS policies: standard user-owns-rows pattern (SELECT/INSERT/UPDATE/DELETE where `auth.uid() = user_id`).
 
-Replace the current `MobileNavigation` (rendered in `AppLayout`) with an improved version that includes 5 core tabs (Home, Cards, Notes, Calendar, More) where "More" opens a sheet with remaining sections. Remove the unused `MobileBottomNav` logo bar. The bottom nav becomes the primary mobile navigation, replacing the hamburger menu for the most common actions.
+## 2. Mind Map Save/Recall System
 
-Changes:
-- **`MobileNavigation.tsx`**: Expand from 3 items (Home/Admin/Settings) to 5 items (Home, Cards, Notes, Calendar, More). The "More" button opens a sheet drawer listing all other sections. Remove the `MobileBottomNav` logo/status row pattern. Ensure all touch targets are 48px minimum. Use `active:scale-95` for tactile feedback.
-- **`AppLayout.tsx`**: Pass `activeTab` and `handleTabChange` down to `MobileNavigation` so it can switch tabs within `/app`.
+### Toolbar Changes (in `MindMap.tsx`)
 
-### 2. Consistent Mobile Action Bars
+Replace the current "New" and "Export" buttons with a richer file management bar:
 
-Create a shared `MobileActionBar` component that standardizes the sticky toolbar pattern used across tabs. Every tab gets a consistent header strip with: title (left), action buttons (right), all at 44px min height.
+- **Save** button: If the current map has a saved ID, update it. If not, open a "Save As" dialog prompting for a title.
+- **Open** button: Opens a dialog listing all saved mind maps (fetched from `mind_maps` table). Shows title, node count, last modified date. Click to load. Swipe-to-delete on mobile.
+- **New** button: Clears current map, resets to default, clears the saved map ID.
+- **Auto-save indicator**: Small "Saved" / "Unsaved changes" text in the toolbar.
 
-Changes:
-- **New `src/components/MobileActionBar.tsx`** (~35 lines): A thin sticky bar with consistent height (`h-12`), padding, background (`bg-background/95 backdrop-blur-sm`), and border. Accepts `title`, `actions` (ReactNode slot), and optional `subtitle`.
-- **Cards tab**: Already has a toolbar -- standardize its height and button sizes to use `MobileActionBar`.
-- **Notes tab**: Add `MobileActionBar` with create/search/sort actions.
-- **Calendar tab**: Add `MobileActionBar` with month navigation and create event button.
-- **StickyNotes tab**: Add `MobileActionBar` with create/sort/view-toggle.
-- **ScratchPad tab**: Add `MobileActionBar` with save/sync actions.
-- **FileManager tab**: Add `MobileActionBar` with upload/search.
-- **RecycleBin tab**: Add `MobileActionBar` with filter/restore-all.
+### Data Flow
 
-### 3. Touch Target Improvements
+- Current localStorage persistence stays as a fallback for offline/anonymous use.
+- When logged in, save/load goes to Supabase `mind_maps` table.
+- The component gains a `currentMapId` state. When set, saves update that row. When null, save prompts "Save As".
+- The "Open" dialog fetches the list via `supabase.from('mind_maps').select('id, title, description, layout_mode, updated_at, map_data->rootId').eq('user_id', user.id).order('updated_at', { ascending: false })`.
 
-Audit and fix all interactive elements on mobile to meet 44px minimum:
+### New Component: `MindMapLibrary` Dialog (~120 lines)
 
-- All icon-only buttons on mobile: change from `h-8 w-8` to `h-10 w-10` (or use responsive classes `h-8 w-8 md:h-8 md:w-8` keeping desktop compact while mobile gets `h-10 w-10`).
-- Card action menus: increase the "more" trigger area.
-- Dropdown menu items: ensure `min-h-[44px]` on mobile via global CSS rule.
-- Dialog close buttons: ensure 44px touch targets.
+A dialog component showing:
+- List of saved maps with title, date, node count badge, favorite star
+- Search/filter by title
+- Delete button per map (with confirmation)
+- "Load" action that sets the map data and currentMapId
 
-Changes:
-- **`src/index.css`**: Add a mobile-specific rule for dropdown/menu items: `.mobile button, .mobile [role="menuitem"] { min-height: 44px; }`. Leverage the existing `.mobile` class applied by `MobileDetector`.
-- **`ZettelCard.tsx`**: On mobile, make the entire card tappable (onClick opens viewer) instead of requiring the small edit button. Keep the "more" menu but enlarge its trigger.
+## 3. Node-to-ZettelCard Linking
 
-### 4. Swipe Gesture Support
+### MindMapNode Type Extension
 
-Add horizontal swipe to navigate between adjacent tabs on mobile using `react-swipeable` (already installed).
+Add an optional `linked_card_id: string | null` field to `MindMapNode`. The `migrateNode` function will default it to `null`.
 
-Changes:
-- **`src/pages/Index.tsx`**: Wrap the `TabsContent` area with `useSwipeable` handlers. Define a tab order array. On swipe left -> next tab, swipe right -> previous tab. Only active on mobile (check `useIsMobile`). Add a subtle transition animation.
+### UI Changes
 
-### 5. Reduce Vertical Space Waste on Mobile
+- **Context menu**: Add a "Link to Card" option that opens a card picker dialog (search existing ZettelCards by title). Also add "Open Linked Card" when a card is already linked.
+- **Visual indicator**: Nodes with a linked card show a small card icon badge in the bottom-right corner.
+- **Click behavior**: Double-click a linked node opens the CardViewer dialog for that card. The existing double-click-to-edit is moved to require the edit action from context menu or F2.
+- **"Create Card from Node"**: Context menu option that creates a new ZettelCard with the node's text as the title and the node's note as the content, then auto-links it.
 
-- **AppLayout header**: Reduce from `h-11` to `h-10` on mobile for 4px savings.
-- **Cards sticky toolbar**: Reduce top offset to account for thinner header.
-- **Hide Footer on mobile**: The `Footer` component is unnecessary on mobile where the bottom nav occupies that space.
-- **Bottom nav padding**: Ensure `pb-safe` accounts for the nav height precisely.
+### Props Changes
 
-Changes:
-- **`AppLayout.tsx`**: Change header to `h-10 md:h-11`.
-- **`Index.tsx`**: Conditionally hide `<Footer />` on mobile, or add `hidden md:block` class.
-- **`Index.tsx` main tag**: Standardize padding to `px-2 md:px-3` consistently.
+`MindMap` will accept optional props from `Index.tsx`:
+```
+cards: ZettelCardType[]
+onCardSelect: (card: ZettelCardType) => void
+onCreateCard: (card: Partial<ZettelCardType>) => void
+```
 
-### 6. Visual Consistency Polish
+`Index.tsx` will pass these down where `MindMap` is rendered.
 
-Apply uniform styling patterns across all tab content areas:
+## 4. Study Guide Generator
 
-- **Section empty states**: Standardize the "no items" empty state pattern (icon + message + CTA) across Cards, Notes, Files, Calendar, StickyNotes, ScratchPad, RecycleBin.
-- **Card/list item styling**: Ensure all list items (notes, files, events, sticky notes) use the same border-radius (`rounded-lg`), padding (`p-3`), and hover state (`hover:bg-accent/50`).
-- **Loading skeletons**: Standardize skeleton patterns across tabs.
+### New Edge Function: `generate-study-guide`
 
-Changes are minor CSS class adjustments in each component -- no structural rewrites.
+Takes the mind map's node tree (titles + notes + linked card content) and sends it to the AI gateway with a system prompt instructing it to generate a comprehensive study guide in the style of NotebookLM. The guide includes:
+
+- **Overview**: A summary paragraph of the subject
+- **Key Concepts**: Each major branch becomes a section with explanations
+- **Key Terms**: A glossary extracted from nodes
+- **Review Questions**: 5-10 questions with answers
+- **Study Tips**: Practical advice for learning the material
+
+The AI returns structured markdown. The edge function uses `google/gemini-3-flash-preview`.
+
+### UI in MindMap
+
+- **"Study Guide" button** in the toolbar (with a `FileText` icon).
+- Clicking it opens a dialog showing a loading state, then renders the generated markdown study guide.
+- The dialog has "Copy to Clipboard", "Save as Note" (creates a new note in the Notes system), and "Download as PDF" actions.
+- "Save as Note" calls `onCreateNote` (a new optional prop) or creates a note directly via Supabase.
+
+### New Component: `StudyGuideDialog.tsx` (~150 lines)
+
+- Full-screen-ish dialog with the study guide content rendered via `react-markdown`
+- Toolbar: Copy, Save as Note, Download, Close
+- Loading state with progress text ("Analyzing mind map...", "Generating study guide...")
 
 ## File Changes
 
 ### New Files
 
-1. **`src/components/MobileActionBar.tsx`** (~35 lines)
-   Shared sticky action bar for mobile with consistent styling.
+1. **`supabase/migrations/XXXX_create_mind_maps.sql`** (via migration tool)
+   - Creates `mind_maps` table with RLS policies
+
+2. **`src/components/MindMapLibrary.tsx`** (~120 lines)
+   - Dialog for browsing, searching, loading, and deleting saved mind maps
+
+3. **`src/components/StudyGuideDialog.tsx`** (~150 lines)
+   - Dialog for displaying AI-generated study guide with copy/save/download actions
+
+4. **`supabase/functions/generate-study-guide/index.ts`** (~120 lines)
+   - Edge function that takes mind map data, enriches with linked card content, calls AI to produce a study guide
 
 ### Modified Files
 
-2. **`src/components/MobileNavigation.tsx`** (moderate rewrite)
-   - Expand to 5 tabs: Home, Cards, Notes, Calendar, More
-   - "More" opens a Sheet with remaining sections
-   - Accept `activeTab` and `onTabChange` props
-   - Enlarge touch targets to 48px
-   - Remove redundant logo/status (already in AppLayout header)
+5. **`src/components/MindMap.tsx`** (major edit)
+   - Add `currentMapId`, `isSaved`, `isDirty` state
+   - Add save/load/open logic with Supabase queries
+   - Extend `MindMapNode` type with `linked_card_id`
+   - Add "Link to Card" and "Create Card from Node" context menu items
+   - Add card picker dialog (inline, uses a searchable list of passed-in cards)
+   - Add "Study Guide" toolbar button
+   - Add `MindMapLibrary` dialog integration
+   - Add `StudyGuideDialog` integration
+   - Accept `cards`, `onCardSelect`, `onCreateCard` props
+   - Change double-click behavior: if node has linked card, open card viewer; otherwise edit
 
-3. **`src/components/AppLayout.tsx`** (minor edit)
-   - Pass `activeTab` and `handleTabChange` to `MobileNavigation`
-   - Reduce header height on mobile: `h-10 md:h-11`
+6. **`src/pages/Index.tsx`** (minor edit)
+   - Pass `cards`, `onCardSelect={setViewingCard}`, `onCreateCard={handleCreateCard}` to `<MindMap />`
 
-4. **`src/pages/Index.tsx`** (moderate edit)
-   - Wrap tab content area with `useSwipeable` for gesture navigation
-   - Hide `<Footer />` on mobile with `hidden md:block`
-   - Standardize main padding
-   - Add MobileActionBar to tabs that lack toolbars
-
-5. **`src/components/ZettelCard.tsx`** (minor edit)
-   - Make entire card tappable on mobile (calls `onEdit`)
-   - Enlarge action menu trigger on mobile
-
-6. **`src/components/Notes.tsx`** (minor edit)
-   - Integrate MobileActionBar for consistent mobile header
-
-7. **`src/components/Calendar.tsx`** (minor edit)
-   - Integrate MobileActionBar for month navigation on mobile
-
-8. **`src/components/StickyNotesSimple.tsx`** (minor edit)
-   - Integrate MobileActionBar
-
-9. **`src/components/ScratchPad.tsx`** (minor edit)
-   - Integrate MobileActionBar
-
-10. **`src/components/FileManager.tsx`** (minor edit)
-    - Integrate MobileActionBar
-
-11. **`src/components/RecycleBin.tsx`** (minor edit)
-    - Integrate MobileActionBar
-
-12. **`src/index.css`** (minor edit)
-    - Add mobile-specific touch target rules using `.mobile` body class
-    - Add dropdown/menu item minimum heights for mobile
-    - Add swipe transition animation keyframe
-
-13. **`src/components/MobileBottomNav.tsx`** (delete or deprecate)
-    - No longer used -- functionality merged into `MobileNavigation`
+7. **`supabase/config.toml`** (minor edit)
+   - Add `[functions.generate-study-guide]` with `verify_jwt = false`
 
 ## Technical Details
 
-- **No new dependencies**: Uses existing `react-swipeable`, `@radix-ui/react-sheet`, `lucide-react`
-- **Performance**: All changes are CSS-driven. No additional JS bundles. Swipe detection uses existing `react-swipeable` with minimal overhead.
-- **Touch targets**: Follow WCAG 2.2 Target Size (Level AA) -- 44px minimum on mobile
-- **Tab order for swipe**: `['dashboard', 'cards', 'notes', 'calendar', 'stickynotes', 'scratchpad', 'files', 'journal', 'habits', 'recorder', 'recycle']`
-- **Swipe threshold**: 50px minimum delta, 200ms maximum time, to avoid accidental triggers during scrolling
-- **Bottom nav height**: 56px + safe area inset, matching iOS/Android native patterns
-- **Existing mobile class**: `MobileDetector` already adds `.mobile` to `body`, so CSS rules targeting `.mobile` work without JS changes
+- **No new dependencies**: Uses existing `react-markdown`, `jspdf`, Supabase client, `cmdk` for card search
+- **AI model**: `google/gemini-3-flash-preview` via Lovable AI Gateway
+- **Study guide prompt**: Instructs AI to act as a study guide creator, taking hierarchical knowledge and producing NotebookLM-style output with overview, key concepts, glossary, review questions, and study tips
+- **Card linking**: Stored as `linked_card_id` in the node JSON within `map_data`. No separate junction table needed -- it's embedded in the JSONB.
+- **Offline fallback**: localStorage save continues to work for anonymous/offline users. Database save only when authenticated.
+- **Performance**: Mind map library fetches only metadata (title, date, layout_mode) in the list view. Full `map_data` is loaded only when opening a specific map.
 
