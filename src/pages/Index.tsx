@@ -732,7 +732,16 @@ const Index = () => {
 
                 <TabsContent value="mindmap" className="mt-0">
                   <Suspense fallback={<FastLoadingFallback message="Loading mind map..." />}>
-                    <MindMap />
+                    <MindMap cards={cards} onCardSelect={setViewingCard} onCreateCard={(partial) => {
+                      handleCreateCard({
+                        number: partial.number || `MM-${Date.now()}`,
+                        title: partial.title || 'Untitled',
+                        content: partial.content || '',
+                        category: partial.category || '000',
+                        tags: partial.tags || [],
+                        linkedCards: partial.linkedCards || [],
+                      });
+                    }} />
                   </Suspense>
                 </TabsContent>
 

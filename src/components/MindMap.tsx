@@ -5,7 +5,8 @@ import {
   Plus, Trash2, ZoomIn, ZoomOut, Maximize2, Download, ChevronDown,
   Undo2, Redo2, Palette, RotateCcw, GitBranch, Search, X, ChevronUp,
   ChevronRight, Copy, Edit3, Star, AlertCircle, Smile, StickyNote,
-  Map, Layout, Network, Building2, Sparkles, Loader2
+  Map, Layout, Network, Building2, Sparkles, Loader2, Save, FolderOpen,
+  FileText, Link2, CreditCard, ExternalLink
 } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub,
@@ -18,6 +19,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { MindMapLibrary } from '@/components/MindMapLibrary';
+import { StudyGuideDialog } from '@/components/StudyGuideDialog';
+import { ZettelCard as ZettelCardType } from '@/types/zettel';
 
 // ─── Types ────────────────────────────────────────────────────
 type Priority = 'none' | 'low' | 'medium' | 'high';
@@ -35,6 +40,7 @@ interface MindMapNode {
   emoji: string;
   note: string;
   priority: Priority;
+  linked_card_id?: string | null;
 }
 
 interface MindMapData {
@@ -77,6 +83,7 @@ function migrateNode(n: any): MindMapNode {
     emoji: n.emoji || '',
     note: n.note || '',
     priority: n.priority || 'none',
+    linked_card_id: n.linked_card_id || null,
   };
 }
 
@@ -250,7 +257,14 @@ function layoutTree(data: MindMapData, mode: LayoutMode): MindMapData {
 }
 
 // ─── Component ────────────────────────────────────────────────
-export default function MindMap() {
+interface MindMapProps {
+  cards?: ZettelCardType[];
+  onCardSelect?: (card: ZettelCardType) => void;
+  onCreateCard?: (card: Partial<ZettelCardType>) => void;
+}
+
+export default function MindMap({ cards = [], onCardSelect, onCreateCard }: MindMapProps) {
+  const { user } = useAuth();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('radial');
   const [data, setData] = useState<MindMapData>(() => layoutTree(loadMap(), 'radial'));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -283,12 +297,34 @@ export default function MindMap() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
 
+  // Save/Recall state
+  const [currentMapId, setCurrentMapId] = useState<string | null>(null);
+  const [currentMapTitle, setCurrentMapTitle] = useState<string>('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveTitle, setSaveTitle] = useState('');
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Card picker state
+  const [cardPickerOpen, setCardPickerOpen] = useState(false);
+  const [cardPickerNodeId, setCardPickerNodeId] = useState<string | null>(null);
+  const [cardPickerSearch, setCardPickerSearch] = useState('');
+
+  // Study guide state
+  const [studyGuideOpen, setStudyGuideOpen] = useState(false);
+  const [studyGuideContent, setStudyGuideContent] = useState('');
+  const [studyGuideLoading, setStudyGuideLoading] = useState(false);
+  const [studyGuideLoadingText, setStudyGuideLoadingText] = useState('');
+
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Save on change
-  useEffect(() => { saveMap(data); }, [data]);
+  // Mark dirty on data change & save locally
+  useEffect(() => { saveMap(data); setIsDirty(true); }, [data]);
   useEffect(() => { if (editingId && editInputRef.current) editInputRef.current.focus(); }, [editingId]);
   useEffect(() => { if (searchOpen && searchInputRef.current) searchInputRef.current.focus(); }, [searchOpen]);
 
@@ -352,6 +388,139 @@ export default function MindMap() {
   useEffect(() => {
     setData(prev => layoutTree(prev, layoutMode));
   }, [layoutMode]);
+
+  // ── Save/Load to Supabase ──
+  const saveToDb = useCallback(async (title?: string) => {
+    if (!user) { toast.error('Sign in to save'); return; }
+    setIsSaving(true);
+    try {
+      const payload = {
+        user_id: user.id,
+        title: title || currentMapTitle || 'Untitled Map',
+        map_data: data,
+        layout_mode: layoutMode,
+      };
+      if (currentMapId) {
+        const { error } = await supabase.from('mind_maps' as any).update(payload).eq('id', currentMapId);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await supabase.from('mind_maps' as any).insert(payload).select('id').single();
+        if (error) throw error;
+        setCurrentMapId((inserted as any).id);
+      }
+      setCurrentMapTitle(payload.title);
+      setIsDirty(false);
+      toast.success('Mind map saved');
+    } catch (err: any) {
+      toast.error('Failed to save: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user, data, layoutMode, currentMapId, currentMapTitle]);
+
+  const handleSave = useCallback(() => {
+    if (currentMapId) {
+      saveToDb();
+    } else {
+      setSaveTitle('');
+      setSaveDialogOpen(true);
+    }
+  }, [currentMapId, saveToDb]);
+
+  const handleLoadMap = useCallback((id: string, title: string, mapData: any, lm: string) => {
+    pushHistory(data);
+    const nodes: Record<string, MindMapNode> = {};
+    for (const [k, v] of Object.entries(mapData.nodes || {})) nodes[k] = migrateNode(v);
+    const loaded = layoutTree({ ...mapData, nodes }, lm as LayoutMode);
+    setData(loaded);
+    setCurrentMapId(id);
+    setCurrentMapTitle(title);
+    setLayoutMode(lm as LayoutMode);
+    setIsDirty(false);
+    setSelectedId(null);
+    setEditingId(null);
+    toast.success(`Loaded: ${title}`);
+  }, [data, pushHistory]);
+
+  const handleNewMap = useCallback(() => {
+    pushHistory(data);
+    const fresh = layoutTree(createDefaultMap(), layoutMode);
+    setData(fresh);
+    setCurrentMapId(null);
+    setCurrentMapTitle('');
+    setIsDirty(false);
+    setSelectedId(null);
+    setEditingId(null);
+    toast.success('New mind map created');
+  }, [data, pushHistory, layoutMode]);
+
+  // ── Card Linking ──
+  const linkCardToNode = useCallback((nodeId: string, cardId: string) => {
+    updateData(d => {
+      const nodes = { ...d.nodes };
+      nodes[nodeId] = { ...nodes[nodeId], linked_card_id: cardId };
+      return { ...d, nodes };
+    });
+    toast.success('Card linked to node');
+  }, [updateData]);
+
+  const unlinkCard = useCallback((nodeId: string) => {
+    updateData(d => {
+      const nodes = { ...d.nodes };
+      nodes[nodeId] = { ...nodes[nodeId], linked_card_id: null };
+      return { ...d, nodes };
+    });
+    toast.success('Card unlinked');
+  }, [updateData]);
+
+  const createCardFromNode = useCallback((nodeId: string) => {
+    const node = data.nodes[nodeId];
+    if (!node || !onCreateCard) return;
+    onCreateCard({
+      title: node.text,
+      content: node.note || `Created from mind map node: ${node.text}`,
+      tags: ['mind-map'],
+      category: '000',
+      number: `MM-${Date.now()}`,
+      linkedCards: [],
+    });
+    toast.success('Card created from node');
+  }, [data, onCreateCard]);
+
+  // ── Study Guide ──
+  const generateStudyGuide = useCallback(async () => {
+    setStudyGuideOpen(true);
+    setStudyGuideLoading(true);
+    setStudyGuideContent('');
+    setStudyGuideLoadingText('Analyzing mind map...');
+
+    try {
+      setTimeout(() => setStudyGuideLoadingText('Generating study guide...'), 1500);
+      
+      // Collect linked cards content
+      const linkedCards = cards.filter(c =>
+        Object.values(data.nodes).some(n => n.linked_card_id === c.id)
+      );
+
+      const { data: fnData, error } = await supabase.functions.invoke('generate-study-guide', {
+        body: {
+          mapData: data,
+          linkedCards,
+          mapTitle: currentMapTitle || data.nodes[data.rootId]?.text || 'Mind Map',
+        },
+      });
+
+      if (error) throw error;
+      if (fnData?.error) throw new Error(fnData.error);
+      setStudyGuideContent(fnData?.guide || 'No content generated');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate study guide');
+      setStudyGuideContent('');
+      setStudyGuideOpen(false);
+    } finally {
+      setStudyGuideLoading(false);
+    }
+  }, [data, cards, currentMapTitle]);
 
   // ── Node operations ──
   const addChild = useCallback((parentId: string) => {
@@ -803,7 +972,14 @@ export default function MindMap() {
                     : `0 2px 8px hsl(var(--card-shadow))`,
               }}
               onClick={(e) => { e.stopPropagation(); setSelectedId(node.id); }}
-              onDoubleClick={(e) => { e.stopPropagation(); setEditingId(node.id); setEditText(node.text); }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (node.linked_card_id && onCardSelect) {
+                  const card = cards.find(c => c.id === node.linked_card_id);
+                  if (card) { onCardSelect(card); return; }
+                }
+                setEditingId(node.id); setEditText(node.text);
+              }}
               onPointerDown={(e) => { if (e.button === 0 && !isRoot) handleNodeDragStart(node.id, e); }}
             >
               {/* Priority dot */}
@@ -836,6 +1012,13 @@ export default function MindMap() {
               {node.note && !isEditing && (
                 <div className="text-[10px] mt-0.5 truncate" style={{ opacity: 0.55, maxWidth: `${nodeWidth - 30}px` }}>
                   {node.note.length > 30 ? node.note.slice(0, 30) + '…' : node.note}
+                </div>
+              )}
+
+              {/* Linked card badge */}
+              {node.linked_card_id && !isEditing && (
+                <div className="absolute -bottom-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center z-10" title="Linked to card">
+                  <CreditCard className="h-2.5 w-2.5 text-primary-foreground" />
                 </div>
               )}
             </div>
@@ -949,6 +1132,30 @@ export default function MindMap() {
             <StickyNote className="h-3.5 w-3.5 mr-2" />Add Note
           </ContextMenuItem>
           <ContextMenuSeparator />
+          {/* Card linking */}
+          <ContextMenuItem onClick={() => { setCardPickerNodeId(node.id); setCardPickerSearch(''); setCardPickerOpen(true); }}>
+            <Link2 className="h-3.5 w-3.5 mr-2" />Link to Card
+          </ContextMenuItem>
+          {node.linked_card_id && (
+            <>
+              <ContextMenuItem onClick={() => {
+                const card = cards.find(c => c.id === node.linked_card_id);
+                if (card && onCardSelect) onCardSelect(card);
+                else toast.error('Linked card not found');
+              }}>
+                <ExternalLink className="h-3.5 w-3.5 mr-2" />Open Linked Card
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => unlinkCard(node.id)}>
+                <X className="h-3.5 w-3.5 mr-2" />Unlink Card
+              </ContextMenuItem>
+            </>
+          )}
+          {onCreateCard && (
+            <ContextMenuItem onClick={() => createCardFromNode(node.id)}>
+              <CreditCard className="h-3.5 w-3.5 mr-2" />Create Card from Node
+            </ContextMenuItem>
+          )}
+          <ContextMenuSeparator />
           <ContextMenuItem onClick={() => toggleCollapse(node.id)}>
             {node.collapsed ? <ChevronRight className="h-3.5 w-3.5 mr-2" /> : <ChevronDown className="h-3.5 w-3.5 mr-2" />}
             {node.collapsed ? 'Expand' : 'Collapse'}
@@ -972,7 +1179,7 @@ export default function MindMap() {
   };
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex flex-col bg-background rounded-lg border border-border overflow-hidden">
+    <>
       {/* Toolbar */}
       <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-card/60 backdrop-blur-sm shrink-0 flex-wrap">
         {/* Brand */}
@@ -1039,15 +1246,36 @@ export default function MindMap() {
 
         <div className="h-5 w-px bg-border" />
 
+        {/* Save/Open */}
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleSave} disabled={isSaving}>
+          {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+          Save
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setLibraryOpen(true)}>
+          <FolderOpen className="h-3 w-3 mr-1" />Open
+        </Button>
+
+        <div className="h-5 w-px bg-border" />
+
         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={exportAsJSON}>
           <Download className="h-3 w-3 mr-1" />Export
         </Button>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={resetMap}>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleNewMap}>
           New
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={generateStudyGuide}>
+          <FileText className="h-3 w-3 mr-1" />Study Guide
         </Button>
         <Button variant="default" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setAiDialogOpen(true)}>
           <Sparkles className="h-3 w-3 mr-1" />AI Generate
         </Button>
+
+        {/* Save status */}
+        {currentMapTitle && (
+          <span className="text-[10px] text-muted-foreground ml-1 hidden sm:inline">
+            {currentMapTitle}{isDirty ? ' •' : ' ✓'}
+          </span>
+        )}
       </div>
 
       {/* Canvas */}
@@ -1282,5 +1510,55 @@ export default function MindMap() {
         </DialogContent>
       </Dialog>
     </div>
+
+      {/* Save As Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Save Mind Map</DialogTitle>
+            <DialogDescription>Give your mind map a name</DialogDescription>
+          </DialogHeader>
+          <Input value={saveTitle} onChange={e => setSaveTitle(e.target.value)} placeholder="Mind map title..." autoFocus onKeyDown={e => { if (e.key === 'Enter' && saveTitle.trim()) { setSaveDialogOpen(false); saveToDb(saveTitle.trim()); } }} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => { setSaveDialogOpen(false); saveToDb(saveTitle.trim()); }} disabled={!saveTitle.trim()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <MindMapLibrary open={libraryOpen} onOpenChange={setLibraryOpen} onLoad={handleLoadMap} />
+
+      <Dialog open={cardPickerOpen} onOpenChange={setCardPickerOpen}>
+        <DialogContent className="max-w-sm max-h-[60vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Link to Card</DialogTitle>
+            <DialogDescription>Select a ZettelCard to link</DialogDescription>
+          </DialogHeader>
+          <Input value={cardPickerSearch} onChange={e => setCardPickerSearch(e.target.value)} placeholder="Search cards..." className="h-9 text-sm" />
+          <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+            {cards.filter(c => !cardPickerSearch.trim() || c.title.toLowerCase().includes(cardPickerSearch.toLowerCase())).slice(0, 20).map(card => (
+              <button
+                key={card.id}
+                className="w-full text-left px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors text-sm"
+                onClick={() => { if (cardPickerNodeId) linkCardToNode(cardPickerNodeId, card.id); setCardPickerOpen(false); }}
+              >
+                <div className="font-medium truncate">{card.title}</div>
+                {card.category && <div className="text-xs text-muted-foreground truncate">{card.category}</div>}
+              </button>
+            ))}
+            {cards.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">No cards available</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <StudyGuideDialog
+        open={studyGuideOpen}
+        onOpenChange={setStudyGuideOpen}
+        content={studyGuideContent}
+        isLoading={studyGuideLoading}
+        loadingText={studyGuideLoadingText}
+        mapTitle={currentMapTitle || data.nodes[data.rootId]?.text}
+      />
+    </>
   );
 }
