@@ -225,7 +225,7 @@ export function CollabStudio() {
     <div className={cn(
       'collab-studio',
       isMobile ? 'flex flex-col' : 'grid grid-cols-[280px_1fr]',
-      'h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-border/50'
+      'h-[calc(100vh-8rem-4rem)] md:h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-border/50'
     )}>
       {/* Show sidebar always on desktop; on mobile show sidebar OR chat */}
       {(!isMobile || !selectedFriend) && (

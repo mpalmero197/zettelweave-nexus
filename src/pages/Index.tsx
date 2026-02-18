@@ -403,7 +403,7 @@ const Index = () => {
       )}
 
       {/* Main Content - Mobile Optimized */}
-      <main id="main-content" className="pb-20 md:pb-2 px-2 md:px-3 relative min-h-screen" role="main">
+      <main id="main-content" className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-2 px-2 md:px-3 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
@@ -695,7 +695,7 @@ const Index = () => {
 
                 <TabsContent value="graph" className="mt-0">
                   {hasPremium ? (
-                    <div className="h-[calc(100vh-10rem)]">
+                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]">
                       <GraphView 
                         cards={filteredCards} 
                         onCardSelect={setViewingCard}
@@ -716,7 +716,7 @@ const Index = () => {
 
                 <TabsContent value="whiteboard" className="mt-0">
                   {hasPremium ? (
-                    <div className="h-[calc(100vh-10rem)]">
+                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]">
                       <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <InfiniteWhiteboard onCreateCard={handleCreateCard} />
                       </Suspense>
@@ -733,7 +733,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="mindmap" className="mt-0">
-                  <div className="h-[calc(100vh-10rem)] flex flex-col">
+                  <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] flex flex-col">
                   <Suspense fallback={<FastLoadingFallback message="Loading mind map..." />}>
                     <MindMap cards={cards} onCardSelect={setViewingCard} onCreateCard={(partial) => {
                       handleCreateCard({
