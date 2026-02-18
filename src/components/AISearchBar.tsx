@@ -22,6 +22,7 @@ interface ScratchNote {
 
 interface AISearchBarProps {
   cards: ZettelCard[];
+  autoFocus?: boolean;
   onSearchResults: (results: { 
     cards: ZettelCard[], 
     notes: any[], 
@@ -39,7 +40,7 @@ interface AISearchBarProps {
   onQueryChange?: (query: string) => void;
 }
 
-export function AISearchBar({ cards, onSearchResults, className, onQueryChange }: AISearchBarProps) {
+export function AISearchBar({ cards, onSearchResults, className, onQueryChange, autoFocus }: AISearchBarProps) {
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [reasoning, setReasoning] = useState("");
@@ -284,6 +285,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange }
               placeholder="Search"
               className="pl-10 pr-24 bg-card shadow-sm"
               dir="ltr"
+              autoFocus={autoFocus}
             />
             {query && (
               <Button

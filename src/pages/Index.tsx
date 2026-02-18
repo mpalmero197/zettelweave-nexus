@@ -377,6 +377,8 @@ const Index = () => {
           <div className="max-w-3xl mx-auto flex items-center gap-2">
             <div className="flex-1">
               <AISearchBar 
+                key={activeTab === "search" ? "search-active" : "search-inactive"}
+                autoFocus={activeTab === "search"}
                 cards={cards} 
                 onSearchResults={(results) => {
                   if (results.query) {
@@ -731,6 +733,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="mindmap" className="mt-0">
+                  <div className="h-[calc(100vh-10rem)] flex flex-col">
                   <Suspense fallback={<FastLoadingFallback message="Loading mind map..." />}>
                     <MindMap cards={cards} onCardSelect={setViewingCard} onCreateCard={(partial) => {
                       handleCreateCard({
@@ -743,6 +746,7 @@ const Index = () => {
                       });
                     }} />
                   </Suspense>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">
