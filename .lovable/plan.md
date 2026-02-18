@@ -1,148 +1,87 @@
 
+## Root Causes Found
 
-# Mind Map Save/Recall, ZettelCard Integration, and Study Guide Generator
+### 1. Mind Map — Invisible Canvas (Zero Height)
 
-## Overview
+The `TabsContent value="mindmap"` in `Index.tsx` (line 733) provides no height constraint, while the sibling `whiteboard` and `graph` tabs explicitly set `h-[calc(100vh-10rem)]` on their wrapper divs. The `MindMap` component renders as a React fragment (`<>...</>`) with two siblings: a toolbar `div` (fixed height) and a canvas `div` using `flex-1`. But `flex-1` only works when the parent is `display: flex` with a bounded height. Since neither `TabsContent` nor the `Suspense` boundary establishes that, the canvas collapses to **0px height** — making the entire mind map invisible.
 
-Three major enhancements to the Mind Map feature: (1) persist mind maps to the database so users can save, name, and recall multiple maps; (2) allow nodes to link to ZettelCards and open them inline; (3) add a "Generate Study Guide" feature that uses AI to produce a structured study guide (like NotebookLM) from the mind map content.
+**Fix:** Wrap the `<MindMap />` in `Index.tsx` inside a flex-column container with an explicit height (`h-[calc(100vh-10rem)]` to match the whiteboard/graph pattern), and ensure the MindMap root fragment's toolbar + canvas structure fits inside it.
 
-## 1. Database: `mind_maps` Table
+Inside `MindMap.tsx` itself, the outermost `<>` fragment needs the toolbar to be `shrink-0` (already has this) and the canvas div to use `flex-1` (already uses this). The missing piece is that the **parent in Index.tsx must be `flex flex-col`** with a defined height.
 
-Create a new `mind_maps` table to store saved maps:
+### 2. Search — Not Visible / Hard to Reach
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | Default `gen_random_uuid()` |
-| user_id | uuid NOT NULL | Owner |
-| title | text NOT NULL | User-given name |
-| description | text | Optional summary |
-| map_data | jsonb NOT NULL | The full `MindMapData` JSON (nodes + rootId) |
-| layout_mode | text | `radial`, `tree`, or `orgchart` |
-| is_favorite | boolean | Default false |
-| created_at | timestamptz | Default now() |
-| updated_at | timestamptz | Default now() |
+The search tab only shows `AISearchBar` when `activeTab === "search"`. The search bar is hidden from all other tabs. When the user goes to the Search tab, the page shows the search bar at the top, but only when results exist (`searchResults !== null`) does the `UnifiedSearchResults` component render. If there are no results yet, the user just sees an empty page with only "Use the search bar above" text.
 
-RLS policies: standard user-owns-rows pattern (SELECT/INSERT/UPDATE/DELETE where `auth.uid() = user_id`).
+The problem is that the **search bar renders in the sticky header but only when `activeTab === "search"`** (line 375). When navigating to search from another tab, there's nothing interactive until the user types. There is no indication of what to do. The UX problem is the search bar should be immediately focused and ready when the tab is activated.
 
-## 2. Mind Map Save/Recall System
+Additionally, looking at Index.tsx line 375-401: the AISearchBar is inside a sticky div that is only rendered when `activeTab === "search"`. This means when the user clicks the search icon in the app header (AppLayout.tsx line 177), it does switch to search tab correctly, but the search input does not receive focus automatically.
 
-### Toolbar Changes (in `MindMap.tsx`)
+**Fix:** Add `autoFocus` behavior so the search input is immediately focused when the user navigates to the search tab. This is achievable by passing a focus trigger to `AISearchBar` keyed off `activeTab`.
 
-Replace the current "New" and "Export" buttons with a richer file management bar:
+---
 
-- **Save** button: If the current map has a saved ID, update it. If not, open a "Save As" dialog prompting for a title.
-- **Open** button: Opens a dialog listing all saved mind maps (fetched from `mind_maps` table). Shows title, node count, last modified date. Click to load. Swipe-to-delete on mobile.
-- **New** button: Clears current map, resets to default, clears the saved map ID.
-- **Auto-save indicator**: Small "Saved" / "Unsaved changes" text in the toolbar.
+## Plan
 
-### Data Flow
+### File 1: `src/pages/Index.tsx`
 
-- Current localStorage persistence stays as a fallback for offline/anonymous use.
-- When logged in, save/load goes to Supabase `mind_maps` table.
-- The component gains a `currentMapId` state. When set, saves update that row. When null, save prompts "Save As".
-- The "Open" dialog fetches the list via `supabase.from('mind_maps').select('id, title, description, layout_mode, updated_at, map_data->rootId').eq('user_id', user.id).order('updated_at', { ascending: false })`.
+**Mind Map fix** — Add a flex-column height wrapper around the `<MindMap />` in the mindmap TabsContent, matching the pattern already used by whiteboard and graph:
 
-### New Component: `MindMapLibrary` Dialog (~120 lines)
-
-A dialog component showing:
-- List of saved maps with title, date, node count badge, favorite star
-- Search/filter by title
-- Delete button per map (with confirmation)
-- "Load" action that sets the map data and currentMapId
-
-## 3. Node-to-ZettelCard Linking
-
-### MindMapNode Type Extension
-
-Add an optional `linked_card_id: string | null` field to `MindMapNode`. The `migrateNode` function will default it to `null`.
-
-### UI Changes
-
-- **Context menu**: Add a "Link to Card" option that opens a card picker dialog (search existing ZettelCards by title). Also add "Open Linked Card" when a card is already linked.
-- **Visual indicator**: Nodes with a linked card show a small card icon badge in the bottom-right corner.
-- **Click behavior**: Double-click a linked node opens the CardViewer dialog for that card. The existing double-click-to-edit is moved to require the edit action from context menu or F2.
-- **"Create Card from Node"**: Context menu option that creates a new ZettelCard with the node's text as the title and the node's note as the content, then auto-links it.
-
-### Props Changes
-
-`MindMap` will accept optional props from `Index.tsx`:
 ```
-cards: ZettelCardType[]
-onCardSelect: (card: ZettelCardType) => void
-onCreateCard: (card: Partial<ZettelCardType>) => void
+// BEFORE (line 733-746):
+<TabsContent value="mindmap" className="mt-0">
+  <Suspense fallback={...}>
+    <MindMap ... />
+  </Suspense>
+</TabsContent>
+
+// AFTER:
+<TabsContent value="mindmap" className="mt-0">
+  <div className="h-[calc(100vh-10rem)] flex flex-col">
+    <Suspense fallback={...}>
+      <MindMap ... />
+    </Suspense>
+  </div>
+</TabsContent>
 ```
 
-`Index.tsx` will pass these down where `MindMap` is rendered.
+**Search fix** — Pass a focus key to `AISearchBar` so it auto-focuses when the user navigates to the search tab:
 
-## 4. Study Guide Generator
+```
+// Add a useEffect or simply pass a key prop to force remount/focus:
+<AISearchBar
+  key={activeTab === "search" ? "search-active" : "search-inactive"}
+  autoFocus={activeTab === "search"}
+  ...
+/>
+```
 
-### New Edge Function: `generate-study-guide`
+### File 2: `src/components/AISearchBar.tsx`
 
-Takes the mind map's node tree (titles + notes + linked card content) and sends it to the AI gateway with a system prompt instructing it to generate a comprehensive study guide in the style of NotebookLM. The guide includes:
+Accept an `autoFocus` prop and apply it to the input element so search is immediately ready when the user opens the search tab.
 
-- **Overview**: A summary paragraph of the subject
-- **Key Concepts**: Each major branch becomes a section with explanations
-- **Key Terms**: A glossary extracted from nodes
-- **Review Questions**: 5-10 questions with answers
-- **Study Tips**: Practical advice for learning the material
+### File 3: `src/components/MindMap.tsx`
 
-The AI returns structured markdown. The edge function uses `google/gemini-3-flash-preview`.
+Confirm the root structure is correct:
+- The `<>` fragment root is fine as-is.
+- The toolbar div has `shrink-0` — correct.
+- The canvas div has `flex-1 relative overflow-hidden` — correct.
+- These both work correctly **once the parent container is `flex flex-col` with a bounded height**, which is fixed in Index.tsx.
 
-### UI in MindMap
+No changes needed in MindMap.tsx itself; the JSX structure is already correct.
 
-- **"Study Guide" button** in the toolbar (with a `FileText` icon).
-- Clicking it opens a dialog showing a loading state, then renders the generated markdown study guide.
-- The dialog has "Copy to Clipboard", "Save as Note" (creates a new note in the Notes system), and "Download as PDF" actions.
-- "Save as Note" calls `onCreateNote` (a new optional prop) or creates a note directly via Supabase.
+---
 
-### New Component: `StudyGuideDialog.tsx` (~150 lines)
+## Technical Summary
 
-- Full-screen-ish dialog with the study guide content rendered via `react-markdown`
-- Toolbar: Copy, Save as Note, Download, Close
-- Loading state with progress text ("Analyzing mind map...", "Generating study guide...")
+| Issue | Root Cause | Fix Location |
+|---|---|---|
+| Mind map blank | Parent container has no height, `flex-1` on canvas has nothing to expand against | `src/pages/Index.tsx` line 733 |
+| Search not focused | `AISearchBar` input doesn't auto-focus when tab activates | `src/pages/Index.tsx` + `src/components/AISearchBar.tsx` |
 
-## File Changes
+---
 
-### New Files
+## Files Changed
 
-1. **`supabase/migrations/XXXX_create_mind_maps.sql`** (via migration tool)
-   - Creates `mind_maps` table with RLS policies
-
-2. **`src/components/MindMapLibrary.tsx`** (~120 lines)
-   - Dialog for browsing, searching, loading, and deleting saved mind maps
-
-3. **`src/components/StudyGuideDialog.tsx`** (~150 lines)
-   - Dialog for displaying AI-generated study guide with copy/save/download actions
-
-4. **`supabase/functions/generate-study-guide/index.ts`** (~120 lines)
-   - Edge function that takes mind map data, enriches with linked card content, calls AI to produce a study guide
-
-### Modified Files
-
-5. **`src/components/MindMap.tsx`** (major edit)
-   - Add `currentMapId`, `isSaved`, `isDirty` state
-   - Add save/load/open logic with Supabase queries
-   - Extend `MindMapNode` type with `linked_card_id`
-   - Add "Link to Card" and "Create Card from Node" context menu items
-   - Add card picker dialog (inline, uses a searchable list of passed-in cards)
-   - Add "Study Guide" toolbar button
-   - Add `MindMapLibrary` dialog integration
-   - Add `StudyGuideDialog` integration
-   - Accept `cards`, `onCardSelect`, `onCreateCard` props
-   - Change double-click behavior: if node has linked card, open card viewer; otherwise edit
-
-6. **`src/pages/Index.tsx`** (minor edit)
-   - Pass `cards`, `onCardSelect={setViewingCard}`, `onCreateCard={handleCreateCard}` to `<MindMap />`
-
-7. **`supabase/config.toml`** (minor edit)
-   - Add `[functions.generate-study-guide]` with `verify_jwt = false`
-
-## Technical Details
-
-- **No new dependencies**: Uses existing `react-markdown`, `jspdf`, Supabase client, `cmdk` for card search
-- **AI model**: `google/gemini-3-flash-preview` via Lovable AI Gateway
-- **Study guide prompt**: Instructs AI to act as a study guide creator, taking hierarchical knowledge and producing NotebookLM-style output with overview, key concepts, glossary, review questions, and study tips
-- **Card linking**: Stored as `linked_card_id` in the node JSON within `map_data`. No separate junction table needed -- it's embedded in the JSONB.
-- **Offline fallback**: localStorage save continues to work for anonymous/offline users. Database save only when authenticated.
-- **Performance**: Mind map library fetches only metadata (title, date, layout_mode) in the list view. Full `map_data` is loaded only when opening a specific map.
-
+1. **`src/pages/Index.tsx`** — Wrap mindmap TabsContent in `h-[calc(100vh-10rem)] flex flex-col` div; add `autoFocus` prop and unique key to `AISearchBar` when on search tab.
+2. **`src/components/AISearchBar.tsx`** — Accept and apply `autoFocus` prop to the search input.
