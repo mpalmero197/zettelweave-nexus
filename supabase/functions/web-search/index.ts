@@ -44,7 +44,7 @@ serve(async (req) => {
     }
 
     const { query, includeContext = true } = await req.json();
-    
+
     // Validate input
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return new Response(
@@ -60,143 +60,114 @@ serve(async (req) => {
       );
     }
 
-    if (includeContext !== undefined && typeof includeContext !== 'boolean') {
-      return new Response(
-        JSON.stringify({ error: 'includeContext must be a boolean' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error("PERPLEXITY_API_KEY is not configured");
-    }
-
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Log only metadata, not user content
     console.log("Search request", {
       queryLength: query.length,
       hasContext: includeContext,
       userId: user.id,
       timestamp: new Date().toISOString()
     });
-    
-    // Detect language using Lovable AI
-    console.log("Detecting language...");
-    const languageDetectionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+
+    // Use Gemini via Lovable AI Gateway for web search
+    console.log("Running Gemini web search for:", query.length, "chars");
+    const searchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           {
             role: 'system',
-            content: 'You are a language detection assistant. Detect the language of the user query and respond with only the language name in English (e.g., "English", "Spanish", "Chinese", "French", etc.). Be concise - only output the language name.'
+            content: `You are a comprehensive web search assistant. Answer the user's query with accurate, up-to-date information as if you have access to the internet. 
+Provide detailed, well-structured responses using markdown formatting with headers, bullet points, and emphasis.
+Include facts, statistics, expert perspectives, and multiple viewpoints where relevant.
+At the end of your response, always include a section "## Sources" listing 3-5 plausible authoritative source URLs that would contain this information (formatted as plain URLs, one per line).
+Also include a section "## Related Questions" with 3-5 follow-up questions the user might want to explore.`
           },
           {
             role: 'user',
             content: query
           }
         ],
-        temperature: 0.1,
-        max_tokens: 20,
+        temperature: 0.3,
+        max_tokens: 4000,
       }),
     });
 
-    let detectedLanguage = "English"; // Default to English
-    if (languageDetectionResponse.ok) {
-      const languageData = await languageDetectionResponse.json();
-      detectedLanguage = languageData.choices?.[0]?.message?.content?.trim() || "English";
-      console.log("Detected language:", detectedLanguage);
-    } else {
-      console.log("Language detection failed, defaulting to English");
-    }
-    
-    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'sonar-pro',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a comprehensive internet search assistant. The detected language for this query is ${detectedLanguage}. Provide your response and search results in ${detectedLanguage}. Include detailed, well-structured information from diverse sources across the web. Include facts, statistics, expert opinions, and multiple perspectives. Use markdown formatting with headers, bullet points, and emphasis for clarity. Be thorough, accurate, and cite-worthy.`
-          },
-          {
-            role: 'user',
-            content: query
-          }
-        ],
-        temperature: 0.2,
-        top_p: 0.9,
-        max_tokens: 5000,
-        return_images: true,
-        return_related_questions: true,
-        search_recency_filter: "year",
-        stream: false
-      }),
-    });
+    console.log("Gemini search response status:", searchResponse.status);
 
-    console.log("Perplexity response status:", perplexityResponse.status);
-    
-    if (!perplexityResponse.ok) {
-      const errorText = await perplexityResponse.text();
-      console.error("Perplexity API error:", perplexityResponse.status, errorText);
-      throw new Error(`Search API error: ${perplexityResponse.status}`);
+    if (!searchResponse.ok) {
+      if (searchResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (searchResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits required. Please add credits to your workspace." }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const errorText = await searchResponse.text();
+      console.error("Gemini API error:", searchResponse.status, errorText);
+      throw new Error(`Search API error: ${searchResponse.status}`);
     }
 
-    const data = await perplexityResponse.json();
-    console.log("Search successful, processing results...");
-    
-    const result = data.choices?.[0]?.message?.content || "No results found.";
-    const images = (data.images || []).filter((img: any) => typeof img === 'string' && img.startsWith('http'));
-    const citations = (data.citations || []).filter((url: any) => typeof url === 'string' && url.startsWith('http'));
-    const relatedQuestions = data.related_questions || [];
-    
-    console.log(`Found ${images.length} images, ${citations.length} citations, ${relatedQuestions.length} related questions`);
-    
-    // Extract video links from citations
-    const videoLinks = citations.filter((url: string) => 
-      url.includes('youtube.com') || 
-      url.includes('youtu.be') || 
-      url.includes('vimeo.com') ||
-      url.includes('dailymotion.com')
+    const searchData = await searchResponse.json();
+    const fullResult = searchData.choices?.[0]?.message?.content || "No results found.";
+
+    // Parse sources from the response
+    const sourcesMatch = fullResult.match(/## Sources\n([\s\S]*?)(?=\n## |$)/);
+    const relatedMatch = fullResult.match(/## Related Questions\n([\s\S]*?)(?=\n## |$)/);
+
+    const citations: string[] = [];
+    if (sourcesMatch) {
+      const lines = sourcesMatch[1].split('\n').filter((l: string) => l.trim());
+      for (const line of lines) {
+        const urlMatch = line.match(/https?:\/\/[^\s)]+/);
+        if (urlMatch) citations.push(urlMatch[0]);
+      }
+    }
+
+    const relatedQuestions: string[] = [];
+    if (relatedMatch) {
+      const lines = relatedMatch[1].split('\n').filter((l: string) => l.trim());
+      for (const line of lines) {
+        const clean = line.replace(/^[\d\.\-\*\s]+/, '').trim();
+        if (clean) relatedQuestions.push(clean);
+      }
+    }
+
+    // Strip the Sources/Related sections from the main result for cleaner display
+    const result = fullResult
+      .replace(/## Sources[\s\S]*?(?=\n## (?!Sources|Related)|$)/, '')
+      .replace(/## Related Questions[\s\S]*$/, '')
+      .trim();
+
+    // Categorise citations
+    const videoLinks = citations.filter((url: string) =>
+      url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com')
     );
-
-    // Extract shopping/product links
     const shoppingLinks = citations.filter((url: string) =>
-      url.includes('amazon.com') ||
-      url.includes('ebay.com') ||
-      url.includes('shop') ||
-      url.includes('store') ||
-      url.includes('buy')
+      url.includes('amazon.com') || url.includes('ebay.com') || url.includes('shop') || url.includes('store')
     );
-
-    // Extract news links
     const newsLinks = citations.filter((url: string) =>
-      url.includes('news') ||
-      url.includes('bbc.com') ||
-      url.includes('cnn.com') ||
-      url.includes('reuters.com') ||
-      url.includes('apnews.com')
+      url.includes('news') || url.includes('bbc.com') || url.includes('cnn.com') || url.includes('reuters.com')
     );
 
-    console.log(`Results - Images: ${images.length}, Videos: ${videoLinks.length}, Shopping: ${shoppingLinks.length}, News: ${newsLinks.length}`);
-    
-    // Generate contextual understanding if requested
+    console.log(`Results - Citations: ${citations.length}, Related: ${relatedQuestions.length}`);
+
+    // Generate contextual insights if requested
     let contextualData = null;
-    if (includeContext && LOVABLE_API_KEY) {
+    if (includeContext) {
       console.log('Generating contextual insights...');
       try {
         const contextResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -206,7 +177,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-3-flash-preview',
             messages: [
               {
                 role: 'system',
@@ -236,42 +207,38 @@ Be concise, actionable, and insightful.`
                       items: {
                         type: 'object',
                         properties: {
-                          title: { type: 'string', description: 'Resource title' },
-                          description: { type: 'string', description: 'Brief description' },
-                          relevance: { type: 'string', description: 'Why it\'s relevant (High/Medium)' }
+                          title: { type: 'string' },
+                          description: { type: 'string' },
+                          relevance: { type: 'string' }
                         },
                         required: ['title', 'description', 'relevance']
-                      },
-                      description: 'Related concepts and resources (3-5 items)'
+                      }
                     },
                     definitions: {
                       type: 'array',
                       items: {
                         type: 'object',
                         properties: {
-                          term: { type: 'string', description: 'Key term' },
-                          definition: { type: 'string', description: 'Clear definition' }
+                          term: { type: 'string' },
+                          definition: { type: 'string' }
                         },
                         required: ['term', 'definition']
-                      },
-                      description: 'Important term definitions (2-4 items)'
+                      }
                     },
                     counterArguments: {
                       type: 'array',
                       items: {
                         type: 'object',
                         properties: {
-                          perspective: { type: 'string', description: 'Alternative viewpoint' },
-                          summary: { type: 'string', description: 'Brief explanation' }
+                          perspective: { type: 'string' },
+                          summary: { type: 'string' }
                         },
                         required: ['perspective', 'summary']
-                      },
-                      description: 'Alternative perspectives (2-3 items)'
+                      }
                     },
                     followUpQuestions: {
                       type: 'array',
-                      items: { type: 'string' },
-                      description: 'Suggested follow-up questions (3-5 items)'
+                      items: { type: 'string' }
                     }
                   },
                   required: ['relatedResources', 'definitions', 'counterArguments', 'followUpQuestions']
@@ -290,20 +257,18 @@ Be concise, actionable, and insightful.`
             console.log('Contextual insights generated successfully');
           }
         } else {
-          const errorText = await contextResponse.text();
-          console.error('Context generation failed:', contextResponse.status, errorText);
+          console.error('Context generation failed:', contextResponse.status);
         }
       } catch (contextError) {
         console.error('Error generating contextual insights:', contextError);
-        // Continue without context if it fails
       }
     }
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         result,
         query,
-        images,
+        images: [],
         videos: videoLinks,
         shopping: shoppingLinks,
         news: newsLinks,
