@@ -1,87 +1,117 @@
 
-## Root Causes Found
+## Problem
 
-### 1. Mind Map — Invisible Canvas (Zero Height)
+The mobile bottom navigation bar (fixed, ~64px + safe-area inset) overlaps content at the bottom of every window. Two categories of windows need fixing:
 
-The `TabsContent value="mindmap"` in `Index.tsx` (line 733) provides no height constraint, while the sibling `whiteboard` and `graph` tabs explicitly set `h-[calc(100vh-10rem)]` on their wrapper divs. The `MindMap` component renders as a React fragment (`<>...</>`) with two siblings: a toolbar `div` (fixed height) and a canvas `div` using `flex-1`. But `flex-1` only works when the parent is `display: flex` with a bounded height. Since neither `TabsContent` nor the `Suspense` boundary establishes that, the canvas collapses to **0px height** — making the entire mind map invisible.
+**Category A — Scrollable content (most tabs)**
+The `<main>` tag in `Index.tsx` has `pb-20` (80px) on mobile. But there is also a conflicting CSS rule in `index.css` that applies `padding-bottom: calc(env(safe-area-inset-bottom) + 72px)` to `[role="main"]`. These two rules fight each other — whichever CSS specificity wins leaves a gap that either clips content or shows empty space. The fix is to remove the conflicting CSS rule and set a single, reliable bottom padding on the `<main>` tag itself using a CSS variable for the nav height.
 
-**Fix:** Wrap the `<MindMap />` in `Index.tsx` inside a flex-column container with an explicit height (`h-[calc(100vh-10rem)]` to match the whiteboard/graph pattern), and ensure the MindMap root fragment's toolbar + canvas structure fits inside it.
+**Category B — Fixed-height canvas tabs (graph, whiteboard, mind map)**
+These tabs use `h-[calc(100vh-10rem)]` which does not account for the mobile bottom nav. On mobile, the bottom of the canvas is hidden under the nav bar. The fix is to use a mobile-specific height that subtracts the nav height: `h-[calc(100vh-10rem)] md:h-[calc(100vh-10rem)]` becomes `h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]` (4rem = 64px nav).
 
-Inside `MindMap.tsx` itself, the outermost `<>` fragment needs the toolbar to be `shrink-0` (already has this) and the canvas div to use `flex-1` (already uses this). The missing piece is that the **parent in Index.tsx must be `flex flex-col`** with a defined height.
-
-### 2. Search — Not Visible / Hard to Reach
-
-The search tab only shows `AISearchBar` when `activeTab === "search"`. The search bar is hidden from all other tabs. When the user goes to the Search tab, the page shows the search bar at the top, but only when results exist (`searchResults !== null`) does the `UnifiedSearchResults` component render. If there are no results yet, the user just sees an empty page with only "Use the search bar above" text.
-
-The problem is that the **search bar renders in the sticky header but only when `activeTab === "search"`** (line 375). When navigating to search from another tab, there's nothing interactive until the user types. There is no indication of what to do. The UX problem is the search bar should be immediately focused and ready when the tab is activated.
-
-Additionally, looking at Index.tsx line 375-401: the AISearchBar is inside a sticky div that is only rendered when `activeTab === "search"`. This means when the user clicks the search icon in the app header (AppLayout.tsx line 177), it does switch to search tab correctly, but the search input does not receive focus automatically.
-
-**Fix:** Add `autoFocus` behavior so the search input is immediately focused when the user navigates to the search tab. This is achievable by passing a focus trigger to `AISearchBar` keyed off `activeTab`.
+**Category C — Other fixed-height components**
+- `CollabStudio` (`h-[calc(100vh-8rem)]`) clips under the nav on mobile.
+- `RightSidebar` (`h-[calc(100vh-4rem)] top-16 fixed`) overlaps the nav.
+- `Notes` (`min-h-[calc(100vh-8rem)]`) — less critical as it scrolls, but the minimum height is too tall.
 
 ---
 
-## Plan
+## The Correct Approach
 
-### File 1: `src/pages/Index.tsx`
+Rather than patching every pixel value individually, the cleanest solution is to define a CSS custom property `--bottom-nav-height` on the `body` (set to `0px` on desktop, `64px` on mobile) and use it in `calc()` expressions everywhere. This is a single source of truth.
 
-**Mind Map fix** — Add a flex-column height wrapper around the `<MindMap />` in the mindmap TabsContent, matching the pattern already used by whiteboard and graph:
+However, since the bottom nav is `md:hidden`, the simpler and more maintainable approach is to use **Tailwind responsive prefixes** directly in each affected spot.
 
+---
+
+## Files to Change
+
+### 1. `src/index.css`
+
+**Remove the conflicting `padding-bottom` rule** on `main, .main-content, [role="main"]` inside the `@media (max-width: 767px)` block (lines 379-381). This rule conflicts with the Tailwind `pb-20` class on `<main>` in `Index.tsx` and causes unpredictable behavior.
+
+**Add a CSS custom property** for the bottom nav height so full-height canvas components can reference it:
+
+```css
+:root {
+  --bottom-nav-h: 0px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --bottom-nav-h: 4rem; /* 64px — matches button min-h-[48px] + padding */
+  }
+}
 ```
-// BEFORE (line 733-746):
-<TabsContent value="mindmap" className="mt-0">
-  <Suspense fallback={...}>
-    <MindMap ... />
-  </Suspense>
-</TabsContent>
+
+### 2. `src/pages/Index.tsx`
+
+**Main tag padding** — The current `pb-20` (80px) on mobile is slightly over-compensating. Replace it with `pb-[calc(4rem+env(safe-area-inset-bottom,0px))]` on mobile so it exactly tracks the nav height plus any device safe-area:
+
+```tsx
+// BEFORE:
+<main ... className="pb-20 md:pb-2 ...">
 
 // AFTER:
-<TabsContent value="mindmap" className="mt-0">
-  <div className="h-[calc(100vh-10rem)] flex flex-col">
-    <Suspense fallback={...}>
-      <MindMap ... />
-    </Suspense>
-  </div>
-</TabsContent>
+<main ... className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-2 ...">
 ```
 
-**Search fix** — Pass a focus key to `AISearchBar` so it auto-focuses when the user navigates to the search tab:
+**Graph tab** (line 698) — Add mobile adjustment:
+```tsx
+// BEFORE:
+<div className="h-[calc(100vh-10rem)]">
 
-```
-// Add a useEffect or simply pass a key prop to force remount/focus:
-<AISearchBar
-  key={activeTab === "search" ? "search-active" : "search-inactive"}
-  autoFocus={activeTab === "search"}
-  ...
-/>
+// AFTER:
+<div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]">
 ```
 
-### File 2: `src/components/AISearchBar.tsx`
+**Whiteboard tab** (line 719) — Same fix:
+```tsx
+// BEFORE:
+<div className="h-[calc(100vh-10rem)]">
 
-Accept an `autoFocus` prop and apply it to the input element so search is immediately ready when the user opens the search tab.
+// AFTER:
+<div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]">
+```
 
-### File 3: `src/components/MindMap.tsx`
+**Mind map tab** (line 736) — Same fix:
+```tsx
+// BEFORE:
+<div className="h-[calc(100vh-10rem)] flex flex-col">
 
-Confirm the root structure is correct:
-- The `<>` fragment root is fine as-is.
-- The toolbar div has `shrink-0` — correct.
-- The canvas div has `flex-1 relative overflow-hidden` — correct.
-- These both work correctly **once the parent container is `flex flex-col` with a bounded height**, which is fixed in Index.tsx.
+// AFTER:
+<div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] flex flex-col">
+```
 
-No changes needed in MindMap.tsx itself; the JSX structure is already correct.
+### 3. `src/components/friends/CollabStudio.tsx`
+
+**CollabStudio** uses `h-[calc(100vh-8rem)]`. On mobile this runs behind the nav:
+
+```tsx
+// BEFORE:
+'h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-border/50'
+
+// AFTER:
+'h-[calc(100vh-8rem-4rem)] md:h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-border/50'
+```
+
+### 4. `src/components/MobileNavigation.tsx`
+
+The nav already uses `pb-safe` for the iOS safe-area inset at the bottom. No changes needed here. The nav's rendered height is:
+- Buttons: `min-h-[48px]` + `py-1.5` (6px top + 6px bottom) = ~60px
+- Plus `pb-safe` for notched phones
+
+The `4rem` (64px) chosen for all `calc()` expressions safely covers the nav without `pb-safe`, which adds on top for notched phones (the `env(safe-area-inset-bottom,0px)` fallback handles this).
 
 ---
 
-## Technical Summary
+## Summary Table
 
-| Issue | Root Cause | Fix Location |
+| File | Change | Reason |
 |---|---|---|
-| Mind map blank | Parent container has no height, `flex-1` on canvas has nothing to expand against | `src/pages/Index.tsx` line 733 |
-| Search not focused | `AISearchBar` input doesn't auto-focus when tab activates | `src/pages/Index.tsx` + `src/components/AISearchBar.tsx` |
-
----
-
-## Files Changed
-
-1. **`src/pages/Index.tsx`** — Wrap mindmap TabsContent in `h-[calc(100vh-10rem)] flex flex-col` div; add `autoFocus` prop and unique key to `AISearchBar` when on search tab.
-2. **`src/components/AISearchBar.tsx`** — Accept and apply `autoFocus` prop to the search input.
+| `src/index.css` | Remove conflicting `padding-bottom` on `[role="main"]`; add `--bottom-nav-h` var | Single source of truth for nav height |
+| `src/pages/Index.tsx` — `<main>` | `pb-20` → `pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-2` | Precise clearance |
+| `src/pages/Index.tsx` — graph div | Add `md:` prefix to restore desktop height | Nav overlap on mobile |
+| `src/pages/Index.tsx` — whiteboard div | Add `md:` prefix to restore desktop height | Nav overlap on mobile |
+| `src/pages/Index.tsx` — mindmap div | Add `md:` prefix to restore desktop height | Nav overlap on mobile |
+| `src/components/friends/CollabStudio.tsx` | Same responsive height pattern | Nav overlap on mobile |
