@@ -1,140 +1,173 @@
 
-## Overview
+## Summary of Issues
 
-Five separate issues to address in one sweep:
+There are 5 problems to fix and 1 new feature to add:
 
-1. **Tasks + habits on the calendar** — Show `project_tasks` (with due dates) and habit completions alongside existing calendar events
-2. **Repeat button on tasks + edit priority/notes** — The `project_tasks` table needs a `repeat_type` column; the `TaskTrackerWidget` needs edit/repeat UI
-3. **Duplicate key on zettel card auto-generate** — The number generation is not atomic; fix with a retry loop and unique suffix fallback
-4. **Dashboard items not opening when clicked** — The `TaskTrackerWidget` on the dashboard has no click-to-open handler; needs a modal/sheet to open the full task manager
+1. **Dashboard items not opening when clicked** — `TaskTrackerWidget` still uses localStorage and has no click-to-open handler. `RecentNotesWidget` already works via `onOpenNote` prop, but the prop is not being passed down correctly in some cases.
+2. **Habits not showing on Calendar** — `Calendar.tsx` was never updated to read from localStorage habits. The calendar only queries `calendar_events`.
+3. **Task repeat button missing** — The database migration was never run (`project_tasks` still lacks `notes`, `repeat_type`, `repeat_until`). The `TaskTrackerWidget` was never migrated from localStorage to Supabase.
+4. **Mind map node notes panel** — Currently notes are set via a crude `prompt()` dialog. The user wants a proper expandable side panel (like cards) when clicking a node.
+5. **Replace all AI with Gemini** — Two edge functions (`ai-edit-card` and `ai-categorize-card`) still call OpenAI directly using `OPENAI_API_KEY`. They need to be rewritten to use the Lovable AI Gateway with `google/gemini-3-flash-preview`.
+
+Note: `transcribe-audio` uses OpenAI Whisper for actual audio processing — this is audio-specific and Gemini does not offer a Whisper equivalent. This function will be left as-is (it already has its own gateway fallback in `transcribe-audio-ai`).
 
 ---
 
-## Issue 1 — Tasks & Habits on the Calendar
+## Database Migration Required
 
-### Root Cause
-`Calendar.tsx` only fetches from the `calendar_events` table. `project_tasks` (with a `due_date` column) and habits (stored in `localStorage`) are never surfaced there.
-
-### Database Change
-`project_tasks` is missing `notes` (free-text notes on a task) and `repeat_type`. We need to add both columns so we can support inline editing and repeats from the same table.
+The `project_tasks` table needs 3 new columns before the TaskTrackerWidget can be migrated:
 
 ```sql
 ALTER TABLE project_tasks
   ADD COLUMN IF NOT EXISTS notes text,
-  ADD COLUMN IF NOT EXISTS repeat_type text DEFAULT 'none',
+  ADD COLUMN IF NOT EXISTS repeat_type text NOT NULL DEFAULT 'none',
   ADD COLUMN IF NOT EXISTS repeat_until date;
 ```
 
-### Calendar.tsx changes
-- Add a second Supabase query to fetch `project_tasks` for the current month:
-  ```ts
-  const { data: taskData } = await supabase
-    .from('project_tasks')
-    .select('*')
-    .eq('user_id', user.id)
-    .gte('due_date', startOfMonthISO)
-    .lte('due_date', endOfMonthISO);
-  ```
-- Convert tasks to a unified `CalendarItem` type that merges with events, adding:
-  - `source_type: 'task'` for incomplete tasks
-  - `source_type: 'task_done'` for completed tasks
-- Load habits from `localStorage` (same format as `HabitTracker`) and surface today's habit completions as `source_type: 'habit'`
-- Add new dot colors and labels:
-  ```ts
-  task: 'bg-rose-500'        // pending task
-  task_done: 'bg-green-500'  // completed task  
-  habit: 'bg-teal-500'       // habit
-  ```
-- In the day detail panel, render tasks with a checkbox toggle (calls Supabase UPDATE to flip `status`) and habits as read-only badges
-
 ---
 
-## Issue 2 — Repeat Button + Edit Priority/Notes on Tasks
+## File Changes
 
-### `project_tasks` already stores `priority`; `notes` and `repeat_type` are added by the migration above.
+### 1. `supabase/functions/ai-edit-card/index.ts`
+Replace OpenAI call with Lovable AI Gateway:
+- Change endpoint to `https://ai.gateway.lovable.dev/v1/chat/completions`
+- Change auth header to `Bearer ${LOVABLE_API_KEY}`
+- Use model `google/gemini-3-flash-preview`
+- Remove `OPENAI_API_KEY` dependency
+- Keep same input/output shape and the Zod validation
+- Keep the retry logic but simplify since Gateway handles rate limits uniformly
+- Add 429/402 specific error responses
 
-### TaskTrackerWidget.tsx changes
-Currently the widget reads from `localStorage`. We need to **migrate it to use `project_tasks` from Supabase** (the table already exists with RLS). This gives persistence and allows the calendar to read tasks.
+### 2. `supabase/functions/ai-categorize-card/index.ts`
+Same swap:
+- Change endpoint, auth, and model to Lovable AI Gateway + Gemini
+- Remove `OPENAI_API_KEY` dependency
+- Keep Zod validation and response parsing intact
 
-Key changes:
-- Replace `localStorage` with Supabase CRUD (`select`, `insert`, `update`, `delete`)
-- Add an **Edit sheet/dialog** per task with fields: title, priority, notes, due date, repeat type
-- Add a **Repeat button** per task that shows a popover with options: None, Daily, Weekly, Monthly — stored as `repeat_type` on the task row
-- When completing a task that has `repeat_type !== 'none'`, automatically create the next occurrence by inserting a new row with `due_date` advanced by the repeat interval
+### 3. `src/components/widgets/TaskTrackerWidget.tsx` (Major rewrite)
+Migrate from localStorage to Supabase `project_tasks`, and add:
 
-### Repeat logic (frontend)
+**Supabase integration:**
+- On mount: `supabase.from('project_tasks').select('*').eq('user_id', user.id).order('created_at', {ascending: false})`
+- Add task: `insert({ name, priority, due_date: today, status: 'todo', user_id, notes: '', repeat_type: 'none' })`
+- Toggle complete: `update({ status: 'done' })` — if `repeat_type !== 'none'`, auto-insert next occurrence
+- Delete: `delete().eq('id', id)`
+
+**Edit Sheet per task** (opens on task row click):
+- Sheet with fields: title (Input), priority (button group), notes (Textarea), due date (date Input), repeat type (Select: None / Daily / Weekly / Monthly)
+- Save button calls `update()`
+
+**Repeat logic when completing:**
 ```ts
-async function completeRepeatingTask(task) {
-  await supabase.from('project_tasks').update({ status: 'done' }).eq('id', task.id);
-  if (task.repeat_type !== 'none') {
-    const nextDue = addDays/addWeeks/addMonths(task.due_date, 1);
-    if (!task.repeat_until || nextDue <= task.repeat_until) {
-      await supabase.from('project_tasks').insert({
-        ...task, id: undefined, status: 'todo', due_date: nextDue
-      });
-    }
+if (task.repeat_type !== 'none' && task.due_date) {
+  const nextDue = repeat_type === 'daily' ? addDays(dueDate, 1)
+               : repeat_type === 'weekly' ? addWeeks(dueDate, 1)
+               : addMonths(dueDate, 1);
+  if (!task.repeat_until || nextDue <= parseISO(task.repeat_until)) {
+    supabase.from('project_tasks').insert({ ...task, id: undefined, status: 'todo', due_date: nextDue });
   }
 }
 ```
 
----
+**Click-to-open:** The widget header has an "Open Task Manager →" button that calls `onNavigate?.('tasks')` if available, otherwise opens a Sheet containing the full TaskManager.
 
-## Issue 3 — Duplicate Key on Zettel Card Auto-Generate
+**Repeat badge:** Show a small `↻` icon on tasks that have `repeat_type !== 'none'`.
 
-### Root Cause
-In `useZettelCards.ts` lines 196–200, the `generateNumberForMethod` function reads `cards` (the cached query result) to find the max number and picks `max + 1`. When two creates happen near-simultaneously, or when the local `cards` cache is stale (e.g., browsing another user's profile), both can get the same number, violating the `zettel_cards_user_id_number_key` unique constraint.
-
-### Fix
-Add a **collision retry loop** in the `createCardMutation`. If the insert fails with Postgres error code `23505` (unique violation), regenerate the number by appending a timestamp suffix and retry once:
-
-```ts
-let cardNumber = generateNumberForMethod(...);
-let insertResult = await supabase.from('zettel_cards').insert({ ..., number: cardNumber }).select().single();
-
-if (insertResult.error?.code === '23505') {
-  // Collision — append timestamp to make unique
-  cardNumber = `${cardNumber}-${Date.now().toString(36)}`;
-  insertResult = await supabase.from('zettel_cards').insert({ ..., number: cardNumber }).select().single();
-}
-if (insertResult.error) throw insertResult.error;
+### 4. `src/components/CustomizableDashboard.tsx`
+Pass `onNavigate` down to `TaskTrackerWidget`:
+```tsx
+{isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
 ```
 
-This is a purely client-side fix; no migration needed. The `generateNumberForMethod` function already accounts for existing numbers in the cache, so the collision is an edge case that only needs a single retry.
+### 5. `src/components/Calendar.tsx`
+Add tasks and habits to the unified calendar display:
 
----
+**Tasks from Supabase:**
+- After fetching `calendar_events`, also fetch `project_tasks` for the current month range filtered by `due_date`
+- Convert each task to a display item with `source_type: 'task'` (pending) or `'task_done'` (status = 'done')
+- In the day detail panel, render tasks with a `Checkbox` that calls Supabase UPDATE to toggle status
 
-## Issue 4 — Dashboard Task Widget Not Opening When Clicked
+**Habits from localStorage:**
+- Read `localStorage.getItem('habit-tracker-data')` and parse the `Habit[]` array
+- For each habit's `completions`, find entries where `completed === true` and surface them as `source_type: 'habit'` items on their respective dates
 
-### Root Cause
-`TaskTrackerWidget` is a self-contained inline widget with no "expand" / click-to-open behavior. The dashboard widgets for `RecentCardsWidget` and `RecentNotesWidget` receive `onEdit`/`onOpenNote` props and open full dialogs when clicked. `TaskTrackerWidget` has no such handler.
+**New dot colors and legend entries:**
+```ts
+SOURCE_DOT_COLORS['task'] = 'bg-rose-500';
+SOURCE_DOT_COLORS['task_done'] = 'bg-green-500';
+SOURCE_DOT_COLORS['habit'] = 'bg-teal-500';
+SOURCE_LABELS['task'] = 'Task';
+SOURCE_LABELS['task_done'] = 'Done';
+SOURCE_LABELS['habit'] = 'Habit';
+```
 
-### Fix
-Add a "View All" / click-to-open behavior to `TaskTrackerWidget`:
-- Wrap the widget card in a `Dialog` (or `Sheet`) that contains the full `TaskManager` content
-- Add a clickable header or an "Open full task manager" link button that opens the dialog
-- Alternatively (simpler): make each task row in the widget open an edit sheet when clicked (reusing the edit sheet from Issue 2 above)
-- The overall widget should have a header button "Open Task Manager →" that navigates to the Tasks tab or opens a full-screen dialog
+**Calendar items type:** Introduce a merged `CalendarItem` union type (either a `CalendarEvent` from the DB, a task row, or a habit entry) so everything can render in the same list.
 
-Since `Index.tsx` passes `onNavigate` to the dashboard, the cleanest approach is: clicking the widget header calls `onNavigate?.('tasks')` if a tasks tab exists, otherwise opens a full-screen `Sheet` with `TaskManager` inside.
+### 6. `src/components/MindMap.tsx`
+Replace the `prompt()` dialog for notes with a proper **Node Detail Panel**:
 
----
+**State additions:**
+```ts
+const [nodeDetailOpen, setNodeDetailOpen] = useState(false);
+const [nodeDetailId, setNodeDetailId] = useState<string | null>(null);
+const [nodeDetailNote, setNodeDetailNote] = useState('');
+```
 
-## Files to Change
+**Single-click behavior change:** Currently single-click sets `selectedId`. Change it so a single click selects the node AND opens the detail panel:
+```tsx
+onClick={(e) => {
+  e.stopPropagation();
+  setSelectedId(node.id);
+  setNodeDetailId(node.id);
+  setNodeDetailNote(node.note || '');
+  setNodeDetailOpen(true);
+}}
+```
 
-| File | Change |
-|---|---|
-| **Database migration** | Add `notes`, `repeat_type`, `repeat_until` to `project_tasks` |
-| `src/components/Calendar.tsx` | Fetch tasks + habits; merge into unified display; show task checkboxes in day panel |
-| `src/components/widgets/TaskTrackerWidget.tsx` | Migrate to Supabase, add edit sheet, repeat UI, click-to-open |
-| `src/hooks/useZettelCards.ts` | Add collision retry for `23505` unique constraint errors |
-| `src/components/CustomizableDashboard.tsx` | Pass `onNavigate` through to TaskTrackerWidget |
+**Remove the `prompt()` call** from the context menu "Add Note" item — replace it with:
+```tsx
+<ContextMenuItem onClick={() => {
+  setNodeDetailId(node.id);
+  setNodeDetailNote(node.note || '');
+  setNodeDetailOpen(true);
+}}>
+  <StickyNote className="h-3.5 w-3.5 mr-2" />Edit Note
+</ContextMenuItem>
+```
+
+**Node Detail Panel** — a `Sheet` (from shadcn) that slides in from the right:
+- Header: node emoji + node text, priority badge
+- Tabs (like a card): "Note" and "Info"
+- **Note tab**: Full `Textarea` (no char limit, auto-grow) for the node's note. Auto-saves on blur with `setNote(nodeDetailId, text)`. Character count display.
+- **Info tab**: Shows node color, priority selector (buttons), emoji picker (grid), linked card info (badge + open button if linked), children count, breadcrumb path from root
+- Close button saves the note automatically
+- Width: `w-80 sm:w-96` so it doesn't cover the entire canvas
+
+**Action ring** — add a `StickyNote` button to the hover action ring alongside the existing `+` and `Trash` buttons for quick access.
+
+### 7. `src/hooks/useZettelCards.ts`
+Fix the duplicate key collision (already planned, implementing now):
+```ts
+// After line 230 (the insert call):
+if (error?.code === '23505') {
+  // Collision — append timestamp suffix and retry once
+  const fallbackNumber = `${cardNumber}-${Date.now().toString(36)}`;
+  const retry = await supabase.from('zettel_cards').insert({
+    ...insertPayload, number: fallbackNumber
+  }).select().single();
+  if (retry.error) throw retry.error;
+  return { data: retry.data, merged: false };
+}
+if (error) throw error;
+```
 
 ---
 
 ## Technical Notes
 
-- The `project_tasks` table has RLS policies already in place (users can only CRUD their own tasks) — no new policies needed
-- `due_date` is `NOT NULL` in `project_tasks`; we'll default it to `today` when creating tasks from the widget
-- Habits live in `localStorage` under key `'habits'` (from `HabitTracker.tsx`) — the calendar will read from there without needing a DB change; this is a read-only display
-- The `repeat_type` column uses values: `'none'`, `'daily'`, `'weekly'`, `'monthly'`
-- The duplicate-key fix is backward-compatible — existing cards are unaffected
+- The database migration must run first before the TaskTrackerWidget can insert rows (the `notes` and `repeat_type` columns need to exist).
+- `project_tasks.due_date` is `NOT NULL` — when creating tasks from the widget, default to today's date.
+- Habits are read-only on the calendar (no editing from calendar view); editing still happens in the HabitTracker component.
+- The Mind Map node detail panel does NOT require any database changes — `node.note` is already part of the `MindMapNode` schema and is serialized into `map_data` JSONB.
+- The `transcribe-audio` function intentionally keeps OpenAI Whisper as it requires audio transcription which Gemini does not support natively.
+- The Lovable AI Gateway (`LOVABLE_API_KEY`) is auto-provisioned — no secret configuration needed for the edge function migration.
