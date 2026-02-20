@@ -3,15 +3,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_REQUEST_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_CONTENT_LENGTH = 50000; // 50KB text
+const MAX_REQUEST_SIZE = 5 * 1024 * 1024;
+const MAX_CONTENT_LENGTH = 50000;
 
 const categorizeSchema = z.object({
   title: z.string().max(500),
@@ -34,7 +34,6 @@ serve(async (req) => {
   }
 
   try {
-    // Check request size
     const contentLength = req.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
       return new Response(
@@ -43,7 +42,6 @@ serve(async (req) => {
       );
     }
 
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -62,7 +60,6 @@ serve(async (req) => {
       );
     }
 
-    // Parse and validate request
     const requestData = await req.json();
     const validation = categorizeSchema.safeParse(requestData);
     
@@ -115,14 +112,14 @@ Content: ${content}
 
 Analyze and categorize this content using the ${method} system.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -132,14 +129,27 @@ Analyze and categorize this content using the ${method} system.`;
       }),
     });
 
+    if (response.status === 429) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (response.status === 402) {
+      return new Response(JSON.stringify({ error: 'AI usage limit reached. Please add credits to continue.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    // Parse JSON response
     let result;
     try {
       const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/) || aiResponse.match(/\{[\s\S]*\}/);

@@ -213,22 +213,36 @@ export const useZettelCards = () => {
         sanitizedCard.linkedCards || []
       );
 
-      const { data, error } = await supabase
+      const insertPayload = {
+        user_id: user.id,
+        number: cardNumber,
+        title: sanitizedCard.title,
+        description: sanitizedCard.description,
+        content: sanitizedCard.content,
+        category: category,
+        tags: sanitizedCard.tags || [],
+        linked_cards: linkedCardsWithHierarchy,
+        image_url: sanitizedCard.imageUrl,
+        video_url: sanitizedCard.videoUrl
+      };
+
+      let { data, error } = await supabase
         .from('zettel_cards')
-        .insert({
-          user_id: user.id,
-          number: cardNumber,
-          title: sanitizedCard.title,
-          description: sanitizedCard.description,
-          content: sanitizedCard.content,
-          category: category,
-          tags: sanitizedCard.tags || [],
-          linked_cards: linkedCardsWithHierarchy,
-          image_url: sanitizedCard.imageUrl,
-          video_url: sanitizedCard.videoUrl
-        })
+        .insert(insertPayload)
         .select()
         .single();
+
+      // Collision retry — if unique constraint violated, append timestamp suffix
+      if (error?.code === '23505') {
+        const fallbackNumber = `${cardNumber}-${Date.now().toString(36)}`;
+        const retry = await supabase
+          .from('zettel_cards')
+          .insert({ ...insertPayload, number: fallbackNumber })
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
 
