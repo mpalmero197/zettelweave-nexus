@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,12 +33,27 @@ interface CalendarEvent {
   created_at: string;
 }
 
+interface CalendarItem {
+  id: string;
+  title: string;
+  description?: string;
+  event_date: string;
+  event_time?: string;
+  source_type: string;
+  // For tasks
+  taskStatus?: string;
+  taskId?: string;
+}
+
 const SOURCE_DOT_COLORS: Record<string, string> = {
   zettel_card: 'bg-primary',
   note: 'bg-blue-500',
   scratch_pad: 'bg-purple-500',
   sticky_note: 'bg-yellow-500',
   manual: 'bg-orange-500',
+  task: 'bg-rose-500',
+  task_done: 'bg-green-500',
+  habit: 'bg-teal-500',
 };
 
 const SOURCE_BORDER_COLORS: Record<string, string> = {
@@ -46,6 +62,9 @@ const SOURCE_BORDER_COLORS: Record<string, string> = {
   scratch_pad: 'border-l-purple-500',
   sticky_note: 'border-l-yellow-500',
   manual: 'border-l-orange-500',
+  task: 'border-l-rose-500',
+  task_done: 'border-l-green-500',
+  habit: 'border-l-teal-500',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -54,6 +73,9 @@ const SOURCE_LABELS: Record<string, string> = {
   scratch_pad: 'Scratch Pad',
   sticky_note: 'Sticky',
   manual: 'Event',
+  task: 'Task',
+  task_done: 'Done',
+  habit: 'Habit',
 };
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -85,6 +107,7 @@ export function Calendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [allItems, setAllItems] = useState<CalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Quick-add
@@ -105,13 +128,71 @@ export function Calendar() {
     if (!user) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch calendar events
+      const { data: evData } = await supabase
         .from('calendar_events')
         .select('*')
         .eq('user_id', user.id)
         .order('event_date', { ascending: true });
-      if (error) throw error;
-      setEvents(data || []);
+      const calEvents: CalendarEvent[] = evData || [];
+      setEvents(calEvents);
+
+      // Fetch tasks
+      const { data: taskData } = await supabase
+        .from('project_tasks')
+        .select('id, name, status, due_date')
+        .eq('user_id', user.id);
+
+      const taskItems: CalendarItem[] = (taskData || []).map((t: any) => ({
+        id: `task-${t.id}`,
+        title: t.name,
+        event_date: t.due_date,
+        source_type: t.status === 'done' ? 'task_done' : 'task',
+        taskStatus: t.status,
+        taskId: t.id,
+      }));
+
+      // Read habits from localStorage
+      const habitItems: CalendarItem[] = [];
+      try {
+        const raw = localStorage.getItem('habit-tracker-data');
+        if (raw) {
+          const habits = JSON.parse(raw);
+          if (Array.isArray(habits)) {
+            for (const habit of habits) {
+              if (Array.isArray(habit.completions)) {
+                for (const c of habit.completions) {
+                  if (c.completed && c.date) {
+                    habitItems.push({
+                      id: `habit-${habit.id}-${c.date}`,
+                      title: habit.name,
+                      event_date: c.date,
+                      source_type: 'habit',
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Merge all items
+      const calItems: CalendarItem[] = [
+        ...calEvents.map(ev => ({
+          id: ev.id,
+          title: ev.title,
+          description: ev.description,
+          event_date: ev.event_date,
+          event_time: ev.event_time,
+          source_type: ev.source_type,
+        })),
+        ...taskItems,
+        ...habitItems,
+      ];
+
+      setAllItems(calItems);
     } catch (e) {
       console.error('Error fetching calendar events:', e);
       setEvents([]);
@@ -124,10 +205,21 @@ export function Calendar() {
 
   /* ---------- derived ---------- */
 
+  const itemsByDate = useMemo(() => {
+    const map = new Map<string, CalendarItem[]>();
+    for (const item of allItems) {
+      const key = item.event_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(item);
+    }
+    return map;
+  }, [allItems]);
+
+  // Keep eventsByDate for backward compat with edit/delete actions (only calendar_events)
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const ev of events) {
-      const key = ev.event_date; // yyyy-MM-dd
+      const key = ev.event_date;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
@@ -140,6 +232,14 @@ export function Calendar() {
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
+  const selectedDayItems = useMemo(
+    () => allItems
+      .filter(item => isSameDay(parseISO(item.event_date), selectedDate))
+      .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || '')),
+    [allItems, selectedDate]
+  );
+
+  // Keep old selectedDayEvents for edit/delete (only calendar_events)
   const selectedDayEvents = useMemo(
     () => events.filter(ev => isSameDay(parseISO(ev.event_date), selectedDate))
       .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || '')),
@@ -148,22 +248,22 @@ export function Calendar() {
 
   const upcomingGrouped = useMemo(() => {
     const today = startOfDay(new Date());
-    const upcoming = events
-      .filter(ev => !isBefore(parseISO(ev.event_date), today))
+    const upcoming = allItems
+      .filter(item => !isBefore(parseISO(item.event_date), today))
       .sort((a, b) => a.event_date.localeCompare(b.event_date) || (a.event_time || '').localeCompare(b.event_time || ''));
 
-    const groups: { date: Date; label: string; events: CalendarEvent[] }[] = [];
+    const groups: { date: Date; label: string; events: CalendarItem[] }[] = [];
     let lastKey = '';
-    for (const ev of upcoming) {
-      if (ev.event_date !== lastKey) {
-        lastKey = ev.event_date;
-        const d = parseISO(ev.event_date);
+    for (const item of upcoming) {
+      if (item.event_date !== lastKey) {
+        lastKey = item.event_date;
+        const d = parseISO(item.event_date);
         groups.push({ date: d, label: dateLabel(d), events: [] });
       }
-      groups[groups.length - 1].events.push(ev);
+      groups[groups.length - 1].events.push(item);
     }
-    return groups.slice(0, 7); // max 7 date groups
-  }, [events]);
+    return groups.slice(0, 7);
+  }, [allItems]);
 
   /* ---------- actions ---------- */
 
@@ -283,7 +383,7 @@ export function Calendar() {
           <div className="grid grid-cols-7 gap-px">
             {calendarDays.map(day => {
               const key = format(day, 'yyyy-MM-dd');
-              const dayEvents = eventsByDate.get(key) || [];
+              const dayEvents = itemsByDate.get(key) || [];
               const isSelected = isSameDay(day, selectedDate);
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const today = isToday(day);
@@ -360,9 +460,59 @@ export function Calendar() {
             </p>
           </div>
 
-          {/* Events list */}
+          {/* Items list (events + tasks + habits) */}
           <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[320px] sm:max-h-[400px]">
-            {selectedDayEvents.length > 0 ? selectedDayEvents.map(ev => {
+            {selectedDayItems.length > 0 ? selectedDayItems.map(item => {
+              // Task items
+              if (item.source_type === 'task' || item.source_type === 'task_done') {
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg border-l-[3px] transition-colors hover:bg-accent/30",
+                      SOURCE_BORDER_COLORS[item.source_type]
+                    )}
+                  >
+                    <Checkbox
+                      checked={item.source_type === 'task_done'}
+                      onCheckedChange={async (checked) => {
+                        if (!item.taskId) return;
+                        await supabase.from('project_tasks').update({
+                          status: checked ? 'done' : 'todo'
+                        }).eq('id', item.taskId);
+                        fetchEvents();
+                      }}
+                      aria-label={`Toggle task: ${item.title}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("text-sm font-medium text-foreground truncate", item.source_type === 'task_done' && 'line-through opacity-60')}>
+                        {item.title}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground/60">Task</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Habit items
+              if (item.source_type === 'habit') {
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "pl-3 pr-2 py-2 rounded-lg border-l-[3px]",
+                      SOURCE_BORDER_COLORS['habit']
+                    )}
+                  >
+                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                    <span className="text-[10px] text-muted-foreground/60">Habit ✓</span>
+                  </div>
+                );
+              }
+
+              // Regular calendar event
+              const ev = events.find(e => e.id === item.id);
+              if (!ev) return null;
               const isEditing = editingId === ev.id;
 
               if (isEditing) {
@@ -425,7 +575,6 @@ export function Calendar() {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{ev.description}</p>
                       )}
                     </div>
-                    {/* hover actions */}
                     <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       {ev.source_type === 'manual' && (
                         <>

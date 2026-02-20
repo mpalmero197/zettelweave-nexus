@@ -111,7 +111,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
           {/* Row: Tasks + Calendar */}
           {(isVisible('task-tracker') || isVisible('calendar-events')) && (
             <DashboardSection columns={2}>
-              {isVisible('task-tracker') && <TaskTrackerWidget />}
+              {isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
               {isVisible('calendar-events') && <CalendarEventsWidget />}
             </DashboardSection>
           )}

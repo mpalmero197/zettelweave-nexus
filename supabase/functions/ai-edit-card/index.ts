@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +22,6 @@ const editCardSchema = z.object({
 });
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -38,7 +37,6 @@ serve(async (req) => {
   try {
     const body = await req.json();
     
-    // Validate input
     const validationResult = editCardSchema.safeParse(body);
     if (!validationResult.success) {
       console.error('Validation error:', validationResult.error);
@@ -52,24 +50,18 @@ serve(async (req) => {
 
     console.log('Processing AI edit for card:', card.id || 'new card');
 
-    // Retry with exponential backoff for rate limits
-    let retries = 3;
-    let delay = 1000; // Start with 1 second delay
-    let response: Response | undefined;
-    
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { 
-              role: 'system', 
-              content: `You are an AI assistant that helps improve Zettelkasten cards. Given a card and a user's editing request, return an improved version of the card in JSON format.
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { 
+            role: 'system', 
+            content: `You are an AI assistant that helps improve Zettelkasten cards. Given a card and a user's editing request, return an improved version of the card in JSON format.
 
 The response must be a valid JSON object with these exact fields:
 - title: string
@@ -79,10 +71,10 @@ The response must be a valid JSON object with these exact fields:
 - tags: array of strings
 
 Keep the essence of the original card while applying the user's requested changes. Be concise but informative.`
-            },
-            { 
-              role: 'user', 
-              content: `Original card:
+          },
+          { 
+            role: 'user', 
+            content: `Original card:
 Title: ${card.title}
 Description: ${card.description || ''}
 Content: ${card.content}
@@ -92,47 +84,43 @@ Tags: ${card.tags.join(', ')}
 User's request: ${prompt}
 
 Please improve this card according to the user's request and return the result as JSON.`
-            }
-          ],
-          max_tokens: 1000,
-        }),
+          }
+        ],
+        max_tokens: 1000,
+      }),
+    });
+
+    if (response.status === 429) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-
-      if (response.ok) {
-        break; // Success, exit retry loop
-      }
-
-      if (response.status === 429 && attempt < retries) {
-        console.log(`Rate limited (attempt ${attempt + 1}/${retries + 1}), waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
-        continue;
-      }
-
-      if (response.status === 429) {
-        throw new Error('OpenAI API rate limit exceeded. Please wait a few minutes and try again.');
-      }
-
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
-    if (!response) {
-      throw new Error('No response received from OpenAI API');
+    if (response.status === 402) {
+      return new Response(JSON.stringify({ error: 'AI usage limit reached. Please add credits to continue.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!response.ok) {
+      throw new Error(`AI gateway error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    // Parse the AI response as JSON
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(aiResponse);
+      const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/) || aiResponse.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
+      parsedResponse = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       throw new Error('AI returned invalid JSON format');
     }
 
-    // Validate the response structure
     const requiredFields = ['title', 'description', 'content', 'category', 'tags'];
     for (const field of requiredFields) {
       if (!(field in parsedResponse)) {
@@ -147,9 +135,7 @@ Please improve this card according to the user's request and return the result a
   } catch (error) {
     console.error('Error in ai-edit-card function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to process AI edit request';
-    return new Response(JSON.stringify({ 
-      error: errorMessage
-    }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

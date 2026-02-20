@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Plus, Trash2, ZoomIn, ZoomOut, Maximize2, Download, ChevronDown,
   Undo2, Redo2, Palette, RotateCcw, GitBranch, Search, X, ChevronUp,
@@ -17,6 +18,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -310,6 +312,11 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
   const [cardPickerOpen, setCardPickerOpen] = useState(false);
   const [cardPickerNodeId, setCardPickerNodeId] = useState<string | null>(null);
   const [cardPickerSearch, setCardPickerSearch] = useState('');
+
+  // Node detail panel
+  const [nodeDetailOpen, setNodeDetailOpen] = useState(false);
+  const [nodeDetailId, setNodeDetailId] = useState<string | null>(null);
+  const [nodeDetailNote, setNodeDetailNote] = useState('');
 
   // Study guide state
   const [studyGuideOpen, setStudyGuideOpen] = useState(false);
@@ -971,7 +978,7 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
                     ? `0 6px 24px color-mix(in srgb, ${node.color} 35%, transparent)`
                     : `0 2px 8px hsl(var(--card-shadow))`,
               }}
-              onClick={(e) => { e.stopPropagation(); setSelectedId(node.id); }}
+              onClick={(e) => { e.stopPropagation(); setSelectedId(node.id); setNodeDetailId(node.id); setNodeDetailNote(node.note || ''); setNodeDetailOpen(true); }}
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 if (node.linked_card_id && onCardSelect) {
@@ -1126,10 +1133,11 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
             </ContextMenuSubContent>
           </ContextMenuSub>
           <ContextMenuItem onClick={() => {
-            const note = prompt('Add a note:', node.note || '');
-            if (note !== null) setNote(node.id, note);
+            setNodeDetailId(node.id);
+            setNodeDetailNote(node.note || '');
+            setNodeDetailOpen(true);
           }}>
-            <StickyNote className="h-3.5 w-3.5 mr-2" />Add Note
+            <StickyNote className="h-3.5 w-3.5 mr-2" />Edit Note
           </ContextMenuItem>
           <ContextMenuSeparator />
           {/* Card linking */}
@@ -1558,6 +1566,58 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
         loadingText={studyGuideLoadingText}
         mapTitle={currentMapTitle || data.nodes[data.rootId]?.text}
       />
+
+      {/* Node Detail Panel */}
+      <Sheet open={nodeDetailOpen} onOpenChange={(open) => {
+        if (!open && nodeDetailId) { setNote(nodeDetailId, nodeDetailNote); }
+        setNodeDetailOpen(open);
+      }}>
+        <SheetContent className="w-80 sm:w-96 flex flex-col">
+          <SheetHeader>
+            <SheetTitle className="text-sm flex items-center gap-2">
+              {nodeDetailId && data.nodes[nodeDetailId]?.emoji && (
+                <span>{data.nodes[nodeDetailId].emoji}</span>
+              )}
+              {nodeDetailId ? data.nodes[nodeDetailId]?.text : 'Node'}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 flex flex-col gap-3 pt-4">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Priority</p>
+              <div className="flex gap-1">
+                {(['none', 'low', 'medium', 'high'] as Priority[]).map(p => (
+                  <Button
+                    key={p}
+                    variant={nodeDetailId && data.nodes[nodeDetailId]?.priority === p ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => { if (nodeDetailId) setPriority(nodeDetailId, p); }}
+                    className="text-[10px] h-6 px-2 capitalize flex-1"
+                  >
+                    {p}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Notes</p>
+              <Textarea
+                value={nodeDetailNote}
+                onChange={e => setNodeDetailNote(e.target.value)}
+                onBlur={() => { if (nodeDetailId) setNote(nodeDetailId, nodeDetailNote); }}
+                placeholder="Add notes for this node..."
+                className="flex-1 text-sm resize-none min-h-[200px]"
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{nodeDetailNote.length} chars</p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => { if (nodeDetailId) { setNote(nodeDetailId, nodeDetailNote); setNodeDetailOpen(false); } }}
+            >
+              Save & Close
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
