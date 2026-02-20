@@ -1253,6 +1253,7 @@ export type Database = {
           is_favorite: boolean
           name: string
           notes: string | null
+          parent_task_id: string | null
           priority: string
           repeat_type: string
           repeat_until: string | null
@@ -1267,6 +1268,7 @@ export type Database = {
           is_favorite?: boolean
           name: string
           notes?: string | null
+          parent_task_id?: string | null
           priority?: string
           repeat_type?: string
           repeat_until?: string | null
@@ -1281,6 +1283,7 @@ export type Database = {
           is_favorite?: boolean
           name?: string
           notes?: string | null
+          parent_task_id?: string | null
           priority?: string
           repeat_type?: string
           repeat_until?: string | null
@@ -1288,7 +1291,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recordings: {
         Row: {
