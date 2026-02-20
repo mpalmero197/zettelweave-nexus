@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckSquare, Plus, Trash2, RefreshCw, Pencil, ExternalLink } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, RefreshCw, Pencil, ExternalLink, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addDays, addWeeks, addMonths, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,7 @@ interface Task {
   notes: string | null;
   repeat_type: string;
   repeat_until: string | null;
+  parent_task_id: string | null;
   user_id: string;
   created_at: string;
 }
@@ -45,6 +46,9 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
 
+  // Expanded state: which parent task IDs are expanded to show subtasks
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
   // Edit sheet
   const [editOpen, setEditOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -52,13 +56,17 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
     name: '', priority: 'medium', notes: '', due_date: '', repeat_type: 'none', repeat_until: ''
   });
 
+  // Add subtask inline
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState<string | null>(null);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
+
   const fetchTasks = useCallback(async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from('project_tasks')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
     if (!error) setTasks((data as Task[]) || []);
     setLoading(false);
   }, [user]);
@@ -74,10 +82,29 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
       priority: newTaskPriority,
       status: 'todo',
       due_date: today,
+      parent_task_id: null,
     });
     if (error) { toast.error('Failed to add task'); return; }
     setNewTaskTitle('');
     toast.success('Task added');
+    fetchTasks();
+  };
+
+  const addSubtask = async (parentId: string) => {
+    if (!user || !subtaskTitle.trim()) return;
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const { error } = await supabase.from('project_tasks').insert({
+      user_id: user.id,
+      name: subtaskTitle.trim(),
+      priority: 'medium',
+      status: 'todo',
+      due_date: today,
+      parent_task_id: parentId,
+    });
+    if (error) { toast.error('Failed to add subtask'); return; }
+    setSubtaskTitle('');
+    setAddingSubtaskFor(null);
+    toast.success('Subtask added');
     fetchTasks();
   };
 
@@ -89,8 +116,7 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
       .eq('id', task.id);
     if (error) { toast.error('Failed to update task'); return; }
 
-    // If completing a repeating task, create next occurrence
-    if (newStatus === 'done' && task.repeat_type !== 'none' && task.due_date) {
+    if (newStatus === 'done' && task.repeat_type !== 'none' && task.due_date && !task.parent_task_id) {
       const dueDate = parseISO(task.due_date);
       let nextDue: Date;
       if (task.repeat_type === 'daily') nextDue = addDays(dueDate, 1);
@@ -108,6 +134,7 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
           notes: task.notes,
           repeat_type: task.repeat_type,
           repeat_until: task.repeat_until,
+          parent_task_id: null,
         });
         toast.success('Next occurrence created');
       }
@@ -151,8 +178,130 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
     fetchTasks();
   };
 
-  const pending = tasks.filter(t => t.status !== 'done');
-  const completed = tasks.filter(t => t.status === 'done');
+  const toggleExpand = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  // Build task tree: root tasks + subtask map
+  const rootTasks = tasks.filter(t => !t.parent_task_id);
+  const subtaskMap = tasks.reduce<Record<string, Task[]>>((acc, t) => {
+    if (t.parent_task_id) {
+      acc[t.parent_task_id] = [...(acc[t.parent_task_id] || []), t];
+    }
+    return acc;
+  }, {});
+
+  const pendingRoot = rootTasks.filter(t => t.status !== 'done');
+  const completedRoot = rootTasks.filter(t => t.status === 'done');
+
+  const renderTask = (task: Task, depth = 0) => {
+    const subs = subtaskMap[task.id] || [];
+    const hasSubs = subs.length > 0;
+    const isExpanded = expandedTasks.has(task.id);
+    const isAddingSub = addingSubtaskFor === task.id;
+
+    return (
+      <div key={task.id} className={depth > 0 ? 'ml-5 border-l border-border/40 pl-2' : ''}>
+        <div className="flex items-center gap-1.5 p-1.5 rounded-md hover:bg-accent/50 transition-colors group">
+          {/* Expand/collapse subtasks */}
+          <button
+            className="w-4 h-4 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground"
+            onClick={() => hasSubs ? toggleExpand(task.id) : null}
+            aria-label={hasSubs ? (isExpanded ? 'Collapse subtasks' : 'Expand subtasks') : undefined}
+          >
+            {hasSubs ? (
+              isExpanded
+                ? <ChevronDown className="h-3 w-3" />
+                : <ChevronRight className="h-3 w-3" />
+            ) : (
+              <span className="w-3" />
+            )}
+          </button>
+
+          <Checkbox
+            checked={task.status === 'done'}
+            onCheckedChange={() => toggleTask(task)}
+            aria-label={`Toggle: ${task.name}`}
+            className="shrink-0"
+          />
+
+          {/* Task body — clicking navigates to tasks tab */}
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => onNavigate?.('tasks')}
+          >
+            <div className="flex items-center gap-1">
+              <p className={`text-xs truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                {task.name}
+              </p>
+              {task.repeat_type !== 'none' && (
+                <span title={`Repeats ${task.repeat_type}`}><RefreshCw className="h-2.5 w-2.5 text-muted-foreground shrink-0" /></span>
+              )}
+              {hasSubs && (
+                <span className="text-[9px] text-muted-foreground shrink-0">
+                  {subs.filter(s => s.status === 'done').length}/{subs.length}
+                </span>
+              )}
+            </div>
+            {depth === 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className={`text-[10px] capitalize ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</span>
+                <span className="text-[10px] text-muted-foreground">{format(parseISO(task.due_date), 'MMM d')}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex opacity-0 group-hover:opacity-100 transition-opacity shrink-0 gap-0.5">
+            {depth === 0 && (
+              <Button
+                variant="ghost" size="sm"
+                onClick={() => { setAddingSubtaskFor(isAddingSub ? null : task.id); setSubtaskTitle(''); toggleExpand(task.id); }}
+                className="h-5 w-5 p-0" aria-label="Add subtask"
+                title="Add subtask"
+              >
+                <Plus className="h-2.5 w-2.5 text-muted-foreground" />
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="h-5 w-5 p-0" aria-label="Edit task">
+              <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-5 w-5 p-0 text-destructive" aria-label="Delete task">
+              <Trash2 className="h-2.5 w-2.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Inline subtask add form */}
+        {isAddingSub && (
+          <div className="ml-5 pl-2 pr-1 pb-1 flex gap-1">
+            <Input
+              value={subtaskTitle}
+              onChange={e => setSubtaskTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') addSubtask(task.id);
+                if (e.key === 'Escape') { setAddingSubtaskFor(null); setSubtaskTitle(''); }
+              }}
+              placeholder="Subtask name..."
+              className="text-xs h-7"
+              autoFocus
+            />
+            <Button onClick={() => addSubtask(task.id)} disabled={!subtaskTitle.trim()} size="sm" className="h-7 px-2 shrink-0">
+              Add
+            </Button>
+          </div>
+        )}
+
+        {/* Subtasks */}
+        {isExpanded && subs.map(sub => renderTask(sub, depth + 1))}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -168,8 +317,8 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            {pending.length > 0 && (
-              <span className="text-[10px] text-muted-foreground tabular-nums">{pending.length} pending</span>
+            {pendingRoot.length > 0 && (
+              <span className="text-[10px] text-muted-foreground tabular-nums">{pendingRoot.length} pending</span>
             )}
             {onNavigate && (
               <button
@@ -215,58 +364,17 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
           {loading ? (
             <div className="py-4 text-center text-xs text-muted-foreground">Loading…</div>
           ) : (
-            <div className="space-y-0.5 max-h-52 overflow-y-auto">
-              {pending.map(task => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors group"
-                >
-                  <Checkbox
-                    checked={false}
-                    onCheckedChange={() => toggleTask(task)}
-                    aria-label={`Complete: ${task.name}`}
-                  />
-                  <div
-                    className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => openEdit(task)}
-                  >
-                    <div className="flex items-center gap-1">
-                      <p className="text-xs truncate">{task.name}</p>
-                      {task.repeat_type !== 'none' && (
-                        <span title={`Repeats ${task.repeat_type}`}><RefreshCw className="h-2.5 w-2.5 text-muted-foreground shrink-0" /></span>
+            <div className="space-y-0 max-h-64 overflow-y-auto">
+              {pendingRoot.map(task => renderTask(task))}
 
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] capitalize ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</span>
-                      <span className="text-[10px] text-muted-foreground">{format(parseISO(task.due_date), 'MMM d')}</span>
-                    </div>
-                  </div>
-                  <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(task)} className="h-6 w-6 p-0" aria-label="Edit task">
-                      <Pencil className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-6 w-6 p-0 text-destructive" aria-label="Delete task">
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {completed.length > 0 && (
+              {completedRoot.length > 0 && (
                 <>
                   <p className="text-[10px] text-muted-foreground pt-2 px-1">Completed</p>
-                  {completed.slice(0, 3).map(task => (
-                    <div key={task.id} className="flex items-center gap-2 p-2 rounded-md opacity-50">
-                      <Checkbox checked onCheckedChange={() => toggleTask(task)} aria-label={`Uncomplete: ${task.name}`} />
-                      <p className="text-xs truncate line-through flex-1">{task.name}</p>
-                      <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="h-6 w-6 p-0 text-destructive" aria-label="Delete task">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+                  {completedRoot.slice(0, 3).map(task => renderTask(task))}
                 </>
               )}
-              {tasks.length === 0 && (
+
+              {rootTasks.length === 0 && (
                 <div className="text-center py-6">
                   <CheckSquare className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
                   <p className="text-xs text-muted-foreground">No tasks yet</p>
@@ -281,7 +389,9 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent className="w-80 sm:w-96">
           <SheetHeader>
-            <SheetTitle className="text-sm">Edit Task</SheetTitle>
+            <SheetTitle className="text-sm">
+              {editTask?.parent_task_id ? 'Edit Subtask' : 'Edit Task'}
+            </SheetTitle>
           </SheetHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-1">
@@ -317,33 +427,37 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
                 className="text-sm"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Repeat</label>
-              <Select
-                value={editFields.repeat_type}
-                onValueChange={v => setEditFields(f => ({ ...f, repeat_type: v }))}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No repeat</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {editFields.repeat_type !== 'none' && (
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Repeat Until (optional)</label>
-                <Input
-                  type="date"
-                  value={editFields.repeat_until}
-                  onChange={e => setEditFields(f => ({ ...f, repeat_until: e.target.value }))}
-                  className="text-sm"
-                />
-              </div>
+            {!editTask?.parent_task_id && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Repeat</label>
+                  <Select
+                    value={editFields.repeat_type}
+                    onValueChange={v => setEditFields(f => ({ ...f, repeat_type: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No repeat</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editFields.repeat_type !== 'none' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Repeat Until (optional)</label>
+                    <Input
+                      type="date"
+                      value={editFields.repeat_until}
+                      onChange={e => setEditFields(f => ({ ...f, repeat_until: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </>
             )}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Notes</label>

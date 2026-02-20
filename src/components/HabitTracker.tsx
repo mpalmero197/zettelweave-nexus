@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
-  Plus, Target, Flame, Trophy, TrendingUp, Timer, Edit3, Trash2, ChevronDown, MoreVertical
+  Plus, Target, Flame, Trophy, TrendingUp, Timer, Edit3, Trash2, ChevronDown, ChevronRight, MoreVertical
 } from "lucide-react";
 import { PomodoroTimer } from "./PomodoroTimer";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ interface Habit {
   completions: { date: string; completed: boolean; notes?: string }[];
   streak: number;
   bestStreak: number;
+  parentId?: string | null;
 }
 
 const HABIT_CATEGORIES = [
@@ -288,6 +289,9 @@ export default function HabitTracker() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  const [expandedHabits, setExpandedHabits] = useState<Set<string>>(new Set());
+  const [addingSubHabitFor, setAddingSubHabitFor] = useState<string | null>(null);
+  const [subHabitName, setSubHabitName] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -299,7 +303,7 @@ export default function HabitTracker() {
       id: crypto.randomUUID(), name: taskName, description: 'From bullet journal',
       frequency: 'daily', target: 1, category: 'productivity',
       color: HABIT_COLORS[habits.length % HABIT_COLORS.length],
-      createdAt: new Date(), completions: [], streak: 0, bestStreak: 0
+      createdAt: new Date(), completions: [], streak: 0, bestStreak: 0, parentId: null
     };
     setHabits(prev => [...prev, newHabit]);
     toast(`Habit "${taskName}" added!`);
@@ -349,10 +353,33 @@ export default function HabitTracker() {
   const createHabit = (data: any) => {
     const newHabit: Habit = {
       ...data, id: crypto.randomUUID(), createdAt: new Date(),
-      completions: [], streak: 0, bestStreak: 0
+      completions: [], streak: 0, bestStreak: 0, parentId: null
     };
     setHabits(prev => [...prev, newHabit]);
     toast(`Habit "${data.name}" created!`);
+  };
+
+  const createSubHabit = (parentId: string, name: string) => {
+    const parent = habits.find(h => h.id === parentId);
+    if (!parent || !name.trim()) return;
+    const newHabit: Habit = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      description: '',
+      frequency: parent.frequency,
+      target: 1,
+      category: parent.category,
+      color: parent.color,
+      createdAt: new Date(),
+      completions: [],
+      streak: 0,
+      bestStreak: 0,
+      parentId,
+    };
+    setHabits(prev => [...prev, newHabit]);
+    toast(`Sub-habit "${name.trim()}" added!`);
+    setSubHabitName('');
+    setAddingSubHabitFor(null);
   };
 
   const updateHabit = (data: any) => {
@@ -363,11 +390,28 @@ export default function HabitTracker() {
   };
 
   const deleteHabit = (id: string) => {
-    setHabits(prev => prev.filter(h => h.id !== id));
+    // Also delete sub-habits
+    setHabits(prev => prev.filter(h => h.id !== id && h.parentId !== id));
     toast('Habit deleted');
   };
 
-  const todaysHabits = habits.map(h => ({
+  const toggleExpand = (id: string) => {
+    setExpandedHabits(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Only root habits for the main grid; subhabits rendered inline
+  const rootHabits = habits.filter(h => !h.parentId);
+  const subHabitMap = habits.reduce<Record<string, Habit[]>>((acc, h) => {
+    if (h.parentId) acc[h.parentId] = [...(acc[h.parentId] || []), h];
+    return acc;
+  }, {});
+
+  const todaysHabits = rootHabits.map(h => ({
     ...h,
     isCompletedToday: h.completions.some(c => c.date === today && c.completed)
   }));
@@ -413,10 +457,10 @@ export default function HabitTracker() {
       </div>
 
       {/* --- Stats Strip --- */}
-      <StatsStrip habits={habits} />
+      <StatsStrip habits={rootHabits} />
 
       {/* --- Heatmap --- */}
-      <ContributionHeatmap habits={habits} />
+      <ContributionHeatmap habits={rootHabits} />
 
       {/* --- Today's Progress --- */}
       <div className="space-y-1">
@@ -434,57 +478,140 @@ export default function HabitTracker() {
       </div>
 
       {/* --- Habit Grid --- */}
-      <div className="habit-studio-grid">
-        {todaysHabits.map(habit => (
-          <div key={habit.id}
-            className={cn(
-              "group relative flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card/50 p-4 transition-all cursor-pointer hover:border-border",
-              habit.isCompletedToday && "bg-primary/5"
-            )}
-            onClick={() => toggleHabitCompletion(habit.id)}
-          >
-            {/* Context menu */}
-            <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={e => e.stopPropagation()}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <MoreVertical className="h-3 w-3" />
+      <div className="space-y-3">
+        {todaysHabits.map(habit => {
+          const subs = subHabitMap[habit.id] || [];
+          const hasSubs = subs.length > 0;
+          const isExpanded = expandedHabits.has(habit.id);
+          const isAddingSub = addingSubHabitFor === habit.id;
+          const subsDoneToday = subs.filter(s => s.completions.some(c => c.date === today && c.completed)).length;
+
+          return (
+            <div key={habit.id} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+              {/* Main habit row */}
+              <div
+                className={cn(
+                  "group relative flex items-center gap-3 p-3 transition-all cursor-pointer hover:bg-accent/30",
+                  habit.isCompletedToday && "bg-primary/5"
+                )}
+                onClick={() => toggleHabitCompletion(habit.id)}
+              >
+                <RadialRing size={44} strokeWidth={3} progress={habit.isCompletedToday ? 100 : 0} color={habit.color}>
+                  {habit.isCompletedToday ? (
+                    <span className="text-xs">✓</span>
+                  ) : (
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: habit.color }} />
+                  )}
+                </RadialRing>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn(
+                      "text-sm font-medium leading-tight truncate",
+                      habit.isCompletedToday && "text-muted-foreground line-through"
+                    )}>
+                      {habit.name}
+                    </span>
+                    {hasSubs && (
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {subsDoneToday}/{subs.length}
+                      </span>
+                    )}
+                  </div>
+                  {habit.streak > 0 && (
+                    <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 gap-0.5 mt-0.5", habit.streak >= 7 && "habit-streak-flame")}>
+                      <Flame className="h-2.5 w-2.5" />{habit.streak}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Add sub-habit"
+                    onClick={() => { setAddingSubHabitFor(isAddingSub ? null : habit.id); setSubHabitName(''); if (!isExpanded) toggleExpand(habit.id); }}>
+                    <Plus className="h-3 w-3" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { setEditingHabit(habit); }}>
-                    <Edit3 className="h-3 w-3 mr-2" />Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => deleteHabit(habit.id)}>
-                    <Trash2 className="h-3 w-3 mr-2" />Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  {hasSubs && (
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                      onClick={() => toggleExpand(habit.id)}>
+                      {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    </Button>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setEditingHabit(habit); }}>
+                        <Edit3 className="h-3 w-3 mr-2" />Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => deleteHabit(habit.id)}>
+                        <Trash2 className="h-3 w-3 mr-2" />Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
 
-            <RadialRing size={56} strokeWidth={4} progress={habit.isCompletedToday ? 100 : 0} color={habit.color}>
-              {habit.isCompletedToday ? (
-                <span className="text-sm">✓</span>
-              ) : (
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: habit.color }} />
+              {/* Sub-habit add form */}
+              {isAddingSub && (
+                <div className="px-3 pb-2 flex gap-2 border-t border-border/30 pt-2 bg-muted/20">
+                  <Input
+                    value={subHabitName}
+                    onChange={e => setSubHabitName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') createSubHabit(habit.id, subHabitName);
+                      if (e.key === 'Escape') { setAddingSubHabitFor(null); setSubHabitName(''); }
+                    }}
+                    placeholder="Sub-habit name..."
+                    className="text-xs h-7"
+                    autoFocus
+                  />
+                  <Button onClick={() => createSubHabit(habit.id, subHabitName)} disabled={!subHabitName.trim()} size="sm" className="h-7 px-2 shrink-0">
+                    Add
+                  </Button>
+                </div>
               )}
-            </RadialRing>
 
-            <span className={cn(
-              "text-xs font-medium text-center leading-tight max-w-full truncate",
-              habit.isCompletedToday && "text-muted-foreground line-through"
-            )}>
-              {habit.name}
-            </span>
-
-            {habit.streak > 0 && (
-              <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 gap-0.5", habit.streak >= 7 && "habit-streak-flame")}>
-                <Flame className="h-2.5 w-2.5" />{habit.streak}
-              </Badge>
-            )}
-          </div>
-        ))}
+              {/* Sub-habits */}
+              {isExpanded && hasSubs && (
+                <div className="border-t border-border/30 bg-muted/10">
+                  {subs.map(sub => {
+                    const subDone = sub.completions.some(c => c.date === today && c.completed);
+                    return (
+                      <div
+                        key={sub.id}
+                        className={cn(
+                          "group flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-accent/20 transition-colors border-b border-border/20 last:border-0",
+                          subDone && "opacity-60"
+                        )}
+                        onClick={() => toggleHabitCompletion(sub.id)}
+                      >
+                        <div className="w-3 h-3 rounded-full shrink-0 border-2 flex items-center justify-center"
+                          style={{ borderColor: sub.color, backgroundColor: subDone ? sub.color : 'transparent' }}>
+                          {subDone && <span className="text-[8px] text-white font-bold">✓</span>}
+                        </div>
+                        <span className={cn("text-xs flex-1 truncate", subDone && "line-through text-muted-foreground")}>
+                          {sub.name}
+                        </span>
+                        <div className="opacity-0 group-hover:opacity-100 flex gap-0.5" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setEditingHabit(sub)}>
+                            <Edit3 className="h-2.5 w-2.5 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive" onClick={() => deleteHabit(sub.id)}>
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* --- Inline Pomodoro --- */}
@@ -498,7 +625,7 @@ export default function HabitTracker() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="rounded-lg border border-border/50 bg-card/50 p-4">
-            <PomodoroTimer habits={habits} compact />
+            <PomodoroTimer habits={rootHabits} compact />
           </div>
         </CollapsibleContent>
       </Collapsible>
