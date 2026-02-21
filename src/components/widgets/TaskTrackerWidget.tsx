@@ -108,6 +108,23 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
     fetchTasks();
   };
 
+  const updateParentStatus = async (parentId: string, allTasks: Task[]) => {
+    const siblings = allTasks.filter(t => t.parent_task_id === parentId);
+    if (siblings.length === 0) return;
+
+    const allDone = siblings.every(s => s.status === 'done');
+    const anyInProgress = siblings.some(s => s.status === 'in_progress');
+    const anyActive = siblings.some(s => s.status !== 'done' && s.status !== 'todo');
+
+    let parentStatus: string;
+    if (allDone) parentStatus = 'done';
+    else if (anyInProgress || anyActive) parentStatus = 'in_progress';
+    else if (siblings.some(s => s.status === 'done')) parentStatus = 'in_progress';
+    else parentStatus = 'todo';
+
+    await supabase.from('project_tasks').update({ status: parentStatus }).eq('id', parentId);
+  };
+
   const toggleTask = async (task: Task) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const { error } = await supabase
@@ -115,6 +132,12 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
       .update({ status: newStatus })
       .eq('id', task.id);
     if (error) { toast.error('Failed to update task'); return; }
+
+    // Auto-update parent status based on children
+    if (task.parent_task_id) {
+      const updatedTasks = tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t);
+      await updateParentStatus(task.parent_task_id, updatedTasks);
+    }
 
     if (newStatus === 'done' && task.repeat_type !== 'none' && task.due_date && !task.parent_task_id) {
       const dueDate = parseISO(task.due_date);
@@ -195,6 +218,8 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
     }
     return acc;
   }, {});
+
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const pendingRoot = rootTasks.filter(t => t.status !== 'done');
   const completedRoot = rootTasks.filter(t => t.status === 'done');
@@ -369,8 +394,14 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
 
               {completedRoot.length > 0 && (
                 <>
-                  <p className="text-[10px] text-muted-foreground pt-2 px-1">Completed</p>
-                  {completedRoot.slice(0, 3).map(task => renderTask(task))}
+                  <button
+                    className="text-[10px] text-muted-foreground pt-2 px-1 hover:text-foreground transition-colors flex items-center gap-1"
+                    onClick={() => setShowCompleted(v => !v)}
+                  >
+                    {showCompleted ? <ChevronDown className="h-2.5 w-2.5" /> : <ChevronRight className="h-2.5 w-2.5" />}
+                    Completed ({completedRoot.length})
+                  </button>
+                  {showCompleted && completedRoot.map(task => renderTask(task))}
                 </>
               )}
 

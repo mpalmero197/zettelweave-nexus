@@ -49,6 +49,7 @@ const AGENT_ICONS: Record<AgentType, React.ElementType> = {
   citation: Quote,
   task_extraction: CheckSquare,
   spaced_repetition: Brain,
+  card_synthesizer: FileText,
   custom: Wand2
 };
 
