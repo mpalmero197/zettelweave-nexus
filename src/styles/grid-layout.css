@@ -11,29 +11,37 @@
 }
 
 .dashboard-section-2 {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+  columns: 1;
+  column-gap: 1rem;
+}
+
+.dashboard-section-2 > * {
+  break-inside: avoid;
+  margin-bottom: 1rem;
 }
 
 .dashboard-section-3 {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+  columns: 1;
+  column-gap: 1rem;
+}
+
+.dashboard-section-3 > * {
+  break-inside: avoid;
+  margin-bottom: 1rem;
 }
 
 @media (min-width: 768px) {
   .dashboard-section-2 {
-    grid-template-columns: repeat(2, 1fr);
+    columns: 2;
   }
   .dashboard-section-3 {
-    grid-template-columns: repeat(2, 1fr);
+    columns: 2;
   }
 }
 
 @media (min-width: 1024px) {
   .dashboard-section-3 {
-    grid-template-columns: repeat(3, 1fr);
+    columns: 3;
   }
 }
 
@@ -120,7 +128,7 @@
 }
 
 .graph-canvas .react-flow__node {
-  transition: none; /* Let inline styles handle transitions for perf */
+  transition: none;
 }
 
 .graph-toolbar {

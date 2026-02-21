@@ -9,6 +9,7 @@ export type AgentType =
   | 'citation'
   | 'task_extraction'
   | 'spaced_repetition'
+  | 'card_synthesizer'
   | 'custom';
 
 export type AgentStatus = 'pending' | 'running' | 'completed' | 'failed';
@@ -70,6 +71,11 @@ export interface AgentConfig {
   // Spaced repetition
   cards_per_session?: number;
   difficulty_multiplier?: number;
+
+  // Card Synthesizer (Author agent)
+  synthesizer_title?: string;
+  synthesizer_tag_filter?: string[];
+  synthesizer_max_cards?: number;
 
   // Custom agent
   custom_instructions?: string;
@@ -210,6 +216,14 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     icon: 'Brain',
     defaultConfig: { cards_per_session: 10, difficulty_multiplier: 2.5 },
     capabilities: ['SM-2 algorithm', 'Review scheduling', 'Difficulty tracking', 'Memory optimization']
+  },
+  {
+    type: 'card_synthesizer',
+    name: 'Author Agent',
+    description: 'Synthesizes your Zettelcards into a polished Catalyst document (1 per 24h)',
+    icon: 'BookOpen',
+    defaultConfig: { synthesizer_max_cards: 20 },
+    capabilities: ['Card synthesis', 'Auto-drafting', 'Catalyst integration', 'Daily limit']
   },
   {
     type: 'custom',

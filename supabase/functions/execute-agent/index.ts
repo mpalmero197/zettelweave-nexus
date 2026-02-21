@@ -22,7 +22,6 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
-    // Verify the user
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
@@ -38,7 +37,6 @@ serve(async (req) => {
 
     console.log(`Executing agent ${agentId} for run ${runId}`);
 
-    // Fetch the agent configuration
     const { data: agent, error: agentError } = await supabaseClient
       .from('agents')
       .select('*')
@@ -54,10 +52,8 @@ serve(async (req) => {
     let itemsProcessed = 0;
     const findings: any[] = [];
 
-    // Execute based on agent type
     switch (agent.agent_type) {
       case 'research': {
-        // Research agent: analyze Catalyst documents and find related materials
         const { data: catalystDocs } = await supabaseClient
           .from('catalyst_documents')
           .select('id, title, content')
@@ -68,9 +64,7 @@ serve(async (req) => {
         if (catalystDocs && catalystDocs.length > 0) {
           itemsProcessed = catalystDocs.length;
           
-          // Extract topics from recent documents
           for (const doc of catalystDocs) {
-            // Simple topic extraction (in production, use AI)
             const topics = doc.content
               .split(/[.\n]/)
               .filter((s: string) => s.length > 50)
@@ -95,8 +89,6 @@ serve(async (req) => {
       }
 
       case 'habit_reminder': {
-        // Check habit data from localStorage pattern (habits stored client-side)
-        // For now, create a reminder finding
         findings.push({
           agent_id: agentId,
           run_id: runId,
@@ -113,7 +105,6 @@ serve(async (req) => {
       }
 
       case 'smart_linking': {
-        // Find cards that might be related
         const { data: cards } = await supabaseClient
           .from('zettel_cards')
           .select('id, title, content, tags, linked_cards')
@@ -125,13 +116,11 @@ serve(async (req) => {
         if (cards && cards.length > 1) {
           itemsProcessed = cards.length;
           
-          // Simple similarity check based on shared tags
           for (let i = 0; i < cards.length; i++) {
             for (let j = i + 1; j < cards.length; j++) {
               const card1 = cards[i];
               const card2 = cards[j];
               
-              // Skip if already linked
               if (card1.linked_cards?.includes(card2.id) || card2.linked_cards?.includes(card1.id)) {
                 continue;
               }
@@ -164,7 +153,6 @@ serve(async (req) => {
       }
 
       case 'knowledge_gap': {
-        // Find referenced topics without corresponding cards
         const { data: cards } = await supabaseClient
           .from('zettel_cards')
           .select('content')
@@ -174,7 +162,6 @@ serve(async (req) => {
         if (cards && cards.length > 0) {
           itemsProcessed = cards.length;
           
-          // Look for patterns like "[[...]]" or mentions of undefined terms
           const allContent = cards.map((c: any) => c.content).join(' ');
           const references = allContent.match(/\[\[([^\]]+)\]\]/g) || [];
           const uniqueRefs = [...new Set(references)];
@@ -197,7 +184,6 @@ serve(async (req) => {
       }
 
       case 'task_extraction': {
-        // Look for action items in notes
         const { data: notes } = await supabaseClient
           .from('notes')
           .select('id, title, content')
@@ -231,6 +217,219 @@ serve(async (req) => {
         break;
       }
 
+      case 'card_synthesizer': {
+        // Check 24h rate limit
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentRuns } = await supabaseClient
+          .from('agent_runs')
+          .select('id')
+          .eq('agent_id', agentId)
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('completed_at', twentyFourHoursAgo)
+          .limit(1);
+
+        if (recentRuns && recentRuns.length > 0) {
+          // Rate limited
+          await supabaseClient
+            .from('agent_runs')
+            .update({
+              status: 'failed',
+              completed_at: new Date().toISOString(),
+              error_message: 'Rate limit: Author Agent can only run once every 24 hours.',
+            })
+            .eq('id', runId);
+
+          findings.push({
+            agent_id: agentId,
+            run_id: runId,
+            user_id: user.id,
+            finding_type: 'rate_limit',
+            title: 'Author Agent Rate Limited',
+            content: 'This agent can only synthesize once every 24 hours. Please try again later.',
+            metadata: {},
+            relevance_score: 1.0
+          });
+
+          if (findings.length > 0) {
+            await supabaseClient.from('agent_findings').insert(findings);
+          }
+
+          return new Response(
+            JSON.stringify({ success: false, error: 'Rate limited: 1 run per 24h' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Fetch user's zettelcards
+        const config = agent.config || {};
+        const maxCards = (config as any).synthesizer_max_cards || 20;
+        const tagFilter = (config as any).synthesizer_tag_filter;
+
+        let query = supabaseClient
+          .from('zettel_cards')
+          .select('id, title, content, tags, category')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+          .order('updated_at', { ascending: false })
+          .limit(maxCards);
+
+        const { data: cards } = await query;
+
+        if (!cards || cards.length === 0) {
+          findings.push({
+            agent_id: agentId,
+            run_id: runId,
+            user_id: user.id,
+            finding_type: 'no_content',
+            title: 'No Cards to Synthesize',
+            content: 'Create some Zettelcards first, then run the Author Agent to synthesize them into a document.',
+            metadata: {},
+            relevance_score: 1.0
+          });
+          itemsProcessed = 0;
+          itemsFound = 0;
+          break;
+        }
+
+        // Filter by tags if configured
+        let filteredCards = cards;
+        if (tagFilter && tagFilter.length > 0) {
+          filteredCards = cards.filter((c: any) => 
+            c.tags && c.tags.some((t: string) => tagFilter.includes(t))
+          );
+        }
+
+        if (filteredCards.length === 0) {
+          findings.push({
+            agent_id: agentId,
+            run_id: runId,
+            user_id: user.id,
+            finding_type: 'no_matching_cards',
+            title: 'No Matching Cards',
+            content: `No cards matched the configured tag filter: ${tagFilter?.join(', ')}`,
+            metadata: { tag_filter: tagFilter },
+            relevance_score: 0.8
+          });
+          break;
+        }
+
+        itemsProcessed = filteredCards.length;
+
+        // Build prompt from cards
+        const cardTexts = filteredCards.map((c: any, i: number) => 
+          `### Card ${i + 1}: ${c.title}\n${c.content}\n${c.tags?.length ? `Tags: ${c.tags.join(', ')}` : ''}`
+        ).join('\n\n');
+
+        const customTitle = (config as any).synthesizer_title;
+        const titleInstruction = customTitle 
+          ? `Title the document: "${customTitle} (Created by PendragonX)"`
+          : `Generate an appropriate title and append " (Created by PendragonX)" to it`;
+
+        const systemPrompt = `You are an expert author and synthesizer. Your job is to take a collection of Zettelkasten-style notes and synthesize them into a cohesive, well-structured document. 
+
+Rules:
+- Combine related ideas naturally
+- Create a logical flow with sections and headings
+- Preserve key insights and details from every card
+- Add transitions between sections
+- Write in clear, professional prose
+- ${titleInstruction}
+- Return ONLY a JSON object with "title" and "content" fields. The content should be in markdown format.`;
+
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (!LOVABLE_API_KEY) {
+          throw new Error('LOVABLE_API_KEY not configured');
+        }
+
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Here are ${filteredCards.length} Zettelcards to synthesize:\n\n${cardTexts}` }
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          const status = aiResponse.status;
+          if (status === 429) {
+            throw new Error('AI rate limit exceeded. Please try again later.');
+          }
+          if (status === 402) {
+            throw new Error('AI credits exhausted. Please add credits to your workspace.');
+          }
+          throw new Error(`AI gateway error: ${status}`);
+        }
+
+        const aiData = await aiResponse.json();
+        const rawContent = aiData.choices?.[0]?.message?.content || '';
+
+        // Parse JSON from response
+        let docTitle = `Synthesized Document (Created by PendragonX)`;
+        let docContent = rawContent;
+
+        try {
+          // Try to extract JSON
+          const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.title) docTitle = parsed.title;
+            if (parsed.content) docContent = parsed.content;
+          }
+        } catch {
+          // If JSON parsing fails, use raw content
+          docContent = rawContent;
+        }
+
+        // Ensure title has the naming convention
+        if (!docTitle.includes('(Created by PendragonX)')) {
+          docTitle = `${docTitle} (Created by PendragonX)`;
+        }
+
+        // Create Catalyst document
+        const { data: newDoc, error: docError } = await supabaseClient
+          .from('catalyst_documents')
+          .insert({
+            user_id: user.id,
+            title: docTitle,
+            content: docContent,
+            selected_source: 'agent_synthesizer',
+            word_count: docContent.split(/\s+/).length,
+          })
+          .select('id')
+          .single();
+
+        if (docError) {
+          throw new Error(`Failed to create document: ${docError.message}`);
+        }
+
+        itemsFound = 1;
+        findings.push({
+          agent_id: agentId,
+          run_id: runId,
+          user_id: user.id,
+          finding_type: 'document_created',
+          title: `📄 "${docTitle}" is ready!`,
+          content: `Synthesized ${filteredCards.length} cards into a new Catalyst document. Open Catalyst to view and edit it.`,
+          metadata: { 
+            document_id: newDoc.id, 
+            cards_used: filteredCards.length,
+            word_count: docContent.split(/\s+/).length
+          },
+          relevance_score: 1.0
+        });
+
+        break;
+      }
+
       default:
         console.log(`Agent type ${agent.agent_type} not yet implemented`);
     }
@@ -249,10 +448,10 @@ serve(async (req) => {
       const notifications = findings.slice(0, 3).map(f => ({
         user_id: user.id,
         agent_id: agentId,
-        finding_id: null, // Will be set after findings are inserted
+        finding_id: null,
         title: f.title,
         message: f.content.substring(0, 200),
-        notification_type: 'info'
+        notification_type: f.finding_type === 'document_created' ? 'success' : 'info'
       }));
 
       await supabaseClient.from('agent_notifications').insert(notifications);
