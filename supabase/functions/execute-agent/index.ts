@@ -6,29 +6,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-async function callAI(apiKey: string, messages: any[], temperature = 0.7) {
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages,
-      temperature,
-    }),
-  });
+async function callAI(apiKey: string, messages: any[], temperature = 0.7, maxTokens = 8192) {
+  const makeRequest = async (attempt: number): Promise<string> => {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+      }),
+    });
 
-  if (!response.ok) {
-    const status = response.status;
-    if (status === 429) throw new Error('AI rate limit exceeded. Please try again later.');
-    if (status === 402) throw new Error('AI credits exhausted. Please add credits to your workspace.');
-    throw new Error(`AI gateway error: ${status}`);
-  }
+    if (!response.ok) {
+      const status = response.status;
+      if (status === 429 && attempt < 3) {
+        console.log(`AI rate limited, retrying in ${attempt * 3}s (attempt ${attempt}/3)...`);
+        await new Promise(r => setTimeout(r, attempt * 3000));
+        return makeRequest(attempt + 1);
+      }
+      if (status === 429) throw new Error('AI rate limit exceeded after retries. Please try again later.');
+      if (status === 402) throw new Error('AI credits exhausted. Please add credits to your workspace.');
+      const body = await response.text();
+      throw new Error(`AI gateway error ${status}: ${body.substring(0, 200)}`);
+    }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    if (!content) {
+      console.warn('AI returned empty content');
+    }
+    return content;
+  };
+
+  return makeRequest(1);
 }
 
 async function gatherAllContent(supabaseClient: any, userId: string) {
@@ -297,13 +312,40 @@ CRITICAL INSTRUCTIONS:
 - DO NOT include any JSON — write pure markdown prose
 - Start directly with the chapter heading (## ${section.title})`;
 
-    const chapterContent = await callAI(apiKey, [
-      { role: 'system', content: `You are an expert author writing a comprehensive, publication-quality document. Write extensively, aiming for at least ${targetWords} words. Your prose should be engaging, informative, and well-structured with rich markdown formatting.` },
-      { role: 'user', content: chapterPrompt }
-    ], 0.75);
+    try {
+      const chapterContent = await callAI(apiKey, [
+        { role: 'system', content: `You are an expert author writing a comprehensive, publication-quality document. Write extensively, aiming for at least ${targetWords} words. Your prose should be engaging, informative, and well-structured with rich markdown formatting.` },
+        { role: 'user', content: chapterPrompt }
+      ], 0.75, 8192);
 
-    chapters.push(chapterContent);
-    console.log(`Author Agent: Chapter ${i + 1}/${outline.length} written (${chapterContent.split(/\s+/).length} words)`);
+      const wordCount = chapterContent.split(/\s+/).length;
+      chapters.push(chapterContent);
+      console.log(`Author Agent: Chapter ${i + 1}/${outline.length} written (${wordCount} words)`);
+
+      // If chapter seems truncated (too short), try once more with explicit continuation
+      if (wordCount < targetWords * 0.5 && targetWords > 500) {
+        console.log(`Author Agent: Chapter ${i + 1} seems short (${wordCount}/${targetWords}), extending...`);
+        const continuePrompt = `Continue writing Chapter ${i + 1}: "${section.title}" about "${topicData.topic}".
+
+Here is what you wrote so far:
+${chapterContent.slice(-1500)}
+
+Continue from where you left off. Write at least ${Math.max(500, targetWords - wordCount)} more words.
+Use the same rich markdown formatting. Do NOT repeat content already written.`;
+
+        const extension = await callAI(apiKey, [
+          { role: 'system', content: 'Continue writing the chapter. Do not repeat previous content.' },
+          { role: 'user', content: continuePrompt }
+        ], 0.75, 8192);
+
+        chapters[chapters.length - 1] = chapterContent + '\n\n' + extension;
+        const newWordCount = chapters[chapters.length - 1].split(/\s+/).length;
+        console.log(`Author Agent: Chapter ${i + 1} extended to ${newWordCount} words`);
+      }
+    } catch (chapterError) {
+      console.error(`Author Agent: Chapter ${i + 1} failed: ${chapterError}`);
+      chapters.push(`## ${section.title}\n\n*This section could not be generated due to a temporary error. Please run the Author Agent again to regenerate.*\n`);
+    }
   }
 
   // ── Step 7: Citation Generation (engaging Citation Agent) ──
@@ -551,10 +593,33 @@ serve(async (req) => {
         const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
         if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-        const result = await runAuthorAgent(supabaseClient, user, agent, runId, LOVABLE_API_KEY);
-        itemsProcessed = result.itemsProcessed;
-        itemsFound = result.itemsFound;
-        findings.push(...result.findings);
+        try {
+          const result = await runAuthorAgent(supabaseClient, user, agent, runId, LOVABLE_API_KEY);
+          itemsProcessed = result.itemsProcessed;
+          itemsFound = result.itemsFound;
+          findings.push(...result.findings);
+        } catch (authorError) {
+          console.error('Author Agent fatal error:', authorError);
+          // Mark run as failed
+          await supabaseClient.from('agent_runs').update({
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            error_message: authorError instanceof Error ? authorError.message : 'Unknown author agent error',
+          }).eq('id', runId);
+
+          // Still notify the user
+          await supabaseClient.from('agent_notifications').insert({
+            user_id: user.id, agent_id: agentId,
+            title: '❌ Author Agent Failed',
+            message: `The Author Agent encountered an error: ${authorError instanceof Error ? authorError.message : 'Unknown error'}. Please try again.`,
+            notification_type: 'warning',
+          });
+
+          return new Response(
+            JSON.stringify({ success: false, error: authorError instanceof Error ? authorError.message : 'Author agent failed' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         break;
       }
 
