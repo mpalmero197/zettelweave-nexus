@@ -76,6 +76,7 @@ export interface AgentConfig {
   synthesizer_title?: string;
   synthesizer_tag_filter?: string[];
   synthesizer_max_cards?: number;
+  author_min_words?: number;
 
   // Custom agent
   custom_instructions?: string;
@@ -220,10 +221,10 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
   {
     type: 'card_synthesizer',
     name: 'Author Agent',
-    description: 'Synthesizes your Zettelcards into a polished Catalyst document (1 per 24h)',
+    description: 'Autonomously explores a topic across all your content, engages Research, Knowledge Gap & Citation agents, and writes a 10,000+ word Catalyst document',
     icon: 'BookOpen',
-    defaultConfig: { synthesizer_max_cards: 20 },
-    capabilities: ['Card synthesis', 'Auto-drafting', 'Catalyst integration', 'Daily limit']
+    defaultConfig: { synthesizer_max_cards: 50, author_min_words: 10000 },
+    capabilities: ['Multi-source exploration', 'Agent collaboration', '10k+ word output', 'Auto-research', 'Citation generation']
   },
   {
     type: 'custom',

@@ -310,6 +310,42 @@ export function AgentConfigFields({ agentType, config, onChange, disabled }: Age
         </div>
       );
 
+    case 'card_synthesizer':
+      return (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Custom Document Title (optional)</Label>
+            <Input
+              value={config.synthesizer_title || ''}
+              onChange={e => update({ synthesizer_title: e.target.value })}
+              placeholder="Leave empty for AI-chosen topic title"
+              disabled={disabled}
+            />
+            <p className="text-xs text-muted-foreground">If empty, the Author Agent picks the most interesting topic from your content.</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Minimum Word Count</Label>
+            <Select
+              value={String(config.author_min_words || 10000)}
+              onValueChange={v => update({ author_min_words: parseInt(v) })}
+              disabled={disabled}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5000">5,000 words</SelectItem>
+                <SelectItem value="10000">10,000 words</SelectItem>
+                <SelectItem value="15000">15,000 words</SelectItem>
+                <SelectItem value="20000">20,000 words</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+            <p className="text-xs font-medium">How it works</p>
+            <p className="text-xs text-muted-foreground">The Author Agent scans your Zettelcards, Notes, Scratchpad, and Catalyst docs to find the most interesting topic. It then engages Knowledge Gap, Research, and Citation agents to produce a comprehensive, original document.</p>
+          </div>
+        </div>
+      );
+
     case 'custom':
       return (
         <div className="space-y-4">
