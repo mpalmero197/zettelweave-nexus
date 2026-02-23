@@ -1,173 +1,59 @@
 
-## Summary of Issues
+# Fix Author Agent: Eliminate Timeouts, Guarantee Document Output
 
-There are 5 problems to fix and 1 new feature to add:
+## Problem
 
-1. **Dashboard items not opening when clicked** — `TaskTrackerWidget` still uses localStorage and has no click-to-open handler. `RecentNotesWidget` already works via `onOpenNote` prop, but the prop is not being passed down correctly in some cases.
-2. **Habits not showing on Calendar** — `Calendar.tsx` was never updated to read from localStorage habits. The calendar only queries `calendar_events`.
-3. **Task repeat button missing** — The database migration was never run (`project_tasks` still lacks `notes`, `repeat_type`, `repeat_until`). The `TaskTrackerWidget` was never migrated from localStorage to Supabase.
-4. **Mind map node notes panel** — Currently notes are set via a crude `prompt()` dialog. The user wants a proper expandable side panel (like cards) when clicking a node.
-5. **Replace all AI with Gemini** — Two edge functions (`ai-edit-card` and `ai-categorize-card`) still call OpenAI directly using `OPENAI_API_KEY`. They need to be rewritten to use the Lovable AI Gateway with `google/gemini-3-flash-preview`.
+The Author Agent makes **12+ sequential AI calls** (topic selection, gap analysis, research, outline, 8 chapters, citations). Supabase edge functions have a hard timeout (~150 seconds). The agent consistently times out before finishing, producing **no content at all**.
 
-Note: `transcribe-audio` uses OpenAI Whisper for actual audio processing — this is audio-specific and Gemini does not offer a Whisper equivalent. This function will be left as-is (it already has its own gateway fallback in `transcribe-audio-ai`).
+## Solution: Collapse to 3 AI Calls Maximum
 
----
+Instead of orchestrating a complex multi-pass pipeline that exceeds edge function limits, we will restructure the Author Agent to make only **3 fast, focused AI calls**:
 
-## Database Migration Required
+1. **Call 1 -- Topic Selection** (quick, small output): Pick the best topic from the user's Zettelcards.
+2. **Call 2 -- Full Document Generation** (one big call): Write the entire document in a single AI call with detailed instructions for formatting, research, and structure. Request `max_tokens: 16384`.
+3. **Call 3 -- Extend if short** (conditional): If the document is under 5,000 words, make one continuation call to extend it.
 
-The `project_tasks` table needs 3 new columns before the TaskTrackerWidget can be migrated:
+This eliminates the 8-chapter loop, the separate research call, the gap analysis call, and the citation call -- all of which contributed to timeouts.
 
-```sql
-ALTER TABLE project_tasks
-  ADD COLUMN IF NOT EXISTS notes text,
-  ADD COLUMN IF NOT EXISTS repeat_type text NOT NULL DEFAULT 'none',
-  ADD COLUMN IF NOT EXISTS repeat_until date;
-```
+## Technical Details
 
----
+### File: `supabase/functions/execute-agent/index.ts`
 
-## File Changes
+**Changes to `callAI`:**
+- Increase default `maxTokens` to `16384` to allow longer single outputs.
 
-### 1. `supabase/functions/ai-edit-card/index.ts`
-Replace OpenAI call with Lovable AI Gateway:
-- Change endpoint to `https://ai.gateway.lovable.dev/v1/chat/completions`
-- Change auth header to `Bearer ${LOVABLE_API_KEY}`
-- Use model `google/gemini-3-flash-preview`
-- Remove `OPENAI_API_KEY` dependency
-- Keep same input/output shape and the Zod validation
-- Keep the retry logic but simplify since Gateway handles rate limits uniformly
-- Add 429/402 specific error responses
+**Changes to `runAuthorAgent`:**
+- **Remove**: Steps 3 (Knowledge Gap), 4 (Research), 5 (Outline), 6 (Chapter Loop), 7 (Citations) as separate calls.
+- **Replace with**: A single comprehensive prompt that instructs the AI to:
+  - Select a topic (or use the one from Call 1)
+  - Write a fully formatted document with table of contents, 8+ sections, research insights, citations, and rich markdown
+  - Target 3,000-5,000 words in one shot (the realistic max for a single AI response with 16k tokens)
+- **Add**: A conditional extension call if the document is under 5,000 words, asking the AI to continue writing more sections.
+- **Add**: A second extension call if still under target, to push toward the 10k goal.
+- **Wrap everything** in try/catch with meaningful fallback -- if any call fails, save whatever content was generated so far rather than losing everything.
 
-### 2. `supabase/functions/ai-categorize-card/index.ts`
-Same swap:
-- Change endpoint, auth, and model to Lovable AI Gateway + Gemini
-- Remove `OPENAI_API_KEY` dependency
-- Keep Zod validation and response parsing intact
+**Changes to error handling:**
+- If the main document call fails, save a partial document with an error note rather than returning nothing.
+- Every AI call gets its own try/catch so one failure doesn't kill the whole process.
 
-### 3. `src/components/widgets/TaskTrackerWidget.tsx` (Major rewrite)
-Migrate from localStorage to Supabase `project_tasks`, and add:
+### Key Design Decisions
 
-**Supabase integration:**
-- On mount: `supabase.from('project_tasks').select('*').eq('user_id', user.id).order('created_at', {ascending: false})`
-- Add task: `insert({ name, priority, due_date: today, status: 'todo', user_id, notes: '', repeat_type: 'none' })`
-- Toggle complete: `update({ status: 'done' })` — if `repeat_type !== 'none'`, auto-insert next occurrence
-- Delete: `delete().eq('id', id)`
+| Before | After |
+|--------|-------|
+| 12+ sequential AI calls | 3 max AI calls |
+| ~5+ minutes execution | ~30-60 seconds execution |
+| Times out, produces nothing | Always produces a document |
+| Separate research/gap/citation steps | All instructions in one comprehensive prompt |
+| Chapter-by-chapter generation | Single document generation + extensions |
 
-**Edit Sheet per task** (opens on task row click):
-- Sheet with fields: title (Input), priority (button group), notes (Textarea), due date (date Input), repeat type (Select: None / Daily / Weekly / Monthly)
-- Save button calls `update()`
+### Expected Output
 
-**Repeat logic when completing:**
-```ts
-if (task.repeat_type !== 'none' && task.due_date) {
-  const nextDue = repeat_type === 'daily' ? addDays(dueDate, 1)
-               : repeat_type === 'weekly' ? addWeeks(dueDate, 1)
-               : addMonths(dueDate, 1);
-  if (!task.repeat_until || nextDue <= parseISO(task.repeat_until)) {
-    supabase.from('project_tasks').insert({ ...task, id: undefined, status: 'todo', due_date: nextDue });
-  }
-}
-```
+The Author Agent will reliably produce a well-formatted Catalyst document of 3,000-10,000+ words with:
+- A topic chosen from the user's Zettelcards
+- Rich markdown formatting (headers, lists, blockquotes, bold/italic)
+- Table of contents
+- References section
+- The "(Created by PendragonX)" suffix
+- A notification on success
 
-**Click-to-open:** The widget header has an "Open Task Manager →" button that calls `onNavigate?.('tasks')` if available, otherwise opens a Sheet containing the full TaskManager.
-
-**Repeat badge:** Show a small `↻` icon on tasks that have `repeat_type !== 'none'`.
-
-### 4. `src/components/CustomizableDashboard.tsx`
-Pass `onNavigate` down to `TaskTrackerWidget`:
-```tsx
-{isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
-```
-
-### 5. `src/components/Calendar.tsx`
-Add tasks and habits to the unified calendar display:
-
-**Tasks from Supabase:**
-- After fetching `calendar_events`, also fetch `project_tasks` for the current month range filtered by `due_date`
-- Convert each task to a display item with `source_type: 'task'` (pending) or `'task_done'` (status = 'done')
-- In the day detail panel, render tasks with a `Checkbox` that calls Supabase UPDATE to toggle status
-
-**Habits from localStorage:**
-- Read `localStorage.getItem('habit-tracker-data')` and parse the `Habit[]` array
-- For each habit's `completions`, find entries where `completed === true` and surface them as `source_type: 'habit'` items on their respective dates
-
-**New dot colors and legend entries:**
-```ts
-SOURCE_DOT_COLORS['task'] = 'bg-rose-500';
-SOURCE_DOT_COLORS['task_done'] = 'bg-green-500';
-SOURCE_DOT_COLORS['habit'] = 'bg-teal-500';
-SOURCE_LABELS['task'] = 'Task';
-SOURCE_LABELS['task_done'] = 'Done';
-SOURCE_LABELS['habit'] = 'Habit';
-```
-
-**Calendar items type:** Introduce a merged `CalendarItem` union type (either a `CalendarEvent` from the DB, a task row, or a habit entry) so everything can render in the same list.
-
-### 6. `src/components/MindMap.tsx`
-Replace the `prompt()` dialog for notes with a proper **Node Detail Panel**:
-
-**State additions:**
-```ts
-const [nodeDetailOpen, setNodeDetailOpen] = useState(false);
-const [nodeDetailId, setNodeDetailId] = useState<string | null>(null);
-const [nodeDetailNote, setNodeDetailNote] = useState('');
-```
-
-**Single-click behavior change:** Currently single-click sets `selectedId`. Change it so a single click selects the node AND opens the detail panel:
-```tsx
-onClick={(e) => {
-  e.stopPropagation();
-  setSelectedId(node.id);
-  setNodeDetailId(node.id);
-  setNodeDetailNote(node.note || '');
-  setNodeDetailOpen(true);
-}}
-```
-
-**Remove the `prompt()` call** from the context menu "Add Note" item — replace it with:
-```tsx
-<ContextMenuItem onClick={() => {
-  setNodeDetailId(node.id);
-  setNodeDetailNote(node.note || '');
-  setNodeDetailOpen(true);
-}}>
-  <StickyNote className="h-3.5 w-3.5 mr-2" />Edit Note
-</ContextMenuItem>
-```
-
-**Node Detail Panel** — a `Sheet` (from shadcn) that slides in from the right:
-- Header: node emoji + node text, priority badge
-- Tabs (like a card): "Note" and "Info"
-- **Note tab**: Full `Textarea` (no char limit, auto-grow) for the node's note. Auto-saves on blur with `setNote(nodeDetailId, text)`. Character count display.
-- **Info tab**: Shows node color, priority selector (buttons), emoji picker (grid), linked card info (badge + open button if linked), children count, breadcrumb path from root
-- Close button saves the note automatically
-- Width: `w-80 sm:w-96` so it doesn't cover the entire canvas
-
-**Action ring** — add a `StickyNote` button to the hover action ring alongside the existing `+` and `Trash` buttons for quick access.
-
-### 7. `src/hooks/useZettelCards.ts`
-Fix the duplicate key collision (already planned, implementing now):
-```ts
-// After line 230 (the insert call):
-if (error?.code === '23505') {
-  // Collision — append timestamp suffix and retry once
-  const fallbackNumber = `${cardNumber}-${Date.now().toString(36)}`;
-  const retry = await supabase.from('zettel_cards').insert({
-    ...insertPayload, number: fallbackNumber
-  }).select().single();
-  if (retry.error) throw retry.error;
-  return { data: retry.data, merged: false };
-}
-if (error) throw error;
-```
-
----
-
-## Technical Notes
-
-- The database migration must run first before the TaskTrackerWidget can insert rows (the `notes` and `repeat_type` columns need to exist).
-- `project_tasks.due_date` is `NOT NULL` — when creating tasks from the widget, default to today's date.
-- Habits are read-only on the calendar (no editing from calendar view); editing still happens in the HabitTracker component.
-- The Mind Map node detail panel does NOT require any database changes — `node.note` is already part of the `MindMapNode` schema and is serialized into `map_data` JSONB.
-- The `transcribe-audio` function intentionally keeps OpenAI Whisper as it requires audio transcription which Gemini does not support natively.
-- The Lovable AI Gateway (`LOVABLE_API_KEY`) is auto-provisioned — no secret configuration needed for the edge function migration.
+The word count may vary (3k-10k+) depending on AI response length, but it will **always produce something** rather than timing out with nothing.
