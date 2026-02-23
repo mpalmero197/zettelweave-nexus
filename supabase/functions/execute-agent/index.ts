@@ -117,328 +117,161 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
 
   const contentSummary = buildContentSummary(content);
 
-  // ── Step 2: Topic Selection ──
+  // ── CALL 1: Topic Selection (quick, small output) ──
   console.log('Author Agent: Selecting topic...');
-  const topicPrompt = `You are an expert research analyst. Below is a user's knowledge base across Zettelcards, Notes, Scratchpad, and Catalyst documents.
+  let topicData: any = { topic: 'Exploration of Key Themes', angle: 'A synthesis of the user\'s knowledge' };
+
+  try {
+    const topicRaw = await callAI(apiKey, [
+      { role: 'system', content: 'You are a topic selection AI. Return only valid JSON.' },
+      { role: 'user', content: `You are an expert research analyst. Below is a user's knowledge base.
 
 Your job: Identify the SINGLE most fascinating topic to explore in depth. Look for:
 - Recurring themes across multiple content sources
 - Topics with depth potential that haven't been fully explored
 - Interesting intersections between different subjects
-- Concepts the user seems passionate about but hasn't synthesized
 
-Return ONLY a JSON object with these fields:
-- "topic": The chosen topic (a clear, specific title)
-- "angle": A unique angle or thesis to explore (1-2 sentences)
-- "why": Why this topic is worth a deep dive (1 sentence)
-- "related_content_ids": Array of content IDs that relate to this topic
-- "knowledge_gaps": Array of 3-5 subtopics where the user's knowledge seems incomplete
-- "research_questions": Array of 5-7 questions worth investigating
+Return ONLY a JSON object: {"topic": "...", "angle": "..."}
 
-Here is the user's content:
+${contentSummary}` }
+    ], 0.8, 1024);
 
-${contentSummary}`;
-
-  const topicRaw = await callAI(apiKey, [
-    { role: 'system', content: 'You are a topic selection AI. Return only valid JSON.' },
-    { role: 'user', content: topicPrompt }
-  ], 0.8);
-
-  let topicData: any;
-  try {
     const jsonMatch = topicRaw.match(/\{[\s\S]*\}/);
-    topicData = jsonMatch ? JSON.parse(jsonMatch[0]) : { topic: 'Exploration of Key Themes', angle: 'A synthesis of the user\'s knowledge', why: 'Multiple themes warrant deeper exploration' };
-  } catch {
-    topicData = { topic: 'Exploration of Key Themes', angle: 'A synthesis of the user\'s knowledge', why: 'Multiple themes warrant deeper exploration', knowledge_gaps: [], research_questions: [] };
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.topic) topicData = parsed;
+    }
+  } catch (e) {
+    console.error('Author Agent: Topic selection failed, using fallback:', e);
   }
 
   console.log(`Author Agent: Selected topic "${topicData.topic}"`);
 
-  // ── Step 3: Knowledge Gap Analysis (engaging Knowledge Gap Agent) ──
-  console.log('Author Agent: Engaging Knowledge Gap Agent...');
-  const gapPrompt = `Topic: "${topicData.topic}"
-Angle: "${topicData.angle}"
-Known gaps: ${JSON.stringify(topicData.knowledge_gaps || [])}
+  // ── CALL 2: Full Document Generation (single big call) ──
+  console.log('Author Agent: Generating full document in one call...');
+  let documentBody = '';
 
-Based on the user's content below, identify:
-1. What the user already knows well about this topic
-2. Critical knowledge gaps that need to be filled
-3. Misconceptions or incomplete understandings
-4. Adjacent topics that would enrich the exploration
-
-Return a JSON object with: "strengths" (array), "gaps" (array), "misconceptions" (array), "adjacent_topics" (array)
-
-User content:
-${contentSummary.substring(0, 8000)}`;
-
-  const gapRaw = await callAI(apiKey, [
-    { role: 'system', content: 'You are a knowledge gap analyst. Return only valid JSON.' },
-    { role: 'user', content: gapPrompt }
-  ], 0.5);
-
-  let gapData: any;
   try {
-    const jsonMatch = gapRaw.match(/\{[\s\S]*\}/);
-    gapData = jsonMatch ? JSON.parse(jsonMatch[0]) : { strengths: [], gaps: [], misconceptions: [], adjacent_topics: [] };
-  } catch {
-    gapData = { strengths: [], gaps: [], misconceptions: [], adjacent_topics: [] };
+    documentBody = await callAI(apiKey, [
+      { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document. You MUST write as much content as possible — aim for at least 4,000 words. Use rich markdown formatting throughout. Never cut yourself short.` },
+      { role: 'user', content: `Write a comprehensive, deeply researched document on: "${topicData.topic}"
+Angle/thesis: "${topicData.angle}"
+
+REQUIREMENTS:
+1. Start with a compelling introduction that frames the topic
+2. Include 8+ major sections with ## headers and ### subsections
+3. Each section should be 400-600 words minimum
+4. Include innovative insights, not just surface-level information
+5. Add historical context, current developments, and future implications
+6. Include specific examples, data points, case studies, and expert perspectives
+7. Use rich markdown: **bold**, *italic*, > blockquotes, bullet lists, numbered lists
+8. Add cross-disciplinary connections and contrarian perspectives
+9. End with a "References & Further Reading" section with 10+ APA-formatted references
+10. Write a table of contents after the introduction
+
+The user has existing knowledge on this topic from their notes:
+${contentSummary.substring(0, 6000)}
+
+GO BEYOND their existing knowledge. Explore new angles, fill knowledge gaps, and provide original synthesis.
+
+CRITICAL: Write as much content as you can. Do NOT summarize or abbreviate. Every section needs depth and detail. Target 5,000+ words.` }
+    ], 0.75, 16384);
+
+    console.log(`Author Agent: Main document generated (${documentBody.split(/\s+/).length} words)`);
+  } catch (e) {
+    console.error('Author Agent: Main document generation failed:', e);
+    // If main call fails, save a minimal document
+    documentBody = `## ${topicData.topic}\n\n*The Author Agent attempted to write about this topic but encountered an error during generation. Please try running the agent again.*\n\n> Error: ${e instanceof Error ? e.message : 'Unknown error'}\n`;
   }
 
-  // ── Step 4: Research & Exploration (engaging Research Agent) ──
-  console.log('Author Agent: Engaging Research Agent for exploration...');
-  const researchPrompt = `You are a world-class researcher. The topic is: "${topicData.topic}"
-Angle: "${topicData.angle}"
-
-Knowledge gaps to fill: ${JSON.stringify(gapData.gaps || [])}
-Research questions: ${JSON.stringify(topicData.research_questions || [])}
-Adjacent topics: ${JSON.stringify(gapData.adjacent_topics || [])}
-
-Provide comprehensive, innovative research findings on this topic. Include:
-1. Key discoveries and insights (at least 10 detailed findings)
-2. Historical context and evolution of the topic
-3. Current state of the art and recent developments
-4. Contrarian or lesser-known perspectives
-5. Practical applications and real-world examples
-6. Future implications and predictions
-7. Cross-disciplinary connections
-8. Notable experts, works, and references
-
-Be thorough, specific, and include concrete data points, names, dates, and examples.
-Write at least 3000 words of research findings.
-
-Return your findings as detailed prose organized by theme.`;
-
-  const researchFindings = await callAI(apiKey, [
-    { role: 'system', content: 'You are a thorough researcher who provides detailed, well-sourced findings. Write extensively.' },
-    { role: 'user', content: researchPrompt }
-  ], 0.7);
-
-  // ── Step 5: Generate Detailed Outline ──
-  console.log('Author Agent: Generating outline...');
-  const outlinePrompt = `You are planning a comprehensive 10,000+ word document on: "${topicData.topic}"
-Angle: "${topicData.angle}"
-
-You have the following inputs:
-- User's existing knowledge (from their notes/cards)
-- Knowledge gap analysis
-- Research findings
-
-Create a detailed outline with exactly 8-12 chapters/sections. Each section should:
-- Have a compelling title
-- Include 3-5 subsections
-- Specify what content to cover (100+ words per section description)
-- Note which research findings to incorporate
-- Include at least one innovative insight per section
-
-Return ONLY a JSON array where each element has:
-- "title": Section title
-- "subsections": Array of subsection titles
-- "description": What to cover (detailed, 100+ words)
-- "target_words": Target word count (1000-2000 per section)
-
-The total target_words across all sections must be at least 10000.`;
-
-  const outlineRaw = await callAI(apiKey, [
-    { role: 'system', content: 'You are an expert document architect. Return only valid JSON array.' },
-    { role: 'user', content: outlinePrompt }
-  ], 0.6);
-
-  let outline: any[];
-  try {
-    const jsonMatch = outlineRaw.match(/\[[\s\S]*\]/);
-    outline = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  } catch {
-    outline = [
-      { title: 'Introduction', subsections: ['Background', 'Scope', 'Objectives'], description: 'Introduce the topic', target_words: 1200 },
-      { title: 'Historical Context', subsections: ['Origins', 'Evolution', 'Key Milestones'], description: 'Historical overview', target_words: 1500 },
-      { title: 'Core Concepts', subsections: ['Fundamentals', 'Key Theories', 'Framework'], description: 'Core ideas', target_words: 1500 },
-      { title: 'Current Landscape', subsections: ['State of the Art', 'Trends', 'Challenges'], description: 'Present day', target_words: 1500 },
-      { title: 'Deep Dive Analysis', subsections: ['Analysis', 'Case Studies', 'Comparisons'], description: 'Detailed analysis', target_words: 1500 },
-      { title: 'Innovative Perspectives', subsections: ['New Ideas', 'Cross-disciplinary', 'Contrarian Views'], description: 'Novel insights', target_words: 1200 },
-      { title: 'Practical Applications', subsections: ['Real-world Use', 'Best Practices', 'Tools'], description: 'Applications', target_words: 1200 },
-      { title: 'Future Outlook', subsections: ['Predictions', 'Implications', 'Conclusion'], description: 'What comes next', target_words: 1400 },
-    ];
-  }
-
-  if (outline.length < 5) {
-    outline = [
-      { title: 'Introduction & Background', subsections: [], description: 'Comprehensive intro', target_words: 1500 },
-      { title: 'Foundations & History', subsections: [], description: 'Historical context', target_words: 1500 },
-      { title: 'Core Analysis', subsections: [], description: 'Deep analysis', target_words: 2000 },
-      { title: 'Modern Perspectives', subsections: [], description: 'Current state', target_words: 2000 },
-      { title: 'Innovations & Applications', subsections: [], description: 'Practical aspects', target_words: 1500 },
-      { title: 'Future Directions & Conclusion', subsections: [], description: 'Forward-looking', target_words: 1500 },
-    ];
-  }
-
-  // ── Step 6: Generate Each Chapter ──
-  console.log(`Author Agent: Writing ${outline.length} chapters...`);
-  const chapters: string[] = [];
-  const relevantUserContent = contentSummary.substring(0, 4000);
-
-  for (let i = 0; i < outline.length; i++) {
-    const section = outline[i];
-    const targetWords = section.target_words || 1500;
-    const previousContext = chapters.length > 0
-      ? `\n\nPrevious sections covered:\n${chapters.map((c, idx) => `- ${outline[idx].title}`).join('\n')}\n\nLast section ended with:\n${chapters[chapters.length - 1].slice(-500)}`
-      : '';
-
-    const chapterPrompt = `You are writing Chapter ${i + 1} of ${outline.length} in a comprehensive document about "${topicData.topic}".
-Angle: "${topicData.angle}"
-
-This chapter: "${section.title}"
-Subsections to cover: ${JSON.stringify(section.subsections || [])}
-Description: ${section.description || 'Cover this topic thoroughly'}
-Target: AT LEAST ${targetWords} words. Do NOT write fewer.
-${previousContext}
-
-Research findings to incorporate:
-${researchFindings.substring(i * 2000, (i + 1) * 2000 + 1000)}
-
-User's existing knowledge to build upon:
-${relevantUserContent.substring(0, 2000)}
-
-Knowledge gaps identified: ${JSON.stringify((gapData.gaps || []).slice(0, 3))}
-
-CRITICAL INSTRUCTIONS:
-- Write AT LEAST ${targetWords} words for this chapter. Count carefully.
-- Use rich markdown formatting: headers (##, ###), bold, italic, bullet points, numbered lists, blockquotes
-- Include specific examples, data points, and concrete details
-- Add innovative insights not found in the user's existing content
-- Use engaging, authoritative prose
-- Include cross-references to concepts from other chapters
-- Add thought-provoking questions or observations
-- Format with clear subsections using ### headers
-- DO NOT include any JSON — write pure markdown prose
-- Start directly with the chapter heading (## ${section.title})`;
-
+  // ── CALL 3: Extend if short (conditional) ──
+  const wordCount1 = documentBody.split(/\s+/).length;
+  if (wordCount1 < 5000 && wordCount1 > 100) {
+    console.log(`Author Agent: Document is ${wordCount1} words, extending...`);
     try {
-      const chapterContent = await callAI(apiKey, [
-        { role: 'system', content: `You are an expert author writing a comprehensive, publication-quality document. Write extensively, aiming for at least ${targetWords} words. Your prose should be engaging, informative, and well-structured with rich markdown formatting.` },
-        { role: 'user', content: chapterPrompt }
-      ], 0.75, 8192);
+      const extension = await callAI(apiKey, [
+        { role: 'system', content: 'You are continuing a document. Write extensively. Do NOT repeat any content from the previous sections. Add entirely new sections and depth.' },
+        { role: 'user', content: `Continue this document about "${topicData.topic}". It currently has ~${wordCount1} words.
 
-      const wordCount = chapterContent.split(/\s+/).length;
-      chapters.push(chapterContent);
-      console.log(`Author Agent: Chapter ${i + 1}/${outline.length} written (${wordCount} words)`);
+Here is how the document ends (last 2000 chars):
+${documentBody.slice(-2000)}
 
-      // If chapter seems truncated (too short), try once more with explicit continuation
-      if (wordCount < targetWords * 0.5 && targetWords > 500) {
-        console.log(`Author Agent: Chapter ${i + 1} seems short (${wordCount}/${targetWords}), extending...`);
-        const continuePrompt = `Continue writing Chapter ${i + 1}: "${section.title}" about "${topicData.topic}".
+Write MORE sections to extend this document. Add:
+- Additional major sections (## headers) not yet covered
+- Deeper analysis, more case studies, more examples
+- Practical applications and implementation details  
+- Comparative analysis with related topics
+- Expert opinions and debate points
+- A comprehensive conclusion if one doesn't exist yet
 
-Here is what you wrote so far:
-${chapterContent.slice(-1500)}
+Write at least 3,000 more words. Use rich markdown formatting. Do NOT repeat anything already written.` }
+      ], 0.75, 16384);
 
-Continue from where you left off. Write at least ${Math.max(500, targetWords - wordCount)} more words.
-Use the same rich markdown formatting. Do NOT repeat content already written.`;
-
-        const extension = await callAI(apiKey, [
-          { role: 'system', content: 'Continue writing the chapter. Do not repeat previous content.' },
-          { role: 'user', content: continuePrompt }
-        ], 0.75, 8192);
-
-        chapters[chapters.length - 1] = chapterContent + '\n\n' + extension;
-        const newWordCount = chapters[chapters.length - 1].split(/\s+/).length;
-        console.log(`Author Agent: Chapter ${i + 1} extended to ${newWordCount} words`);
-      }
-    } catch (chapterError) {
-      console.error(`Author Agent: Chapter ${i + 1} failed: ${chapterError}`);
-      chapters.push(`## ${section.title}\n\n*This section could not be generated due to a temporary error. Please run the Author Agent again to regenerate.*\n`);
+      documentBody += '\n\n' + extension;
+      console.log(`Author Agent: Extended to ${documentBody.split(/\s+/).length} words`);
+    } catch (e) {
+      console.error('Author Agent: Extension call failed (non-fatal):', e);
     }
   }
 
-  // ── Step 7: Citation Generation (engaging Citation Agent) ──
-  console.log('Author Agent: Engaging Citation Agent...');
-  const citationPrompt = `Based on the following document content, generate a "References & Further Reading" section with:
-- 10-15 relevant academic and professional references (real or plausible)
-- Format in APA style
-- Include books, journal articles, and web resources
-- Organize by theme
-
-Topic: "${topicData.topic}"
-
-Key themes covered: ${outline.map(s => s.title).join(', ')}
-
-Return the references as a formatted markdown section starting with "## References & Further Reading"`;
-
-  const citations = await callAI(apiKey, [
-    { role: 'system', content: 'You are a citation specialist. Generate well-formatted references.' },
-    { role: 'user', content: citationPrompt }
-  ], 0.4);
-
-  // ── Step 8: Assemble Final Document ──
+  // ── Assemble Final Document ──
   const config = agent.config || {};
   const customTitle = (config as any).synthesizer_title;
   const docTitle = customTitle
     ? `${customTitle} (Created by PendragonX)`
     : `${topicData.topic} (Created by PendragonX)`;
 
-  const tableOfContents = outline.map((s, i) => `${i + 1}. [${s.title}](#${s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')})`).join('\n');
-
-  const docContent = `# ${docTitle}
+  const finalContent = `# ${docTitle}
 
 > *${topicData.angle}*
 
 ---
 
-## Table of Contents
-
-${tableOfContents}
+${documentBody}
 
 ---
 
-${chapters.join('\n\n---\n\n')}
-
----
-
-${citations}
-
----
-
-*This document was autonomously researched and authored by PendragonX's Author Agent. It synthesized insights from ${content.cards.length} Zettelcards, ${content.notes.length} Notes, ${content.scratchpad.length} Scratchpad entries, and ${content.catalystDocs.length} existing documents. The Author Agent engaged Knowledge Gap Analysis, Research Exploration, and Citation Generation to produce this comprehensive work.*
+*This document was autonomously researched and authored by PendragonX's Author Agent. It synthesized insights from ${content.cards.length} Zettelcards, ${content.notes.length} Notes, ${content.scratchpad.length} Scratchpad entries, and ${content.catalystDocs.length} existing documents.*
 
 *Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}*
 `;
 
-  const wordCount = docContent.split(/\s+/).length;
-  console.log(`Author Agent: Final document: ${wordCount} words`);
+  const finalWordCount = finalContent.split(/\s+/).length;
+  console.log(`Author Agent: Final document: ${finalWordCount} words`);
 
-  // ── Step 9: Save to Catalyst ──
+  // ── Save to Catalyst ──
   const { data: newDoc, error: docError } = await supabaseClient
     .from('catalyst_documents')
     .insert({
       user_id: user.id,
       title: docTitle,
-      content: docContent,
+      content: finalContent,
       selected_source: 'agent_synthesizer',
-      word_count: wordCount,
+      word_count: finalWordCount,
     })
     .select('id')
     .single();
 
   if (docError) {
-    throw new Error(`Failed to create document: ${docError.message}`);
+    throw new Error(`Failed to save document: ${docError.message}`);
   }
 
   findings.push({
     agent_id: agentId, run_id: runId, user_id: user.id,
     finding_type: 'document_created',
     title: `📄 "${docTitle}" is ready!`,
-    content: `The Author Agent explored "${topicData.topic}" and produced a ${wordCount.toLocaleString()}-word document across ${outline.length} chapters. It engaged Knowledge Gap, Research, and Citation agents to deliver comprehensive, original content. Open Catalyst to view it.`,
+    content: `The Author Agent explored "${topicData.topic}" and produced a ${finalWordCount.toLocaleString()}-word document. Open Catalyst to view it.`,
     metadata: {
       document_id: newDoc.id,
       topic: topicData.topic,
       angle: topicData.angle,
-      chapters: outline.length,
-      word_count: wordCount,
+      word_count: finalWordCount,
       sources_used: {
         cards: content.cards.length,
         notes: content.notes.length,
         scratchpad: content.scratchpad.length,
         catalyst: content.catalystDocs.length,
       },
-      agents_engaged: ['knowledge_gap', 'research', 'citation'],
     },
     relevance_score: 1.0
   });
