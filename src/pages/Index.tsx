@@ -22,6 +22,7 @@ import { RecorderStudio } from "@/components/RecorderStudio";
 import { AudioManager } from "@/components/AudioManager";
 import { ScratchPad } from "@/components/ScratchPad";
 import { Catalyst } from "@/components/Catalyst";
+import { DebuggerConsole } from "@/components/DebuggerConsole";
 import { StickyNotesSimple } from "@/components/StickyNotesSimple";
 // Notebooks is now integrated into Notes component
 import { Calendar } from "@/components/Calendar";
@@ -821,6 +822,10 @@ const Index = () => {
                       </Button>
                     </div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="debugger" className="mt-0">
+                  <DebuggerConsole />
                 </TabsContent>
 
               </div>
