@@ -23,6 +23,7 @@ import {
   CreditCard,
   Bot,
   Download,
+  Bug,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -112,6 +113,10 @@ export function MinimalSidebar({
           
           <NavButton tab="recorder" icon={Mic} label="Recorder" />
           <NavButton tab="recycle" icon={Trash2} label="Recycle Bin" />
+          
+          <Separator className="my-2" />
+          
+          <NavButton tab="debugger" icon={Bug} label="Debugger Console" />
         </div>
       </ScrollArea>
 
