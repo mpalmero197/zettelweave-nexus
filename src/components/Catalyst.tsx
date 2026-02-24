@@ -58,6 +58,7 @@ import { CatalystSplitEditor } from '@/components/catalyst/CatalystSplitEditor';
 import { CatalystWritingGoals } from '@/components/catalyst/CatalystWritingGoals';
 import { CatalystSnapshots } from '@/components/catalyst/CatalystSnapshots';
 import { CatalystComments } from '@/components/catalyst/CatalystComments';
+import { CatalystAgentsPanel } from '@/components/catalyst/CatalystAgentsPanel';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -145,6 +146,22 @@ export function Catalyst() {
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: scratchpadNotesData = [] } = useQuery({
+    queryKey: ['scratchpad_notes', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('scratchpad_notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
       
       if (error) throw error;
       return data || [];
@@ -949,10 +966,11 @@ export function Catalyst() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Tabs value={activeAssistantTab} onValueChange={setActiveAssistantTab}>
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="suggestions" className="text-xs">AI</TabsTrigger>
                   <TabsTrigger value="outline" className="text-xs">Outline</TabsTrigger>
                   <TabsTrigger value="tools" className="text-xs">Tools</TabsTrigger>
+                  <TabsTrigger value="agents" className="text-xs">Agents</TabsTrigger>
                 </TabsList>
 
                 {/* Outline Tab */}
@@ -1164,6 +1182,14 @@ export function Catalyst() {
                       )}
                     </TabsContent>
                   </Tabs>
+                </TabsContent>
+                <TabsContent value="agents" className="mt-4">
+                  <CatalystAgentsPanel
+                    cards={cards.map(c => ({ id: c.id, title: c.title, content: c.content, type: 'card' as const, tags: c.tags }))}
+                    notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content, type: 'note' as const, tags: n.tags }))}
+                    scratchpadNotes={scratchpadNotesData.map((s: any) => ({ id: s.id, title: `Scratch ${s.id.slice(0, 6)}`, content: s.content, type: 'scratchpad' as const }))}
+                    onDocumentGenerated={() => queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] })}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>

@@ -117,14 +117,31 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
 
   const contentSummary = buildContentSummary(content);
 
-  // ── CALL 1: Topic Selection (quick, small output) ──
-  console.log('Author Agent: Selecting topic...');
-  let topicData: any = { topic: 'Exploration of Key Themes', angle: 'A synthesis of the user\'s knowledge' };
+  // Check if user provided a topic and focus via config
+  const config = agent.config || {};
+  const userTopic = (config as any).synthesizer_title;
+  const userFocus = (config as any).custom_instructions;
+  const selectedSourceIds: string[] = (config as any).selected_source_ids || [];
 
-  try {
-    const topicRaw = await callAI(apiKey, [
-      { role: 'system', content: 'You are a topic selection AI. Return only valid JSON.' },
-      { role: 'user', content: `You are an expert research analyst. Below is a user's knowledge base.
+  // If user selected specific sources, filter content
+  if (selectedSourceIds.length > 0) {
+    content.cards = content.cards.filter((c: any) => selectedSourceIds.includes(c.id));
+    content.notes = content.notes.filter((n: any) => selectedSourceIds.includes(n.id));
+    content.scratchpad = content.scratchpad.filter((s: any) => selectedSourceIds.includes(s.id));
+    content.catalystDocs = content.catalystDocs.filter((d: any) => selectedSourceIds.includes(d.id));
+  }
+
+  const filteredSummary = selectedSourceIds.length > 0 ? buildContentSummary(content) : contentSummary;
+
+  // ── CALL 1: Topic Selection (quick, small output) ──
+  let topicData: any = { topic: userTopic || 'Exploration of Key Themes', angle: userFocus || 'A synthesis of the user\'s knowledge' };
+
+  if (!userTopic) {
+    console.log('Author Agent: Selecting topic...');
+    try {
+      const topicRaw = await callAI(apiKey, [
+        { role: 'system', content: 'You are a topic selection AI. Return only valid JSON.' },
+        { role: 'user', content: `You are an expert research analyst. Below is a user's knowledge base.
 
 Your job: Identify the SINGLE most fascinating topic to explore in depth. Look for:
 - Recurring themes across multiple content sources
@@ -133,16 +150,19 @@ Your job: Identify the SINGLE most fascinating topic to explore in depth. Look f
 
 Return ONLY a JSON object: {"topic": "...", "angle": "..."}
 
-${contentSummary}` }
-    ], 0.8, 1024);
+${filteredSummary}` }
+      ], 0.8, 1024);
 
-    const jsonMatch = topicRaw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.topic) topicData = parsed;
+      const jsonMatch = topicRaw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.topic) topicData = parsed;
+      }
+    } catch (e) {
+      console.error('Author Agent: Topic selection failed, using fallback:', e);
     }
-  } catch (e) {
-    console.error('Author Agent: Topic selection failed, using fallback:', e);
+  } else {
+    console.log(`Author Agent: Using user-provided topic "${userTopic}"`);
   }
 
   console.log(`Author Agent: Selected topic "${topicData.topic}"`);
@@ -168,9 +188,9 @@ REQUIREMENTS:
 8. Add cross-disciplinary connections and contrarian perspectives
 9. End with a "References & Further Reading" section with 10+ APA-formatted references
 10. Write a table of contents after the introduction
-
+${userFocus ? `\n11. SPECIAL FOCUS: ${userFocus}\n` : ''}
 The user has existing knowledge on this topic from their notes:
-${contentSummary.substring(0, 6000)}
+${filteredSummary.substring(0, 6000)}
 
 GO BEYOND their existing knowledge. Explore new angles, fill knowledge gaps, and provide original synthesis.
 
@@ -215,7 +235,6 @@ Write at least 3,000 more words. Use rich markdown formatting. Do NOT repeat any
   }
 
   // ── Assemble Final Document ──
-  const config = agent.config || {};
   const customTitle = (config as any).synthesizer_title;
   const docTitle = customTitle
     ? `${customTitle} (Created by PendragonX)`
