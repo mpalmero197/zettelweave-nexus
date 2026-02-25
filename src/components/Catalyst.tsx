@@ -523,9 +523,52 @@ export function Catalyst() {
     if (e.target) e.target.value = '';
   };
 
+  const convertMarkdownToHtml = (text: string): string => {
+    // If it already contains HTML tags, assume it's already converted
+    if (/<(h[1-6]|p|ul|ol|blockquote|strong|em)\b/.test(text)) return text;
+
+    let html = text;
+    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/^---$/gm, '<hr>');
+    html = html.replace(/^> (.+)$/gm, '<blockquote><p>$1</p></blockquote>');
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/((?:^[\-\*] .+\n?)+)/gm, (block) => {
+      const items = block.trim().split('\n').map(line =>
+        `<li>${line.replace(/^[\-\*] /, '')}</li>`
+      ).join('');
+      return `<ul>${items}</ul>`;
+    });
+    html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
+      const items = block.trim().split('\n').map(line =>
+        `<li>${line.replace(/^\d+\. /, '')}</li>`
+      ).join('');
+      return `<ol>${items}</ol>`;
+    });
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+    const lines = html.split('\n');
+    const result: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (/^<(h[1-6]|ul|ol|li|blockquote|hr|p|div|pre|table)/.test(trimmed)) {
+        result.push(trimmed);
+      } else {
+        result.push(`<p>${trimmed}</p>`);
+      }
+    }
+    return result.join('');
+  };
+
   const handleLoadFromCloud = (doc: CatalystDocument) => {
     setDocumentTitle(doc.title);
-    setEditorContent(doc.content);
+    setEditorContent(convertMarkdownToHtml(doc.content));
     setSelectedSource(doc.selected_source as ContentSource);
     setSelectedItems(new Set(doc.selected_items));
     setCurrentDocId(doc.id);

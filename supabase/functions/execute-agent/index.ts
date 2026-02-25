@@ -264,7 +264,7 @@ Write at least 3,000 more words. Use standard Markdown only. Keep paragraphs to 
     ? `${customTitle} (Created by PendragonX)`
     : `${topicData.topic} (Created by PendragonX)`;
 
-  const finalContent = `# ${docTitle}
+  const finalMarkdown = `# ${docTitle}
 
 > *${topicData.angle}*
 
@@ -279,7 +279,67 @@ ${documentBody}
 *Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}*
 `;
 
-  const finalWordCount = finalContent.split(/\s+/).length;
+  // ── Convert Markdown to HTML for TipTap rich-text rendering ──
+  function markdownToHtml(md: string): string {
+    let html = md;
+
+    // Convert headings (must process longer patterns first)
+    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Convert horizontal rules
+    html = html.replace(/^---$/gm, '<hr>');
+
+    // Convert blockquotes (single-line)
+    html = html.replace(/^> (.+)$/gm, '<blockquote><p>$1</p></blockquote>');
+
+    // Convert bold and italic combinations
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // Convert unordered lists – gather consecutive lines starting with - or *
+    html = html.replace(/((?:^[\-\*] .+\n?)+)/gm, (block) => {
+      const items = block.trim().split('\n').map(line =>
+        `<li>${line.replace(/^[\-\*] /, '')}</li>`
+      ).join('');
+      return `<ul>${items}</ul>`;
+    });
+
+    // Convert ordered lists
+    html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
+      const items = block.trim().split('\n').map(line =>
+        `<li>${line.replace(/^\d+\. /, '')}</li>`
+      ).join('');
+      return `<ol>${items}</ol>`;
+    });
+
+    // Convert inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Convert links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+    // Wrap remaining plain-text lines in <p> tags
+    const lines = html.split('\n');
+    const result: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (/^<(h[1-6]|ul|ol|li|blockquote|hr|p|div|pre|table)/.test(trimmed)) {
+        result.push(trimmed);
+      } else {
+        result.push(`<p>${trimmed}</p>`);
+      }
+    }
+
+    return result.join('');
+  }
+
+  const finalContent = markdownToHtml(finalMarkdown);
+  const finalWordCount = finalMarkdown.split(/\s+/).length;
   console.log(`Author Agent: Final document: ${finalWordCount} words`);
 
   // ── Save to Catalyst ──
