@@ -173,28 +173,52 @@ ${filteredSummary}` }
 
   try {
     documentBody = await callAI(apiKey, [
-      { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document. You MUST write as much content as possible — aim for at least 4,000 words. Use rich markdown formatting throughout. Never cut yourself short.` },
+      { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document optimized for maximum readability, accessibility, and cross-platform compatibility.
+
+You MUST write as much content as possible — aim for at least 4,000 words. Never cut yourself short.
+
+STRICT FORMATTING RULES — follow these exactly:
+
+**Typography & Emphasis:**
+- Use bold text sparingly, only to highlight key terms or phrases for scanning.
+- Never use ALL CAPS for emphasis.
+- Never use underlining (it is confused with hyperlinks).
+- Use italics only for titles of works or foreign terms.
+- Use concise, plain language. Avoid unnecessary jargon.
+
+**Structure & Layout:**
+- Use clear, chronological heading hierarchy: # for H1, ## for H2, ### for H3. Never skip heading levels.
+- Limit paragraphs to a maximum of 3-4 sentences. Insert blank lines between all paragraphs for generous white space.
+- Use bulleted or numbered lists whenever presenting three or more related items, steps, or features.
+- All text must be left-aligned. Never use full justification.
+
+**Markdown Rules:**
+- Use only standard Markdown syntax (no proprietary formatting). Output must be compatible with EPUB export, WordPress publishing, and Microsoft Word.
+- Use > blockquotes for direct quotations or key insights.
+- Use --- horizontal rules to separate major document sections.
+
+Do NOT apply custom text colors. Do NOT use HTML tags — only standard Markdown.` },
       { role: 'user', content: `Write a comprehensive, deeply researched document on: "${topicData.topic}"
 Angle/thesis: "${topicData.angle}"
 
 REQUIREMENTS:
-1. Start with a compelling introduction that frames the topic
-2. Include 8+ major sections with ## headers and ### subsections
+1. Start with a compelling introduction that frames the topic (3-4 short paragraphs)
+2. Include 8+ major sections with ## headers and ### subsections — never skip heading levels
 3. Each section should be 400-600 words minimum
-4. Include innovative insights, not just surface-level information
-5. Add historical context, current developments, and future implications
+4. Limit every paragraph to 3-4 sentences maximum, with a blank line between each
+5. Use bulleted or numbered lists whenever presenting 3+ related items, steps, or features
 6. Include specific examples, data points, case studies, and expert perspectives
-7. Use rich markdown: **bold**, *italic*, > blockquotes, bullet lists, numbered lists
+7. Use **bold** sparingly for key terms only. Use *italics* only for titles of works or foreign terms. Never use ALL CAPS or underlining
 8. Add cross-disciplinary connections and contrarian perspectives
-9. End with a "References & Further Reading" section with 10+ APA-formatted references
-10. Write a table of contents after the introduction
+9. End with a "References and Further Reading" section with 10+ APA-formatted references
+10. Write a table of contents after the introduction using a numbered list
 ${userFocus ? `\n11. SPECIAL FOCUS: ${userFocus}\n` : ''}
 The user has existing knowledge on this topic from their notes:
 ${filteredSummary.substring(0, 6000)}
 
 GO BEYOND their existing knowledge. Explore new angles, fill knowledge gaps, and provide original synthesis.
 
-CRITICAL: Write as much content as you can. Do NOT summarize or abbreviate. Every section needs depth and detail. Target 5,000+ words.` }
+CRITICAL: Write as much content as you can. Do NOT summarize or abbreviate. Every section needs depth and detail. Target 5,000+ words. Keep paragraphs short (3-4 sentences max) with generous spacing between them.` }
     ], 0.75, 16384);
 
     console.log(`Author Agent: Main document generated (${documentBody.split(/\s+/).length} words)`);
@@ -210,7 +234,7 @@ CRITICAL: Write as much content as you can. Do NOT summarize or abbreviate. Ever
     console.log(`Author Agent: Document is ${wordCount1} words, extending...`);
     try {
       const extension = await callAI(apiKey, [
-        { role: 'system', content: 'You are continuing a document. Write extensively. Do NOT repeat any content from the previous sections. Add entirely new sections and depth.' },
+        { role: 'system', content: 'You are continuing a document. Write extensively. Do NOT repeat any content from the previous sections. Add entirely new sections and depth. Follow these formatting rules strictly: paragraphs must be 3-4 sentences max with blank lines between them; use bulleted/numbered lists for 3+ items; use ## and ### headings in proper hierarchy; bold sparingly for key terms only; no ALL CAPS, no underlining, no custom colors; standard Markdown only.' },
         { role: 'user', content: `Continue this document about "${topicData.topic}". It currently has ~${wordCount1} words.
 
 Here is how the document ends (last 2000 chars):
@@ -224,7 +248,7 @@ Write MORE sections to extend this document. Add:
 - Expert opinions and debate points
 - A comprehensive conclusion if one doesn't exist yet
 
-Write at least 3,000 more words. Use rich markdown formatting. Do NOT repeat anything already written.` }
+Write at least 3,000 more words. Use standard Markdown only. Keep paragraphs to 3-4 sentences max with generous spacing. Use lists whenever presenting 3+ related items. Do NOT repeat anything already written.` }
       ], 0.75, 16384);
 
       documentBody += '\n\n' + extension;

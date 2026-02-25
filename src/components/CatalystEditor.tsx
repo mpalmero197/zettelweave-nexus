@@ -84,7 +84,7 @@ export function CatalystEditor({
     },
     editorProps: {
       attributes: {
-        class: `prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none p-6 bg-background text-foreground ${
+        class: `catalyst-word-view max-w-none focus:outline-none ${
           isFullscreen ? 'min-h-screen' : 'min-h-[600px]'
         } ${focusMode ? 'catalyst-focus-mode' : ''}`,
       },
