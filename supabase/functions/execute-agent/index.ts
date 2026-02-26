@@ -400,7 +400,8 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error('Unauthorized');
 
-    const { agentId, runId } = await req.json();
+    const body = await req.json();
+    const { agentId, runId } = body;
     if (!agentId || !runId) throw new Error('Missing agentId or runId');
 
     console.log(`Executing agent ${agentId} for run ${runId}`);
@@ -481,21 +482,92 @@ serve(async (req) => {
       }
 
       case 'knowledge_gap': {
-        const { data: cards } = await supabaseClient
-          .from('zettel_cards').select('content').eq('user_id', user.id).is('deleted_at', null);
-        if (cards && cards.length > 0) {
-          itemsProcessed = cards.length;
-          const allContent = cards.map((c: any) => c.content).join(' ');
-          const references = allContent.match(/\[\[([^\]]+)\]\]/g) || [];
-          const uniqueRefs = [...new Set(references)];
-          if (uniqueRefs.length > 0) {
-            itemsFound = 1;
+        // If document content is provided, analyze that document specifically
+        const documentContent = body.documentContent || '';
+        const documentTitle = body.documentTitle || 'Untitled Document';
+        
+        if (documentContent && documentContent.length > 50) {
+          // AI-powered document analysis
+          console.log('Knowledge Gap Agent: Analyzing document with AI...');
+          itemsProcessed = 1;
+          
+          // Strip HTML tags for analysis
+          const plainText = documentContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          
+          const analysisPrompt = `You are an expert academic reviewer and knowledge analyst. Analyze the following document and identify knowledge gaps — areas where the author makes claims, references concepts, or discusses topics that are insufficiently explained, lack supporting evidence, or would benefit from deeper exploration.
+
+Document Title: "${documentTitle}"
+
+Document Content:
+${plainText.substring(0, 12000)}
+
+Provide your analysis as a JSON array of knowledge gaps. Each gap should have:
+- "section": The heading or area of the document where the gap exists
+- "topic": The specific topic or concept that needs more coverage
+- "description": A clear explanation of what's missing and why it matters
+- "severity": "high" (critical missing info), "medium" (would improve quality), or "low" (nice to have)
+- "suggestion": A specific recommendation for how to fill this gap
+
+Return ONLY a valid JSON array, no other text. Example:
+[{"section":"Introduction","topic":"Historical context","description":"The document jumps into modern applications without establishing historical foundations","severity":"high","suggestion":"Add a section covering the evolution from 1990-2010"}]
+
+Find 3-8 knowledge gaps.`;
+
+          try {
+            const gapAnalysis = await callAI(apiKey, [
+              { role: 'system', content: 'You are a knowledge gap analyst. Return only valid JSON arrays.' },
+              { role: 'user', content: analysisPrompt }
+            ], 0.4, 4096);
+
+            const jsonMatch = gapAnalysis.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              const gaps = JSON.parse(jsonMatch[0]);
+              if (Array.isArray(gaps) && gaps.length > 0) {
+                itemsFound = gaps.length;
+                for (const gap of gaps) {
+                  findings.push({
+                    agent_id: agentId, run_id: runId, user_id: user.id,
+                    finding_type: 'knowledge_gap',
+                    title: `${gap.severity === 'high' ? '🔴' : gap.severity === 'medium' ? '🟡' : '🟢'} ${gap.topic}`,
+                    content: gap.description,
+                    metadata: { 
+                      section: gap.section, 
+                      severity: gap.severity, 
+                      suggestion: gap.suggestion,
+                      document_title: documentTitle
+                    },
+                    relevance_score: gap.severity === 'high' ? 0.95 : gap.severity === 'medium' ? 0.75 : 0.5
+                  });
+                }
+              }
+            }
+          } catch (aiError) {
+            console.error('Knowledge Gap AI analysis failed:', aiError);
             findings.push({
               agent_id: agentId, run_id: runId, user_id: user.id,
-              finding_type: 'knowledge_gap', title: 'Potential Knowledge Gaps Detected',
-              content: `You reference these topics but may not have dedicated cards: ${uniqueRefs.slice(0, 5).join(', ')}`,
-              metadata: { references: uniqueRefs.slice(0, 10) }, relevance_score: 0.7
+              finding_type: 'error', title: 'Analysis Failed',
+              content: `Could not analyze document: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`,
+              metadata: {}, relevance_score: 1.0
             });
+          }
+        } else {
+          // Fallback: analyze cards for references
+          const { data: cards } = await supabaseClient
+            .from('zettel_cards').select('content').eq('user_id', user.id).is('deleted_at', null);
+          if (cards && cards.length > 0) {
+            itemsProcessed = cards.length;
+            const allContent = cards.map((c: any) => c.content).join(' ');
+            const references = allContent.match(/\[\[([^\]]+)\]\]/g) || [];
+            const uniqueRefs = [...new Set(references)];
+            if (uniqueRefs.length > 0) {
+              itemsFound = 1;
+              findings.push({
+                agent_id: agentId, run_id: runId, user_id: user.id,
+                finding_type: 'knowledge_gap', title: 'Potential Knowledge Gaps Detected',
+                content: `You reference these topics but may not have dedicated cards: ${uniqueRefs.slice(0, 5).join(', ')}`,
+                metadata: { references: uniqueRefs.slice(0, 10) }, relevance_score: 0.7
+              });
+            }
           }
         }
         break;

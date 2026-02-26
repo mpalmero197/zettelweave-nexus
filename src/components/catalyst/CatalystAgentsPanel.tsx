@@ -65,13 +65,15 @@ interface CatalystAgentsPanelProps {
   notes: ContentItem[];
   scratchpadNotes: ContentItem[];
   onDocumentGenerated?: () => void;
+  documentContent?: string;
+  documentTitle?: string;
 }
 
 type WizardStep = 'topic' | 'sources' | 'focus' | 'generating';
 
-export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentGenerated }: CatalystAgentsPanelProps) {
+export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentGenerated, documentContent, documentTitle }: CatalystAgentsPanelProps) {
   const { agents, findings, notifications, createAgent, triggerAgentRun, updateAgent } = useAgents();
-  const [view, setView] = useState<'list' | 'author-wizard'>('list');
+  const [view, setView] = useState<'list' | 'author-wizard' | 'knowledge-gaps'>('list');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -83,6 +85,8 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
   const [focusInstructions, setFocusInstructions] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sourceSearch, setSourceSearch] = useState('');
+  const [isAnalyzingGaps, setIsAnalyzingGaps] = useState(false);
+  const [gapFindings, setGapFindings] = useState<any[]>([]);
 
   // All content items combined
   const allContent = useMemo(() => [
@@ -133,6 +137,62 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
     setSelectedSourceIds(new Set());
     setFocusInstructions('');
     setSourceSearch('');
+  };
+
+  const startKnowledgeGapAnalysis = async () => {
+    if (!documentContent || documentContent.length < 50) {
+      toast.error('Document needs more content to analyze');
+      return;
+    }
+    
+    setView('knowledge-gaps');
+    setIsAnalyzingGaps(true);
+    setGapFindings([]);
+
+    try {
+      // Find or create the knowledge_gap agent
+      let gapAgent = agents.find(a => a.agent_type === 'knowledge_gap');
+      
+      if (!gapAgent) {
+        const created = await createAgent(
+          'knowledge_gap',
+          'Knowledge Gap Agent',
+          'Identifies knowledge gaps within your documents',
+          { analyze_cards: true, analyze_notes: true },
+          60
+        );
+        if (!created) {
+          toast.error('Failed to create Knowledge Gap Agent');
+          setIsAnalyzingGaps(false);
+          return;
+        }
+        gapAgent = created;
+      }
+
+      await triggerAgentRun(gapAgent.id, {
+        documentContent,
+        documentTitle: documentTitle || 'Untitled Document',
+      });
+
+      // Wait a moment then fetch findings
+      await new Promise(r => setTimeout(r, 3000));
+      
+      // Fetch findings for this agent
+      const { data: latestFindings } = await (await import('@/integrations/supabase/client')).supabase
+        .from('agent_findings')
+        .select('*')
+        .eq('agent_id', gapAgent.id)
+        .eq('finding_type', 'knowledge_gap')
+        .order('created_at', { ascending: false })
+        .limit(10) as any;
+
+      setGapFindings(latestFindings || []);
+    } catch (err) {
+      console.error('Knowledge gap analysis failed:', err);
+      toast.error('Knowledge gap analysis failed');
+    } finally {
+      setIsAnalyzingGaps(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -217,6 +277,80 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
       </div>
     </div>
   );
+
+  // Knowledge Gap View
+  if (view === 'knowledge-gaps') {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setView('list')}>
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </Button>
+          <h3 className="text-sm font-semibold">Knowledge Gaps</h3>
+        </div>
+
+        {isAnalyzingGaps ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium">Analyzing document...</p>
+            <p className="text-xs text-muted-foreground text-center">
+              The AI is reviewing your document for knowledge gaps and areas that need more depth.
+            </p>
+          </div>
+        ) : gapFindings.length > 0 ? (
+          <ScrollArea className="h-[calc(100vh-500px)] min-h-[300px]">
+            <div className="space-y-2 pr-2">
+              {gapFindings.map((finding: any) => {
+                const severity = finding.metadata?.severity || 'medium';
+                const severityColor = severity === 'high' ? 'border-destructive/50 bg-destructive/5' 
+                  : severity === 'medium' ? 'border-yellow-500/50 bg-yellow-500/5' 
+                  : 'border-green-500/50 bg-green-500/5';
+                
+                return (
+                  <div key={finding.id} className={`p-3 rounded-lg border ${severityColor}`}>
+                    <div className="flex items-start gap-2">
+                      <HelpCircle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold">{finding.title}</p>
+                        {finding.metadata?.section && (
+                          <Badge variant="outline" className="text-[9px] mt-1 mb-1">
+                            Section: {finding.metadata.section}
+                          </Badge>
+                        )}
+                        <p className="text-[11px] text-muted-foreground mt-1">{finding.content}</p>
+                        {finding.metadata?.suggestion && (
+                          <div className="mt-2 p-2 rounded bg-muted/50">
+                            <p className="text-[10px] font-medium text-primary">💡 Suggestion</p>
+                            <p className="text-[11px] text-muted-foreground">{finding.metadata.suggestion}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="text-center py-8 space-y-2">
+            <HelpCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">No knowledge gaps found. Your document looks comprehensive!</p>
+          </div>
+        )}
+
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="w-full" 
+          onClick={startKnowledgeGapAnalysis}
+          disabled={isAnalyzingGaps || !documentContent || documentContent.length < 50}
+        >
+          {isAnalyzingGaps ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <HelpCircle className="h-3.5 w-3.5 mr-1" />}
+          Re-analyze Document
+        </Button>
+      </div>
+    );
+  }
 
   // Author Wizard View
   if (view === 'author-wizard') {
@@ -405,6 +539,27 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">Author Agent</p>
             <p className="text-[10px] text-muted-foreground">Generate a full document from your knowledge base</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        </div>
+      </Card>
+
+      {/* Knowledge Gap Agent CTA */}
+      <Card
+        className={`p-3 border-yellow-500/20 bg-yellow-500/[0.03] cursor-pointer hover:bg-yellow-500/[0.06] transition-colors ${(!documentContent || documentContent.length < 50) ? 'opacity-50 pointer-events-none' : ''}`}
+        onClick={startKnowledgeGapAnalysis}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+            <HelpCircle className="h-4.5 w-4.5 text-yellow-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Knowledge Gap Agent</p>
+            <p className="text-[10px] text-muted-foreground">
+              {documentContent && documentContent.length >= 50 
+                ? 'Analyze your open document for knowledge gaps' 
+                : 'Open a document first to analyze'}
+            </p>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>

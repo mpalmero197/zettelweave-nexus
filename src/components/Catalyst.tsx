@@ -1275,6 +1275,8 @@ export function Catalyst() {
                       notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content, type: 'note' as const, tags: n.tags }))}
                       scratchpadNotes={scratchpadNotesData.map((s: any) => ({ id: s.id, title: `Scratch ${s.id.slice(0, 6)}`, content: s.content, type: 'scratchpad' as const }))}
                       onDocumentGenerated={() => queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] })}
+                      documentContent={editorContent}
+                      documentTitle={documentTitle}
                     />
                   ) : (
                     <div className="text-center py-8 space-y-3">

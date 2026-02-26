@@ -204,7 +204,7 @@ export const useAgents = () => {
     }
   }, [user, fetchAgents]);
 
-  const triggerAgentRun = useCallback(async (agentId: string) => {
+  const triggerAgentRun = useCallback(async (agentId: string, extraBody?: Record<string, unknown>) => {
     if (!user) return null;
 
     try {
@@ -223,7 +223,7 @@ export const useAgents = () => {
 
       // Call the agent execution edge function
       const { data, error } = await supabase.functions.invoke('execute-agent', {
-        body: { agentId, runId: run.id }
+        body: { agentId, runId: run.id, ...extraBody }
       });
 
       if (error) {
@@ -237,13 +237,14 @@ export const useAgents = () => {
 
       toast.success('Agent run started');
       await fetchRuns(agentId);
+      await fetchFindings();
       return run as AgentRun;
     } catch (error) {
       console.error('Error triggering agent run:', error);
       toast.error('Failed to start agent run');
       return null;
     }
-  }, [user, fetchRuns]);
+  }, [user, fetchRuns, fetchFindings]);
 
   const markFindingRead = useCallback(async (findingId: string) => {
     if (!user) return;
