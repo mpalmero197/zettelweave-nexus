@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -24,8 +25,10 @@ import {
   Bot,
   Download,
   Bug,
+  Lock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface MinimalSidebarProps {
   activeTab: string;
@@ -42,6 +45,7 @@ export function MinimalSidebar({
   onAccountSettings,
   isAdmin,
 }: MinimalSidebarProps) {
+  const { hasPremium } = useSubscription();
   const NavButton = ({ tab, icon: Icon, label }: { tab: string; icon: any; label: string }) => (
     <Button
       variant={activeTab === tab ? "secondary" : "ghost"}
@@ -102,12 +106,22 @@ export function MinimalSidebar({
           <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
             Automation
           </div>
-          <Link to="/agents">
-            <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
-              <Bot className="h-4 w-4 mr-3" />
-              Agents
-            </Button>
-          </Link>
+          {hasPremium ? (
+            <Link to="/agents">
+              <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
+                <Bot className="h-4 w-4 mr-3" />
+                Agents
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/subscription">
+              <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4 mr-3" />
+                Agents
+                <Badge variant="outline" className="ml-auto text-[9px] px-1 py-0">PRO</Badge>
+              </Button>
+            </Link>
+          )}
           
           <Separator className="my-2" />
           

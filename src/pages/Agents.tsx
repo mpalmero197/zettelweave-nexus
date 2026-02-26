@@ -7,14 +7,16 @@ import { AgentPipelineBuilder, Pipeline, PipelineStep } from '@/components/agent
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
-import { Bot, GitBranch, LayoutDashboard } from 'lucide-react';
+import { Bot, GitBranch, LayoutDashboard, Lock } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/useSubscription';
 
 type AgentView = 'command-center' | 'pipelines';
 
 export default function Agents() {
   const isMobile = useIsMobile();
+  const { hasPremium } = useSubscription();
   const { agents, findings, notifications, unreadCount, loading, createAgent } = useAgents();
   const [currentView, setCurrentView] = useState<AgentView>('command-center');
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -62,6 +64,21 @@ export default function Agents() {
     return (
       <div className="flex items-center justify-center py-20">
         <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!hasPremium) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <Lock className="h-12 w-12 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Premium Feature</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          The Agent Command Center requires a premium subscription. Upgrade to unlock automated research, writing, and analysis agents.
+        </p>
+        <Button onClick={() => window.location.href = '/subscription'}>
+          Upgrade to Premium
+        </Button>
       </div>
     );
   }
