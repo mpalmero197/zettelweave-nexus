@@ -596,17 +596,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="catalyst" className="mt-0">
-                  {hasPremium ? (
-                    <Catalyst />
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Catalyst Writing Suite is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  <Catalyst />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
