@@ -31,10 +31,13 @@ import {
   List,
   Maximize2,
   Minimize2,
+  Printer,
+  Lock,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -112,6 +115,7 @@ export function Catalyst() {
   const { cards } = useZettelCards();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { hasPremium } = useSubscription();
   const queryClient = useQueryClient();
   const localLoadRef = useRef<HTMLInputElement>(null);
   
@@ -896,6 +900,41 @@ export function Catalyst() {
             <FileUp className="h-4 w-4 mr-2" />
             Import Files
           </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const printWindow = window.open('', '_blank');
+              if (printWindow) {
+                printWindow.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>${documentTitle || 'Untitled Document'}</title>
+                    <style>
+                      body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 12pt; line-height: 1.6; max-width: 8.5in; margin: 1in auto; color: #1a1a1a; }
+                      h1 { font-size: 24pt; font-weight: 700; margin-bottom: 0.75em; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.3em; }
+                      h2 { font-size: 18pt; font-weight: 700; margin-top: 1.25em; }
+                      h3 { font-size: 14pt; font-weight: 600; margin-top: 1em; }
+                      h4 { font-size: 13pt; font-weight: 600; font-style: italic; }
+                      p { margin-bottom: 0.75em; }
+                      ul, ol { margin-bottom: 0.75em; padding-left: 1.5em; }
+                      blockquote { border-left: 3px solid #d1d5db; padding-left: 1em; margin: 1em 0; color: #4b5563; }
+                      @media print { body { margin: 0; } }
+                    </style>
+                  </head>
+                  <body>${editorContent}</body>
+                  </html>
+                `);
+                printWindow.document.close();
+                printWindow.print();
+              }
+            }}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
         </div>
       </div>
 
@@ -1013,7 +1052,10 @@ export function Catalyst() {
                   <TabsTrigger value="suggestions" className="text-xs">AI</TabsTrigger>
                   <TabsTrigger value="outline" className="text-xs">Outline</TabsTrigger>
                   <TabsTrigger value="tools" className="text-xs">Tools</TabsTrigger>
-                  <TabsTrigger value="agents" className="text-xs">Agents</TabsTrigger>
+                  <TabsTrigger value="agents" className="text-xs" disabled={!hasPremium}>
+                    {!hasPremium && <Lock className="h-3 w-3 mr-1" />}
+                    Agents
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Outline Tab */}
@@ -1227,12 +1269,23 @@ export function Catalyst() {
                   </Tabs>
                 </TabsContent>
                 <TabsContent value="agents" className="mt-4">
-                  <CatalystAgentsPanel
-                    cards={cards.map(c => ({ id: c.id, title: c.title, content: c.content, type: 'card' as const, tags: c.tags }))}
-                    notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content, type: 'note' as const, tags: n.tags }))}
-                    scratchpadNotes={scratchpadNotesData.map((s: any) => ({ id: s.id, title: `Scratch ${s.id.slice(0, 6)}`, content: s.content, type: 'scratchpad' as const }))}
-                    onDocumentGenerated={() => queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] })}
-                  />
+                  {hasPremium ? (
+                    <CatalystAgentsPanel
+                      cards={cards.map(c => ({ id: c.id, title: c.title, content: c.content, type: 'card' as const, tags: c.tags }))}
+                      notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content, type: 'note' as const, tags: n.tags }))}
+                      scratchpadNotes={scratchpadNotesData.map((s: any) => ({ id: s.id, title: `Scratch ${s.id.slice(0, 6)}`, content: s.content, type: 'scratchpad' as const }))}
+                      onDocumentGenerated={() => queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] })}
+                    />
+                  ) : (
+                    <div className="text-center py-8 space-y-3">
+                      <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <h3 className="text-sm font-semibold">Premium Feature</h3>
+                      <p className="text-xs text-muted-foreground">AI Agents require a premium subscription.</p>
+                      <Button size="sm" variant="outline" onClick={() => window.location.href = '/subscription'}>
+                        Upgrade to Premium
+                      </Button>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
