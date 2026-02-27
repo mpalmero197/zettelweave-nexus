@@ -1277,6 +1277,14 @@ export function Catalyst() {
                       onDocumentGenerated={() => queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] })}
                       documentContent={editorContent}
                       documentTitle={documentTitle}
+                      onInsertCitations={(citations) => {
+                        // Build Sources section HTML
+                        const sourcesHtml = '\n<hr><h2>Sources</h2><ol>' +
+                          citations.map((c: any) => `<li>${c.content || c.metadata?.apa_citation || c.title}</li>`).join('') +
+                          '</ol>';
+                        // Append to current editor content
+                        setEditorContent(prev => prev + sourcesHtml);
+                      }}
                     />
                   ) : (
                     <div className="text-center py-8 space-y-3">
