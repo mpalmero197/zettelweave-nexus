@@ -7,11 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   Bot, Play, Loader2, ChevronRight, ChevronLeft, Sparkles,
   Search, Bell, Link, FileText, Pencil, HelpCircle, Calendar,
   Quote, CheckSquare, Brain, Wand2, BookOpen, Plus, ArrowLeft,
-  ExternalLink, Copy,
+  ExternalLink, Copy, Eye, FileDown, MapPin,
 } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import { Agent, AgentType, AGENT_DEFINITIONS } from '@/types/agents';
@@ -38,12 +39,13 @@ interface CatalystAgentsPanelProps {
   onDocumentGenerated?: () => void;
   documentContent?: string; documentTitle?: string;
   onInsertCitations?: (citations: any[]) => void;
+  onInsertKnowledgeGap?: (gap: any, mode: 'inline' | 'section') => void;
 }
 
 type AgentView = 'list' | 'author-wizard' | 'knowledge-gaps' | 'citations' | 'research' | 'writing-coach' | 'summarizer' | 'task-extraction';
 type WizardStep = 'topic' | 'sources' | 'focus' | 'generating';
 
-export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentGenerated, documentContent, documentTitle, onInsertCitations }: CatalystAgentsPanelProps) {
+export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentGenerated, documentContent, documentTitle, onInsertCitations, onInsertKnowledgeGap }: CatalystAgentsPanelProps) {
   const { agents, findings, createAgent, triggerAgentRun, updateAgent } = useAgents();
   const [view, setView] = useState<AgentView>('list');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -61,6 +63,11 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
   // Agent results state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [agentFindings, setAgentFindings] = useState<any[]>([]);
+
+  // Knowledge Gap enhanced state
+  const [selectedGapIds, setSelectedGapIds] = useState<Set<string>>(new Set());
+  const [detailGap, setDetailGap] = useState<any | null>(null);
+  const [showGapDetail, setShowGapDetail] = useState(false);
 
   const allContent = useMemo(() => [
     ...cards.map(c => ({ ...c, type: 'card' as const })),
@@ -303,28 +310,139 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
 
   // ── Knowledge Gaps View ──
   if (view === 'knowledge-gaps') {
-    return renderAgentResultsView('Knowledge Gaps', HelpCircle, 'No knowledge gaps found — your document looks comprehensive!', (f: any) => {
-      const severity = f.metadata?.severity || 'medium';
-      const color = severity === 'high' ? 'border-destructive/50 bg-destructive/5' : severity === 'medium' ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-green-500/50 bg-green-500/5';
-      return (
-        <div key={f.id} className={`p-3 rounded-lg border ${color}`}>
-          <div className="flex items-start gap-2">
-            <HelpCircle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold">{f.title}</p>
-              {f.metadata?.section && <Badge variant="outline" className="text-[9px] mt-1 mb-1">Section: {f.metadata.section}</Badge>}
-              <p className="text-[11px] text-muted-foreground mt-1">{f.content}</p>
-              {f.metadata?.suggestion && (
-                <div className="mt-2 p-2 rounded bg-muted/50">
-                  <p className="text-[10px] font-medium text-primary">💡 Suggestion</p>
-                  <p className="text-[11px] text-muted-foreground">{f.metadata.suggestion}</p>
-                </div>
-              )}
-            </div>
-          </div>
+    const toggleGapSelection = (id: string) => {
+      setSelectedGapIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+      });
+    };
+
+    const handleInsertGap = (gap: any, mode: 'inline' | 'section') => {
+      if (onInsertKnowledgeGap) {
+        onInsertKnowledgeGap(gap, mode);
+        toast.success(mode === 'inline' ? 'Gap inserted at relevant section' : 'Gap added to Knowledge Gaps section');
+      }
+    };
+
+    const handleInsertSelected = (mode: 'inline' | 'section') => {
+      const selected = agentFindings.filter(f => selectedGapIds.has(f.id));
+      if (selected.length === 0) { toast.error('Select gaps to insert'); return; }
+      selected.forEach(gap => onInsertKnowledgeGap?.(gap, mode));
+      toast.success(`${selected.length} gap(s) inserted`);
+      setSelectedGapIds(new Set());
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setView('list')}><ArrowLeft className="h-3.5 w-3.5" /></Button>
+          <h3 className="text-sm font-semibold">Knowledge Gaps</h3>
         </div>
-      );
-    });
+
+        {isAnalyzing ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium">Analyzing document...</p>
+            <p className="text-xs text-muted-foreground text-center">This may take a few seconds.</p>
+          </div>
+        ) : agentFindings.length > 0 ? (
+          <>
+            {selectedGapIds.size > 0 && (
+              <div className="flex items-center gap-2 p-2 rounded-lg border border-primary/30 bg-primary/5">
+                <Badge variant="secondary" className="text-[10px]">{selectedGapIds.size} selected</Badge>
+                <div className="flex-1" />
+                <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleInsertSelected('inline')}>
+                  <MapPin className="h-3 w-3 mr-1" /> Inline
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleInsertSelected('section')}>
+                  <FileDown className="h-3 w-3 mr-1" /> To Section
+                </Button>
+              </div>
+            )}
+
+            <ScrollArea className="h-[calc(100vh-550px)] min-h-[250px]">
+              <div className="space-y-2 pr-2">
+                {agentFindings.map((f: any) => {
+                  const severity = f.metadata?.severity || 'medium';
+                  const color = severity === 'high' ? 'border-destructive/50 bg-destructive/5' : severity === 'medium' ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-green-500/50 bg-green-500/5';
+                  return (
+                    <div key={f.id} className={`p-3 rounded-lg border ${color} transition-all`}>
+                      <div className="flex items-start gap-2">
+                        <Checkbox checked={selectedGapIds.has(f.id)} onCheckedChange={() => toggleGapSelection(f.id)} className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-semibold flex-1">{f.title}</p>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => { setDetailGap(f); setShowGapDetail(true); }}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          {f.metadata?.section && <Badge variant="outline" className="text-[9px] mt-1 mb-1">Section: {f.metadata.section}</Badge>}
+                          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{f.content}</p>
+                          <div className="flex gap-1.5 mt-2">
+                            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => handleInsertGap(f, 'inline')}>
+                              <MapPin className="h-3 w-3 mr-1" /> At Section
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => handleInsertGap(f, 'section')}>
+                              <FileDown className="h-3 w-3 mr-1" /> To End
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+
+            {/* Floating detail dialog */}
+            <Dialog open={showGapDetail} onOpenChange={setShowGapDetail}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-base">{detailGap?.title}</DialogTitle>
+                  <DialogDescription className="sr-only">Knowledge gap detail view</DialogDescription>
+                  <div className="flex items-center gap-2 mt-1">
+                    {detailGap?.metadata?.section && <Badge variant="outline" className="text-[10px]">Section: {detailGap.metadata.section}</Badge>}
+                    {detailGap?.metadata?.severity && (
+                      <Badge variant={detailGap.metadata.severity === 'high' ? 'destructive' : 'secondary'} className="text-[10px] capitalize">
+                        {detailGap.metadata.severity}
+                      </Badge>
+                    )}
+                  </div>
+                </DialogHeader>
+                <ScrollArea className="max-h-[300px]">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Gap Description</p>
+                      <p className="text-sm leading-relaxed">{detailGap?.content}</p>
+                    </div>
+                    {detailGap?.metadata?.suggestion && (
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] font-semibold text-primary uppercase mb-1">💡 Suggested Content</p>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{detailGap.metadata.suggestion}</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { handleInsertGap(detailGap, 'inline'); setShowGapDetail(false); }}>
+                    <MapPin className="h-3.5 w-3.5 mr-1" /> Insert at Section
+                  </Button>
+                  <Button variant="default" size="sm" className="flex-1" onClick={() => { handleInsertGap(detailGap, 'section'); setShowGapDetail(false); }}>
+                    <FileDown className="h-3.5 w-3.5 mr-1" /> Add to Knowledge Gaps
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
+          <div className="text-center py-8 space-y-2">
+            <HelpCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">No knowledge gaps found — your document looks comprehensive!</p>
+          </div>
+        )}
+      </div>
+    );
   }
 
   // ── Author Wizard View ──

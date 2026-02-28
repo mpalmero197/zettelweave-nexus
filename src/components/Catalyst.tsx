@@ -1278,12 +1278,50 @@ export function Catalyst() {
                       documentContent={editorContent}
                       documentTitle={documentTitle}
                       onInsertCitations={(citations) => {
-                        // Build Sources section HTML
                         const sourcesHtml = '\n<hr><h2>Sources</h2><ol>' +
                           citations.map((c: any) => `<li>${c.content || c.metadata?.apa_citation || c.title}</li>`).join('') +
                           '</ol>';
-                        // Append to current editor content
                         setEditorContent(prev => prev + sourcesHtml);
+                      }}
+                      onInsertKnowledgeGap={(gap, mode) => {
+                        const gapTitle = gap.title || 'Untitled Gap';
+                        const gapContent = gap.metadata?.suggestion || gap.content || '';
+                        const attribution = '<em>(Added by PendragonX)</em>';
+
+                        if (mode === 'inline') {
+                          // Try to find the section mentioned and insert after it
+                          const section = gap.metadata?.section;
+                          if (section) {
+                            // Look for a heading that matches the section
+                            const sectionRegex = new RegExp(`(<h[1-6][^>]*>[^<]*${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^<]*</h[1-6]>)`, 'i');
+                            const match = editorContent.match(sectionRegex);
+                            if (match && match.index !== undefined) {
+                              const insertPos = match.index + match[0].length;
+                              const insertHtml = `<blockquote style="border-left: 3px solid hsl(var(--primary)); padding-left: 12px; margin: 12px 0;"><p><strong>Knowledge Gap: ${gapTitle}</strong></p><p>${gapContent}</p><p>${attribution}</p></blockquote>`;
+                              setEditorContent(prev => prev.slice(0, insertPos) + insertHtml + prev.slice(insertPos));
+                              return;
+                            }
+                          }
+                          // Fallback: append to end with inline note
+                          const fallbackHtml = `<blockquote style="border-left: 3px solid hsl(var(--primary)); padding-left: 12px; margin: 12px 0;"><p><strong>Knowledge Gap: ${gapTitle}</strong> (Section: ${section || 'General'})</p><p>${gapContent}</p><p>${attribution}</p></blockquote>`;
+                          setEditorContent(prev => prev + fallbackHtml);
+                        } else {
+                          // Add to a "Knowledge Gaps" section at the end
+                          const hasSection = editorContent.includes('<h2>Knowledge Gaps</h2>');
+                          if (hasSection) {
+                            // Append before closing of the section (before next <hr> or end)
+                            const gapEntry = `<li><strong>${gapTitle}</strong>: ${gapContent} ${attribution}</li>`;
+                            setEditorContent(prev => prev.replace('</ol>\n<!-- /knowledge-gaps -->', gapEntry + '</ol>\n<!-- /knowledge-gaps -->'));
+                            // If marker not found, just append
+                            if (!editorContent.includes('<!-- /knowledge-gaps -->')) {
+                              const appendHtml = `\n<hr><h2>Knowledge Gaps</h2><ol><li><strong>${gapTitle}</strong>: ${gapContent} ${attribution}</li></ol>\n<!-- /knowledge-gaps -->`;
+                              setEditorContent(prev => prev + appendHtml);
+                            }
+                          } else {
+                            const sectionHtml = `\n<hr><h2>Knowledge Gaps</h2><ol><li><strong>${gapTitle}</strong>: ${gapContent} ${attribution}</li></ol>\n<!-- /knowledge-gaps -->`;
+                            setEditorContent(prev => prev + sectionHtml);
+                          }
+                        }
                       }}
                     />
                   ) : (
