@@ -901,6 +901,78 @@ export function Catalyst() {
             Import Files
           </Button>
 
+          {/* Knowledge Base Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Knowledge Base
+                {selectedItems.size > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-xs">{selectedItems.size}</Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-80" onCloseAutoFocus={(e) => e.preventDefault()}>
+              <DropdownMenuLabel className="flex items-center justify-between">
+                <span>Knowledge Base</span>
+                <Select value={selectedSource} onValueChange={(value) => {
+                  setSelectedSource(value as ContentSource);
+                  setSelectedItems(new Set());
+                }}>
+                  <SelectTrigger className="h-7 w-auto text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cards">Cards ({cards.length})</SelectItem>
+                    <SelectItem value="notes">Notes ({notes.length})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {selectedItems.size > 0 && (
+                <div className="px-2 py-1.5">
+                  <Button 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); insertSelectedItems(); }}
+                    size="sm"
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Insert Selected ({selectedItems.size})
+                  </Button>
+                </div>
+              )}
+              <ScrollArea className="h-64">
+                <div className="p-1 space-y-1">
+                  {contentItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">
+                      No {selectedSource} available
+                    </p>
+                  ) : (
+                    contentItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-2 p-2 rounded-md hover:bg-accent transition-colors cursor-pointer"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleItem(item.id); }}
+                      >
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          onCheckedChange={() => toggleItem(item.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            {item.description || item.content.substring(0, 100) + '...'}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             variant="outline"
             size="sm"
@@ -940,73 +1012,8 @@ export function Catalyst() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Knowledge Base Sidebar */}
-        <div className="lg:col-span-3">
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Knowledge Base</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Select value={selectedSource} onValueChange={(value) => {
-                setSelectedSource(value as ContentSource);
-                setSelectedItems(new Set());
-              }}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cards">Cards ({cards.length})</SelectItem>
-                  <SelectItem value="notes">Notes ({notes.length})</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center gap-2">
-                <Button 
-                  onClick={insertSelectedItems} 
-                  size="sm"
-                  disabled={selectedItems.size === 0}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Insert Selected ({selectedItems.size})
-                </Button>
-              </div>
-
-              <ScrollArea className="h-[calc(100vh-480px)]">
-                <div className="space-y-2 pr-4">
-                  {contentItems.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No {selectedSource} available
-                    </p>
-                  ) : (
-                    contentItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-start gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => toggleItem(item.id)}
-                      >
-                        <Checkbox
-                          checked={selectedItems.has(item.id)}
-                          onCheckedChange={() => toggleItem(item.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{item.title}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                            {item.description || item.content.substring(0, 100) + '...'}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Editor */}
-        <div className={`lg:col-span-6 ${isFullscreen ? 'catalyst-fullscreen' : ''}`}>
+        <div className={`lg:col-span-9 ${isFullscreen ? 'catalyst-fullscreen' : ''}`}>
           <Card className={isFullscreen ? 'border-0 shadow-none rounded-none h-full' : ''}>
             {!isFullscreen && (
               <CardHeader className="pb-3">
