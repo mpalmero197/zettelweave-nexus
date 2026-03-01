@@ -64,7 +64,7 @@ export function UnifiedHeader({
     { id: "recycle", icon: Trash2 },
     { id: "graph", icon: BarChart3 },
     { id: "recorder", icon: Mic },
-    { id: "whiteboard", icon: Palette },
+    { id: "canvas", icon: Palette },
     { id: "journal", icon: StickyNote },
     { id: "habits", icon: Target },
     { id: "stickynotes", icon: StickyNote },

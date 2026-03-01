@@ -162,17 +162,17 @@ export function NavigationBar({
                     </Button>
                   </div>
 
-                  {/* Whiteboard */}
+                  {/* Canvas Studio */}
                   <Button
-                    variant={activeTab === "whiteboard" ? "default" : "ghost"}
+                    variant={activeTab === "canvas" ? "default" : "ghost"}
                     onClick={() => {
-                      onTabChange("whiteboard");
+                      onTabChange("canvas");
                       setMobileMenuOpen(false);
                     }}
                     className="w-full justify-start gap-2"
                   >
                     <Palette className="h-4 w-4" />
-                    Whiteboard
+                    Canvas Studio
                     {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                   </Button>
 
@@ -369,7 +369,7 @@ export function NavigationBar({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onCreateWhiteboard}>
                   <Palette className="h-4 w-4 mr-2" />
-                  New Whiteboard
+                  Canvas Studio
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onStartRecording}>
                   <Mic className="h-4 w-4 mr-2" />
@@ -431,16 +431,16 @@ export function NavigationBar({
                   </DropdownMenu>
                 </NavigationMenuItem>
 
-                {/* Whiteboard - Direct Link */}
+                {/* Canvas Studio - Direct Link */}
                 <NavigationMenuItem>
                   <Button
-                    variant={activeTab === "whiteboard" ? "secondary" : "ghost"}
+                    variant={activeTab === "canvas" ? "secondary" : "ghost"}
                     size="sm"
-                    onClick={() => onTabChange("whiteboard")}
+                    onClick={() => onTabChange("canvas")}
                     className="h-9 px-3"
                   >
                     <Palette className="h-4 w-4 mr-2" />
-                    Whiteboard
+                    Canvas
                   </Button>
                 </NavigationMenuItem>
 
