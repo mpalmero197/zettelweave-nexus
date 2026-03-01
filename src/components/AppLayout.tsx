@@ -87,7 +87,7 @@ export function AppLayout() {
       case "graph":
       case "notes":
       case "files":
-      case "whiteboard":
+      case "canvas":
       case "calendar":
       case "journal":
       case "habits":
@@ -95,7 +95,6 @@ export function AppLayout() {
       case "stickynotes":
       case "catalyst":
       case "collab":
-      case "mindmap":
       case "recorder":
       case "recycle":
       case "search":

@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MindMapLibrary } from '@/components/MindMapLibrary';
+import { MindMapTemplates } from '@/components/MindMapTemplates';
 import { StudyGuideDialog } from '@/components/StudyGuideDialog';
 import { ZettelCard as ZettelCardType } from '@/types/zettel';
 
@@ -324,6 +325,9 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
   const [studyGuideLoading, setStudyGuideLoading] = useState(false);
   const [studyGuideLoadingText, setStudyGuideLoadingText] = useState('');
 
+  // Templates
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
@@ -459,6 +463,20 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
     setSelectedId(null);
     setEditingId(null);
     toast.success('New mind map created');
+  }, [data, pushHistory, layoutMode]);
+
+  const handleApplyTemplate = useCallback((templateData: any) => {
+    pushHistory(data);
+    const nodes: Record<string, MindMapNode> = {};
+    for (const [k, v] of Object.entries(templateData.nodes)) nodes[k] = migrateNode(v);
+    const laid = layoutTree({ ...templateData, nodes }, layoutMode);
+    setData(laid);
+    setCurrentMapId(null);
+    setCurrentMapTitle('');
+    setIsDirty(false);
+    setSelectedId(null);
+    setEditingId(null);
+    toast.success('Template applied');
   }, [data, pushHistory, layoutMode]);
 
   // ── Card Linking ──
@@ -1277,8 +1295,9 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
         <Button variant="default" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setAiDialogOpen(true)}>
           <Sparkles className="h-3 w-3 mr-1" />AI Generate
         </Button>
-
-        {/* Save status */}
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setTemplatesOpen(true)}>
+          <Layout className="h-3 w-3 mr-1" />Templates
+        </Button>
         {currentMapTitle && (
           <span className="text-[10px] text-muted-foreground ml-1 hidden sm:inline">
             {currentMapTitle}{isDirty ? ' •' : ' ✓'}
@@ -1600,14 +1619,76 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
             </div>
             <div className="flex-1 flex flex-col space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Notes</p>
+              {/* Formatting toolbar */}
+              <div className="flex items-center gap-0.5 pb-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-xs font-bold"
+                  onClick={() => {
+                    const ta = document.getElementById('node-detail-textarea') as HTMLTextAreaElement;
+                    if (!ta) return;
+                    const start = ta.selectionStart;
+                    const end = ta.selectionEnd;
+                    const selected = nodeDetailNote.slice(start, end);
+                    const newNote = nodeDetailNote.slice(0, start) + `**${selected}**` + nodeDetailNote.slice(end);
+                    setNodeDetailNote(newNote);
+                  }}
+                  title="Bold"
+                >
+                  B
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-xs italic"
+                  onClick={() => {
+                    const ta = document.getElementById('node-detail-textarea') as HTMLTextAreaElement;
+                    if (!ta) return;
+                    const start = ta.selectionStart;
+                    const end = ta.selectionEnd;
+                    const selected = nodeDetailNote.slice(start, end);
+                    const newNote = nodeDetailNote.slice(0, start) + `_${selected}_` + nodeDetailNote.slice(end);
+                    setNodeDetailNote(newNote);
+                  }}
+                  title="Italic"
+                >
+                  I
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-xs"
+                  onClick={() => {
+                    const ta = document.getElementById('node-detail-textarea') as HTMLTextAreaElement;
+                    if (!ta) return;
+                    const start = ta.selectionStart;
+                    const lineStart = nodeDetailNote.lastIndexOf('\n', start - 1) + 1;
+                    const newNote = nodeDetailNote.slice(0, lineStart) + '• ' + nodeDetailNote.slice(lineStart);
+                    setNodeDetailNote(newNote);
+                  }}
+                  title="Bullet list"
+                >
+                  •
+                </Button>
+                <span className="text-[9px] text-muted-foreground ml-auto">Enter = new line</span>
+              </div>
               <Textarea
+                id="node-detail-textarea"
                 value={nodeDetailNote}
                 onChange={e => setNodeDetailNote(e.target.value)}
                 onBlur={() => { if (nodeDetailId) setNote(nodeDetailId, nodeDetailNote); }}
-                placeholder="Add notes for this node..."
-                className="flex-1 text-sm resize-none min-h-[200px]"
+                onKeyDown={e => {
+                  // Allow Enter key to create new lines (default textarea behavior)
+                  // Don't prevent default - let the textarea handle Enter normally
+                  if (e.key === 'Enter') {
+                    e.stopPropagation(); // Prevent mind map shortcuts from firing
+                  }
+                }}
+                placeholder="Add notes for this node...&#10;&#10;Use **bold**, _italic_, or • for bullets.&#10;Press Enter for new lines."
+                className="flex-1 text-sm resize-none min-h-[200px] font-mono leading-relaxed whitespace-pre-wrap"
               />
-              <p className="text-[10px] text-muted-foreground text-right">{nodeDetailNote.length} chars</p>
+              <p className="text-[10px] text-muted-foreground text-right">{nodeDetailNote.length} chars · {nodeDetailNote.split('\n').length} lines</p>
             </div>
             <Button
               size="sm"
@@ -1618,6 +1699,8 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
           </div>
         </SheetContent>
       </Sheet>
+
+      <MindMapTemplates open={templatesOpen} onOpenChange={setTemplatesOpen} onApplyTemplate={handleApplyTemplate} />
     </>
   );
 }

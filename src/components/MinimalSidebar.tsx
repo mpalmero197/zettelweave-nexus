@@ -79,8 +79,7 @@ export function MinimalSidebar({
           
           <Separator className="my-2" />
           
-          <NavButton tab="whiteboard" icon={Palette} label="Whiteboard" />
-          <NavButton tab="mindmap" icon={GitBranch} label="Mind Map" />
+          <NavButton tab="canvas" icon={Palette} label="Canvas Studio" />
           
           <Separator className="my-2" />
           

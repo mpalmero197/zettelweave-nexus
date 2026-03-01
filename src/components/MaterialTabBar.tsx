@@ -39,7 +39,7 @@ export function MaterialTabBar({ value, onValueChange }: MaterialTabBarProps) {
     { id: "notes", label: "Notes", icon: BookOpen, ariaLabel: "Notes" },
     { id: "graph", label: "Graph", icon: BarChart3, ariaLabel: "Knowledge graph" },
     { id: "recorder", label: "Recorder", icon: Mic, ariaLabel: "Audio recorder" },
-    { id: "whiteboard", label: "Whiteboard", icon: Palette, ariaLabel: "Whiteboard" },
+    { id: "canvas", label: "Canvas", icon: Palette, ariaLabel: "Canvas Studio" },
     { id: "journal", label: "Journal", icon: StickyNote, ariaLabel: "Bullet journal" },
     { id: "habits", label: "Habits", icon: Target, ariaLabel: "Habit tracker" },
     { id: "sticky", label: "Sticky", icon: Grid3X3, ariaLabel: "Sticky notes" },

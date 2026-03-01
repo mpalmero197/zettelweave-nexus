@@ -73,9 +73,8 @@ import HabitTracker from "@/components/HabitTracker";
 
 // Lazy load heavy components for better performance
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
-const InfiniteWhiteboard = lazy(() => import("@/components/InfiniteWhiteboard"));
+const CanvasStudio = lazy(() => import("@/components/CanvasStudio"));
 const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
-const MindMap = lazy(() => import("@/components/MindMap"));
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -705,39 +704,26 @@ const Index = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="whiteboard" className="mt-0">
+                <TabsContent value="canvas" className="mt-0">
                   {hasPremium ? (
-                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]">
-                      <Suspense fallback={<FastLoadingFallback message="Loading whiteboard..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
-                        <InfiniteWhiteboard onCreateCard={handleCreateCard} />
+                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] flex flex-col">
+                      <Suspense fallback={<FastLoadingFallback message="Loading canvas..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
+                        <CanvasStudio 
+                          cards={cards} 
+                          onCardSelect={setViewingCard} 
+                          onCreateCard={handleCreateCard} 
+                        />
                       </Suspense>
                     </div>
                   ) : (
                     <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Interactive Whiteboard is available for premium subscribers only.</p>
+                      <p className="text-muted-foreground mb-4 text-sm">Canvas Studio is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
                     </div>
                   )}
-                </TabsContent>
-
-                <TabsContent value="mindmap" className="mt-0">
-                  <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] flex flex-col">
-                  <Suspense fallback={<FastLoadingFallback message="Loading mind map..." />}>
-                    <MindMap cards={cards} onCardSelect={setViewingCard} onCreateCard={(partial) => {
-                      handleCreateCard({
-                        number: partial.number || `MM-${Date.now()}`,
-                        title: partial.title || 'Untitled',
-                        content: partial.content || '',
-                        category: partial.category || '000',
-                        tags: partial.tags || [],
-                        linkedCards: partial.linkedCards || [],
-                      });
-                    }} />
-                  </Suspense>
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">
