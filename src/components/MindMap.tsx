@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -7,8 +8,9 @@ import {
   Undo2, Redo2, Palette, RotateCcw, GitBranch, Search, X, ChevronUp,
   ChevronRight, Copy, Edit3, Star, AlertCircle, Smile, StickyNote,
   Map, Layout, Network, Building2, Sparkles, Loader2, Save, FolderOpen,
-  FileText, Link2, CreditCard, ExternalLink
+  FileText, Link2, CreditCard, ExternalLink, MoreHorizontal
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub,
   ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger,
@@ -268,6 +270,7 @@ interface MindMapProps {
 
 export default function MindMap({ cards = [], onCardSelect, onCreateCard }: MindMapProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('radial');
   const [data, setData] = useState<MindMapData>(() => layoutTree(loadMap(), 'radial'));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -1207,103 +1210,188 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
   return (
     <>
       {/* Toolbar */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-card/60 backdrop-blur-sm shrink-0 flex-wrap">
-        {/* Brand */}
-        <div className="flex items-center gap-1.5 mr-1">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-semibold text-foreground">Mind Map</span>
-          <span className="text-[10px] text-muted-foreground/60">{nodeCount}</span>
-        </div>
+      {isMobile ? (
+        /* ─── Mobile Toolbar ─── */
+        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-card/60 backdrop-blur-sm shrink-0">
+          {/* Layout toggle — icons only */}
+          <div className="flex items-center bg-muted rounded-md p-0.5">
+            {(['radial', 'tree', 'orgchart'] as LayoutMode[]).map(m => (
+              <button
+                key={m}
+                className={cn(
+                  "h-8 w-8 rounded flex items-center justify-center transition-all",
+                  layoutMode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                )}
+                onClick={() => setLayoutMode(m)}
+                aria-label={layoutLabels[m]}
+              >
+                {layoutIcons[m]}
+              </button>
+            ))}
+          </div>
 
-        <div className="h-5 w-px bg-border" />
-
-        {/* Layout toggle */}
-        <div className="flex items-center bg-muted rounded-md p-0.5">
-          {(['radial', 'tree', 'orgchart'] as LayoutMode[]).map(mode => (
-            <button
-              key={mode}
-              className={cn(
-                "h-7 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all",
-                layoutMode === mode ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-              onClick={() => setLayoutMode(mode)}
-              title={layoutLabels[mode]}
-            >
-              {layoutIcons[mode]}
-              <span className="hidden sm:inline">{layoutLabels[mode]}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="h-5 w-px bg-border" />
-
-        {/* Actions */}
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={undo} disabled={history.length === 0} aria-label="Undo">
-          <Undo2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={redo} disabled={future.length === 0} aria-label="Redo">
-          <Redo2 className="h-3.5 w-3.5" />
-        </Button>
-
-        <div className="flex-1" />
-
-        {/* Search */}
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSearchOpen(o => !o)} aria-label="Search">
-          <Search className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Zoom */}
-        <div className="flex items-center bg-muted rounded-md p-0.5">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded" onClick={() => setZoom(z => Math.min(3, z + 0.2))}>
-            <ZoomIn className="h-3 w-3" />
+          {/* Undo / Redo */}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={undo} disabled={history.length === 0} aria-label="Undo">
+            <Undo2 className="h-4 w-4" />
           </Button>
-          <span className="text-[10px] text-muted-foreground w-8 text-center font-medium">{Math.round(zoom * 100)}%</span>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded" onClick={() => setZoom(z => Math.max(0.2, z - 0.2))}>
-            <ZoomOut className="h-3 w-3" />
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={redo} disabled={future.length === 0} aria-label="Redo">
+            <Redo2 className="h-4 w-4" />
           </Button>
+
+          <div className="flex-1" />
+
+          {/* Search */}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSearchOpen(o => !o)} aria-label="Search">
+            <Search className="h-4 w-4" />
+          </Button>
+
+          {/* Zoom controls */}
+          <div className="flex items-center bg-muted rounded-md p-0.5">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded" onClick={() => setZoom(z => Math.max(0.2, z - 0.2))}>
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <span className="text-[10px] text-muted-foreground w-7 text-center font-medium">{Math.round(zoom * 100)}%</span>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded" onClick={() => setZoom(z => Math.min(3, z + 0.2))}>
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={fitToScreen} aria-label="Fit">
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+
+          {/* Overflow menu for secondary actions */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="More actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="end" className="w-44 p-1">
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-xs" onClick={handleSave} disabled={isSaving}>
+                <Save className="h-3.5 w-3.5" />{isSaving ? 'Saving…' : 'Save'}
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-xs" onClick={() => setLibraryOpen(true)}>
+                <FolderOpen className="h-3.5 w-3.5" />Open
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-xs" onClick={exportAsJSON}>
+                <Download className="h-3.5 w-3.5" />Export
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-xs" onClick={handleNewMap}>
+                <RotateCcw className="h-3.5 w-3.5" />New Map
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-xs" onClick={generateStudyGuide}>
+                <FileText className="h-3.5 w-3.5" />Study Guide
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-xs" onClick={() => setTemplatesOpen(true)}>
+                <Layout className="h-3.5 w-3.5" />Templates
+              </Button>
+              <Button variant="default" size="sm" className="w-full justify-start gap-2 h-9 text-xs mt-1" onClick={() => setAiDialogOpen(true)}>
+                <Sparkles className="h-3.5 w-3.5" />AI Generate
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
+      ) : (
+        /* ─── Desktop Toolbar ─── */
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-card/60 backdrop-blur-sm shrink-0 flex-wrap">
+          {/* Brand */}
+          <div className="flex items-center gap-1.5 mr-1">
+            <GitBranch className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Mind Map</span>
+            <span className="text-[10px] text-muted-foreground/60">{nodeCount}</span>
+          </div>
 
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={fitToScreen} aria-label="Fit">
-          <Maximize2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={resetView} aria-label="Reset">
-          <RotateCcw className="h-3.5 w-3.5" />
-        </Button>
+          <div className="h-5 w-px bg-border" />
 
-        <div className="h-5 w-px bg-border" />
+          {/* Layout toggle */}
+          <div className="flex items-center bg-muted rounded-md p-0.5">
+            {(['radial', 'tree', 'orgchart'] as LayoutMode[]).map(m => (
+              <button
+                key={m}
+                className={cn(
+                  "h-7 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-all",
+                  layoutMode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setLayoutMode(m)}
+                title={layoutLabels[m]}
+              >
+                {layoutIcons[m]}
+                <span className="hidden sm:inline">{layoutLabels[m]}</span>
+              </button>
+            ))}
+          </div>
 
-        {/* Save/Open */}
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
-          Save
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setLibraryOpen(true)}>
-          <FolderOpen className="h-3 w-3 mr-1" />Open
-        </Button>
+          <div className="h-5 w-px bg-border" />
 
-        <div className="h-5 w-px bg-border" />
+          {/* Actions */}
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={undo} disabled={history.length === 0} aria-label="Undo">
+            <Undo2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={redo} disabled={future.length === 0} aria-label="Redo">
+            <Redo2 className="h-3.5 w-3.5" />
+          </Button>
 
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={exportAsJSON}>
-          <Download className="h-3 w-3 mr-1" />Export
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleNewMap}>
-          New
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={generateStudyGuide}>
-          <FileText className="h-3 w-3 mr-1" />Study Guide
-        </Button>
-        <Button variant="default" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setAiDialogOpen(true)}>
-          <Sparkles className="h-3 w-3 mr-1" />AI Generate
-        </Button>
-        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setTemplatesOpen(true)}>
-          <Layout className="h-3 w-3 mr-1" />Templates
-        </Button>
-        {currentMapTitle && (
-          <span className="text-[10px] text-muted-foreground ml-1 hidden sm:inline">
-            {currentMapTitle}{isDirty ? ' •' : ' ✓'}
-          </span>
-        )}
-      </div>
+          <div className="flex-1" />
+
+          {/* Search */}
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSearchOpen(o => !o)} aria-label="Search">
+            <Search className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Zoom */}
+          <div className="flex items-center bg-muted rounded-md p-0.5">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded" onClick={() => setZoom(z => Math.min(3, z + 0.2))}>
+              <ZoomIn className="h-3 w-3" />
+            </Button>
+            <span className="text-[10px] text-muted-foreground w-8 text-center font-medium">{Math.round(zoom * 100)}%</span>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded" onClick={() => setZoom(z => Math.max(0.2, z - 0.2))}>
+              <ZoomOut className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={fitToScreen} aria-label="Fit">
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={resetView} aria-label="Reset">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+
+          <div className="h-5 w-px bg-border" />
+
+          {/* Save/Open */}
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+            Save
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setLibraryOpen(true)}>
+            <FolderOpen className="h-3 w-3 mr-1" />Open
+          </Button>
+
+          <div className="h-5 w-px bg-border" />
+
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={exportAsJSON}>
+            <Download className="h-3 w-3 mr-1" />Export
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleNewMap}>
+            New
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={generateStudyGuide}>
+            <FileText className="h-3 w-3 mr-1" />Study Guide
+          </Button>
+          <Button variant="default" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setAiDialogOpen(true)}>
+            <Sparkles className="h-3 w-3 mr-1" />AI Generate
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setTemplatesOpen(true)}>
+            <Layout className="h-3 w-3 mr-1" />Templates
+          </Button>
+          {currentMapTitle && (
+            <span className="text-[10px] text-muted-foreground ml-1 hidden sm:inline">
+              {currentMapTitle}{isDirty ? ' •' : ' ✓'}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Canvas */}
       <div
