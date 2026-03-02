@@ -1212,7 +1212,7 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
       {/* Toolbar */}
       {isMobile ? (
         /* ─── Mobile Toolbar ─── */
-        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-card/60 backdrop-blur-sm shrink-0">
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-card/60 backdrop-blur-sm shrink-0">
           {/* Layout toggle — icons only */}
           <div className="flex items-center bg-muted rounded-md p-0.5">
             {(['radial', 'tree', 'orgchart'] as LayoutMode[]).map(m => (

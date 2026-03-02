@@ -704,9 +704,9 @@ const Index = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="canvas" className="mt-0">
+                <TabsContent value="canvas" className="mt-0 -mx-2 md:mx-0">
                   {hasPremium ? (
-                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] flex flex-col">
+                    <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100vh-10rem)] flex flex-col">
                       <Suspense fallback={<FastLoadingFallback message="Loading canvas..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <CanvasStudio 
                           cards={cards} 
