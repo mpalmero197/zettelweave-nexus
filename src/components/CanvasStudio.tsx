@@ -57,7 +57,7 @@ export default function CanvasStudio({ cards = [], onCardSelect, onCreateCard }:
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col">
         {mode === 'mindmap' ? (
           <Suspense fallback={<FastLoadingFallback message="Loading mind map..." />}>
             <MindMap 
