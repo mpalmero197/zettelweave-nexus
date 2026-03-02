@@ -23,7 +23,7 @@ export default function CanvasStudio({ cards = [], onCardSelect, onCreateCard }:
   return (
     <div className="h-full w-full flex flex-col">
       {/* Mode Switcher — compact on mobile */}
-      <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 border-b border-border bg-card/60 backdrop-blur-sm shrink-0">
+      <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-0.5 md:py-1.5 border-b border-border bg-card/60 backdrop-blur-sm shrink-0">
         {!isMobile && (
           <>
             <Layout className="h-4 w-4 text-muted-foreground" />
