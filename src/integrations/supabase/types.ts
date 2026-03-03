@@ -489,6 +489,53 @@ export type Database = {
           },
         ]
       }
+      catalyst_collaborators: {
+        Row: {
+          accepted_at: string | null
+          collaborator_id: string
+          created_at: string
+          document_id: string
+          id: string
+          invited_at: string
+          owner_id: string
+          permission: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          collaborator_id: string
+          created_at?: string
+          document_id: string
+          id?: string
+          invited_at?: string
+          owner_id: string
+          permission?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          collaborator_id?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          invited_at?: string
+          owner_id?: string
+          permission?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalyst_collaborators_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalyst_comments: {
         Row: {
           anchor_text: string | null
@@ -540,7 +587,9 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
           id: string
+          permanent_delete_at: string | null
           selected_items: Json | null
           selected_source: string
           title: string
@@ -551,7 +600,9 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          permanent_delete_at?: string | null
           selected_items?: Json | null
           selected_source: string
           title: string
@@ -562,7 +613,9 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          permanent_delete_at?: string | null
           selected_items?: Json | null
           selected_source?: string
           title?: string

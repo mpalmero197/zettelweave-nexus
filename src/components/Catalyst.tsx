@@ -33,6 +33,7 @@ import {
   Minimize2,
   Printer,
   Lock,
+  Users,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
@@ -62,7 +63,10 @@ import { CatalystWritingGoals } from '@/components/catalyst/CatalystWritingGoals
 import { CatalystSnapshots } from '@/components/catalyst/CatalystSnapshots';
 import { CatalystComments } from '@/components/catalyst/CatalystComments';
 import { CatalystAgentsPanel } from '@/components/catalyst/CatalystAgentsPanel';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CatalystCollaborators } from '@/components/catalyst/CatalystCollaborators';
+import { CatalystPresenceBar } from '@/components/catalyst/CatalystPresenceBar';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
@@ -139,6 +143,8 @@ export function Catalyst() {
   const [sessionStartWordCount] = useState(0);
   const [sessionStartTime] = useState(() => new Date());
   const [activeAssistantTab, setActiveAssistantTab] = useState('suggestions');
+  const [showCollabDialog, setShowCollabDialog] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
@@ -181,12 +187,103 @@ export function Catalyst() {
         .from('catalyst_documents')
         .select('*')
         .eq('user_id', user.id)
+        .is('deleted_at', null)
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
       return data as CatalystDocument[];
     },
     enabled: !!user,
+  });
+
+  // Fetch documents shared with me
+  const { data: sharedDocuments = [] } = useQuery({
+    queryKey: ['catalyst_shared_documents', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data: collabs, error: collabError } = await supabase
+        .from('catalyst_collaborators')
+        .select('document_id, permission')
+        .eq('collaborator_id', user.id)
+        .eq('status', 'accepted');
+      if (collabError) throw collabError;
+      if (!collabs || collabs.length === 0) return [];
+      
+      const docIds = collabs.map(c => c.document_id);
+      const { data, error } = await supabase
+        .from('catalyst_documents')
+        .select('*')
+        .in('id', docIds)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      
+      return (data || []).map(doc => ({
+        ...doc,
+        _permission: collabs.find(c => c.document_id === doc.id)?.permission || 'view',
+      })) as (CatalystDocument & { _permission?: string })[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch trashed documents
+  const { data: trashedDocuments = [] } = useQuery({
+    queryKey: ['catalyst_trashed_documents', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('catalyst_documents')
+        .select('*')
+        .eq('user_id', user.id)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+      if (error) throw error;
+      return data as CatalystDocument[];
+    },
+    enabled: !!user,
+  });
+
+  const softDeleteMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      if (!user) throw new Error('Not authenticated');
+      const deletedAt = new Date().toISOString();
+      const permanentDeleteAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+      const { error } = await supabase
+        .from('catalyst_documents')
+        .update({ deleted_at: deletedAt, permanent_delete_at: permanentDeleteAt })
+        .eq('id', docId)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] });
+      queryClient.invalidateQueries({ queryKey: ['catalyst_trashed_documents'] });
+      toast({ title: 'Document moved to trash', description: 'It will be permanently deleted in 30 days.' });
+      setDeletingDocId(null);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Failed to delete', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const restoreDocMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('catalyst_documents')
+        .update({ deleted_at: null, permanent_delete_at: null })
+        .eq('id', docId)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalyst_documents'] });
+      queryClient.invalidateQueries({ queryKey: ['catalyst_trashed_documents'] });
+      toast({ title: 'Document restored' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Failed to restore', description: error.message, variant: 'destructive' });
+    },
   });
 
   const saveDocumentMutation = useMutation({
@@ -666,6 +763,36 @@ export function Catalyst() {
     return () => clearTimeout(timer);
   }, [editorContent]);
 
+  // Real-time content sync via Supabase Broadcast
+  useEffect(() => {
+    if (!currentDocId || !user) return;
+
+    const channel = supabase.channel(`catalyst-content-${currentDocId}`);
+    
+    channel.on('broadcast', { event: 'content-update' }, (payload) => {
+      if (payload.payload.user_id !== user.id) {
+        setEditorContent(payload.payload.content);
+        setWordCount(payload.payload.word_count || 0);
+      }
+    }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [currentDocId, user]);
+
+  // Broadcast content changes to collaborators
+  useEffect(() => {
+    if (!currentDocId || !user) return;
+    const channel = supabase.channel(`catalyst-content-${currentDocId}`);
+    const timer = setTimeout(() => {
+      channel.send({
+        type: 'broadcast',
+        event: 'content-update',
+        payload: { user_id: user.id, content: editorContent, word_count: wordCount },
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [editorContent, currentDocId, user]);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1800px]">
       {/* Header */}
@@ -747,9 +874,11 @@ export function Catalyst() {
                 <DialogDescription>Open a saved document</DialogDescription>
               </DialogHeader>
               <Tabs defaultValue="cloud">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="cloud">Pendragon Cloud</TabsTrigger>
-                  <TabsTrigger value="local">From Computer</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="cloud">My Docs</TabsTrigger>
+                  <TabsTrigger value="shared">Shared</TabsTrigger>
+                  <TabsTrigger value="trash">Trash</TabsTrigger>
+                  <TabsTrigger value="local">File</TabsTrigger>
                 </TabsList>
                 <TabsContent value="cloud">
                   <ScrollArea className="h-[400px] pr-4">
@@ -760,12 +889,11 @@ export function Catalyst() {
                         {savedDocuments.map((doc) => (
                           <Card 
                             key={doc.id} 
-                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => handleLoadFromCloud(doc)}
+                            className="hover:bg-muted/50 transition-colors"
                           >
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
-                                <div>
+                                <div className="flex-1 cursor-pointer" onClick={() => handleLoadFromCloud(doc)}>
                                   <h4 className="font-semibold">{doc.title}</h4>
                                   <p className="text-sm text-muted-foreground">
                                     {doc.word_count.toLocaleString()} words
@@ -774,6 +902,78 @@ export function Catalyst() {
                                     Updated: {new Date(doc.updated_at).toLocaleDateString()}
                                   </p>
                                 </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); setDeletingDocId(doc.id); }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="shared">
+                  <ScrollArea className="h-[400px] pr-4">
+                    {sharedDocuments.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">No shared documents</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {sharedDocuments.map((doc: any) => (
+                          <Card 
+                            key={doc.id} 
+                            className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => handleLoadFromCloud(doc)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-semibold">{doc.title}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {doc.word_count?.toLocaleString() || 0} words
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Updated: {new Date(doc.updated_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className="text-xs capitalize">{doc._permission}</Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="trash">
+                  <ScrollArea className="h-[400px] pr-4">
+                    {trashedDocuments.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">Trash is empty</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {trashedDocuments.map((doc: any) => (
+                          <Card key={doc.id} className="hover:bg-muted/50 transition-colors">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-semibold">{doc.title}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Deleted: {new Date(doc.deleted_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => restoreDocMutation.mutate(doc.id)}
+                                  disabled={restoreDocMutation.isPending}
+                                >
+                                  Restore
+                                </Button>
                               </div>
                             </CardContent>
                           </Card>
@@ -800,6 +1000,27 @@ export function Catalyst() {
               </Tabs>
             </DialogContent>
           </Dialog>
+
+          {/* Delete confirmation */}
+          {deletingDocId && (
+            <Dialog open={!!deletingDocId} onOpenChange={() => setDeletingDocId(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Move to Trash?</DialogTitle>
+                  <DialogDescription>
+                    This document will be moved to trash and permanently deleted after 30 days. You can restore it from the Trash tab before then.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeletingDocId(null)}>Cancel</Button>
+                  <Button variant="destructive" onClick={() => softDeleteMutation.mutate(deletingDocId)} disabled={softDeleteMutation.isPending}>
+                    {softDeleteMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    Move to Trash
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <div className="h-6 w-px bg-border mx-2" />
 
@@ -893,6 +1114,12 @@ export function Catalyst() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Collab button */}
+          <Button variant="outline" size="sm" onClick={() => setShowCollabDialog(true)}>
+            <Users className="h-4 w-4 mr-2" />
+            Collab
+          </Button>
 
           <div className="h-6 w-px bg-border mx-2" />
 
@@ -1020,6 +1247,7 @@ export function Catalyst() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Document Editor</CardTitle>
                   <div className="flex items-center gap-2">
+                    <CatalystPresenceBar documentId={currentDocId} />
                     <Badge variant="secondary" className="text-xs">
                       {wordCount.toLocaleString()} words
                     </Badge>
@@ -1353,6 +1581,14 @@ export function Catalyst() {
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
         onImport={handleImport}
+      />
+
+      {/* Collaborators Dialog */}
+      <CatalystCollaborators
+        documentId={currentDocId}
+        documentTitle={documentTitle}
+        open={showCollabDialog}
+        onOpenChange={setShowCollabDialog}
       />
     </div>
   );
