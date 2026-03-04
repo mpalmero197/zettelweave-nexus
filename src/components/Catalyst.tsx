@@ -196,7 +196,40 @@ export function Catalyst() {
     enabled: !!user,
   });
 
-  // Fetch documents shared with me
+  // Fetch pending invitations for me
+  const { data: pendingInvitations = [] } = useQuery({
+    queryKey: ['catalyst_pending_invitations', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data: collabs, error: collabError } = await supabase
+        .from('catalyst_collaborators')
+        .select('*')
+        .eq('collaborator_id', user.id)
+        .eq('status', 'pending');
+      if (collabError) throw collabError;
+      if (!collabs || collabs.length === 0) return [];
+
+      // Fetch owner profiles and doc titles
+      const ownerIds = [...new Set(collabs.map(c => c.owner_id))];
+      const docIds = collabs.map(c => c.document_id);
+
+      const [{ data: profiles }, { data: docs }] = await Promise.all([
+        supabase.from('profiles').select('user_id, display_name').in('user_id', ownerIds),
+        supabase.from('catalyst_documents').select('id, title, word_count, updated_at').in('id', docIds),
+      ]);
+
+      return collabs.map(c => ({
+        ...c,
+        owner_name: profiles?.find(p => p.user_id === c.owner_id)?.display_name || 'Unknown',
+        doc_title: docs?.find(d => d.id === c.document_id)?.title || 'Untitled',
+        doc_word_count: docs?.find(d => d.id === c.document_id)?.word_count || 0,
+        doc_updated_at: docs?.find(d => d.id === c.document_id)?.updated_at || c.created_at,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  // Fetch documents shared with me (accepted)
   const { data: sharedDocuments = [] } = useQuery({
     queryKey: ['catalyst_shared_documents', user?.id],
     queryFn: async () => {
@@ -224,6 +257,41 @@ export function Catalyst() {
       })) as (CatalystDocument & { _permission?: string })[];
     },
     enabled: !!user,
+  });
+
+  const acceptInvitationMutation = useMutation({
+    mutationFn: async (invitationId: string) => {
+      const { error } = await supabase
+        .from('catalyst_collaborators')
+        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+        .eq('id', invitationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalyst_pending_invitations'] });
+      queryClient.invalidateQueries({ queryKey: ['catalyst_shared_documents'] });
+      toast({ title: 'Invitation accepted', description: 'You can now access this document.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Failed', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const declineInvitationMutation = useMutation({
+    mutationFn: async (invitationId: string) => {
+      const { error } = await supabase
+        .from('catalyst_collaborators')
+        .update({ status: 'declined' })
+        .eq('id', invitationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalyst_pending_invitations'] });
+      toast({ title: 'Invitation declined' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Failed', description: error.message, variant: 'destructive' });
+    },
   });
 
   // Fetch trashed documents
@@ -863,9 +931,14 @@ export function Catalyst() {
 
           <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="relative">
                 <FolderOpen className="h-4 w-4 mr-2" />
                 Load
+                {pendingInvitations.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                    {pendingInvitations.length}
+                  </span>
+                )}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -873,10 +946,17 @@ export function Catalyst() {
                 <DialogTitle>Load Document</DialogTitle>
                 <DialogDescription>Open a saved document</DialogDescription>
               </DialogHeader>
-              <Tabs defaultValue="cloud">
+              <Tabs defaultValue={pendingInvitations.length > 0 ? "shared" : "cloud"}>
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="cloud">My Docs</TabsTrigger>
-                  <TabsTrigger value="shared">Shared</TabsTrigger>
+                  <TabsTrigger value="shared" className="relative">
+                    Shared
+                    {pendingInvitations.length > 0 && (
+                      <span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                        {pendingInvitations.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
                   <TabsTrigger value="trash">Trash</TabsTrigger>
                   <TabsTrigger value="local">File</TabsTrigger>
                 </TabsList>
@@ -920,32 +1000,88 @@ export function Catalyst() {
                 </TabsContent>
                 <TabsContent value="shared">
                   <ScrollArea className="h-[400px] pr-4">
-                    {sharedDocuments.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">No shared documents</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {sharedDocuments.map((doc: any) => (
-                          <Card 
-                            key={doc.id} 
-                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => handleLoadFromCloud(doc)}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <h4 className="font-semibold">{doc.title}</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {doc.word_count?.toLocaleString() || 0} words
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Updated: {new Date(doc.updated_at).toLocaleDateString()}
-                                  </p>
+                    {/* Pending Invitations */}
+                    {pendingInvitations.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Pending Invitations ({pendingInvitations.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {pendingInvitations.map((invite: any) => (
+                            <Card key={invite.id} className="border-primary/30 bg-primary/5">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold truncate">{invite.doc_title}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      From: {invite.owner_name}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Badge variant="outline" className="text-xs capitalize">{invite.permission}</Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(invite.invited_at).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => acceptInvitationMutation.mutate(invite.id)}
+                                      disabled={acceptInvitationMutation.isPending}
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => declineInvitationMutation.mutate(invite.id)}
+                                      disabled={declineInvitationMutation.isPending}
+                                    >
+                                      Decline
+                                    </Button>
+                                  </div>
                                 </div>
-                                <Badge variant="outline" className="text-xs capitalize">{doc._permission}</Badge>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Accepted shared docs */}
+                    {sharedDocuments.length === 0 && pendingInvitations.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">No shared documents or invitations</p>
+                    ) : sharedDocuments.length > 0 && (
+                      <div>
+                        {pendingInvitations.length > 0 && (
+                          <h4 className="text-sm font-semibold text-muted-foreground mb-2">Shared with you</h4>
+                        )}
+                        <div className="space-y-2">
+                          {sharedDocuments.map((doc: any) => (
+                            <Card 
+                              key={doc.id} 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleLoadFromCloud(doc)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h4 className="font-semibold">{doc.title}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {doc.word_count?.toLocaleString() || 0} words
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Updated: {new Date(doc.updated_at).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs capitalize">{doc._permission}</Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </ScrollArea>
