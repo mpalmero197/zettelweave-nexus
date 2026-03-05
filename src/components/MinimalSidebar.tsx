@@ -98,7 +98,6 @@ export function MinimalSidebar({
             Collaborate
           </div>
           <NavButton tab="catalyst" icon={Lightbulb} label="Catalyst" />
-          <NavButton tab="resume" icon={FileText} label="Resume AI" />
           <NavButton tab="collab" icon={Users} label="Collab" />
           
           <Separator className="my-2" />

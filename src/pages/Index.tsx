@@ -22,7 +22,7 @@ import { RecorderStudio } from "@/components/RecorderStudio";
 import { AudioManager } from "@/components/AudioManager";
 import { ScratchPad } from "@/components/ScratchPad";
 import { Catalyst } from "@/components/Catalyst";
-import { ResumeOptimizer } from "@/components/ResumeOptimizer";
+
 import { DebuggerConsole } from "@/components/DebuggerConsole";
 import { StickyNotesSimple } from "@/components/StickyNotesSimple";
 // Notebooks is now integrated into Notes component
@@ -801,9 +801,6 @@ const Index = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="resume" className="mt-0">
-                  <ResumeOptimizer />
-                </TabsContent>
 
                 <TabsContent value="debugger" className="mt-0">
                   <DebuggerConsole />

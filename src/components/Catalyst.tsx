@@ -65,6 +65,7 @@ import { CatalystComments } from '@/components/catalyst/CatalystComments';
 import { CatalystAgentsPanel } from '@/components/catalyst/CatalystAgentsPanel';
 import { CatalystCollaborators } from '@/components/catalyst/CatalystCollaborators';
 import { CatalystPresenceBar } from '@/components/catalyst/CatalystPresenceBar';
+import { ResumeOptimizer } from '@/components/ResumeOptimizer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -145,6 +146,7 @@ export function Catalyst() {
   const [activeAssistantTab, setActiveAssistantTab] = useState('suggestions');
   const [showCollabDialog, setShowCollabDialog] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [catalystMode, setCatalystMode] = useState<'writer' | 'resume'>('writer');
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
@@ -861,6 +863,7 @@ export function Catalyst() {
     return () => clearTimeout(timer);
   }, [editorContent, currentDocId, user]);
 
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1800px]">
       {/* Header */}
@@ -876,21 +879,48 @@ export function Catalyst() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Input
-              value={documentTitle}
-              onChange={(e) => setDocumentTitle(e.target.value)}
-              className="w-64"
-              placeholder="Document title..."
-            />
-            <Badge variant="outline" className="px-3 py-1">
-              {wordCount.toLocaleString()} words
-            </Badge>
-          </div>
+          {catalystMode === 'writer' && (
+            <div className="flex items-center gap-2">
+              <Input
+                value={documentTitle}
+                onChange={(e) => setDocumentTitle(e.target.value)}
+                className="w-64"
+                placeholder="Document title..."
+              />
+              <Badge variant="outline" className="px-3 py-1">
+                {wordCount.toLocaleString()} words
+              </Badge>
+            </div>
+          )}
         </div>
 
+        {/* Mode Toggle */}
+        <div className="flex items-center gap-2 mt-4">
+          <Button
+            variant={catalystMode === 'writer' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setCatalystMode('writer')}
+          >
+            <PenTool className="h-4 w-4 mr-2" />
+            Writer
+          </Button>
+          <Button
+            variant={catalystMode === 'resume' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setCatalystMode('resume')}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Resume AI
+          </Button>
+        </div>
+      </div>
+
+      {catalystMode === 'resume' ? (
+        <ResumeOptimizer />
+      ) : (
+        <>
         {/* Action Bar */}
-        <div className="flex items-center gap-2 mt-4 flex-wrap">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Button onClick={handleNewDocument} variant="outline" size="sm">
             <FileText className="h-4 w-4 mr-2" />
             New
@@ -1371,7 +1401,6 @@ export function Catalyst() {
             Print
           </Button>
         </div>
-      </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -1711,8 +1740,8 @@ export function Catalyst() {
           </Card>
         </div>
       </div>
-
-      {/* Import Dialog */}
+      </>
+      )}
       <CatalystImportDialog 
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
