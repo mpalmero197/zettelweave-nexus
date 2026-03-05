@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, FileText, StickyNote, Calendar, MoreHorizontal, Settings, FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Workflow, Pencil, Search, BarChart3, Users, Sparkles } from 'lucide-react';
+import { Home, FileText, StickyNote, Calendar, MoreHorizontal, Settings, FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Workflow, Pencil, Search, BarChart3, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -27,7 +27,7 @@ const MORE_SECTIONS = [
   { id: 'habits', label: 'Habits', icon: BarChart3 },
   { id: 'canvas', label: 'Canvas', icon: Palette },
   { id: 'catalyst', label: 'Catalyst', icon: Pencil },
-  { id: 'resume', label: 'Resume AI', icon: Sparkles },
+  
   { id: 'collab', label: 'Collab', icon: Users },
   { id: 'recycle', label: 'Recycle Bin', icon: Trash2 },
   { id: 'settings', label: 'Settings', icon: Settings },
