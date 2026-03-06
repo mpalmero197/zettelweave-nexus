@@ -1,59 +1,62 @@
 
-# Fix Author Agent: Eliminate Timeouts, Guarantee Document Output
 
-## Problem
+## Evernote Import for Pendragon
 
-The Author Agent makes **12+ sequential AI calls** (topic selection, gap analysis, research, outline, 8 chapters, citations). Supabase edge functions have a hard timeout (~150 seconds). The agent consistently times out before finishing, producing **no content at all**.
+### The Reality of Evernote Integration
 
-## Solution: Collapse to 3 AI Calls Maximum
+Evernote uses **OAuth 1.0a** authentication, which requires:
+1. Applying for an Evernote API key (manual review process, can take days/weeks)
+2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
+3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
 
-Instead of orchestrating a complex multi-pass pipeline that exceeds edge function limits, we will restructure the Author Agent to make only **3 fast, focused AI calls**:
+**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
 
-1. **Call 1 -- Topic Selection** (quick, small output): Pick the best topic from the user's Zettelcards.
-2. **Call 2 -- Full Document Generation** (one big call): Write the entire document in a single AI call with detailed instructions for formatting, research, and structure. Request `max_tokens: 16384`.
-3. **Call 3 -- Extend if short** (conditional): If the document is under 5,000 words, make one continuation call to extend it.
+### What will be built
 
-This eliminates the 8-chapter loop, the separate research call, the gap analysis call, and the citation call -- all of which contributed to timeouts.
+1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
+   - Parse `.enex` XML files using the browser's built-in `DOMParser`
+   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
+   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
+   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
 
-## Technical Details
+2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
+   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
+   - Drag-and-drop or file picker for `.enex` files
+   - Preview parsed notes with title, tag count, and content snippet before importing
+   - Select/deselect individual notes
+   - Map Evernote tags to Zettel card tags
+   - Import selected notes as Zettel cards with auto-categorization
 
-### File: `supabase/functions/execute-agent/index.ts`
+3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
+   - Add `.enex` to the supported file types for the Computer tab
+   - Parse and convert ENEX content to HTML for use in the Catalyst editor
 
-**Changes to `callAI`:**
-- Increase default `maxTokens` to `16384` to allow longer single outputs.
+### ENEX Format Structure (for reference)
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export>
+  <note>
+    <title>Note Title</title>
+    <content><![CDATA[...ENML content...]]></content>
+    <created>20230101T120000Z</created>
+    <updated>20230615T180000Z</updated>
+    <tag>tag1</tag>
+    <tag>tag2</tag>
+  </note>
+  ...more notes...
+</en-export>
+```
 
-**Changes to `runAuthorAgent`:**
-- **Remove**: Steps 3 (Knowledge Gap), 4 (Research), 5 (Outline), 6 (Chapter Loop), 7 (Citations) as separate calls.
-- **Replace with**: A single comprehensive prompt that instructs the AI to:
-  - Select a topic (or use the one from Call 1)
-  - Write a fully formatted document with table of contents, 8+ sections, research insights, citations, and rich markdown
-  - Target 3,000-5,000 words in one shot (the realistic max for a single AI response with 16k tokens)
-- **Add**: A conditional extension call if the document is under 5,000 words, asking the AI to continue writing more sections.
-- **Add**: A second extension call if still under target, to push toward the 10k goal.
-- **Wrap everything** in try/catch with meaningful fallback -- if any call fails, save whatever content was generated so far rather than losing everything.
+### Technical Details
 
-**Changes to error handling:**
-- If the main document call fails, save a partial document with an error note rather than returning nothing.
-- Every AI call gets its own try/catch so one failure doesn't kill the whole process.
+- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
+- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
+- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
+- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
 
-### Key Design Decisions
+### User flow
+1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
+2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
+3. Preview notes, select which to import, click Import
+4. Notes appear as Zettel cards with preserved tags and content
 
-| Before | After |
-|--------|-------|
-| 12+ sequential AI calls | 3 max AI calls |
-| ~5+ minutes execution | ~30-60 seconds execution |
-| Times out, produces nothing | Always produces a document |
-| Separate research/gap/citation steps | All instructions in one comprehensive prompt |
-| Chapter-by-chapter generation | Single document generation + extensions |
-
-### Expected Output
-
-The Author Agent will reliably produce a well-formatted Catalyst document of 3,000-10,000+ words with:
-- A topic chosen from the user's Zettelcards
-- Rich markdown formatting (headers, lists, blockquotes, bold/italic)
-- Table of contents
-- References section
-- The "(Created by PendragonX)" suffix
-- A notification on success
-
-The word count may vary (3k-10k+) depending on AI response length, but it will **always produce something** rather than timing out with nothing.
