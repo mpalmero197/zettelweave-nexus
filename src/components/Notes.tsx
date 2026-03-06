@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNowStrict } from 'date-fns';
 import {
   FileText, Plus, Star, Search, Edit, Trash2, MoreHorizontal,
-  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X
+  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
@@ -20,6 +20,8 @@ import { useSimilarContent } from '@/hooks/useSimilarContent';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EditNoteDialog } from './EditNoteDialog';
 import { HexColorPicker } from 'react-colorful';
+import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
+import { readEnexFile } from '@/utils/evernoteImport';
 
 interface Note {
   id: string;
@@ -73,6 +75,8 @@ export function Notes() {
   const [newNotebookName, setNewNotebookName] = useState('');
   const [newNotebookColor, setNewNotebookColor] = useState('#6366f1');
   const [showNewNotebook, setShowNewNotebook] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
 
   const [newNote, setNewNote] = useState({
     title: '',
@@ -281,6 +285,52 @@ export function Notes() {
     await mergeContent(sourceId, destinationId, mergedContent, 'note');
     setCurrentNoteForSimilar(null);
     fetchNotes();
+  };
+
+  const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
+    setImporting(true);
+    let importedCount = 0;
+    try {
+      for (const file of Array.from(files)) {
+        // ENEX files contain multiple notes — split them
+        if (file.name.endsWith('.enex')) {
+          const enexNotes = await readEnexFile(file);
+          for (const en of enexNotes) {
+            const notebookId = selectedNotebook !== 'all' && selectedNotebook !== 'none' ? selectedNotebook : null;
+            await supabase.from('notes').insert({
+              user_id: user.id,
+              title: en.title || file.name,
+              content: en.content,
+              notebook_id: notebookId,
+              tags: en.tags || [],
+            });
+            importedCount++;
+          }
+        } else {
+          // Single-file import
+          const imported = await importFile(file);
+          const notebookId = selectedNotebook !== 'all' && selectedNotebook !== 'none' ? selectedNotebook : null;
+          await supabase.from('notes').insert({
+            user_id: user.id,
+            title: imported.name.replace(/\.(txt|md|docx|pdf|markdown)$/i, ''),
+            content: imported.content,
+            notebook_id: notebookId,
+            tags: [],
+          });
+          importedCount++;
+        }
+      }
+      fetchNotes();
+      toast.success(`Imported ${importedCount} note${importedCount !== 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error('Failed to import some files');
+    } finally {
+      setImporting(false);
+      if (importFileRef.current) importFileRef.current.value = '';
+    }
   };
 
   // Notebook CRUD
@@ -763,6 +813,26 @@ export function Notes() {
           >
             {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
           </Button>
+
+          {/* Import files */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs rounded-lg"
+            onClick={() => importFileRef.current?.click()}
+            disabled={importing}
+          >
+            {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{importing ? 'Importing...' : 'Import'}</span>
+          </Button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept={getSupportedFileTypes()}
+            multiple
+            onChange={handleImportFiles}
+            className="hidden"
+          />
 
           {/* Create note */}
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
