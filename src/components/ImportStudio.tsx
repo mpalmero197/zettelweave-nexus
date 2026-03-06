@@ -55,6 +55,7 @@ import { sanitizeCardInput } from "@/utils/security";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import mammoth from "mammoth";
+import { readEnexFile, EvernoteNote } from "@/utils/evernoteImport";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ interface ImportSummary {
 }
 
 type ImportStep = "source" | "review" | "importing" | "summary";
-type SourceTab = "files" | "url" | "clipboard" | "obsidian" | "notion" | "roam" | "csv";
+type SourceTab = "files" | "url" | "clipboard" | "obsidian" | "notion" | "roam" | "csv" | "evernote";
 
 interface CsvMapping {
   title: string;
@@ -504,6 +505,39 @@ export function ImportStudio({ existingCards, onImportCards, trigger, externalOp
     }
   };
 
+  const handleEvernoteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const notes = await readEnexFile(file);
+      const parsed: ParsedItem[] = notes.map((note) => {
+        const plainText = note.content.replace(/<[^>]*>/g, '');
+        const tags = note.tags.length > 0 ? note.tags.slice(0, 5) : extractKeywords(note.title + " " + plainText).slice(0, 5);
+        const category = categorizeContent(plainText, note.title);
+        const dup = checkDuplicate(plainText, note.title);
+        return {
+          id: crypto.randomUUID(),
+          name: note.title,
+          content: note.content,
+          type: "evernote",
+          size: note.content.length,
+          status: dup.status,
+          selected: dup.status !== "duplicate",
+          category,
+          tags,
+          preview: getPreview(plainText),
+          similarTo: dup.matchTitle,
+          similarityScore: dup.score,
+        };
+      });
+      setItems(parsed);
+      setStep("review");
+      toast.success(`Parsed ${notes.length} note${notes.length !== 1 ? 's' : ''} from Evernote export`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invalid ENEX file");
+    }
+  };
+
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -715,13 +749,14 @@ export function ImportStudio({ existingCards, onImportCards, trigger, externalOp
         {step === "source" && (
           <div className="flex-1 overflow-hidden flex flex-col gap-3">
             <Tabs value={sourceTab} onValueChange={(v) => setSourceTab(v as SourceTab)}>
-              <TabsList className="grid grid-cols-7 w-full h-auto">
+              <TabsList className="grid grid-cols-4 sm:grid-cols-8 w-full h-auto">
                 <TabsTrigger value="files" className="text-xs px-1 py-1.5"><FileText className="h-3 w-3 mr-1 hidden sm:inline" />Files</TabsTrigger>
                 <TabsTrigger value="url" className="text-xs px-1 py-1.5"><Globe className="h-3 w-3 mr-1 hidden sm:inline" />URL</TabsTrigger>
                 <TabsTrigger value="clipboard" className="text-xs px-1 py-1.5"><Clipboard className="h-3 w-3 mr-1 hidden sm:inline" />Paste</TabsTrigger>
                 <TabsTrigger value="obsidian" className="text-xs px-1 py-1.5"><FolderOpen className="h-3 w-3 mr-1 hidden sm:inline" />Obsidian</TabsTrigger>
                 <TabsTrigger value="notion" className="text-xs px-1 py-1.5"><Database className="h-3 w-3 mr-1 hidden sm:inline" />Notion</TabsTrigger>
                 <TabsTrigger value="roam" className="text-xs px-1 py-1.5"><Link2 className="h-3 w-3 mr-1 hidden sm:inline" />Roam</TabsTrigger>
+                <TabsTrigger value="evernote" className="text-xs px-1 py-1.5"><FileText className="h-3 w-3 mr-1 hidden sm:inline" />Evernote</TabsTrigger>
                 <TabsTrigger value="csv" className="text-xs px-1 py-1.5"><FileJson className="h-3 w-3 mr-1 hidden sm:inline" />CSV/JSON</TabsTrigger>
               </TabsList>
 
@@ -748,6 +783,17 @@ export function ImportStudio({ existingCards, onImportCards, trigger, externalOp
                 <Button onClick={handleUrlFetch} disabled={isFetchingUrl || !urlInput.trim()}>
                   {isFetchingUrl ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Globe className="h-4 w-4 mr-2" />}
                   Fetch Content
+                </Button>
+              </TabsContent>
+
+              {/* Evernote tab */}
+              <TabsContent value="evernote" className="mt-3 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Export your notes from Evernote (<strong>File → Export Notes</strong>) as an <code>.enex</code> file, then upload it here. All notes, tags, and formatting will be preserved.
+                </p>
+                <input type="file" accept=".enex" className="hidden" id="evernote-upload" onChange={handleEvernoteUpload} />
+                <Button variant="outline" onClick={() => document.getElementById("evernote-upload")?.click()}>
+                  <FileUp className="h-4 w-4 mr-2" />Upload .enex File
                 </Button>
               </TabsContent>
 
