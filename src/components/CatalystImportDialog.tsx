@@ -159,13 +159,13 @@ export function CatalystImportDialog({ open, onOpenChange, onImport }: CatalystI
               <input
                 ref={fileInputRef}
                 type="file"
-                accept={getSupportedFileTypes()}
+                accept={getSupportedFileTypes() + ',.enex'}
                 multiple
                 onChange={handleLocalFileImport}
                 className="hidden"
               />
               <p className="text-xs text-muted-foreground mt-4">
-                Supported: TXT, MD, DOCX, PDF, and more
+                Supported: TXT, MD, DOCX, PDF, ENEX, and more
               </p>
             </div>
           </TabsContent>

@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import { readEnexFile } from './evernoteImport';
 
 export interface ImportedFile {
   name: string;
@@ -19,6 +20,8 @@ export async function importFile(file: File): Promise<ImportedFile> {
     return await importText(file);
   } else if (file.name.endsWith('.dta')) {
     return await importDTA(file);
+  } else if (file.name.endsWith('.enex')) {
+    return await importENEX(file);
   } else {
     // Try as text
     return await importText(file);
@@ -140,6 +143,18 @@ async function importDTA(file: File): Promise<ImportedFile> {
   });
 }
 
+async function importENEX(file: File): Promise<ImportedFile> {
+  const notes = await readEnexFile(file);
+  const html = notes.map((n) =>
+    `<h3>${n.title}</h3>${n.content}${n.tags.length > 0 ? `<p><em>Tags: ${n.tags.join(', ')}</em></p>` : ''}`
+  ).join('<hr/>');
+  return {
+    name: file.name,
+    content: `<h3>Imported from ${file.name} (${notes.length} notes)</h3>${html}`,
+    type: 'enex',
+  };
+}
+
 export function getSupportedFileTypes(): string {
-  return '.txt,.md,.docx,.pdf,.jpg,.jpeg,.png,.gif,.tiff,.tif,.bmp,.webp,.dta';
+  return '.txt,.md,.docx,.pdf,.jpg,.jpeg,.png,.gif,.tiff,.tif,.bmp,.webp,.dta,.enex';
 }
