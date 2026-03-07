@@ -22,6 +22,14 @@ import { EditNoteDialog } from './EditNoteDialog';
 import { HexColorPicker } from 'react-colorful';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { readEnexFile } from '@/utils/evernoteImport';
+import DOMPurify from 'dompurify';
+
+const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
+
+const sanitizeHtml = (html: string) => DOMPurify.sanitize(html, {
+  ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','strong','b','em','i','u','s','strike','del','ul','ol','li','blockquote','pre','code','a','img','hr','span','div','table','thead','tbody','tr','th','td','sup','sub'],
+  ALLOWED_ATTR: ['href','src','alt','style','class','target','rel'],
+});
 
 interface Note {
   id: string;
@@ -469,9 +477,20 @@ export function Notes() {
         )}
 
         {/* Content preview */}
-        <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3">
-          {note.content || 'Empty note...'}
-        </p>
+        {note.content ? (
+          isHtmlContent(note.content) ? (
+            <div
+              className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 prose prose-xs dark:prose-invert max-w-none [&_img]:max-h-16 [&_img]:rounded [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 whitespace-pre-wrap">
+              {note.content}
+            </p>
+          )
+        ) : (
+          <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 italic">Empty note...</p>
+        )}
 
         {/* Tags */}
         {note.tags?.length > 0 && (
