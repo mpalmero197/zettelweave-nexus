@@ -33,6 +33,9 @@ import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { sanitizeUserInput } from '@/utils/security';
+import DOMPurify from 'dompurify';
+
+const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
 
 interface Note {
   id: string;
@@ -412,7 +415,11 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
             <TabsContent value="preview" className="flex-1 mt-2 overflow-hidden">
               <ScrollArea className="h-full border rounded-md p-6">
                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{formData.content || '*No content to preview*'}</ReactMarkdown>
+                  {isHtmlContent(formData.content) ? (
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }} />
+                  ) : (
+                    <ReactMarkdown>{formData.content || '*No content to preview*'}</ReactMarkdown>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
