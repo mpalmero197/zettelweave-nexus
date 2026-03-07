@@ -1,33 +1,62 @@
 
 
-## Notes Scrollable Window & Mobile Optimization
+## Evernote Import for Pendragon
 
-### Current Issues
-1. The main content area (`div.flex-1`) has `overflow-y-auto` but no fixed height constraint — it relies on `min-h-[calc(100vh-8rem)]` on the parent, which doesn't create a proper scroll container.
-2. On mobile, the notebook chips, toolbar, quick-add bar, and note grid all compete for vertical space with no dedicated scroll region for just the notes.
-3. The desktop notebook sidebar also lacks a height constraint for proper scrolling.
+### The Reality of Evernote Integration
 
-### Plan
+Evernote uses **OAuth 1.0a** authentication, which requires:
+1. Applying for an Evernote API key (manual review process, can take days/weeks)
+2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
+3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
 
-**1. Create a proper scrollable layout**
-- Set the outer flex container to a fixed height: `h-[calc(100dvh-<header offset>)]` instead of `min-h-[calc(100vh-8rem)]`, so it becomes a scroll boundary.
-- The desktop sidebar already has `overflow-y-auto` — just needs the parent height constraint.
-- The main content column: pin the toolbar/quick-add at the top, make only the notes grid/list area scroll via `overflow-y-auto` on a `flex-1 min-h-0` wrapper.
+**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
 
-**2. Mobile optimizations**
-- Reduce toolbar padding and gaps for tighter mobile layout.
-- Stack the search bar full-width on mobile, move action buttons (sort, view, import, new) into a compact row below.
-- Make notebook chips row sticky so it stays visible while scrolling notes.
-- Increase touch targets on note cards (min 44px tap areas on action buttons).
-- Use `grid-cols-1` for mobile note cards (already done) but reduce card padding slightly.
-- On mobile, default to list view for better density and faster scanning.
-- Ensure the notes scroll area accounts for the bottom navigation bar (add `pb-20` on mobile).
+### What will be built
 
-**3. Files to modify**
-- `src/components/Notes.tsx` — All changes are in this single file:
-  - Restructure the outer container to use fixed height with flex column layout
-  - Wrap the notes grid/list in a dedicated scroll container with `flex-1 min-h-0 overflow-y-auto`
-  - Add responsive classes for mobile toolbar layout
-  - Add sticky positioning to notebook chips on mobile
-  - Add bottom padding for mobile nav clearance
+1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
+   - Parse `.enex` XML files using the browser's built-in `DOMParser`
+   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
+   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
+   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
+
+2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
+   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
+   - Drag-and-drop or file picker for `.enex` files
+   - Preview parsed notes with title, tag count, and content snippet before importing
+   - Select/deselect individual notes
+   - Map Evernote tags to Zettel card tags
+   - Import selected notes as Zettel cards with auto-categorization
+
+3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
+   - Add `.enex` to the supported file types for the Computer tab
+   - Parse and convert ENEX content to HTML for use in the Catalyst editor
+
+### ENEX Format Structure (for reference)
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export>
+  <note>
+    <title>Note Title</title>
+    <content><![CDATA[...ENML content...]]></content>
+    <created>20230101T120000Z</created>
+    <updated>20230615T180000Z</updated>
+    <tag>tag1</tag>
+    <tag>tag2</tag>
+  </note>
+  ...more notes...
+</en-export>
+```
+
+### Technical Details
+
+- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
+- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
+- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
+- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+
+### User flow
+1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
+2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
+3. Preview notes, select which to import, click Import
+4. Notes appear as Zettel cards with preserved tags and content
 
