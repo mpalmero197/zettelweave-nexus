@@ -292,7 +292,7 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
               </div>
             </div>
 
-            <TabsContent value="edit" className="mt-2 flex-1 min-h-0 overflow-hidden data-[state=active]:flex data-[state=inactive]:hidden">
+            <TabsContent value="edit" className="mt-2 flex-1 min-h-0 flex-col gap-2 overflow-hidden data-[state=active]:flex data-[state=inactive]:hidden">
               {/* Markdown Toolbar */}
               <div className="flex flex-wrap gap-1 p-2 bg-muted/50 rounded-md">
                 <Button
