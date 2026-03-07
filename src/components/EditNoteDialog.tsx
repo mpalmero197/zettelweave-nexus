@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -173,6 +173,7 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
 
   const wordCount = formData.content.split(/\s+/).filter(Boolean).length;
   const charCount = formData.content.length;
+  const sanitizedPreviewContent = useMemo(() => DOMPurify.sanitize(formData.content), [formData.content]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -291,7 +292,7 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
               </div>
             </div>
 
-            <TabsContent value="edit" className="flex-1 flex flex-col gap-2 mt-2 overflow-hidden">
+            <TabsContent value="edit" className="mt-2 flex-1 min-h-0 flex-col gap-2 overflow-hidden data-[state=active]:flex data-[state=inactive]:hidden">
               {/* Markdown Toolbar */}
               <div className="flex flex-wrap gap-1 p-2 bg-muted/50 rounded-md">
                 <Button
@@ -412,11 +413,11 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
               )}
             </TabsContent>
 
-            <TabsContent value="preview" className="flex-1 mt-2 overflow-hidden">
-              <ScrollArea className="h-full border rounded-md p-6">
-                <div className="prose prose-sm max-w-none dark:prose-invert">
+            <TabsContent value="preview" className="mt-2 flex-1 min-h-0 overflow-hidden data-[state=active]:flex data-[state=inactive]:hidden">
+              <ScrollArea className="h-full border rounded-md">
+                <div className="p-6 prose prose-sm max-w-none dark:prose-invert">
                   {isHtmlContent(formData.content) ? (
-                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizedPreviewContent }} />
                   ) : (
                     <ReactMarkdown>{formData.content || '*No content to preview*'}</ReactMarkdown>
                   )}
