@@ -597,7 +597,7 @@ export function Notes() {
   };
 
   return (
-    <div className="flex gap-0 animate-fade-in min-h-[calc(100vh-8rem)]">
+    <div className="flex gap-0 animate-fade-in h-[calc(100dvh-7rem)] md:h-[calc(100dvh-4rem)]">
       {/* ============ NOTEBOOK SIDEBAR (Desktop) ============ */}
       {!isMobile && (
         <aside className="w-52 flex-shrink-0 border-r border-border/40 py-4 pr-3 mr-1 space-y-1 overflow-y-auto">
@@ -700,10 +700,10 @@ export function Notes() {
       )}
 
       {/* ============ MAIN CONTENT ============ */}
-      <div className="flex-1 py-3 px-2 sm:px-3 space-y-3 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 py-2 px-2 sm:px-3 overflow-hidden">
         {/* Mobile notebook chips */}
         {isMobile && (
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          <div className="flex gap-1.5 overflow-x-auto pb-1.5 -mx-1 px-1 scrollbar-hide sticky top-0 z-10 bg-background/95 backdrop-blur-sm flex-shrink-0">
             <button
               onClick={() => setSelectedNotebook('all')}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
@@ -778,9 +778,9 @@ export function Notes() {
         )}
 
         {/* ===== TOOLBAR ===== */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap flex-shrink-0 mt-1">
           {/* Search */}
-          <div className="flex-1 relative min-w-[140px] max-w-sm">
+          <div className={`relative ${isMobile ? 'w-full order-first' : 'flex-1 min-w-[140px] max-w-sm'}`}>
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
             <Input
               value={searchTerm}
@@ -920,7 +920,7 @@ export function Notes() {
         </div>
 
         {/* ===== QUICK ADD BAR ===== */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <div className="flex-1 relative">
             <Plus className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
             <Input
@@ -944,34 +944,36 @@ export function Notes() {
           </Button>
         </div>
 
-        {/* ===== NOTES GRID / LIST ===== */}
-        {displayedNotes.length > 0 ? (
-          viewMode === 'list' ? (
-            <div className="space-y-1.5">
-              {displayedNotes.map(note => <NoteCardList key={note.id} note={note} />)}
-            </div>
+        {/* ===== NOTES GRID / LIST (scrollable) ===== */}
+        <div className="flex-1 min-h-0 overflow-y-auto pb-20 md:pb-4 -mx-1 px-1">
+          {displayedNotes.length > 0 ? (
+            viewMode === 'list' ? (
+              <div className="space-y-1.5">
+                {displayedNotes.map(note => <NoteCardList key={note.id} note={note} />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {displayedNotes.map(note => <NoteCardGrid key={note.id} note={note} />)}
+              </div>
+            )
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {displayedNotes.map(note => <NoteCardGrid key={note.id} note={note} />)}
-            </div>
-          )
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
-              <FileText className="h-7 w-7 text-muted-foreground/20" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm text-muted-foreground/70">
-                {searchTerm ? `No notes matching "${searchTerm}"` : notes.length === 0 ? 'No notes yet' : 'No notes in this notebook'}
-              </p>
-              {notes.length === 0 && (
-                <p className="text-xs text-muted-foreground/40">
-                  Type in the quick-add bar above or click New Note to get started
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
+                <FileText className="h-7 w-7 text-muted-foreground/20" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm text-muted-foreground/70">
+                  {searchTerm ? `No notes matching "${searchTerm}"` : notes.length === 0 ? 'No notes yet' : 'No notes in this notebook'}
                 </p>
-              )}
+                {notes.length === 0 && (
+                  <p className="text-xs text-muted-foreground/40">
+                    Type in the quick-add bar above or click New Note to get started
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ============ DIALOGS ============ */}
