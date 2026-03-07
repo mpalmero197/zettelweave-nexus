@@ -700,7 +700,7 @@ export function Notes() {
       )}
 
       {/* ============ MAIN CONTENT ============ */}
-      <div className="flex-1 flex flex-col min-w-0 py-2 px-2 sm:px-3 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-2 min-w-0 py-2 px-2 sm:px-3 overflow-hidden">
         {/* Mobile notebook chips */}
         {isMobile && (
           <div className="flex gap-1.5 overflow-x-auto pb-1.5 -mx-1 px-1 scrollbar-hide sticky top-0 z-10 bg-background/95 backdrop-blur-sm flex-shrink-0">
