@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Calendar, Edit3, Star, X, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
