@@ -99,8 +99,8 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
         )}
 
         {/* Content - scrollable */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="p-6 prose prose-sm md:prose-base max-w-none dark:prose-invert">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [webkit-overflow-scrolling:touch]">
+          <div className="p-4 md:p-6 prose prose-sm md:prose-base max-w-none dark:prose-invert">
             {hasHtml ? (
               <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
             ) : note.content.trim() ? (
@@ -109,7 +109,7 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
               <p className="text-muted-foreground italic">No content</p>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
