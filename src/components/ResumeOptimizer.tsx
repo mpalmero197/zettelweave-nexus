@@ -6,8 +6,9 @@ import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileText, X, Download, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
+import { Upload, FileText, X, Download, Sparkles, Loader2, CheckCircle2, FileDown } from 'lucide-react';
 import { importFile } from '@/utils/fileImportUtils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import DOMPurify from 'dompurify';
 
 interface ResumeConstraints {
@@ -99,7 +100,7 @@ export function ResumeOptimizer() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadTxt = () => {
     if (!result) return;
     const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -107,6 +108,108 @@ export function ResumeOptimizer() {
     a.href = url;
     a.download = 'optimized-resume.txt';
     a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!result) return;
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const margin = 15;
+    const maxWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Parse sections for ATS-friendly formatting
+    const lines = result.split('\n');
+    let y = 20;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const isHeader = /^[A-Z\s&]{3,}$/.test(trimmed) && trimmed.length > 2;
+
+      if (isHeader) {
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+      } else {
+        doc.setFontSize(10.5);
+        doc.setFont('helvetica', 'normal');
+      }
+
+      const wrapped = doc.splitTextToSize(trimmed || ' ', maxWidth);
+      for (const wl of wrapped) {
+        if (y + 6 > pageHeight - margin) { doc.addPage(); y = 20; }
+        doc.text(wl, margin, y);
+        y += isHeader ? 6.5 : 5.5;
+      }
+      if (isHeader) { y += 1; }
+    }
+
+    // Add ATS keywords as invisible metadata (searchable text)
+    if (highlightedKeywords.length > 0) {
+      doc.setFontSize(1);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`Keywords: ${highlightedKeywords.join(', ')}`, margin, pageHeight - 2);
+    }
+
+    doc.save('optimized-resume.pdf');
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!result) return;
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+
+    const lines = result.split('\n');
+    const children: any[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const isHeader = /^[A-Z\s&]{3,}$/.test(trimmed) && trimmed.length > 2;
+
+      if (!trimmed) {
+        children.push(new Paragraph({ text: '' }));
+        continue;
+      }
+
+      if (isHeader) {
+        children.push(new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun({ text: trimmed, bold: true, size: 26, font: 'Calibri' })],
+          spacing: { before: 200, after: 80 },
+        }));
+      } else {
+        const isBullet = /^[-•]/.test(trimmed);
+        children.push(new Paragraph({
+          children: [new TextRun({ text: isBullet ? trimmed.replace(/^[-•]\s*/, '') : trimmed, size: 22, font: 'Calibri' })],
+          bullet: isBullet ? { level: 0 } : undefined,
+          spacing: { after: 40 },
+        }));
+      }
+    }
+
+    // Add ATS keyword section for machine parsing
+    if (highlightedKeywords.length > 0) {
+      children.push(new Paragraph({ text: '' }));
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        children: [new TextRun({ text: 'CORE COMPETENCIES', bold: true, size: 26, font: 'Calibri' })],
+        spacing: { before: 200, after: 80 },
+      }));
+      children.push(new Paragraph({
+        children: [new TextRun({ text: highlightedKeywords.join(' • '), size: 22, font: 'Calibri' })],
+      }));
+    }
+
+    const docFile = new Document({
+      sections: [{ properties: {}, children }],
+    });
+
+    const blob = await Packer.toBlob(docFile);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'optimized-resume.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -271,10 +374,28 @@ export function ResumeOptimizer() {
                 <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">{result}</pre>
               </div>
 
-              <Button onClick={handleDownload} variant="outline" className="w-full gap-2">
-                <Download className="h-4 w-4" />
-                Export as Text
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full gap-2">
+                    <FileDown className="h-4 w-4" />
+                    Export Resume
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleDownloadTxt}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Plain Text (.txt)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadPdf}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    PDF (.pdf)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadDocx}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Word (.docx)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : (
             <div className="border border-border rounded-lg bg-card p-8 md:p-12 flex flex-col items-center justify-center text-center min-h-[300px]">
