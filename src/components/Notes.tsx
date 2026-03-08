@@ -19,6 +19,7 @@ import { SimilarContentDialog } from './SimilarContentDialog';
 import { useSimilarContent } from '@/hooks/useSimilarContent';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EditNoteDialog } from './EditNoteDialog';
+import { NoteViewerDialog } from './NoteViewerDialog';
 import { HexColorPicker } from 'react-colorful';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { readEnexFile } from '@/utils/evernoteImport';
@@ -70,6 +71,7 @@ export function Notes() {
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotebook, setSelectedNotebook] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'created' | 'alpha' | 'favorites'>('recent');
@@ -456,7 +458,7 @@ export function Notes() {
       <div
         className="group relative rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:border-border cursor-pointer"
         style={{ borderTopWidth: '3px', borderTopColor: nbColor }}
-        onClick={() => setEditingNote(note)}
+        onClick={() => setViewingNote(note)}
       >
         {/* Favorite indicator */}
         {note.is_favorite && (
@@ -556,7 +558,7 @@ export function Notes() {
       <div
         className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/40 bg-card/60 hover:bg-card/90 hover:border-border/70 transition-all duration-150 cursor-pointer"
         style={{ borderLeftWidth: '3px', borderLeftColor: nbColor }}
-        onClick={() => setEditingNote(note)}
+        onClick={() => setViewingNote(note)}
       >
         <div className="flex-1 min-w-0 flex items-center gap-2.5">
           {note.is_favorite && <Star className="h-3 w-3 text-amber-400 fill-amber-400 flex-shrink-0" />}
@@ -977,6 +979,15 @@ export function Notes() {
       </div>
 
       {/* ============ DIALOGS ============ */}
+
+      {/* Note Viewer Dialog */}
+      <NoteViewerDialog
+        note={viewingNote}
+        notebooks={notebooks}
+        isOpen={!!viewingNote}
+        onClose={() => setViewingNote(null)}
+        onEdit={(note) => { setViewingNote(null); setEditingNote(note); }}
+      />
 
       {/* Edit Note Dialog */}
       {editingNote && (
