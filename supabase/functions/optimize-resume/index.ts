@@ -10,32 +10,84 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { resumeText, jobDescription, customInstructions, constraints } = await req.json();
+    const {
+      resumeText,
+      jobDescription,
+      customInstructions,
+      constraints,
+      templateId,
+      templateSections,
+      templateTone,
+      experienceLevel,
+    } = await req.json();
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Build constraint lines
     const constraintLines: string[] = [];
     if (constraints?.enforceOnePage) constraintLines.push("- The output MUST fit on a single page. Be ruthlessly concise.");
-    if (constraints?.cleanFormatting) constraintLines.push("- Apply clean, professional formatting with clear section headers, consistent bullet points, and proper spacing.");
-    if (constraints?.extractAtsKeywords) constraintLines.push("- Extract relevant ATS keywords from the job description and inject them naturally into the Skills section and throughout the resume.");
+    if (constraints?.cleanFormatting) constraintLines.push("- Apply clean, ATS-safe formatting: section headers in ALL CAPS, consistent dash bullet points, no tables/columns/graphics, and proper spacing.");
+    if (constraints?.extractAtsKeywords) constraintLines.push("- Extract relevant ATS keywords from the job description. Inject them naturally into the Skills/Core Competencies section AND throughout bullet points where contextually appropriate.");
+    if (constraints?.quantifyAchievements) constraintLines.push("- Every bullet point should include quantified metrics where possible (percentages, dollar amounts, team sizes, user counts, timeframes). If the original lacks numbers, infer reasonable estimates based on context.");
+    if (constraints?.removePronouns) constraintLines.push("- Remove ALL personal pronouns (I, my, me, we). Start bullets with action verbs directly.");
+    if (constraints?.useActionVerbs) constraintLines.push("- Begin every bullet point with a strong, varied action verb (Led, Spearheaded, Architected, Drove, Delivered, Optimized, etc.). Avoid repeating the same verb twice.");
 
-    const systemPrompt = `You are an expert resume writer and ATS optimization specialist. Your task is to optimize the user's resume for a specific job posting.
+    // Experience level guidance
+    const levelGuidance: Record<string, string> = {
+      entry: "This is for an entry-level/new graduate. Emphasize education, projects, internships, coursework, and transferable skills. Keep the summary brief and potential-focused.",
+      mid: "This is for a mid-level professional (3-7 years). Balance experience with skills. Show career progression and increasing responsibility.",
+      senior: "This is for a senior/staff-level professional (8-15 years). Focus on leadership, strategic impact, mentoring, and large-scale achievements. Minimize early-career details.",
+      executive: "This is for a C-suite/executive (15+ years). Lead with an executive summary showcasing vision and P&L impact. Emphasize board experience, company-wide transformations, and revenue/growth metrics.",
+    };
 
-Rules:
+    // Template guidance
+    const sectionGuide = templateSections?.length
+      ? `Structure the resume with EXACTLY these sections in order: ${templateSections.join(", ")}. Do NOT add extra sections unless the user's resume content demands it.`
+      : "Use standard resume sections.";
+
+    const toneGuide = templateTone
+      ? `The overall tone should be ${templateTone}.`
+      : "Use a professional, concise tone.";
+
+    const systemPrompt = `You are an elite resume optimization AI specializing in ATS (Applicant Tracking System) compatibility and professional resume writing. You have deep knowledge of how ATS systems parse resumes (Taleo, Greenhouse, Lever, Workday, iCIMS, etc.).
+
+## Template & Structure
+- Template: ${templateId || "professional"}
+- ${sectionGuide}
+- ${toneGuide}
+
+## Experience Level
+${levelGuidance[experienceLevel || "mid"]}
+
+## Optimization Rules
 ${constraintLines.join("\n") || "- No special constraints."}
 
-Output requirements:
-1. Return the FULL optimized resume as plain text with clear formatting (headers in ALL CAPS, bullet points with dashes).
-2. After the resume, on a new line, output "---KEYWORDS---" followed by a JSON array of the ATS keywords you injected (e.g., ["Python", "Project Management", "Agile"]).
-3. Do NOT include any other commentary or explanation outside the resume itself.`;
+## ATS Best Practices (always apply)
+- Use standard section headers that ATS systems recognize
+- Avoid headers/footers, columns, tables, text boxes, or graphics
+- Use standard fonts and simple formatting
+- Include both acronyms AND full forms for industry terms (e.g., "Search Engine Optimization (SEO)")
+- Match exact job title keywords from the posting when truthful
+- Place most important keywords in the top third of the resume
+- Use standard date formats (Month Year – Month Year)
+
+## Output Format
+Return your response as a JSON object with these fields:
+1. "optimizedResume": The FULL optimized resume as plain text with clear formatting (headers in ALL CAPS, bullet points with dashes, blank lines between sections).
+2. "keywords": A JSON array of the specific ATS keywords you injected (e.g., ["Python", "Project Management", "Agile"]).
+3. "atsScore": An integer 0-100 rating the resume's ATS compatibility. Consider: keyword density, formatting cleanliness, section structure, action verb usage, quantified achievements.
+4. "suggestions": A JSON array of 3-5 specific improvement suggestions the user could apply manually (e.g., "Add a LinkedIn URL", "Include a certifications section").
+
+Return ONLY the JSON object, no markdown code fences, no commentary.`;
 
     const userPrompt = `Here is my current resume:
 
 ${resumeText}
 
-${jobDescription ? `Target job description:\n${jobDescription}` : "No specific job description provided — optimize for general ATS compatibility."}
+${jobDescription ? `Target job description:\n${jobDescription}` : "No specific job description provided — optimize for general ATS compatibility and the selected template structure."}
 
-${customInstructions ? `Additional instructions:\n${customInstructions}` : ""}`;
+${customInstructions ? `Additional instructions from the user:\n${customInstructions}` : ""}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -72,26 +124,41 @@ ${customInstructions ? `Additional instructions:\n${customInstructions}` : ""}`;
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content || "";
 
-    // Parse keywords from delimiter
-    let optimizedResume = raw;
+    // Try to parse as JSON first (new format)
+    let optimizedResume = "";
     let keywords: string[] = [];
-    const sep = "---KEYWORDS---";
-    const sepIdx = raw.indexOf(sep);
-    if (sepIdx !== -1) {
-      optimizedResume = raw.substring(0, sepIdx).trim();
-      const kwStr = raw.substring(sepIdx + sep.length).trim();
-      try {
-        keywords = JSON.parse(kwStr);
-      } catch {
-        // Try to extract array from the string
-        const match = kwStr.match(/\[.*\]/s);
-        if (match) {
-          try { keywords = JSON.parse(match[0]); } catch { /* ignore */ }
+    let atsScore: number | null = null;
+    let suggestions: string[] = [];
+
+    try {
+      // Strip markdown code fences if present
+      const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+      const parsed = JSON.parse(cleaned);
+      optimizedResume = parsed.optimizedResume || parsed.resume || "";
+      keywords = parsed.keywords || [];
+      atsScore = typeof parsed.atsScore === "number" ? parsed.atsScore : null;
+      suggestions = parsed.suggestions || [];
+    } catch {
+      // Fallback to old delimiter format
+      const sep = "---KEYWORDS---";
+      const sepIdx = raw.indexOf(sep);
+      if (sepIdx !== -1) {
+        optimizedResume = raw.substring(0, sepIdx).trim();
+        const kwStr = raw.substring(sepIdx + sep.length).trim();
+        try {
+          keywords = JSON.parse(kwStr);
+        } catch {
+          const match = kwStr.match(/\[.*\]/s);
+          if (match) {
+            try { keywords = JSON.parse(match[0]); } catch { /* ignore */ }
+          }
         }
+      } else {
+        optimizedResume = raw;
       }
     }
 
-    return new Response(JSON.stringify({ optimizedResume, keywords }), {
+    return new Response(JSON.stringify({ optimizedResume, keywords, atsScore, suggestions }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
