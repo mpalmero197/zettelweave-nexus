@@ -51,7 +51,7 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden bg-card border border-border shadow-hover flex flex-col">
+      <DialogContent className="w-[calc(100%-1rem)] max-w-3xl h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] p-0 overflow-hidden bg-card border border-border shadow-hover flex flex-col">
         <DialogTitle className="sr-only">{note.title}</DialogTitle>
         <DialogDescription className="sr-only">Note details</DialogDescription>
 
