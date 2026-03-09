@@ -17,6 +17,8 @@ import {
 import { importFile } from '@/utils/fileImportUtils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import DOMPurify from 'dompurify';
+import { DocumentThemeSelector } from '@/components/DocumentThemeSelector';
+import { getThemeClass } from '@/utils/documentThemes';
 
 // ──────────────────────────────────────────────
 // Resume Templates
@@ -144,6 +146,7 @@ export function ResumeOptimizer() {
   const [dragOver, setDragOver] = useState(false);
   const [activeTab, setActiveTab] = useState('input');
   const [resultView, setResultView] = useState<'preview' | 'raw'>('preview');
+  const [documentTheme, setDocumentTheme] = useState('default');
 
   const currentTemplate = RESUME_TEMPLATES.find(t => t.id === selectedTemplate) || RESUME_TEMPLATES[0];
 
@@ -703,29 +706,34 @@ export function ResumeOptimizer() {
               <div className="lg:col-span-2 space-y-2 order-1 lg:order-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium text-foreground">Optimized Resume</Label>
-                  <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
-                    <button
-                      onClick={() => setResultView('preview')}
-                      className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                        resultView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Eye className="h-3.5 w-3.5 inline mr-1" />Preview
-                    </button>
-                    <button
-                      onClick={() => setResultView('raw')}
-                      className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                        resultView === 'raw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <FileText className="h-3.5 w-3.5 inline mr-1" />Raw
-                    </button>
+                  <div className="flex items-center gap-4">
+                    {resultView === 'preview' && (
+                      <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
+                    )}
+                    <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
+                      <button
+                        onClick={() => setResultView('preview')}
+                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                          resultView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Eye className="h-3.5 w-3.5 inline mr-1" />Preview
+                      </button>
+                      <button
+                        onClick={() => setResultView('raw')}
+                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                          resultView === 'raw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <FileText className="h-3.5 w-3.5 inline mr-1" />Raw
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <div className="border border-border rounded-lg bg-card max-h-[70vh] overflow-y-auto overscroll-contain">
                   {resultView === 'preview' ? (
-                    <div className="p-5 md:p-8 space-y-1">
+                    <div className={`p-5 md:p-8 space-y-1 resume-preview-content ${getThemeClass(documentTheme)}`}>
                       {result.split('\n').map((line, i) => {
                         const trimmed = line.trim();
                         if (!trimmed) return <div key={i} className="h-3" />;
@@ -734,7 +742,7 @@ export function ResumeOptimizer() {
 
                         if (isHeader) {
                           return (
-                            <h3 key={i} className="text-sm font-bold text-foreground tracking-wide uppercase border-b border-border/40 pb-1 pt-3 first:pt-0">
+                            <h3 key={i} className="text-sm font-bold tracking-wide uppercase border-b pb-1 pt-3 first:pt-0" style={{ borderColor: 'var(--doc-border)', color: 'var(--doc-heading)' }}>
                               {trimmed}
                             </h3>
                           );

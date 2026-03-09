@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Separator } from '@/components/ui/separator';
 import { CatalystFindReplace } from '@/components/catalyst/CatalystFindReplace';
+import { DocumentThemeSelector } from '@/components/DocumentThemeSelector';
+import { getThemeClass } from '@/utils/documentThemes';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Bold,
@@ -56,6 +58,7 @@ export function CatalystEditor({
   onToggleFullscreen,
 }: CatalystEditorProps) {
   const [showFindReplace, setShowFindReplace] = useState(false);
+  const [documentTheme, setDocumentTheme] = useState('default');
   const editorRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
@@ -84,7 +87,7 @@ export function CatalystEditor({
     },
     editorProps: {
       attributes: {
-        class: `catalyst-word-view max-w-none focus:outline-none ${
+        class: `catalyst-word-view ${getThemeClass(documentTheme)} max-w-none focus:outline-none ${
           isFullscreen ? 'min-h-screen' : 'min-h-[600px]'
         } ${focusMode ? 'catalyst-focus-mode' : ''}`,
       },
@@ -327,6 +330,9 @@ export function CatalystEditor({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Toggle>
         )}
+
+        <Separator orientation="vertical" className="mx-1 h-6 hidden md:block" />
+        <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
       </div>
 
       {/* Find & Replace Panel */}
