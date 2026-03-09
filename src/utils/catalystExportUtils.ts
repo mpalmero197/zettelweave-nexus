@@ -85,6 +85,7 @@ export const exportCatalystToDOCX = async (title: string, content: string, theme
               new TextRun({
                 text: line,
                 size: 24,
+                font: fontName,
               }),
             ],
           })
