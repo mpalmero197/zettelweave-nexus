@@ -292,6 +292,14 @@ export function MobileWhiteboard() {
       for (let i = 0; i < 6; i++) { const a = (i * 2 * Math.PI) / 6 - Math.PI / 2; pts.push({ x: 50 * Math.cos(a), y: 50 * Math.sin(a) }); }
       const hex = new Polygon(pts, { left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
       canvas.add(hex); canvas.setActiveObject(hex);
+    } else if (tool === "line") {
+      const line = new Line([0, 0, 100, 0], { left: cx - 50, top: cy, stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
+      canvas.add(line); canvas.setActiveObject(line);
+    } else if (tool === "arrow") {
+      const arrowLine = new Line([0, 0, 80, 0], { stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
+      const arrowHead = new Triangle({ left: 80, top: -strokeSizes[strokeIndex]*1.5, width: 12, height: 12, fill: penColor, angle: 90 });
+      const arrow = new Group([arrowLine, arrowHead], { left: cx - 50, top: cy });
+      canvas.add(arrow); canvas.setActiveObject(arrow);
     }
     canvas.renderAll();
   };
