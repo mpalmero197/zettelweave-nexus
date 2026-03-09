@@ -186,7 +186,6 @@ export function useDashboardLayout() {
     if (!user || isSaving) return;
 
     setIsSaving(true);
-    console.log('Saving dashboard layout:', newWidgets.length, 'widgets');
     
     try {
       // First update local state immediately for responsiveness
