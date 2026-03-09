@@ -44,9 +44,15 @@ export const exportCatalystToPDF = (title: string, content: string, themeId: str
   doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
 };
 
-export const exportCatalystToDOCX = async (title: string, content: string) => {
+export const exportCatalystToDOCX = async (title: string, content: string, themeId: string = 'default') => {
   // Strip HTML tags for DOCX
   const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+  
+  let fontName = 'Arial';
+  if (themeId === 'classic') fontName = 'Times New Roman';
+  if (themeId === 'modern') fontName = 'Helvetica';
+  if (themeId === 'technical') fontName = 'Courier New';
+  if (themeId === 'creative') fontName = 'Georgia';
   
   const doc = new Document({
     sections: [{
