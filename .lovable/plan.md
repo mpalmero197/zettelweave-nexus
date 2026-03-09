@@ -1,35 +1,62 @@
 
 
-## Preloaded Template Text for Catalyst & Resume AI
+## Evernote Import for Pendragon
 
-### What Changes
+### The Reality of Evernote Integration
 
-**1. Resume AI — Rich Preloaded Examples**
-The Resume templates already have an `example` field, but they contain generic skeleton text ("X+ years", "Skill 1", etc.). I will replace each template's `example` with a realistic, fully fleshed-out sample resume so users can immediately see what the style looks like. Additionally, I will modify `applyTemplate` to always populate the textarea with the example text when a template is selected (currently it only fills when the textarea is empty).
+Evernote uses **OAuth 1.0a** authentication, which requires:
+1. Applying for an Evernote API key (manual review process, can take days/weeks)
+2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
+3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
 
-Templates to enrich (8 total): Professional, Tech/Engineering, Creative/Design, Academic/Research, Healthcare, Executive/Leadership, Career Change, Entry Level.
+**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
 
-**2. Catalyst — Document Templates with Preloaded Content**
-Currently, "New" creates a blank "Untitled Document". I will add a template selection dialog that appears when clicking "New", offering document type templates with preloaded HTML content (since Catalyst uses TipTap/HTML storage). Templates will include:
+### What will be built
 
-| Template | Preloaded Content |
-|---|---|
-| Blank Document | Empty (current behavior) |
-| Essay | Intro paragraph, body sections, conclusion with sample academic text |
-| Research Paper | Abstract, introduction, methodology, results, discussion, references |
-| Blog Post | Title, hook intro, subheadings with body paragraphs, call-to-action |
-| Business Report | Executive summary, findings, recommendations, appendix |
-| Creative Writing | Chapter opening with narrative prose sample |
-| Meeting Notes | Date/attendees header, agenda, discussion points, action items |
+1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
+   - Parse `.enex` XML files using the browser's built-in `DOMParser`
+   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
+   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
+   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
 
-Each template will populate both the document title and editor content with styled HTML so users see the formatting (headings, paragraphs, lists) immediately in the Word-view editor.
+2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
+   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
+   - Drag-and-drop or file picker for `.enex` files
+   - Preview parsed notes with title, tag count, and content snippet before importing
+   - Select/deselect individual notes
+   - Map Evernote tags to Zettel card tags
+   - Import selected notes as Zettel cards with auto-categorization
 
-### Files Modified
-- `src/components/ResumeOptimizer.tsx` — Replace skeleton `example` strings with realistic content; update `applyTemplate` to always populate
-- `src/components/Catalyst.tsx` — Add template selection dialog to `handleNewDocument`, define `DOCUMENT_TEMPLATES` array with preloaded HTML content
+3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
+   - Add `.enex` to the supported file types for the Computer tab
+   - Parse and convert ENEX content to HTML for use in the Catalyst editor
 
-### Implementation Notes
-- Catalyst templates use HTML (h1, h2, p, ul/li tags) per the existing TipTap storage format
-- Resume examples stay as plain text (matching the existing `<pre>` rendering in the template preview)
-- Template dialog will be a simple inline Dialog with a grid of template cards, consistent with the existing UI patterns
+### ENEX Format Structure (for reference)
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export>
+  <note>
+    <title>Note Title</title>
+    <content><![CDATA[...ENML content...]]></content>
+    <created>20230101T120000Z</created>
+    <updated>20230615T180000Z</updated>
+    <tag>tag1</tag>
+    <tag>tag2</tag>
+  </note>
+  ...more notes...
+</en-export>
+```
+
+### Technical Details
+
+- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
+- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
+- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
+- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+
+### User flow
+1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
+2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
+3. Preview notes, select which to import, click Import
+4. Notes appear as Zettel cards with preserved tags and content
 

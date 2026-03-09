@@ -34,6 +34,8 @@ import {
   Printer,
   Lock,
   Users,
+  GraduationCap,
+  Briefcase,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
@@ -149,6 +151,17 @@ export function Catalyst() {
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [catalystMode, setCatalystMode] = useState<'writer' | 'resume'>('writer');
   const [documentTheme, setDocumentTheme] = useState('default');
+  const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
+
+const DOCUMENT_TEMPLATES = [
+  { id: 'blank', title: 'Blank Document', description: 'Start from scratch', icon: <FileText className="h-4 w-4" />, content: '' },
+  { id: 'essay', title: 'Essay', description: 'Academic formatting with intro and conclusion', icon: <BookOpen className="h-4 w-4" />, content: '<h1>Essay Title</h1>\n<h2>Introduction</h2>\n<p>Begin your essay here. State your thesis clearly and outline your main arguments.</p>\n<h2>Body Paragraph 1</h2>\n<p>First main point supporting your thesis, with evidence and analysis.</p>\n<h2>Conclusion</h2>\n<p>Summarize your findings and restate your thesis in a new way.</p>' },
+  { id: 'research', title: 'Research Paper', description: 'Structured for scientific or academic research', icon: <GraduationCap className="h-4 w-4" />, content: '<h1>Research Title</h1>\n<h2>Abstract</h2>\n<p>A brief summary of your research, methodology, and findings.</p>\n<h2>Introduction</h2>\n<p>Background context and research questions.</p>\n<h2>Methodology</h2>\n<p>Description of your methods and data collection.</p>\n<h2>Results</h2>\n<p>Presentation of your findings.</p>\n<h2>Discussion</h2>\n<p>Interpretation of the results and implications.</p>\n<h2>References</h2>\n<ul><li>Citation 1</li><li>Citation 2</li></ul>' },
+  { id: 'blog', title: 'Blog Post', description: 'Engaging format for online readers', icon: <Globe className="h-4 w-4" />, content: '<h1>Catchy Blog Post Title</h1>\n<h2>Hook Your Reader</h2>\n<p>Start with an engaging opening that draws the reader in and explains why this post matters.</p>\n<h2>Main Takeaway 1</h2>\n<p>Elaborate on your first point. Keep paragraphs relatively short for readability.</p>\n<h2>Main Takeaway 2</h2>\n<p>Provide actionable advice or interesting insights.</p>\n<h2>Conclusion & Call to Action</h2>\n<p>Wrap up the post and ask readers to comment, subscribe, or share.</p>' },
+  { id: 'business', title: 'Business Report', description: 'Professional corporate reporting', icon: <Briefcase className="h-4 w-4" />, content: '<h1>Executive Summary</h1>\n<p>A high-level overview of the report\'s purpose, findings, and recommendations.</p>\n<h2>Background</h2>\n<p>Context for the report and objectives.</p>\n<h2>Findings</h2>\n<p>Detailed analysis of the data or situation.</p>\n<h2>Recommendations</h2>\n<ul><li>Recommendation 1</li><li>Recommendation 2</li></ul>\n<h2>Appendix</h2>\n<p>Supporting documents and data.</p>' },
+  { id: 'creative', title: 'Creative Writing', description: 'Narrative structure for fiction', icon: <PenTool className="h-4 w-4" />, content: '<h1>Chapter One</h1>\n<p>The story begins here. Set the scene, introduce the characters, and establish the narrative voice.</p>\n<p>Use descriptive language to bring the world to life. Show, don\'t tell.</p>' },
+  { id: 'meeting', title: 'Meeting Notes', description: 'Organized minutes and action items', icon: <Users className="h-4 w-4" />, content: '<h1>Meeting Notes: [Project/Team]</h1>\n<p><strong>Date:</strong> YYYY-MM-DD<br/><strong>Attendees:</strong> [Names]</p>\n<h2>Agenda</h2>\n<ul><li>Topic 1</li><li>Topic 2</li></ul>\n<h2>Discussion Points</h2>\n<p>Detailed notes on what was discussed for each topic.</p>\n<h2>Action Items</h2>\n<ul><li>[ ] Task 1 - Assigned to: Name - Due: Date</li><li>[ ] Task 2 - Assigned to: Name - Due: Date</li></ul>' },
+];
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
@@ -753,16 +766,21 @@ export function Catalyst() {
     toast({ title: 'Loaded!', description: 'Document loaded from Pendragon.' });
   };
 
-  const handleNewDocument = () => {
-    setDocumentTitle('Untitled Document');
-    setEditorContent('');
+  const handleNewDocumentClick = () => {
+    setShowNewTemplateDialog(true);
+  };
+
+  const createNewDocument = (template: typeof DOCUMENT_TEMPLATES[0]) => {
+    setDocumentTitle(template.id === 'blank' ? 'Untitled Document' : template.title);
+    setEditorContent(template.content);
     setSelectedItems(new Set());
     setDocumentTheme('default');
     setCurrentDocId(null);
     setWordCount(0);
     setSuggestions('');
     setPlagiarismResult(null);
-    toast({ title: 'New document', description: 'Started a new document.' });
+    setShowNewTemplateDialog(false);
+    toast({ title: 'New document', description: `Started a new ${template.title.toLowerCase()}.` });
   };
 
   // AI Recommendations based on current writing
@@ -928,7 +946,7 @@ export function Catalyst() {
         <>
         {/* Action Bar */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <Button onClick={handleNewDocument} variant="outline" size="sm">
+          <Button onClick={handleNewDocumentClick} variant="outline" size="sm">
             <FileText className="h-4 w-4 mr-2" />
             New
           </Button>
@@ -1756,6 +1774,39 @@ export function Catalyst() {
         onOpenChange={setShowImportDialog}
         onImport={handleImport}
       />
+
+      {/* Template Selection Dialog */}
+      <Dialog open={showNewTemplateDialog} onOpenChange={setShowNewTemplateDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Choose a Template</DialogTitle>
+            <DialogDescription>
+              Start with a pre-formatted structure to jumpstart your writing.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 py-4">
+              {DOCUMENT_TEMPLATES.map((template) => (
+                <Card 
+                  key={template.id} 
+                  className="cursor-pointer hover:border-primary transition-colors flex flex-col h-full"
+                  onClick={() => createNewDocument(template)}
+                >
+                  <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2 space-y-0">
+                    <div className="bg-primary/10 p-2 rounded-md text-primary">
+                      {template.icon}
+                    </div>
+                    <CardTitle className="text-base">{template.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 text-sm text-muted-foreground flex-1">
+                    {template.description}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Collaborators Dialog */}
       <CatalystCollaborators
