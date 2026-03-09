@@ -764,16 +764,21 @@ const DOCUMENT_TEMPLATES = [
     toast({ title: 'Loaded!', description: 'Document loaded from Pendragon.' });
   };
 
-  const handleNewDocument = () => {
-    setDocumentTitle('Untitled Document');
-    setEditorContent('');
+  const handleNewDocumentClick = () => {
+    setShowNewTemplateDialog(true);
+  };
+
+  const createNewDocument = (template: typeof DOCUMENT_TEMPLATES[0]) => {
+    setDocumentTitle(template.id === 'blank' ? 'Untitled Document' : template.title);
+    setEditorContent(template.content);
     setSelectedItems(new Set());
     setDocumentTheme('default');
     setCurrentDocId(null);
     setWordCount(0);
     setSuggestions('');
     setPlagiarismResult(null);
-    toast({ title: 'New document', description: 'Started a new document.' });
+    setShowNewTemplateDialog(false);
+    toast({ title: 'New document', description: `Started a new ${template.title.toLowerCase()}.` });
   };
 
   // AI Recommendations based on current writing
