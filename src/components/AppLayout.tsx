@@ -113,6 +113,7 @@ export function AppLayout() {
 
   return (
     <>
+      <SkipToMain />
       <OfflineDataManager />
       <MobileDetector>
         <MobileOptimizedLayout>

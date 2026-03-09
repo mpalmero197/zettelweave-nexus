@@ -55,8 +55,8 @@ export function MinimalHeader({
   }, []);
   
   return (
-    <header className="h-11 border-b border-border bg-background sticky top-0 z-50" role="banner">
-      <div className="h-full px-2 md:px-4 flex items-center justify-between gap-2">
+    <header className="h-10 border-b border-border bg-background sticky top-0 z-50" role="banner">
+      <div className="h-full px-2 md:px-3 flex items-center justify-between gap-2">
         {/* Left: Menu + Logo */}
         <div className="flex items-center gap-1.5">
           <Sheet>

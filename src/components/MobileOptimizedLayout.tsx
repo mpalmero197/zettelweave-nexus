@@ -9,17 +9,12 @@ interface MobileOptimizedLayoutProps {
 export function MobileOptimizedLayout({ children, className }: MobileOptimizedLayoutProps) {
   return (
     <div className={cn(
-      "min-h-screen w-full bg-gradient-to-br from-background via-background to-background/95",
+      "min-h-screen w-full bg-background",
       "touch-manipulation",
       "supports-[height:100dvh]:min-h-[100dvh]",
-      // Performance optimizations
-      "will-change-auto",
-      "transform-gpu",
       className
     )}>
-      <div className="w-full min-h-screen">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

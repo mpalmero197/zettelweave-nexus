@@ -15,7 +15,7 @@ export function MobileHeader() {
   
   return (
     <header className="md:hidden sticky top-0 z-40 w-full bg-background/95 backdrop-blur-xl border-b border-border shadow-lg">
-      <div className="flex items-center justify-between px-4 py-3 mobile-safe-area">
+      <div className="flex items-center justify-between px-3 py-2 mobile-safe-area">
         <Sheet>
           <SheetTrigger asChild>
             <Button 
