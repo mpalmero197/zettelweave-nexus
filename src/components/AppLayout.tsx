@@ -11,6 +11,7 @@ import { SecurityNotice } from "./SecurityNotice";
 import { MobileDetector } from "./MobileDetector";
 import { MobileOptimizedLayout } from "./MobileOptimizedLayout";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
+import { SkipToMain } from "./SkipToMain";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
