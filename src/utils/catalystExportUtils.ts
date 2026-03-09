@@ -143,9 +143,13 @@ export const exportCatalystToEPUB = async (title: string, content: string, theme
   }
 };
 
-export const exportCatalystToKPF = async (title: string, content: string) => {
+export const exportCatalystToKPF = async (title: string, content: string, themeId: string = 'default') => {
   // KPF (Kindle Package Format) is essentially a structured ZIP with HTML
   // For simplicity, we'll create a basic MOBI-compatible HTML package
+  
+  let fontFamily = 'Georgia, serif';
+  if (themeId === 'modern') fontFamily = 'Arial, sans-serif';
+  if (themeId === 'technical') fontFamily = 'Courier New, monospace';
   
   const htmlContent = `
 <!DOCTYPE html>
@@ -154,7 +158,7 @@ export const exportCatalystToKPF = async (title: string, content: string) => {
     <meta charset="UTF-8">
     <title>${title}</title>
     <style>
-        body { font-family: Georgia, serif; line-height: 1.6; margin: 2em; }
+        body { font-family: ${fontFamily}; line-height: 1.6; margin: 2em; }
         h1 { font-size: 2em; margin-bottom: 0.5em; }
         h2 { font-size: 1.5em; margin-top: 1.5em; }
         h3 { font-size: 1.2em; margin-top: 1.2em; }

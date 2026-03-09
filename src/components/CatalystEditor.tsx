@@ -335,7 +335,7 @@ export function CatalystEditor({
         )}
 
         <Separator orientation="vertical" className="mx-1 h-6 hidden md:block" />
-        <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
+        <DocumentThemeSelector value={documentTheme} onChange={onThemeChange || (() => {})} />
       </div>
 
       {/* Find & Replace Panel */}

@@ -74,6 +74,8 @@ export function CatalystSplitEditor({
             onToggleFocusMode={onToggleFocusMode}
             isFullscreen={isFullscreen}
             onToggleFullscreen={onToggleFullscreen}
+            documentTheme={documentTheme}
+            onThemeChange={onThemeChange}
           />
         </ResizablePanel>
         <ResizableHandle withHandle />
