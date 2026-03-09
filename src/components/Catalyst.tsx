@@ -101,6 +101,7 @@ interface CatalystDocument {
   selected_source: string;
   selected_items: string[];
   word_count: number;
+  theme_id?: string;
   created_at: string;
   updated_at: string;
 }
