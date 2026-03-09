@@ -92,7 +92,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
 
       // STEP 2: Route to correct service based on intent
       if (intent === 'internal_search') {
-        console.log('Step 2: Executing internal search');
         const { data: aiSearchResult } = await supabase.functions.invoke('ai-search', {
           body: { 
             query,
