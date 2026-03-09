@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Pen, Square, Circle as CircleIcon, Type, StickyNote, Hand, 
   Trash2, Undo2, Star, Hexagon, Triangle as TriangleIcon, Eraser,
-  Download, RotateCcw, MoreHorizontal, Minus, Plus
+  Download, RotateCcw, MoreHorizontal, Minus, Plus, Highlighter, ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
