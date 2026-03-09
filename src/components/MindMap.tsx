@@ -1402,7 +1402,13 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
           <div className="h-5 w-px bg-border" />
 
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={exportAsJSON}>
-            <Download className="h-3 w-3 mr-1" />Export
+            <Download className="h-3 w-3 mr-1" />Export JSON
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleExportPNG}>
+            <ImageIcon className="h-3 w-3 mr-1" />Export PNG
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleClearMap}>
+            <Trash2 className="h-3 w-3 mr-1" />Clear
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleNewMap}>
             New

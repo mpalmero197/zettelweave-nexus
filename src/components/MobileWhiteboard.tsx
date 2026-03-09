@@ -415,13 +415,15 @@ export function MobileWhiteboard() {
               </Button>
             </PopoverTrigger>
             <PopoverContent side="top" className="w-auto p-2" align="center">
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-4 gap-1">
                 {([
                   ["rectangle", Square, "Rect"],
                   ["circle", CircleIcon, "Circle"],
                   ["triangle", TriangleIcon, "Tri"],
                   ["star", Star, "Star"],
                   ["polygon", Hexagon, "Hex"],
+                  ["line", Minus, "Line"],
+                  ["arrow", ArrowRight, "Arrow"],
                 ] as [MobileTool, any, string][]).map(([t, I, l]) => (
                   <Button key={t} variant="ghost" size="sm" className="h-10 w-10 rounded-lg p-0" onClick={() => addShapeToCenter(t)} aria-label={l}>
                     <I className="h-4 w-4" />

@@ -466,6 +466,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
           
           {/* Drawing */}
           <ToolBtn tool="pen" icon={Pen} label="Draw (P)" />
+          <ToolBtn tool="highlighter" icon={Highlighter} label="Highlighter" />
           <ToolBtn tool="eraser" icon={Eraser} label="Eraser (E)" />
           
           <Separator orientation="vertical" className="h-5 mx-1" />
