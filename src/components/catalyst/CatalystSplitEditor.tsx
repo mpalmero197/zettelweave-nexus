@@ -43,6 +43,8 @@ export function CatalystSplitEditor({
           onToggleFocusMode={onToggleFocusMode}
           isFullscreen={isFullscreen}
           onToggleFullscreen={onToggleFullscreen}
+          documentTheme={documentTheme}
+          onThemeChange={onThemeChange}
         />
         <Button
           variant="outline"
