@@ -51,10 +51,11 @@ export const exportCatalystToDOCX = async (title: string, content: string, theme
   const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
   
   let fontName = 'Arial';
-  if (themeId === 'classic') fontName = 'Times New Roman';
-  if (themeId === 'modern') fontName = 'Helvetica';
-  if (themeId === 'technical') fontName = 'Courier New';
-  if (themeId === 'creative') fontName = 'Georgia';
+  if (['classic', 'academic', 'newsletter'].includes(themeId)) fontName = 'Times New Roman';
+  if (['modern', 'resume'].includes(themeId)) fontName = 'Helvetica';
+  if (['technical', 'dark'].includes(themeId)) fontName = 'Courier New';
+  if (['creative', 'novel'].includes(themeId)) fontName = 'Georgia';
+  if (themeId === 'poster') fontName = 'Arial Black';
   
   const doc = new Document({
     sections: [{
