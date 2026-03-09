@@ -74,6 +74,7 @@ export const exportCatalystToDOCX = async (title: string, content: string, theme
               text: `Generated: ${new Date().toLocaleDateString()}`,
               size: 20,
               italics: true,
+              font: fontName,
             }),
           ],
         }),
