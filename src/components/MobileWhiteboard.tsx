@@ -23,7 +23,7 @@ const stickyColors = ["#FFF4A3", "#FFE4A3", "#FFD4A3", "#C4E4FF", "#D4F4DD", "#F
 const strokeSizes = [2, 5, 10];
 const strokeLabels = ["S", "M", "L"];
 
-type MobileTool = "pan" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "text" | "sticky";
+type MobileTool = "pan" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "text" | "sticky" | "highlighter" | "line" | "arrow";
 
 const HISTORY_LIMIT = 30;
 const TOOLBAR_HEIGHT = 130; // px reserved for toolbar
