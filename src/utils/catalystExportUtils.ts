@@ -8,7 +8,9 @@ export const exportCatalystToPDF = (title: string, content: string, themeId: str
   const margin = 20;
   const maxWidth = pageWidth - (margin * 2);
   
-  let fontName = themeId === 'classic' ? 'times' : themeId === 'technical' ? 'courier' : 'helvetica';
+  let fontName = ['classic', 'academic', 'newsletter'].includes(themeId) ? 'times' 
+    : ['technical', 'dark'].includes(themeId) ? 'courier' 
+    : 'helvetica';
   
   // Title
   doc.setFontSize(20);
