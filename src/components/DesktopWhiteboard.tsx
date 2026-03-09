@@ -9,7 +9,7 @@ import {
   MousePointer2, Pen, Eraser, Square, Circle as CircleIcon, Type, StickyNote,
   Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Trash2, Download, Palette,
   Grid3x3, Hand, Star, Hexagon, Triangle as TriangleIcon, Minus, ArrowRight,
-  Undo2, Redo2
+  Undo2, Redo2, Highlighter
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
