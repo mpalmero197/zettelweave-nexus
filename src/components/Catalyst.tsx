@@ -757,6 +757,7 @@ export function Catalyst() {
     setDocumentTitle('Untitled Document');
     setEditorContent('');
     setSelectedItems(new Set());
+    setDocumentTheme('default');
     setCurrentDocId(null);
     setWordCount(0);
     setSuggestions('');
