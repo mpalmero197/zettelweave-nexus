@@ -64,6 +64,7 @@ export const exportCatalystToDOCX = async (title: string, content: string, theme
               text: title,
               bold: true,
               size: 32,
+              font: fontName,
             }),
           ],
         }),
