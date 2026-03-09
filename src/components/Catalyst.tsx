@@ -148,6 +148,7 @@ export function Catalyst() {
   const [showCollabDialog, setShowCollabDialog] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [catalystMode, setCatalystMode] = useState<'writer' | 'resume'>('writer');
+  const [documentTheme, setDocumentTheme] = useState('default');
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
