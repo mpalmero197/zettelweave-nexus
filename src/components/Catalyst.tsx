@@ -1798,8 +1798,11 @@ const DOCUMENT_TEMPLATES = [
                     </div>
                     <CardTitle className="text-base">{template.title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0 text-sm text-muted-foreground flex-1">
-                    {template.description}
+                  <CardContent className="p-4 pt-0 flex-1 flex flex-col">
+                    <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                    {template.content && (
+                      <div className="mt-auto p-2 bg-muted/50 rounded text-[10px] text-muted-foreground line-clamp-3 overflow-hidden" dangerouslySetInnerHTML={{ __html: template.content.replace(/<[^>]*>?/gm, ' ') }} />
+                    )}
                   </CardContent>
                 </Card>
               ))}
