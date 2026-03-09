@@ -184,11 +184,11 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    canvas.isDrawingMode = activeTool === "pen";
+    canvas.isDrawingMode = activeTool === "pen" || activeTool === "highlighter";
     
-    if (activeTool === "pen" && canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = penColor;
-      canvas.freeDrawingBrush.width = penSize;
+    if ((activeTool === "pen" || activeTool === "highlighter") && canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeTool === "highlighter" ? `${penColor}66` : penColor;
+      canvas.freeDrawingBrush.width = activeTool === "highlighter" ? penSize * 3 : penSize;
     }
 
     // Eraser click-to-delete
