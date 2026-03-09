@@ -142,12 +142,12 @@ export function MobileWhiteboard() {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    canvas.isDrawingMode = activeTool === "pen";
+    canvas.isDrawingMode = activeTool === "pen" || activeTool === "highlighter";
     canvas.selection = activeTool === "pan" || activeTool === "eraser" ? false : true;
 
-    if (activeTool === "pen" && canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = penColor;
-      canvas.freeDrawingBrush.width = strokeSizes[strokeIndex];
+    if ((activeTool === "pen" || activeTool === "highlighter") && canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeTool === "highlighter" ? `${penColor}66` : penColor;
+      canvas.freeDrawingBrush.width = activeTool === "highlighter" ? strokeSizes[strokeIndex] * 3 : strokeSizes[strokeIndex];
     }
 
     const handleEraserClick = (e: any) => {
