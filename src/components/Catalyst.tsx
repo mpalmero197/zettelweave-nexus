@@ -626,16 +626,16 @@ export function Catalyst() {
     try {
       switch (format) {
         case 'pdf':
-          exportCatalystToPDF(documentTitle, editorContent);
+          exportCatalystToPDF(documentTitle, editorContent, documentTheme);
           break;
         case 'docx':
-          await exportCatalystToDOCX(documentTitle, editorContent);
+          await exportCatalystToDOCX(documentTitle, editorContent, documentTheme);
           break;
         case 'epub':
-          await exportCatalystToEPUB(documentTitle, editorContent);
+          await exportCatalystToEPUB(documentTitle, editorContent, documentTheme);
           break;
         case 'kpf':
-          await exportCatalystToKPF(documentTitle, editorContent);
+          await exportCatalystToKPF(documentTitle, editorContent, documentTheme);
           break;
       }
       toast({
