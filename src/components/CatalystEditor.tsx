@@ -87,7 +87,7 @@ export function CatalystEditor({
     },
     editorProps: {
       attributes: {
-        class: `catalyst-word-view max-w-none focus:outline-none ${
+        class: `catalyst-word-view ${getThemeClass(documentTheme)} max-w-none focus:outline-none ${
           isFullscreen ? 'min-h-screen' : 'min-h-[600px]'
         } ${focusMode ? 'catalyst-focus-mode' : ''}`,
       },
