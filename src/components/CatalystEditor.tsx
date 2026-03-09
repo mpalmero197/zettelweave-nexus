@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Separator } from '@/components/ui/separator';
 import { CatalystFindReplace } from '@/components/catalyst/CatalystFindReplace';
+import { DocumentThemeSelector } from '@/components/DocumentThemeSelector';
+import { getThemeClass } from '@/utils/documentThemes';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Bold,
