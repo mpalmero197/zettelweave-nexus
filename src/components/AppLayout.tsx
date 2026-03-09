@@ -196,7 +196,9 @@ export function AppLayout() {
           </header>
 
           {/* Page Content */}
-          <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
+          <main id="main-content" className="flex-1">
+            <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
+          </main>
 
           <MobileNavigation isAdmin={isAdmin} activeTab={activeTab} onTabChange={handleTabChange} />
         </MobileOptimizedLayout>
