@@ -151,8 +151,8 @@ export const exportCatalystToKPF = async (title: string, content: string, themeI
   // For simplicity, we'll create a basic MOBI-compatible HTML package
   
   let fontFamily = 'Georgia, serif';
-  if (themeId === 'modern') fontFamily = 'Arial, sans-serif';
-  if (themeId === 'technical') fontFamily = 'Courier New, monospace';
+  if (['modern', 'resume', 'business'].includes(themeId)) fontFamily = 'Arial, sans-serif';
+  if (['technical', 'dark'].includes(themeId)) fontFamily = 'Courier New, monospace';
   
   const htmlContent = `
 <!DOCTYPE html>
