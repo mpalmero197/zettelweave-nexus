@@ -684,6 +684,7 @@ export function Catalyst() {
         setEditorContent(data.content || '');
         setSelectedSource(data.selected_source || 'cards');
         setSelectedItems(new Set(data.selected_items || []));
+        setDocumentTheme(data.theme_id || 'default');
         setCurrentDocId(null);
         toast({ title: 'Loaded!', description: 'Document loaded from file.' });
       } catch (error) {
