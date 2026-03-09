@@ -714,19 +714,20 @@ export function ResumeOptimizer() {
                       <button
                         onClick={() => setResultView('preview')}
                         className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                        resultView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Eye className="h-3.5 w-3.5 inline mr-1" />Preview
-                    </button>
-                    <button
-                      onClick={() => setResultView('raw')}
-                      className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                        resultView === 'raw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <FileText className="h-3.5 w-3.5 inline mr-1" />Raw
-                    </button>
+                          resultView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Eye className="h-3.5 w-3.5 inline mr-1" />Preview
+                      </button>
+                      <button
+                        onClick={() => setResultView('raw')}
+                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                          resultView === 'raw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <FileText className="h-3.5 w-3.5 inline mr-1" />Raw
+                      </button>
+                    </div>
                   </div>
                 </div>
 
