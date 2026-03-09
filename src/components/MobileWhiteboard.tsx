@@ -387,6 +387,7 @@ export function MobileWhiteboard() {
           {([
             ["pan", Hand, "Move"],
             ["pen", Pen, "Draw"],
+            ["highlighter", Highlighter, "Highlight"],
             ["eraser", Eraser, "Erase"],
             ["text", Type, "Text"],
             ["sticky", StickyNote, "Note"],
