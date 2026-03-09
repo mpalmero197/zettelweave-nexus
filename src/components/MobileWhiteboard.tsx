@@ -338,7 +338,7 @@ export function MobileWhiteboard() {
     }
   };
 
-  const isDrawTool = ["pen", "rectangle", "circle", "text", "triangle", "star", "polygon"].includes(activeTool);
+  const isDrawTool = ["pen", "highlighter", "rectangle", "circle", "text", "triangle", "star", "polygon", "line", "arrow"].includes(activeTool);
 
   return (
     <div className="h-full w-full flex flex-col bg-[#FAFAF8] relative">
