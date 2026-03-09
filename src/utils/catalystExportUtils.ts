@@ -2,24 +2,30 @@ import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import Epub from 'epub-gen-memory';
 
-export const exportCatalystToPDF = (title: string, content: string) => {
+export const exportCatalystToPDF = (title: string, content: string, themeId: string = 'default') => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const maxWidth = pageWidth - (margin * 2);
   
+  let fontName = themeId === 'classic' ? 'times' : themeId === 'technical' ? 'courier' : 'helvetica';
+  
   // Title
   doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(fontName, 'bold');
+  if (themeId === 'modern') doc.setTextColor(20, 100, 200); 
   doc.text(title, margin, 20);
   
   // Date
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(fontName, 'italic');
+  doc.setTextColor(100, 100, 100);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, 30);
   
   // Content - strip HTML tags for PDF
+  doc.setTextColor(0, 0, 0);
   doc.setFontSize(12);
+  doc.setFont(fontName, 'normal');
   const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
   const lines = doc.splitTextToSize(plainText, maxWidth);
   let y = 40;
