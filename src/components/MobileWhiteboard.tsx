@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, Textbox, PencilBrush, Group, Shadow, Triangle, Polygon } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Textbox, PencilBrush, Group, Shadow, Triangle, Polygon, Line } from "fabric";
 import { Button } from "@/components/ui/button";
 import { 
   Pen, Square, Circle as CircleIcon, Type, StickyNote, Hand, 
   Trash2, Undo2, Star, Hexagon, Triangle as TriangleIcon, Eraser,
-  Download, RotateCcw, MoreHorizontal, Minus, Plus
+  Download, RotateCcw, MoreHorizontal, Minus, Plus, Highlighter, ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ const stickyColors = ["#FFF4A3", "#FFE4A3", "#FFD4A3", "#C4E4FF", "#D4F4DD", "#F
 const strokeSizes = [2, 5, 10];
 const strokeLabels = ["S", "M", "L"];
 
-type MobileTool = "pan" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "text" | "sticky";
+type MobileTool = "pan" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "text" | "sticky" | "highlighter" | "line" | "arrow";
 
 const HISTORY_LIMIT = 30;
 const TOOLBAR_HEIGHT = 130; // px reserved for toolbar
@@ -142,12 +142,12 @@ export function MobileWhiteboard() {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    canvas.isDrawingMode = activeTool === "pen";
+    canvas.isDrawingMode = activeTool === "pen" || activeTool === "highlighter";
     canvas.selection = activeTool === "pan" || activeTool === "eraser" ? false : true;
 
-    if (activeTool === "pen" && canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = penColor;
-      canvas.freeDrawingBrush.width = strokeSizes[strokeIndex];
+    if ((activeTool === "pen" || activeTool === "highlighter") && canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeTool === "highlighter" ? `${penColor}66` : penColor;
+      canvas.freeDrawingBrush.width = activeTool === "highlighter" ? strokeSizes[strokeIndex] * 3 : strokeSizes[strokeIndex];
     }
 
     const handleEraserClick = (e: any) => {
@@ -292,6 +292,14 @@ export function MobileWhiteboard() {
       for (let i = 0; i < 6; i++) { const a = (i * 2 * Math.PI) / 6 - Math.PI / 2; pts.push({ x: 50 * Math.cos(a), y: 50 * Math.sin(a) }); }
       const hex = new Polygon(pts, { left: cx - 50, top: cy - 50, fill: "transparent", stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
       canvas.add(hex); canvas.setActiveObject(hex);
+    } else if (tool === "line") {
+      const line = new Line([0, 0, 100, 0], { left: cx - 50, top: cy, stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
+      canvas.add(line); canvas.setActiveObject(line);
+    } else if (tool === "arrow") {
+      const arrowLine = new Line([0, 0, 80, 0], { stroke: penColor, strokeWidth: strokeSizes[strokeIndex] });
+      const arrowHead = new Triangle({ left: 80, top: -strokeSizes[strokeIndex]*1.5, width: 12, height: 12, fill: penColor, angle: 90 });
+      const arrow = new Group([arrowLine, arrowHead], { left: cx - 50, top: cy });
+      canvas.add(arrow); canvas.setActiveObject(arrow);
     }
     canvas.renderAll();
   };
@@ -330,7 +338,7 @@ export function MobileWhiteboard() {
     }
   };
 
-  const isDrawTool = ["pen", "rectangle", "circle", "text", "triangle", "star", "polygon"].includes(activeTool);
+  const isDrawTool = ["pen", "highlighter", "rectangle", "circle", "text", "triangle", "star", "polygon", "line", "arrow"].includes(activeTool);
 
   return (
     <div className="h-full w-full flex flex-col bg-[#FAFAF8] relative">
@@ -379,6 +387,7 @@ export function MobileWhiteboard() {
           {([
             ["pan", Hand, "Move"],
             ["pen", Pen, "Draw"],
+            ["highlighter", Highlighter, "Highlight"],
             ["eraser", Eraser, "Erase"],
             ["text", Type, "Text"],
             ["sticky", StickyNote, "Note"],
@@ -406,13 +415,15 @@ export function MobileWhiteboard() {
               </Button>
             </PopoverTrigger>
             <PopoverContent side="top" className="w-auto p-2" align="center">
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-4 gap-1">
                 {([
                   ["rectangle", Square, "Rect"],
                   ["circle", CircleIcon, "Circle"],
                   ["triangle", TriangleIcon, "Tri"],
                   ["star", Star, "Star"],
                   ["polygon", Hexagon, "Hex"],
+                  ["line", Minus, "Line"],
+                  ["arrow", ArrowRight, "Arrow"],
                 ] as [MobileTool, any, string][]).map(([t, I, l]) => (
                   <Button key={t} variant="ghost" size="sm" className="h-10 w-10 rounded-lg p-0" onClick={() => addShapeToCenter(t)} aria-label={l}>
                     <I className="h-4 w-4" />

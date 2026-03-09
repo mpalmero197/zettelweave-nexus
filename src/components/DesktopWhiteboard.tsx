@@ -9,7 +9,7 @@ import {
   MousePointer2, Pen, Eraser, Square, Circle as CircleIcon, Type, StickyNote,
   Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Trash2, Download, Palette,
   Grid3x3, Hand, Star, Hexagon, Triangle as TriangleIcon, Minus, ArrowRight,
-  Undo2, Redo2
+  Undo2, Redo2, Highlighter
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ interface DesktopWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan";
+type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "highlighter";
 
 const penColors = [
   { name: "Black", value: "#1a1a1a" },
@@ -184,11 +184,11 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    canvas.isDrawingMode = activeTool === "pen";
+    canvas.isDrawingMode = activeTool === "pen" || activeTool === "highlighter";
     
-    if (activeTool === "pen" && canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = penColor;
-      canvas.freeDrawingBrush.width = penSize;
+    if ((activeTool === "pen" || activeTool === "highlighter") && canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeTool === "highlighter" ? `${penColor}66` : penColor;
+      canvas.freeDrawingBrush.width = activeTool === "highlighter" ? penSize * 3 : penSize;
     }
 
     // Eraser click-to-delete
@@ -466,6 +466,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
           
           {/* Drawing */}
           <ToolBtn tool="pen" icon={Pen} label="Draw (P)" />
+          <ToolBtn tool="highlighter" icon={Highlighter} label="Highlighter" />
           <ToolBtn tool="eraser" icon={Eraser} label="Eraser (E)" />
           
           <Separator orientation="vertical" className="h-5 mx-1" />

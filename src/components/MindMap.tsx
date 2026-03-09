@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import html2canvas from 'html2canvas';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import {
   Undo2, Redo2, Palette, RotateCcw, GitBranch, Search, X, ChevronUp,
   ChevronRight, Copy, Edit3, Star, AlertCircle, Smile, StickyNote,
   Map, Layout, Network, Building2, Sparkles, Loader2, Save, FolderOpen,
-  FileText, Link2, CreditCard, ExternalLink, MoreHorizontal
+  FileText, Link2, CreditCard, ExternalLink, MoreHorizontal, Image as ImageIcon
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -467,6 +468,36 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
     setEditingId(null);
     toast.success('New mind map created');
   }, [data, pushHistory, layoutMode]);
+
+  const handleClearMap = useCallback(() => {
+    if (!confirm("Are you sure you want to clear the entire mind map? This cannot be undone.")) return;
+    pushHistory(data);
+    const fresh = layoutTree(createDefaultMap(), layoutMode);
+    setData(fresh);
+    setCurrentMapId(null);
+    setCurrentMapTitle('');
+    setIsDirty(false);
+    setSelectedId(null);
+    setEditingId(null);
+    toast.success('Mind map cleared');
+  }, [data, pushHistory, layoutMode]);
+
+  const handleExportPNG = async () => {
+    if (!canvasRef.current) return;
+    try {
+      const canvas = await html2canvas(canvasRef.current, { backgroundColor: null });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `mindmap-${Date.now()}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Mind map exported as PNG');
+    } catch (err) {
+      toast.error('Failed to export image');
+    }
+  };
 
   const handleApplyTemplate = useCallback((templateData: any) => {
     pushHistory(data);
@@ -1371,7 +1402,13 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
           <div className="h-5 w-px bg-border" />
 
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={exportAsJSON}>
-            <Download className="h-3 w-3 mr-1" />Export
+            <Download className="h-3 w-3 mr-1" />Export JSON
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleExportPNG}>
+            <ImageIcon className="h-3 w-3 mr-1" />Export PNG
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleClearMap}>
+            <Trash2 className="h-3 w-3 mr-1" />Clear
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleNewMap}>
             New
