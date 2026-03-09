@@ -58,6 +58,7 @@ export function CatalystEditor({
   onToggleFullscreen,
 }: CatalystEditorProps) {
   const [showFindReplace, setShowFindReplace] = useState(false);
+  const [documentTheme, setDocumentTheme] = useState('default');
   const editorRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
