@@ -155,7 +155,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         }
       }
       else if (intent === 'multimedia_search') {
-        console.log('Step 2: Searching for multimedia');
         // Use web-search but filter for multimedia content
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
           body: { query }

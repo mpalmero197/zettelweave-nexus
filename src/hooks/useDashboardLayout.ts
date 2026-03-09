@@ -206,7 +206,6 @@ export function useDashboardLayout() {
         throw error;
       }
 
-      console.log('Dashboard layout saved successfully');
       // Silent auto-save - no toast notification
       
       // Verify the save by reloading
