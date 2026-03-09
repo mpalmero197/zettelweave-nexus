@@ -110,9 +110,9 @@ export const exportCatalystToDOCX = async (title: string, content: string, theme
 
 export const exportCatalystToEPUB = async (title: string, content: string, themeId: string = 'default') => {
   let fontFamily = 'sans-serif';
-  if (themeId === 'classic') fontFamily = 'serif';
-  if (themeId === 'technical') fontFamily = 'monospace';
-  if (themeId === 'creative') fontFamily = '"Georgia", serif';
+  if (['classic', 'academic', 'novel'].includes(themeId)) fontFamily = 'serif';
+  if (['technical', 'dark'].includes(themeId)) fontFamily = 'monospace';
+  if (['creative', 'newsletter'].includes(themeId)) fontFamily = '"Georgia", serif';
 
   const contentHtml = `<div style="font-family: ${fontFamily};"><h1>${title}</h1><p><em>Generated: ${new Date().toLocaleDateString()}</em></p>${content}</div>`;
   
