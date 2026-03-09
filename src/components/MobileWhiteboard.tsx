@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, Circle, Rect, Textbox, PencilBrush, Group, Shadow, Triangle, Polygon } from "fabric";
+import { Canvas as FabricCanvas, Circle, Rect, Textbox, PencilBrush, Group, Shadow, Triangle, Polygon, Line } from "fabric";
 import { Button } from "@/components/ui/button";
 import { 
   Pen, Square, Circle as CircleIcon, Type, StickyNote, Hand, 
