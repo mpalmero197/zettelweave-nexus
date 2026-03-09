@@ -120,7 +120,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         }
       } 
       else if (intent === 'web_search') {
-        console.log('Step 2: Executing live web search with contextual insights');
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
           body: { query, includeContext: true }
         });
