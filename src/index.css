@@ -446,6 +446,101 @@
   --doc-border: hsl(150, 40%, 80%);
   --doc-border-dark: hsl(150, 40%, 25%);
 }
+
+.catalyst-theme-academic {
+  --doc-font: 'Times New Roman', serif;
+  --doc-heading: hsl(0, 0%, 10%);
+  --doc-heading-dark: hsl(0, 0%, 95%);
+  --doc-bg: hsl(0, 0%, 100%);
+  --doc-bg-dark: hsl(220, 16%, 14%);
+  --doc-text: hsl(0, 0%, 15%);
+  --doc-text-dark: hsl(0, 0%, 90%);
+  --doc-border: hsl(0, 0%, 80%);
+  --doc-border-dark: hsl(0, 0%, 30%);
+}
+.catalyst-theme-academic .ProseMirror p { line-height: 2; text-indent: 0.5in; margin-bottom: 0; }
+.catalyst-theme-academic .ProseMirror h1 { text-align: center; }
+
+.catalyst-theme-poster {
+  --doc-font: 'Impact', 'Arial Black', sans-serif;
+  --doc-heading: hsl(12, 90%, 55%);
+  --doc-heading-dark: hsl(12, 90%, 65%);
+  --doc-bg: hsl(50, 100%, 95%);
+  --doc-bg-dark: hsl(50, 20%, 15%);
+  --doc-text: hsl(0, 0%, 10%);
+  --doc-text-dark: hsl(0, 0%, 95%);
+  --doc-border: hsl(12, 90%, 55%);
+  --doc-border-dark: hsl(12, 90%, 65%);
+}
+.catalyst-theme-poster .ProseMirror h1 { font-size: 4em; text-transform: uppercase; letter-spacing: -2px; }
+
+.catalyst-theme-newsletter {
+  --doc-font: 'Georgia', serif;
+  --doc-heading: hsl(200, 80%, 30%);
+  --doc-heading-dark: hsl(200, 80%, 70%);
+  --doc-bg: hsl(0, 0%, 98%);
+  --doc-bg-dark: hsl(210, 15%, 15%);
+  --doc-text: hsl(210, 10%, 20%);
+  --doc-text-dark: hsl(210, 10%, 85%);
+  --doc-border: hsl(200, 40%, 80%);
+  --doc-border-dark: hsl(200, 40%, 30%);
+}
+.catalyst-theme-newsletter .ProseMirror { column-count: 2; column-gap: 2rem; }
+.catalyst-theme-newsletter .ProseMirror h1 { column-span: all; font-size: 2.5em; text-align: center; border-bottom: 2px solid var(--doc-heading); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+
+.catalyst-theme-resume {
+  --doc-font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --doc-heading: hsl(220, 15%, 30%);
+  --doc-heading-dark: hsl(220, 15%, 80%);
+  --doc-bg: hsl(0, 0%, 100%);
+  --doc-bg-dark: hsl(220, 10%, 12%);
+  --doc-text: hsl(0, 0%, 25%);
+  --doc-text-dark: hsl(0, 0%, 85%);
+  --doc-border: hsl(220, 15%, 80%);
+  --doc-border-dark: hsl(220, 15%, 30%);
+}
+.catalyst-theme-resume .ProseMirror h1 { font-size: 2.5em; margin-bottom: 0.2em; font-weight: 300; letter-spacing: 1px; }
+.catalyst-theme-resume .ProseMirror h2 { text-transform: uppercase; letter-spacing: 2px; font-size: 1.1em; border-bottom: 1px solid var(--doc-border); padding-bottom: 0.2em; }
+.catalyst-theme-resume .ProseMirror p { margin-bottom: 0.5em; }
+
+.catalyst-theme-business {
+  --doc-font: 'Arial', sans-serif;
+  --doc-heading: hsl(210, 100%, 30%);
+  --doc-heading-dark: hsl(210, 100%, 70%);
+  --doc-bg: hsl(0, 0%, 100%);
+  --doc-bg-dark: hsl(0, 0%, 14%);
+  --doc-text: hsl(0, 0%, 20%);
+  --doc-text-dark: hsl(0, 0%, 90%);
+  --doc-border: hsl(210, 30%, 80%);
+  --doc-border-dark: hsl(210, 30%, 30%);
+}
+.catalyst-theme-business .ProseMirror h1 { border-left: 6px solid var(--doc-heading); padding-left: 1rem; color: var(--doc-heading); }
+
+.catalyst-theme-novel {
+  --doc-font: 'Palatino', 'Book Antiqua', serif;
+  --doc-heading: hsl(0, 0%, 10%);
+  --doc-heading-dark: hsl(0, 0%, 90%);
+  --doc-bg: hsl(45, 40%, 96%);
+  --doc-bg-dark: hsl(30, 10%, 12%);
+  --doc-text: hsl(0, 0%, 15%);
+  --doc-text-dark: hsl(0, 0%, 85%);
+  --doc-border: hsl(0, 0%, 80%);
+  --doc-border-dark: hsl(0, 0%, 30%);
+}
+.catalyst-theme-novel .ProseMirror p { text-indent: 1.5em; margin-bottom: 0; line-height: 1.8; }
+.catalyst-theme-novel .ProseMirror h1, .catalyst-theme-novel .ProseMirror h2 { text-align: center; font-weight: normal; margin-top: 2em; margin-bottom: 1.5em; }
+
+.catalyst-theme-dark {
+  --doc-font: 'Courier New', Courier, monospace;
+  --doc-heading: hsl(120, 100%, 70%);
+  --doc-heading-dark: hsl(120, 100%, 70%);
+  --doc-bg: hsl(0, 0%, 5%);
+  --doc-bg-dark: hsl(0, 0%, 5%);
+  --doc-text: hsl(120, 100%, 70%);
+  --doc-text-dark: hsl(120, 100%, 70%);
+  --doc-border: hsl(120, 100%, 20%);
+  --doc-border-dark: hsl(120, 100%, 20%);
+}
 .catalyst-theme-academic {
   --doc-font: 'Times New Roman', serif;
   --doc-heading: hsl(0, 0%, 10%);
