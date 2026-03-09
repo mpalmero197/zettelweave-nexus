@@ -706,10 +706,14 @@ export function ResumeOptimizer() {
               <div className="lg:col-span-2 space-y-2 order-1 lg:order-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium text-foreground">Optimized Resume</Label>
-                  <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
-                    <button
-                      onClick={() => setResultView('preview')}
-                      className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                  <div className="flex items-center gap-4">
+                    {resultView === 'preview' && (
+                      <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
+                    )}
+                    <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
+                      <button
+                        onClick={() => setResultView('preview')}
+                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
                         resultView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
