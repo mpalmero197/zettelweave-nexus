@@ -172,7 +172,6 @@ export function useDashboardLayout() {
         }
       } else {
         // No saved layout found, use defaults
-        console.log('No saved layout found, using defaults');
         setWidgets(DEFAULT_WIDGETS);
       }
     } catch (error) {
