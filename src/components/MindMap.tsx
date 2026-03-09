@@ -9,7 +9,7 @@ import {
   Undo2, Redo2, Palette, RotateCcw, GitBranch, Search, X, ChevronUp,
   ChevronRight, Copy, Edit3, Star, AlertCircle, Smile, StickyNote,
   Map, Layout, Network, Building2, Sparkles, Loader2, Save, FolderOpen,
-  FileText, Link2, CreditCard, ExternalLink, MoreHorizontal
+  FileText, Link2, CreditCard, ExternalLink, MoreHorizontal, Image as ImageIcon
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
