@@ -1775,6 +1775,39 @@ const DOCUMENT_TEMPLATES = [
         onImport={handleImport}
       />
 
+      {/* Template Selection Dialog */}
+      <Dialog open={showNewTemplateDialog} onOpenChange={setShowNewTemplateDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Choose a Template</DialogTitle>
+            <DialogDescription>
+              Start with a pre-formatted structure to jumpstart your writing.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 py-4">
+              {DOCUMENT_TEMPLATES.map((template) => (
+                <Card 
+                  key={template.id} 
+                  className="cursor-pointer hover:border-primary transition-colors flex flex-col h-full"
+                  onClick={() => createNewDocument(template)}
+                >
+                  <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2 space-y-0">
+                    <div className="bg-primary/10 p-2 rounded-md text-primary">
+                      {template.icon}
+                    </div>
+                    <CardTitle className="text-base">{template.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 text-sm text-muted-foreground flex-1">
+                    {template.description}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
       {/* Collaborators Dialog */}
       <CatalystCollaborators
         documentId={currentDocId}
