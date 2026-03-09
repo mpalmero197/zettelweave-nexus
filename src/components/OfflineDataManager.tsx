@@ -64,8 +64,6 @@ export const OfflineDataManager = () => {
             setCacheData('notebook', notebook.id, notebook);
           });
         }
-
-        console.log('Essential data pre-loaded for offline use');
       } catch (error) {
         console.error('Error pre-loading data:', error);
       }

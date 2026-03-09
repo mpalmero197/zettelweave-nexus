@@ -69,7 +69,7 @@ const getDefinition = async (word: string, cards: any[] = []): Promise<WordDefin
       }
     }
   } catch (error) {
-    console.log('Dictionary API error:', error);
+    console.error('Dictionary API error:', error);
   }
 
   // Fallback to local definitions

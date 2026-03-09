@@ -163,7 +163,6 @@ export function useDashboardLayout() {
       if (data && data.layout_data) {
         try {
           const layoutData = data.layout_data as unknown as DashboardWidget[];
-          console.log('Loading dashboard layout:', layoutData);
           setWidgets(layoutData);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
@@ -173,7 +172,6 @@ export function useDashboardLayout() {
         }
       } else {
         // No saved layout found, use defaults
-        console.log('No saved layout found, using defaults');
         setWidgets(DEFAULT_WIDGETS);
       }
     } catch (error) {
@@ -188,7 +186,6 @@ export function useDashboardLayout() {
     if (!user || isSaving) return;
 
     setIsSaving(true);
-    console.log('Saving dashboard layout:', newWidgets.length, 'widgets');
     
     try {
       // First update local state immediately for responsiveness
@@ -209,7 +206,6 @@ export function useDashboardLayout() {
         throw error;
       }
 
-      console.log('Dashboard layout saved successfully');
       // Silent auto-save - no toast notification
       
       // Verify the save by reloading

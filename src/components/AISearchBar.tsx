@@ -67,14 +67,12 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
       }
 
       // STEP 1: Classify intent first (CRITICAL to prevent hallucination)
-      console.log('Step 1: Classifying intent for:', query);
       const { data: intentData } = await supabase.functions.invoke('classify-intent', {
         body: { query }
       });
 
       const intent = intentData?.intent || 'internal_search';
       const confidence = intentData?.confidence || 0.5;
-      console.log('Intent classified:', intent, 'confidence:', confidence);
 
       let finalCards: ZettelCard[] = [];
       let finalNotes: any[] = [];
@@ -94,7 +92,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
 
       // STEP 2: Route to correct service based on intent
       if (intent === 'internal_search') {
-        console.log('Step 2: Executing internal search');
         const { data: aiSearchResult } = await supabase.functions.invoke('ai-search', {
           body: { 
             query,
@@ -123,7 +120,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         }
       } 
       else if (intent === 'web_search') {
-        console.log('Step 2: Executing live web search with contextual insights');
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
           body: { query, includeContext: true }
         });
@@ -146,7 +142,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         }
       }
       else if (intent === 'image_generation') {
-        console.log('Step 2: Generating image');
         const { data: imageResult } = await supabase.functions.invoke('generate-image', {
           body: { prompt: query }
         });
@@ -160,7 +155,6 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         }
       }
       else if (intent === 'multimedia_search') {
-        console.log('Step 2: Searching for multimedia');
         // Use web-search but filter for multimedia content
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
           body: { query }
