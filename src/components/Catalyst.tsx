@@ -369,6 +369,7 @@ export function Catalyst() {
         selected_source: selectedSource,
         selected_items: Array.from(selectedItems),
         word_count: wordCount,
+        theme_id: documentTheme,
       };
 
       if (currentDocId) {
