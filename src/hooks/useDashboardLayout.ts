@@ -163,7 +163,6 @@ export function useDashboardLayout() {
       if (data && data.layout_data) {
         try {
           const layoutData = data.layout_data as unknown as DashboardWidget[];
-          console.log('Loading dashboard layout:', layoutData);
           setWidgets(layoutData);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
