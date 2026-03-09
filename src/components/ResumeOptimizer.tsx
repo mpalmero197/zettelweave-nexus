@@ -41,7 +41,34 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'Classic corporate format for business roles',
     sections: ['Professional Summary', 'Experience', 'Education', 'Skills', 'Certifications'],
     tone: 'formal and professional',
-    example: `PROFESSIONAL SUMMARY\nResults-driven professional with X+ years...\n\nEXPERIENCE\nJob Title — Company\nMonth Year – Present\n- Achievement with quantified impact\n- Led cross-functional team of X members\n\nEDUCATION\nDegree — University, Year\n\nSKILLS\nSkill 1 • Skill 2 • Skill 3`,
+    example: `ALEXANDER WRIGHT
+San Francisco, CA | (555) 123-4567 | alexander.wright@email.com | linkedin.com/in/alexwright
+
+PROFESSIONAL SUMMARY
+Results-driven Operations Manager with 8+ years of experience optimizing supply chain workflows and reducing operational costs. Proven track record of leading cross-functional teams of 20+ members to streamline processes, improving overall efficiency by 25%. Adept at strategic planning, vendor negotiation, and implementing data-driven solutions to achieve business objectives.
+
+EXPERIENCE
+Operations Manager — Nexus Logistics, San Francisco, CA
+March 2019 – Present
+- Spearheaded the redesign of the inventory management system, reducing stock discrepancies by 40% and saving $1.2M annually.
+- Led a team of 25 logistics specialists, achieving a 98% on-time delivery rate over 4 consecutive quarters.
+- Negotiated new vendor contracts that decreased procurement costs by 15% without compromising quality.
+
+Operations Coordinator — Horizon Supply Co., Seattle, WA
+June 2015 – February 2019
+- Managed daily warehouse operations and coordinated shipments for over 500 orders per week.
+- Implemented a new QA process that reduced return rates by 12% in the first year.
+- Trained and onboarded 15 new employees on safety protocols and inventory software.
+
+EDUCATION
+Bachelor of Science in Business Administration — University of Washington, Seattle, WA (2015)
+
+SKILLS
+Strategic Planning • Process Optimization • Vendor Management • Team Leadership • Data Analysis • ERP Software (SAP, Oracle)
+
+CERTIFICATIONS
+Lean Six Sigma Green Belt (2020)
+Certified Supply Chain Professional (CSCP) (2018)`,
   },
   {
     id: 'tech',
@@ -50,7 +77,37 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'Optimized for software, data, and engineering roles',
     sections: ['Summary', 'Technical Skills', 'Experience', 'Projects', 'Education'],
     tone: 'technically precise and impact-focused',
-    example: `SUMMARY\nFull-stack engineer with X years building scalable systems...\n\nTECHNICAL SKILLS\nLanguages: Python, TypeScript, Go\nFrameworks: React, Node.js, Django\nCloud: AWS, GCP, Docker, K8s\n\nEXPERIENCE\nSoftware Engineer — Company\n- Reduced API latency by 40% through caching redesign\n- Built CI/CD pipeline serving 2M+ requests/day\n\nPROJECTS\nProject Name — Tech stack\n- Description with measurable outcome`,
+    example: `SARAH CHEN
+Software Engineer
+New York, NY | (555) 987-6543 | sarah.chen@email.com | github.com/schen-dev
+
+SUMMARY
+Full-stack engineer with 5 years of experience building scalable, high-availability web applications. Expert in React, Node.js, and cloud infrastructure, with a strong focus on performance optimization and writing clean, maintainable code. Successfully led migration projects and mentored junior developers.
+
+TECHNICAL SKILLS
+Languages: JavaScript, TypeScript, Python, SQL, HTML/CSS
+Frameworks: React.js, Node.js, Express, Next.js, Django
+Cloud & DevOps: AWS (EC2, S3, Lambda), Docker, Kubernetes, CI/CD, Git
+Databases: PostgreSQL, MongoDB, Redis, Elasticsearch
+
+EXPERIENCE
+Senior Software Engineer — TechFlow Solutions
+August 2021 – Present
+- Architected and deployed a microservices-based backend using Node.js and Docker, reducing API latency by 40% and supporting a 3x increase in user traffic.
+- Built a real-time analytics dashboard in React, adopted by 50+ enterprise clients for tracking usage metrics.
+- Mentored 3 junior developers through weekly pair programming and code reviews, accelerating their onboarding by 30%.
+
+Software Engineer — DataSphere Inc.
+June 2018 – July 2021
+- Developed RESTful APIs for the core product suite, handling over 2M requests per day with 99.99% uptime.
+- Optimized database queries in PostgreSQL, reducing average load times for the reporting module from 5s to 1.2s.
+
+PROJECTS
+E-Commerce Platform (Personal Project) — React, Node.js, Stripe API
+- Built a fully functional e-commerce site supporting user authentication, shopping cart, and secure payment processing.
+
+EDUCATION
+B.S. in Computer Science — New York University (2018)`,
   },
   {
     id: 'creative',
@@ -59,7 +116,36 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'For designers, writers, and creative professionals',
     sections: ['Creative Profile', 'Selected Work', 'Experience', 'Tools & Skills', 'Education'],
     tone: 'expressive yet polished, showcasing creative vision',
-    example: `CREATIVE PROFILE\nMulti-disciplinary designer blending brand strategy with visual storytelling...\n\nSELECTED WORK\nProject — Client/Brand\n- Brief description of creative direction and impact\n\nEXPERIENCE\nSenior Designer — Studio\n- Directed visual identity rebrand reaching 5M+ users\n\nTOOLS & SKILLS\nFigma • Adobe Creative Suite • Motion Design • Prototyping`,
+    example: `MIA KHALIL
+Senior UX/UI Designer
+Los Angeles, CA | (555) 234-5678 | mia.khalil@email.com | portfolio.com/miakhalil
+
+CREATIVE PROFILE
+Multi-disciplinary designer blending brand strategy with intuitive user experiences. Passionate about creating visually striking, accessible, and user-centric digital products. 6+ years of experience leading design initiatives from concept to handoff for B2B and B2C platforms.
+
+SELECTED WORK
+"Aura" Wellness App Redesign — Mobile App
+- Led the end-to-end redesign of a meditation app, resulting in a 45% increase in daily active users and a 4.8-star App Store rating.
+- Developed a comprehensive design system to ensure consistency across iOS and Android platforms.
+
+EXPERIENCE
+Senior UX/UI Designer — CreativePulse Agency
+January 2020 – Present
+- Directed visual identity and product design for 12+ client projects, ranging from e-commerce to SaaS dashboards.
+- Facilitated user research sessions and usability testing, translating insights into high-fidelity prototypes.
+- Collaborated closely with engineering teams to ensure pixel-perfect implementation and smooth handoffs.
+
+Graphic Designer — Studio Nova
+May 2017 – December 2019
+- Created marketing collateral, social media assets, and branding materials that boosted client engagement by 30%.
+
+TOOLS & SKILLS
+Design: Figma, Sketch, Adobe Creative Suite (Illustrator, Photoshop, InDesign)
+Prototyping: InVision, Principle, Framer
+Skills: User Research, Wireframing, Interaction Design, Typography, Color Theory
+
+EDUCATION
+B.F.A. in Graphic Design — Rhode Island School of Design (2017)`,
   },
   {
     id: 'academic',
@@ -68,7 +154,36 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'CV format for academia, research, and fellowships',
     sections: ['Research Interests', 'Education', 'Publications', 'Teaching', 'Grants & Awards', 'Conference Presentations'],
     tone: 'scholarly, detailed, and credential-focused',
-    example: `RESEARCH INTERESTS\nMachine learning applications in computational biology...\n\nEDUCATION\nPh.D. in Computer Science — University, Year\nDissertation: "Title"\nAdvisor: Dr. Name\n\nPUBLICATIONS\nAuthor et al. (Year). "Paper Title." Journal Name, Vol(Issue), pp.\n\nTEACHING EXPERIENCE\nTeaching Assistant — Course Name\n\nGRANTS & AWARDS\nFellowship/Grant Name — Amount, Year`,
+    example: `DR. JAMES ROBERTSON
+Cambridge, MA | (555) 345-6789 | j.robertson@university.edu
+
+RESEARCH INTERESTS
+Machine learning applications in computational biology, genomic data analysis, and predictive modeling for protein structures.
+
+EDUCATION
+Ph.D. in Computer Science (Computational Biology) — MIT, Cambridge, MA (2023)
+Dissertation: "Deep Learning Approaches to Protein Folding Prediction"
+Advisor: Dr. Elena Rostova
+
+M.S. in Computer Science — Stanford University (2019)
+B.S. in Bioinformatics — University of Michigan (2017)
+
+PUBLICATIONS
+Robertson, J., & Rostova, E. (2022). "A Novel Neural Network Architecture for Rapid Genomic Sequencing." Journal of Computational Biology, 45(3), 112-128.
+Robertson, J. et al. (2021). "Predictive Modeling of Enzyme Kinetics using Deep Learning." Bioinformatics Review, 12(4), 45-60.
+
+TEACHING EXPERIENCE
+Teaching Assistant — "Introduction to Machine Learning" (CS 401)
+MIT, Fall 2021 & Spring 2022
+- Led weekly recitation sessions for 40+ undergraduate students.
+- Designed and graded programming assignments and exams.
+
+GRANTS & AWARDS
+National Science Foundation (NSF) Graduate Research Fellowship — $138,000 (2020-2023)
+Best Student Paper Award, International Conference on Bioinformatics (2022)
+
+CONFERENCE PRESENTATIONS
+"Scaling ML Models for Genomic Data," Annual AI in Healthcare Symposium, Boston, MA (Nov 2022)`,
   },
   {
     id: 'healthcare',
@@ -77,7 +192,34 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'For medical, nursing, and healthcare professionals',
     sections: ['Professional Summary', 'Licenses & Certifications', 'Clinical Experience', 'Education', 'Skills'],
     tone: 'precise, patient-centered, and credential-focused',
-    example: `PROFESSIONAL SUMMARY\nCompassionate registered nurse with X years of experience in acute care...\n\nLICENSES & CERTIFICATIONS\nRN License — State, Exp. Date\nBLS, ACLS, PALS Certified\n\nCLINICAL EXPERIENCE\nStaff Nurse — Hospital Name\n- Managed care for 6-8 patients per shift in ICU\n- Reduced medication errors by 15% through protocol improvements\n\nEDUCATION\nBSN — University, Year`,
+    example: `EMILY DAVIS, BSN, RN
+Chicago, NY | (555) 456-7890 | e.davis.rn@email.com
+
+PROFESSIONAL SUMMARY
+Compassionate and detail-oriented Registered Nurse with 5 years of experience in high-acuity medical-surgical and intensive care units. Proven ability to remain calm under pressure, manage complex patient caseloads, and collaborate effectively with interdisciplinary healthcare teams to deliver optimal patient outcomes.
+
+LICENSES & CERTIFICATIONS
+Registered Nurse (RN) License — State of Illinois (Exp. 2025)
+Basic Life Support (BLS) & Advanced Cardiovascular Life Support (ACLS) — American Heart Association
+Pediatric Advanced Life Support (PALS) Certified
+
+CLINICAL EXPERIENCE
+Staff Nurse, ICU — Mercy General Hospital, Chicago, IL
+September 2020 – Present
+- Provide direct, continuous care for 2-3 critically ill patients per shift, administering titrating vasopressors and managing mechanical ventilation.
+- Spearheaded a unit-wide initiative on central line care that reduced CLABSI rates by 15% over 12 months.
+- Act as a preceptor for new graduate nurses, guiding their transition into the ICU environment.
+
+Registered Nurse, Med-Surg — St. Luke's Medical Center, Chicago, IL
+July 2018 – August 2020
+- Managed comprehensive care for 5-6 patients per shift, including post-operative monitoring, wound care, and medication administration.
+- Educated patients and families on discharge protocols, improving patient compliance and reducing readmission rates by 10%.
+
+EDUCATION
+Bachelor of Science in Nursing (BSN) — Loyola University Chicago (2018)
+
+SKILLS
+Patient Assessment • Critical Care Monitoring • IV Therapy & Phlebotomy • EMR Systems (Epic, Cerner) • Patient & Family Education`,
   },
   {
     id: 'executive',
@@ -86,7 +228,35 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'C-suite and senior leadership positions',
     sections: ['Executive Summary', 'Leadership Experience', 'Key Achievements', 'Board Memberships', 'Education'],
     tone: 'strategic, visionary, and results-oriented at scale',
-    example: `EXECUTIVE SUMMARY\nTransformational leader with 15+ years driving organizational growth...\n\nLEADERSHIP EXPERIENCE\nChief Technology Officer — Company ($500M revenue)\n- Scaled engineering team from 20 to 150+ across 4 offices\n- Led digital transformation saving $12M annually\n\nKEY ACHIEVEMENTS\n- Grew market share by 35% in 18 months\n- Secured Series C funding of $80M\n\nBOARD MEMBERSHIPS\nOrganization Name — Role, Year–Present`,
+    example: `MICHAEL STERLING
+Chief Revenue Officer
+Austin, TX | (555) 567-8901 | m.sterling@email.com | linkedin.com/in/michaelsterling
+
+EXECUTIVE SUMMARY
+Transformational executive leader with 15+ years of experience driving aggressive revenue growth, penetrating new markets, and scaling global sales organizations. Expert in aligning go-to-market strategies with overarching corporate vision to consistently exceed ARR targets. Recognized for building high-performing, resilient teams and orchestrating successful M&A integrations.
+
+LEADERSHIP EXPERIENCE
+Chief Revenue Officer — Apex Technologies ($150M ARR SaaS)
+March 2019 – Present
+- Scaled global sales and customer success teams from 50 to 200+ employees across North America and EMEA.
+- Orchestrated a shift upmarket to enterprise sales, increasing average deal size by 120% and driving a 45% YoY revenue growth.
+- Restructured compensation plans and sales methodologies, reducing rep attrition by 25%.
+
+VP of Global Sales — Quantum Solutions
+January 2014 – February 2019
+- Grew annual recurring revenue from $20M to $85M within 5 years.
+- Successfully expanded operations into the APAC region, opening offices in London and Sydney which generated $15M in net-new revenue in year one.
+
+KEY ACHIEVEMENTS
+- Led the commercial integration of two strategic acquisitions totaling $50M in value.
+- Secured and negotiated multi-year contracts with Fortune 500 clients, including Microsoft and AT&T.
+
+BOARD MEMBERSHIPS
+Advisory Board Member — SaaS Growth Initiative (2021–Present)
+
+EDUCATION
+Master of Business Administration (MBA) — Harvard Business School
+B.S. in Economics — University of Texas at Austin`,
   },
   {
     id: 'career-change',
@@ -95,7 +265,31 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'Highlights transferable skills for career pivots',
     sections: ['Career Objective', 'Transferable Skills', 'Relevant Experience', 'Additional Experience', 'Education & Training'],
     tone: 'forward-looking, emphasizing transferable skills and growth potential',
-    example: `CAREER OBJECTIVE\nSeeking to leverage 8 years of project management expertise to transition into product management...\n\nTRANSFERABLE SKILLS\nStakeholder Management • Data Analysis • Agile Methodologies • Cross-functional Leadership\n\nRELEVANT EXPERIENCE\nProject Manager — Company\n- Managed product roadmaps for 3 concurrent initiatives\n- Conducted user research informing feature prioritization\n\nADDITIONAL EXPERIENCE\nPrevious Role — Company\n\nEDUCATION & TRAINING\nProduct Management Certificate — Institution`,
+    example: `DAVID THOMPSON
+Denver, TX | (555) 678-9012 | david.thompson@email.com
+
+CAREER OBJECTIVE
+Detail-oriented professional with 7 years of experience in educational leadership and curriculum development seeking to transition into Corporate Instructional Design. Eager to leverage strong background in learning methodologies, content creation, and stakeholder management to design impactful training programs for enterprise teams.
+
+TRANSFERABLE SKILLS
+Instructional Design • Curriculum Development • Project Management • Needs Assessment • Public Speaking & Facilitation • Data-Driven Evaluation • E-Learning Platforms
+
+RELEVANT EXPERIENCE
+Lead Educator & Department Head — Lincoln High School
+August 2018 – Present
+- Designed and implemented a standardized, district-wide curriculum adopted by 15 schools, improving student assessment scores by 18%.
+- Managed cross-functional projects by leading a team of 10 educators to integrate new educational technologies (Canvas, Blackboard) into daily instruction.
+- Conducted regular needs assessments and performance evaluations, utilizing data to adapt training methods.
+
+ADDITIONAL EXPERIENCE
+Teacher — Washington Middle School
+August 2015 – June 2018
+- Developed engaging lesson plans and interactive materials tailored to diverse learning styles.
+
+EDUCATION & TRAINING
+Certificate in Instructional Design — Association for Talent Development (ATD) (2023)
+Master of Education — Colorado State University (2017)
+B.A. in English — Colorado State University (2015)`,
   },
   {
     id: 'entry-level',
@@ -104,7 +298,37 @@ const RESUME_TEMPLATES: ResumeTemplate[] = [
     description: 'For recent graduates and early-career professionals',
     sections: ['Objective', 'Education', 'Projects', 'Internships', 'Skills', 'Activities & Leadership'],
     tone: 'enthusiastic, potential-focused, and education-forward',
-    example: `OBJECTIVE\nRecent Computer Science graduate seeking a software engineering role...\n\nEDUCATION\nB.S. Computer Science — University, Year\nGPA: 3.8 | Dean's List | Relevant Coursework: Data Structures, ML, Distributed Systems\n\nPROJECTS\nProject Name — Tech Stack\n- Built full-stack app with 500+ users\n\nINTERNSHIPS\nSoftware Engineering Intern — Company\n- Contributed to production features used by 100K+ users\n\nSKILLS\nPython • React • SQL • Git`,
+    example: `JESSICA NGUYEN
+Boston, MA | (555) 789-0123 | jessica.nguyen@email.com | linkedin.com/in/jessicanguyen
+
+OBJECTIVE
+Highly motivated Marketing graduate with internship experience in digital campaign management and content creation. Seeking an entry-level Digital Marketing Coordinator role to leverage my analytical skills, creativity, and passion for brand storytelling to drive engagement and ROI.
+
+EDUCATION
+Bachelor of Science in Marketing — Boston University, Boston, MA (May 2023)
+GPA: 3.8/4.0 | Dean's List (All Semesters)
+Relevant Coursework: Digital Marketing Strategy, Consumer Behavior, Marketing Analytics, Brand Management
+
+INTERNSHIPS
+Marketing Intern — BrightIdeas Agency, Boston, MA
+May 2022 – August 2022
+- Assisted in executing multi-channel social media campaigns, contributing to a 20% increase in follower growth across Instagram and LinkedIn.
+- Analyzed campaign performance using Google Analytics and drafted weekly reports for the management team.
+- Wrote and edited copy for 15+ blog posts and email newsletters.
+
+PROJECTS
+Market Research Capstone Project
+- Conducted primary and secondary research on Gen-Z consumer trends in the sustainable fashion sector.
+- Presented a comprehensive go-to-market strategy to a panel of industry professionals.
+
+SKILLS
+Digital Marketing: Social Media Management, SEO/SEM basics, Email Marketing
+Tools: Google Analytics, Hootsuite, Mailchimp, Canva, Microsoft Excel
+Soft Skills: Team Collaboration, Copywriting, Problem Solving
+
+ACTIVITIES & LEADERSHIP
+VP of Communications — BU Marketing Club (2021 - 2023)
+- Managed promotional strategy for club events, increasing average attendance by 30%.`,
   },
 ];
 
