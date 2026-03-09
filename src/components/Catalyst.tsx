@@ -34,6 +34,8 @@ import {
   Printer,
   Lock,
   Users,
+  GraduationCap,
+  Briefcase,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
