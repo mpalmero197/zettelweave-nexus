@@ -1436,6 +1436,8 @@ export function Catalyst() {
                 onToggleFocusMode={() => setFocusMode(!focusMode)}
                 isFullscreen={isFullscreen}
                 onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+                documentTheme={documentTheme}
+                onThemeChange={setDocumentTheme}
               />
             </CardContent>
             <CatalystStatsBar
