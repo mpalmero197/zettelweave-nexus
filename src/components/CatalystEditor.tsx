@@ -330,6 +330,9 @@ export function CatalystEditor({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Toggle>
         )}
+
+        <Separator orientation="vertical" className="mx-1 h-6 hidden md:block" />
+        <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
       </div>
 
       {/* Find & Replace Panel */}

@@ -386,91 +386,153 @@
   }
 }
 
-/* Catalyst Word-like Document View */
-.catalyst-word-view {
-  font-family: 'Calibri', 'Arial', 'Helvetica Neue', sans-serif;
+/* Document Themes */
+.catalyst-theme-default {
+  --doc-font: 'Calibri', 'Arial', 'Helvetica Neue', sans-serif;
+  --doc-heading: hsl(0, 0%, 7%);
+  --doc-heading-dark: hsl(0, 0%, 95%);
+  --doc-bg: hsl(0, 0%, 100%);
+  --doc-bg-dark: hsl(220, 16%, 14%);
+  --doc-text: hsl(0, 0%, 13%);
+  --doc-text-dark: hsl(0, 0%, 93%);
+  --doc-border: hsl(0, 0%, 85%);
+  --doc-border-dark: hsl(0, 0%, 25%);
+}
+
+.catalyst-theme-modern {
+  --doc-font: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --doc-heading: hsl(215, 90%, 40%);
+  --doc-heading-dark: hsl(215, 90%, 70%);
+  --doc-bg: hsl(210, 40%, 98%);
+  --doc-bg-dark: hsl(215, 25%, 12%);
+  --doc-text: hsl(215, 15%, 25%);
+  --doc-text-dark: hsl(215, 15%, 85%);
+  --doc-border: hsl(215, 30%, 85%);
+  --doc-border-dark: hsl(215, 30%, 25%);
+}
+
+.catalyst-theme-classic {
+  --doc-font: 'Georgia', 'Times New Roman', serif;
+  --doc-heading: hsl(0, 0%, 15%);
+  --doc-heading-dark: hsl(0, 0%, 90%);
+  --doc-bg: hsl(40, 30%, 96%);
+  --doc-bg-dark: hsl(0, 0%, 12%);
+  --doc-text: hsl(0, 0%, 20%);
+  --doc-text-dark: hsl(0, 0%, 80%);
+  --doc-border: hsl(0, 0%, 75%);
+  --doc-border-dark: hsl(0, 0%, 30%);
+}
+
+.catalyst-theme-creative {
+  --doc-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --doc-heading: hsl(330, 80%, 45%);
+  --doc-heading-dark: hsl(330, 80%, 70%);
+  --doc-bg: hsl(0, 0%, 100%);
+  --doc-bg-dark: hsl(0, 0%, 8%);
+  --doc-text: hsl(0, 0%, 10%);
+  --doc-text-dark: hsl(0, 0%, 90%);
+  --doc-border: hsl(330, 40%, 80%);
+  --doc-border-dark: hsl(330, 40%, 30%);
+}
+
+.catalyst-theme-technical {
+  --doc-font: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+  --doc-heading: hsl(150, 60%, 35%);
+  --doc-heading-dark: hsl(150, 60%, 55%);
+  --doc-bg: hsl(0, 0%, 98%);
+  --doc-bg-dark: hsl(220, 20%, 10%);
+  --doc-text: hsl(220, 10%, 25%);
+  --doc-text-dark: hsl(220, 10%, 80%);
+  --doc-border: hsl(150, 40%, 80%);
+  --doc-border-dark: hsl(150, 40%, 25%);
+}
+
+/* Base Catalyst Word View & Resume Styles Updated to Use Theme Variables */
+.catalyst-word-view, .resume-preview-content {
+  font-family: var(--doc-font, 'Calibri', 'Arial', sans-serif);
   font-size: 18px;
   line-height: 1.6;
-  color: hsl(0, 0%, 13%);
-  background: hsl(0, 0%, 100%);
+  color: var(--doc-text, hsl(0, 0%, 13%));
+  background: var(--doc-bg, hsl(0, 0%, 100%));
   padding: 3rem 2.5rem;
   max-width: 8.5in;
   margin: 0 auto;
   text-align: left;
   box-shadow: 0 1px 4px hsl(0 0% 0% / 0.08);
+  transition: all 0.2s ease;
 }
 
 @media (prefers-color-scheme: dark) {
-  .catalyst-word-view {
-    color: hsl(0, 0%, 93%);
-    background: hsl(220, 16%, 14%);
+  .catalyst-word-view, .resume-preview-content {
+    color: var(--doc-text-dark, hsl(0, 0%, 93%));
+    background: var(--doc-bg-dark, hsl(220, 16%, 14%));
   }
 }
 
-.dark .catalyst-word-view {
-  color: hsl(0, 0%, 93%);
-  background: hsl(220, 16%, 14%);
+.dark .catalyst-word-view, .dark .resume-preview-content {
+  color: var(--doc-text-dark, hsl(0, 0%, 93%));
+  background: var(--doc-bg-dark, hsl(220, 16%, 14%));
 }
 
 .catalyst-word-view h1 {
-  font-family: 'Calibri', 'Arial', sans-serif;
+  font-family: var(--doc-font);
   font-size: 32px;
   font-weight: 700;
   line-height: 1.2;
   margin-top: 2rem;
   margin-bottom: 1.25rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid hsl(0, 0%, 85%);
-  color: hsl(0, 0%, 7%);
+  border-bottom: 2px solid var(--doc-border);
+  color: var(--doc-heading);
   letter-spacing: -0.01em;
 }
 
 .dark .catalyst-word-view h1 {
-  color: hsl(0, 0%, 95%);
-  border-bottom-color: hsl(0, 0%, 25%);
+  color: var(--doc-heading-dark);
+  border-bottom-color: var(--doc-border-dark);
 }
 
 .catalyst-word-view h2 {
-  font-family: 'Calibri', 'Arial', sans-serif;
+  font-family: var(--doc-font);
   font-size: 26px;
   font-weight: 700;
   line-height: 1.3;
   margin-top: 1.75rem;
   margin-bottom: 0.75rem;
-  color: hsl(0, 0%, 13%);
+  color: var(--doc-text);
 }
 
 .dark .catalyst-word-view h2 {
-  color: hsl(0, 0%, 90%);
+  color: var(--doc-text-dark);
 }
 
 .catalyst-word-view h3 {
-  font-family: 'Calibri', 'Arial', sans-serif;
+  font-family: var(--doc-font);
   font-size: 21px;
   font-weight: 600;
   line-height: 1.4;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
-  color: hsl(0, 0%, 18%);
+  color: var(--doc-text);
 }
 
 .dark .catalyst-word-view h3 {
-  color: hsl(0, 0%, 85%);
+  color: var(--doc-text-dark);
 }
 
 .catalyst-word-view h4 {
-  font-family: 'Calibri', 'Arial', sans-serif;
+  font-family: var(--doc-font);
   font-size: 19px;
   font-weight: 600;
   font-style: italic;
   line-height: 1.4;
   margin-top: 1.25rem;
   margin-bottom: 0.4rem;
-  color: hsl(0, 0%, 22%);
+  color: var(--doc-text);
 }
 
 .dark .catalyst-word-view h4 {
-  color: hsl(0, 0%, 80%);
+  color: var(--doc-text-dark);
 }
 
 .catalyst-word-view p {
@@ -479,16 +541,16 @@
 }
 
 .catalyst-word-view blockquote {
-  border-left: 3px solid hsl(0, 0%, 60%);
+  border-left: 3px solid var(--doc-border);
   padding: 0.5rem 1rem;
   margin: 1rem 0;
-  color: hsl(0, 0%, 30%);
+  color: var(--doc-text);
   font-style: normal;
+  opacity: 0.8;
 }
 
 .dark .catalyst-word-view blockquote {
-  border-left-color: hsl(0, 0%, 45%);
-  color: hsl(0, 0%, 70%);
+  border-left-color: var(--doc-border-dark);
 }
 
 .catalyst-word-view ul,

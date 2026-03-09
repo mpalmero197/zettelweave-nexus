@@ -732,7 +732,7 @@ export function ResumeOptimizer() {
 
                 <div className="border border-border rounded-lg bg-card max-h-[70vh] overflow-y-auto overscroll-contain">
                   {resultView === 'preview' ? (
-                    <div className="p-5 md:p-8 space-y-1">
+                    <div className={`p-5 md:p-8 space-y-1 resume-preview-content ${getThemeClass(documentTheme)}`}>
                       {result.split('\n').map((line, i) => {
                         const trimmed = line.trim();
                         if (!trimmed) return <div key={i} className="h-3" />;
@@ -741,7 +741,7 @@ export function ResumeOptimizer() {
 
                         if (isHeader) {
                           return (
-                            <h3 key={i} className="text-sm font-bold text-foreground tracking-wide uppercase border-b border-border/40 pb-1 pt-3 first:pt-0">
+                            <h3 key={i} className="text-sm font-bold tracking-wide uppercase border-b pb-1 pt-3 first:pt-0" style={{ borderColor: 'var(--doc-border)', color: 'var(--doc-heading)' }}>
                               {trimmed}
                             </h3>
                           );
