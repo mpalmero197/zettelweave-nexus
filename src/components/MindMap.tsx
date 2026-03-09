@@ -469,6 +469,36 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
     toast.success('New mind map created');
   }, [data, pushHistory, layoutMode]);
 
+  const handleClearMap = useCallback(() => {
+    if (!confirm("Are you sure you want to clear the entire mind map? This cannot be undone.")) return;
+    pushHistory(data);
+    const fresh = layoutTree(createDefaultMap(), layoutMode);
+    setData(fresh);
+    setCurrentMapId(null);
+    setCurrentMapTitle('');
+    setIsDirty(false);
+    setSelectedId(null);
+    setEditingId(null);
+    toast.success('Mind map cleared');
+  }, [data, pushHistory, layoutMode]);
+
+  const handleExportPNG = async () => {
+    if (!canvasRef.current) return;
+    try {
+      const canvas = await html2canvas(canvasRef.current, { backgroundColor: null });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `mindmap-${Date.now()}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Mind map exported as PNG');
+    } catch (err) {
+      toast.error('Failed to export image');
+    }
+  };
+
   const handleApplyTemplate = useCallback((templateData: any) => {
     pushHistory(data);
     const nodes: Record<string, MindMapNode> = {};
