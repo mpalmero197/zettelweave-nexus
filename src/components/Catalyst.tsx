@@ -944,7 +944,7 @@ const DOCUMENT_TEMPLATES = [
         <>
         {/* Action Bar */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <Button onClick={handleNewDocument} variant="outline" size="sm">
+          <Button onClick={handleNewDocumentClick} variant="outline" size="sm">
             <FileText className="h-4 w-4 mr-2" />
             New
           </Button>

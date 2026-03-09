@@ -402,7 +402,7 @@ export function ResumeOptimizer() {
   const applyTemplate = (templateId: string) => {
     setSelectedTemplate(templateId);
     const tmpl = RESUME_TEMPLATES.find(t => t.id === templateId);
-    if (tmpl && !resumeText.trim()) {
+    if (tmpl) {
       setResumeText(tmpl.example);
     }
   };
