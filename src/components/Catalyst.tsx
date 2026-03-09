@@ -747,6 +747,7 @@ export function Catalyst() {
     setEditorContent(convertMarkdownToHtml(doc.content));
     setSelectedSource(doc.selected_source as ContentSource);
     setSelectedItems(new Set(doc.selected_items));
+    setDocumentTheme(doc.theme_id || 'default');
     setCurrentDocId(doc.id);
     setShowLoadDialog(false);
     toast({ title: 'Loaded!', description: 'Document loaded from Pendragon.' });
