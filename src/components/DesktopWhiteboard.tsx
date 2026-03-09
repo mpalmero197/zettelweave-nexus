@@ -19,7 +19,7 @@ interface DesktopWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan";
+type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "highlighter";
 
 const penColors = [
   { name: "Black", value: "#1a1a1a" },
