@@ -658,6 +658,7 @@ export function Catalyst() {
       selected_source: selectedSource,
       selected_items: Array.from(selectedItems),
       word_count: wordCount,
+      theme_id: documentTheme,
       saved_at: new Date().toISOString(),
     }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
