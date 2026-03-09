@@ -11,6 +11,7 @@ import { SecurityNotice } from "./SecurityNotice";
 import { MobileDetector } from "./MobileDetector";
 import { MobileOptimizedLayout } from "./MobileOptimizedLayout";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
+import { SkipToMain } from "./SkipToMain";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -112,6 +113,7 @@ export function AppLayout() {
 
   return (
     <>
+      <SkipToMain />
       <OfflineDataManager />
       <MobileDetector>
         <MobileOptimizedLayout>
@@ -119,7 +121,7 @@ export function AppLayout() {
 
           {/* Persistent Header */}
           <header
-            className="h-10 md:h-11 border-b border-border bg-background sticky top-0 z-50"
+            className="h-10 border-b border-border bg-background sticky top-0 z-50"
             role="banner"
           >
             <div className="h-full px-2 md:px-4 flex items-center justify-between gap-2">
@@ -196,7 +198,9 @@ export function AppLayout() {
           </header>
 
           {/* Page Content */}
-          <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
+          <main id="main-content" className="flex-1">
+            <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
+          </main>
 
           <MobileNavigation isAdmin={isAdmin} activeTab={activeTab} onTabChange={handleTabChange} />
         </MobileOptimizedLayout>
