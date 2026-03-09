@@ -1,62 +1,21 @@
 
+### 1. Performance Optimizations (React Rendering & State)
+Currently, several major performance bottlenecks exist in the core views that can cause unnecessary re-renders and UI sluggishness as the user accumulates content:
+- **Memoize Heavy Computations**: In `src/pages/Index.tsx`, computations like `displayedCards` are calculated on *every single render*. I will wrap these operations in `useMemo` so they only recalculate when their specific dependencies (`filteredCards`, `cardSearch`, `cardSort`, etc.) change.
+- **Stable References**: Handler functions passed to cards (like `handleUpdateCard`, `handleDeleteCard`) will be wrapped in `useCallback` to prevent child components from seeing them as "new" props on every render.
+- **Component Memoization**: I will wrap heavily repeated components, particularly `ZettelCard`, in `React.memo()` so they only re-render when their specific data changes, vastly improving scroll and typing performance.
 
-## Evernote Import for Pendragon
+### 2. Global Space Optimization & Layout Tightening
+Following the global space optimization mandate, I will audit and tighten the UI to maximize screen real estate, particularly for writers:
+- **Reduce Wasted Whitespace**: Audit padding and margins across the main shell, dashboard grids, and container elements to eliminate unnecessary vertical gaps.
+- **Header & Navigation Density**: Ensure sticky headers and navigation bars take up the minimum required vertical height without sacrificing touch targets, particularly on mobile views.
 
-### The Reality of Evernote Integration
+### 3. Premium Module Visual Polish
+Aligning with the "magazine-style" visual hierarchy:
+- **Glassmorphic Consistency**: Review and refine the `backdrop-blur` and semi-transparent border utilities (`border-border/60`, `bg-background/95`) to ensure a unified, high-performance premium feel across all toolbars and sticky elements.
+- **Typography Refinements**: Subtle tweaks to font weights, letter spacing, and contrast ratios on secondary text to enhance readability for long-form writers.
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+### 4. SEO & Semantic Structural Integrity
+- Ensure the structural layout strictly follows the AEO/SEO guidelines, ensuring valid HTML5 landmarks (e.g., verifying that all content sits properly within a `<main>` tag and logical `<section>` tags are used for different modules).
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
-
-### What will be built
-
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
-
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
-
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
-
-### ENEX Format Structure (for reference)
-```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
-```
-
-### Technical Details
-
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
-
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
-
+Would you like me to begin implementing these performance and UI/UX refinements?
