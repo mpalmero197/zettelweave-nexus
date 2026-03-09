@@ -14,6 +14,8 @@ interface CatalystSplitEditorProps {
   onToggleFocusMode: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  documentTheme: string;
+  onThemeChange: (theme: string) => void;
 }
 
 export function CatalystSplitEditor({
@@ -24,6 +26,8 @@ export function CatalystSplitEditor({
   onToggleFocusMode,
   isFullscreen,
   onToggleFullscreen,
+  documentTheme,
+  onThemeChange,
 }: CatalystSplitEditorProps) {
   const [splitMode, setSplitMode] = useState(false);
   const [referenceContent, setReferenceContent] = useState(content);
@@ -39,6 +43,8 @@ export function CatalystSplitEditor({
           onToggleFocusMode={onToggleFocusMode}
           isFullscreen={isFullscreen}
           onToggleFullscreen={onToggleFullscreen}
+          documentTheme={documentTheme}
+          onThemeChange={onThemeChange}
         />
         <Button
           variant="outline"
@@ -68,6 +74,8 @@ export function CatalystSplitEditor({
             onToggleFocusMode={onToggleFocusMode}
             isFullscreen={isFullscreen}
             onToggleFullscreen={onToggleFullscreen}
+            documentTheme={documentTheme}
+            onThemeChange={onThemeChange}
           />
         </ResizablePanel>
         <ResizableHandle withHandle />

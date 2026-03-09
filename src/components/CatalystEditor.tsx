@@ -46,6 +46,8 @@ interface CatalystEditorProps {
   onToggleFocusMode?: () => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  documentTheme?: string;
+  onThemeChange?: (theme: string) => void;
 }
 
 export function CatalystEditor({
@@ -56,9 +58,10 @@ export function CatalystEditor({
   onToggleFocusMode,
   isFullscreen = false,
   onToggleFullscreen,
+  documentTheme = 'default',
+  onThemeChange,
 }: CatalystEditorProps) {
   const [showFindReplace, setShowFindReplace] = useState(false);
-  const [documentTheme, setDocumentTheme] = useState('default');
   const editorRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
@@ -332,7 +335,7 @@ export function CatalystEditor({
         )}
 
         <Separator orientation="vertical" className="mx-1 h-6 hidden md:block" />
-        <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
+        <DocumentThemeSelector value={documentTheme} onChange={onThemeChange || (() => {})} />
       </div>
 
       {/* Find & Replace Panel */}

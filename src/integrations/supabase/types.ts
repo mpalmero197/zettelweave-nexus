@@ -592,6 +592,7 @@ export type Database = {
           permanent_delete_at: string | null
           selected_items: Json | null
           selected_source: string
+          theme_id: string
           title: string
           updated_at: string
           user_id: string
@@ -605,6 +606,7 @@ export type Database = {
           permanent_delete_at?: string | null
           selected_items?: Json | null
           selected_source: string
+          theme_id?: string
           title: string
           updated_at?: string
           user_id: string
@@ -618,6 +620,7 @@ export type Database = {
           permanent_delete_at?: string | null
           selected_items?: Json | null
           selected_source?: string
+          theme_id?: string
           title?: string
           updated_at?: string
           user_id?: string

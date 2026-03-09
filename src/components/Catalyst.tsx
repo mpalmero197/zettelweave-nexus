@@ -101,6 +101,7 @@ interface CatalystDocument {
   selected_source: string;
   selected_items: string[];
   word_count: number;
+  theme_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -147,6 +148,7 @@ export function Catalyst() {
   const [showCollabDialog, setShowCollabDialog] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [catalystMode, setCatalystMode] = useState<'writer' | 'resume'>('writer');
+  const [documentTheme, setDocumentTheme] = useState('default');
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id],
@@ -367,6 +369,7 @@ export function Catalyst() {
         selected_source: selectedSource,
         selected_items: Array.from(selectedItems),
         word_count: wordCount,
+        theme_id: documentTheme,
       };
 
       if (currentDocId) {
@@ -623,16 +626,16 @@ export function Catalyst() {
     try {
       switch (format) {
         case 'pdf':
-          exportCatalystToPDF(documentTitle, editorContent);
+          exportCatalystToPDF(documentTitle, editorContent, documentTheme);
           break;
         case 'docx':
-          await exportCatalystToDOCX(documentTitle, editorContent);
+          await exportCatalystToDOCX(documentTitle, editorContent, documentTheme);
           break;
         case 'epub':
-          await exportCatalystToEPUB(documentTitle, editorContent);
+          await exportCatalystToEPUB(documentTitle, editorContent, documentTheme);
           break;
         case 'kpf':
-          await exportCatalystToKPF(documentTitle, editorContent);
+          await exportCatalystToKPF(documentTitle, editorContent, documentTheme);
           break;
       }
       toast({
@@ -655,6 +658,7 @@ export function Catalyst() {
       selected_source: selectedSource,
       selected_items: Array.from(selectedItems),
       word_count: wordCount,
+      theme_id: documentTheme,
       saved_at: new Date().toISOString(),
     }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -680,6 +684,7 @@ export function Catalyst() {
         setEditorContent(data.content || '');
         setSelectedSource(data.selected_source || 'cards');
         setSelectedItems(new Set(data.selected_items || []));
+        setDocumentTheme(data.theme_id || 'default');
         setCurrentDocId(null);
         toast({ title: 'Loaded!', description: 'Document loaded from file.' });
       } catch (error) {
@@ -742,6 +747,7 @@ export function Catalyst() {
     setEditorContent(convertMarkdownToHtml(doc.content));
     setSelectedSource(doc.selected_source as ContentSource);
     setSelectedItems(new Set(doc.selected_items));
+    setDocumentTheme(doc.theme_id || 'default');
     setCurrentDocId(doc.id);
     setShowLoadDialog(false);
     toast({ title: 'Loaded!', description: 'Document loaded from Pendragon.' });
@@ -751,6 +757,7 @@ export function Catalyst() {
     setDocumentTitle('Untitled Document');
     setEditorContent('');
     setSelectedItems(new Set());
+    setDocumentTheme('default');
     setCurrentDocId(null);
     setWordCount(0);
     setSuggestions('');
@@ -1429,6 +1436,8 @@ export function Catalyst() {
                 onToggleFocusMode={() => setFocusMode(!focusMode)}
                 isFullscreen={isFullscreen}
                 onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+                documentTheme={documentTheme}
+                onThemeChange={setDocumentTheme}
               />
             </CardContent>
             <CatalystStatsBar
