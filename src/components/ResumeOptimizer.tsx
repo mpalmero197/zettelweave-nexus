@@ -17,6 +17,8 @@ import {
 import { importFile } from '@/utils/fileImportUtils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import DOMPurify from 'dompurify';
+import { DocumentThemeSelector } from '@/components/DocumentThemeSelector';
+import { getThemeClass } from '@/utils/documentThemes';
 
 // ──────────────────────────────────────────────
 // Resume Templates
