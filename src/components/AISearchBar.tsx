@@ -67,14 +67,12 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
       }
 
       // STEP 1: Classify intent first (CRITICAL to prevent hallucination)
-      console.log('Step 1: Classifying intent for:', query);
       const { data: intentData } = await supabase.functions.invoke('classify-intent', {
         body: { query }
       });
 
       const intent = intentData?.intent || 'internal_search';
       const confidence = intentData?.confidence || 0.5;
-      console.log('Intent classified:', intent, 'confidence:', confidence);
 
       let finalCards: ZettelCard[] = [];
       let finalNotes: any[] = [];
