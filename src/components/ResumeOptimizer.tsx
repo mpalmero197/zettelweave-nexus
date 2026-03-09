@@ -146,6 +146,7 @@ export function ResumeOptimizer() {
   const [dragOver, setDragOver] = useState(false);
   const [activeTab, setActiveTab] = useState('input');
   const [resultView, setResultView] = useState<'preview' | 'raw'>('preview');
+  const [documentTheme, setDocumentTheme] = useState('default');
 
   const currentTemplate = RESUME_TEMPLATES.find(t => t.id === selectedTemplate) || RESUME_TEMPLATES[0];
 
