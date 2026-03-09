@@ -349,7 +349,7 @@ type ExperienceLevel = 'entry' | 'mid' | 'senior' | 'executive';
 export function ResumeOptimizer() {
   const { toast } = useToast();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState('');
+  const [resumeText, setResumeText] = useState(RESUME_TEMPLATES[0].example);
   const [jobDescription, setJobDescription] = useState('');
   const [customInstructions, setCustomInstructions] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('professional');
