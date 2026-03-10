@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Home, FileText, StickyNote, Calendar, MoreHorizontal, Settings,
+  Home, FileText, StickyNote, Calendar, Settings,
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
   LogOut, X, LayoutGrid, Lock,
@@ -11,6 +11,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
 
 interface MobileNavigationProps {
   isAdmin?: boolean;
@@ -28,7 +29,6 @@ const SECTIONS = [
       { id: 'cards', label: 'Cards', icon: FileText },
       { id: 'notes', label: 'Notes', icon: BookOpen },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
-      { id: 'search', label: 'Search', icon: Search },
     ],
   },
   {
@@ -75,6 +75,39 @@ export function MobileNavigation({
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const { hasPremium } = useSubscription();
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
+  // Track visual viewport to detect keyboard
+  useEffect(() => {
+    if (!open) return;
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      // The difference between window inner height and viewport height = keyboard height
+      const kbHeight = window.innerHeight - vv.height;
+      setKeyboardOffset(kbHeight > 50 ? kbHeight : 0);
+    };
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, [open]);
+
+  // Reset when sheet closes
+  useEffect(() => {
+    if (!open) {
+      setSearchFocused(false);
+      setKeyboardOffset(0);
+    }
+  }, [open]);
 
   if (!isMobile) return null;
 
@@ -82,6 +115,13 @@ export function MobileNavigation({
     setOpen(false);
     onTabChange?.(id);
   };
+
+  const handleSearchSubmit = () => {
+    setOpen(false);
+    onTabChange?.('search');
+  };
+
+  const isKeyboardUp = searchFocused && keyboardOffset > 50;
 
   return (
     <>
@@ -103,121 +143,159 @@ export function MobileNavigation({
 
       {/* Full menu sheet */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] pb-safe px-4 pt-5 overflow-y-auto">
-          {/* Sections */}
-          {SECTIONS.map((section) => (
-            <div key={section.label} className="mb-4">
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] px-4 pt-5 pb-0 flex flex-col">
+          {/* Scrollable nav content */}
+          <div className="overflow-y-auto flex-1 pb-2">
+            {SECTIONS.map((section) => (
+              <div key={section.label} className="mb-4">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  {section.label}
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleNav(item.id)}
+                        className={cn(
+                          'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
+                        )}
+                      >
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                        <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Automation section */}
+            <div className="mb-4">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                {section.label}
+                Automation
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleNav(item.id)}
-                      className={cn(
-                        'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
-                      )}
-                    >
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                      <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
-                    </button>
-                  );
-                })}
+                {hasPremium ? (
+                  <Link
+                    to="/agents"
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
+                      activeTab === 'agents'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
+                    )}
+                  >
+                    <Bot className="h-5 w-5" aria-hidden="true" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/subscription"
+                    onClick={() => setOpen(false)}
+                    className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px] bg-muted/50 text-muted-foreground active:scale-95"
+                  >
+                    <Lock className="h-5 w-5" aria-hidden="true" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
+                    <Badge variant="outline" className="text-[8px] px-1 py-0 leading-none">PRO</Badge>
+                  </Link>
+                )}
+
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
+                      activeTab === 'admin'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
+                    )}
+                  >
+                    <Bot className="h-5 w-5" aria-hidden="true" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Admin</span>
+                  </Link>
+                )}
               </div>
             </div>
-          ))}
 
-          {/* Automation section — special handling for Agents */}
-          <div className="mb-4">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-              Automation
-            </p>
-            <div className="grid grid-cols-4 gap-2">
-              {hasPremium ? (
+            {/* Footer actions */}
+            <div className="border-t border-border pt-3 mt-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Link
-                  to="/agents"
+                  to="/install"
                   onClick={() => setOpen(false)}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
-                    activeTab === 'agents'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
-                  )}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
                 >
-                  <Bot className="h-5 w-5" aria-hidden="true" />
-                  <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
+                  <Download className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Install</span>
                 </Link>
-              ) : (
                 <Link
                   to="/subscription"
                   onClick={() => setOpen(false)}
-                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px] bg-muted/50 text-muted-foreground active:scale-95"
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
                 >
-                  <Lock className="h-5 w-5" aria-hidden="true" />
-                  <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
-                  <Badge variant="outline" className="text-[8px] px-1 py-0 leading-none">PRO</Badge>
+                  <CreditCard className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Billing</span>
                 </Link>
-              )}
-
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
-                    activeTab === 'admin'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
-                  )}
+                <button
+                  onClick={() => { setOpen(false); onAccountSettings?.(); }}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
                 >
-                  <Bot className="h-5 w-5" aria-hidden="true" />
-                  <span className="text-[10px] font-medium leading-tight text-center">Admin</span>
-                </Link>
-              )}
+                  <Settings className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Settings</span>
+                </button>
+                <button
+                  onClick={() => { setOpen(false); onSignOut?.(); }}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-destructive/10 text-destructive active:scale-95 touch-manipulation"
+                >
+                  <LogOut className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Sign Out</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Footer actions */}
-          <div className="border-t border-border pt-3 mt-2">
-            <div className="grid grid-cols-4 gap-2">
-              <Link
-                to="/install"
-                onClick={() => setOpen(false)}
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
-              >
-                <Download className="h-5 w-5" aria-hidden="true" />
-                <span className="text-[10px] font-medium leading-tight text-center">Install</span>
-              </Link>
-              <Link
-                to="/subscription"
-                onClick={() => setOpen(false)}
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
-              >
-                <CreditCard className="h-5 w-5" aria-hidden="true" />
-                <span className="text-[10px] font-medium leading-tight text-center">Billing</span>
-              </Link>
-              <button
-                onClick={() => { setOpen(false); onAccountSettings?.(); }}
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
-              >
-                <Settings className="h-5 w-5" aria-hidden="true" />
-                <span className="text-[10px] font-medium leading-tight text-center">Settings</span>
-              </button>
-              <button
-                onClick={() => { setOpen(false); onSignOut?.(); }}
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-destructive/10 text-destructive active:scale-95 touch-manipulation"
-              >
-                <LogOut className="h-5 w-5" aria-hidden="true" />
-                <span className="text-[10px] font-medium leading-tight text-center">Sign Out</span>
-              </button>
-            </div>
+          {/* Search bar — pinned at bottom of sheet, locks above keyboard when focused */}
+          <div
+            ref={searchBarRef}
+            className={cn(
+              'border-t border-border bg-background px-1 py-3 transition-all duration-200',
+              isKeyboardUp && 'fixed left-0 right-0 z-[60] px-4 py-2 border-t border-border bg-background shadow-[0_-4px_12px_rgba(0,0,0,0.1)]'
+            )}
+            style={isKeyboardUp ? { bottom: `${keyboardOffset}px` } : undefined}
+          >
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSearchSubmit();
+              }}
+              className="relative"
+            >
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                ref={searchInputRef}
+                type="search"
+                placeholder="Search cards, notes, files…"
+                className="pl-9 pr-4 h-11 rounded-xl bg-muted/50 border-none text-sm"
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => {
+                  // Small delay to allow submit to fire before blur resets
+                  setTimeout(() => setSearchFocused(false), 150);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchSubmit();
+                  }
+                }}
+              />
+            </form>
           </div>
         </SheetContent>
       </Sheet>
