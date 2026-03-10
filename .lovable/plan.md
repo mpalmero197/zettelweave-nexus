@@ -1,62 +1,44 @@
 
 
-## Evernote Import for Pendragon
+## Redesign Mobile Navigation: FAB Menu Replacing Bottom Bar + Hamburger
 
-### The Reality of Evernote Integration
+### Current State
+- A full-width bottom tab bar with 4 primary tabs + "More" button
+- A hamburger menu in the header opens a Sheet with the full `MinimalSidebar` (all sections + sign out, settings, subscription, install, admin)
+- The bottom bar duplicates some sidebar items but misses: Graph, Agents, Install App, Subscription, Debugger, Sign Out
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+### Plan
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
+**1. Replace bottom bar with a Floating Action Button (FAB)**
 
-### What will be built
+Replace `MobileNavigation` entirely. Instead of a 5-tab bottom bar, render a single FAB (bottom-right corner, above safe area) that opens a full-screen or near-full-screen Sheet from the bottom.
 
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
+**2. Comprehensive mobile menu content**
 
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
+When the FAB is tapped, a bottom Sheet slides up containing ALL navigation organized in categorized sections matching the sidebar:
 
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
+- **Quick Access** (grid row): Dashboard, Cards, Notes, Calendar, Search
+- **Knowledge**: Graph, Files, Canvas Studio
+- **Planner**: Journal, Habits, Scratchpad, Sticky Notes
+- **Create & Collaborate**: Catalyst, Collab, Recorder
+- **Automation**: Agents (with PRO badge if not premium)
+- **System**: Recycle Bin, Debugger
+- **Footer row**: Install App, Subscription, Settings, Sign Out
 
-### ENEX Format Structure (for reference)
-```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
-```
+Each item shows icon + label in a grid layout (4 columns). Active tab is highlighted. Sign Out uses destructive styling.
 
-### Technical Details
+**3. Remove hamburger menu from mobile header**
 
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+In `AppLayout.tsx`, conditionally hide the hamburger `Sheet`/`SheetTrigger` on mobile (hide with `hidden md:block` or check `useIsMobile`). The header on mobile will just show logo + search/theme buttons. All navigation responsibility moves to the FAB menu.
 
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
+**4. FAB design**
+
+- Fixed position `bottom-6 right-4`, `z-50`
+- 56px round button with a `LayoutGrid` or `Menu` icon
+- Animates to an `X` when menu is open
+- Subtle shadow and primary color background
+
+### Files to Modify
+- `src/components/MobileNavigation.tsx` — Full rewrite: FAB + comprehensive Sheet menu
+- `src/components/AppLayout.tsx` — Hide hamburger on mobile, pass `onSignOut`/`onAccountSettings`/`navigate` props to MobileNavigation
 
