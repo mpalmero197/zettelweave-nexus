@@ -129,7 +129,7 @@ export function AppLayout() {
               <div className="flex items-center gap-1.5">
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hidden md:flex">
                       <Menu className="h-4 w-4" />
                     </Button>
                   </SheetTrigger>
@@ -147,7 +147,7 @@ export function AppLayout() {
                   </SheetContent>
                 </Sheet>
 
-                <Link to="/app" className="hidden md:flex items-center gap-1.5">
+                <Link to="/app" className="flex items-center gap-1.5">
                   <img
                     src={pendragonLogo}
                     alt="PendragonX"
@@ -202,7 +202,13 @@ export function AppLayout() {
             <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
           </main>
 
-          <MobileNavigation isAdmin={isAdmin} activeTab={activeTab} onTabChange={handleTabChange} />
+          <MobileNavigation
+            isAdmin={isAdmin}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            onSignOut={handleSignOut}
+            onAccountSettings={() => navigate("/settings")}
+          />
         </MobileOptimizedLayout>
       </MobileDetector>
 
