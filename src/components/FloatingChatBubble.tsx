@@ -6,10 +6,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatPopup } from '@/components/friends/ChatPopup';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/utils/chatUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Friend {
   id: string;
@@ -37,6 +39,7 @@ interface FriendRequest {
 }
 
 export function FloatingChatBubble() {
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [messageThreads, setMessageThreads] = useState<MessagePreview[]>([]);
@@ -54,7 +57,7 @@ export function FloatingChatBubble() {
   }, []);
 
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isDragging || isMobile) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       setPosition({
@@ -74,9 +77,10 @@ export function FloatingChatBubble() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragOffset]);
+  }, [isDragging, dragOffset, isMobile]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setDragOffset({
       x: e.clientX - rect.left,
@@ -142,7 +146,6 @@ export function FloatingChatBubble() {
         return;
       }
 
-      // Collect unique other-user IDs and latest message per thread
       const threadMap = new Map<string, { message: string; created_at: string }>();
       const otherUserIds: string[] = [];
 
@@ -160,7 +163,6 @@ export function FloatingChatBubble() {
         return;
       }
 
-      // Batch profile lookup — fixes N+1
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, display_name, avatar_url')
@@ -171,7 +173,6 @@ export function FloatingChatBubble() {
         profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
       }
 
-      // Count unread per thread in one query
       const { data: unreadMessages } = await supabase
         .from('chat_messages')
         .select('sender_id')
@@ -187,7 +188,6 @@ export function FloatingChatBubble() {
         totalUnreadCount++;
       }
 
-      // Build threads
       const threads: MessagePreview[] = otherUserIds.map(uid => {
         const thread = threadMap.get(uid)!;
         const profile = profileMap.get(uid);
@@ -225,7 +225,6 @@ export function FloatingChatBubble() {
         return;
       }
 
-      // Batch profile lookup
       const senderIds = requests.map(r => r.sender_id);
       const { data: profiles } = await supabase
         .from('profiles')
@@ -283,6 +282,209 @@ export function FloatingChatBubble() {
 
   const totalBadgeCount = totalUnread + friendRequests.length;
 
+  // ── Shared panel content (used in both desktop card and mobile sheet) ──
+  const renderPanelContent = () => (
+    <Tabs defaultValue="messages" className="w-full flex-1 flex flex-col">
+      <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-transparent h-10 shrink-0">
+        <TabsTrigger value="messages" className="relative text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+          Messages
+          {totalUnread > 0 && (
+            <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] animate-chat-badge-pulse">
+              {totalUnread}
+            </Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="friends" className="text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+          <Users className="h-3.5 w-3.5 mr-1" />
+          Friends
+        </TabsTrigger>
+        <TabsTrigger value="requests" className="relative text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+          Requests
+          {friendRequests.length > 0 && (
+            <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] animate-chat-badge-pulse">
+              {friendRequests.length}
+            </Badge>
+          )}
+        </TabsTrigger>
+      </TabsList>
+
+      <ScrollArea className={cn(isMobile ? 'flex-1' : 'h-[380px]')}>
+        <TabsContent value="messages" className="p-2 space-y-0.5 mt-0">
+          {messageThreads.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No messages yet</p>
+              <p className="text-xs mt-1 opacity-70">Start a conversation with a friend</p>
+            </div>
+          ) : (
+            messageThreads.map((thread) => (
+              <button
+                key={thread.id}
+                onClick={() => {
+                  setActiveChatFriend({ id: thread.sender_id, name: thread.sender_name, avatar: thread.sender_avatar });
+                  if (isMobile) setIsOpen(false);
+                }}
+                className={cn(
+                  'w-full flex items-center gap-3 p-2.5 rounded-xl transition-colors text-left',
+                  'hover:bg-accent/60 active:bg-accent',
+                  thread.unread_count > 0 && 'bg-accent/30'
+                )}
+              >
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={thread.sender_avatar} />
+                  <AvatarFallback className="text-xs">{thread.sender_name ? thread.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className={cn('text-sm truncate', thread.unread_count > 0 ? 'font-semibold' : 'font-medium')}>
+                      {thread.sender_name}
+                    </p>
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">
+                      {formatRelativeTime(thread.created_at)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className={cn('text-xs truncate', thread.unread_count > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+                      {thread.message}
+                    </p>
+                    {thread.unread_count > 0 && (
+                      <Badge variant="destructive" className="h-4 min-w-4 p-0 flex items-center justify-center text-[10px] flex-shrink-0 ml-2 animate-chat-badge-pulse">
+                        {thread.unread_count}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="friends" className="p-2 space-y-0.5 mt-0">
+          {friends.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No friends yet</p>
+              <p className="text-xs mt-1 opacity-70">Search for users to connect</p>
+            </div>
+          ) : (
+            friends.map((friend) => (
+              <button
+                key={friend.id}
+                onClick={() => {
+                  setActiveChatFriend({ id: friend.id, name: friend.display_name, avatar: friend.avatar_url });
+                  if (isMobile) setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent/60 active:bg-accent transition-colors text-left"
+              >
+                <div className="relative flex-shrink-0">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={friend.avatar_url} />
+                    <AvatarFallback className="text-xs">{friend.display_name ? friend.display_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                  </Avatar>
+                  <div className={cn(
+                    'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card',
+                    friend.user_status === 'online' ? 'bg-primary animate-chat-online-pulse' :
+                    friend.user_status === 'idle' ? 'bg-accent-foreground/40' : 'bg-muted-foreground/30'
+                  )} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{friend.display_name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{friend.user_status || 'offline'}</p>
+                </div>
+              </button>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="requests" className="p-2 space-y-0.5 mt-0">
+          {friendRequests.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <UserPlus className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No pending requests</p>
+              <p className="text-xs mt-1 opacity-70">Friend requests will appear here</p>
+            </div>
+          ) : (
+            friendRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center gap-3 p-2.5 rounded-xl border border-border/50"
+              >
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={request.sender_avatar} />
+                  <AvatarFallback className="text-xs">{request.sender_name ? request.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{request.sender_name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {formatRelativeTime(request.created_at)}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </TabsContent>
+      </ScrollArea>
+    </Tabs>
+  );
+
+  // ── Mobile: small header-integrated button + full-screen Sheet ──
+  if (isMobile) {
+    return (
+      <>
+        {/* Small fixed pill — bottom-left to avoid FAB conflict */}
+        <button
+          onClick={() => setIsOpen(true)}
+          className={cn(
+            'md:hidden fixed bottom-6 left-4 z-50 h-11 rounded-full px-3',
+            'flex items-center gap-2',
+            'bg-card border border-border text-foreground shadow-md',
+            'transition-transform duration-200 active:scale-95',
+            'focus-visible:ring-2 focus-visible:ring-ring'
+          )}
+          aria-label="Open messages"
+        >
+          <MessageCircle className="h-5 w-5" />
+          {totalBadgeCount > 0 && (
+            <Badge
+              variant="destructive"
+              className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px] rounded-full animate-chat-badge-pulse"
+            >
+              {totalBadgeCount}
+            </Badge>
+          )}
+        </button>
+
+        {/* Full-screen sheet for messages */}
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] p-0 flex flex-col">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+              <h2 className="text-base font-semibold">Messages</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => setIsOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {renderPanelContent()}
+          </SheetContent>
+        </Sheet>
+
+        {activeChatFriend && (
+          <ChatPopup
+            friendId={activeChatFriend.id}
+            friendName={activeChatFriend.name}
+            friendAvatar={activeChatFriend.avatar}
+            onClose={() => setActiveChatFriend(null)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // ── Desktop: draggable floating bubble + card popup ──
   return (
     <>
       <div
@@ -322,141 +524,7 @@ export function FloatingChatBubble() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Tabs defaultValue="messages" className="w-full">
-                <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-transparent h-10">
-                  <TabsTrigger value="messages" className="relative text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                    Messages
-                    {totalUnread > 0 && (
-                      <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] animate-chat-badge-pulse">
-                        {totalUnread}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="friends" className="text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                    <Users className="h-3.5 w-3.5 mr-1" />
-                    Friends
-                  </TabsTrigger>
-                  <TabsTrigger value="requests" className="relative text-xs data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                    Requests
-                    {friendRequests.length > 0 && (
-                      <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] animate-chat-badge-pulse">
-                        {friendRequests.length}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
-
-                <ScrollArea className="h-[380px]">
-                  <TabsContent value="messages" className="p-2 space-y-0.5 mt-0">
-                    {messageThreads.length === 0 ? (
-                      <div className="text-center py-16 text-muted-foreground">
-                        <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                        <p className="text-sm font-medium">No messages yet</p>
-                        <p className="text-xs mt-1 opacity-70">Start a conversation with a friend</p>
-                      </div>
-                    ) : (
-                      messageThreads.map((thread) => (
-                        <button
-                          key={thread.id}
-                          onClick={() => setActiveChatFriend({ id: thread.sender_id, name: thread.sender_name, avatar: thread.sender_avatar })}
-                          className={cn(
-                            'w-full flex items-center gap-3 p-2.5 rounded-xl transition-colors text-left',
-                            'hover:bg-accent/60',
-                            thread.unread_count > 0 && 'bg-accent/30'
-                          )}
-                        >
-                          <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarImage src={thread.sender_avatar} />
-                            <AvatarFallback className="text-xs">{thread.sender_name ? thread.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-0.5">
-                              <p className={cn('text-sm truncate', thread.unread_count > 0 ? 'font-semibold' : 'font-medium')}>
-                                {thread.sender_name}
-                              </p>
-                              <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">
-                                {formatRelativeTime(thread.created_at)}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p className={cn('text-xs truncate', thread.unread_count > 0 ? 'text-foreground' : 'text-muted-foreground')}>
-                                {thread.message}
-                              </p>
-                              {thread.unread_count > 0 && (
-                                <Badge variant="destructive" className="h-4 min-w-4 p-0 flex items-center justify-center text-[10px] flex-shrink-0 ml-2 animate-chat-badge-pulse">
-                                  {thread.unread_count}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="friends" className="p-2 space-y-0.5 mt-0">
-                    {friends.length === 0 ? (
-                      <div className="text-center py-16 text-muted-foreground">
-                        <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                        <p className="text-sm font-medium">No friends yet</p>
-                        <p className="text-xs mt-1 opacity-70">Search for users to connect</p>
-                      </div>
-                    ) : (
-                      friends.map((friend) => (
-                        <button
-                          key={friend.id}
-                          onClick={() => setActiveChatFriend({ id: friend.id, name: friend.display_name, avatar: friend.avatar_url })}
-                          className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent/60 transition-colors text-left"
-                        >
-                          <div className="relative flex-shrink-0">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={friend.avatar_url} />
-                              <AvatarFallback className="text-xs">{friend.display_name ? friend.display_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
-                            </Avatar>
-                            <div className={cn(
-                              'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card',
-                              friend.user_status === 'online' ? 'bg-primary animate-chat-online-pulse' :
-                              friend.user_status === 'idle' ? 'bg-accent-foreground/40' : 'bg-muted-foreground/30'
-                            )} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{friend.display_name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{friend.user_status || 'offline'}</p>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="requests" className="p-2 space-y-0.5 mt-0">
-                    {friendRequests.length === 0 ? (
-                      <div className="text-center py-16 text-muted-foreground">
-                        <UserPlus className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                        <p className="text-sm font-medium">No pending requests</p>
-                        <p className="text-xs mt-1 opacity-70">Friend requests will appear here</p>
-                      </div>
-                    ) : (
-                      friendRequests.map((request) => (
-                        <div
-                          key={request.id}
-                          className="flex items-center gap-3 p-2.5 rounded-xl border border-border/50"
-                        >
-                          <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarImage src={request.sender_avatar} />
-                            <AvatarFallback className="text-xs">{request.sender_name ? request.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{request.sender_name}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {formatRelativeTime(request.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </TabsContent>
-                </ScrollArea>
-              </Tabs>
+              {renderPanelContent()}
             </CardContent>
           </Card>
         )}
