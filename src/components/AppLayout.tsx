@@ -129,7 +129,7 @@ export function AppLayout() {
               <div className="flex items-center gap-1.5">
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hidden md:flex">
                       <Menu className="h-4 w-4" />
                     </Button>
                   </SheetTrigger>
