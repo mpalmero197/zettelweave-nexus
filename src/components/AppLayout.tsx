@@ -202,7 +202,13 @@ export function AppLayout() {
             <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
           </main>
 
-          <MobileNavigation isAdmin={isAdmin} activeTab={activeTab} onTabChange={handleTabChange} />
+          <MobileNavigation
+            isAdmin={isAdmin}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            onSignOut={handleSignOut}
+            onAccountSettings={() => navigate("/settings")}
+          />
         </MobileOptimizedLayout>
       </MobileDetector>
 
