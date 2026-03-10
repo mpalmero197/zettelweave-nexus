@@ -147,7 +147,7 @@ export function AppLayout() {
                   </SheetContent>
                 </Sheet>
 
-                <Link to="/app" className="hidden md:flex items-center gap-1.5">
+                <Link to="/app" className="flex items-center gap-1.5">
                   <img
                     src={pendragonLogo}
                     alt="PendragonX"
