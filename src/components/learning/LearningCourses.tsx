@@ -114,46 +114,7 @@ export function LearningCourses() {
         </Button>
       </div>
 
-      {view === "search" && (
-        <>
-          <form onSubmit={(e) => { e.preventDefault(); openClassCentral(query); }} className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search courses (e.g. machine learning, history…)"
-                className="pl-9"
-              />
-            </div>
-            <Button type="submit">
-              <ExternalLink className="h-4 w-4 mr-1.5" />
-              Search
-            </Button>
-          </form>
-
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <ExternalLink className="h-3 w-3" />
-            Results open on Class Central in a new tab
-          </p>
-
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground font-medium">Popular topics</p>
-            <div className="flex flex-wrap gap-2">
-              {POPULAR_TOPICS.map((topic) => (
-                <Badge
-                  key={topic}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => { setQuery(topic); openClassCentral(topic); }}
-                >
-                  {topic}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      {/* Saved courses only */}
 
       {view === "saved" && (
         <>
