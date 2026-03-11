@@ -164,10 +164,19 @@ export function LearningBooks() {
       }));
 
       // Client-side filter: prefer results that have editions in the detected language
-      const filtered = allDocs.filter((b: any) =>
+      const langFiltered = allDocs.filter((b: any) =>
         Array.isArray(b._languages) && b._languages.includes(lang)
       );
-      const parsed = filtered.length > 0 ? filtered.slice(0, 12) : allDocs.slice(0, 12);
+      const langResult = langFiltered.length > 0 ? langFiltered : allDocs;
+
+      // Apply ebook access filter
+      const accessFiltered = langResult.filter((b) => {
+        if (accessFilter === "fulltext") return b.ebookAccess === "public";
+        if (accessFilter === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
+        return true;
+      });
+
+      const parsed = accessFiltered.slice(0, 12);
 
       setResults(parsed);
       if (parsed.length === 0) toast.info("No books found");
