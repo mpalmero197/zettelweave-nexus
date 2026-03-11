@@ -232,7 +232,7 @@ export function FloatingChatBubble() {
         return {
           id: req.id,
           sender_id: req.sender_id,
-          sender_name: profile?.display_name || 'Unknown User',
+          sender_name: profile?.display_name || `User ${req.sender_id.substring(0, 6)}`,
           sender_avatar: profile?.avatar_url ?? undefined,
           created_at: req.created_at,
         };
