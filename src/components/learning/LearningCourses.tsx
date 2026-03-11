@@ -233,9 +233,10 @@ export function LearningCourses() {
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
               </select>
-              <a href={course.url} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline" className="text-xs h-7">Open Course</Button>
-              </a>
+              <Button size="sm" variant="outline" className="text-xs h-7"
+                onClick={() => setViewingCourse({ title: course.title, url: course.url })}>
+                Open Course
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
