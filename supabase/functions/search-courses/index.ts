@@ -27,7 +27,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a course discovery assistant. Given a search query, generate 8 realistic course results that would be found on platforms like edX, Coursera, Class Central, MIT OpenCourseWare, Khan Academy, and Udacity. Each course should be realistic and useful. Use the provide_courses tool to return structured results.`,
+            content: `You are a course discovery assistant. Given a search query, generate 8 realistic course results that would be found on platforms like edX, Coursera, Class Central, MIT OpenCourseWare, Khan Academy, and Udacity. Each course should be realistic and useful. IMPORTANT: For the url field, always provide the platform's search results page URL for the topic (e.g. "https://www.coursera.org/search?query=machine+learning", "https://www.edx.org/search?q=pilot", "https://www.khanacademy.org/search?referer=%2F&page_search_query=physics", "https://www.udacity.com/catalog"). Do NOT fabricate specific course page URLs — use search/browse URLs so users always land on a working page with relevant results. Use the provide_courses tool to return structured results.`,
           },
           {
             role: "user",
@@ -51,7 +51,7 @@ serve(async (req) => {
                         title: { type: "string", description: "Full course title" },
                         provider: { type: "string", description: "Platform name (edX, Coursera, MIT OCW, Khan Academy, Udacity, Class Central)" },
                         university: { type: "string", description: "University or organization offering it, if applicable" },
-                        url: { type: "string", description: "Realistic URL to the course page" },
+                        url: { type: "string", description: "Platform search/browse URL for the topic (e.g. https://www.coursera.org/search?query=topic). Do NOT fabricate specific course page URLs." },
                         description: { type: "string", description: "2-3 sentence course description" },
                         difficulty: { type: "string", enum: ["Beginner", "Intermediate", "Advanced"] },
                         duration: { type: "string", description: "e.g. '6 weeks', '3 months', 'Self-paced'" },

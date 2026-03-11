@@ -60,7 +60,7 @@ export function LearningCourses() {
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [expandedSyllabus, setExpandedSyllabus] = useState<Set<number>>(new Set());
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
-  const [viewingCourse, setViewingCourse] = useState<{ title: string; url: string } | null>(null);
+  
 
   useEffect(() => {
     if (user) loadSavedCourses();
@@ -234,7 +234,7 @@ export function LearningCourses() {
                 <option value="completed">Completed</option>
               </select>
               <Button size="sm" variant="outline" className="text-xs h-7"
-                onClick={() => setViewingCourse({ title: course.title, url: course.url })}>
+                onClick={() => window.open(course.url, '_blank', 'noopener,noreferrer')}>
                 Open Course
               </Button>
               <Button
@@ -250,7 +250,7 @@ export function LearningCourses() {
 
           {!isSaved && (
             <Button size="sm" variant="outline" className="text-xs h-7 w-full mt-1"
-              onClick={() => setViewingCourse({ title: course.title, url: course.url })}>
+              onClick={() => window.open(course.url, '_blank', 'noopener,noreferrer')}>
               View Course →
             </Button>
           )}
@@ -259,27 +259,6 @@ export function LearningCourses() {
     );
   };
 
-  // Embedded course viewer
-  if (viewingCourse) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-12rem)]">
-        <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
-          <Button size="sm" variant="ghost" onClick={() => setViewingCourse(null)}>
-            <ChevronRight className="h-4 w-4 mr-1.5 rotate-180" />Back
-          </Button>
-          <h2 className="text-sm font-medium truncate flex-1">{viewingCourse.title}</h2>
-        </div>
-        <div className="flex-1 rounded-lg overflow-hidden border border-border bg-muted">
-          <iframe
-            src={viewingCourse.url}
-            className="w-full h-full border-0"
-            allow="fullscreen"
-            title={`Course: ${viewingCourse.title}`}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
