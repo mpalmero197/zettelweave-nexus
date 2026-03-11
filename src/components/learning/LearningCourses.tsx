@@ -1,10 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Search, Loader2, GraduationCap, Clock, Users, ChevronDown, ChevronRight, BookmarkPlus, BookmarkCheck, Star, Filter } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Search, Loader2, GraduationCap, Clock, Users, ChevronDown, ChevronRight,
+  BookmarkPlus, BookmarkCheck, Star, ArrowLeft, ExternalLink, Settings2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -37,6 +42,9 @@ interface SavedCourse {
   notes: string | null;
 }
 
+const PREF_KEY = "pendragon-course-open-pref";
+const TOAST_SHOWN_KEY = "pendragon-course-embed-toast-shown";
+
 const POPULAR_TOPICS = [
   "Machine Learning", "Web Development", "Data Science",
   "Psychology", "Creative Writing", "Mathematics",
@@ -60,7 +68,67 @@ export function LearningCourses() {
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [expandedSyllabus, setExpandedSyllabus] = useState<Set<number>>(new Set());
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
-  
+
+  // Embedded viewer state
+  const [viewingCourse, setViewingCourse] = useState<{ url: string; title: string } | null>(null);
+  const [openPref, setOpenPref] = useState<"embed" | "external">(() => {
+    return (localStorage.getItem(PREF_KEY) as "embed" | "external") || "embed";
+  });
+  const [iframeLoading, setIframeLoading] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const updatePref = (pref: "embed" | "external") => {
+    setOpenPref(pref);
+    localStorage.setItem(PREF_KEY, pref);
+  };
+
+  const handleOpenCourse = useCallback((url: string, title: string) => {
+    if (openPref === "external") {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setViewingCourse({ url, title });
+    setIframeLoading(true);
+
+    // Show first-time toast
+    if (!localStorage.getItem(TOAST_SHOWN_KEY)) {
+      localStorage.setItem(TOAST_SHOWN_KEY, "1");
+      toast.info("Course opened inside PendragonX. You can change this in the toolbar to open in a separate window.", { duration: 5000 });
+    }
+  }, [openPref]);
+
+  const handleIframeLoad = () => {
+    setIframeLoading(false);
+    // Try to detect if iframe was blocked (cross-origin will throw)
+    try {
+      const iframe = iframeRef.current;
+      if (iframe) {
+        // Accessing contentDocument on cross-origin will throw — that's expected and fine.
+        // We use a timeout to detect if the iframe is truly blank (blocked).
+        setTimeout(() => {
+          try {
+            const doc = iframe.contentDocument;
+            // If we can access it and it's essentially empty, it might be blocked
+            if (doc && doc.body && doc.body.innerHTML === "") {
+              handleEmbedFailed();
+            }
+          } catch {
+            // Cross-origin — iframe loaded successfully (content is there, just not accessible)
+          }
+        }, 2000);
+      }
+    } catch {
+      // Expected for cross-origin
+    }
+  };
+
+  const handleEmbedFailed = () => {
+    if (viewingCourse) {
+      toast.info("This platform doesn't allow embedding. Opening in a new tab...", { duration: 3000 });
+      window.open(viewingCourse.url, "_blank", "noopener,noreferrer");
+      setViewingCourse(null);
+    }
+  };
 
   useEffect(() => {
     if (user) loadSavedCourses();
@@ -155,6 +223,85 @@ export function LearningCourses() {
     completed: "Completed",
   };
 
+  // ─── Embedded Course Viewer ───
+  if (viewingCourse) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-6rem)]">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/50 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewingCourse(null)}
+          >
+            <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+            Back
+          </Button>
+
+          <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+            {viewingCourse.title}
+          </span>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 shrink-0"
+            onClick={() => window.open(viewingCourse.url, "_blank", "noopener,noreferrer")}
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+            <span className="hidden sm:inline">New tab</span>
+          </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                <Settings2 className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="pref-external"
+                  checked={openPref === "external"}
+                  onCheckedChange={(checked) => updatePref(checked ? "external" : "embed")}
+                />
+                <label htmlFor="pref-external" className="text-xs text-foreground cursor-pointer">
+                  Always open in a new tab
+                </label>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Some platforms may not support embedding and will open in a new tab automatically.
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Iframe */}
+        <div className="flex-1 relative bg-background">
+          {iframeLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+                <p className="text-sm text-muted-foreground">Loading course…</p>
+              </div>
+            </div>
+          )}
+          <iframe
+            ref={iframeRef}
+            src={viewingCourse.url}
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
+            onLoad={handleIframeLoad}
+            onError={handleEmbedFailed}
+            title={viewingCourse.title}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Course List UI ───
   const renderCourseCard = (course: CourseResult | SavedCourse, index: number, isSaved = false) => {
     const isAlreadySaved = savedUrls.has(course.url);
     return (
@@ -234,7 +381,7 @@ export function LearningCourses() {
                 <option value="completed">Completed</option>
               </select>
               <Button size="sm" variant="outline" className="text-xs h-7"
-                onClick={() => window.open(course.url, '_blank', 'noopener,noreferrer')}>
+                onClick={() => handleOpenCourse(course.url, course.title)}>
                 Open Course
               </Button>
               <Button
@@ -250,7 +397,7 @@ export function LearningCourses() {
 
           {!isSaved && (
             <Button size="sm" variant="outline" className="text-xs h-7 w-full mt-1"
-              onClick={() => window.open(course.url, '_blank', 'noopener,noreferrer')}>
+              onClick={() => handleOpenCourse(course.url, course.title)}>
               View Course →
             </Button>
           )}
@@ -258,7 +405,6 @@ export function LearningCourses() {
       </Card>
     );
   };
-
 
   return (
     <div className="space-y-4">
