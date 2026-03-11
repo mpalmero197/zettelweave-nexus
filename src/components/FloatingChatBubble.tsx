@@ -224,7 +224,7 @@ export function FloatingChatBubble() {
 
       const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
       for (const p of (profiles || [])) {
-        profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
+        profileMap.set(p.user_id, { display_name: p.display_name || friends.find(f => f.user_id === p.user_id)?.email || `User ${p.user_id.substring(0, 6)}`, avatar_url: p.avatar_url });
       }
 
       const requestsWithProfiles = requests.map(req => {
