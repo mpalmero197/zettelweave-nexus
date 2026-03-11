@@ -738,7 +738,7 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, editingId, commitEdit, addChild, addSibling, deleteNode, undo, redo, data, searchOpen]);
+  }, [selectedId, editingId, nodeDetailOpen, commitEdit, addChild, addSibling, deleteNode, undo, redo, data, searchOpen]);
 
   // ── Pan & zoom ──
   const handleWheel = useCallback((e: React.WheelEvent) => {
