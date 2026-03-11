@@ -158,19 +158,30 @@ export function LearningBooks() {
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
-      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => ({
-        key: doc.key,
-        title: doc.title,
-        author: doc.author_name?.[0] || "Unknown author",
-        year: doc.first_publish_year,
-        coverId: doc.cover_i,
-        subjects: doc.subject?.slice(0, 5),
-        editionCount: doc.edition_count,
-        iaId: doc.ia?.[0] || null,
-        languages: doc.language || [],
-        _languages: doc.language || [],
-        ebookAccess: doc.ebook_access || "no_ebook",
-      }));
+      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => {
+        const langs: string[] = doc.language || [];
+        const primaryLang = langs.length > 0 ? langs[0] : null;
+        const isOriginallyForeign = primaryLang && primaryLang !== currentLang;
+        const origLangName = isOriginallyForeign && LANG_NAMES[primaryLang] ? LANG_NAMES[primaryLang] : (isOriginallyForeign ? primaryLang : null);
+        const displayTitle = origLangName
+          ? `${doc.title} (${origLangName})`
+          : doc.title;
+        return {
+          key: doc.key,
+          title: doc.title,
+          displayTitle,
+          author: doc.author_name?.[0] || "Unknown author",
+          year: doc.first_publish_year,
+          coverId: doc.cover_i,
+          subjects: doc.subject?.slice(0, 5),
+          editionCount: doc.edition_count,
+          iaId: doc.ia?.[0] || null,
+          languages: langs,
+          _languages: langs,
+          ebookAccess: doc.ebook_access || "no_ebook",
+          originalLang: isOriginallyForeign ? primaryLang : undefined,
+        };
+      });
 
       // Strict client-side language filter: exclude books without language data or without the selected language
       const langResult = allDocs.filter((b) =>
