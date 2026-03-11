@@ -1262,6 +1262,168 @@ export type Database = {
           },
         ]
       }
+      object_relation_values: {
+        Row: {
+          id: string
+          object_id: string
+          relation_id: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_json: Json | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          id?: string
+          object_id: string
+          relation_id: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          id?: string
+          object_id?: string
+          relation_id?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_relation_values_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "space_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_relation_values_relation_id_fkey"
+            columns: ["relation_id"]
+            isOneToOne: false
+            referencedRelation: "relation_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_sets: {
+        Row: {
+          created_at: string
+          filters: Json | null
+          group_by_relation_id: string | null
+          icon: string | null
+          id: string
+          name: string
+          object_type_id: string | null
+          sorts: Json | null
+          space_id: string
+          updated_at: string
+          user_id: string
+          view_type: string | null
+          visible_relations: Json | null
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json | null
+          group_by_relation_id?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          object_type_id?: string | null
+          sorts?: Json | null
+          space_id: string
+          updated_at?: string
+          user_id: string
+          view_type?: string | null
+          visible_relations?: Json | null
+        }
+        Update: {
+          created_at?: string
+          filters?: Json | null
+          group_by_relation_id?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          object_type_id?: string | null
+          sorts?: Json | null
+          space_id?: string
+          updated_at?: string
+          user_id?: string
+          view_type?: string | null
+          visible_relations?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_sets_group_by_relation_id_fkey"
+            columns: ["group_by_relation_id"]
+            isOneToOne: false
+            referencedRelation: "relation_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_sets_object_type_id_fkey"
+            columns: ["object_type_id"]
+            isOneToOne: false
+            referencedRelation: "object_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_sets_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_types: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_builtin: boolean | null
+          name: string
+          space_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_builtin?: boolean | null
+          name: string
+          space_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_builtin?: boolean | null
+          name?: string
+          space_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_types_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           about_me: string | null
@@ -1453,6 +1615,47 @@ export type Database = {
         }
         Relationships: []
       }
+      relation_definitions: {
+        Row: {
+          created_at: string
+          id: string
+          is_builtin: boolean | null
+          name: string
+          options: Json | null
+          relation_type: string
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_builtin?: boolean | null
+          name: string
+          options?: Json | null
+          relation_type?: string
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_builtin?: boolean | null
+          name?: string
+          options?: Json | null
+          relation_type?: string
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relation_definitions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_courses: {
         Row: {
           created_at: string | null
@@ -1591,6 +1794,140 @@ export type Database = {
         }
         Relationships: []
       }
+      space_objects: {
+        Row: {
+          content: string | null
+          created_at: string
+          deleted_at: string | null
+          icon: string | null
+          id: string
+          is_archived: boolean | null
+          is_favorite: boolean | null
+          name: string
+          object_type_id: string
+          space_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_favorite?: boolean | null
+          name?: string
+          object_type_id: string
+          space_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_favorite?: boolean | null
+          name?: string
+          object_type_id?: string
+          space_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_objects_object_type_id_fkey"
+            columns: ["object_type_id"]
+            isOneToOne: false
+            referencedRelation: "object_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_objects_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_widgets: {
+        Row: {
+          config: Json | null
+          created_at: string
+          id: string
+          order_index: number | null
+          space_id: string
+          user_id: string
+          widget_type: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          order_index?: number | null
+          space_id: string
+          user_id: string
+          widget_type: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          order_index?: number | null
+          space_id?: string
+          user_id?: string
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_widgets_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spaces: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -1659,6 +1996,45 @@ export type Database = {
           triggered_by?: string | null
         }
         Relationships: []
+      }
+      type_relations: {
+        Row: {
+          id: string
+          is_required: boolean | null
+          object_type_id: string
+          order_index: number | null
+          relation_id: string
+        }
+        Insert: {
+          id?: string
+          is_required?: boolean | null
+          object_type_id: string
+          order_index?: number | null
+          relation_id: string
+        }
+        Update: {
+          id?: string
+          is_required?: boolean | null
+          object_type_id?: string
+          order_index?: number | null
+          relation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "type_relations_object_type_id_fkey"
+            columns: ["object_type_id"]
+            isOneToOne: false
+            referencedRelation: "object_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "type_relations_relation_id_fkey"
+            columns: ["relation_id"]
+            isOneToOne: false
+            referencedRelation: "relation_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_activity_logs: {
         Row: {

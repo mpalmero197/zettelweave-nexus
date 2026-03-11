@@ -46,6 +46,7 @@ import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { CollabStudio } from "@/components/friends/CollabStudio";
 import { LearningHub } from "@/components/LearningHub";
+import { SpacesHub } from "@/components/spaces/SpacesHub";
 import { UnifiedSearchPage } from "@/components/UnifiedSearchPage";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
@@ -568,6 +569,10 @@ const Index = () => {
 
                 <TabsContent value="learning" className="mt-0">
                   <LearningHub />
+                </TabsContent>
+
+                <TabsContent value="spaces" className="mt-0">
+                  <SpacesHub />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">

@@ -3,7 +3,7 @@ import {
   Home, FileText, StickyNote, Calendar, Settings,
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
-  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles,
+  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -35,6 +35,7 @@ const SECTIONS = [
   {
     label: 'Knowledge',
     items: [
+      { id: 'spaces', label: 'Spaces', icon: Box },
       { id: 'graph', label: 'Graph', icon: BarChart3 },
       { id: 'files', label: 'Files', icon: FolderOpen },
       { id: 'canvas', label: 'Canvas', icon: Palette },
