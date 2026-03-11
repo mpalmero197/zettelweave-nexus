@@ -129,6 +129,7 @@ export function UnifiedSearchPage({
       if (error) throw error;
       if (data?.success && data.data) {
         setVideoResults(data.data);
+        addToHistory({ query: q.trim(), intent: "videos", resultCount: data.data.length, hasVideos: true });
         if (data.data.length === 0) toast.info("No videos found.");
       } else throw new Error(data?.error || "Search failed");
     } catch {
