@@ -15,7 +15,7 @@ import { SkipToMain } from "./SkipToMain";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Search, Bot } from "lucide-react";
+import { Menu, Bot } from "lucide-react";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
