@@ -23,6 +23,7 @@ interface ScratchNote {
 interface AISearchBarProps {
   cards: ZettelCard[];
   autoFocus?: boolean;
+  initialQuery?: string;
   onSearchResults: (results: { 
     cards: ZettelCard[], 
     notes: any[], 
