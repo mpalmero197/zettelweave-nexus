@@ -381,19 +381,117 @@ export function LearningBooks() {
 
   return (
     <div className="space-y-4">
-      {/* Header with hint */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <Search className="h-3 w-3" />
-          Use the main Search tab to discover books
-        </p>
-        <Button size="sm" variant="outline" onClick={() => loadSavedBooks()}>
-          <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />
-          Refresh Library {savedBooks.length > 0 && `(${savedBooks.length})`}
+      {/* Search / Library toggle */}
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant={view === "search" ? "default" : "outline"} onClick={() => setView("search")}>
+          <Search className="h-3.5 w-3.5 mr-1.5" />Discover
+        </Button>
+        <Button size="sm" variant={view === "library" ? "default" : "outline"} onClick={() => { setView("library"); loadSavedBooks(); }}>
+          <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />Library{savedBooks.length > 0 ? ` (${savedBooks.length})` : ""}
         </Button>
       </div>
 
-      {/* Library view only */}
+      {view === "search" ? (
+        <div className="space-y-4">
+          {/* Search form */}
+          <form onSubmit={(e) => { e.preventDefault(); searchBooks(query); }} className="space-y-3">
+            <div className="flex gap-2">
+              <Input placeholder="Search books by title, author, or subject…" value={query}
+                onChange={(e) => setQuery(e.target.value)} className="flex-1" />
+              <Button type="submit" disabled={loading} size="sm">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Select value={langFilter} onValueChange={(v) => { setLangFilter(v); if (searched) searchBooks(query, v); }}>
+                <SelectTrigger className="w-[130px] h-8 text-xs">
+                  <Globe className="h-3 w-3 mr-1" /><SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(LANG_NAMES).map(([code, name]) => (
+                    <SelectItem key={code} value={code} className="text-xs">{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={accessFilter} onValueChange={(v: any) => { setAccessFilter(v); if (searched) searchBooks(query, undefined, v); }}>
+                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All Access</SelectItem>
+                  <SelectItem value="readable" className="text-xs">Readable</SelectItem>
+                  <SelectItem value="fulltext" className="text-xs">Full Text</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </form>
+
+          {/* Popular searches */}
+          {!searched && (
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR_SEARCHES.map(t => (
+                <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs"
+                  onClick={() => { setQuery(t); searchBooks(t); }}>{t}</Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Search results */}
+          {loading ? (
+            <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
+          ) : results.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">{results.length} books found</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {results.slice(0, visibleCount).map((book) => (
+                  <Card key={book.key} className="border-border/50 hover:border-primary/30 transition-colors cursor-pointer overflow-hidden"
+                    onClick={() => openBookDetail(book)}>
+                    <CardContent className="p-2.5 space-y-1.5">
+                      {book.coverId ? (
+                        <img src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
+                          alt={book.title} className="w-full h-32 object-cover rounded-sm bg-muted" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-32 bg-muted rounded-sm flex items-center justify-center">
+                          <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <h4 className="text-xs font-medium line-clamp-2 leading-snug">{book.displayTitle}</h4>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">{book.author}</p>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {book.ebookAccess === "public" && <Badge className="text-[9px] px-1 py-0 bg-green-600/10 text-green-600 border-green-600/20">Full Text</Badge>}
+                        {book.ebookAccess === "borrowable" && <Badge className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">Borrow</Badge>}
+                        {book.year && <span className="text-[10px] text-muted-foreground">{book.year}</span>}
+                      </div>
+                      <div className="flex gap-1 pt-0.5">
+                        {!savedKeys.has(book.key) ? (
+                          <Button size="sm" variant="ghost" className="text-[10px] h-6 px-1.5"
+                            onClick={(e) => { e.stopPropagation(); saveBook(book); }}>
+                            <BookmarkPlus className="h-3 w-3 mr-0.5" />Save
+                          </Button>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]"><BookmarkCheck className="h-2.5 w-2.5 mr-0.5" />Saved</Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {visibleCount < results.length && (
+                <div className="text-center pt-2">
+                  <Button variant="outline" size="sm" onClick={() => setVisibleCount(v => v + 40)}>
+                    Show more ({results.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : searched ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No books found. Try a different search.</p>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        /* Library view */
+        <div className="space-y-4">
           {loadingSaved ? (
             <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
           ) : savedBooks.length === 0 ? (
@@ -481,6 +579,8 @@ export function LearningBooks() {
               })}
             </div>
           )}
+        </div>
+      )}
 
       {/* Edition Picker Sheet */}
       <Sheet open={!!editionPickerBook} onOpenChange={(open) => !open && setEditionPickerBook(null)}>
