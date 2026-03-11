@@ -158,7 +158,10 @@ export function FloatingChatBubble() {
 
       const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
       for (const p of (profiles || [])) {
-        profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
+        // Use display_name, fall back to matching friend's email, then user_id prefix
+        const friendMatch = friends.find(f => f.user_id === p.user_id);
+        const name = p.display_name || friendMatch?.email || `User ${p.user_id.substring(0, 6)}`;
+        profileMap.set(p.user_id, { display_name: name, avatar_url: p.avatar_url });
       }
 
       const { data: unreadMessages } = await supabase
