@@ -8,6 +8,7 @@ import {
   BarChart3,
   BookOpen,
   FolderOpen,
+  GraduationCap,
   Palette,
   GitBranch,
   CalendarIcon,
