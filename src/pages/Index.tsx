@@ -571,6 +571,10 @@ const Index = () => {
                   <LearningHub />
                 </TabsContent>
 
+                <TabsContent value="spaces" className="mt-0">
+                  <SpacesHub />
+                </TabsContent>
+
                 <TabsContent value="notes" className="mt-0">
                   <Notes />
                 </TabsContent>
