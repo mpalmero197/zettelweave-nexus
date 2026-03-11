@@ -117,12 +117,13 @@ export function LearningBooks() {
     setSearched(true);
     try {
       const lang = detectLanguage(searchQuery);
+      setLastSearchLang(lang);
       const res = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&language=${lang}&limit=12&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia`
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language`
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
-      const parsed: BookResult[] = (data.docs || []).map((doc: any) => ({
+      const allDocs: BookResult[] = (data.docs || []).map((doc: any) => ({
         key: doc.key,
         title: doc.title,
         author: doc.author_name?.[0] || "Unknown author",
@@ -131,7 +132,15 @@ export function LearningBooks() {
         subjects: doc.subject?.slice(0, 5),
         editionCount: doc.edition_count,
         iaId: doc.ia?.[0] || null,
+        _languages: doc.language || [],
       }));
+
+      // Client-side filter: prefer results that have editions in the detected language
+      const filtered = allDocs.filter((b: any) =>
+        Array.isArray(b._languages) && b._languages.includes(lang)
+      );
+      const parsed = filtered.length > 0 ? filtered.slice(0, 12) : allDocs.slice(0, 12);
+
       setResults(parsed);
       if (parsed.length === 0) toast.info("No books found");
     } catch (err: any) {
