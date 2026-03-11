@@ -183,10 +183,12 @@ export function LearningBooks() {
         };
       });
 
-      // Strict client-side language filter: exclude books without language data or without the selected language
-      const langResult = allDocs.filter((b) =>
-        Array.isArray(b._languages) && b._languages.length > 0 && b._languages.includes(currentLang)
-      );
+      // Client-side language filter: include books that have the selected language OR have no language data
+      const langResult = allDocs.filter((b) => {
+        // If no language data at all, include the book (many popular books lack language metadata)
+        if (!Array.isArray(b._languages) || b._languages.length === 0) return true;
+        return b._languages.includes(currentLang);
+      });
 
       // Prioritize books where selected language is primary (appears first)
       langResult.sort((a, b) => {
