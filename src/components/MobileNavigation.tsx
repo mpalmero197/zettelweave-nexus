@@ -292,11 +292,12 @@ export function MobileNavigation({
               <Input
                 ref={searchInputRef}
                 type="search"
-                placeholder="Search cards, notes, files…"
-                className="pl-9 pr-4 h-11 rounded-xl bg-muted/50 border-none text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="AI search cards, notes, web…"
+                className="pl-9 pr-12 h-11 rounded-xl bg-muted/50 border-none text-sm"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => {
-                  // Small delay to allow submit to fire before blur resets
                   setTimeout(() => setSearchFocused(false), 150);
                 }}
                 onKeyDown={(e) => {
@@ -305,6 +306,15 @@ export function MobileNavigation({
                   }
                 }}
               />
+              {searchQuery.trim() && (
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center"
+                  aria-label="AI Search"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                </button>
+              )}
             </form>
           </div>
         </SheetContent>
