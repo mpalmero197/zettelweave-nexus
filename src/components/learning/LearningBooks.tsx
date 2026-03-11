@@ -206,10 +206,9 @@ export function LearningBooks() {
         return true;
       });
 
-      const parsed = accessFiltered.slice(0, 12);
-
-      setResults(parsed);
-      if (parsed.length === 0) toast.info("No books found for these filters");
+      setResults(accessFiltered);
+      setVisibleCount(40);
+      if (accessFiltered.length === 0) toast.info("No books found for these filters");
     } catch (err: any) {
       console.error(err);
       toast.error("Search failed", { description: err.message });
