@@ -101,31 +101,17 @@ export function FloatingChatBubble() {
 
   const loadFriends = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('user_id_1, user_id_2')
-        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
-
-      if (!friendships) return;
-
-      const friendIds = friendships.map(f =>
-        f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1
-      );
-
-      if (friendIds.length === 0) {
-        setFriends([]);
-        return;
+      const { data } = await supabase.rpc('get_my_friends');
+      if (data) {
+        setFriends((data as any[]).map((f: any) => ({
+          id: f.friend_user_id,
+          user_id: f.friend_user_id,
+          display_name: f.friend_display_name || f.friend_email || 'User',
+          email: f.friend_email,
+          avatar_url: f.friend_avatar_url,
+          user_status: f.user_status,
+        })));
       }
-
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url, user_status')
-        .in('user_id', friendIds);
-
-      setFriends(profiles || []);
     } catch (error) {
       console.error('Error loading friends:', error);
     }
