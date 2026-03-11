@@ -390,8 +390,9 @@ const Index = () => {
           <div className="max-w-3xl mx-auto flex items-center gap-2">
             <div className="flex-1">
               <AISearchBar 
-                key={activeTab === "search" ? "search-active" : "search-inactive"}
+                key={`search-${currentQuery || 'active'}`}
                 autoFocus={activeTab === "search"}
+                initialQuery={currentQuery || undefined}
                 cards={cards} 
                 onSearchResults={(results) => {
                   if (results.query) {
