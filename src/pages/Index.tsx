@@ -46,6 +46,7 @@ import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { CollabStudio } from "@/components/friends/CollabStudio";
 import { LearningHub } from "@/components/LearningHub";
+import { SpacesHub } from "@/components/spaces/SpacesHub";
 import { UnifiedSearchPage } from "@/components/UnifiedSearchPage";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
