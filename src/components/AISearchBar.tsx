@@ -159,7 +159,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
       }
       else if (intent === 'image_generation') {
         const { data: imageResult } = await supabase.functions.invoke('generate-image', {
-          body: { prompt: query }
+          body: { prompt: q }
         });
 
         if (imageResult?.imageUrl) {
