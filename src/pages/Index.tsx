@@ -374,9 +374,9 @@ const Index = () => {
   return (
     <>
 
-      {/* Compact AI Search Bar - Mobile Optimized */}
+      {/* Compact AI Search Bar - Knowledge tab only */}
       {activeTab === "search" && (
-        <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
+        <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2" id="unified-search-ai-bar">
           <div className="max-w-3xl mx-auto flex items-center gap-2">
             <div className="flex-1">
               <AISearchBar 
