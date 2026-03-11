@@ -176,12 +176,12 @@ export function UnifiedSearchPage({
         "_blank",
         "noopener,noreferrer"
       );
+      addToHistory({ query: query.trim(), intent: "courses", resultCount: 0 });
     } else if (subTab === "videos") {
       searchVideos(query);
     } else if (subTab === "books") {
       searchBooks(query);
     }
-    // Knowledge tab uses AISearchBar's own submit
   };
 
   const handleRerunSearch = (q: string) => {
