@@ -29,6 +29,7 @@ export function AppLayout() {
   const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingSearchQuery, setPendingSearchQuery] = useState("");
 
   const isOnline = hookOnline && browserOnline;
 
@@ -200,13 +201,17 @@ export function AppLayout() {
 
           {/* Page Content */}
           <main id="main-content" className="flex-1">
-            <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
+            <Outlet context={{ isAdmin, activeTab, handleTabChange, pendingSearchQuery, setPendingSearchQuery }} />
           </main>
 
           <MobileNavigation
             isAdmin={isAdmin}
             activeTab={activeTab}
             onTabChange={handleTabChange}
+            onSearchWithQuery={(query) => {
+              setPendingSearchQuery(query);
+              handleTabChange("search");
+            }}
             onSignOut={handleSignOut}
             onAccountSettings={() => navigate("/settings")}
           />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ interface ScratchNote {
 interface AISearchBarProps {
   cards: ZettelCard[];
   autoFocus?: boolean;
+  initialQuery?: string;
   onSearchResults: (results: { 
     cards: ZettelCard[], 
     notes: any[], 
@@ -40,18 +41,33 @@ interface AISearchBarProps {
   onQueryChange?: (query: string) => void;
 }
 
-export function AISearchBar({ cards, onSearchResults, className, onQueryChange, autoFocus }: AISearchBarProps) {
-  const [query, setQuery] = useState("");
+export function AISearchBar({ cards, onSearchResults, className, onQueryChange, autoFocus, initialQuery }: AISearchBarProps) {
+  const [query, setQuery] = useState(initialQuery || "");
   const [isSearching, setIsSearching] = useState(false);
   const [reasoning, setReasoning] = useState("");
+  const initialSearchDone = useRef(false);
+
+  // Auto-execute search when initialQuery is provided
+  useEffect(() => {
+    if (initialQuery && !initialSearchDone.current) {
+      initialSearchDone.current = true;
+      setQuery(initialQuery);
+      onQueryChange?.(initialQuery);
+      // Delay slightly to ensure component is mounted
+      setTimeout(() => {
+        handleAISearch(initialQuery);
+      }, 100);
+    }
+  }, [initialQuery]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
     onQueryChange?.(value);
   };
 
-  const handleAISearch = async () => {
-    if (!query.trim()) {
+  const handleAISearch = async (searchQuery?: string) => {
+    const q = searchQuery || query;
+    if (!q.trim()) {
       onSearchResults({ cards, notes: [], stickyNotes: [], scratchNotes: [], reasoning: "", query: "" });
       setReasoning("");
       return;
@@ -68,7 +84,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
 
       // STEP 1: Classify intent first (CRITICAL to prevent hallucination)
       const { data: intentData } = await supabase.functions.invoke('classify-intent', {
-        body: { query }
+        body: { query: q }
       });
 
       const intent = intentData?.intent || 'internal_search';
@@ -94,7 +110,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
       if (intent === 'internal_search') {
         const { data: aiSearchResult } = await supabase.functions.invoke('ai-search', {
           body: { 
-            query,
+            query: q,
             stickyNotes: allStickyNotes.map((n: any) => ({
               id: n.id,
               content: n.content,
@@ -114,19 +130,19 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
             allStickyNotes.find((n: any) => n.id === sn.id) || sn
           );
           finalScratchNotes = allScratchNotes.filter((note: any) =>
-            note.content?.toLowerCase().includes(query.toLowerCase())
+            note.content?.toLowerCase().includes(q.toLowerCase())
           );
           reasoning = aiSearchResult.reasoning || `Found ${finalCards.length + finalNotes.length + finalStickyNotes.length} results in your notes`;
         }
       } 
       else if (intent === 'web_search') {
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
-          body: { query, includeContext: true }
+          body: { query: q, includeContext: true }
         });
 
         if (webSearchResult) {
           webResults = {
-            query,
+            query: q,
             result: webSearchResult.result || '',
             images: webSearchResult.images || [],
             videos: webSearchResult.videos || [],
@@ -137,27 +153,27 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
             contextualData: webSearchResult.contextualData || null
           };
           reasoning = webSearchResult.contextualData 
-            ? `Live web search with AI insights for: "${query}"`
-            : `Live web search results for: "${query}"`;
+            ? `Live web search with AI insights for: "${q}"`
+            : `Live web search results for: "${q}"`;
         }
       }
       else if (intent === 'image_generation') {
         const { data: imageResult } = await supabase.functions.invoke('generate-image', {
-          body: { prompt: query }
+          body: { prompt: q }
         });
 
         if (imageResult?.imageUrl) {
           generatedImage = {
             imageUrl: imageResult.imageUrl,
-            prompt: query
+            prompt: q
           };
-          reasoning = `AI generated image for: "${query}"`;
+          reasoning = `AI generated image for: "${q}"`;
         }
       }
       else if (intent === 'multimedia_search') {
         // Use web-search but filter for multimedia content
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
-          body: { query }
+          body: { query: q }
         });
 
         if (webSearchResult) {
@@ -183,7 +199,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         generatedImage,
         multimediaResults,
         reasoning,
-        query,
+        query: q,
         intent,
         resultCount: totalResults
       });
@@ -294,7 +310,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
           </div>
           
           <Button
-            onClick={handleAISearch}
+            onClick={() => handleAISearch()}
             disabled={isSearching}
             className="bg-primary shadow-glow hover:scale-105 transition-all"
           >

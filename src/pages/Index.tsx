@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useOutletContext } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -359,6 +359,16 @@ const Index = () => {
     return () => window.removeEventListener("app-tab-change", handler);
   }, []);
 
+  // Consume pending search query from FAB
+  const outletContext = useOutletContext<{ pendingSearchQuery?: string; setPendingSearchQuery?: (q: string) => void }>();
+  useEffect(() => {
+    if (outletContext?.pendingSearchQuery) {
+      setCurrentQuery(outletContext.pendingSearchQuery);
+      setActiveTab("search");
+      outletContext.setPendingSearchQuery?.("");
+    }
+  }, [outletContext?.pendingSearchQuery]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -380,8 +390,9 @@ const Index = () => {
           <div className="max-w-3xl mx-auto flex items-center gap-2">
             <div className="flex-1">
               <AISearchBar 
-                key={activeTab === "search" ? "search-active" : "search-inactive"}
+                key={`search-${currentQuery || 'active'}`}
                 autoFocus={activeTab === "search"}
+                initialQuery={currentQuery || undefined}
                 cards={cards} 
                 onSearchResults={(results) => {
                   if (results.query) {

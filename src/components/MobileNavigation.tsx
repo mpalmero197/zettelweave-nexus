@@ -3,7 +3,7 @@ import {
   Home, FileText, StickyNote, Calendar, Settings,
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
-  LogOut, X, LayoutGrid, Lock, GraduationCap,
+  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,6 +17,7 @@ interface MobileNavigationProps {
   isAdmin?: boolean;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  onSearchWithQuery?: (query: string) => void;
   onSignOut?: () => void;
   onAccountSettings?: () => void;
 }
@@ -70,6 +71,7 @@ export function MobileNavigation({
   isAdmin = false,
   activeTab = 'dashboard',
   onTabChange,
+  onSearchWithQuery,
   onSignOut,
   onAccountSettings,
 }: MobileNavigationProps) {
@@ -78,6 +80,7 @@ export function MobileNavigation({
   const { hasPremium } = useSubscription();
   const [searchFocused, setSearchFocused] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
 
@@ -118,8 +121,14 @@ export function MobileNavigation({
   };
 
   const handleSearchSubmit = () => {
+    const q = searchQuery.trim();
     setOpen(false);
-    onTabChange?.('search');
+    if (q && onSearchWithQuery) {
+      onSearchWithQuery(q);
+      setSearchQuery('');
+    } else {
+      onTabChange?.('search');
+    }
   };
 
   const isKeyboardUp = searchFocused && keyboardOffset > 50;
@@ -283,11 +292,12 @@ export function MobileNavigation({
               <Input
                 ref={searchInputRef}
                 type="search"
-                placeholder="Search cards, notes, files…"
-                className="pl-9 pr-4 h-11 rounded-xl bg-muted/50 border-none text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="AI search cards, notes, web…"
+                className="pl-9 pr-12 h-11 rounded-xl bg-muted/50 border-none text-sm"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => {
-                  // Small delay to allow submit to fire before blur resets
                   setTimeout(() => setSearchFocused(false), 150);
                 }}
                 onKeyDown={(e) => {
@@ -296,6 +306,15 @@ export function MobileNavigation({
                   }
                 }}
               />
+              {searchQuery.trim() && (
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center"
+                  aria-label="AI Search"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                </button>
+              )}
             </form>
           </div>
         </SheetContent>
