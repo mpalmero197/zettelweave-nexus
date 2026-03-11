@@ -87,6 +87,7 @@ export function LearningBooks() {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesText, setNotesText] = useState("");
   const [readerBook, setReaderBook] = useState<{ title: string; iaId: string } | null>(null);
+  const [lastSearchLang, setLastSearchLang] = useState("eng");
 
   useEffect(() => {
     if (user) loadSavedBooks();
