@@ -110,7 +110,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
       if (intent === 'internal_search') {
         const { data: aiSearchResult } = await supabase.functions.invoke('ai-search', {
           body: { 
-            query,
+            query: q,
             stickyNotes: allStickyNotes.map((n: any) => ({
               id: n.id,
               content: n.content,
