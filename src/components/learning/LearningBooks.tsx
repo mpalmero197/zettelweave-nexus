@@ -105,6 +105,7 @@ export function LearningBooks() {
   const [loadingEditions, setLoadingEditions] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
   const [langFilter, setLangFilter] = useState<string>("eng");
+  const [visibleCount, setVisibleCount] = useState(40);
   const readerContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleFullscreen = useCallback(() => {
@@ -206,10 +207,9 @@ export function LearningBooks() {
         return true;
       });
 
-      const parsed = accessFiltered.slice(0, 12);
-
-      setResults(parsed);
-      if (parsed.length === 0) toast.info("No books found for these filters");
+      setResults(accessFiltered);
+      setVisibleCount(40);
+      if (accessFiltered.length === 0) toast.info("No books found for these filters");
     } catch (err: any) {
       console.error(err);
       toast.error("Search failed", { description: err.message });
@@ -443,7 +443,7 @@ export function LearningBooks() {
 
           {results.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {results.map((book) => (
+              {results.slice(0, visibleCount).map((book) => (
                 <Card key={book.key} className="hover:border-primary/30 transition-colors cursor-pointer h-full"
                   onClick={() => openBookDetail(book)}>
                   <CardContent className="pt-4 flex gap-3">
@@ -492,6 +492,14 @@ export function LearningBooks() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {results.length > visibleCount && (
+            <div className="text-center pt-2">
+              <Button variant="outline" size="sm" onClick={() => setVisibleCount(prev => prev + 40)}>
+                Show more ({results.length - visibleCount} remaining)
+              </Button>
             </div>
           )}
 

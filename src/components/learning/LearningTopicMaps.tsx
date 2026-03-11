@@ -104,29 +104,45 @@ export function LearningTopicMaps() {
     if (!user || !topicMap) { toast.error("Sign in to save mind maps"); return; }
     setSavingMindMap(true);
     try {
-      const convertNode = (node: TopicNode, x: number, y: number): any => ({
-        id: node.id,
-        text: node.title,
-        x, y,
-        notes: node.description,
-        children: node.children?.map((c, i) =>
-          convertNode(c, x + 200, y + i * 100)
-        ) || [],
-      });
+      const flatNodes: Record<string, any> = {};
+      const edges: any[] = [];
 
-      const rootNode = {
+      // Add root node
+      flatNodes["root"] = {
         id: "root",
         text: topicMap.title,
-        x: 0, y: 0,
+        x: 0,
+        y: 0,
         notes: topicMap.description,
-        children: topicMap.nodes.map((n, i) => convertNode(n, 250, i * 150)),
+        parentId: null,
       };
+
+      // Flatten hierarchical nodes recursively
+      const flattenNode = (node: TopicNode, parentId: string, x: number, y: number) => {
+        flatNodes[node.id] = {
+          id: node.id,
+          text: node.title,
+          x,
+          y,
+          notes: node.description,
+          parentId,
+        };
+        edges.push({ source: parentId, target: node.id });
+
+        node.children?.forEach((child, i) => {
+          flattenNode(child, node.id, x + 250, y + i * 120);
+        });
+      };
+
+      topicMap.nodes.forEach((node, i) => {
+        flattenNode(node, "root", 300, i * 150);
+      });
 
       const { error } = await supabase.from("mind_maps").insert({
         user_id: user.id,
         title: `📚 ${topicMap.title}`,
         description: topicMap.description,
-        map_data: { nodes: [rootNode], edges: [] },
+        map_data: { nodes: flatNodes, edges },
       });
       if (error) throw error;
       toast.success("Saved as Mind Map!", { description: "Check your Mind Map library" });
