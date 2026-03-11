@@ -121,6 +121,11 @@ export function LearningBooks() {
     if (user) loadSavedBooks();
   }, [user]);
 
+  // Load popular books on mount
+  useEffect(() => {
+    searchBooks("");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadSavedBooks = async () => {
     if (!user) return;
     setLoadingSaved(true);
