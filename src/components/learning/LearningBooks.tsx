@@ -276,14 +276,13 @@ export function LearningBooks() {
       : `https://archive.org/embed/${readerBook.iaId}`;
 
     return (
-      <div className={`flex flex-col ${readerFullscreen ? "fixed inset-0 z-50 bg-background p-3" : "h-[calc(100vh-12rem)]"}`}>
-        <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
-          <Button size="sm" variant="ghost" onClick={() => { setReaderBook(null); setReaderFullscreen(false); }}>
+      <div ref={readerContainerRef} className="flex flex-col h-[calc(100vh-12rem)] bg-background">
+        <div className="flex items-center gap-3 pb-3 border-b border-border mb-3 px-1">
+          <Button size="sm" variant="ghost" onClick={() => { if (document.fullscreenElement) document.exitFullscreen(); setReaderBook(null); }}>
             <ArrowLeft className="h-4 w-4 mr-1.5" />Back
           </Button>
           <h2 className="text-sm font-medium truncate flex-1">{readerBook.title}</h2>
-          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0"
-            onClick={() => setReaderFullscreen(prev => !prev)}>
+          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={toggleFullscreen}>
             {readerFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
         </div>
