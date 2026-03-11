@@ -600,6 +600,10 @@ const Index = () => {
                   <Catalyst />
                 </TabsContent>
 
+                <TabsContent value="learning" className="mt-0">
+                  <LearningHub />
+                </TabsContent>
+
                 <TabsContent value="notes" className="mt-0">
                   <Notes />
                 </TabsContent>
