@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight } from "lucide-react";
+import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
