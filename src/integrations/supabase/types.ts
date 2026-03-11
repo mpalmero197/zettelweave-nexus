@@ -1357,6 +1357,54 @@ export type Database = {
           },
         ]
       }
+      reading_list: {
+        Row: {
+          author: string | null
+          book_key: string
+          cover_id: number | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          rating: number | null
+          status: string | null
+          subjects: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          author?: string | null
+          book_key: string
+          cover_id?: number | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          status?: string | null
+          subjects?: Json | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          author?: string | null
+          book_key?: string
+          cover_id?: number | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          status?: string | null
+          subjects?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
       recordings: {
         Row: {
           created_at: string
@@ -1401,6 +1449,57 @@ export type Database = {
           title?: string
           transcription?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_courses: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          duration: string | null
+          id: string
+          is_free: boolean | null
+          notes: string | null
+          provider: string | null
+          status: string | null
+          syllabus: Json | null
+          title: string
+          updated_at: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          duration?: string | null
+          id?: string
+          is_free?: boolean | null
+          notes?: string | null
+          provider?: string | null
+          status?: string | null
+          syllabus?: Json | null
+          title: string
+          updated_at?: string | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          duration?: string | null
+          id?: string
+          is_free?: boolean | null
+          notes?: string | null
+          provider?: string | null
+          status?: string | null
+          syllabus?: Json | null
+          title?: string
+          updated_at?: string | null
+          url?: string
           user_id?: string
         }
         Relationships: []
