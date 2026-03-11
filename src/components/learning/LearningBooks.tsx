@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, ExternalLink, Loader2, BookOpen, Library } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, ExternalLink, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 
 interface BookResult {
   key: string;
@@ -14,6 +18,20 @@ interface BookResult {
   coverId?: number;
   subjects?: string[];
   editionCount?: number;
+  description?: string;
+}
+
+interface SavedBook {
+  id: string;
+  book_key: string;
+  title: string;
+  author: string | null;
+  cover_id: number | null;
+  year: number | null;
+  subjects: string[];
+  status: string;
+  notes: string | null;
+  rating: number | null;
 }
 
 const POPULAR_SEARCHES = [
@@ -23,10 +41,42 @@ const POPULAR_SEARCHES = [
 ];
 
 export function LearningBooks() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<BookResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [view, setView] = useState<"search" | "library">("search");
+  const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [selectedBook, setSelectedBook] = useState<BookResult | null>(null);
+  const [bookDetails, setBookDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [notesText, setNotesText] = useState("");
+
+  useEffect(() => {
+    if (user) loadSavedBooks();
+  }, [user]);
+
+  const loadSavedBooks = async () => {
+    if (!user) return;
+    setLoadingSaved(true);
+    const { data, error } = await supabase
+      .from("reading_list")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setSavedBooks(data.map((b: any) => ({
+        ...b,
+        subjects: Array.isArray(b.subjects) ? b.subjects : [],
+      })));
+      setSavedKeys(new Set(data.map((b: any) => b.book_key)));
+    }
+    setLoadingSaved(false);
+  };
 
   const searchBooks = async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
@@ -38,17 +88,15 @@ export function LearningBooks() {
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
-
       const parsed: BookResult[] = (data.docs || []).map((doc: any) => ({
         key: doc.key,
         title: doc.title,
         author: doc.author_name?.[0] || "Unknown author",
         year: doc.first_publish_year,
         coverId: doc.cover_i,
-        subjects: doc.subject?.slice(0, 3),
+        subjects: doc.subject?.slice(0, 5),
         editionCount: doc.edition_count,
       }));
-
       setResults(parsed);
       if (parsed.length === 0) toast.info("No books found");
     } catch (err: any) {
@@ -59,111 +107,347 @@ export function LearningBooks() {
     }
   };
 
+  const openBookDetail = async (book: BookResult) => {
+    setSelectedBook(book);
+    setBookDetails(null);
+    setLoadingDetails(true);
+    try {
+      const res = await fetch(`https://openlibrary.org${book.key}.json`);
+      if (res.ok) {
+        const data = await res.json();
+        setBookDetails(data);
+      }
+    } catch (e) {
+      console.error("Failed to load details:", e);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const saveBook = async (book: BookResult) => {
+    if (!user) { toast.error("Sign in to save books"); return; }
+    const { error } = await supabase.from("reading_list").insert({
+      user_id: user.id,
+      book_key: book.key,
+      title: book.title,
+      author: book.author,
+      cover_id: book.coverId || null,
+      year: book.year || null,
+      subjects: book.subjects || [],
+      status: "want_to_read",
+    });
+    if (error) { toast.error("Failed to save"); return; }
+    toast.success("Added to reading list!");
+    setSavedKeys(prev => new Set(prev).add(book.key));
+    loadSavedBooks();
+  };
+
+  const updateBookStatus = async (id: string, status: string) => {
+    const { error } = await supabase
+      .from("reading_list")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (!error) {
+      setSavedBooks(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+      toast.success("Status updated");
+    }
+  };
+
+  const updateBookRating = async (id: string, rating: number) => {
+    await supabase.from("reading_list").update({ rating }).eq("id", id);
+    setSavedBooks(prev => prev.map(b => b.id === id ? { ...b, rating } : b));
+  };
+
+  const saveNotes = async (id: string) => {
+    await supabase.from("reading_list").update({ notes: notesText }).eq("id", id);
+    setSavedBooks(prev => prev.map(b => b.id === id ? { ...b, notes: notesText } : b));
+    setEditingNotes(null);
+    toast.success("Notes saved");
+  };
+
+  const removeBook = async (id: string, bookKey: string) => {
+    await supabase.from("reading_list").delete().eq("id", id);
+    setSavedBooks(prev => prev.filter(b => b.id !== id));
+    setSavedKeys(prev => { const n = new Set(prev); n.delete(bookKey); return n; });
+    toast.success("Removed from reading list");
+  };
+
+  const statusLabel: Record<string, string> = {
+    want_to_read: "Want to Read",
+    reading: "Reading",
+    finished: "Finished",
+  };
+
+  const getDescriptionText = (desc: any): string => {
+    if (!desc) return "";
+    if (typeof desc === "string") return desc;
+    if (desc.value) return desc.value;
+    return "";
+  };
+
   return (
     <div className="space-y-4">
-      <form
-        onSubmit={(e) => { e.preventDefault(); searchBooks(query); }}
-        className="flex gap-2"
-      >
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search millions of books…"
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+      {/* Toggle */}
+      <div className="flex gap-2">
+        <Button size="sm" variant={view === "search" ? "default" : "outline"} onClick={() => setView("search")}>
+          <Search className="h-3.5 w-3.5 mr-1.5" />Discover
         </Button>
-      </form>
+        <Button size="sm" variant={view === "library" ? "default" : "outline"} onClick={() => { setView("library"); loadSavedBooks(); }}>
+          <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />
+          My Library {savedBooks.length > 0 && `(${savedBooks.length})`}
+        </Button>
+      </div>
 
-      {!searched && (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_SEARCHES.map((term) => (
-              <Badge
-                key={term}
-                variant="outline"
-                className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => { setQuery(term); searchBooks(term); }}
-              >
-                {term}
-              </Badge>
-            ))}
-          </div>
+      {view === "search" && (
+        <>
+          <form onSubmit={(e) => { e.preventDefault(); searchBooks(query); }} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search millions of books…" className="pl-9" />
+            </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+            </Button>
+          </form>
 
-          <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer mt-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <Library className="h-4 w-4 text-primary" />
-                  Open Library
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Browse and borrow from millions of free ebooks. Powered by the Internet Archive.
-                </p>
-              </CardContent>
-            </Card>
-          </a>
-        </div>
+          {!searched && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
+              <div className="flex flex-wrap gap-2">
+                {POPULAR_SEARCHES.map((term) => (
+                  <Badge key={term} variant="outline" className="cursor-pointer hover:bg-accent transition-colors"
+                    onClick={() => { setQuery(term); searchBooks(term); }}>
+                    {term}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {results.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {results.map((book) => (
+                <Card key={book.key} className="hover:border-primary/30 transition-colors cursor-pointer h-full"
+                  onClick={() => openBookDetail(book)}>
+                  <CardContent className="pt-4 flex gap-3">
+                    {book.coverId ? (
+                      <img src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
+                        alt={book.title} className="w-16 h-24 object-cover rounded-sm shrink-0 bg-muted" loading="lazy" />
+                    ) : (
+                      <div className="w-16 h-24 bg-muted rounded-sm shrink-0 flex items-center justify-center">
+                        <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
+                      {book.year && <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>}
+                      <div className="flex items-center gap-1 mt-1.5">
+                        {savedKeys.has(book.key) ? (
+                          <Badge variant="secondary" className="text-[9px]"><BookmarkCheck className="h-3 w-3 mr-0.5" />Saved</Badge>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="text-[10px] h-5 px-1.5"
+                            onClick={(e) => { e.stopPropagation(); saveBook(book); }}>
+                            <BookmarkPlus className="h-3 w-3 mr-0.5" />Save
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {searched && !loading && results.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No books found. Try different keywords.</p>
+            </div>
+          )}
+        </>
       )}
 
-      {results.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {results.map((book) => (
-            <a
-              key={book.key}
-              href={`https://openlibrary.org${book.key}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-                <CardContent className="pt-4 flex gap-3">
-                  {book.coverId ? (
-                    <img
-                      src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
-                      alt={book.title}
-                      className="w-16 h-24 object-cover rounded-sm shrink-0 bg-muted"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-16 h-24 bg-muted rounded-sm shrink-0 flex items-center justify-center">
-                      <BookOpen className="h-6 w-6 text-muted-foreground/40" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
-                    {book.year && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>
-                    )}
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {book.subjects?.map((s, i) => (
-                        <Badge key={i} variant="secondary" className="text-[9px] px-1 py-0">{s}</Badge>
+      {view === "library" && (
+        <>
+          {loadingSaved ? (
+            <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
+          ) : savedBooks.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">Your library is empty. Search and save books to start your reading list.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {["reading", "want_to_read", "finished"].map(status => {
+                const filtered = savedBooks.filter(b => b.status === status);
+                if (filtered.length === 0) return null;
+                return (
+                  <div key={status}>
+                    <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                      {statusLabel[status]}
+                      <Badge variant="secondary" className="text-[10px]">{filtered.length}</Badge>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {filtered.map((book) => (
+                        <Card key={book.id} className="border-border/50">
+                          <CardContent className="pt-4 space-y-2">
+                            <div className="flex gap-3">
+                              {book.cover_id ? (
+                                <img src={`https://covers.openlibrary.org/b/id/${book.cover_id}-M.jpg`}
+                                  alt={book.title} className="w-12 h-18 object-cover rounded-sm shrink-0 bg-muted" />
+                              ) : (
+                                <div className="w-12 h-18 bg-muted rounded-sm shrink-0 flex items-center justify-center">
+                                  <BookOpen className="h-4 w-4 text-muted-foreground/40" />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-sm font-medium line-clamp-2">{book.title}</h4>
+                                <p className="text-xs text-muted-foreground">{book.author}</p>
+                                {/* Rating */}
+                                <div className="flex gap-0.5 mt-1">
+                                  {[1, 2, 3, 4, 5].map(s => (
+                                    <Star key={s}
+                                      className={`h-3 w-3 cursor-pointer ${book.rating && s <= book.rating ? "text-amber-500 fill-amber-500" : "text-muted-foreground/30"}`}
+                                      onClick={() => updateBookRating(book.id, s)} />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <select className="text-xs bg-muted rounded px-2 py-1 border border-border"
+                                value={book.status}
+                                onChange={(e) => updateBookStatus(book.id, e.target.value)}>
+                                <option value="want_to_read">Want to Read</option>
+                                <option value="reading">Reading</option>
+                                <option value="finished">Finished</option>
+                              </select>
+                              <a href={`https://openlibrary.org${book.book_key}`} target="_blank" rel="noopener noreferrer">
+                                <Button size="sm" variant="outline" className="text-xs h-6 px-2">
+                                  <ExternalLink className="h-3 w-3 mr-1" />Open
+                                </Button>
+                              </a>
+                              <Button size="sm" variant="ghost" className="text-xs h-6 px-2 text-destructive"
+                                onClick={() => removeBook(book.id, book.book_key)}>Remove</Button>
+                            </div>
+
+                            {/* Notes */}
+                            {editingNotes === book.id ? (
+                              <div className="space-y-1.5">
+                                <Textarea className="text-xs min-h-[60px]" value={notesText}
+                                  onChange={(e) => setNotesText(e.target.value)} placeholder="Add your notes about this book…" />
+                                <div className="flex gap-1.5">
+                                  <Button size="sm" className="text-xs h-6" onClick={() => saveNotes(book.id)}>Save</Button>
+                                  <Button size="sm" variant="ghost" className="text-xs h-6" onClick={() => setEditingNotes(null)}>Cancel</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button className="text-[11px] text-primary hover:underline"
+                                onClick={() => { setEditingNotes(book.id); setNotesText(book.notes || ""); }}>
+                                {book.notes ? "Edit notes" : "Add notes"}
+                              </button>
+                            )}
+                            {book.notes && editingNotes !== book.id && (
+                              <p className="text-[11px] text-muted-foreground line-clamp-2 bg-muted/50 rounded p-1.5">{book.notes}</p>
+                            )}
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
-                    {book.editionCount && book.editionCount > 1 && (
-                      <p className="text-[10px] text-muted-foreground mt-1">{book.editionCount} editions</p>
-                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </a>
-          ))}
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
-      {searched && !loading && results.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No books found. Try different keywords.</p>
-        </div>
-      )}
+      {/* Book Detail Sheet */}
+      <Sheet open={!!selectedBook} onOpenChange={(open) => !open && setSelectedBook(null)}>
+        <SheetContent className="overflow-y-auto w-full sm:max-w-lg">
+          {selectedBook && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-left">{selectedBook.title}</SheetTitle>
+                <SheetDescription className="text-left">{selectedBook.author}{selectedBook.year ? ` · ${selectedBook.year}` : ""}</SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 space-y-4">
+                <div className="flex gap-4">
+                  {selectedBook.coverId ? (
+                    <img src={`https://covers.openlibrary.org/b/id/${selectedBook.coverId}-L.jpg`}
+                      alt={selectedBook.title} className="w-28 h-auto rounded shadow-md" />
+                  ) : (
+                    <div className="w-28 h-40 bg-muted rounded flex items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    {selectedBook.editionCount && (
+                      <p className="text-xs text-muted-foreground">{selectedBook.editionCount} editions</p>
+                    )}
+                    {!savedKeys.has(selectedBook.key) ? (
+                      <Button size="sm" onClick={() => saveBook(selectedBook)}>
+                        <BookmarkPlus className="h-3.5 w-3.5 mr-1.5" />Add to Library
+                      </Button>
+                    ) : (
+                      <Badge><BookmarkCheck className="h-3 w-3 mr-1" />In Library</Badge>
+                    )}
+                    <div className="flex gap-2">
+                      <a href={`https://openlibrary.org${selectedBook.key}`} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1.5" />Open Library</Button>
+                      </a>
+                    </div>
+                    {/* Check if readable on archive.org */}
+                    <a href={`https://archive.org/search?query=${encodeURIComponent(selectedBook.title)}`}
+                      target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="mt-1">
+                        <BookOpen className="h-3.5 w-3.5 mr-1.5" />Read on Archive.org
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+
+                {loadingDetails ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : bookDetails && (
+                  <>
+                    {getDescriptionText(bookDetails.description) && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Description</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {getDescriptionText(bookDetails.description)}
+                        </p>
+                      </div>
+                    )}
+                    {bookDetails.subjects && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Subjects</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {(bookDetails.subjects as string[]).slice(0, 15).map((s: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[10px]">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {selectedBook.subjects && selectedBook.subjects.length > 0 && !bookDetails?.subjects && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Subjects</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedBook.subjects.map((s, i) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
