@@ -417,7 +417,7 @@ export function LearningBooks() {
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.title}</h3>
+                      <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.displayTitle || book.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
                       {book.year && <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>}
                       {book.languages && book.languages.length > 0 && (
