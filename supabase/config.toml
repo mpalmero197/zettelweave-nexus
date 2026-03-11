@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.generate-study-guide]
 verify_jwt = false
+
+[functions.search-courses]
+verify_jwt = true
+
+[functions.generate-topic-map]
+verify_jwt = true
