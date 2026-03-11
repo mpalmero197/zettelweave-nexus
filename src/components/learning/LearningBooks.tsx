@@ -248,53 +248,44 @@ export function LearningBooks() {
     }
   };
 
-  const openReader = (book: BookResult | SavedBook) => {
-    // Check if multi-language book
-    const langs = 'languages' in book ? book.languages : undefined;
-    if (langs && langs.length > 1) {
-      setLangPickerBook(book);
+  const openReader = async (book: BookResult | SavedBook) => {
+    const workKey = 'key' in book ? book.key : ('book_key' in book ? book.book_key : null);
+    if (!workKey) {
+      // Fallback: search on Open Library
+      const searchTerm = `${book.title} ${'author' in book && book.author ? book.author : ''}`.trim();
+      setReaderBook({ title: book.title, iaId: `search:${searchTerm}` });
       return;
     }
-    openReaderWithLang(book);
+    
+    // Fetch all editions and show picker
+    setEditionPickerBook(book);
+    setEditions([]);
+    setLoadingEditions(true);
+    try {
+      const res = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        const entries: EditionEntry[] = (data.entries || []).filter((ed: any) => ed.ocaid);
+        setEditions(entries);
+        if (entries.length === 0) {
+          toast.info("No readable editions found for this book");
+          setEditionPickerBook(null);
+          // Fallback to search
+          const searchTerm = `${book.title} ${'author' in book && book.author ? book.author : ''}`.trim();
+          setReaderBook({ title: book.title, iaId: `search:${searchTerm}` });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch editions:", e);
+      setEditionPickerBook(null);
+    }
+    setLoadingEditions(false);
   };
 
-  const openReaderWithLang = async (book: BookResult | SavedBook, lang?: string) => {
-    setLangPickerBook(null);
-    const title = book.title;
-    const workKey = 'key' in book ? book.key : ('book_key' in book ? book.book_key : null);
-
-    // If a specific language was chosen, try to find an edition in that language
-    if (lang && workKey) {
-      setLoadingEditions(true);
-      try {
-        const res = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=50`);
-        if (res.ok) {
-          const data = await res.json();
-          const editions = data.entries || [];
-          // Find edition matching the language with an IA identifier
-          const match = editions.find((ed: any) =>
-            ed.ocaid && ed.languages?.some((l: any) => l.key === `/languages/${lang}`)
-          );
-          if (match?.ocaid) {
-            setReaderBook({ title, iaId: match.ocaid, lang });
-            setLoadingEditions(false);
-            return;
-          }
-        }
-      } catch (e) {
-        console.error("Failed to fetch editions:", e);
-      }
-      setLoadingEditions(false);
-    }
-
-    // Fallback: use existing iaId or search
-    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
-    if (iaId) {
-      setReaderBook({ title, iaId, lang });
-    } else {
-      const searchTerm = `${title} ${'author' in book && book.author ? book.author : ''}`.trim();
-      setReaderBook({ title, iaId: `search:${searchTerm}`, lang });
-    }
+  const selectEdition = (edition: EditionEntry) => {
+    const title = editionPickerBook?.title || edition.title;
+    setReaderBook({ title, iaId: edition.ocaid! });
+    setEditionPickerBook(null);
   };
 
   const saveBook = async (book: BookResult) => {
