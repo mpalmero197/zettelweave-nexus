@@ -201,7 +201,7 @@ export function AppLayout() {
 
           {/* Page Content */}
           <main id="main-content" className="flex-1">
-            <Outlet context={{ isAdmin, activeTab, handleTabChange }} />
+            <Outlet context={{ isAdmin, activeTab, handleTabChange, pendingSearchQuery, setPendingSearchQuery }} />
           </main>
 
           <MobileNavigation
