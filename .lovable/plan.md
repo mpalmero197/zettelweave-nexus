@@ -1,57 +1,62 @@
 
 
-## Unified Search Entry Point
+## Evernote Import for Pendragon
 
-### What changes
-The search button (header on desktop, FAB menu on mobile) opens a single search page with sub-tabs for each search domain. Each tab keeps its own search logic but shares the query typed at the top.
+### The Reality of Evernote Integration
 
-### Changes
+Evernote uses **OAuth 1.0a** authentication, which requires:
+1. Applying for an Evernote API key (manual review process, can take days/weeks)
+2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
+3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
 
-**`src/pages/Index.tsx`**
-- In the `search` tab content, replace the current layout with a tabbed interface containing:
-  - **Knowledge** tab — existing AI search (cards, notes, sticky notes, web results) using `AISearchBar` + `UnifiedSearchResults`
-  - **Courses** tab — Class Central redirect (reuse `openClassCentral` logic from `LearningCourses`)
-  - **Videos** tab — Firecrawl video search (reuse `search-videos` edge function logic from `LearningVideos`)
-  - **Books** tab — Open Library search (reuse logic from `LearningBooks`)
-- A single search input at the top that populates the query for the active sub-tab
-- When the user switches sub-tabs, the current query carries over
-- The search bar + sub-tab strip is sticky below the header
+**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
 
-**`src/components/LearningHub.tsx`**
-- Remove the search bars from the Courses, Videos, and Books tabs (keep only the saved/library views and topic maps)
-- Add a note/link in each Learning Hub tab saying "Use the main Search to find courses/videos/books"
-- Keep Topic Maps tab as-is (it's AI-generated, not a search feature)
+### What will be built
 
-**`src/components/learning/LearningCourses.tsx`**
-- Remove the search UI (search bar, popular topics for search). Keep only the "My Courses" saved library view.
+1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
+   - Parse `.enex` XML files using the browser's built-in `DOMParser`
+   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
+   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
+   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
 
-**`src/components/learning/LearningVideos.tsx`**
-- Extract the video search + results rendering into a new exportable component `VideoSearchResults` that accepts a `query` prop
-- Keep the standalone component working for the Learning Hub but remove its own search bar
-- OR: simpler approach — just import and reuse the search logic in Index.tsx's search tab
+2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
+   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
+   - Drag-and-drop or file picker for `.enex` files
+   - Preview parsed notes with title, tag count, and content snippet before importing
+   - Select/deselect individual notes
+   - Map Evernote tags to Zettel card tags
+   - Import selected notes as Zettel cards with auto-categorization
 
-**`src/components/learning/LearningBooks.tsx`**
-- Same pattern: extract or make the search callable from outside, remove the standalone search bar from Learning Hub
+3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
+   - Add `.enex` to the supported file types for the Computer tab
+   - Parse and convert ENEX content to HTML for use in the Catalyst editor
 
-### Simpler approach (recommended)
-Rather than heavy refactoring of Learning components, create a new **`src/components/UnifiedSearchPage.tsx`** that:
-1. Has a single search input at top
-2. Has sub-tabs: Knowledge | Courses | Videos | Books
-3. **Knowledge**: passes query to existing `AISearchBar` logic
-4. **Courses**: shows popular topics + search button that opens Class Central in new tab
-5. **Videos**: calls `search-videos` edge function inline and displays video cards (copy the rendering logic from `LearningVideos`)
-6. **Books**: calls Open Library API inline and displays book cards (copy the rendering logic from `LearningBooks`)
-7. All tabs share the same query state
+### ENEX Format Structure (for reference)
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export>
+  <note>
+    <title>Note Title</title>
+    <content><![CDATA[...ENML content...]]></content>
+    <created>20230101T120000Z</created>
+    <updated>20230615T180000Z</updated>
+    <tag>tag1</tag>
+    <tag>tag2</tag>
+  </note>
+  ...more notes...
+</en-export>
+```
 
-Then in `Index.tsx`, replace the search tab content with `<UnifiedSearchPage />`.
+### Technical Details
 
-Learning Hub keeps its existing search UIs for users who navigate there directly — no breaking changes.
+- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
+- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
+- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
+- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
 
-### Header/Menu
-- Search button in header (desktop) and search bar in FAB menu (mobile) both navigate to `search` tab — this already works, no changes needed
-- Remove the Search icon from the header since it's already accessible via the menu — actually, keep it for quick access on desktop per current behavior
-
-### Files to create/edit
-1. **Create** `src/components/UnifiedSearchPage.tsx` — unified search with sub-tabs
-2. **Edit** `src/pages/Index.tsx` — replace search tab content with `<UnifiedSearchPage />`
+### User flow
+1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
+2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
+3. Preview notes, select which to import, click Import
+4. Notes appear as Zettel cards with preserved tags and content
 
