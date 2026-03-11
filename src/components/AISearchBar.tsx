@@ -130,7 +130,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
             allStickyNotes.find((n: any) => n.id === sn.id) || sn
           );
           finalScratchNotes = allScratchNotes.filter((note: any) =>
-            note.content?.toLowerCase().includes(query.toLowerCase())
+            note.content?.toLowerCase().includes(q.toLowerCase())
           );
           reasoning = aiSearchResult.reasoning || `Found ${finalCards.length + finalNotes.length + finalStickyNotes.length} results in your notes`;
         }
