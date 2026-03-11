@@ -149,17 +149,17 @@ export function UnifiedSearchPage({
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search");
       const data = await res.json();
-      setBookResults(
-        (data.docs || []).map((doc: any) => ({
-          key: doc.key,
-          title: doc.title,
-          author: doc.author_name?.[0] || "Unknown author",
-          year: doc.first_publish_year,
-          coverId: doc.cover_i,
-          subjects: doc.subject?.slice(0, 4),
-          ebookAccess: doc.ebook_access || "no_ebook",
-        }))
-      );
+      const results = (data.docs || []).map((doc: any) => ({
+        key: doc.key,
+        title: doc.title,
+        author: doc.author_name?.[0] || "Unknown author",
+        year: doc.first_publish_year,
+        coverId: doc.cover_i,
+        subjects: doc.subject?.slice(0, 4),
+        ebookAccess: doc.ebook_access || "no_ebook",
+      }));
+      setBookResults(results);
+      addToHistory({ query: q.trim(), intent: "books", resultCount: results.length });
     } catch {
       toast.error("Book search failed");
     } finally {
