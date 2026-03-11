@@ -526,75 +526,63 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="search" className="mt-0">
-                  <div className="p-3 sm:p-4">
-                    {searchResults ? (
-                        <UnifiedSearchResults
-                        query={searchResults.query}
-                        cards={searchResults.cards}
-                        notes={searchResults.notes}
-                        stickyNotes={searchResults.stickyNotes}
-                        scratchNotes={searchResults.scratchNotes}
-                        webResults={searchResults.webResults}
-                        generatedImage={searchResults.generatedImage}
-                        multimediaResults={searchResults.multimediaResults}
-                        reasoning={searchResults.reasoning}
-                        intent={searchResults.intent}
-                        onNavigateToCard={(cardId) => {
-                          const card = cards.find(c => c.id === cardId);
-                          if (card) {
-                            setViewingCard(card);
-                            setActiveTab('cards');
-                          }
-                        }}
-                        onNavigateToNote={(noteId) => {
-                          setActiveTab('notes');
-                          toast.success('Opening note');
-                        }}
-                        onNavigateToStickyNote={(noteId) => {
-                          setActiveTab('stickynotes');
-                          toast.success('Opening sticky note');
-                        }}
-                        onSaveAsCard={async (content, source) => {
-                          try {
-                            await createCard({
-                              number: `WEB-${Date.now()}`,
-                              title: searchResults.query,
-                              content: content,
-                              description: source ? `Source: ${source}` : undefined,
-                              category: "Research",
-                              tags: ["web-search", searchResults.query.split(' ')[0]],
-                              linkedCards: []
-                            });
-                            toast.success('Saved as card');
-                          } catch (error) {
-                            toast.error('Failed to save card');
-                          }
-                        }}
-                        onSaveAsNote={async (content, source) => {
-                          toast.success('Save as note feature coming soon');
-                        }}
-                        onSaveToScratchpad={(content) => {
-                          try {
-                            const existingNotes = localStorage.getItem('scratchpad:notes:v1');
-                            const notes = existingNotes ? JSON.parse(existingNotes) : [];
-                            notes.push({
-                              id: Date.now().toString(),
-                              content: content,
-                              timestamp: new Date()
-                            });
-                            localStorage.setItem('scratchpad:notes:v1', JSON.stringify(notes));
-                            toast.success('Saved to scratchpad');
-                          } catch (error) {
-                            toast.error('Failed to save to scratchpad');
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground text-sm">Use the search bar above to find content across your notes, cards, and sticky notes.</p>
-                      </div>
-                    )}
-                  </div>
+                  <UnifiedSearchPage
+                    cards={cards}
+                    searchResults={searchResults}
+                    onSearchResults={handleSearchResults}
+                    onQueryChange={setCurrentQuery}
+                    currentQuery={currentQuery}
+                    onNavigateToCard={(cardId) => {
+                      const card = cards.find(c => c.id === cardId);
+                      if (card) {
+                        setViewingCard(card);
+                        setActiveTab('cards');
+                      }
+                    }}
+                    onNavigateToNote={(noteId) => {
+                      setActiveTab('notes');
+                      toast.success('Opening note');
+                    }}
+                    onNavigateToStickyNote={(noteId) => {
+                      setActiveTab('stickynotes');
+                      toast.success('Opening sticky note');
+                    }}
+                    onSaveAsCard={async (content, source) => {
+                      try {
+                        await createCard({
+                          number: `WEB-${Date.now()}`,
+                          title: searchResults?.query || 'Search Result',
+                          content: content,
+                          description: source ? `Source: ${source}` : undefined,
+                          category: "Research",
+                          tags: ["web-search"],
+                          linkedCards: []
+                        });
+                        toast.success('Saved as card');
+                      } catch (error) {
+                        toast.error('Failed to save card');
+                      }
+                    }}
+                    onSaveAsNote={async (content, source) => {
+                      toast.success('Save as note feature coming soon');
+                    }}
+                    onSaveToScratchpad={(content) => {
+                      try {
+                        const existingNotes = localStorage.getItem('scratchpad:notes:v1');
+                        const notes = existingNotes ? JSON.parse(existingNotes) : [];
+                        notes.push({
+                          id: Date.now().toString(),
+                          content: content,
+                          timestamp: new Date()
+                        });
+                        localStorage.setItem('scratchpad:notes:v1', JSON.stringify(notes));
+                        toast.success('Saved to scratchpad');
+                      } catch (error) {
+                        toast.error('Failed to save to scratchpad');
+                      }
+                    }}
+                    createCard={createCard}
+                  />
                 </TabsContent>
 
                 <TabsContent value="catalyst" className="mt-0">
