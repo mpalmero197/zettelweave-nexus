@@ -250,7 +250,7 @@ export function LearningCourses() {
 
           {!isSaved && (
             <Button size="sm" variant="outline" className="text-xs h-7 w-full mt-1"
-              onClick={() => setViewingCourse({ title: course.title, url: course.url })}>
+              onClick={() => window.open(course.url, '_blank', 'noopener,noreferrer')}>
               View Course →
             </Button>
           )}
