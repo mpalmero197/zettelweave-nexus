@@ -1274,6 +1274,11 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
 
           <div className="flex-1" />
 
+          {/* Open saved maps */}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setLibraryOpen(true)} aria-label="Open saved maps">
+            <FolderOpen className="h-4 w-4" />
+          </Button>
+
           {/* Search */}
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSearchOpen(o => !o)} aria-label="Search">
             <Search className="h-4 w-4" />
