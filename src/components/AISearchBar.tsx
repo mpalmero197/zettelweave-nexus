@@ -310,7 +310,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
           </div>
           
           <Button
-            onClick={handleAISearch}
+            onClick={() => handleAISearch()}
             disabled={isSearching}
             className="bg-primary shadow-glow hover:scale-105 transition-all"
           >
