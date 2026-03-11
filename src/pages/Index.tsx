@@ -359,6 +359,16 @@ const Index = () => {
     return () => window.removeEventListener("app-tab-change", handler);
   }, []);
 
+  // Consume pending search query from FAB
+  const outletContext = useOutletContext<{ pendingSearchQuery?: string; setPendingSearchQuery?: (q: string) => void }>();
+  useEffect(() => {
+    if (outletContext?.pendingSearchQuery) {
+      setCurrentQuery(outletContext.pendingSearchQuery);
+      setActiveTab("search");
+      outletContext.setPendingSearchQuery?.("");
+    }
+  }, [outletContext?.pendingSearchQuery]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
