@@ -721,9 +721,12 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
       }
       if (e.key === 'Escape' && searchOpen) { setSearchOpen(false); setSearchQuery(''); return; }
 
-      if (editingId) {
-        if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
-        if (e.key === 'Escape') { setEditingId(null); }
+      // Skip all mind-map shortcuts when editing a node label or typing in the detail panel
+      if (editingId || nodeDetailOpen) {
+        if (editingId) {
+          if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+          if (e.key === 'Escape') { setEditingId(null); }
+        }
         return;
       }
       if (!selectedId) return;
@@ -735,7 +738,7 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, editingId, commitEdit, addChild, addSibling, deleteNode, undo, redo, data, searchOpen]);
+  }, [selectedId, editingId, nodeDetailOpen, commitEdit, addChild, addSibling, deleteNode, undo, redo, data, searchOpen]);
 
   // ── Pan & zoom ──
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -1270,6 +1273,11 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
           </Button>
 
           <div className="flex-1" />
+
+          {/* Open saved maps */}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setLibraryOpen(true)} aria-label="Open saved maps">
+            <FolderOpen className="h-4 w-4" />
+          </Button>
 
           {/* Search */}
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSearchOpen(o => !o)} aria-label="Search">
