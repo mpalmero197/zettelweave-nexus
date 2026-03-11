@@ -1,62 +1,22 @@
 
 
-## Evernote Import for Pendragon
+## Fix: More Books + Learning Path Mind Maps Not Displaying
 
-### The Reality of Evernote Integration
+### Problem 1: Too Few Books
+Line 209 of `LearningBooks.tsx` hard-caps results at 12: `const parsed = accessFiltered.slice(0, 12)`. The API already fetches 100 results, but they get truncated before display.
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+### Problem 2: Learning Path Mind Maps Show as One Card
+The `saveAsMindMap` function in `LearningTopicMaps.tsx` saves data as `{ nodes: [rootNode], edges: [] }` — an **array** with nested `children`. But MindMap's `handleLoadMap` expects `mapData.nodes` to be a **flat object/dictionary** keyed by node ID (e.g. `{ "root": {...}, "node-1": {...} }`). The mismatch means only one entry (array index "0") is processed, and its children are lost since the mind map uses `parentId` references, not nested children.
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
+### Changes
 
-### What will be built
+**`src/components/learning/LearningBooks.tsx`**:
+- Increase the display limit from 12 to 40 books
+- Add a "Load More" button or pagination so users can browse beyond the initial batch
 
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
-
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
-
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
-
-### ENEX Format Structure (for reference)
-```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
-```
-
-### Technical Details
-
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
-
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
+**`src/components/learning/LearningTopicMaps.tsx`**:
+- Rewrite `saveAsMindMap` to flatten the hierarchical topic map into the flat `Record<string, MindMapNode>` format that MindMap expects
+- Each node needs: `id`, `text`, `x`, `y`, `notes`, `parentId` (instead of nested `children`)
+- The root node gets `parentId: null`, all others reference their parent's ID
+- Generate edges array from parent-child relationships
 
