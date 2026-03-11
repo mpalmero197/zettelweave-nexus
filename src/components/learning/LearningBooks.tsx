@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface BookResult {
   key: string;
   title: string;
+  displayTitle: string;
   author: string;
   year?: number;
   coverId?: number;
@@ -22,6 +23,7 @@ interface BookResult {
   iaId?: string; // Internet Archive identifier
   languages?: string[];
   ebookAccess?: string;
+  originalLang?: string; // primary language code if different from filter
 }
 
 const LANG_NAMES: Record<string, string> = {
@@ -156,19 +158,30 @@ export function LearningBooks() {
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
-      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => ({
-        key: doc.key,
-        title: doc.title,
-        author: doc.author_name?.[0] || "Unknown author",
-        year: doc.first_publish_year,
-        coverId: doc.cover_i,
-        subjects: doc.subject?.slice(0, 5),
-        editionCount: doc.edition_count,
-        iaId: doc.ia?.[0] || null,
-        languages: doc.language || [],
-        _languages: doc.language || [],
-        ebookAccess: doc.ebook_access || "no_ebook",
-      }));
+      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => {
+        const langs: string[] = doc.language || [];
+        const primaryLang = langs.length > 0 ? langs[0] : null;
+        const isOriginallyForeign = primaryLang && primaryLang !== currentLang;
+        const origLangName = isOriginallyForeign && LANG_NAMES[primaryLang] ? LANG_NAMES[primaryLang] : (isOriginallyForeign ? primaryLang : null);
+        const displayTitle = origLangName
+          ? `${doc.title} (${origLangName})`
+          : doc.title;
+        return {
+          key: doc.key,
+          title: doc.title,
+          displayTitle,
+          author: doc.author_name?.[0] || "Unknown author",
+          year: doc.first_publish_year,
+          coverId: doc.cover_i,
+          subjects: doc.subject?.slice(0, 5),
+          editionCount: doc.edition_count,
+          iaId: doc.ia?.[0] || null,
+          languages: langs,
+          _languages: langs,
+          ebookAccess: doc.ebook_access || "no_ebook",
+          originalLang: isOriginallyForeign ? primaryLang : undefined,
+        };
+      });
 
       // Strict client-side language filter: exclude books without language data or without the selected language
       const langResult = allDocs.filter((b) =>
@@ -404,7 +417,7 @@ export function LearningBooks() {
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.title}</h3>
+                      <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.displayTitle || book.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
                       {book.year && <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>}
                       {book.languages && book.languages.length > 0 && (
@@ -551,7 +564,7 @@ export function LearningBooks() {
             <>
               <SheetHeader>
                 <SheetTitle className="text-left flex items-center gap-2 flex-wrap">
-                  {selectedBook.title}
+                  {selectedBook.displayTitle || selectedBook.title}
                   <Badge variant={selectedBook.ebookAccess === "public" ? "default" : "outline"}
                     className={`text-[10px] ${selectedBook.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : selectedBook.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
                     {selectedBook.ebookAccess === "public" ? "Full Text" : selectedBook.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
