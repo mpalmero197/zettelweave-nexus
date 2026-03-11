@@ -15,7 +15,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Friend {
   id: string;
+  user_id: string;
   display_name: string;
+  email?: string;
   avatar_url?: string;
   user_status?: string;
 }
