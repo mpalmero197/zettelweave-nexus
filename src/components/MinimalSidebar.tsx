@@ -100,6 +100,7 @@ export function MinimalSidebar({
           </div>
           <NavButton tab="catalyst" icon={Lightbulb} label="Catalyst" />
           <NavButton tab="collab" icon={Users} label="Collab" />
+          <NavButton tab="learning" icon={GraduationCap} label="Learning Hub" />
           
           <Separator className="my-2" />
           

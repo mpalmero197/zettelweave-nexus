@@ -54,6 +54,7 @@ const SECTIONS = [
       { id: 'catalyst', label: 'Catalyst', icon: Lightbulb },
       { id: 'collab', label: 'Collab', icon: Users },
       { id: 'recorder', label: 'Recorder', icon: Mic },
+      { id: 'learning', label: 'Learning', icon: GraduationCap },
     ],
   },
   {
