@@ -218,10 +218,36 @@ export function UnifiedSearchPage({
 
   return (
     <div className="space-y-0">
-      {/* ── Search input (non-knowledge tabs) ── */}
-      {subTab !== "knowledge" && (
-        <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
-          <div className="max-w-3xl mx-auto">
+      {/* ── Unified search bar for all tabs ── */}
+      <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
+        <div className="max-w-3xl mx-auto">
+          {subTab === "knowledge" ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <AISearchBar
+                  key={`knowledge-${currentQuery || 'active'}`}
+                  autoFocus
+                  initialQuery={currentQuery || undefined}
+                  cards={cards}
+                  onSearchResults={(results) => {
+                    if (results.query) {
+                      onSearchResults(results);
+                    } else {
+                      onSearchResults(results);
+                    }
+                  }}
+                  onQueryChange={onQueryChange}
+                />
+              </div>
+              <SearchHistorySidebar
+                history={history}
+                onRerun={handleRerunSearch}
+                onCombine={handleCombineSearches}
+                onClear={clearHistory}
+                onRemove={removeItem}
+              />
+            </div>
+          ) : (
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -256,9 +282,9 @@ export function UnifiedSearchPage({
                 onRemove={removeItem}
               />
             </form>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ── Sub-tab strip ── */}
       <div className="px-2 sm:px-3 pt-2">

@@ -177,15 +177,6 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleTabChange("search")}
-                  aria-label="Search"
-                >
-                  <Search className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
                   className="h-7 w-7 p-0 hidden md:flex"
                   asChild
                 >

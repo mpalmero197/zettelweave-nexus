@@ -384,38 +384,6 @@ const Index = () => {
   return (
     <>
 
-      {/* Compact AI Search Bar - Knowledge tab only */}
-      {activeTab === "search" && (
-        <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2" id="unified-search-ai-bar">
-          <div className="max-w-3xl mx-auto flex items-center gap-2">
-            <div className="flex-1">
-              <AISearchBar 
-                key={`search-${currentQuery || 'active'}`}
-                autoFocus={activeTab === "search"}
-                initialQuery={currentQuery || undefined}
-                cards={cards} 
-                onSearchResults={(results) => {
-                  if (results.query) {
-                    handleSearchResults(results);
-                  } else {
-                    setSearchResults(null);
-                    setFilteredCards(results.cards);
-                  }
-                }}
-                onQueryChange={setCurrentQuery}
-              />
-            </div>
-            <SearchHistorySidebar
-              history={history}
-              onRerun={handleRerunSearch}
-              onCombine={handleCombineSearches}
-              onClear={clearHistory}
-              onRemove={removeItem}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Main Content - Mobile Optimized */}
       <main id="main-content" className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-2 px-2 md:px-3 relative min-h-screen" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
