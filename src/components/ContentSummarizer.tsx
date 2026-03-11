@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Link, Youtube, FileImage, Loader2, Sparkles, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SummaryResult {
   title: string;
@@ -49,19 +50,77 @@ export function ContentSummarizer() {
 
     setIsLoading(true);
     try {
-      // Simulate AI summarization
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 1: Fetch the URL content
+      const { data: fetchData, error: fetchError } = await supabase.functions.invoke('fetch-url-content', {
+        body: { url: url.trim() }
+      });
+
+      if (fetchError || !fetchData?.success) {
+        throw new Error(fetchData?.error || fetchError?.message || 'Failed to fetch URL content');
+      }
+
+      const pageContent = fetchData.data.content?.substring(0, 12000) || '';
+      const pageTitle = fetchData.data.title || url;
+
+      // Step 2: Summarize with AI
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-assistant-chat', {
+        body: {
+          messages: [
+            {
+              role: 'user',
+              content: `Summarize the following web content. Return ONLY valid JSON with this exact structure (no markdown, no code fences):
+{"title":"<concise title>","summary":"<2-3 sentence summary>","keyPoints":["point 1","point 2","point 3","point 4"]}
+
+Page title: ${pageTitle}
+Content:
+${pageContent}`
+            }
+          ]
+        }
+      });
+
+      if (aiError) throw new Error(aiError.message || 'AI summarization failed');
+
+      // Parse the AI response - handle both streaming and non-streaming
+      let responseText = '';
+      if (typeof aiData === 'string') {
+        // SSE stream response - extract content from data lines
+        const lines = aiData.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '';
+              responseText += content;
+            } catch { /* skip unparseable lines */ }
+          }
+        }
+      } else if (aiData?.choices?.[0]?.message?.content) {
+        responseText = aiData.choices[0].message.content;
+      } else if (aiData?.content) {
+        responseText = aiData.content;
+      }
+
+      // Clean and parse JSON from the response
+      responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       
+      let parsed: any;
+      try {
+        parsed = JSON.parse(responseText);
+      } catch {
+        // Fallback if AI didn't return valid JSON
+        parsed = {
+          title: pageTitle,
+          summary: responseText.substring(0, 500),
+          keyPoints: ['See full summary above']
+        };
+      }
+
       const contentType = detectContentType(url);
       const newSummary: SummaryResult = {
-        title: `Content Summary - ${contentType}`,
-        summary: "This is an AI-generated summary of the content. The main points include key insights, actionable takeaways, and important concepts that can be applied to your knowledge base.",
-        keyPoints: [
-          "Key insight #1 extracted from content",
-          "Important concept for knowledge building", 
-          "Actionable takeaway for implementation",
-          "Connection to existing knowledge patterns"
-        ],
+        title: parsed.title || pageTitle,
+        summary: parsed.summary || 'Summary could not be generated.',
+        keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : ['No key points extracted'],
         contentType,
         sourceUrl: url
       };
@@ -73,10 +132,11 @@ export function ContentSummarizer() {
         title: "Content Summarized",
         description: "Successfully processed and summarized the content"
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Summarization error:', error);
       toast({
         title: "Summarization Failed",
-        description: "Failed to process the content. Please try again.",
+        description: error?.message || "Failed to process the content. Please try again.",
         variant: "destructive"
       });
     } finally {
