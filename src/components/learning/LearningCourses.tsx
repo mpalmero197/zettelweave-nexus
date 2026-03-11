@@ -249,11 +249,10 @@ export function LearningCourses() {
           )}
 
           {!isSaved && (
-            <a href={course.url} target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="outline" className="text-xs h-7 w-full mt-1">
-                View Course →
-              </Button>
-            </a>
+            <Button size="sm" variant="outline" className="text-xs h-7 w-full mt-1"
+              onClick={() => setViewingCourse({ title: course.title, url: course.url })}>
+              View Course →
+            </Button>
           )}
         </CardContent>
       </Card>

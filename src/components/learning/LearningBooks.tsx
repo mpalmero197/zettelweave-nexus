@@ -336,6 +336,15 @@ export function LearningBooks() {
                       <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
                       {book.year && <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>}
+                      {book.languages && book.languages.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[...new Set(book.languages)].slice(0, 3).map((lang) => (
+                            <Badge key={lang} variant="outline" className="text-[9px] px-1.5 py-0">
+                              {LANG_NAMES[lang] || lang}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1 mt-1.5">
                         {savedKeys.has(book.key) ? (
                           <Badge variant="secondary" className="text-[9px]"><BookmarkCheck className="h-3 w-3 mr-0.5" />Saved</Badge>
