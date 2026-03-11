@@ -153,8 +153,8 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
             contextualData: webSearchResult.contextualData || null
           };
           reasoning = webSearchResult.contextualData 
-            ? `Live web search with AI insights for: "${query}"`
-            : `Live web search results for: "${query}"`;
+            ? `Live web search with AI insights for: "${q}"`
+            : `Live web search results for: "${q}"`;
         }
       }
       else if (intent === 'image_generation') {
