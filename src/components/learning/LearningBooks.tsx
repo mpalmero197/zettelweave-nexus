@@ -381,143 +381,19 @@ export function LearningBooks() {
 
   return (
     <div className="space-y-4">
-      {/* Toggle */}
-      <div className="flex gap-2">
-        <Button size="sm" variant={view === "search" ? "default" : "outline"} onClick={() => setView("search")}>
-          <Search className="h-3.5 w-3.5 mr-1.5" />Discover
-        </Button>
-        <Button size="sm" variant={view === "library" ? "default" : "outline"} onClick={() => { setView("library"); loadSavedBooks(); }}>
+      {/* Header with hint */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Search className="h-3 w-3" />
+          Use the main Search tab to discover books
+        </p>
+        <Button size="sm" variant="outline" onClick={() => loadSavedBooks()}>
           <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />
-          My Library {savedBooks.length > 0 && `(${savedBooks.length})`}
+          Refresh Library {savedBooks.length > 0 && `(${savedBooks.length})`}
         </Button>
       </div>
 
-      {view === "search" && (
-        <>
-          <form onSubmit={(e) => { e.preventDefault(); searchBooks(query); }} className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search millions of books…" className="pl-9" />
-            </div>
-            <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-            </Button>
-          </form>
-
-          <div className="flex gap-2 flex-wrap items-center">
-            <div className="flex gap-1.5 flex-wrap">
-              {([
-                ["all", "All"],
-                ["readable", "Full Text + Borrow"],
-                ["fulltext", "Full Text Only"],
-              ] as const).map(([value, label]) => (
-                <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
-                  className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
-                  onClick={() => { setAccessFilter(value); searchBooks(query, undefined, value); }}>
-                  {label}
-                </Badge>
-              ))}
-            </div>
-            <Select value={langFilter} onValueChange={(v) => { setLangFilter(v); searchBooks(query, v); }}>
-              <SelectTrigger className="w-[130px] h-7 text-[11px]">
-                <Globe className="h-3 w-3 mr-1 shrink-0" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(LANG_NAMES).map(([code, name]) => (
-                  <SelectItem key={code} value={code} className="text-xs">{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {!searched && !loading && results.length === 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
-              <div className="flex flex-wrap gap-2">
-                {POPULAR_SEARCHES.map((term) => (
-                  <Badge key={term} variant="outline" className="cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => { setQuery(term); searchBooks(term); }}>
-                    {term}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {results.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {results.slice(0, visibleCount).map((book) => (
-                <Card key={book.key} className="hover:border-primary/30 transition-colors cursor-pointer h-full"
-                  onClick={() => openBookDetail(book)}>
-                  <CardContent className="pt-4 flex gap-3">
-                    {book.coverId ? (
-                      <img src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
-                        alt={book.title} className="w-16 h-24 object-cover rounded-sm shrink-0 bg-muted" loading="lazy" />
-                    ) : (
-                      <div className="w-16 h-24 bg-muted rounded-sm shrink-0 flex items-center justify-center">
-                        <BookOpen className="h-6 w-6 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.displayTitle || book.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
-                      {book.year && <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>}
-                      {book.languages && book.languages.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {[...new Set(book.languages)].slice(0, 3).map((lang) => (
-                            <Badge key={lang} variant="outline" className="text-[9px] px-1.5 py-0">
-                              {LANG_NAMES[lang] || lang}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      <Badge variant={book.ebookAccess === "public" ? "default" : "outline"}
-                        className={`text-[9px] px-1.5 py-0 mt-1 ${book.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : book.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
-                        {book.ebookAccess === "public" ? "Full Text" : book.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
-                      </Badge>
-                      <div className="flex items-center gap-1 mt-1.5">
-                        {savedKeys.has(book.key) ? (
-                          <Badge variant="secondary" className="text-[9px]"><BookmarkCheck className="h-3 w-3 mr-0.5" />Saved</Badge>
-                        ) : (
-                          <Button size="sm" variant="ghost" className="text-[10px] h-5 px-1.5"
-                            onClick={(e) => { e.stopPropagation(); saveBook(book); }}>
-                            <BookmarkPlus className="h-3 w-3 mr-0.5" />Save
-                          </Button>
-                        )}
-                        {book.iaId && (
-                          <Button size="sm" variant="ghost" className="text-[10px] h-5 px-1.5 text-primary"
-                            onClick={(e) => { e.stopPropagation(); openReader(book); }}>
-                            <BookOpen className="h-3 w-3 mr-0.5" />Read
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {results.length > visibleCount && (
-            <div className="text-center pt-2">
-              <Button variant="outline" size="sm" onClick={() => setVisibleCount(prev => prev + 40)}>
-                Show more ({results.length - visibleCount} remaining)
-              </Button>
-            </div>
-          )}
-
-          {searched && !loading && results.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No books found. Try different keywords.</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {view === "library" && (
-        <>
+      {/* Library view only */}
           {loadingSaved ? (
             <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
           ) : savedBooks.length === 0 ? (
@@ -605,8 +481,6 @@ export function LearningBooks() {
               })}
             </div>
           )}
-        </>
-      )}
 
       {/* Edition Picker Sheet */}
       <Sheet open={!!editionPickerBook} onOpenChange={(open) => !open && setEditionPickerBook(null)}>
