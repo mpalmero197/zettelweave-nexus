@@ -74,3 +74,6 @@ verify_jwt = true
 
 [functions.generate-topic-map]
 verify_jwt = true
+
+[functions.search-videos]
+verify_jwt = false
