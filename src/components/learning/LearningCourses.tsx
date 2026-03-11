@@ -259,27 +259,6 @@ export function LearningCourses() {
     );
   };
 
-  // Embedded course viewer
-  if (viewingCourse) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-12rem)]">
-        <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
-          <Button size="sm" variant="ghost" onClick={() => setViewingCourse(null)}>
-            <ChevronRight className="h-4 w-4 mr-1.5 rotate-180" />Back
-          </Button>
-          <h2 className="text-sm font-medium truncate flex-1">{viewingCourse.title}</h2>
-        </div>
-        <div className="flex-1 rounded-lg overflow-hidden border border-border bg-muted">
-          <iframe
-            src={viewingCourse.url}
-            className="w-full h-full border-0"
-            allow="fullscreen"
-            title={`Course: ${viewingCourse.title}`}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
