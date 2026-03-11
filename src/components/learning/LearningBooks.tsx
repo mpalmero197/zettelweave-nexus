@@ -19,7 +19,15 @@ interface BookResult {
   subjects?: string[];
   editionCount?: number;
   iaId?: string; // Internet Archive identifier
+  languages?: string[];
 }
+
+const LANG_NAMES: Record<string, string> = {
+  eng: "English", spa: "Spanish", fre: "French", ger: "German",
+  por: "Portuguese", ita: "Italian", chi: "Chinese", jpn: "Japanese",
+  kor: "Korean", rus: "Russian", ara: "Arabic", hin: "Hindi",
+  dut: "Dutch", swe: "Swedish", pol: "Polish", tur: "Turkish",
+};
 
 interface SavedBook {
   id: string;
@@ -123,7 +131,7 @@ export function LearningBooks() {
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
-      const allDocs: BookResult[] = (data.docs || []).map((doc: any) => ({
+      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => ({
         key: doc.key,
         title: doc.title,
         author: doc.author_name?.[0] || "Unknown author",
@@ -132,6 +140,7 @@ export function LearningBooks() {
         subjects: doc.subject?.slice(0, 5),
         editionCount: doc.edition_count,
         iaId: doc.ia?.[0] || null,
+        languages: doc.language || [],
         _languages: doc.language || [],
       }));
 
@@ -327,6 +336,15 @@ export function LearningBooks() {
                       <h3 className="text-sm font-medium leading-snug line-clamp-2">{book.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
                       {book.year && <p className="text-[10px] text-muted-foreground mt-0.5">First published {book.year}</p>}
+                      {book.languages && book.languages.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[...new Set(book.languages)].slice(0, 3).map((lang) => (
+                            <Badge key={lang} variant="outline" className="text-[9px] px-1.5 py-0">
+                              {LANG_NAMES[lang] || lang}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1 mt-1.5">
                         {savedKeys.has(book.key) ? (
                           <Badge variant="secondary" className="text-[9px]"><BookmarkCheck className="h-3 w-3 mr-0.5" />Saved</Badge>
