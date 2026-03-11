@@ -159,6 +159,7 @@ export function LearningBooks() {
         iaId: doc.ia?.[0] || null,
         languages: doc.language || [],
         _languages: doc.language || [],
+        ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
       // Client-side filter: prefer results that have editions in the detected language
