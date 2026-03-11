@@ -360,9 +360,9 @@ export function FloatingChatBubble() {
           ) : (
             friends.map((friend) => (
               <button
-                key={friend.id}
+                key={friend.user_id}
                 onClick={() => {
-                  setActiveChatFriend({ id: friend.id, name: friend.display_name, avatar: friend.avatar_url });
+                  setActiveChatFriend({ id: friend.user_id, name: friend.display_name, avatar: friend.avatar_url });
                   if (isMobile) setIsOpen(false);
                 }}
                 className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent/60 active:bg-accent transition-colors text-left"
