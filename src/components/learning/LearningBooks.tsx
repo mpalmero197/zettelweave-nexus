@@ -113,7 +113,8 @@ export function LearningBooks() {
   const [readerBook, setReaderBook] = useState<{ title: string; iaId: string; lang?: string } | null>(null);
   const [lastSearchLang, setLastSearchLang] = useState("eng");
   const [readerFullscreen, setReaderFullscreen] = useState(false);
-  const [langPickerBook, setLangPickerBook] = useState<BookResult | SavedBook | null>(null);
+  const [editionPickerBook, setEditionPickerBook] = useState<BookResult | SavedBook | null>(null);
+  const [editions, setEditions] = useState<EditionEntry[]>([]);
   const [loadingEditions, setLoadingEditions] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
   const [langFilter, setLangFilter] = useState<string>("eng");
