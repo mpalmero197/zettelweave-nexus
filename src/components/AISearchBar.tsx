@@ -199,7 +199,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         generatedImage,
         multimediaResults,
         reasoning,
-        query,
+        query: q,
         intent,
         resultCount: totalResults
       });
