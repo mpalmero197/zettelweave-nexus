@@ -247,7 +247,7 @@ export function LearningBooks() {
   if (readerBook) {
     const isSearch = readerBook.iaId.startsWith("search:");
     const iframeSrc = isSearch
-      ? `https://archive.org/search?query=${encodeURIComponent(readerBook.iaId.slice(7))}&and[]=mediatype:texts`
+      ? `https://openlibrary.org/search?q=${encodeURIComponent(readerBook.iaId.slice(7))}&mode=ebooks&has_fulltext=true&language=${lastSearchLang}`
       : `https://archive.org/embed/${readerBook.iaId}`;
 
     return (
