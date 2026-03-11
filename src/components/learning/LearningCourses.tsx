@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search, Loader2, GraduationCap, Clock, BookmarkCheck, ExternalLink,
+  Search, Loader2, GraduationCap, Clock, BookmarkCheck, ExternalLink, Award,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
