@@ -88,6 +88,16 @@ export function LearningCourses() {
     }
   };
 
+  const toggleCertificate = async (id: string, current: boolean) => {
+    const { error } = await (supabase.from("saved_courses") as any)
+      .update({ certificate_earned: !current, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (!error) {
+      setSavedCourses(prev => prev.map(c => c.id === id ? { ...c, certificate_earned: !current } : c));
+      toast.success(!current ? "Certificate marked!" : "Certificate removed");
+    }
+  };
+
   const removeSaved = async (id: string) => {
     await supabase.from("saved_courses").delete().eq("id", id);
     setSavedCourses(prev => prev.filter(c => c.id !== id));
