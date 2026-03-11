@@ -191,7 +191,7 @@ export function LearningCourses() {
                                 <Clock className="h-3 w-3" />{course.duration}
                               </span>
                             )}
-                            <div className="flex items-center gap-2 pt-1">
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
                               <select
                                 className="text-xs bg-muted rounded px-2 py-1 border border-border"
                                 value={course.status}
@@ -201,6 +201,17 @@ export function LearningCourses() {
                                 <option value="in_progress">In Progress</option>
                                 <option value="completed">Completed</option>
                               </select>
+                              {course.status === 'completed' && (
+                                <Button
+                                  size="sm"
+                                  variant={course.certificate_earned ? "default" : "outline"}
+                                  className="text-xs h-7 gap-1"
+                                  onClick={() => toggleCertificate(course.id, course.certificate_earned)}
+                                >
+                                  <Award className="h-3 w-3" />
+                                  {course.certificate_earned ? "Certified ✓" : "Add Cert"}
+                                </Button>
+                              )}
                               <Button size="sm" variant="outline" className="text-xs h-7"
                                 onClick={() => window.open(course.url, "_blank", "noopener,noreferrer")}>
                                 Open
