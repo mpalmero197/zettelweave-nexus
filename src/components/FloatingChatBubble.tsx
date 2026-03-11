@@ -15,7 +15,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Friend {
   id: string;
+  user_id: string;
   display_name: string;
+  email?: string;
   avatar_url?: string;
   user_status?: string;
 }
@@ -99,31 +101,17 @@ export function FloatingChatBubble() {
 
   const loadFriends = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('user_id_1, user_id_2')
-        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
-
-      if (!friendships) return;
-
-      const friendIds = friendships.map(f =>
-        f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1
-      );
-
-      if (friendIds.length === 0) {
-        setFriends([]);
-        return;
+      const { data } = await supabase.rpc('get_my_friends');
+      if (data) {
+        setFriends((data as any[]).map((f: any) => ({
+          id: f.friend_user_id,
+          user_id: f.friend_user_id,
+          display_name: f.friend_display_name || f.friend_email || 'User',
+          email: f.friend_email,
+          avatar_url: f.friend_avatar_url,
+          user_status: f.user_status,
+        })));
       }
-
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url, user_status')
-        .in('user_id', friendIds);
-
-      setFriends(profiles || []);
     } catch (error) {
       console.error('Error loading friends:', error);
     }
@@ -170,7 +158,10 @@ export function FloatingChatBubble() {
 
       const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
       for (const p of (profiles || [])) {
-        profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
+        // Use display_name, fall back to matching friend's email, then user_id prefix
+        const friendMatch = friends.find(f => f.user_id === p.user_id);
+        const name = p.display_name || friendMatch?.email || `User ${p.user_id.substring(0, 6)}`;
+        profileMap.set(p.user_id, { display_name: name, avatar_url: p.avatar_url });
       }
 
       const { data: unreadMessages } = await supabase
@@ -194,7 +185,7 @@ export function FloatingChatBubble() {
         return {
           id: uid,
           sender_id: uid,
-          sender_name: profile?.display_name || 'Unknown User',
+          sender_name: profile?.display_name || `User ${uid.substring(0, 6)}`,
           sender_avatar: profile?.avatar_url ?? undefined,
           message: thread.message,
           created_at: thread.created_at,
@@ -233,7 +224,7 @@ export function FloatingChatBubble() {
 
       const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
       for (const p of (profiles || [])) {
-        profileMap.set(p.user_id, { display_name: p.display_name || 'Unknown', avatar_url: p.avatar_url });
+        profileMap.set(p.user_id, { display_name: p.display_name || friends.find(f => f.user_id === p.user_id)?.email || `User ${p.user_id.substring(0, 6)}`, avatar_url: p.avatar_url });
       }
 
       const requestsWithProfiles = requests.map(req => {
@@ -241,7 +232,7 @@ export function FloatingChatBubble() {
         return {
           id: req.id,
           sender_id: req.sender_id,
-          sender_name: profile?.display_name || 'Unknown User',
+          sender_name: profile?.display_name || `User ${req.sender_id.substring(0, 6)}`,
           sender_avatar: profile?.avatar_url ?? undefined,
           created_at: req.created_at,
         };
@@ -369,9 +360,9 @@ export function FloatingChatBubble() {
           ) : (
             friends.map((friend) => (
               <button
-                key={friend.id}
+                key={friend.user_id}
                 onClick={() => {
-                  setActiveChatFriend({ id: friend.id, name: friend.display_name, avatar: friend.avatar_url });
+                  setActiveChatFriend({ id: friend.user_id, name: friend.display_name, avatar: friend.avatar_url });
                   if (isMobile) setIsOpen(false);
                 }}
                 className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent/60 active:bg-accent transition-colors text-left"
