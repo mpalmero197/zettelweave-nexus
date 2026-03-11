@@ -500,7 +500,13 @@ export function LearningBooks() {
           {selectedBook && (
             <>
               <SheetHeader>
-                <SheetTitle className="text-left">{selectedBook.title}</SheetTitle>
+                <SheetTitle className="text-left flex items-center gap-2 flex-wrap">
+                  {selectedBook.title}
+                  <Badge variant={selectedBook.ebookAccess === "public" ? "default" : "outline"}
+                    className={`text-[10px] ${selectedBook.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : selectedBook.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
+                    {selectedBook.ebookAccess === "public" ? "Full Text" : selectedBook.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
+                  </Badge>
+                </SheetTitle>
                 <SheetDescription className="text-left">{selectedBook.author}{selectedBook.year ? ` · ${selectedBook.year}` : ""}</SheetDescription>
               </SheetHeader>
               <div className="mt-4 space-y-4">
