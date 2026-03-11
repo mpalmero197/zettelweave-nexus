@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { AISearchBar } from "@/components/AISearchBar";
 import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
