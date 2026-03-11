@@ -98,6 +98,7 @@ export function LearningBooks() {
   const [readerBook, setReaderBook] = useState<{ title: string; iaId: string } | null>(null);
   const [lastSearchLang, setLastSearchLang] = useState("eng");
   const [readerFullscreen, setReaderFullscreen] = useState(false);
+  const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
   const readerContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleFullscreen = useCallback(() => {
@@ -163,10 +164,19 @@ export function LearningBooks() {
       }));
 
       // Client-side filter: prefer results that have editions in the detected language
-      const filtered = allDocs.filter((b: any) =>
+      const langFiltered = allDocs.filter((b: any) =>
         Array.isArray(b._languages) && b._languages.includes(lang)
       );
-      const parsed = filtered.length > 0 ? filtered.slice(0, 12) : allDocs.slice(0, 12);
+      const langResult = langFiltered.length > 0 ? langFiltered : allDocs;
+
+      // Apply ebook access filter
+      const accessFiltered = langResult.filter((b) => {
+        if (accessFilter === "fulltext") return b.ebookAccess === "public";
+        if (accessFilter === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
+        return true;
+      });
+
+      const parsed = accessFiltered.slice(0, 12);
 
       setResults(parsed);
       if (parsed.length === 0) toast.info("No books found");
@@ -324,6 +334,20 @@ export function LearningBooks() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
             </Button>
           </form>
+
+          <div className="flex gap-1.5 flex-wrap">
+            {([
+              ["all", "All Books"],
+              ["readable", "Full Text + Borrow"],
+              ["fulltext", "Full Text Only"],
+            ] as const).map(([value, label]) => (
+              <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
+                className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
+                onClick={() => { setAccessFilter(value); if (searched && query) searchBooks(query); }}>
+                {label}
+              </Badge>
+            ))}
+          </div>
 
           {!searched && (
             <div className="space-y-3">
