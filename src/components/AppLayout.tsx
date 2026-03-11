@@ -15,7 +15,7 @@ import { SkipToMain } from "./SkipToMain";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Search, Bot } from "lucide-react";
+import { Menu, Bot } from "lucide-react";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -174,15 +174,6 @@ export function AppLayout() {
 
               {/* Right: Actions */}
               <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleTabChange("search")}
-                  aria-label="Search"
-                >
-                  <Search className="h-3.5 w-3.5" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
