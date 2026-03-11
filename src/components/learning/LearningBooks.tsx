@@ -20,6 +20,7 @@ interface BookResult {
   editionCount?: number;
   iaId?: string; // Internet Archive identifier
   languages?: string[];
+  ebookAccess?: string;
 }
 
 const LANG_NAMES: Record<string, string> = {
@@ -143,7 +144,7 @@ export function LearningBooks() {
       const lang = detectLanguage(searchQuery);
       setLastSearchLang(lang);
       const res = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language`
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
@@ -158,6 +159,7 @@ export function LearningBooks() {
         iaId: doc.ia?.[0] || null,
         languages: doc.language || [],
         _languages: doc.language || [],
+        ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
       // Client-side filter: prefer results that have editions in the detected language
@@ -364,6 +366,10 @@ export function LearningBooks() {
                           ))}
                         </div>
                       )}
+                      <Badge variant={book.ebookAccess === "public" ? "default" : "outline"}
+                        className={`text-[9px] px-1.5 py-0 mt-1 ${book.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : book.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
+                        {book.ebookAccess === "public" ? "Full Text" : book.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
+                      </Badge>
                       <div className="flex items-center gap-1 mt-1.5">
                         {savedKeys.has(book.key) ? (
                           <Badge variant="secondary" className="text-[9px]"><BookmarkCheck className="h-3 w-3 mr-0.5" />Saved</Badge>
@@ -494,7 +500,13 @@ export function LearningBooks() {
           {selectedBook && (
             <>
               <SheetHeader>
-                <SheetTitle className="text-left">{selectedBook.title}</SheetTitle>
+                <SheetTitle className="text-left flex items-center gap-2 flex-wrap">
+                  {selectedBook.title}
+                  <Badge variant={selectedBook.ebookAccess === "public" ? "default" : "outline"}
+                    className={`text-[10px] ${selectedBook.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : selectedBook.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
+                    {selectedBook.ebookAccess === "public" ? "Full Text" : selectedBook.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
+                  </Badge>
+                </SheetTitle>
                 <SheetDescription className="text-left">{selectedBook.author}{selectedBook.year ? ` · ${selectedBook.year}` : ""}</SheetDescription>
               </SheetHeader>
               <div className="mt-4 space-y-4">
