@@ -29,6 +29,7 @@ export function AppLayout() {
   const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingSearchQuery, setPendingSearchQuery] = useState("");
 
   const isOnline = hookOnline && browserOnline;
 
