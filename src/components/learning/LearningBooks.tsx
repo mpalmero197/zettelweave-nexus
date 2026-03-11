@@ -105,6 +105,7 @@ export function LearningBooks() {
   const [loadingEditions, setLoadingEditions] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
   const [langFilter, setLangFilter] = useState<string>("eng");
+  const [visibleCount, setVisibleCount] = useState(40);
   const readerContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleFullscreen = useCallback(() => {
