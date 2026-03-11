@@ -1,62 +1,31 @@
 
 
-## Evernote Import for Pendragon
+## Direct Search Redirect to Class Central
 
-### The Reality of Evernote Integration
+### Approach
+Instead of using AI or scraping to fetch and display course results within the app, simply redirect the user's search query directly to Class Central's search page in a new browser tab. This guarantees 100% accurate results with real links.
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+### Changes
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
+**`src/components/learning/LearningCourses.tsx`**:
+- Replace the `searchCourses` function: instead of calling the `search-courses` edge function, open `https://www.classcentral.com/search?q={query}` in a new tab
+- Remove the results display grid, loading states, and syllabus expansion logic for search results
+- Keep the saved courses library functionality intact (users can still manually save courses they find)
+- Keep the popular topics chips but make them also trigger direct redirects
+- Simplify the search UI: search bar + "Search on Class Central" button that opens a new tab
+- Add a note like "Results open on Class Central" near the search bar so users know what to expect
 
-### What will be built
+**`supabase/functions/search-courses/index.ts`**:
+- This edge function becomes unused. We can either delete it or leave it for now. I'll leave it since it has no cost when not called.
 
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
+### What stays
+- Saved courses library (view/manage previously saved courses)
+- The save flow can still work if users manually enter course details or if we add a "Save from URL" feature later
+- Popular topic chips (now redirect to Class Central search)
 
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
-
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
-
-### ENEX Format Structure (for reference)
-```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
-```
-
-### Technical Details
-
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
-
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
+### UX Flow
+1. User types "Pilot" in search bar
+2. User clicks Search (or presses Enter)
+3. New tab opens: `https://www.classcentral.com/search?q=Pilot`
+4. User browses real Class Central results with real links
 
