@@ -131,7 +131,7 @@ export function LearningBooks() {
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
-      const allDocs: BookResult[] = (data.docs || []).map((doc: any) => ({
+      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => ({
         key: doc.key,
         title: doc.title,
         author: doc.author_name?.[0] || "Unknown author",
@@ -140,6 +140,7 @@ export function LearningBooks() {
         subjects: doc.subject?.slice(0, 5),
         editionCount: doc.edition_count,
         iaId: doc.ia?.[0] || null,
+        languages: doc.language || [],
         _languages: doc.language || [],
       }));
 
