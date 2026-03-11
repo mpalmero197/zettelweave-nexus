@@ -18,9 +18,14 @@ import {
   Key,
   Server,
   Clock,
+  Search,
+  BookOpen,
+  GraduationCap,
+  Award,
+  Star,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { AdminSectionHeader } from './AdminSectionHeader';
 
@@ -36,17 +41,42 @@ interface AnalyticsData {
   growthRate: number;
 }
 
+interface LearningMetrics {
+  uniqueSearches: number;
+  booksRead: number;
+  booksSaved: number;
+  coursesTaken: number;
+  coursesCompleted: number;
+  certificatesEarned: number;
+  topBooks: { title: string; saves: number }[];
+  bookStatusBreakdown: { status: string; count: number }[];
+  courseStatusBreakdown: { status: string; count: number }[];
+}
+
 interface DayActivity {
   day: string;
   cards: number;
   notes: number;
 }
 
+const PIE_COLORS = [
+  'hsl(200, 70%, 50%)',
+  'hsl(150, 60%, 45%)',
+  'hsl(45, 80%, 50%)',
+  'hsl(280, 60%, 55%)',
+  'hsl(0, 60%, 50%)',
+];
+
 export function AdminOverview() {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalUsers: 0, totalCards: 0, totalNotes: 0, totalFiles: 0,
     newUsersThisWeek: 0, cardsThisWeek: 0, notesThisWeek: 0,
     storageUsed: 0, growthRate: 0,
+  });
+  const [learning, setLearning] = useState<LearningMetrics>({
+    uniqueSearches: 0, booksRead: 0, booksSaved: 0,
+    coursesTaken: 0, coursesCompleted: 0, certificatesEarned: 0,
+    topBooks: [], bookStatusBreakdown: [], courseStatusBreakdown: [],
   });
   const [activityData, setActivityData] = useState<DayActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +98,9 @@ export function AdminOverview() {
         { data: filesSize },
         { data: recentCards },
         { data: recentNotes },
+        { data: searchHistory },
+        { data: allBooks },
+        { data: allCourses },
       ] = await Promise.all([
         supabase.rpc('get_all_users'),
         supabase.from('zettel_cards').select('id', { count: 'exact', head: true }).is('deleted_at', null),
@@ -78,8 +111,12 @@ export function AdminOverview() {
         supabase.from('files').select('file_size'),
         supabase.from('zettel_cards').select('created_at').gte('created_at', oneWeekAgo.toISOString()).is('deleted_at', null),
         supabase.from('notes').select('created_at').gte('created_at', oneWeekAgo.toISOString()).is('deleted_at', null),
+        (supabase.from('search_history' as any) as any).select('query'),
+        supabase.from('reading_list').select('title, status, book_key'),
+        (supabase.from('saved_courses') as any).select('status, certificate_earned, title'),
       ]);
 
+      // Core analytics
       const newUsersCount = allUsers?.filter(u => new Date(u.created_at) >= oneWeekAgo).length || 0;
       const totalStorage = filesSize?.reduce((acc, file) => acc + (file.file_size || 0), 0) || 0;
       const prevWeekUsers = (allUsers?.length || 0) - newUsersCount;
@@ -95,6 +132,58 @@ export function AdminOverview() {
         notesThisWeek: newNotes?.length || 0,
         storageUsed: totalStorage,
         growthRate: Math.min(growthRate, 999),
+      });
+
+      // Learning metrics
+      const searches = searchHistory || [];
+      const uniqueQueries = new Set(searches.map((s: any) => (s.query || '').toLowerCase().trim()));
+
+      const books = allBooks || [];
+      const booksRead = books.filter((b: any) => b.status === 'finished' || b.status === 'read').length;
+      const booksSaved = books.length;
+
+      // Book popularity (most saved titles)
+      const bookCountMap: Record<string, number> = {};
+      books.forEach((b: any) => {
+        const t = b.title || 'Unknown';
+        bookCountMap[t] = (bookCountMap[t] || 0) + 1;
+      });
+      const topBooks = Object.entries(bookCountMap)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([title, saves]) => ({ title, saves }));
+
+      // Book status breakdown
+      const bookStatusMap: Record<string, number> = {};
+      books.forEach((b: any) => {
+        const s = b.status || 'unknown';
+        bookStatusMap[s] = (bookStatusMap[s] || 0) + 1;
+      });
+      const bookStatusBreakdown = Object.entries(bookStatusMap).map(([status, count]) => ({ status, count }));
+
+      const courses = allCourses || [];
+      const coursesTaken = courses.length;
+      const coursesCompleted = courses.filter((c: any) => c.status === 'completed').length;
+      const certificatesEarned = courses.filter((c: any) => c.certificate_earned === true).length;
+
+      // Course status breakdown
+      const courseStatusMap: Record<string, number> = {};
+      courses.forEach((c: any) => {
+        const s = c.status || 'unknown';
+        courseStatusMap[s] = (courseStatusMap[s] || 0) + 1;
+      });
+      const courseStatusBreakdown = Object.entries(courseStatusMap).map(([status, count]) => ({ status, count }));
+
+      setLearning({
+        uniqueSearches: uniqueQueries.size,
+        booksRead,
+        booksSaved,
+        coursesTaken,
+        coursesCompleted,
+        certificatesEarned,
+        topBooks,
+        bookStatusBreakdown,
+        courseStatusBreakdown,
       });
 
       // Build real activity data grouped by day
@@ -141,6 +230,17 @@ export function AdminOverview() {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const statusLabel: Record<string, string> = {
+    want_to_read: 'Want to Read',
+    reading: 'Reading',
+    finished: 'Finished',
+    read: 'Read',
+    want_to_take: 'Want to Take',
+    in_progress: 'In Progress',
+    completed: 'Completed',
+    unknown: 'Unknown',
   };
 
   if (loading) {
@@ -252,6 +352,76 @@ export function AdminOverview() {
         </Card>
       </div>
 
+      {/* Learning & Engagement Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Unique Searches</CardTitle>
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{learning.uniqueSearches.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Books Saved</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{learning.booksSaved.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Books Read</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{learning.booksRead.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Courses Taken</CardTitle>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{learning.coursesTaken.toLocaleString()}</div>
+            <span className="text-xs text-muted-foreground">{learning.coursesCompleted} completed</span>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Certificates</CardTitle>
+            <Award className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{learning.certificatesEarned.toLocaleString()}</div>
+            <span className="text-xs text-muted-foreground">earned</span>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Completion Rate</CardTitle>
+            <Zap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">
+              {learning.coursesTaken > 0
+                ? Math.round((learning.coursesCompleted / learning.coursesTaken) * 100)
+                : 0}%
+            </div>
+            <span className="text-xs text-muted-foreground">courses</span>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-primary/10">
@@ -326,6 +496,125 @@ export function AdminOverview() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Learning Insights Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Book Popularity Ranking */}
+        <Card className="border-primary/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Book Popularity
+            </CardTitle>
+            <CardDescription>Most saved books across all users</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {learning.topBooks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No books saved yet</p>
+            ) : (
+              <div className="space-y-3">
+                {learning.topBooks.map((book, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-muted-foreground w-6 text-right">#{idx + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{book.title}</p>
+                      <p className="text-xs text-muted-foreground">{book.saves} save{book.saves !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="w-16">
+                      <Progress value={learning.topBooks[0]?.saves ? (book.saves / learning.topBooks[0].saves) * 100 : 0} className="h-1.5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Book Status Breakdown */}
+        <Card className="border-primary/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Star className="h-5 w-5 text-primary" />
+              Reading Status
+            </CardTitle>
+            <CardDescription>Distribution of book statuses</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {learning.bookStatusBreakdown.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No data</p>
+            ) : (
+              <div className="h-48 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={learning.bookStatusBreakdown.map(b => ({ name: statusLabel[b.status] || b.status, value: b.count }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={70}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {learning.bookStatusBreakdown.map((_, idx) => (
+                        <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 mt-2 justify-center">
+              {learning.bookStatusBreakdown.map((b, idx) => (
+                <Badge key={b.status} variant="outline" className="text-[10px] gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                  {statusLabel[b.status] || b.status}: {b.count}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Course Status Breakdown */}
+        <Card className="border-primary/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Course Progress
+            </CardTitle>
+            <CardDescription>Status and certificates overview</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {learning.courseStatusBreakdown.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No courses yet</p>
+            ) : (
+              <div className="space-y-3">
+                {learning.courseStatusBreakdown.map((cs) => (
+                  <div key={cs.status} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{statusLabel[cs.status] || cs.status}</span>
+                      <span className="text-muted-foreground">{cs.count}</span>
+                    </div>
+                    <Progress value={learning.coursesTaken > 0 ? (cs.count / learning.coursesTaken) * 100 : 0} className="h-1.5" />
+                  </div>
+                ))}
+                {learning.certificatesEarned > 0 && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-border mt-3">
+                    <Award className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm font-medium">{learning.certificatesEarned} certificate{learning.certificatesEarned !== 1 ? 's' : ''} earned</span>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

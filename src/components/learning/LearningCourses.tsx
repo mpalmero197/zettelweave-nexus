@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search, Loader2, GraduationCap, Clock, BookmarkCheck, ExternalLink,
+  Search, Loader2, GraduationCap, Clock, BookmarkCheck, ExternalLink, Award,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +22,8 @@ interface SavedCourse {
   syllabus: string[];
   status: string;
   notes: string | null;
+  certificate_earned: boolean;
+  certificate_url: string | null;
 }
 
 const POPULAR_TOPICS = [
@@ -83,6 +85,16 @@ export function LearningCourses() {
     if (!error) {
       setSavedCourses(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       toast.success("Status updated");
+    }
+  };
+
+  const toggleCertificate = async (id: string, current: boolean) => {
+    const { error } = await (supabase.from("saved_courses") as any)
+      .update({ certificate_earned: !current, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (!error) {
+      setSavedCourses(prev => prev.map(c => c.id === id ? { ...c, certificate_earned: !current } : c));
+      toast.success(!current ? "Certificate marked!" : "Certificate removed");
     }
   };
 
@@ -179,7 +191,7 @@ export function LearningCourses() {
                                 <Clock className="h-3 w-3" />{course.duration}
                               </span>
                             )}
-                            <div className="flex items-center gap-2 pt-1">
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
                               <select
                                 className="text-xs bg-muted rounded px-2 py-1 border border-border"
                                 value={course.status}
@@ -189,6 +201,17 @@ export function LearningCourses() {
                                 <option value="in_progress">In Progress</option>
                                 <option value="completed">Completed</option>
                               </select>
+                              {course.status === 'completed' && (
+                                <Button
+                                  size="sm"
+                                  variant={course.certificate_earned ? "default" : "outline"}
+                                  className="text-xs h-7 gap-1"
+                                  onClick={() => toggleCertificate(course.id, course.certificate_earned)}
+                                >
+                                  <Award className="h-3 w-3" />
+                                  {course.certificate_earned ? "Certified ✓" : "Add Cert"}
+                                </Button>
+                              )}
                               <Button size="sm" variant="outline" className="text-xs h-7"
                                 onClick={() => window.open(course.url, "_blank", "noopener,noreferrer")}>
                                 Open
