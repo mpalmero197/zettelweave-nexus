@@ -139,16 +139,17 @@ export function LearningBooks() {
     setLoadingSaved(false);
   };
 
-  const searchBooks = async (searchQuery: string) => {
-    if (!searchQuery.trim()) return;
+  const searchBooks = useCallback(async (searchQuery: string, overrideLang?: string, overrideAccess?: string) => {
     setLoading(true);
     setSearched(true);
+    const currentLang = overrideLang ?? langFilter;
+    const currentAccess = overrideAccess ?? accessFilter;
     try {
-      const lang = detectLanguage(searchQuery);
-      setLastSearchLang(lang);
-      const res = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
-      );
+      const isEmptyQuery = !searchQuery.trim();
+      const url = isEmptyQuery
+        ? `https://openlibrary.org/search.json?q=subject:popular&lang=${currentLang}&limit=36&sort=rating&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
+        : `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${currentLang}&limit=36&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
       const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => ({
@@ -165,30 +166,30 @@ export function LearningBooks() {
         ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
-      // Client-side filter: prefer results that have editions in the detected language
+      // Client-side language filter
       const langFiltered = allDocs.filter((b: any) =>
-        Array.isArray(b._languages) && b._languages.includes(lang)
+        Array.isArray(b._languages) && b._languages.includes(currentLang)
       );
       const langResult = langFiltered.length > 0 ? langFiltered : allDocs;
 
       // Apply ebook access filter
       const accessFiltered = langResult.filter((b) => {
-        if (accessFilter === "fulltext") return b.ebookAccess === "public";
-        if (accessFilter === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
+        if (currentAccess === "fulltext") return b.ebookAccess === "public";
+        if (currentAccess === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
         return true;
       });
 
       const parsed = accessFiltered.slice(0, 12);
 
       setResults(parsed);
-      if (parsed.length === 0) toast.info("No books found");
+      if (parsed.length === 0) toast.info("No books found for these filters");
     } catch (err: any) {
       console.error(err);
       toast.error("Search failed", { description: err.message });
     } finally {
       setLoading(false);
     }
-  };
+  }, [langFilter, accessFilter]);
 
   const openBookDetail = async (book: BookResult) => {
     setSelectedBook(book);
