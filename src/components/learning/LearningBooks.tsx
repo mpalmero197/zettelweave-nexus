@@ -150,10 +150,10 @@ export function LearningBooks() {
     const currentLang = overrideLang ?? langFilter;
     const currentAccess = overrideAccess ?? accessFilter;
     try {
+      const langParam = `language:${currentLang}`;
       const isEmptyQuery = !searchQuery.trim();
-      const url = isEmptyQuery
-        ? `https://openlibrary.org/search.json?q=subject:popular&lang=${currentLang}&limit=36&sort=rating&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
-        : `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${currentLang}&limit=36&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`;
+      const searchParam = isEmptyQuery ? `subject:popular ${langParam}` : `${searchQuery} ${langParam}`;
+      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(searchParam)}&limit=48&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access${isEmptyQuery ? "&sort=rating" : ""}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
@@ -171,11 +171,10 @@ export function LearningBooks() {
         ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
-      // Client-side language filter
-      const langFiltered = allDocs.filter((b: any) =>
+      // Strict client-side language filter
+      const langResult = allDocs.filter((b: any) =>
         Array.isArray(b._languages) && b._languages.includes(currentLang)
       );
-      const langResult = langFiltered.length > 0 ? langFiltered : allDocs;
 
       // Apply ebook access filter
       const accessFiltered = langResult.filter((b) => {
