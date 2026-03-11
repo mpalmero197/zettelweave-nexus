@@ -13,39 +13,37 @@ interface QuickCaptureWidgetProps {
   onCreateCard?: (card: any) => void;
 }
 
+const captureTable = () => supabase.from('quick_captures' as any);
+
 export function QuickCaptureWidget({ onCreateCard }: QuickCaptureWidgetProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [content, setContent] = useState("");
 
-  // Load saved draft from server
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('quick_captures')
+    captureTable()
       .select('content')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
       .limit(1)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data?.content) setContent(data.content);
       });
   }, [user]);
 
   const handleSave = async () => {
     if (!content.trim() || !user) return;
-    // Upsert a single draft row per user
-    const { data: existing } = await supabase
-      .from('quick_captures')
+    const { data: existing } = await captureTable()
       .select('id')
       .eq('user_id', user.id)
       .limit(1)
       .single();
     if (existing) {
-      await supabase.from('quick_captures').update({ content, updated_at: new Date().toISOString() }).eq('id', existing.id);
+      await captureTable().update({ content, updated_at: new Date().toISOString() } as any).eq('id', (existing as any).id);
     } else {
-      await supabase.from('quick_captures').insert({ user_id: user.id, content });
+      await captureTable().insert({ user_id: user.id, content } as any);
     }
     toast("Note saved");
   };

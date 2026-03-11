@@ -15,20 +15,22 @@ export interface SearchHistoryItem {
 
 const MAX_HISTORY_ITEMS = 50;
 
+// Helper for table not yet in generated types
+const historyTable = () => supabase.from('search_history' as any);
+
 export function useSearchHistory() {
   const { user } = useAuth();
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('search_history')
+    const { data } = await historyTable()
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(MAX_HISTORY_ITEMS);
     if (data) {
-      setHistory(data.map((d: any) => ({
+      setHistory((data as any[]).map((d: any) => ({
         id: d.id,
         query: d.query,
         intent: d.intent,
@@ -45,8 +47,7 @@ export function useSearchHistory() {
 
   const addToHistory = async (item: Omit<SearchHistoryItem, 'id' | 'timestamp'>) => {
     if (!user) return;
-    const { data } = await supabase
-      .from('search_history')
+    const { data } = await historyTable()
       .insert({
         user_id: user.id,
         query: item.query,
@@ -55,19 +56,20 @@ export function useSearchHistory() {
         has_images: item.hasImages || false,
         has_videos: item.hasVideos || false,
         has_citations: item.hasCitations || false,
-      })
+      } as any)
       .select()
       .single();
     if (data) {
+      const d = data as any;
       const newItem: SearchHistoryItem = {
-        id: data.id,
-        query: data.query,
-        intent: data.intent,
-        timestamp: new Date(data.created_at).getTime(),
-        resultCount: data.result_count,
-        hasImages: data.has_images,
-        hasVideos: data.has_videos,
-        hasCitations: data.has_citations,
+        id: d.id,
+        query: d.query,
+        intent: d.intent,
+        timestamp: new Date(d.created_at).getTime(),
+        resultCount: d.result_count,
+        hasImages: d.has_images,
+        hasVideos: d.has_videos,
+        hasCitations: d.has_citations,
       };
       setHistory(prev => [newItem, ...prev].slice(0, MAX_HISTORY_ITEMS));
     }
@@ -75,12 +77,12 @@ export function useSearchHistory() {
 
   const clearHistory = async () => {
     if (!user) return;
-    await supabase.from('search_history').delete().eq('user_id', user.id);
+    await historyTable().delete().eq('user_id', user.id);
     setHistory([]);
   };
 
   const removeItem = async (id: string) => {
-    await supabase.from('search_history').delete().eq('id', id);
+    await historyTable().delete().eq('id', id);
     setHistory(prev => prev.filter(item => item.id !== id));
   };
 

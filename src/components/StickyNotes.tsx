@@ -25,22 +25,23 @@ const stickyColors = [
   "#fef08a", "#fda4af", "#a7f3d0", "#bfdbfe", "#ddd6fe", "#fed7aa",
 ];
 
+// Helper to query the sticky_notes table (not yet in generated types)
+const stickyTable = () => supabase.from('sticky_notes' as any);
+
 export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
   const { user } = useAuth();
   const [notes, setNotes] = useState<StickyNoteData[]>([]);
   const [selectedColor, setSelectedColor] = useState(stickyColors[0]);
   const [loading, setLoading] = useState(true);
 
-  // Load from Supabase
   const loadNotes = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    const { data, error } = await supabase
-      .from('sticky_notes')
+    const { data, error } = await stickyTable()
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
     if (!error && data) {
-      setNotes(data.map((n: any) => ({
+      setNotes((data as any[]).map((n: any) => ({
         id: n.id,
         content: n.content,
         color: n.color,
@@ -56,18 +57,16 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
   const addNote = async () => {
     if (!user) return;
     const pos = { x: Math.random() * 300, y: Math.random() * 200 };
-    const { data, error } = await supabase
-      .from('sticky_notes')
-      .insert({ user_id: user.id, content: 'New sticky note...', color: selectedColor, position_x: pos.x, position_y: pos.y })
+    const { data, error } = await stickyTable()
+      .insert({ user_id: user.id, content: 'New sticky note...', color: selectedColor, position_x: pos.x, position_y: pos.y } as any)
       .select()
       .single();
     if (!error && data) {
+      const d = data as any;
       setNotes(prev => [...prev, {
-        id: data.id,
-        content: data.content,
-        color: data.color,
-        position: { x: Number(data.position_x), y: Number(data.position_y) },
-        created: new Date(data.created_at),
+        id: d.id, content: d.content, color: d.color,
+        position: { x: Number(d.position_x), y: Number(d.position_y) },
+        created: new Date(d.created_at),
       }]);
       toast("Sticky note added");
     }
@@ -75,12 +74,12 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
 
   const updateNote = async (id: string, content: string) => {
     setNotes(prev => prev.map(note => note.id === id ? { ...note, content } : note));
-    await supabase.from('sticky_notes').update({ content, updated_at: new Date().toISOString() }).eq('id', id);
+    await stickyTable().update({ content, updated_at: new Date().toISOString() } as any).eq('id', id);
   };
 
   const deleteNote = async (id: string) => {
     setNotes(prev => prev.filter(note => note.id !== id));
-    await supabase.from('sticky_notes').delete().eq('id', id);
+    await stickyTable().delete().eq('id', id);
     toast("Sticky note deleted");
   };
 
@@ -104,15 +103,15 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
     toast("Converted sticky note to zettel card!");
   };
 
-  const updatePosition = async (id: string, position: { x: number; y: number }) => {
+  const updatePosition = (id: string, position: { x: number; y: number }) => {
     setNotes(prev => prev.map(note => note.id === id ? { ...note, position } : note));
-    await supabase.from('sticky_notes').update({ position_x: position.x, position_y: position.y }).eq('id', id);
+    stickyTable().update({ position_x: position.x, position_y: position.y } as any).eq('id', id);
   };
 
   const clearAllNotes = async () => {
     if (notes.length === 0 || !user) return;
     if (confirm(`Are you sure you want to delete all ${notes.length} sticky notes?`)) {
-      await supabase.from('sticky_notes').delete().eq('user_id', user.id);
+      await stickyTable().delete().eq('user_id', user.id);
       setNotes([]);
       toast("All sticky notes cleared");
     }
@@ -176,7 +175,7 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
                 <div className="text-center">
                   <StickyNote className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p className="text-lg font-medium">No sticky notes yet</p>
-                  <p className="text-sm">Click "Add Note" to start brainstorming with sticky notes</p>
+                  <p className="text-sm">Click "Add Note" to start brainstorming</p>
                   <p className="text-xs mt-2">Notes are saved to the cloud and sync across devices</p>
                 </div>
               </div>
@@ -186,7 +185,7 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
               <Draggable
                 key={note.id}
                 defaultPosition={note.position}
-                onStop={(e, data) => updatePosition(note.id, { x: data.x, y: data.y })}
+                onStop={(_e, data) => updatePosition(note.id, { x: data.x, y: data.y })}
                 bounds="parent"
                 handle=".drag-handle"
               >
@@ -194,18 +193,18 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
                   className="absolute w-52 h-52 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
                   style={{ backgroundColor: note.color }}
                 >
-                  <div className="drag-handle flex justify-between items-center p-2 cursor-move bg-black/5 rounded-t-lg">
+                  <div className="drag-handle flex justify-between items-center p-2 cursor-move rounded-t-lg" style={{ background: 'rgba(0,0,0,0.05)' }}>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-black/10 text-gray-900"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0"
                         onClick={() => convertToCard(note)} title="Convert to Zettel Card">
                         <ArrowRight className="h-3 w-3" />
                       </Button>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-900 font-medium">
+                      <span className="text-xs font-medium" style={{ color: 'rgba(0,0,0,0.7)' }}>
                         {note.created.toLocaleDateString()}
                       </span>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-black/10 text-gray-900"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0"
                         onClick={() => deleteNote(note.id)} title="Delete Note">
                         <X className="h-3 w-3" />
                       </Button>
@@ -216,7 +215,8 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
                     <Textarea
                       value={note.content}
                       onChange={(e) => updateNote(note.id, e.target.value)}
-                      className="w-full h-36 resize-none border-none bg-transparent p-0 text-sm text-gray-900 focus:ring-0 placeholder:text-gray-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="w-full h-36 resize-none border-none bg-transparent p-0 text-sm focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      style={{ color: 'rgba(0,0,0,0.85)' }}
                       placeholder="Write your note here..."
                     />
                   </div>
