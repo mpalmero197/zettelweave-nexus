@@ -165,9 +165,9 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
         if (imageResult?.imageUrl) {
           generatedImage = {
             imageUrl: imageResult.imageUrl,
-            prompt: query
+            prompt: q
           };
-          reasoning = `AI generated image for: "${query}"`;
+          reasoning = `AI generated image for: "${q}"`;
         }
       }
       else if (intent === 'multimedia_search') {
