@@ -121,8 +121,14 @@ export function MobileNavigation({
   };
 
   const handleSearchSubmit = () => {
+    const q = searchQuery.trim();
     setOpen(false);
-    onTabChange?.('search');
+    if (q && onSearchWithQuery) {
+      onSearchWithQuery(q);
+      setSearchQuery('');
+    } else {
+      onTabChange?.('search');
+    }
   };
 
   const isKeyboardUp = searchFocused && keyboardOffset > 50;
