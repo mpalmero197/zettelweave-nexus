@@ -17,6 +17,7 @@ interface MobileNavigationProps {
   isAdmin?: boolean;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  onSearchWithQuery?: (query: string) => void;
   onSignOut?: () => void;
   onAccountSettings?: () => void;
 }
