@@ -208,6 +208,10 @@ export function AppLayout() {
             isAdmin={isAdmin}
             activeTab={activeTab}
             onTabChange={handleTabChange}
+            onSearchWithQuery={(query) => {
+              setPendingSearchQuery(query);
+              handleTabChange("search");
+            }}
             onSignOut={handleSignOut}
             onAccountSettings={() => navigate("/settings")}
           />
