@@ -142,7 +142,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
 
         if (webSearchResult) {
           webResults = {
-            query,
+            query: q,
             result: webSearchResult.result || '',
             images: webSearchResult.images || [],
             videos: webSearchResult.videos || [],
