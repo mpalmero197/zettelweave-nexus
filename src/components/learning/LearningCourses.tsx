@@ -22,6 +22,8 @@ interface SavedCourse {
   syllabus: string[];
   status: string;
   notes: string | null;
+  certificate_earned: boolean;
+  certificate_url: string | null;
 }
 
 const POPULAR_TOPICS = [
