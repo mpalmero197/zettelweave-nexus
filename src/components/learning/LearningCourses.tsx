@@ -234,7 +234,7 @@ export function LearningCourses() {
                 <option value="completed">Completed</option>
               </select>
               <Button size="sm" variant="outline" className="text-xs h-7"
-                onClick={() => setViewingCourse({ title: course.title, url: course.url })}>
+                onClick={() => window.open(course.url, '_blank', 'noopener,noreferrer')}>
                 Open Course
               </Button>
               <Button
