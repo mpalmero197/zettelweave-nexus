@@ -60,7 +60,7 @@ export function LearningCourses() {
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [expandedSyllabus, setExpandedSyllabus] = useState<Set<number>>(new Set());
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
-  const [viewingCourse, setViewingCourse] = useState<{ title: string; url: string } | null>(null);
+  
 
   useEffect(() => {
     if (user) loadSavedCourses();
