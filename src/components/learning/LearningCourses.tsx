@@ -43,19 +43,8 @@ const statusLabel: Record<string, string> = {
 
 export function LearningCourses() {
   const { user } = useAuth();
-  const [query, setQuery] = useState("");
-  const [view, setView] = useState<"search" | "saved">("search");
   const [savedCourses, setSavedCourses] = useState<SavedCourse[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
-
-  const openClassCentral = (searchQuery: string) => {
-    if (!searchQuery.trim()) return;
-    window.open(
-      `https://www.classcentral.com/search?q=${encodeURIComponent(searchQuery.trim())}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-  };
 
   useEffect(() => {
     if (user) loadSavedCourses();
