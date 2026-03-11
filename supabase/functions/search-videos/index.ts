@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 12,
+        limit: 24,
       }),
     });
 
