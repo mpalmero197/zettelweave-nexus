@@ -51,7 +51,7 @@ serve(async (req) => {
                         title: { type: "string", description: "Full course title" },
                         provider: { type: "string", description: "Platform name (edX, Coursera, MIT OCW, Khan Academy, Udacity, Class Central)" },
                         university: { type: "string", description: "University or organization offering it, if applicable" },
-                        url: { type: "string", description: "Platform search/browse URL for the topic (e.g. https://www.coursera.org/search?query=topic). Do NOT fabricate specific course page URLs." },
+                        url: { type: "string", description: "Class Central search URL: https://www.classcentral.com/search?q= followed by URL-encoded course title and provider (e.g. https://www.classcentral.com/search?q=Introduction+to+Machine+Learning+Stanford)." },
                         description: { type: "string", description: "2-3 sentence course description" },
                         difficulty: { type: "string", enum: ["Beginner", "Intermediate", "Advanced"] },
                         duration: { type: "string", description: "e.g. '6 weeks', '3 months', 'Self-paced'" },
