@@ -443,7 +443,7 @@ export function LearningBooks() {
 
           {results.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {results.map((book) => (
+              {results.slice(0, visibleCount).map((book) => (
                 <Card key={book.key} className="hover:border-primary/30 transition-colors cursor-pointer h-full"
                   onClick={() => openBookDetail(book)}>
                   <CardContent className="pt-4 flex gap-3">
@@ -492,6 +492,14 @@ export function LearningBooks() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {results.length > visibleCount && (
+            <div className="text-center pt-2">
+              <Button variant="outline" size="sm" onClick={() => setVisibleCount(prev => prev + 40)}>
+                Show more ({results.length - visibleCount} remaining)
+              </Button>
             </div>
           )}
 
