@@ -26,6 +26,18 @@ interface BookResult {
   originalLang?: string; // primary language code if different from filter
 }
 
+interface EditionEntry {
+  key: string;
+  title: string;
+  publishers?: string[];
+  publish_date?: string;
+  languages?: { key: string }[];
+  ocaid?: string;
+  covers?: number[];
+  number_of_pages?: number;
+  physical_format?: string;
+}
+
 const LANG_NAMES: Record<string, string> = {
   eng: "English", spa: "Spanish", fre: "French", ger: "German",
   por: "Portuguese", ita: "Italian", chi: "Chinese", jpn: "Japanese",
