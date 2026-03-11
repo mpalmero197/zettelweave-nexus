@@ -59,7 +59,7 @@ export function ContentSummarizer() {
         throw new Error(fetchData?.error || fetchError?.message || 'Failed to fetch URL content');
       }
 
-      const pageContent = fetchData.data.content?.substring(0, 12000) || '';
+      const pageContent = fetchData.data.content?.substring(0, 3000) || '';
       const pageTitle = fetchData.data.title || url;
 
       // Step 2: Summarize with AI
