@@ -27,7 +27,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a course discovery assistant. Given a search query, generate 8 realistic course results that would be found on platforms like edX, Coursera, Class Central, MIT OpenCourseWare, Khan Academy, and Udacity. Each course should be realistic and useful. IMPORTANT: For the url field, always provide the platform's search results page URL for the topic (e.g. "https://www.coursera.org/search?query=machine+learning", "https://www.edx.org/search?q=pilot", "https://www.khanacademy.org/search?referer=%2F&page_search_query=physics", "https://www.udacity.com/catalog"). Do NOT fabricate specific course page URLs — use search/browse URLs so users always land on a working page with relevant results. Use the provide_courses tool to return structured results.`,
+            content: `You are a course discovery assistant. Given a search query, generate 8 realistic course results that would be found on platforms like edX, Coursera, Class Central, MIT OpenCourseWare, Khan Academy, and Udacity. Each course should be realistic and useful. IMPORTANT: For the url field, construct a Class Central search URL by using "https://www.classcentral.com/search?q=" followed by the URL-encoded course title and provider name (e.g. "https://www.classcentral.com/search?q=Introduction+to+Machine+Learning+Stanford"). This ensures users land on a real Class Central search page with the actual course listing. Use the provide_courses tool to return structured results.`,
           },
           {
             role: "user",
