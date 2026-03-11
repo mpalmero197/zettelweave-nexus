@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Edit3, Save, Plus } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface QuickCaptureWidgetProps {
   onCreateCard?: (card: any) => void;
@@ -13,11 +15,38 @@ interface QuickCaptureWidgetProps {
 
 export function QuickCaptureWidget({ onCreateCard }: QuickCaptureWidgetProps) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [content, setContent] = useState("");
 
-  const handleSave = () => {
-    if (!content.trim()) return;
-    localStorage.setItem('quickCapture', content);
+  // Load saved draft from server
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('quick_captures')
+      .select('content')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data?.content) setContent(data.content);
+      });
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!content.trim() || !user) return;
+    // Upsert a single draft row per user
+    const { data: existing } = await supabase
+      .from('quick_captures')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .single();
+    if (existing) {
+      await supabase.from('quick_captures').update({ content, updated_at: new Date().toISOString() }).eq('id', existing.id);
+    } else {
+      await supabase.from('quick_captures').insert({ user_id: user.id, content });
+    }
     toast("Note saved");
   };
 
