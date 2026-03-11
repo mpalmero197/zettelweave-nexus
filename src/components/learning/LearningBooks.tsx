@@ -564,7 +564,7 @@ export function LearningBooks() {
             <>
               <SheetHeader>
                 <SheetTitle className="text-left flex items-center gap-2 flex-wrap">
-                  {selectedBook.title}
+                  {selectedBook.displayTitle || selectedBook.title}
                   <Badge variant={selectedBook.ebookAccess === "public" ? "default" : "outline"}
                     className={`text-[10px] ${selectedBook.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : selectedBook.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
                     {selectedBook.ebookAccess === "public" ? "Full Text" : selectedBook.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
