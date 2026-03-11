@@ -721,9 +721,12 @@ export default function MindMap({ cards = [], onCardSelect, onCreateCard }: Mind
       }
       if (e.key === 'Escape' && searchOpen) { setSearchOpen(false); setSearchQuery(''); return; }
 
-      if (editingId) {
-        if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
-        if (e.key === 'Escape') { setEditingId(null); }
+      // Skip all mind-map shortcuts when editing a node label or typing in the detail panel
+      if (editingId || nodeDetailOpen) {
+        if (editingId) {
+          if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+          if (e.key === 'Escape') { setEditingId(null); }
+        }
         return;
       }
       if (!selectedId) return;
