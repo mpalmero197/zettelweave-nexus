@@ -366,6 +366,10 @@ export function LearningBooks() {
                           ))}
                         </div>
                       )}
+                      <Badge variant={book.ebookAccess === "public" ? "default" : "outline"}
+                        className={`text-[9px] px-1.5 py-0 mt-1 ${book.ebookAccess === "public" ? "bg-green-600 hover:bg-green-600" : book.ebookAccess === "borrowable" ? "border-yellow-500 text-yellow-600" : "border-muted-foreground/40 text-muted-foreground"}`}>
+                        {book.ebookAccess === "public" ? "Full Text" : book.ebookAccess === "borrowable" ? "Borrow" : "Preview"}
+                      </Badge>
                       <div className="flex items-center gap-1 mt-1.5">
                         {savedKeys.has(book.key) ? (
                           <Badge variant="secondary" className="text-[9px]"><BookmarkCheck className="h-3 w-3 mr-0.5" />Saved</Badge>
