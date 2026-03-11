@@ -1679,6 +1679,8 @@ export type Database = {
       }
       saved_courses: {
         Row: {
+          certificate_earned: boolean
+          certificate_url: string | null
           created_at: string | null
           description: string | null
           difficulty: string | null
@@ -1695,6 +1697,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          certificate_earned?: boolean
+          certificate_url?: string | null
           created_at?: string | null
           description?: string | null
           difficulty?: string | null
@@ -1711,6 +1715,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          certificate_earned?: boolean
+          certificate_url?: string | null
           created_at?: string | null
           description?: string | null
           difficulty?: string | null
