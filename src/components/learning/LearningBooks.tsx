@@ -335,6 +335,20 @@ export function LearningBooks() {
             </Button>
           </form>
 
+          <div className="flex gap-1.5 flex-wrap">
+            {([
+              ["all", "All Books"],
+              ["readable", "Full Text + Borrow"],
+              ["fulltext", "Full Text Only"],
+            ] as const).map(([value, label]) => (
+              <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
+                className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
+                onClick={() => { setAccessFilter(value); if (searched && query) searchBooks(query); }}>
+                {label}
+              </Badge>
+            ))}
+          </div>
+
           {!searched && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
