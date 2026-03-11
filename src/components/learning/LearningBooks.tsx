@@ -98,9 +98,11 @@ export function LearningBooks() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesText, setNotesText] = useState("");
-  const [readerBook, setReaderBook] = useState<{ title: string; iaId: string } | null>(null);
+  const [readerBook, setReaderBook] = useState<{ title: string; iaId: string; lang?: string } | null>(null);
   const [lastSearchLang, setLastSearchLang] = useState("eng");
   const [readerFullscreen, setReaderFullscreen] = useState(false);
+  const [langPickerBook, setLangPickerBook] = useState<BookResult | SavedBook | null>(null);
+  const [loadingEditions, setLoadingEditions] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
   const [langFilter, setLangFilter] = useState<string>("eng");
   const readerContainerRef = useRef<HTMLDivElement>(null);
@@ -234,16 +236,51 @@ export function LearningBooks() {
   };
 
   const openReader = (book: BookResult | SavedBook) => {
-    // Try to find an Internet Archive identifier
-    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
-    const title = book.title;
+    // Check if multi-language book
+    const langs = 'languages' in book ? book.languages : undefined;
+    if (langs && langs.length > 1) {
+      setLangPickerBook(book);
+      return;
+    }
+    openReaderWithLang(book);
+  };
 
+  const openReaderWithLang = async (book: BookResult | SavedBook, lang?: string) => {
+    setLangPickerBook(null);
+    const title = book.title;
+    const workKey = 'key' in book ? book.key : ('book_key' in book ? book.book_key : null);
+
+    // If a specific language was chosen, try to find an edition in that language
+    if (lang && workKey) {
+      setLoadingEditions(true);
+      try {
+        const res = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          const editions = data.entries || [];
+          // Find edition matching the language with an IA identifier
+          const match = editions.find((ed: any) =>
+            ed.ocaid && ed.languages?.some((l: any) => l.key === `/languages/${lang}`)
+          );
+          if (match?.ocaid) {
+            setReaderBook({ title, iaId: match.ocaid, lang });
+            setLoadingEditions(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch editions:", e);
+      }
+      setLoadingEditions(false);
+    }
+
+    // Fallback: use existing iaId or search
+    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
     if (iaId) {
-      setReaderBook({ title, iaId });
+      setReaderBook({ title, iaId, lang });
     } else {
-      // Search Archive.org for the book and open in embedded reader
       const searchTerm = `${title} ${'author' in book && book.author ? book.author : ''}`.trim();
-      setReaderBook({ title, iaId: `search:${searchTerm}` });
+      setReaderBook({ title, iaId: `search:${searchTerm}`, lang });
     }
   };
 
@@ -558,6 +595,46 @@ export function LearningBooks() {
           )}
         </>
       )}
+
+      {/* Language Picker Sheet */}
+      <Sheet open={!!langPickerBook} onOpenChange={(open) => !open && setLangPickerBook(null)}>
+        <SheetContent side="bottom" className="max-h-[60vh]">
+          {langPickerBook && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-left">Choose Language</SheetTitle>
+                <SheetDescription className="text-left">
+                  "{langPickerBook.title}" is available in multiple languages
+                </SheetDescription>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {(() => {
+                  const langs = 'languages' in langPickerBook ? (langPickerBook as BookResult).languages || [] : [];
+                  const unique = [...new Set(langs)];
+                  return unique.map((lang) => (
+                    <Button
+                      key={lang}
+                      variant="outline"
+                      className="justify-start gap-2"
+                      disabled={loadingEditions}
+                      onClick={() => openReaderWithLang(langPickerBook, lang)}
+                    >
+                      <Globe className="h-3.5 w-3.5 shrink-0" />
+                      {LANG_NAMES[lang] || lang}
+                    </Button>
+                  ));
+                })()}
+              </div>
+              {loadingEditions && (
+                <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Finding edition…
+                </div>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Book Detail Sheet */}
       <Sheet open={!!selectedBook} onOpenChange={(open) => !open && setSelectedBook(null)}>
