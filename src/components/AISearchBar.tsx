@@ -137,7 +137,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
       } 
       else if (intent === 'web_search') {
         const { data: webSearchResult } = await supabase.functions.invoke('web-search', {
-          body: { query, includeContext: true }
+          body: { query: q, includeContext: true }
         });
 
         if (webSearchResult) {
