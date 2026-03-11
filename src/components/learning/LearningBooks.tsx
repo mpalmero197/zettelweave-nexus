@@ -481,8 +481,6 @@ export function LearningBooks() {
               })}
             </div>
           )}
-        </>
-      )}
 
       {/* Edition Picker Sheet */}
       <Sheet open={!!editionPickerBook} onOpenChange={(open) => !open && setEditionPickerBook(null)}>

@@ -98,22 +98,19 @@ export function LearningCourses() {
 
   return (
     <div className="space-y-4">
-      {/* Toggle */}
-      <div className="flex gap-2">
+      {/* Header with hint */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Search className="h-3 w-3" />
+          Use the main Search tab to discover courses
+        </p>
         <Button
           size="sm"
-          variant={view === "search" ? "default" : "outline"}
-          onClick={() => setView("search")}
-        >
-          <Search className="h-3.5 w-3.5 mr-1.5" />Discover
-        </Button>
-        <Button
-          size="sm"
-          variant={view === "saved" ? "default" : "outline"}
-          onClick={() => { setView("saved"); loadSavedCourses(); }}
+          variant="outline"
+          onClick={() => loadSavedCourses()}
         >
           <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />
-          My Courses {savedCourses.length > 0 && `(${savedCourses.length})`}
+          Refresh {savedCourses.length > 0 && `(${savedCourses.length})`}
         </Button>
       </div>
 
