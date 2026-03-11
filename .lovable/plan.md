@@ -1,62 +1,32 @@
 
 
-## Evernote Import for Pendragon
+## Embed Course Websites Inside PendragonX
 
-### The Reality of Evernote Integration
+### What
+When a user clicks "View Course" or "Open Course", instead of opening a new tab, show the course website in an iframe that fills the main content area — keeping the PendragonX header, sidebar, chat bubble, and mobile nav intact. Include a top bar with a "Back" button, the course title, and an option to open in a new tab instead. Persist the user's preference (iframe vs new tab) in localStorage.
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+### Changes — single file `src/components/learning/LearningCourses.tsx`
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
+1. **Add `viewingCourse` state** — stores `{ url, title }` of the course being viewed inline.
 
-### What will be built
+2. **Add `openPreference` state** — `"embed"` (default) or `"external"`, read from/written to `localStorage` key `pendragon-course-open-pref`.
 
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
+3. **`handleOpenCourse` function**:
+   - If preference is `"external"` → `window.open(url, '_blank')`.
+   - If `"embed"` → set `viewingCourse` state, which renders the embedded view.
 
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
+4. **Embedded course view** — when `viewingCourse` is set, render instead of the search/saved UI:
+   - A sticky toolbar at the top with:
+     - Back button (arrow left) to return to course list
+     - Course title (truncated)
+     - "Open in new tab" button (ExternalLink icon)
+     - A small settings dropdown/toggle: "Always open in new tab" checkbox that sets the localStorage preference
+   - A toast on first embed: "Course opened inside PendragonX. You can change this in the toolbar to open in a separate window."
+   - An iframe filling remaining height (`flex-1`) with `src={viewingCourse.url}`, with `sandbox="allow-scripts allow-same-origin allow-popups allow-forms"`.
+   - An `onError`/fallback: if the iframe fails to load (X-Frame-Options), show a message: "This course platform doesn't allow embedding. Opening in a new tab..." and auto-open in new tab.
 
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
+5. **Update all "View Course" / "Open Course" buttons** to call `handleOpenCourse(course.url, course.title)` instead of `window.open`.
 
-### ENEX Format Structure (for reference)
-```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
-```
-
-### Technical Details
-
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
-
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
+### Note on iframe blocking
+Many platforms block iframes. The iframe will have an `onLoad` handler that checks if it loaded successfully. Since we can't reliably detect X-Frame-Options failures from JS, we'll use a timeout-based approach: if the iframe's `contentWindow` is inaccessible after load, we show a fallback message and offer to open externally. This gracefully handles both embeddable and non-embeddable sites.
 
