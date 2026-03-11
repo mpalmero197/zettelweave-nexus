@@ -65,8 +65,9 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
     onQueryChange?.(value);
   };
 
-  const handleAISearch = async () => {
-    if (!query.trim()) {
+  const handleAISearch = async (searchQuery?: string) => {
+    const q = searchQuery || query;
+    if (!q.trim()) {
       onSearchResults({ cards, notes: [], stickyNotes: [], scratchNotes: [], reasoning: "", query: "" });
       setReasoning("");
       return;
