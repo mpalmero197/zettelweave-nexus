@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, ExternalLink, X } from "lucide-react";
+import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ interface BookResult {
   coverId?: number;
   subjects?: string[];
   editionCount?: number;
-  description?: string;
+  iaId?: string; // Internet Archive identifier
 }
 
 interface SavedBook {
@@ -34,11 +34,42 @@ interface SavedBook {
   rating: number | null;
 }
 
+interface BookDetailData {
+  description?: string | { value: string };
+  subjects?: string[];
+  covers?: number[];
+  links?: { title: string; url: string }[];
+}
+
 const POPULAR_SEARCHES = [
   "Atomic Habits", "Sapiens", "Deep Work",
   "Thinking Fast and Slow", "The Art of War",
   "Meditations", "1984", "Dune",
 ];
+
+// Detect language from query text to filter Open Library results
+function detectLanguage(text: string): string {
+  // Check for CJK characters (Chinese/Japanese/Korean)
+  if (/[\u4e00-\u9fff]/.test(text)) return "chi";
+  if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return "jpn";
+  if (/[\uac00-\ud7af]/.test(text)) return "kor";
+  // Check for Cyrillic (Russian)
+  if (/[\u0400-\u04ff]/.test(text)) return "rus";
+  // Check for Arabic script
+  if (/[\u0600-\u06ff]/.test(text)) return "ara";
+  // Check for Devanagari (Hindi)
+  if (/[\u0900-\u097f]/.test(text)) return "hin";
+  // Check for common Spanish patterns
+  if (/[áéíóúñ¿¡]/i.test(text)) return "spa";
+  // Check for common French patterns
+  if (/[àâæçéèêëïîôœùûüÿ]/i.test(text)) return "fre";
+  // Check for German patterns
+  if (/[äöüß]/i.test(text)) return "ger";
+  // Check for Portuguese patterns
+  if (/[ãõç]/i.test(text) && /[àáâ]/i.test(text)) return "por";
+  // Default to English
+  return "eng";
+}
 
 export function LearningBooks() {
   const { user } = useAuth();
@@ -51,10 +82,11 @@ export function LearningBooks() {
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
   const [selectedBook, setSelectedBook] = useState<BookResult | null>(null);
-  const [bookDetails, setBookDetails] = useState<any>(null);
+  const [bookDetails, setBookDetails] = useState<BookDetailData | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesText, setNotesText] = useState("");
+  const [readerBook, setReaderBook] = useState<{ title: string; iaId: string } | null>(null);
 
   useEffect(() => {
     if (user) loadSavedBooks();
@@ -83,8 +115,9 @@ export function LearningBooks() {
     setLoading(true);
     setSearched(true);
     try {
+      const lang = detectLanguage(searchQuery);
       const res = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=12&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count`
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&language=${lang}&limit=12&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia`
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
@@ -96,6 +129,7 @@ export function LearningBooks() {
         coverId: doc.cover_i,
         subjects: doc.subject?.slice(0, 5),
         editionCount: doc.edition_count,
+        iaId: doc.ia?.[0] || null,
       }));
       setResults(parsed);
       if (parsed.length === 0) toast.info("No books found");
@@ -121,6 +155,20 @@ export function LearningBooks() {
       console.error("Failed to load details:", e);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const openReader = (book: BookResult | SavedBook) => {
+    // Try to find an Internet Archive identifier
+    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
+    const title = book.title;
+
+    if (iaId) {
+      setReaderBook({ title, iaId });
+    } else {
+      // Search Archive.org for the book and open in embedded reader
+      const searchTerm = `${title} ${'author' in book && book.author ? book.author : ''}`.trim();
+      setReaderBook({ title, iaId: `search:${searchTerm}` });
     }
   };
 
@@ -184,6 +232,33 @@ export function LearningBooks() {
     if (desc.value) return desc.value;
     return "";
   };
+
+  // Full-screen embedded reader
+  if (readerBook) {
+    const isSearch = readerBook.iaId.startsWith("search:");
+    const iframeSrc = isSearch
+      ? `https://archive.org/search?query=${encodeURIComponent(readerBook.iaId.slice(7))}&and[]=mediatype:texts`
+      : `https://archive.org/embed/${readerBook.iaId}`;
+
+    return (
+      <div className="flex flex-col h-[calc(100vh-12rem)]">
+        <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
+          <Button size="sm" variant="ghost" onClick={() => setReaderBook(null)}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" />Back
+          </Button>
+          <h2 className="text-sm font-medium truncate flex-1">{readerBook.title}</h2>
+        </div>
+        <div className="flex-1 rounded-lg overflow-hidden border border-border bg-muted">
+          <iframe
+            src={iframeSrc}
+            className="w-full h-full border-0"
+            allow="fullscreen"
+            title={`Reading: ${readerBook.title}`}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -251,6 +326,12 @@ export function LearningBooks() {
                             <BookmarkPlus className="h-3 w-3 mr-0.5" />Save
                           </Button>
                         )}
+                        {book.iaId && (
+                          <Button size="sm" variant="ghost" className="text-[10px] h-5 px-1.5 text-primary"
+                            onClick={(e) => { e.stopPropagation(); openReader(book); }}>
+                            <BookOpen className="h-3 w-3 mr-0.5" />Read
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -304,7 +385,6 @@ export function LearningBooks() {
                               <div className="min-w-0 flex-1">
                                 <h4 className="text-sm font-medium line-clamp-2">{book.title}</h4>
                                 <p className="text-xs text-muted-foreground">{book.author}</p>
-                                {/* Rating */}
                                 <div className="flex gap-0.5 mt-1">
                                   {[1, 2, 3, 4, 5].map(s => (
                                     <Star key={s}
@@ -323,16 +403,14 @@ export function LearningBooks() {
                                 <option value="reading">Reading</option>
                                 <option value="finished">Finished</option>
                               </select>
-                              <a href={`https://openlibrary.org${book.book_key}`} target="_blank" rel="noopener noreferrer">
-                                <Button size="sm" variant="outline" className="text-xs h-6 px-2">
-                                  <ExternalLink className="h-3 w-3 mr-1" />Open
-                                </Button>
-                              </a>
+                              <Button size="sm" variant="outline" className="text-xs h-6 px-2"
+                                onClick={() => openReader(book)}>
+                                <BookOpen className="h-3 w-3 mr-1" />Read
+                              </Button>
                               <Button size="sm" variant="ghost" className="text-xs h-6 px-2 text-destructive"
                                 onClick={() => removeBook(book.id, book.book_key)}>Remove</Button>
                             </div>
 
-                            {/* Notes */}
                             {editingNotes === book.id ? (
                               <div className="space-y-1.5">
                                 <Textarea className="text-xs min-h-[60px]" value={notesText}
@@ -393,18 +471,9 @@ export function LearningBooks() {
                     ) : (
                       <Badge><BookmarkCheck className="h-3 w-3 mr-1" />In Library</Badge>
                     )}
-                    <div className="flex gap-2">
-                      <a href={`https://openlibrary.org${selectedBook.key}`} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1.5" />Open Library</Button>
-                      </a>
-                    </div>
-                    {/* Check if readable on archive.org */}
-                    <a href={`https://archive.org/search?query=${encodeURIComponent(selectedBook.title)}`}
-                      target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" className="mt-1">
-                        <BookOpen className="h-3.5 w-3.5 mr-1.5" />Read on Archive.org
-                      </Button>
-                    </a>
+                    <Button size="sm" variant="outline" onClick={() => { setSelectedBook(null); openReader(selectedBook); }}>
+                      <BookOpen className="h-3.5 w-3.5 mr-1.5" />Read in PendragonX
+                    </Button>
                   </div>
                 </div>
 
