@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useOutletContext } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent } from "@/components/ui/tabs";
