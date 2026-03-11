@@ -129,6 +129,7 @@ export function UnifiedSearchPage({
       if (error) throw error;
       if (data?.success && data.data) {
         setVideoResults(data.data);
+        addToHistory({ query: q.trim(), intent: "videos", resultCount: data.data.length, hasVideos: true });
         if (data.data.length === 0) toast.info("No videos found.");
       } else throw new Error(data?.error || "Search failed");
     } catch {
@@ -148,17 +149,17 @@ export function UnifiedSearchPage({
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search");
       const data = await res.json();
-      setBookResults(
-        (data.docs || []).map((doc: any) => ({
-          key: doc.key,
-          title: doc.title,
-          author: doc.author_name?.[0] || "Unknown author",
-          year: doc.first_publish_year,
-          coverId: doc.cover_i,
-          subjects: doc.subject?.slice(0, 4),
-          ebookAccess: doc.ebook_access || "no_ebook",
-        }))
-      );
+      const results = (data.docs || []).map((doc: any) => ({
+        key: doc.key,
+        title: doc.title,
+        author: doc.author_name?.[0] || "Unknown author",
+        year: doc.first_publish_year,
+        coverId: doc.cover_i,
+        subjects: doc.subject?.slice(0, 4),
+        ebookAccess: doc.ebook_access || "no_ebook",
+      }));
+      setBookResults(results);
+      addToHistory({ query: q.trim(), intent: "books", resultCount: results.length });
     } catch {
       toast.error("Book search failed");
     } finally {
@@ -175,16 +176,22 @@ export function UnifiedSearchPage({
         "_blank",
         "noopener,noreferrer"
       );
+      addToHistory({ query: query.trim(), intent: "courses", resultCount: 0 });
     } else if (subTab === "videos") {
       searchVideos(query);
     } else if (subTab === "books") {
       searchBooks(query);
     }
-    // Knowledge tab uses AISearchBar's own submit
   };
 
   const handleRerunSearch = (q: string) => {
     handleQueryChange(q);
+    // Auto-execute on current sub-tab
+    if (subTab === "videos") searchVideos(q);
+    else if (subTab === "books") searchBooks(q);
+    else if (subTab === "courses") {
+      window.open(`https://www.classcentral.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener,noreferrer");
+    }
     toast.success(`Re-running search: "${q}"`);
   };
 
