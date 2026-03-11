@@ -1,48 +1,62 @@
 
 
-## Add Videos Section to Learning Hub
+## Evernote Import for Pendragon
 
-### Overview
-Add a "Videos" tab to the Learning Hub that searches for educational videos across YouTube, Odysee (LBRY), and other open-source video platforms. Results display thumbnails, titles, channel names, and durations. Clicking opens the video in a new tab.
+### The Reality of Evernote Integration
 
-### Approach
-Use **Firecrawl search** (already connected) via a new edge function to search for educational videos across platforms. The edge function searches queries like `site:youtube.com OR site:odysee.com "{topic}" tutorial`, then extracts video metadata. Thumbnails are generated from video IDs:
-- **YouTube**: `https://img.youtube.com/vi/{VIDEO_ID}/mqdefault.jpg` (publicly available, no API key needed)
-- **Odysee/LBRY**: Thumbnail URL extracted from Firecrawl results metadata
+Evernote uses **OAuth 1.0a** authentication, which requires:
+1. Applying for an Evernote API key (manual review process, can take days/weeks)
+2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
+3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
 
-### Files to Create/Edit
+**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
 
-**1. `supabase/functions/search-videos/index.ts`** (new)
-- Edge function that uses Firecrawl search to find video results
-- Searches with site filters for YouTube, Odysee, and open educational video sites (e.g., Khan Academy, CuriosityStream, PeerTube instances)
-- Parses URLs to extract video IDs for thumbnail generation
-- Returns structured results: title, url, thumbnail, provider, channel, description
+### What will be built
 
-**2. `src/components/learning/LearningVideos.tsx`** (new)
-- Search bar + popular topic chips (same pattern as LearningCourses)
-- Results grid showing video cards with:
-  - Thumbnail image (aspect-ratio 16:9)
-  - Provider badge (YouTube, Odysee, etc.)
-  - Title, channel name, description snippet
-  - "Watch" button opening video in new tab
-- Loading and empty states
+1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
+   - Parse `.enex` XML files using the browser's built-in `DOMParser`
+   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
+   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
+   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
 
-**3. `src/components/LearningHub.tsx`** (edit)
-- Add 4th tab "Videos" with `Video` icon from lucide-react
-- Update grid-cols-3 to grid-cols-4
-- Update subtitle text to mention videos
+2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
+   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
+   - Drag-and-drop or file picker for `.enex` files
+   - Preview parsed notes with title, tag count, and content snippet before importing
+   - Select/deselect individual notes
+   - Map Evernote tags to Zettel card tags
+   - Import selected notes as Zettel cards with auto-categorization
 
-**4. `supabase/config.toml`** (edit)
-- Add `[functions.search-videos]` with `verify_jwt = false`
+3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
+   - Add `.enex` to the supported file types for the Computer tab
+   - Parse and convert ENEX content to HTML for use in the Catalyst editor
 
-### Video Card Layout
-Each result card shows:
-- 16:9 thumbnail at top (with provider badge overlay in corner)
-- Title (line-clamp-2)
-- Channel/source name in muted text
-- Short description (line-clamp-2)
-- "Watch" button that opens in new tab
+### ENEX Format Structure (for reference)
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export>
+  <note>
+    <title>Note Title</title>
+    <content><![CDATA[...ENML content...]]></content>
+    <created>20230101T120000Z</created>
+    <updated>20230615T180000Z</updated>
+    <tag>tag1</tag>
+    <tag>tag2</tag>
+  </note>
+  ...more notes...
+</en-export>
+```
 
-### Fallback
-If Firecrawl fails or returns no results, show a message suggesting the user search directly on YouTube/Odysee with quick-link buttons (same pattern as the courses redirect).
+### Technical Details
+
+- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
+- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
+- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
+- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+
+### User flow
+1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
+2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
+3. Preview notes, select which to import, click Import
+4. Notes appear as Zettel cards with preserved tags and content
 
