@@ -97,6 +97,21 @@ export function LearningBooks() {
   const [readerBook, setReaderBook] = useState<{ title: string; iaId: string } | null>(null);
   const [lastSearchLang, setLastSearchLang] = useState("eng");
   const [readerFullscreen, setReaderFullscreen] = useState(false);
+  const readerContainerRef = useRef<HTMLDivElement>(null);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      readerContainerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setReaderFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   useEffect(() => {
     if (user) loadSavedBooks();
