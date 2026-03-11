@@ -41,10 +41,24 @@ interface AISearchBarProps {
   onQueryChange?: (query: string) => void;
 }
 
-export function AISearchBar({ cards, onSearchResults, className, onQueryChange, autoFocus }: AISearchBarProps) {
-  const [query, setQuery] = useState("");
+export function AISearchBar({ cards, onSearchResults, className, onQueryChange, autoFocus, initialQuery }: AISearchBarProps) {
+  const [query, setQuery] = useState(initialQuery || "");
   const [isSearching, setIsSearching] = useState(false);
   const [reasoning, setReasoning] = useState("");
+  const initialSearchDone = useRef(false);
+
+  // Auto-execute search when initialQuery is provided
+  useEffect(() => {
+    if (initialQuery && !initialSearchDone.current) {
+      initialSearchDone.current = true;
+      setQuery(initialQuery);
+      onQueryChange?.(initialQuery);
+      // Delay slightly to ensure component is mounted
+      setTimeout(() => {
+        handleAISearch(initialQuery);
+      }, 100);
+    }
+  }, [initialQuery]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
