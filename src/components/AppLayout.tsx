@@ -100,6 +100,7 @@ export function AppLayout() {
       case "recycle":
       case "search":
       case "debugger":
+      case "learning":
         // These are all tabs within /app
         navigate("/app");
         // We dispatch a custom event so Index.tsx can pick up the tab

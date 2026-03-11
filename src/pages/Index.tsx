@@ -47,6 +47,7 @@ import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog"
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { CollabStudio } from "@/components/friends/CollabStudio";
+import { LearningHub } from "@/components/LearningHub";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -597,6 +598,10 @@ const Index = () => {
 
                 <TabsContent value="catalyst" className="mt-0">
                   <Catalyst />
+                </TabsContent>
+
+                <TabsContent value="learning" className="mt-0">
+                  <LearningHub />
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
