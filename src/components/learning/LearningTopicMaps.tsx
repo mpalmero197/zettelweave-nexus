@@ -1,211 +1,267 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, ExternalLink, Loader2, Map, ArrowRight, Sparkles } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Search, Loader2, Map, ChevronDown, ChevronRight, ExternalLink, Clock, BookOpen, Video, Wrench, Code, PenTool, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-interface TopicNode {
-  name: string;
-  url?: string;
-  description?: string;
-  children?: TopicNode[];
-}
-
-const EXPLORE_TOPICS = [
-  { name: "Programming", query: "programming learning roadmap", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  { name: "Mathematics", query: "mathematics learning path", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  { name: "Physics", query: "physics topics learning map", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-  { name: "Philosophy", query: "philosophy branches roadmap", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { name: "Design", query: "design skills learning path", color: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
-  { name: "AI & ML", query: "artificial intelligence learning roadmap", color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
-  { name: "Biology", query: "biology topics learning guide", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  { name: "Economics", query: "economics concepts roadmap", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
-];
-
-interface TopicResource {
+interface Resource {
   title: string;
   url: string;
-  type: string;
+  type: "course" | "article" | "video" | "book" | "tool" | "practice";
+  is_free: boolean;
 }
 
+interface TopicNode {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  estimated_time?: string;
+  prerequisites?: string[];
+  resources: Resource[];
+  children: TopicNode[];
+}
+
+interface TopicMap {
+  title: string;
+  description: string;
+  estimated_total_time: string;
+  nodes: TopicNode[];
+}
+
+const POPULAR_TOPICS = [
+  "Machine Learning", "Web Development", "Blockchain",
+  "Psychology", "Data Engineering", "Game Development",
+  "Artificial Intelligence", "Quantum Computing", "UX Design",
+];
+
+const difficultyColor: Record<string, string> = {
+  Beginner: "bg-green-500/10 text-green-600 border-green-500/20",
+  Intermediate: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  Advanced: "bg-red-500/10 text-red-600 border-red-500/20",
+};
+
+const resourceIcon: Record<string, any> = {
+  course: BookOpen,
+  article: PenTool,
+  video: Video,
+  book: BookOpen,
+  tool: Wrench,
+  practice: Code,
+};
+
 export function LearningTopicMaps() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
+  const [topicMap, setTopicMap] = useState<TopicMap | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [topicTitle, setTopicTitle] = useState("");
-  const [resources, setResources] = useState<TopicResource[]>([]);
-  const [subtopics, setSubtopics] = useState<string[]>([]);
-  const [summary, setSummary] = useState("");
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [savingMindMap, setSavingMindMap] = useState(false);
 
-  const exploreTopics = async (searchQuery: string) => {
+  const generateTopicMap = async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
     setLoading(true);
     setSearched(true);
-    setTopicTitle(searchQuery);
-
+    setTopicMap(null);
     try {
-      const { data, error } = await supabase.functions.invoke("web-search", {
-        body: {
-          query: `${searchQuery} learning roadmap resources guide site:learn-anything.xyz OR site:roadmap.sh OR site:github.com`,
-          includeContext: true,
-        },
+      const { data, error } = await supabase.functions.invoke("generate-topic-map", {
+        body: { topic: searchQuery },
       });
       if (error) throw error;
-
-      const citations: string[] = data?.citations || [];
-      const relatedQuestions: string[] = data?.relatedQuestions || [];
-      const contextual = data?.contextualData;
-
-      // Build resources from citations
-      const parsedResources: TopicResource[] = citations.slice(0, 10).map((url) => {
-        const domain = new URL(url).hostname.replace("www.", "");
-        const path = new URL(url).pathname.split("/").filter(Boolean);
-        const title = path.pop()?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || domain;
-        const type = domain.includes("github") ? "Repository" :
-          domain.includes("roadmap") ? "Roadmap" :
-          domain.includes("learn-anything") ? "Topic Map" : "Resource";
-        return { title, url, type };
-      });
-
-      // Extract subtopics from related questions or context
-      const parsedSubtopics = relatedQuestions?.length > 0
-        ? relatedQuestions.slice(0, 6)
-        : contextual?.relatedConcepts?.slice(0, 6) || [];
-
-      const parsedSummary = contextual?.definitions?.[0] || data?.result?.slice(0, 300) || "";
-
-      setResources(parsedResources);
-      setSubtopics(parsedSubtopics);
-      setSummary(parsedSummary);
-
-      if (parsedResources.length === 0) toast.info("No topic maps found — try broader keywords");
+      if (data?.error) throw new Error(data.error);
+      setTopicMap(data);
+      if (data?.nodes) {
+        setExpandedNodes(new Set(data.nodes.map((n: TopicNode) => n.id)));
+      }
     } catch (err: any) {
       console.error(err);
-      toast.error("Search failed", { description: err.message });
+      toast.error("Failed to generate topic map", { description: err.message });
     } finally {
       setLoading(false);
     }
   };
 
+  const toggleNode = (id: string) => {
+    setExpandedNodes(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const drillDown = (title: string) => {
+    setQuery(title);
+    generateTopicMap(title);
+  };
+
+  const saveAsMindMap = async () => {
+    if (!user || !topicMap) { toast.error("Sign in to save mind maps"); return; }
+    setSavingMindMap(true);
+    try {
+      const convertNode = (node: TopicNode, x: number, y: number): any => ({
+        id: node.id,
+        text: node.title,
+        x, y,
+        notes: node.description,
+        children: node.children?.map((c, i) =>
+          convertNode(c, x + 200, y + i * 100)
+        ) || [],
+      });
+
+      const rootNode = {
+        id: "root",
+        text: topicMap.title,
+        x: 0, y: 0,
+        notes: topicMap.description,
+        children: topicMap.nodes.map((n, i) => convertNode(n, 250, i * 150)),
+      };
+
+      const { error } = await supabase.from("mind_maps").insert({
+        user_id: user.id,
+        title: `📚 ${topicMap.title}`,
+        description: topicMap.description,
+        map_data: { nodes: [rootNode], edges: [] },
+      });
+      if (error) throw error;
+      toast.success("Saved as Mind Map!", { description: "Check your Mind Map library" });
+    } catch (err: any) {
+      toast.error("Failed to save", { description: err.message });
+    } finally {
+      setSavingMindMap(false);
+    }
+  };
+
+  const renderNode = (node: TopicNode, depth: number) => {
+    const isExpanded = expandedNodes.has(node.id);
+    const hasChildren = node.children && node.children.length > 0;
+    const Icon = hasChildren ? (isExpanded ? ChevronDown : ChevronRight) : () => <div className="w-4" />;
+
+    return (
+      <div key={node.id} className={`${depth > 0 ? "ml-4 border-l border-border/50 pl-3" : ""}`}>
+        <Collapsible open={isExpanded} onOpenChange={() => toggleNode(node.id)}>
+          <div className="group flex items-start gap-2 py-2 hover:bg-accent/50 rounded-md px-2 -mx-2 transition-colors">
+            <CollapsibleTrigger className="mt-0.5 shrink-0">
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </CollapsibleTrigger>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm font-medium">{node.title}</span>
+                <Badge className={`text-[9px] px-1 py-0 ${difficultyColor[node.difficulty] || ""}`}>
+                  {node.difficulty}
+                </Badge>
+                {node.estimated_time && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                    <Clock className="h-2.5 w-2.5" />{node.estimated_time}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{node.description}</p>
+
+              {node.resources && node.resources.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {node.resources.map((r, i) => {
+                    const RIcon = resourceIcon[r.type] || ExternalLink;
+                    return (
+                      <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-border/50 hover:border-primary/50 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
+                        <RIcon className="h-2.5 w-2.5" />
+                        <span className="max-w-[120px] truncate">{r.title}</span>
+                        {r.is_free && <span className="text-green-600 text-[8px]">FREE</span>}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
+              {hasChildren && (
+                <button className="text-[10px] text-primary hover:underline mt-1 inline-block"
+                  onClick={(e) => { e.stopPropagation(); drillDown(node.title); }}>
+                  Explore "{node.title}" in depth →
+                </button>
+              )}
+            </div>
+          </div>
+
+          <CollapsibleContent>
+            {node.children?.map(child => renderNode(child, depth + 1))}
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <form
-        onSubmit={(e) => { e.preventDefault(); exploreTopics(query); }}
-        className="flex gap-2"
-      >
+      <form onSubmit={(e) => { e.preventDefault(); generateTopicMap(query); }} className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Explore any topic (e.g. quantum computing…)"
-            className="pl-9"
-          />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder="Enter a topic to generate a learning path…" className="pl-9" />
         </div>
         <Button type="submit" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explore"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate"}
         </Button>
       </form>
 
       {!searched && (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground font-medium">Explore a subject</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {EXPLORE_TOPICS.map((topic) => (
-              <button
-                key={topic.name}
-                onClick={() => { setQuery(topic.name); exploreTopics(topic.query); }}
-                className={`rounded-xl p-3 text-left transition-all hover:scale-[1.02] active:scale-95 border ${topic.color}`}
-              >
-                <span className="text-sm font-medium">{topic.name}</span>
-              </button>
+          <p className="text-sm text-muted-foreground font-medium">Popular topics</p>
+          <div className="flex flex-wrap gap-2">
+            {POPULAR_TOPICS.map((topic) => (
+              <Badge key={topic} variant="outline" className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => { setQuery(topic); generateTopicMap(topic); }}>
+                {topic}
+              </Badge>
             ))}
           </div>
-
-          <a href="https://learn-anything.xyz" target="_blank" rel="noopener noreferrer">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer mt-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <Map className="h-4 w-4 text-primary" />
-                  Learn Anything
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Interactive topic maps and curated learning resources for any subject.
-                </p>
-              </CardContent>
-            </Card>
-          </a>
         </div>
       )}
 
-      {searched && !loading && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              {topicTitle}
-            </h2>
-            {summary && (
-              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{summary}</p>
-            )}
+      {loading && (
+        <div className="text-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
+          <p className="text-sm text-muted-foreground">Generating learning path with AI…</p>
+          <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
+        </div>
+      )}
+
+      {topicMap && !loading && (
+        <div className="space-y-3">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold">{topicMap.title}</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">{topicMap.description}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{topicMap.estimated_total_time}</span>
+                    <span>{topicMap.nodes?.length || 0} main topics</span>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={saveAsMindMap} disabled={savingMindMap}>
+                  {savingMindMap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                  Save as Mind Map
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-1">
+            {topicMap.nodes?.map(node => renderNode(node, 0))}
           </div>
+        </div>
+      )}
 
-          {subtopics.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Related topics</p>
-              <div className="flex flex-wrap gap-2">
-                {subtopics.map((st, i) => (
-                  <Badge
-                    key={i}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => { setQuery(st); exploreTopics(st); }}
-                  >
-                    <ArrowRight className="h-3 w-3 mr-1" />
-                    {st}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {resources.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Resources</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {resources.map((res, i) => (
-                  <a key={i} href={res.url} target="_blank" rel="noopener noreferrer">
-                    <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-                      <CardContent className="pt-3 pb-3 flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-1">{res.title}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                            {new URL(res.url).hostname}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Badge variant="secondary" className="text-[9px]">{res.type}</Badge>
-                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {resources.length === 0 && (
-            <div className="text-center py-6 text-muted-foreground">
-              <Map className="h-10 w-10 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No resources found. Try different keywords.</p>
-            </div>
-          )}
+      {searched && !loading && !topicMap && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Map className="h-10 w-10 mx-auto mb-2 opacity-40" />
+          <p className="text-sm">Failed to generate topic map. Try again.</p>
         </div>
       )}
     </div>
