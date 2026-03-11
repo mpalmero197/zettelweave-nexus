@@ -84,7 +84,7 @@ export function AISearchBar({ cards, onSearchResults, className, onQueryChange, 
 
       // STEP 1: Classify intent first (CRITICAL to prevent hallucination)
       const { data: intentData } = await supabase.functions.invoke('classify-intent', {
-        body: { query }
+        body: { query: q }
       });
 
       const intent = intentData?.intent || 'internal_search';
