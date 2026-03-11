@@ -566,6 +566,46 @@ export function LearningBooks() {
                                 onClick={() => removeBook(book.id, book.book_key)}>Remove</Button>
                             </div>
 
+      {/* Language Picker Dialog */}
+      <Sheet open={!!langPickerBook} onOpenChange={(open) => !open && setLangPickerBook(null)}>
+        <SheetContent side="bottom" className="max-h-[60vh]">
+          {langPickerBook && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-left">Choose Language</SheetTitle>
+                <SheetDescription className="text-left">
+                  "{langPickerBook.title}" is available in multiple languages
+                </SheetDescription>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {(() => {
+                  const langs = 'languages' in langPickerBook ? (langPickerBook as BookResult).languages || [] : [];
+                  const unique = [...new Set(langs)];
+                  return unique.map((lang) => (
+                    <Button
+                      key={lang}
+                      variant="outline"
+                      className="justify-start gap-2"
+                      disabled={loadingEditions}
+                      onClick={() => openReaderWithLang(langPickerBook, lang)}
+                    >
+                      <Globe className="h-3.5 w-3.5 shrink-0" />
+                      {LANG_NAMES[lang] || lang}
+                    </Button>
+                  ));
+                })()}
+              </div>
+              {loadingEditions && (
+                <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Finding edition…
+                </div>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
                             {editingNotes === book.id ? (
                               <div className="space-y-1.5">
                                 <Textarea className="text-xs min-h-[60px]" value={notesText}
