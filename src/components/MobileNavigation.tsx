@@ -71,6 +71,7 @@ export function MobileNavigation({
   isAdmin = false,
   activeTab = 'dashboard',
   onTabChange,
+  onSearchWithQuery,
   onSignOut,
   onAccountSettings,
 }: MobileNavigationProps) {
@@ -79,6 +80,7 @@ export function MobileNavigation({
   const { hasPremium } = useSubscription();
   const [searchFocused, setSearchFocused] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
 
