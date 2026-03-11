@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
+import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight, Maximize, Minimize, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BookResult {
   key: string;
@@ -99,6 +100,7 @@ export function LearningBooks() {
   const [lastSearchLang, setLastSearchLang] = useState("eng");
   const [readerFullscreen, setReaderFullscreen] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
+  const [langFilter, setLangFilter] = useState<string>("eng");
   const readerContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleFullscreen = useCallback(() => {
@@ -119,6 +121,11 @@ export function LearningBooks() {
     if (user) loadSavedBooks();
   }, [user]);
 
+  // Load popular books on mount
+  useEffect(() => {
+    searchBooks("");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadSavedBooks = async () => {
     if (!user) return;
     setLoadingSaved(true);
@@ -137,16 +144,17 @@ export function LearningBooks() {
     setLoadingSaved(false);
   };
 
-  const searchBooks = async (searchQuery: string) => {
-    if (!searchQuery.trim()) return;
+  const searchBooks = useCallback(async (searchQuery: string, overrideLang?: string, overrideAccess?: string) => {
     setLoading(true);
     setSearched(true);
+    const currentLang = overrideLang ?? langFilter;
+    const currentAccess = overrideAccess ?? accessFilter;
     try {
-      const lang = detectLanguage(searchQuery);
-      setLastSearchLang(lang);
-      const res = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
-      );
+      const isEmptyQuery = !searchQuery.trim();
+      const url = isEmptyQuery
+        ? `https://openlibrary.org/search.json?q=subject:popular&lang=${currentLang}&limit=36&sort=rating&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
+        : `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${currentLang}&limit=36&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
       const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => ({
@@ -163,30 +171,30 @@ export function LearningBooks() {
         ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
-      // Client-side filter: prefer results that have editions in the detected language
+      // Client-side language filter
       const langFiltered = allDocs.filter((b: any) =>
-        Array.isArray(b._languages) && b._languages.includes(lang)
+        Array.isArray(b._languages) && b._languages.includes(currentLang)
       );
       const langResult = langFiltered.length > 0 ? langFiltered : allDocs;
 
       // Apply ebook access filter
       const accessFiltered = langResult.filter((b) => {
-        if (accessFilter === "fulltext") return b.ebookAccess === "public";
-        if (accessFilter === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
+        if (currentAccess === "fulltext") return b.ebookAccess === "public";
+        if (currentAccess === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
         return true;
       });
 
       const parsed = accessFiltered.slice(0, 12);
 
       setResults(parsed);
-      if (parsed.length === 0) toast.info("No books found");
+      if (parsed.length === 0) toast.info("No books found for these filters");
     } catch (err: any) {
       console.error(err);
       toast.error("Search failed", { description: err.message });
     } finally {
       setLoading(false);
     }
-  };
+  }, [langFilter, accessFilter]);
 
   const openBookDetail = async (book: BookResult) => {
     setSelectedBook(book);
@@ -335,21 +343,34 @@ export function LearningBooks() {
             </Button>
           </form>
 
-          <div className="flex gap-1.5 flex-wrap">
-            {([
-              ["all", "All Books"],
-              ["readable", "Full Text + Borrow"],
-              ["fulltext", "Full Text Only"],
-            ] as const).map(([value, label]) => (
-              <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
-                className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
-                onClick={() => { setAccessFilter(value); if (searched && query) searchBooks(query); }}>
-                {label}
-              </Badge>
-            ))}
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-1.5 flex-wrap">
+              {([
+                ["all", "All"],
+                ["readable", "Full Text + Borrow"],
+                ["fulltext", "Full Text Only"],
+              ] as const).map(([value, label]) => (
+                <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
+                  className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
+                  onClick={() => { setAccessFilter(value); searchBooks(query, undefined, value); }}>
+                  {label}
+                </Badge>
+              ))}
+            </div>
+            <Select value={langFilter} onValueChange={(v) => { setLangFilter(v); searchBooks(query, v); }}>
+              <SelectTrigger className="w-[130px] h-7 text-[11px]">
+                <Globe className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(LANG_NAMES).map(([code, name]) => (
+                  <SelectItem key={code} value={code} className="text-xs">{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {!searched && (
+          {!searched && !loading && results.length === 0 && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
               <div className="flex flex-wrap gap-2">
