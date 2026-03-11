@@ -36,7 +36,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useSubscription } from "@/hooks/useSubscription";
-import { SearchHistorySidebar } from "@/components/SearchHistorySidebar";
 import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
