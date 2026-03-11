@@ -26,6 +26,18 @@ interface BookResult {
   originalLang?: string; // primary language code if different from filter
 }
 
+interface EditionEntry {
+  key: string;
+  title: string;
+  publishers?: string[];
+  publish_date?: string;
+  languages?: { key: string }[];
+  ocaid?: string;
+  covers?: number[];
+  number_of_pages?: number;
+  physical_format?: string;
+}
+
 const LANG_NAMES: Record<string, string> = {
   eng: "English", spa: "Spanish", fre: "French", ger: "German",
   por: "Portuguese", ita: "Italian", chi: "Chinese", jpn: "Japanese",
@@ -101,7 +113,8 @@ export function LearningBooks() {
   const [readerBook, setReaderBook] = useState<{ title: string; iaId: string; lang?: string } | null>(null);
   const [lastSearchLang, setLastSearchLang] = useState("eng");
   const [readerFullscreen, setReaderFullscreen] = useState(false);
-  const [langPickerBook, setLangPickerBook] = useState<BookResult | SavedBook | null>(null);
+  const [editionPickerBook, setEditionPickerBook] = useState<BookResult | SavedBook | null>(null);
+  const [editions, setEditions] = useState<EditionEntry[]>([]);
   const [loadingEditions, setLoadingEditions] = useState(false);
   const [accessFilter, setAccessFilter] = useState<"all" | "readable" | "fulltext">("all");
   const [langFilter, setLangFilter] = useState<string>("eng");
@@ -235,53 +248,44 @@ export function LearningBooks() {
     }
   };
 
-  const openReader = (book: BookResult | SavedBook) => {
-    // Check if multi-language book
-    const langs = 'languages' in book ? book.languages : undefined;
-    if (langs && langs.length > 1) {
-      setLangPickerBook(book);
+  const openReader = async (book: BookResult | SavedBook) => {
+    const workKey = 'key' in book ? book.key : ('book_key' in book ? book.book_key : null);
+    if (!workKey) {
+      // Fallback: search on Open Library
+      const searchTerm = `${book.title} ${'author' in book && book.author ? book.author : ''}`.trim();
+      setReaderBook({ title: book.title, iaId: `search:${searchTerm}` });
       return;
     }
-    openReaderWithLang(book);
+    
+    // Fetch all editions and show picker
+    setEditionPickerBook(book);
+    setEditions([]);
+    setLoadingEditions(true);
+    try {
+      const res = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        const entries: EditionEntry[] = (data.entries || []).filter((ed: any) => ed.ocaid);
+        setEditions(entries);
+        if (entries.length === 0) {
+          toast.info("No readable editions found for this book");
+          setEditionPickerBook(null);
+          // Fallback to search
+          const searchTerm = `${book.title} ${'author' in book && book.author ? book.author : ''}`.trim();
+          setReaderBook({ title: book.title, iaId: `search:${searchTerm}` });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch editions:", e);
+      setEditionPickerBook(null);
+    }
+    setLoadingEditions(false);
   };
 
-  const openReaderWithLang = async (book: BookResult | SavedBook, lang?: string) => {
-    setLangPickerBook(null);
-    const title = book.title;
-    const workKey = 'key' in book ? book.key : ('book_key' in book ? book.book_key : null);
-
-    // If a specific language was chosen, try to find an edition in that language
-    if (lang && workKey) {
-      setLoadingEditions(true);
-      try {
-        const res = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=50`);
-        if (res.ok) {
-          const data = await res.json();
-          const editions = data.entries || [];
-          // Find edition matching the language with an IA identifier
-          const match = editions.find((ed: any) =>
-            ed.ocaid && ed.languages?.some((l: any) => l.key === `/languages/${lang}`)
-          );
-          if (match?.ocaid) {
-            setReaderBook({ title, iaId: match.ocaid, lang });
-            setLoadingEditions(false);
-            return;
-          }
-        }
-      } catch (e) {
-        console.error("Failed to fetch editions:", e);
-      }
-      setLoadingEditions(false);
-    }
-
-    // Fallback: use existing iaId or search
-    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
-    if (iaId) {
-      setReaderBook({ title, iaId, lang });
-    } else {
-      const searchTerm = `${title} ${'author' in book && book.author ? book.author : ''}`.trim();
-      setReaderBook({ title, iaId: `search:${searchTerm}`, lang });
-    }
+  const selectEdition = (edition: EditionEntry) => {
+    const title = editionPickerBook?.title || edition.title;
+    setReaderBook({ title, iaId: edition.ocaid! });
+    setEditionPickerBook(null);
   };
 
   const saveBook = async (book: BookResult) => {
@@ -604,39 +608,49 @@ export function LearningBooks() {
         </>
       )}
 
-      {/* Language Picker Sheet */}
-      <Sheet open={!!langPickerBook} onOpenChange={(open) => !open && setLangPickerBook(null)}>
-        <SheetContent side="bottom" className="max-h-[60vh]">
-          {langPickerBook && (
+      {/* Edition Picker Sheet */}
+      <Sheet open={!!editionPickerBook} onOpenChange={(open) => !open && setEditionPickerBook(null)}>
+        <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
+          {editionPickerBook && (
             <>
               <SheetHeader>
-                <SheetTitle className="text-left">Choose Language</SheetTitle>
+                <SheetTitle className="text-left">Choose an Edition</SheetTitle>
                 <SheetDescription className="text-left">
-                  "{langPickerBook.title}" is available in multiple languages
+                  Select which version of "{editionPickerBook.title}" you'd like to read
                 </SheetDescription>
               </SheetHeader>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {(() => {
-                  const langs = 'languages' in langPickerBook ? (langPickerBook as BookResult).languages || [] : [];
-                  const unique = [...new Set(langs)];
-                  return unique.map((lang) => (
-                    <Button
-                      key={lang}
-                      variant="outline"
-                      className="justify-start gap-2"
-                      disabled={loadingEditions}
-                      onClick={() => openReaderWithLang(langPickerBook, lang)}
-                    >
-                      <Globe className="h-3.5 w-3.5 shrink-0" />
-                      {LANG_NAMES[lang] || lang}
-                    </Button>
-                  ));
-                })()}
-              </div>
-              {loadingEditions && (
-                <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+              {loadingEditions ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Finding edition…
+                  Loading available editions…
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 mt-4">
+                  {editions.map((ed) => {
+                    const langCodes = ed.languages?.map(l => l.key.replace('/languages/', '')) || [];
+                    const langNames = langCodes.map(c => LANG_NAMES[c] || c).join(', ');
+                    return (
+                      <Button
+                        key={ed.key}
+                        variant="outline"
+                        className="justify-start gap-3 h-auto py-3 px-4 text-left whitespace-normal"
+                        onClick={() => selectEdition(ed)}
+                      >
+                        <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium line-clamp-1">{ed.title}</p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground mt-0.5">
+                            {ed.publishers?.[0] && <span>{ed.publishers[0]}</span>}
+                            {ed.publish_date && <span>{ed.publish_date}</span>}
+                            {langNames && <span>{langNames}</span>}
+                            {ed.number_of_pages && <span>{ed.number_of_pages} pages</span>}
+                            {ed.physical_format && <span className="capitalize">{ed.physical_format}</span>}
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Button>
+                    );
+                  })}
                 </div>
               )}
             </>
