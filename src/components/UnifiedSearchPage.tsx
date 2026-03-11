@@ -186,6 +186,12 @@ export function UnifiedSearchPage({
 
   const handleRerunSearch = (q: string) => {
     handleQueryChange(q);
+    // Auto-execute on current sub-tab
+    if (subTab === "videos") searchVideos(q);
+    else if (subTab === "books") searchBooks(q);
+    else if (subTab === "courses") {
+      window.open(`https://www.classcentral.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener,noreferrer");
+    }
     toast.success(`Re-running search: "${q}"`);
   };
 
