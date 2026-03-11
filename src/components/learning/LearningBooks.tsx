@@ -144,7 +144,7 @@ export function LearningBooks() {
       const lang = detectLanguage(searchQuery);
       setLastSearchLang(lang);
       const res = await fetch(
-        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language`
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&lang=${lang}&limit=24&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access`
       );
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
