@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface BookResult {
   key: string;
   title: string;
+  displayTitle: string;
   author: string;
   year?: number;
   coverId?: number;
@@ -22,6 +23,7 @@ interface BookResult {
   iaId?: string; // Internet Archive identifier
   languages?: string[];
   ebookAccess?: string;
+  originalLang?: string; // primary language code if different from filter
 }
 
 const LANG_NAMES: Record<string, string> = {
