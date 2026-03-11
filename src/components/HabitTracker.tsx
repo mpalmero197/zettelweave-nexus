@@ -350,65 +350,100 @@ export default function HabitTracker() {
     return () => { delete (window as any).__addHabitFromTask; };
   }, [habits]);
 
-  const toggleHabitCompletion = (habitId: string) => {
-    setHabits(prev => prev.map(habit => {
-      if (habit.id !== habitId) return habit;
-      const isCompleted = habit.completions.some(c => c.date === today && c.completed);
-      let updatedCompletions = habit.completions.filter(c => c.date !== today);
-      if (!isCompleted) updatedCompletions.push({ date: today, completed: true });
+  const toggleHabitCompletion = async (habitId: string) => {
+    if (!user) return;
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+    const isCompleted = habit.completions.some(c => c.date === today && c.completed);
+    
+    if (isCompleted) {
+      // Remove completion
+      await completionsTable().delete().eq('habit_id', habitId).eq('completion_date', today);
+    } else {
+      // Add completion
+      await completionsTable().insert({ habit_id: habitId, user_id: user.id, completion_date: today, completed: true } as any);
+    }
 
-      // Recalculate streak
+    setHabits(prev => prev.map(h => {
+      if (h.id !== habitId) return h;
+      let updatedCompletions = h.completions.filter(c => c.date !== today);
+      if (!isCompleted) updatedCompletions.push({ date: today, completed: true });
       const sorted = updatedCompletions.filter(c => c.completed).sort((a,b) => b.date.localeCompare(a.date));
       let streak = 0;
       for (let i = 0; i < sorted.length; i++) {
         const expected = new Date(); expected.setDate(expected.getDate() - i);
         if (sorted[i].date === expected.toISOString().split('T')[0]) streak++; else break;
       }
-      return { ...habit, completions: updatedCompletions, streak, bestStreak: Math.max(habit.bestStreak, streak) };
+      const bestStreak = Math.max(h.bestStreak, streak);
+      // Update streak in DB
+      habitsTable().update({ streak, best_streak: bestStreak } as any).eq('id', habitId);
+      return { ...h, completions: updatedCompletions, streak, bestStreak };
     }));
   };
 
-  const createHabit = (data: any) => {
-    const newHabit: Habit = {
-      ...data, id: crypto.randomUUID(), createdAt: new Date(),
-      completions: [], streak: 0, bestStreak: 0, parentId: null
-    };
-    setHabits(prev => [...prev, newHabit]);
+  const createHabit = async (data: any) => {
+    if (!user) return;
+    const { data: inserted, error } = await habitsTable()
+      .insert({
+        user_id: user.id, name: data.name, description: data.description || '',
+        frequency: data.frequency, target: data.target, category: data.category,
+        color: data.color, parent_id: data.parentId || null,
+      } as any)
+      .select()
+      .single();
+    if (error) { toast.error('Failed to create habit'); return; }
+    const h = inserted as any;
+    setHabits(prev => [...prev, {
+      id: h.id, name: h.name, description: h.description || '', frequency: h.frequency,
+      target: h.target, category: h.category, color: h.color, createdAt: new Date(h.created_at),
+      completions: [], streak: 0, bestStreak: 0, parentId: h.parent_id || null,
+    }]);
     toast(`Habit "${data.name}" created!`);
   };
 
-  const createSubHabit = (parentId: string, name: string) => {
+  const createSubHabit = async (parentId: string, name: string) => {
+    if (!user) return;
     const parent = habits.find(h => h.id === parentId);
     if (!parent || !name.trim()) return;
-    const newHabit: Habit = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      description: '',
-      frequency: parent.frequency,
-      target: 1,
-      category: parent.category,
-      color: parent.color,
-      createdAt: new Date(),
-      completions: [],
-      streak: 0,
-      bestStreak: 0,
-      parentId,
-    };
-    setHabits(prev => [...prev, newHabit]);
+    const { data: inserted, error } = await habitsTable()
+      .insert({
+        user_id: user.id, name: name.trim(), description: '',
+        frequency: parent.frequency, target: 1, category: parent.category,
+        color: parent.color, parent_id: parentId,
+      } as any)
+      .select()
+      .single();
+    if (error) { toast.error('Failed to create sub-habit'); return; }
+    const h = inserted as any;
+    setHabits(prev => [...prev, {
+      id: h.id, name: h.name, description: '', frequency: h.frequency,
+      target: 1, category: h.category, color: h.color, createdAt: new Date(h.created_at),
+      completions: [], streak: 0, bestStreak: 0, parentId,
+    }]);
     toast(`Sub-habit "${name.trim()}" added!`);
     setSubHabitName('');
     setAddingSubHabitFor(null);
   };
 
-  const updateHabit = (data: any) => {
-    if (!editingHabit) return;
+  const updateHabit = async (data: any) => {
+    if (!editingHabit || !user) return;
+    await habitsTable().update({
+      name: data.name, description: data.description, frequency: data.frequency,
+      target: data.target, category: data.category, color: data.color,
+      updated_at: new Date().toISOString(),
+    } as any).eq('id', editingHabit.id);
     setHabits(prev => prev.map(h => h.id === editingHabit.id ? { ...h, ...data } : h));
     setEditingHabit(null);
     toast('Habit updated!');
   };
 
-  const deleteHabit = (id: string) => {
+  const deleteHabit = async (id: string) => {
     // Also delete sub-habits
+    const subIds = habits.filter(h => h.parentId === id).map(h => h.id);
+    for (const subId of subIds) {
+      await habitsTable().delete().eq('id', subId);
+    }
+    await habitsTable().delete().eq('id', id);
     setHabits(prev => prev.filter(h => h.id !== id && h.parentId !== id));
     toast('Habit deleted');
   };
