@@ -47,6 +47,7 @@ import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog"
 import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { CollabStudio } from "@/components/friends/CollabStudio";
+import { LearningHub } from "@/components/LearningHub";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
