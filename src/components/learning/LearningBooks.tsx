@@ -236,16 +236,51 @@ export function LearningBooks() {
   };
 
   const openReader = (book: BookResult | SavedBook) => {
-    // Try to find an Internet Archive identifier
-    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
-    const title = book.title;
+    // Check if multi-language book
+    const langs = 'languages' in book ? book.languages : undefined;
+    if (langs && langs.length > 1) {
+      setLangPickerBook(book);
+      return;
+    }
+    openReaderWithLang(book);
+  };
 
+  const openReaderWithLang = async (book: BookResult | SavedBook, lang?: string) => {
+    setLangPickerBook(null);
+    const title = book.title;
+    const workKey = 'key' in book ? book.key : ('book_key' in book ? book.book_key : null);
+
+    // If a specific language was chosen, try to find an edition in that language
+    if (lang && workKey) {
+      setLoadingEditions(true);
+      try {
+        const res = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          const editions = data.entries || [];
+          // Find edition matching the language with an IA identifier
+          const match = editions.find((ed: any) =>
+            ed.ocaid && ed.languages?.some((l: any) => l.key === `/languages/${lang}`)
+          );
+          if (match?.ocaid) {
+            setReaderBook({ title, iaId: match.ocaid, lang });
+            setLoadingEditions(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch editions:", e);
+      }
+      setLoadingEditions(false);
+    }
+
+    // Fallback: use existing iaId or search
+    const iaId = 'iaId' in book && book.iaId ? book.iaId : null;
     if (iaId) {
-      setReaderBook({ title, iaId });
+      setReaderBook({ title, iaId, lang });
     } else {
-      // Search Archive.org for the book and open in embedded reader
       const searchTerm = `${title} ${'author' in book && book.author ? book.author : ''}`.trim();
-      setReaderBook({ title, iaId: `search:${searchTerm}` });
+      setReaderBook({ title, iaId: `search:${searchTerm}`, lang });
     }
   };
 
