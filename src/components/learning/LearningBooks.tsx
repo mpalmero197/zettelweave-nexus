@@ -338,21 +338,34 @@ export function LearningBooks() {
             </Button>
           </form>
 
-          <div className="flex gap-1.5 flex-wrap">
-            {([
-              ["all", "All Books"],
-              ["readable", "Full Text + Borrow"],
-              ["fulltext", "Full Text Only"],
-            ] as const).map(([value, label]) => (
-              <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
-                className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
-                onClick={() => { setAccessFilter(value); if (searched && query) searchBooks(query); }}>
-                {label}
-              </Badge>
-            ))}
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-1.5 flex-wrap">
+              {([
+                ["all", "All"],
+                ["readable", "Full Text + Borrow"],
+                ["fulltext", "Full Text Only"],
+              ] as const).map(([value, label]) => (
+                <Badge key={value} variant={accessFilter === value ? "default" : "outline"}
+                  className="cursor-pointer text-[11px] transition-colors hover:bg-accent"
+                  onClick={() => { setAccessFilter(value); searchBooks(query, undefined, value); }}>
+                  {label}
+                </Badge>
+              ))}
+            </div>
+            <Select value={langFilter} onValueChange={(v) => { setLangFilter(v); searchBooks(query, v); }}>
+              <SelectTrigger className="w-[130px] h-7 text-[11px]">
+                <Globe className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(LANG_NAMES).map(([code, name]) => (
+                  <SelectItem key={code} value={code} className="text-xs">{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {!searched && (
+          {!searched && !loading && results.length === 0 && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
               <div className="flex flex-wrap gap-2">
