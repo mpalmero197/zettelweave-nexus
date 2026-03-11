@@ -171,11 +171,10 @@ export function LearningBooks() {
         ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
-      // Client-side language filter
-      const langFiltered = allDocs.filter((b: any) =>
+      // Strict client-side language filter
+      const langResult = allDocs.filter((b: any) =>
         Array.isArray(b._languages) && b._languages.includes(currentLang)
       );
-      const langResult = langFiltered.length > 0 ? langFiltered : allDocs;
 
       // Apply ebook access filter
       const accessFiltered = langResult.filter((b) => {
