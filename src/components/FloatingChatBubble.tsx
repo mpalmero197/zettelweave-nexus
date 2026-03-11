@@ -185,7 +185,7 @@ export function FloatingChatBubble() {
         return {
           id: uid,
           sender_id: uid,
-          sender_name: profile?.display_name || 'Unknown User',
+          sender_name: profile?.display_name || `User ${uid.substring(0, 6)}`,
           sender_avatar: profile?.avatar_url ?? undefined,
           message: thread.message,
           created_at: thread.created_at,
