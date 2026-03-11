@@ -19,7 +19,15 @@ interface BookResult {
   subjects?: string[];
   editionCount?: number;
   iaId?: string; // Internet Archive identifier
+  languages?: string[];
 }
+
+const LANG_NAMES: Record<string, string> = {
+  eng: "English", spa: "Spanish", fre: "French", ger: "German",
+  por: "Portuguese", ita: "Italian", chi: "Chinese", jpn: "Japanese",
+  kor: "Korean", rus: "Russian", ara: "Arabic", hin: "Hindi",
+  dut: "Dutch", swe: "Swedish", pol: "Polish", tur: "Turkish",
+};
 
 interface SavedBook {
   id: string;
