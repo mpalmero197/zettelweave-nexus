@@ -286,7 +286,11 @@ function HabitFormSheet({ open, onOpenChange, onSubmit, initial, trigger }: {
 }
 
 // --- Main Component ---
+const habitsTable = () => supabase.from('habits' as any);
+const completionsTable = () => supabase.from('habit_completions' as any);
+
 export default function HabitTracker() {
+  const { user } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -297,41 +301,53 @@ export default function HabitTracker() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Load from Supabase
+  const loadHabits = useCallback(async () => {
+    if (!user) return;
+    const { data: habitsData } = await habitsTable()
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
+    if (!habitsData) return;
+    
+    const { data: completionsData } = await completionsTable()
+      .select('*')
+      .eq('user_id', user.id);
+    
+    const completionsByHabit: Record<string, { date: string; completed: boolean; notes?: string }[]> = {};
+    (completionsData as any[] || []).forEach((c: any) => {
+      if (!completionsByHabit[c.habit_id]) completionsByHabit[c.habit_id] = [];
+      completionsByHabit[c.habit_id].push({ date: c.completion_date, completed: c.completed, notes: c.notes });
+    });
+
+    setHabits((habitsData as any[]).map((h: any) => ({
+      id: h.id,
+      name: h.name,
+      description: h.description || '',
+      frequency: h.frequency,
+      target: h.target,
+      category: h.category,
+      color: h.color,
+      createdAt: new Date(h.created_at),
+      completions: completionsByHabit[h.id] || [],
+      streak: h.streak,
+      bestStreak: h.best_streak,
+      parentId: h.parent_id || null,
+    })));
+  }, [user]);
+
+  useEffect(() => { loadHabits(); }, [loadHabits]);
+
   // BulletJournal integration
   const addHabitFromTask = (taskName: string) => {
     const exists = habits.find(h => h.name.toLowerCase() === taskName.toLowerCase());
     if (exists) { toast(`Habit "${taskName}" already exists`); return; }
-    const newHabit: Habit = {
-      id: crypto.randomUUID(), name: taskName, description: 'From bullet journal',
-      frequency: 'daily', target: 1, category: 'productivity',
-      color: HABIT_COLORS[habits.length % HABIT_COLORS.length],
-      createdAt: new Date(), completions: [], streak: 0, bestStreak: 0, parentId: null
-    };
-    setHabits(prev => [...prev, newHabit]);
-    toast(`Habit "${taskName}" added!`);
+    createHabit({ name: taskName, description: 'From bullet journal', frequency: 'daily', target: 1, category: 'productivity', color: HABIT_COLORS[habits.length % HABIT_COLORS.length] });
   };
 
   useEffect(() => {
     (window as any).__addHabitFromTask = addHabitFromTask;
     return () => { delete (window as any).__addHabitFromTask; };
-  }, [habits]);
-
-  // Load
-  useEffect(() => {
-    const saved = localStorage.getItem('habit-tracker-data');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setHabits(parsed.map((h: any) => ({ ...h, createdAt: new Date(h.createdAt) })));
-      } catch { /* ignore */ }
-    }
-  }, []);
-
-  // Save
-  useEffect(() => {
-    if (habits.length > 0) {
-      localStorage.setItem('habit-tracker-data', JSON.stringify(habits));
-    }
   }, [habits]);
 
   const toggleHabitCompletion = (habitId: string) => {
