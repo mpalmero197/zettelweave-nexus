@@ -20,6 +20,7 @@ interface BookResult {
   editionCount?: number;
   iaId?: string; // Internet Archive identifier
   languages?: string[];
+  ebookAccess?: string;
 }
 
 const LANG_NAMES: Record<string, string> = {
