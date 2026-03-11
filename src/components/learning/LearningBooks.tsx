@@ -150,10 +150,9 @@ export function LearningBooks() {
     const currentLang = overrideLang ?? langFilter;
     const currentAccess = overrideAccess ?? accessFilter;
     try {
-      const langParam = `language:${currentLang}`;
       const isEmptyQuery = !searchQuery.trim();
-      const searchParam = isEmptyQuery ? `subject:popular ${langParam}` : `${searchQuery} ${langParam}`;
-      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(searchParam)}&limit=48&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access${isEmptyQuery ? "&sort=rating" : ""}`;
+      const searchParam = isEmptyQuery ? "subject:popular" : searchQuery;
+      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(searchParam)}&limit=100&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access${isEmptyQuery ? "&sort=rating" : ""}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to search Open Library");
       const data = await res.json();
@@ -171,10 +170,17 @@ export function LearningBooks() {
         ebookAccess: doc.ebook_access || "no_ebook",
       }));
 
-      // Strict client-side language filter
-      const langResult = allDocs.filter((b: any) =>
-        Array.isArray(b._languages) && b._languages.includes(currentLang)
+      // Strict client-side language filter: exclude books without language data or without the selected language
+      const langResult = allDocs.filter((b) =>
+        Array.isArray(b._languages) && b._languages.length > 0 && b._languages.includes(currentLang)
       );
+
+      // Prioritize books where selected language is primary (appears first)
+      langResult.sort((a, b) => {
+        const aIdx = a._languages.indexOf(currentLang);
+        const bIdx = b._languages.indexOf(currentLang);
+        return aIdx - bIdx;
+      });
 
       // Apply ebook access filter
       const accessFiltered = langResult.filter((b) => {

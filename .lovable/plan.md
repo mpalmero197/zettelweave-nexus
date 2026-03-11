@@ -1,43 +1,62 @@
 
 
-## Fix Language Filtering for Book Search
+## Evernote Import for Pendragon
 
-### Problem
-Open Library's `language:` search qualifier within the `q` parameter is unreliable — many books lack language metadata or have incomplete data, so non-English books slip through. The client-side filter then can't catch them because `_languages` is empty.
+### The Reality of Evernote Integration
 
-### Solution (in `src/components/learning/LearningBooks.tsx`)
+Evernote uses **OAuth 1.0a** authentication, which requires:
+1. Applying for an Evernote API key (manual review process, can take days/weeks)
+2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
+3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
 
-1. **Remove `language:` from the `q` parameter** — it pollutes search relevance without reliably filtering.
+**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
 
-2. **Increase the API fetch limit to ~100** so after strict client-side filtering there are still enough results.
+### What will be built
 
-3. **Stricter client-side language filter**:
-   - If a book has a `language` array and the selected language is in it → include.
-   - If a book has a `language` array but the selected language is NOT in it → exclude.
-   - If a book has NO language data (empty array) → exclude when a language filter is active. This is the key change — currently these untagged books slip through.
+1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
+   - Parse `.enex` XML files using the browser's built-in `DOMParser`
+   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
+   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
+   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
 
-4. **Prioritize language match**: Sort results so books where the selected language appears first in the `language` array rank higher than books where it appears later (multi-language books).
+2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
+   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
+   - Drag-and-drop or file picker for `.enex` files
+   - Preview parsed notes with title, tag count, and content snippet before importing
+   - Select/deselect individual notes
+   - Map Evernote tags to Zettel card tags
+   - Import selected notes as Zettel cards with auto-categorization
 
-### Changes — single file `src/components/learning/LearningBooks.tsx`
+3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
+   - Add `.enex` to the supported file types for the Computer tab
+   - Parse and convert ENEX content to HTML for use in the Catalyst editor
 
-**Lines 153-177** — update search and filter logic:
-```typescript
-// Remove language: from q param, increase limit
-const searchParam = isEmptyQuery ? "subject:popular" : searchQuery;
-const url = `...?q=${encodeURIComponent(searchParam)}&limit=100&fields=...`;
-
-// Strict filter: book MUST have the selected language in its language array
-const langResult = allDocs.filter((b) =>
-  Array.isArray(b._languages) && b._languages.length > 0 && b._languages.includes(currentLang)
-);
-
-// Sort: prioritize books where selected language is primary (index 0)
-langResult.sort((a, b) => {
-  const aIdx = a._languages.indexOf(currentLang);
-  const bIdx = b._languages.indexOf(currentLang);
-  return aIdx - bIdx;
-});
+### ENEX Format Structure (for reference)
+```text
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export>
+  <note>
+    <title>Note Title</title>
+    <content><![CDATA[...ENML content...]]></content>
+    <created>20230101T120000Z</created>
+    <updated>20230615T180000Z</updated>
+    <tag>tag1</tag>
+    <tag>tag2</tag>
+  </note>
+  ...more notes...
+</en-export>
 ```
 
-This ensures only books with confirmed language metadata matching the filter are shown, and multi-language books where the selected language is primary appear first.
+### Technical Details
+
+- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
+- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
+- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
+- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+
+### User flow
+1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
+2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
+3. Preview notes, select which to import, click Import
+4. Notes appear as Zettel cards with preserved tags and content
 
