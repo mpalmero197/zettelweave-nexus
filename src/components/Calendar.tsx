@@ -153,30 +153,27 @@ export function Calendar() {
         taskId: t.id,
       }));
 
-      // Read habits from localStorage
+      // Read habits from Supabase
       const habitItems: CalendarItem[] = [];
-      try {
-        const raw = localStorage.getItem('habit-tracker-data');
-        if (raw) {
-          const habits = JSON.parse(raw);
-          if (Array.isArray(habits)) {
-            for (const habit of habits) {
-              if (Array.isArray(habit.completions)) {
-                for (const c of habit.completions) {
-                  if (c.completed && c.date) {
-                    habitItems.push({
-                      id: `habit-${habit.id}-${c.date}`,
-                      title: habit.name,
-                      event_date: c.date,
-                      source_type: 'habit',
-                    });
-                  }
-                }
+      if (user) {
+        try {
+          const { data: completionsData } = await (supabase.from('habit_completions' as any))
+            .select('*, habits:habit_id(name)')
+            .eq('user_id', user.id);
+          if (completionsData && Array.isArray(completionsData)) {
+            for (const c of completionsData as any[]) {
+              if (c.completed && c.completion_date) {
+                habitItems.push({
+                  id: `habit-${c.habit_id}-${c.completion_date}`,
+                  title: c.habits?.name || 'Habit',
+                  event_date: c.completion_date,
+                  source_type: 'habit',
+                });
               }
             }
           }
-        }
-      } catch {}
+        } catch {}
+      }
 
       // Merge all items
       const calItems: CalendarItem[] = [

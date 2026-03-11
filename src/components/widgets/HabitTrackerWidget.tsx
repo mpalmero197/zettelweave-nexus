@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Plus, Flame } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Habit {
   id: string;
@@ -29,11 +31,30 @@ function MiniRing({ size = 28, progress = 0, color = '#3b82f6' }: { size?: numbe
 }
 
 export function HabitTrackerWidget() {
-  const [habits] = useState<Habit[]>(() => {
-    const saved = localStorage.getItem('habit-tracker-data');
-    if (saved) { try { return JSON.parse(saved); } catch { return []; } }
-    return [];
-  });
+  const { user } = useAuth();
+  const [habits, setHabits] = useState<Habit[]>([]);
+
+  const loadHabits = useCallback(async () => {
+    if (!user) return;
+    const { data: habitsData } = await (supabase.from('habits' as any))
+      .select('*')
+      .eq('user_id', user.id);
+    if (!habitsData) return;
+    const { data: completionsData } = await (supabase.from('habit_completions' as any))
+      .select('*')
+      .eq('user_id', user.id);
+    const byHabit: Record<string, { date: string; completed: boolean }[]> = {};
+    (completionsData as any[] || []).forEach((c: any) => {
+      if (!byHabit[c.habit_id]) byHabit[c.habit_id] = [];
+      byHabit[c.habit_id].push({ date: c.completion_date, completed: c.completed });
+    });
+    setHabits((habitsData as any[]).map((h: any) => ({
+      id: h.id, name: h.name, color: h.color, streak: h.streak,
+      completions: byHabit[h.id] || [],
+    })));
+  }, [user]);
+
+  useEffect(() => { loadHabits(); }, [loadHabits]);
   
   const isMobile = useIsMobile();
   const today = new Date().toISOString().split('T')[0];

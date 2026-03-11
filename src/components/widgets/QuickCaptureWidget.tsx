@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,18 +6,45 @@ import { Edit3, Save, Plus } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface QuickCaptureWidgetProps {
   onCreateCard?: (card: any) => void;
 }
 
+const captureTable = () => supabase.from('quick_captures' as any);
+
 export function QuickCaptureWidget({ onCreateCard }: QuickCaptureWidgetProps) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [content, setContent] = useState("");
 
-  const handleSave = () => {
-    if (!content.trim()) return;
-    localStorage.setItem('quickCapture', content);
+  useEffect(() => {
+    if (!user) return;
+    captureTable()
+      .select('content')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data }: any) => {
+        if (data?.content) setContent(data.content);
+      });
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!content.trim() || !user) return;
+    const { data: existing } = await captureTable()
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .single();
+    if (existing) {
+      await captureTable().update({ content, updated_at: new Date().toISOString() } as any).eq('id', (existing as any).id);
+    } else {
+      await captureTable().insert({ user_id: user.id, content } as any);
+    }
     toast("Note saved");
   };
 
