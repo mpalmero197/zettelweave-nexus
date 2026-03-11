@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight } from "lucide-react";
+import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -96,6 +96,7 @@ export function LearningBooks() {
   const [notesText, setNotesText] = useState("");
   const [readerBook, setReaderBook] = useState<{ title: string; iaId: string } | null>(null);
   const [lastSearchLang, setLastSearchLang] = useState("eng");
+  const [readerFullscreen, setReaderFullscreen] = useState(false);
 
   useEffect(() => {
     if (user) loadSavedBooks();
@@ -260,12 +261,16 @@ export function LearningBooks() {
       : `https://archive.org/embed/${readerBook.iaId}`;
 
     return (
-      <div className="flex flex-col h-[calc(100vh-12rem)]">
+      <div className={`flex flex-col ${readerFullscreen ? "fixed inset-0 z-50 bg-background p-3" : "h-[calc(100vh-12rem)]"}`}>
         <div className="flex items-center gap-3 pb-3 border-b border-border mb-3">
-          <Button size="sm" variant="ghost" onClick={() => setReaderBook(null)}>
+          <Button size="sm" variant="ghost" onClick={() => { setReaderBook(null); setReaderFullscreen(false); }}>
             <ArrowLeft className="h-4 w-4 mr-1.5" />Back
           </Button>
           <h2 className="text-sm font-medium truncate flex-1">{readerBook.title}</h2>
+          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0"
+            onClick={() => setReaderFullscreen(prev => !prev)}>
+            {readerFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          </Button>
         </div>
         <div className="flex-1 rounded-lg overflow-hidden border border-border bg-muted">
           <iframe
