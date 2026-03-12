@@ -354,6 +354,7 @@ export function ResumeOptimizer() {
   const [customInstructions, setCustomInstructions] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('professional');
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('mid');
+  const [language, setLanguage] = useState<'auto' | 'en' | 'zh'>('auto');
   const [constraints, setConstraints] = useState<ResumeConstraints>({
     enforceOnePage: true,
     cleanFormatting: true,
@@ -429,6 +430,7 @@ export function ResumeOptimizer() {
           templateSections: currentTemplate.sections,
           templateTone: currentTemplate.tone,
           experienceLevel,
+          language: language === 'auto' ? undefined : language,
         },
       });
 
@@ -691,20 +693,35 @@ export function ResumeOptimizer() {
                 <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab('template')}>Change</Button>
               </div>
 
-              {/* Experience Level */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Experience Level</Label>
-                <Select value={experienceLevel} onValueChange={(v: ExperienceLevel) => setExperienceLevel(v)}>
-                  <SelectTrigger className="bg-card border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="entry">Entry Level / New Graduate (0-2 years)</SelectItem>
-                    <SelectItem value="mid">Mid-Level Professional (3-7 years)</SelectItem>
-                    <SelectItem value="senior">Senior / Staff Level (8-15 years)</SelectItem>
-                    <SelectItem value="executive">Executive / C-Suite (15+ years)</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Experience Level & Language */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Experience Level</Label>
+                  <Select value={experienceLevel} onValueChange={(v: ExperienceLevel) => setExperienceLevel(v)}>
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entry">Entry Level / New Graduate</SelectItem>
+                      <SelectItem value="mid">Mid-Level (3-7 years)</SelectItem>
+                      <SelectItem value="senior">Senior / Staff (8-15 years)</SelectItem>
+                      <SelectItem value="executive">Executive / C-Suite (15+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Output Language</Label>
+                  <Select value={language} onValueChange={(v: 'auto' | 'en' | 'zh') => setLanguage(v)}>
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto-detect</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="zh">中文 (Chinese)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Upload Zone */}
