@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, X, Share2, ExternalLink } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, Share2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AttachmentDisplay } from "./AttachmentDisplay";
 import { EditCardDialog } from "./EditCardDialog";
@@ -134,9 +134,6 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete, 
               </Button>
               <Button variant="ghost" size="sm" onClick={handleEdit} className="hover:bg-primary/10 text-muted-foreground hover:text-primary">
                 <Edit3 className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-                <X className="h-5 w-5" />
               </Button>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-import { Calendar, Edit3, Star, X, BookOpen } from 'lucide-react';
+import { Calendar, Edit3, Star, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
 import DOMPurify from 'dompurify';
@@ -82,9 +82,6 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
           <div className="flex items-center gap-1 ml-4 flex-shrink-0">
             <Button variant="ghost" size="sm" onClick={() => onEdit(note)} className="hover:bg-primary/10 text-muted-foreground hover:text-primary">
               <Edit3 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
