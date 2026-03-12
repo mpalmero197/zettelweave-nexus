@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-import { Calendar, Edit3, Star, X, BookOpen } from 'lucide-react';
+import { Calendar, Edit3, Star, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
 import DOMPurify from 'dompurify';
