@@ -83,9 +83,6 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
             <Button variant="ghost" size="sm" onClick={() => onEdit(note)} className="hover:bg-primary/10 text-muted-foreground hover:text-primary">
               <Edit3 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

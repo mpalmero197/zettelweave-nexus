@@ -135,9 +135,6 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete, 
               <Button variant="ghost" size="sm" onClick={handleEdit} className="hover:bg-primary/10 text-muted-foreground hover:text-primary">
                 <Edit3 className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-                <X className="h-5 w-5" />
-              </Button>
             </div>
           </div>
 
