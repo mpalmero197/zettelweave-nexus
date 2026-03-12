@@ -354,6 +354,7 @@ export function ResumeOptimizer() {
   const [customInstructions, setCustomInstructions] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('professional');
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('mid');
+  const [language, setLanguage] = useState<'auto' | 'en' | 'zh'>('auto');
   const [constraints, setConstraints] = useState<ResumeConstraints>({
     enforceOnePage: true,
     cleanFormatting: true,
