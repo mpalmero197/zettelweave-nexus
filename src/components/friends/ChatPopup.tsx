@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { X, Send, Minus, UserPlus, Check, CheckCheck, ChevronLeft } from 'lucide-react';
+import { X, Send, Minus, UserPlus, Check, CheckCheck, ChevronLeft, Smile } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -226,8 +226,8 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
     return chatItems.map((item, index) => {
       if (item.type === 'date-separator') {
         return (
-          <div key={`sep-${item.date}`} className="flex items-center justify-center py-3">
-            <span className="text-[11px] font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full">
+          <div key={`sep-${item.date}`} className="flex items-center justify-center py-4">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 bg-muted/60 backdrop-blur-sm px-3 py-1 rounded-full">
               {item.label}
             </span>
           </div>
@@ -256,15 +256,15 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
           className={cn(
             'flex animate-chat-msg-in',
             isMine ? 'justify-end' : 'justify-start',
-            !isLastInCluster ? 'mb-0.5' : 'mb-2'
+            !isLastInCluster ? 'mb-[3px]' : 'mb-3'
           )}
         >
           {!isMine && (
-            <div className="w-7 mr-1.5 flex-shrink-0">
-              {isFirstInCluster ? (
-                <Avatar className="h-7 w-7">
+            <div className="w-7 mr-2 flex-shrink-0 self-end">
+              {isLastInCluster ? (
+                <Avatar className="h-7 w-7 shadow-sm">
                   <AvatarImage src={friendAvatar} />
-                  <AvatarFallback className="text-[10px]">
+                  <AvatarFallback className="text-[9px] font-semibold bg-muted">
                     {(friendName ?? '').substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -272,37 +272,39 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
             </div>
           )}
 
-          <div className="flex flex-col max-w-[72%]">
+          <div className="flex flex-col max-w-[75%]">
             <div
               className={cn(
-                'px-3 py-1.5 break-words',
+                'break-words transition-colors',
                 isEmoji
-                  ? 'text-2xl bg-transparent px-1'
+                  ? 'text-3xl px-1 py-0.5'
                   : isMine
-                    ? 'bg-primary text-primary-foreground rounded-2xl'
-                    : 'bg-muted text-foreground rounded-2xl',
-                !isEmoji && isMine && isFirstInCluster && 'rounded-tr-md',
-                !isEmoji && isMine && isLastInCluster && 'rounded-br-md',
-                !isEmoji && !isMine && isFirstInCluster && 'rounded-tl-md',
-                !isEmoji && !isMine && isLastInCluster && 'rounded-bl-md',
+                    ? 'chat-bubble-mine px-3.5 py-2 rounded-2xl text-primary-foreground'
+                    : 'chat-bubble-theirs px-3.5 py-2 rounded-2xl text-foreground',
+                !isEmoji && isMine && isFirstInCluster && !isLastInCluster && 'rounded-tr-lg',
+                !isEmoji && isMine && isLastInCluster && !isFirstInCluster && 'rounded-br-lg',
+                !isEmoji && isMine && !isFirstInCluster && !isLastInCluster && 'rounded-r-lg',
+                !isEmoji && !isMine && isFirstInCluster && !isLastInCluster && 'rounded-tl-lg',
+                !isEmoji && !isMine && isLastInCluster && !isFirstInCluster && 'rounded-bl-lg',
+                !isEmoji && !isMine && !isFirstInCluster && !isLastInCluster && 'rounded-l-lg',
               )}
             >
-              <p className={cn('text-sm leading-relaxed', isEmoji && 'text-2xl')}>{msg.message}</p>
+              <p className={cn('text-[13px] leading-relaxed', isEmoji && 'text-3xl leading-none')}>{msg.message}</p>
             </div>
 
             {isLastInCluster && (
               <div className={cn(
-                'flex items-center gap-1 mt-0.5 px-1',
+                'flex items-center gap-1 mt-1 px-1',
                 isMine ? 'justify-end' : 'justify-start'
               )}>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground/60 font-medium">
                   {format(new Date(msg.created_at), 'HH:mm')}
                 </span>
                 {isMine && !msg.id.startsWith('temp-') && (
                   msg.read_at ? (
                     <CheckCheck className="h-3 w-3 text-primary" />
                   ) : (
-                    <Check className="h-3 w-3 text-muted-foreground" />
+                    <Check className="h-3 w-3 text-muted-foreground/50" />
                   )
                 )}
               </div>
@@ -319,10 +321,10 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
       {/* Friend request alerts */}
       {!isCheckingFriendship && !isFriend && !hasPendingRequest && (
         <div className="px-3 pt-2 shrink-0">
-          <Alert className="border-primary/30 bg-primary/5 py-2">
+          <Alert className="border-primary/20 bg-primary/5 py-2 rounded-xl">
             <AlertDescription className="flex items-center justify-between text-xs">
-              <span>Not friends yet</span>
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={sendFriendRequest}>
+              <span className="text-muted-foreground">Not friends yet</span>
+              <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg" onClick={sendFriendRequest}>
                 <UserPlus className="h-3 w-3 mr-1" />
                 Add
               </Button>
@@ -333,7 +335,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
 
       {!isCheckingFriendship && !isFriend && hasPendingRequest && (
         <div className="px-3 pt-2 shrink-0">
-          <Alert className="border-border bg-muted/50 py-2">
+          <Alert className="border-border/50 bg-muted/30 py-2 rounded-xl">
             <AlertDescription className="text-xs text-muted-foreground">
               Friend request pending — chat away!
             </AlertDescription>
@@ -342,16 +344,16 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
       )}
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-minimal">
+      <div className="flex-1 overflow-y-auto px-3 py-3 scrollbar-minimal chat-messages-bg">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <Avatar className="h-16 w-16 mb-4">
+            <Avatar className="h-16 w-16 mb-4 ring-2 ring-border shadow-md">
               <AvatarImage src={friendAvatar} />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
                 {(friendName ?? '').substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p className="text-sm font-medium mb-1">Start a conversation</p>
+            <p className="text-sm font-semibold text-foreground mb-1">Start a conversation</p>
             <p className="text-xs text-muted-foreground">
               Say hi to {friendName ?? 'them'} 👋
             </p>
@@ -361,9 +363,9 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
             {renderMessages()}
 
             {showTypingIndicator && (
-              <div className="flex justify-start mb-2">
-                <div className="w-7 mr-1.5 flex-shrink-0" />
-                <div className="bg-muted rounded-2xl px-4 py-2.5 flex items-center gap-1">
+              <div className="flex justify-start mb-3">
+                <div className="w-7 mr-2 flex-shrink-0" />
+                <div className="bg-muted/60 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-1.5">
                   <span className="chat-typing-dot" />
                   <span className="chat-typing-dot animation-delay-200" />
                   <span className="chat-typing-dot animation-delay-400" />
@@ -376,26 +378,39 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
       </div>
 
       {/* Input area */}
-      <div className={cn('px-3 pb-3 pt-1 border-t border-border shrink-0', isMobile && 'pb-safe')}>
+      <div className={cn('px-3 pb-3 pt-2 border-t border-border/30 shrink-0 bg-card/50 backdrop-blur-sm', isMobile && 'pb-safe')}>
         <div className="flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            placeholder="Message..."
-            value={newMessage}
-            onChange={handleTextareaInput}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            className={cn(
-              'flex-1 resize-none rounded-xl border border-border bg-input px-3 py-2',
-              'text-sm placeholder:text-muted-foreground',
-              'focus:outline-none focus:ring-1 focus:ring-ring',
-              'scrollbar-minimal'
-            )}
-            style={{ minHeight: '36px', maxHeight: '76px' }}
-          />
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              className={cn(
+                'w-full resize-none rounded-2xl border border-border/50 bg-muted/40 px-4 py-2.5 pr-10',
+                'text-[13px] placeholder:text-muted-foreground/50',
+                'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30',
+                'scrollbar-minimal transition-all duration-200'
+              )}
+              style={{ minHeight: '40px', maxHeight: '80px' }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 bottom-1 h-7 w-7 rounded-full text-muted-foreground/40 hover:text-muted-foreground"
+              tabIndex={-1}
+            >
+              <Smile className="h-4 w-4" />
+            </Button>
+          </div>
           <Button
             size="icon"
-            className="h-9 w-9 rounded-xl flex-shrink-0 transition-transform hover:scale-105 active:scale-95"
+            className={cn(
+              'h-10 w-10 rounded-full flex-shrink-0 shadow-sm transition-all duration-200',
+              newMessage.trim() ? 'scale-100 opacity-100' : 'scale-95 opacity-70'
+            )}
             onClick={sendMessage}
             disabled={!newMessage.trim()}
           >
@@ -411,7 +426,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
     return (
       <div className="fixed inset-0 z-[60] bg-background flex flex-col animate-in slide-in-from-right-full duration-200">
         {/* Header */}
-        <div className="flex items-center gap-2 px-2 py-2 border-b border-border shrink-0">
+        <div className="flex items-center gap-2 px-2 py-2.5 border-b border-border/40 bg-card/80 backdrop-blur-md shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -422,17 +437,17 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="relative">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
               <AvatarImage src={friendAvatar} />
-              <AvatarFallback className="text-xs font-medium">
+              <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
                 {(friendName ?? '').substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm truncate">{friendName ?? 'Unknown'}</p>
-            <p className="text-[11px] text-muted-foreground leading-none">Online</p>
+            <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Online</p>
           </div>
         </div>
 
@@ -444,33 +459,34 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
   // ── Desktop: floating card ──
   return (
     <div className={cn(
-      'fixed bottom-4 right-20 w-[360px] z-50 flex flex-col',
-      'rounded-2xl border border-border bg-card shadow-[var(--shadow-material-5)]',
+      'fixed bottom-4 right-20 w-[380px] z-50 flex flex-col',
+      'rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl',
+      'shadow-[0_8px_40px_-12px_hsl(var(--primary)/0.15),0_4px_20px_-8px_rgba(0,0,0,0.15)]',
       'animate-scale-in origin-bottom-right',
-      isMinimized ? 'h-auto' : 'h-[480px]'
+      isMinimized ? 'h-auto' : 'h-[500px]'
     )}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border rounded-t-2xl bg-muted/30 shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/30 rounded-t-2xl bg-muted/20 shrink-0">
         <div className="relative">
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
             <AvatarImage src={friendAvatar} />
-            <AvatarFallback className="text-xs font-medium">
+            <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
               {(friendName ?? '').substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-card animate-chat-online-pulse" />
+          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card animate-chat-online-pulse" />
         </div>
 
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm truncate">{friendName ?? 'Unknown'}</p>
-          <p className="text-[11px] text-muted-foreground">Online</p>
+          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Online</p>
         </div>
 
         <div className="flex gap-0.5">
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-full"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
             onClick={() => setIsMinimized(!isMinimized)}
             aria-label={isMinimized ? 'Expand chat' : 'Minimize chat'}
           >
@@ -479,7 +495,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-full"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
             onClick={onClose}
             aria-label="Close chat"
           >
