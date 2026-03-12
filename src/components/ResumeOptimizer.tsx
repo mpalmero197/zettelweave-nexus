@@ -430,6 +430,7 @@ export function ResumeOptimizer() {
           templateSections: currentTemplate.sections,
           templateTone: currentTemplate.tone,
           experienceLevel,
+          language: language === 'auto' ? undefined : language,
         },
       });
 
