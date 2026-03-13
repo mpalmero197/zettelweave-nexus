@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight, Maximize, Minimize, Globe } from "lucide-react";
+import { Search, Loader2, BookOpen, BookmarkPlus, BookmarkCheck, Star, X, ArrowLeft, ChevronRight, Maximize, Minimize, Globe, ExternalLink, Library } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -71,6 +71,33 @@ const POPULAR_SEARCHES = [
   "Meditations", "1984", "Dune",
 ];
 
+const FREE_EBOOK_RESOURCES = [
+  { name: "Project Gutenberg", url: "https://www.gutenberg.org", description: "Over 70,000 free public domain ebooks. The oldest digital library with classic literature.", tags: ["Public Domain", "Classics"] },
+  { name: "Internet Archive", url: "https://archive.org/details/texts", description: "Millions of free texts including books, articles, and historical documents.", tags: ["Public Domain", "Historical"] },
+  { name: "Open Library", url: "https://openlibrary.org", description: "Universal catalog with millions of free full-text books available to read online.", tags: ["Public Domain", "Full Text"] },
+  { name: "Standard Ebooks", url: "https://standardebooks.org", description: "Beautifully formatted, carefully proofread public domain ebooks with modern typography.", tags: ["Public Domain", "Curated"] },
+  { name: "ManyBooks", url: "https://manybooks.net", description: "Over 50,000 free ebooks in multiple formats from public domain and indie authors.", tags: ["Public Domain", "Indie"] },
+  { name: "Feedbooks", url: "https://www.feedbooks.com/publicdomain", description: "Public domain books in high-quality EPUB and PDF formats.", tags: ["Public Domain", "EPUB"] },
+  { name: "Google Books", url: "https://books.google.com/books?q=subject:fiction&filter=free-ebooks", description: "Free full-view books from Google's massive scanning project.", tags: ["Public Domain", "Full View"] },
+  { name: "Smashwords", url: "https://www.smashwords.com/books/category/1/newest/0/free/any", description: "Free indie ebooks published directly by authors across all genres.", tags: ["Indie", "Multi-genre"] },
+  { name: "LibriVox", url: "https://librivox.org", description: "Free public domain audiobooks read by volunteers from around the world.", tags: ["Audiobooks", "Public Domain"] },
+  { name: "BookBub", url: "https://www.bookbub.com/ebook-deals/free-ebooks", description: "Curated free ebook deals from major publishers and indie authors.", tags: ["Deals", "Multi-genre"] },
+  { name: "Digital Public Library of America", url: "https://dp.la", description: "Free access to millions of digital items from libraries, archives, and museums.", tags: ["Archives", "Historical"] },
+  { name: "Baen Free Library", url: "https://www.baen.com/catalog/category/view/id/2012", description: "Free science fiction and fantasy ebooks from Baen Books publishers.", tags: ["Sci-Fi", "Fantasy"] },
+  { name: "HathiTrust Digital Library", url: "https://www.hathitrust.org", description: "Partnership of academic libraries with millions of full-text public domain works.", tags: ["Academic", "Public Domain"] },
+  { name: "Library of Congress", url: "https://www.loc.gov/books", description: "Free digital collections from the world's largest library.", tags: ["Historical", "Government"] },
+  { name: "Loyal Books", url: "https://www.loyalbooks.com", description: "Free public domain audiobooks and ebooks in multiple languages.", tags: ["Audiobooks", "Multi-language"] },
+  { name: "International Children's Digital Library", url: "http://en.childrenslibrary.org", description: "Free children's books from around the world in dozens of languages.", tags: ["Children", "Multi-language"] },
+  { name: "Open Culture", url: "https://www.openculture.com/free_ebooks", description: "Curated collection of 800+ free ebooks from classic literature to modern works.", tags: ["Curated", "Educational"] },
+  { name: "Obooko", url: "https://www.obooko.com", description: "Free full-length ebooks across fiction, non-fiction, and academic categories.", tags: ["Full-length", "Multi-genre"] },
+  { name: "Authorama", url: "https://www.authorama.com", description: "Public domain books with clean, easy-to-read online formatting.", tags: ["Public Domain", "Online Reader"] },
+  { name: "Bartleby", url: "https://www.bartleby.com", description: "Free classic literature, reference works, and verse collections.", tags: ["Classics", "Reference"] },
+  { name: "The Online Books Page", url: "https://onlinebooks.library.upenn.edu", description: "UPenn-curated listing of over 3 million free books available on the web.", tags: ["Directory", "Academic"] },
+  { name: "Planet eBook", url: "https://www.planetebook.com", description: "Free classic novels in beautifully formatted PDF editions.", tags: ["Classics", "PDF"] },
+  { name: "Libby (OverDrive)", url: "https://www.overdrive.com", description: "Free ebooks and audiobooks through your local library card.", tags: ["Library Card", "Modern"] },
+  { name: "Hoopla Digital", url: "https://www.hoopladigital.com", description: "Free digital content including ebooks via your public library.", tags: ["Library Card", "Multi-media"] },
+];
+
 // Detect language from query text to filter Open Library results
 function detectLanguage(text: string): string {
   // Check for CJK characters (Chinese/Japanese/Korean)
@@ -101,7 +128,7 @@ export function LearningBooks() {
   const [results, setResults] = useState<BookResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [view, setView] = useState<"search" | "library">("search");
+  const [view, setView] = useState<"search" | "library" | "resources">("search");
   const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
@@ -389,6 +416,9 @@ export function LearningBooks() {
         <Button size="sm" variant={view === "library" ? "default" : "outline"} onClick={() => { setView("library"); loadSavedBooks(); }}>
           <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />Library{savedBooks.length > 0 ? ` (${savedBooks.length})` : ""}
         </Button>
+        <Button size="sm" variant={view === "resources" ? "default" : "outline"} onClick={() => setView("resources")}>
+          <Library className="h-3.5 w-3.5 mr-1.5" />Resources
+        </Button>
       </div>
 
       {view === "search" ? (
@@ -489,7 +519,7 @@ export function LearningBooks() {
             </div>
           ) : null}
         </div>
-      ) : (
+      ) : view === "library" ? (
         /* Library view */
         <div className="space-y-4">
           {loadingSaved ? (
@@ -579,6 +609,32 @@ export function LearningBooks() {
               })}
             </div>
           )}
+        </div>
+      ) : (
+        /* Resources view */
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">Free full-text ebook libraries — no previews or borrows, only books you can read completely for free.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {FREE_EBOOK_RESOURCES.map((r) => (
+              <a key={r.name} href={r.url} target="_blank" rel="noopener noreferrer"
+                className="group block">
+                <Card className="border-border/50 hover:border-primary/40 transition-all hover:shadow-md h-full">
+                  <CardContent className="p-4 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{r.name}</h4>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 group-hover:text-primary transition-colors mt-0.5" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{r.description}</p>
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {r.tags.map((t) => (
+                        <Badge key={t} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
