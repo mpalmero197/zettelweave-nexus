@@ -516,15 +516,17 @@ export function LearningBooks() {
             <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
           ) : results.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">{results.length} books found</p>
+              <p className="text-xs text-muted-foreground">{results.length} books found from {new Set(results.map(b => b.source)).size} sources</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {results.slice(0, visibleCount).map((book) => (
                   <Card key={book.key} className="border-border/50 hover:border-primary/30 transition-colors cursor-pointer overflow-hidden"
-                    onClick={() => openBookDetail(book)}>
+                    onClick={() => book.source === "openlibrary" ? openBookDetail(book) : book.readUrl ? window.open(book.readUrl, "_blank") : openBookDetail(book)}>
                     <CardContent className="p-2.5 space-y-1.5">
                       {book.coverId ? (
                         <img src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
                           alt={book.title} className="w-full h-32 object-cover rounded-sm bg-muted" loading="lazy" />
+                      ) : book.coverUrl ? (
+                        <img src={book.coverUrl} alt={book.title} className="w-full h-32 object-cover rounded-sm bg-muted" loading="lazy" />
                       ) : (
                         <div className="w-full h-32 bg-muted rounded-sm flex items-center justify-center">
                           <BookOpen className="h-6 w-6 text-muted-foreground/40" />
@@ -535,9 +537,18 @@ export function LearningBooks() {
                       <div className="flex items-center gap-1 flex-wrap">
                         {book.ebookAccess === "public" && <Badge className="text-[9px] px-1 py-0 bg-green-600/10 text-green-600 border-green-600/20">Full Text</Badge>}
                         {book.ebookAccess === "borrowable" && <Badge className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">Borrow</Badge>}
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">
+                          {book.source === "openlibrary" ? "Open Library" : book.source === "gutenberg" ? "Gutenberg" : "Google Books"}
+                        </Badge>
                         {book.year && <span className="text-[10px] text-muted-foreground">{book.year}</span>}
                       </div>
                       <div className="flex gap-1 pt-0.5">
+                        {book.source !== "openlibrary" && book.readUrl && (
+                          <Button size="sm" variant="ghost" className="text-[10px] h-6 px-1.5"
+                            onClick={(e) => { e.stopPropagation(); window.open(book.readUrl, "_blank"); }}>
+                            <ExternalLink className="h-3 w-3 mr-0.5" />Read
+                          </Button>
+                        )}
                         {!savedKeys.has(book.key) ? (
                           <Button size="sm" variant="ghost" className="text-[10px] h-6 px-1.5"
                             onClick={(e) => { e.stopPropagation(); saveBook(book); }}>
