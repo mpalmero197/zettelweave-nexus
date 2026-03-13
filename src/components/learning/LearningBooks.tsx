@@ -492,7 +492,7 @@ export function LearningBooks() {
             </div>
           ) : null}
         </div>
-      ) : (
+      ) : view === "library" ? (
         /* Library view */
         <div className="space-y-4">
           {loadingSaved ? (
