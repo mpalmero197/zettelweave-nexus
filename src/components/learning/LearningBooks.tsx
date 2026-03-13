@@ -101,7 +101,7 @@ export function LearningBooks() {
   const [results, setResults] = useState<BookResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [view, setView] = useState<"search" | "library">("search");
+  const [view, setView] = useState<"search" | "library" | "resources">("search");
   const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
