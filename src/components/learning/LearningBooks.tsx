@@ -583,6 +583,32 @@ export function LearningBooks() {
             </div>
           )}
         </div>
+      ) : (
+        /* Resources view */
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">Free full-text ebook libraries — no previews or borrows, only books you can read completely for free.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {FREE_EBOOK_RESOURCES.map((r) => (
+              <a key={r.name} href={r.url} target="_blank" rel="noopener noreferrer"
+                className="group block">
+                <Card className="border-border/50 hover:border-primary/40 transition-all hover:shadow-md h-full">
+                  <CardContent className="p-4 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{r.name}</h4>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 group-hover:text-primary transition-colors mt-0.5" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{r.description}</p>
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {r.tags.map((t) => (
+                        <Badge key={t} variant="outline" className="text-[9px] px-1.5 py-0">{t}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Edition Picker Sheet */}
