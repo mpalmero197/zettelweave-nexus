@@ -18,12 +18,15 @@ interface BookResult {
   author: string;
   year?: number;
   coverId?: number;
+  coverUrl?: string;
   subjects?: string[];
   editionCount?: number;
-  iaId?: string; // Internet Archive identifier
+  iaId?: string;
   languages?: string[];
   ebookAccess?: string;
-  originalLang?: string; // primary language code if different from filter
+  originalLang?: string;
+  source: "openlibrary" | "gutenberg" | "google";
+  readUrl?: string;
 }
 
 interface EditionEntry {
@@ -189,6 +192,65 @@ export function LearningBooks() {
     setLoadingSaved(false);
   };
 
+  // --- Open Library search ---
+  const fetchOpenLibrary = async (searchParam: string, isEmptyQuery: boolean, currentLang: string): Promise<(BookResult & { _languages: string[] })[]> => {
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(searchParam)}&limit=80&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access${isEmptyQuery ? "&sort=rating" : ""}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.docs || []).map((doc: any) => {
+      const langs: string[] = doc.language || [];
+      const primaryLang = langs.length > 0 ? langs[0] : null;
+      const isOriginallyForeign = primaryLang && primaryLang !== currentLang;
+      const origLangName = isOriginallyForeign && LANG_NAMES[primaryLang] ? LANG_NAMES[primaryLang] : (isOriginallyForeign ? primaryLang : null);
+      const displayTitle = origLangName ? `${doc.title} (${origLangName})` : doc.title;
+      return {
+        key: doc.key, title: doc.title, displayTitle, author: doc.author_name?.[0] || "Unknown author",
+        year: doc.first_publish_year, coverId: doc.cover_i, subjects: doc.subject?.slice(0, 5),
+        editionCount: doc.edition_count, iaId: doc.ia?.[0] || null, languages: langs, _languages: langs,
+        ebookAccess: doc.ebook_access || "no_ebook", originalLang: isOriginallyForeign ? primaryLang : undefined,
+        source: "openlibrary" as const,
+      };
+    });
+  };
+
+  // --- Project Gutenberg via Gutendex ---
+  const fetchGutenberg = async (query: string, currentLang: string): Promise<(BookResult & { _languages: string[] })[]> => {
+    const langMap: Record<string, string> = { eng: "en", spa: "es", fre: "fr", ger: "de", por: "pt", ita: "it", chi: "zh", jpn: "ja", kor: "ko", rus: "ru", ara: "ar", hin: "hi", dut: "nl", swe: "sv", pol: "pl", tur: "tr" };
+    const gutLang = langMap[currentLang] || "en";
+    const url = `https://gutendex.com/books/?search=${encodeURIComponent(query)}&languages=${gutLang}&mime_type=text`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results || []).map((book: any) => ({
+      key: `gutenberg:${book.id}`, title: book.title, displayTitle: book.title,
+      author: book.authors?.[0]?.name || "Unknown author", year: book.authors?.[0]?.birth_year || undefined,
+      coverUrl: book.formats?.["image/jpeg"] || null, subjects: book.subjects?.slice(0, 5),
+      ebookAccess: "public", languages: [currentLang], _languages: [currentLang],
+      source: "gutenberg" as const, readUrl: `https://www.gutenberg.org/ebooks/${book.id}`,
+    }));
+  };
+
+  // --- Google Books free ebooks ---
+  const fetchGoogleBooks = async (query: string, currentLang: string): Promise<(BookResult & { _languages: string[] })[]> => {
+    const langMap: Record<string, string> = { eng: "en", spa: "es", fre: "fr", ger: "de", por: "pt", ita: "it", chi: "zh-CN", jpn: "ja", kor: "ko", rus: "ru", ara: "ar", hin: "hi", dut: "nl", swe: "sv", pol: "pl", tur: "tr" };
+    const gLang = langMap[currentLang] || "en";
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&filter=free-ebooks&langRestrict=${gLang}&maxResults=30&fields=items(id,volumeInfo)`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.items || []).map((item: any) => {
+      const v = item.volumeInfo;
+      return {
+        key: `google:${item.id}`, title: v.title || "Untitled", displayTitle: v.title || "Untitled",
+        author: v.authors?.[0] || "Unknown author", year: v.publishedDate ? parseInt(v.publishedDate) : undefined,
+        coverUrl: v.imageLinks?.thumbnail?.replace("http:", "https:") || null, subjects: v.categories?.slice(0, 5),
+        ebookAccess: "public", languages: [currentLang], _languages: [currentLang],
+        source: "google" as const, readUrl: v.previewLink || `https://books.google.com/books?id=${item.id}`,
+      };
+    });
+  };
+
   const searchBooks = useCallback(async (searchQuery: string, overrideLang?: string, overrideAccess?: string) => {
     setLoading(true);
     setSearched(true);
@@ -197,51 +259,36 @@ export function LearningBooks() {
     try {
       const isEmptyQuery = !searchQuery.trim();
       const searchParam = isEmptyQuery ? "subject:popular" : searchQuery;
-      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(searchParam)}&limit=100&fields=key,title,author_name,first_publish_year,cover_i,subject,edition_count,ia,language,ebook_access${isEmptyQuery ? "&sort=rating" : ""}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to search Open Library");
-      const data = await res.json();
-      const allDocs: (BookResult & { _languages: string[] })[] = (data.docs || []).map((doc: any) => {
-        const langs: string[] = doc.language || [];
-        const primaryLang = langs.length > 0 ? langs[0] : null;
-        const isOriginallyForeign = primaryLang && primaryLang !== currentLang;
-        const origLangName = isOriginallyForeign && LANG_NAMES[primaryLang] ? LANG_NAMES[primaryLang] : (isOriginallyForeign ? primaryLang : null);
-        const displayTitle = origLangName
-          ? `${doc.title} (${origLangName})`
-          : doc.title;
-        return {
-          key: doc.key,
-          title: doc.title,
-          displayTitle,
-          author: doc.author_name?.[0] || "Unknown author",
-          year: doc.first_publish_year,
-          coverId: doc.cover_i,
-          subjects: doc.subject?.slice(0, 5),
-          editionCount: doc.edition_count,
-          iaId: doc.ia?.[0] || null,
-          languages: langs,
-          _languages: langs,
-          ebookAccess: doc.ebook_access || "no_ebook",
-          originalLang: isOriginallyForeign ? primaryLang : undefined,
-        };
-      });
 
-      // Client-side language filter: include books that have the selected language OR have no language data
-      const langResult = allDocs.filter((b) => {
-        // If no language data at all, include the book (many popular books lack language metadata)
+      // Launch all API calls in parallel
+      const [olResults, gutenbergResults, googleResults] = await Promise.allSettled([
+        fetchOpenLibrary(searchParam, isEmptyQuery, currentLang),
+        isEmptyQuery ? Promise.resolve([]) : fetchGutenberg(searchQuery, currentLang),
+        isEmptyQuery ? Promise.resolve([]) : fetchGoogleBooks(searchQuery, currentLang),
+      ]);
+
+      const allBooks: (BookResult & { _languages: string[] })[] = [];
+      const seenTitles = new Set<string>();
+      const addBooks = (books: (BookResult & { _languages: string[] })[]) => {
+        for (const b of books) {
+          const normKey = `${b.title.toLowerCase().replace(/[^a-z0-9]/g, "")}::${b.author.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+          if (!seenTitles.has(normKey)) { seenTitles.add(normKey); allBooks.push(b); }
+        }
+      };
+
+      if (olResults.status === "fulfilled") addBooks(olResults.value);
+      if (gutenbergResults.status === "fulfilled") addBooks(gutenbergResults.value);
+      if (googleResults.status === "fulfilled") addBooks(googleResults.value);
+
+      // Client-side language filter
+      const langResult = allBooks.filter((b) => {
         if (!Array.isArray(b._languages) || b._languages.length === 0) return true;
         return b._languages.includes(currentLang);
       });
 
-      // Prioritize books where selected language is primary (appears first)
-      langResult.sort((a, b) => {
-        const aIdx = a._languages.indexOf(currentLang);
-        const bIdx = b._languages.indexOf(currentLang);
-        return aIdx - bIdx;
-      });
-
-      // Apply ebook access filter
+      // Apply ebook access filter — external sources are always full text
       const accessFiltered = langResult.filter((b) => {
+        if (b.source !== "openlibrary") return true;
         if (currentAccess === "fulltext") return b.ebookAccess === "public";
         if (currentAccess === "readable") return b.ebookAccess === "public" || b.ebookAccess === "borrowable";
         return true;
@@ -469,15 +516,17 @@ export function LearningBooks() {
             <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
           ) : results.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">{results.length} books found</p>
+              <p className="text-xs text-muted-foreground">{results.length} books found from {new Set(results.map(b => b.source)).size} sources</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {results.slice(0, visibleCount).map((book) => (
                   <Card key={book.key} className="border-border/50 hover:border-primary/30 transition-colors cursor-pointer overflow-hidden"
-                    onClick={() => openBookDetail(book)}>
+                    onClick={() => book.source === "openlibrary" ? openBookDetail(book) : book.readUrl ? window.open(book.readUrl, "_blank") : openBookDetail(book)}>
                     <CardContent className="p-2.5 space-y-1.5">
                       {book.coverId ? (
                         <img src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
                           alt={book.title} className="w-full h-32 object-cover rounded-sm bg-muted" loading="lazy" />
+                      ) : book.coverUrl ? (
+                        <img src={book.coverUrl} alt={book.title} className="w-full h-32 object-cover rounded-sm bg-muted" loading="lazy" />
                       ) : (
                         <div className="w-full h-32 bg-muted rounded-sm flex items-center justify-center">
                           <BookOpen className="h-6 w-6 text-muted-foreground/40" />
@@ -488,9 +537,18 @@ export function LearningBooks() {
                       <div className="flex items-center gap-1 flex-wrap">
                         {book.ebookAccess === "public" && <Badge className="text-[9px] px-1 py-0 bg-green-600/10 text-green-600 border-green-600/20">Full Text</Badge>}
                         {book.ebookAccess === "borrowable" && <Badge className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">Borrow</Badge>}
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">
+                          {book.source === "openlibrary" ? "Open Library" : book.source === "gutenberg" ? "Gutenberg" : "Google Books"}
+                        </Badge>
                         {book.year && <span className="text-[10px] text-muted-foreground">{book.year}</span>}
                       </div>
                       <div className="flex gap-1 pt-0.5">
+                        {book.source !== "openlibrary" && book.readUrl && (
+                          <Button size="sm" variant="ghost" className="text-[10px] h-6 px-1.5"
+                            onClick={(e) => { e.stopPropagation(); window.open(book.readUrl, "_blank"); }}>
+                            <ExternalLink className="h-3 w-3 mr-0.5" />Read
+                          </Button>
+                        )}
                         {!savedKeys.has(book.key) ? (
                           <Button size="sm" variant="ghost" className="text-[10px] h-6 px-1.5"
                             onClick={(e) => { e.stopPropagation(); saveBook(book); }}>
