@@ -18,12 +18,15 @@ interface BookResult {
   author: string;
   year?: number;
   coverId?: number;
+  coverUrl?: string;
   subjects?: string[];
   editionCount?: number;
-  iaId?: string; // Internet Archive identifier
+  iaId?: string;
   languages?: string[];
   ebookAccess?: string;
-  originalLang?: string; // primary language code if different from filter
+  originalLang?: string;
+  source: "openlibrary" | "gutenberg" | "google";
+  readUrl?: string;
 }
 
 interface EditionEntry {
