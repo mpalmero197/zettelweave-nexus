@@ -389,6 +389,9 @@ export function LearningBooks() {
         <Button size="sm" variant={view === "library" ? "default" : "outline"} onClick={() => { setView("library"); loadSavedBooks(); }}>
           <BookmarkCheck className="h-3.5 w-3.5 mr-1.5" />Library{savedBooks.length > 0 ? ` (${savedBooks.length})` : ""}
         </Button>
+        <Button size="sm" variant={view === "resources" ? "default" : "outline"} onClick={() => setView("resources")}>
+          <Library className="h-3.5 w-3.5 mr-1.5" />Resources
+        </Button>
       </div>
 
       {view === "search" ? (
