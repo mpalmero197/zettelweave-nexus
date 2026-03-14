@@ -4,7 +4,8 @@ import { LearningCourses } from "@/components/learning/LearningCourses";
 import { LearningBooks } from "@/components/learning/LearningBooks";
 import { LearningTopicMaps } from "@/components/learning/LearningTopicMaps";
 import { LearningVideos } from "@/components/learning/LearningVideos";
-import { GraduationCap, BookOpen, Map, Video } from "lucide-react";
+import { LearningExams } from "@/components/learning/LearningExams";
+import { GraduationCap, BookOpen, Map, Video, ClipboardCheck } from "lucide-react";
 
 export function LearningHub() {
   const [activeTab, setActiveTab] = useState("courses");
@@ -14,12 +15,12 @@ export function LearningHub() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Learning Hub</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Discover courses, watch videos, borrow books, and explore topic maps
+          Discover courses, watch videos, borrow books, explore topic maps, and take mock exams
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-5">
           <TabsTrigger value="courses" className="gap-1.5">
             <GraduationCap className="h-4 w-4" />
             <span className="hidden sm:inline">Courses</span>
@@ -34,7 +35,11 @@ export function LearningHub() {
           </TabsTrigger>
           <TabsTrigger value="topics" className="gap-1.5">
             <Map className="h-4 w-4" />
-            <span className="hidden sm:inline">Topic Maps</span>
+            <span className="hidden sm:inline">Topics</span>
+          </TabsTrigger>
+          <TabsTrigger value="exams" className="gap-1.5">
+            <ClipboardCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Exams</span>
           </TabsTrigger>
         </TabsList>
 
@@ -49,6 +54,9 @@ export function LearningHub() {
         </TabsContent>
         <TabsContent value="topics" className="mt-4">
           <LearningTopicMaps />
+        </TabsContent>
+        <TabsContent value="exams" className="mt-4">
+          <LearningExams />
         </TabsContent>
       </Tabs>
     </div>
