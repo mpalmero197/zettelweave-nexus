@@ -1,62 +1,67 @@
 
 
-## Evernote Import for Pendragon
+## Mock Exam Section for Learning Hub
 
-### The Reality of Evernote Integration
+### Overview
+Add a new "Exams" tab to the Learning Hub where users can create AI-generated mock exams on any subject. The AI (via Lovable AI Gateway using `google/gemini-2.5-pro` for highest accuracy) generates multiple-choice questions with full source citations. Questions are presented one at a time, answers revealed only after completion, with configurable question count and optional countdown timer.
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+### Architecture
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
-
-### What will be built
-
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
-
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
-
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
-
-### ENEX Format Structure (for reference)
 ```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
+LearningHub (new "Exams" tab)
+  └── LearningExams.tsx
+        ├── Setup View (subject, question count, timer config)
+        ├── Exam View (one question at a time, progress bar, timer)
+        └── Results View (score, review all Q&A with citations)
+
+Edge Function: generate-mock-exam/index.ts
+  └── Calls Lovable AI Gateway (gemini-2.5-pro)
+      └── Tool calling to extract structured JSON
 ```
 
-### Technical Details
+### New Files
 
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+**1. `src/components/learning/LearningExams.tsx`**
+- **Setup screen**: Text input for subject/topic, radio buttons for question count (50, 100, 150), timer toggle with presets (30min, 60min, custom input in minutes), +30min/+1hr increment buttons
+- **Exam screen**: Shows one question at a time with 4 answer choices (A-D), navigation (prev/next), progress bar, optional countdown timer in top-right, "Submit Exam" button
+- **Results screen**: Score summary (correct/total, percentage), review each question showing: the question, all choices, user's answer (highlighted red/green), correct answer, and full citation string
+- State management: `useState` for exam phase (`setup | taking | results`), selected answers array, current question index, timer countdown
 
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
+**2. `supabase/functions/generate-mock-exam/index.ts`**
+- Accepts: `{ subject: string, questionCount: number }`
+- Uses `google/gemini-2.5-pro` (strongest reasoning model) via Lovable AI Gateway
+- Uses **tool calling** to extract structured output — a `generate_exam` tool with schema:
+  ```
+  questions: array of {
+    question: string,
+    choices: { a, b, c, d },
+    correctAnswer: "a"|"b"|"c"|"d",
+    citation: string,
+    explanation: string
+  }
+  ```
+- System prompt instructs the model to:
+  - Only use verifiable, published sources (federal regulations, textbooks with ISBN, peer-reviewed papers, official government publications)
+  - Cite exact regulation/section/page when possible
+  - Make wrong answers plausible using real but inapplicable information from the same source material
+  - Include material references (charts, diagrams, regulations) when relevant
+- Handles 429/402 errors with appropriate messages
+- Non-streaming (structured output via tool calling)
+
+**3. `supabase/config.toml`** — add `[functions.generate-mock-exam]` with `verify_jwt = true`
+
+### Modified Files
+
+**`src/components/LearningHub.tsx`**
+- Add 5th tab "Exams" with `ClipboardCheck` icon
+- Update grid from `grid-cols-4` to `grid-cols-5`
+- Import and render `LearningExams` component
+
+### Key Design Decisions
+- **gemini-2.5-pro** chosen over flash models for maximum accuracy on citations and factual content
+- **Tool calling** ensures structured JSON output without fragile parsing
+- **No database persistence** for MVP — exams are ephemeral per session (can add persistence later)
+- Questions generated in batches (the AI generates all at once, not one-by-one)
+- Timer is client-side only; auto-submits when time expires
+- The AI is strongly prompted for verifiable citations, but a disclaimer will note that users should verify citations independently (since AI can hallucinate)
 
