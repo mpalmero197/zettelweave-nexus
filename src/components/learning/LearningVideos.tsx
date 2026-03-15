@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, Video, ExternalLink, Play } from "lucide-react";
+import { Search, Loader2, Video, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -60,54 +60,55 @@ export function LearningVideos() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Search form */}
+    <div className="space-y-3">
+      {/* Search */}
       <form onSubmit={(e) => { e.preventDefault(); searchVideos(query); }} className="flex gap-2">
-        <Input placeholder="Search educational videos…" value={query}
-          onChange={(e) => setQuery(e.target.value)} className="flex-1" />
-        <Button type="submit" disabled={loading || !query.trim()} size="sm">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Search educational videos…" value={query}
+            onChange={(e) => setQuery(e.target.value)} className="pl-8 h-9" />
+        </div>
+        <Button type="submit" disabled={loading || !query.trim()} size="sm" className="h-9">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
         </Button>
       </form>
 
       {/* Popular topics */}
       {!searched && (
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Popular topics</p>
-          <div className="flex flex-wrap gap-1.5">
-            {POPULAR_TOPICS.map(t => (
-              <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs"
-                onClick={() => { setQuery(t); searchVideos(t); }}>{t}</Badge>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="text-xs text-muted-foreground mr-1 self-center">Try:</span>
+          {POPULAR_TOPICS.map(t => (
+            <Badge key={t} variant="outline" className="cursor-pointer hover:bg-accent text-xs"
+              onClick={() => { setQuery(t); searchVideos(t); }}>{t}</Badge>
+          ))}
         </div>
       )}
 
       {/* Results */}
       {loading ? (
-        <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
+        <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></div>
       ) : results.length > 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">{results.length} videos found</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {results.map((video, i) => (
-              <Card key={i} className="border-border/50 hover:border-primary/30 transition-colors cursor-pointer overflow-hidden group"
+              <Card key={i} className="border-border/40 hover:border-primary/30 transition-colors cursor-pointer overflow-hidden group"
                 onClick={() => window.open(video.url, "_blank", "noopener,noreferrer")}>
                 <CardContent className="p-0">
                   {video.thumbnail ? (
-                    <div className="relative">
+                    <div className="relative aspect-video">
                       <img src={video.thumbnail} alt={video.title}
-                        className="w-full h-36 object-cover bg-muted" loading="lazy" />
+                        className="w-full h-full object-cover bg-muted" loading="lazy" />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                         <Play className="h-10 w-10 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full h-36 bg-muted flex items-center justify-center">
-                      <Video className="h-8 w-8 text-muted-foreground/40" />
+                    <div className="aspect-video bg-muted flex items-center justify-center">
+                      <Video className="h-8 w-8 text-muted-foreground/30" />
                     </div>
                   )}
-                  <div className="p-3 space-y-1.5">
+                  <div className="p-2.5 space-y-1">
                     <h4 className="text-xs font-medium line-clamp-2 leading-snug">{video.title}</h4>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge className={`text-[9px] px-1.5 py-0 ${providerColor[video.provider] || "bg-muted text-muted-foreground"}`}>
@@ -127,17 +128,20 @@ export function LearningVideos() {
           </div>
         </div>
       ) : searched ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Video className="h-10 w-10 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No videos found. Try a different search.</p>
-        </div>
+        <EmptyState icon={Video} message="No videos found" sub="Try a different search term" />
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <Video className="h-10 w-10 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Search for educational videos</p>
-          <p className="text-xs mt-1">Searches YouTube, Khan Academy, TED, Odysee & more</p>
-        </div>
+        <EmptyState icon={Video} message="Search educational videos" sub="YouTube, Khan Academy, TED, Odysee & more" />
       )}
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, message, sub }: { icon: any; message: string; sub: string }) {
+  return (
+    <div className="text-center py-10 text-muted-foreground">
+      <Icon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+      <p className="text-sm font-medium">{message}</p>
+      <p className="text-xs mt-0.5">{sub}</p>
     </div>
   );
 }
