@@ -106,51 +106,20 @@ export function LearningTopicMaps() {
     try {
       const flatNodes: Record<string, any> = {};
       const edges: any[] = [];
-
-      // Add root node
-      flatNodes["root"] = {
-        id: "root",
-        text: topicMap.title,
-        x: 0,
-        y: 0,
-        notes: topicMap.description,
-        parentId: null,
-      };
-
-      // Flatten hierarchical nodes recursively
+      flatNodes["root"] = { id: "root", text: topicMap.title, x: 0, y: 0, notes: topicMap.description, parentId: null };
       const flattenNode = (node: TopicNode, parentId: string, x: number, y: number) => {
-        flatNodes[node.id] = {
-          id: node.id,
-          text: node.title,
-          x,
-          y,
-          notes: node.description,
-          parentId,
-        };
+        flatNodes[node.id] = { id: node.id, text: node.title, x, y, notes: node.description, parentId };
         edges.push({ source: parentId, target: node.id });
-
-        node.children?.forEach((child, i) => {
-          flattenNode(child, node.id, x + 250, y + i * 120);
-        });
+        node.children?.forEach((child, i) => { flattenNode(child, node.id, x + 250, y + i * 120); });
       };
-
-      topicMap.nodes.forEach((node, i) => {
-        flattenNode(node, "root", 300, i * 150);
-      });
-
+      topicMap.nodes.forEach((node, i) => { flattenNode(node, "root", 300, i * 150); });
       const { error } = await supabase.from("mind_maps").insert({
-        user_id: user.id,
-        title: `📚 ${topicMap.title}`,
-        description: topicMap.description,
-        map_data: { nodes: flatNodes, edges },
+        user_id: user.id, title: `📚 ${topicMap.title}`, description: topicMap.description, map_data: { nodes: flatNodes, edges },
       });
       if (error) throw error;
       toast.success("Saved as Mind Map!", { description: "Check your Mind Map library" });
-    } catch (err: any) {
-      toast.error("Failed to save", { description: err.message });
-    } finally {
-      setSavingMindMap(false);
-    }
+    } catch (err: any) { toast.error("Failed to save", { description: err.message }); }
+    finally { setSavingMindMap(false); }
   };
 
   const renderNode = (node: TopicNode, depth: number) => {
@@ -168,9 +137,7 @@ export function LearningTopicMaps() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-sm font-medium">{node.title}</span>
-                <Badge className={`text-[9px] px-1 py-0 ${difficultyColor[node.difficulty] || ""}`}>
-                  {node.difficulty}
-                </Badge>
+                <Badge className={`text-[9px] px-1 py-0 ${difficultyColor[node.difficulty] || ""}`}>{node.difficulty}</Badge>
                 {node.estimated_time && (
                   <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                     <Clock className="h-2.5 w-2.5" />{node.estimated_time}
@@ -178,7 +145,6 @@ export function LearningTopicMaps() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{node.description}</p>
-
               {node.resources && node.resources.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {node.resources.map((r, i) => {
@@ -194,7 +160,6 @@ export function LearningTopicMaps() {
                   })}
                 </div>
               )}
-
               {hasChildren && (
                 <button className="text-[10px] text-primary hover:underline mt-1 inline-block"
                   onClick={(e) => { e.stopPropagation(); drillDown(node.title); }}>
@@ -203,7 +168,6 @@ export function LearningTopicMaps() {
               )}
             </div>
           </div>
-
           <CollapsibleContent>
             {node.children?.map(child => renderNode(child, depth + 1))}
           </CollapsibleContent>
@@ -213,61 +177,55 @@ export function LearningTopicMaps() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <form onSubmit={(e) => { e.preventDefault(); generateTopicMap(query); }} className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter a topic to generate a learning path…" className="pl-9" />
+            placeholder="Enter a topic to generate a learning path…" className="pl-8 h-9" />
         </div>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} size="sm" className="h-9">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate"}
         </Button>
       </form>
 
       {!searched && (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground font-medium">Popular topics</p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_TOPICS.map((topic) => (
-              <Badge key={topic} variant="outline" className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => { setQuery(topic); generateTopicMap(topic); }}>
-                {topic}
-              </Badge>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="text-xs text-muted-foreground mr-1 self-center">Try:</span>
+          {POPULAR_TOPICS.map((topic) => (
+            <Badge key={topic} variant="outline" className="cursor-pointer hover:bg-accent text-xs transition-colors"
+              onClick={() => { setQuery(topic); generateTopicMap(topic); }}>{topic}</Badge>
+          ))}
         </div>
       )}
 
       {loading && (
-        <div className="text-center py-12">
+        <div className="text-center py-10">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-primary" />
-          <p className="text-sm text-muted-foreground">Generating learning path with AI…</p>
-          <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
+          <p className="text-sm text-muted-foreground">Generating learning path…</p>
         </div>
       )}
 
       {topicMap && !loading && (
         <div className="space-y-3">
           <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="pt-4">
+            <CardContent className="p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-semibold">{topicMap.title}</h2>
+                  <h2 className="text-sm font-semibold">{topicMap.title}</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">{topicMap.description}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{topicMap.estimated_total_time}</span>
-                    <span>{topicMap.nodes?.length || 0} main topics</span>
+                    <span>{topicMap.nodes?.length || 0} topics</span>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={saveAsMindMap} disabled={savingMindMap}>
+                <Button size="sm" variant="outline" onClick={saveAsMindMap} disabled={savingMindMap} className="shrink-0">
                   {savingMindMap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-                  Save as Mind Map
+                  Mind Map
                 </Button>
               </div>
             </CardContent>
           </Card>
-
           <div className="space-y-1">
             {topicMap.nodes?.map(node => renderNode(node, 0))}
           </div>
@@ -275,11 +233,18 @@ export function LearningTopicMaps() {
       )}
 
       {searched && !loading && !topicMap && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Map className="h-10 w-10 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Failed to generate topic map. Try again.</p>
-        </div>
+        <EmptyState icon={Map} message="Failed to generate topic map" sub="Try again with a different topic" />
       )}
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, message, sub }: { icon: any; message: string; sub: string }) {
+  return (
+    <div className="text-center py-10 text-muted-foreground">
+      <Icon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+      <p className="text-sm font-medium">{message}</p>
+      <p className="text-xs mt-0.5">{sub}</p>
     </div>
   );
 }

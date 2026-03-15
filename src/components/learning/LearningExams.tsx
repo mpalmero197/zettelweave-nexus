@@ -157,15 +157,15 @@ export function LearningExams() {
   // ── SETUP ──
   if (phase === "setup") {
     return (
-      <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="space-y-4 max-w-2xl mx-auto">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
               Create Mock Exam
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Subject */}
             <div className="space-y-2">
               <Label htmlFor="exam-subject">Subject / Topic</Label>
