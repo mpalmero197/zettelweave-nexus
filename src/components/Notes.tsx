@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNowStrict } from 'date-fns';
 import {
   FileText, Plus, Star, Search, Edit, Trash2, MoreHorizontal,
-  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2
+  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2, Wand2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
@@ -24,6 +24,7 @@ import { HexColorPicker } from 'react-colorful';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { readEnexFile } from '@/utils/evernoteImport';
 import DOMPurify from 'dompurify';
+import { smartCategorize, CATEGORIES } from '@/utils/categoryUtils';
 
 const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
 
@@ -87,6 +88,7 @@ export function Notes() {
   const [showNewNotebook, setShowNewNotebook] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [autoCategorizing, setAutoCategorizing] = useState(false);
 
   const [newNote, setNewNote] = useState({
     title: '',
@@ -404,6 +406,79 @@ export function Notes() {
     return notebook?.name || 'Unknown';
   }, [notebooks]);
 
+  // Category-to-color mapping for auto-created notebooks
+  const categoryColors: Record<string, string> = {
+    'Technology': '#3b82f6', 'Science': '#06b6d4', 'Business': '#f97316',
+    'Health': '#22c55e', 'Education': '#8b5cf6', 'Creative': '#ec4899',
+    'Personal': '#eab308', 'Reference': '#6b7280', 'Projects': '#14b8a6',
+    'Philosophy': '#a855f7',
+  };
+
+  const autoCategorizeNotes = async () => {
+    if (!user || autoCategorizing) return;
+    setAutoCategorizing(true);
+    try {
+      // Get uncategorized notes
+      const uncategorized = notes.filter(n => !n.notebook_id);
+      if (uncategorized.length === 0) {
+        toast.info('All notes are already in notebooks');
+        setAutoCategorizing(false);
+        return;
+      }
+
+      // Categorize each note
+      const categorized: Record<string, Note[]> = {};
+      for (const note of uncategorized) {
+        const text = `${note.title} ${note.content}`;
+        const category = smartCategorize(text, note.title);
+        if (!categorized[category]) categorized[category] = [];
+        categorized[category].push(note);
+      }
+
+      // Create notebooks for categories that don't exist yet, assign notes
+      const existingNames = notebooks.map(nb => nb.name.toLowerCase());
+      let created = 0;
+      let assigned = 0;
+
+      for (const [category, catNotes] of Object.entries(categorized)) {
+        let notebookId: string;
+
+        // Check if notebook with this name already exists
+        const existing = notebooks.find(nb => nb.name.toLowerCase() === category.toLowerCase());
+        if (existing) {
+          notebookId = existing.id;
+        } else {
+          // Create the notebook
+          const color = categoryColors[category] || '#6b7280';
+          const { data, error } = await supabase
+            .from('notebooks')
+            .insert({ user_id: user.id, name: category, color, description: `Auto-created for ${category} notes` })
+            .select('id')
+            .single();
+          if (error) throw error;
+          notebookId = data.id;
+          created++;
+        }
+
+        // Assign notes to this notebook
+        const noteIds = catNotes.map(n => n.id);
+        for (const noteId of noteIds) {
+          await supabase.from('notes').update({ notebook_id: notebookId }).eq('id', noteId);
+          assigned++;
+        }
+      }
+
+      await fetchNotes();
+      await fetchNotebooks();
+      toast.success(`Organized ${assigned} note${assigned !== 1 ? 's' : ''} into ${Object.keys(categorized).length} notebook${Object.keys(categorized).length !== 1 ? 's' : ''}${created > 0 ? ` (${created} new)` : ''}`);
+    } catch (error) {
+      console.error('Auto-categorize error:', error);
+      toast.error('Failed to auto-categorize notes');
+    } finally {
+      setAutoCategorizing(false);
+    }
+  };
+
   // Preset colors for quick selection
   const presetColors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6b7280'];
 
@@ -456,7 +531,7 @@ export function Notes() {
 
     return (
       <div
-        className="group relative rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:border-border cursor-pointer"
+        className="group relative rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:border-border cursor-pointer h-[180px] flex flex-col"
         style={{ borderTopWidth: '3px', borderTopColor: nbColor }}
         onClick={() => setViewingNote(note)}
       >
@@ -466,37 +541,39 @@ export function Notes() {
         )}
 
         {/* Title */}
-        <h3 className="text-sm font-semibold text-foreground pr-8 mb-1.5 line-clamp-1">
+        <h3 className="text-sm font-semibold text-foreground pr-8 mb-1.5 line-clamp-1 flex-shrink-0">
           {note.title}
         </h3>
 
         {/* Notebook label */}
         {note.notebook_id && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 mb-2">
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 mb-2 flex-shrink-0">
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nbColor }} />
             {nbName}
           </span>
         )}
 
         {/* Content preview */}
-        {note.content ? (
-          isHtmlContent(note.content) ? (
-            <div
-              className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 prose prose-xs dark:prose-invert max-w-none [&_img]:max-h-16 [&_img]:rounded [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
-            />
+        <div className="flex-1 min-h-0 overflow-hidden mb-2">
+          {note.content ? (
+            isHtmlContent(note.content) ? (
+              <div
+                className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed prose prose-xs dark:prose-invert max-w-none [&_img]:max-h-16 [&_img]:rounded [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                {note.content}
+              </p>
+            )
           ) : (
-            <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 whitespace-pre-wrap">
-              {note.content}
-            </p>
-          )
-        ) : (
-          <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 italic">Empty note...</p>
-        )}
+            <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed italic">Empty note...</p>
+          )}
+        </div>
 
         {/* Tags */}
         {note.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2 flex-shrink-0">
             {note.tags.slice(0, 3).map((tag, i) => (
               <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">
                 {tag}
@@ -511,7 +588,7 @@ export function Notes() {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-shrink-0 mt-auto">
           <span className="text-[10px] text-muted-foreground/50 tabular-nums">
             {getRelativeDate(note.updated_at)} ago
           </span>
@@ -833,6 +910,19 @@ export function Notes() {
             className="h-8 w-8 p-0 text-muted-foreground"
           >
             {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+          </Button>
+
+          {/* Auto-categorize */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs rounded-lg"
+            onClick={autoCategorizeNotes}
+            disabled={autoCategorizing}
+            title="Auto-organize uncategorized notes into notebooks based on content"
+          >
+            {autoCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{autoCategorizing ? 'Organizing...' : 'Auto-Organize'}</span>
           </Button>
 
           {/* Import files */}
