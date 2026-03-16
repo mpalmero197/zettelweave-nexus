@@ -1,0 +1,1 @@
+ALTER TABLE public.cookie_consent_analytics ADD CONSTRAINT cookie_consent_analytics_session_id_key UNIQUE (session_id);
