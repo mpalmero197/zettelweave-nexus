@@ -24,6 +24,7 @@ import { HexColorPicker } from 'react-colorful';
 import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { readEnexFile } from '@/utils/evernoteImport';
 import DOMPurify from 'dompurify';
+import { smartCategorize, CATEGORIES } from '@/utils/categoryUtils';
 
 const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
 
