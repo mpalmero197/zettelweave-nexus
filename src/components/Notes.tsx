@@ -912,6 +912,19 @@ export function Notes() {
             {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
           </Button>
 
+          {/* Auto-categorize */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs rounded-lg"
+            onClick={autoCategorizeNotes}
+            disabled={autoCategorizing}
+            title="Auto-organize uncategorized notes into notebooks based on content"
+          >
+            {autoCategorizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{autoCategorizing ? 'Organizing...' : 'Auto-Organize'}</span>
+          </Button>
+
           {/* Import files */}
           <Button
             variant="outline"
