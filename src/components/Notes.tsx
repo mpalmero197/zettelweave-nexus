@@ -88,6 +88,7 @@ export function Notes() {
   const [showNewNotebook, setShowNewNotebook] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [autoCategorizing, setAutoCategorizing] = useState(false);
 
   const [newNote, setNewNote] = useState({
     title: '',
