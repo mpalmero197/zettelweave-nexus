@@ -406,6 +406,79 @@ export function Notes() {
     return notebook?.name || 'Unknown';
   }, [notebooks]);
 
+  // Category-to-color mapping for auto-created notebooks
+  const categoryColors: Record<string, string> = {
+    'Technology': '#3b82f6', 'Science': '#06b6d4', 'Business': '#f97316',
+    'Health': '#22c55e', 'Education': '#8b5cf6', 'Creative': '#ec4899',
+    'Personal': '#eab308', 'Reference': '#6b7280', 'Projects': '#14b8a6',
+    'Philosophy': '#a855f7',
+  };
+
+  const autoCategorizeNotes = async () => {
+    if (!user || autoCategorizing) return;
+    setAutoCategorizing(true);
+    try {
+      // Get uncategorized notes
+      const uncategorized = notes.filter(n => !n.notebook_id);
+      if (uncategorized.length === 0) {
+        toast.info('All notes are already in notebooks');
+        setAutoCategorizing(false);
+        return;
+      }
+
+      // Categorize each note
+      const categorized: Record<string, Note[]> = {};
+      for (const note of uncategorized) {
+        const text = `${note.title} ${note.content}`;
+        const category = smartCategorize(text, note.title);
+        if (!categorized[category]) categorized[category] = [];
+        categorized[category].push(note);
+      }
+
+      // Create notebooks for categories that don't exist yet, assign notes
+      const existingNames = notebooks.map(nb => nb.name.toLowerCase());
+      let created = 0;
+      let assigned = 0;
+
+      for (const [category, catNotes] of Object.entries(categorized)) {
+        let notebookId: string;
+
+        // Check if notebook with this name already exists
+        const existing = notebooks.find(nb => nb.name.toLowerCase() === category.toLowerCase());
+        if (existing) {
+          notebookId = existing.id;
+        } else {
+          // Create the notebook
+          const color = categoryColors[category] || '#6b7280';
+          const { data, error } = await supabase
+            .from('notebooks')
+            .insert({ user_id: user.id, name: category, color, description: `Auto-created for ${category} notes` })
+            .select('id')
+            .single();
+          if (error) throw error;
+          notebookId = data.id;
+          created++;
+        }
+
+        // Assign notes to this notebook
+        const noteIds = catNotes.map(n => n.id);
+        for (const noteId of noteIds) {
+          await supabase.from('notes').update({ notebook_id: notebookId }).eq('id', noteId);
+          assigned++;
+        }
+      }
+
+      await fetchNotes();
+      await fetchNotebooks();
+      toast.success(`Organized ${assigned} note${assigned !== 1 ? 's' : ''} into ${Object.keys(categorized).length} notebook${Object.keys(categorized).length !== 1 ? 's' : ''}${created > 0 ? ` (${created} new)` : ''}`);
+    } catch (error) {
+      console.error('Auto-categorize error:', error);
+      toast.error('Failed to auto-categorize notes');
+    } finally {
+      setAutoCategorizing(false);
+    }
+  };
+
   // Preset colors for quick selection
   const presetColors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6b7280'];
 
