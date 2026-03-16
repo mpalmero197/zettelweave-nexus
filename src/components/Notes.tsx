@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNowStrict } from 'date-fns';
 import {
   FileText, Plus, Star, Search, Edit, Trash2, MoreHorizontal,
-  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2
+  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2, Wand2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
