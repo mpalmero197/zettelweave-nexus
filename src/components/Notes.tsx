@@ -457,7 +457,7 @@ export function Notes() {
 
     return (
       <div
-        className="group relative rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:border-border cursor-pointer"
+        className="group relative rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm p-4 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:border-border cursor-pointer h-[180px] flex flex-col"
         style={{ borderTopWidth: '3px', borderTopColor: nbColor }}
         onClick={() => setViewingNote(note)}
       >
@@ -467,37 +467,39 @@ export function Notes() {
         )}
 
         {/* Title */}
-        <h3 className="text-sm font-semibold text-foreground pr-8 mb-1.5 line-clamp-1">
+        <h3 className="text-sm font-semibold text-foreground pr-8 mb-1.5 line-clamp-1 flex-shrink-0">
           {note.title}
         </h3>
 
         {/* Notebook label */}
         {note.notebook_id && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 mb-2">
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 mb-2 flex-shrink-0">
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nbColor }} />
             {nbName}
           </span>
         )}
 
         {/* Content preview */}
-        {note.content ? (
-          isHtmlContent(note.content) ? (
-            <div
-              className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 prose prose-xs dark:prose-invert max-w-none [&_img]:max-h-16 [&_img]:rounded [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
-            />
+        <div className="flex-1 min-h-0 overflow-hidden mb-2">
+          {note.content ? (
+            isHtmlContent(note.content) ? (
+              <div
+                className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed prose prose-xs dark:prose-invert max-w-none [&_img]:max-h-16 [&_img]:rounded [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                {note.content}
+              </p>
+            )
           ) : (
-            <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 whitespace-pre-wrap">
-              {note.content}
-            </p>
-          )
-        ) : (
-          <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed mb-3 italic">Empty note...</p>
-        )}
+            <p className="text-xs text-muted-foreground/80 line-clamp-3 leading-relaxed italic">Empty note...</p>
+          )}
+        </div>
 
         {/* Tags */}
         {note.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2 flex-shrink-0">
             {note.tags.slice(0, 3).map((tag, i) => (
               <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">
                 {tag}
@@ -512,7 +514,7 @@ export function Notes() {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-shrink-0 mt-auto">
           <span className="text-[10px] text-muted-foreground/50 tabular-nums">
             {getRelativeDate(note.updated_at)} ago
           </span>
