@@ -963,6 +963,35 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_request_votes: {
+        Row: {
+          created_at: string
+          feature_request_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_request_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_request_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_request_votes_feature_request_id_fkey"
+            columns: ["feature_request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_requests: {
         Row: {
           created_at: string
@@ -2542,6 +2571,7 @@ export type Database = {
           user_status: Database["public"]["Enums"]["user_status"]
         }[]
       }
+      toggle_feature_vote: { Args: { _feature_id: string }; Returns: boolean }
       update_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
