@@ -128,28 +128,8 @@ export function AppLayout() {
             role="banner"
           >
             <div className="h-full px-2 md:px-4 flex items-center justify-between gap-2">
-              {/* Left: Menu + Logo */}
+              {/* Left: Logo + Nav */}
               <div className="flex items-center gap-1.5">
-                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hidden md:flex">
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-60 p-0">
-                    <MinimalSidebar
-                      activeTab={activeTab}
-                      onTabChange={handleTabChange}
-                      onSignOut={handleSignOut}
-                      onAccountSettings={() => {
-                        setSidebarOpen(false);
-                        navigate("/settings");
-                      }}
-                      isAdmin={isAdmin}
-                    />
-                  </SheetContent>
-                </Sheet>
-
                 <Link to="/app" className="flex items-center gap-1.5">
                   <img
                     src={pendragonLogo}
@@ -171,6 +151,8 @@ export function AppLayout() {
                     )}
                   </div>
                 </Link>
+
+                <TopNavBar activeTab={activeTab} onTabChange={handleTabChange} />
               </div>
 
               {/* Right: Actions */}
@@ -186,6 +168,7 @@ export function AppLayout() {
                   </Link>
                 </Button>
                 <ThemeVariantSelector />
+                <UserMenu isAdmin={isAdmin} onSignOut={handleSignOut} />
                 <FeatureRequestDialog />
               </div>
             </div>
