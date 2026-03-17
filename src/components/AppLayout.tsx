@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { MinimalSidebar } from "./MinimalSidebar";
 import { MobileNavigation } from "./MobileNavigation";
 import { FloatingChatBubble } from "./FloatingChatBubble";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
@@ -13,9 +12,10 @@ import { MobileOptimizedLayout } from "./MobileOptimizedLayout";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
 import { SkipToMain } from "./SkipToMain";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
+import { TopNavBar } from "./TopNavBar";
+import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -28,7 +28,6 @@ export function AppLayout() {
   const { isOnline: hookOnline } = useOfflineMode();
   const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
 
   const isOnline = hookOnline && browserOnline;
@@ -82,7 +81,6 @@ export function AppLayout() {
   };
 
   const handleTabChange = (tab: string) => {
-    setSidebarOpen(false);
     switch (tab) {
       case "dashboard":
       case "cards":
@@ -128,28 +126,8 @@ export function AppLayout() {
             role="banner"
           >
             <div className="h-full px-2 md:px-4 flex items-center justify-between gap-2">
-              {/* Left: Menu + Logo */}
+              {/* Left: Logo + Nav */}
               <div className="flex items-center gap-1.5">
-                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hidden md:flex">
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-60 p-0">
-                    <MinimalSidebar
-                      activeTab={activeTab}
-                      onTabChange={handleTabChange}
-                      onSignOut={handleSignOut}
-                      onAccountSettings={() => {
-                        setSidebarOpen(false);
-                        navigate("/settings");
-                      }}
-                      isAdmin={isAdmin}
-                    />
-                  </SheetContent>
-                </Sheet>
-
                 <Link to="/app" className="flex items-center gap-1.5">
                   <img
                     src={pendragonLogo}
@@ -171,6 +149,8 @@ export function AppLayout() {
                     )}
                   </div>
                 </Link>
+
+                <TopNavBar activeTab={activeTab} onTabChange={handleTabChange} />
               </div>
 
               {/* Right: Actions */}
@@ -186,6 +166,7 @@ export function AppLayout() {
                   </Link>
                 </Button>
                 <ThemeVariantSelector />
+                <UserMenu isAdmin={isAdmin} onSignOut={handleSignOut} />
                 <FeatureRequestDialog />
               </div>
             </div>
