@@ -81,7 +81,6 @@ export function AppLayout() {
   };
 
   const handleTabChange = (tab: string) => {
-    setSidebarOpen(false);
     switch (tab) {
       case "dashboard":
       case "cards":
