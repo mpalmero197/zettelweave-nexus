@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Bug,
   Lightbulb,
@@ -29,6 +35,11 @@ import {
   RefreshCw,
   MessageSquare,
   ThumbsUp,
+  TrendingUp,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -41,6 +52,7 @@ interface FeatureRequest {
   votes: number;
   created_at: string;
   updated_at: string;
+  user_id: string | null;
 }
 
 const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
@@ -54,7 +66,9 @@ const statusConfig: Record<string, { label: string; icon: any; color: string }> 
 
 export function DebuggerConsole() {
   const { user } = useAuth();
-  const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>([]);
+  const [myRequests, setMyRequests] = useState<FeatureRequest[]>([]);
+  const [communityRequests, setCommunityRequests] = useState<FeatureRequest[]>([]);
+  const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
@@ -63,30 +77,82 @@ export function DebuggerConsole() {
   const [bugTitle, setBugTitle] = useState("");
   const [bugDescription, setBugDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("requests");
+  const [activeTab, setActiveTab] = useState("community");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"votes" | "newest" | "status">("votes");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [votingId, setVotingId] = useState<string | null>(null);
 
-  const fetchRequests = async () => {
+  const fetchAll = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("feature_requests")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      // Fetch all feature requests, user's own requests, and user's votes in parallel
+      const [allRes, votesRes] = await Promise.all([
+        supabase
+          .from("feature_requests")
+          .select("*")
+          .order("votes", { ascending: false }),
+        supabase
+          .from("feature_request_votes")
+          .select("feature_request_id")
+          .eq("user_id", user.id),
+      ]);
 
-      if (error) throw error;
-      setFeatureRequests(data || []);
+      if (allRes.error) throw allRes.error;
+
+      const all = allRes.data || [];
+      setMyRequests(all.filter(r => r.user_id === user.id));
+      setCommunityRequests(all);
+
+      const votedIds = new Set((votesRes.data || []).map(v => v.feature_request_id));
+      setMyVotes(votedIds);
     } catch (error) {
-      console.error("Error fetching feature requests:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchRequests();
-  }, [user]);
+    fetchAll();
+  }, [fetchAll]);
+
+  const handleVote = async (featureId: string) => {
+    if (!user || votingId) return;
+    setVotingId(featureId);
+    try {
+      const { data, error } = await supabase.rpc("toggle_feature_vote", {
+        _feature_id: featureId,
+      });
+      if (error) throw error;
+
+      const nowVoted = data as boolean;
+      setMyVotes(prev => {
+        const next = new Set(prev);
+        if (nowVoted) next.add(featureId);
+        else next.delete(featureId);
+        return next;
+      });
+
+      // Update vote count locally
+      const updateList = (list: FeatureRequest[]) =>
+        list.map(r =>
+          r.id === featureId
+            ? { ...r, votes: r.votes + (nowVoted ? 1 : -1) }
+            : r
+        );
+      setCommunityRequests(updateList);
+      setMyRequests(prev => updateList(prev));
+
+      toast.success(nowVoted ? "Vote added!" : "Vote removed");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to vote");
+    } finally {
+      setVotingId(null);
+    }
+  };
 
   const handleSubmitFeature = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +169,7 @@ export function DebuggerConsole() {
       setTitle("");
       setDescription("");
       setSubmitOpen(false);
-      fetchRequests();
+      fetchAll();
     } catch (error) {
       console.error(error);
       toast.error("Failed to submit request");
@@ -117,7 +183,7 @@ export function DebuggerConsole() {
     if (!user) return;
     setSubmitting(true);
     try {
-      const signature = `user-report:${bugTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
+      const signature = `user-report:${bugTitle.trim().toLowerCase().replace(/\s+/g, "-")}`;
       const { error } = await supabase.rpc("report_error", {
         p_error_signature: signature,
         p_error_type: "user_report",
@@ -140,14 +206,168 @@ export function DebuggerConsole() {
     }
   };
 
-  const getStatus = (status: string) => {
-    return statusConfig[status] || statusConfig.pending;
+  const getStatus = (status: string) => statusConfig[status] || statusConfig.pending;
+
+  const sortAndFilter = (items: FeatureRequest[]) => {
+    let filtered = items;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = items.filter(
+        r => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
+      );
+    }
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "votes") return b.votes - a.votes;
+      if (sortBy === "newest") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      // status: active first
+      const order = ["in_progress", "planned", "under_review", "pending", "completed", "declined"];
+      return order.indexOf(a.status) - order.indexOf(b.status);
+    });
   };
 
-  const groupedRequests = {
-    active: featureRequests.filter(r => ["pending", "under_review", "planned", "in_progress"].includes(r.status)),
-    completed: featureRequests.filter(r => r.status === "completed"),
-    declined: featureRequests.filter(r => r.status === "declined"),
+  const communityActive = communityRequests.filter(r =>
+    ["pending", "under_review", "planned", "in_progress"].includes(r.status)
+  );
+  const communityCompleted = communityRequests.filter(r => r.status === "completed");
+  const myActive = myRequests.filter(r =>
+    ["pending", "under_review", "planned", "in_progress"].includes(r.status)
+  );
+
+  const renderRequestCard = (req: FeatureRequest, showVote: boolean) => {
+    const status = getStatus(req.status);
+    const StatusIcon = status.icon;
+    const isExpanded = expandedId === req.id;
+    const hasVoted = myVotes.has(req.id);
+    const isMine = req.user_id === user?.id;
+
+    return (
+      <Card
+        key={req.id}
+        className="border-border/40 hover:border-border/60 transition-colors"
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            {/* Vote button */}
+            {showVote && (
+              <button
+                onClick={() => handleVote(req.id)}
+                disabled={votingId === req.id}
+                className={`flex flex-col items-center gap-0.5 pt-0.5 min-w-[40px] rounded-md p-1.5 transition-colors ${
+                  hasVoted
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                aria-label={hasVoted ? "Remove vote" : "Upvote"}
+              >
+                <ThumbsUp className={`h-4 w-4 ${hasVoted ? "fill-current" : ""}`} />
+                <span className="text-xs font-semibold">{req.votes}</span>
+              </button>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h3
+                  className="font-medium text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => setExpandedId(isExpanded ? null : req.id)}
+                >
+                  {req.title}
+                </h3>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${status.color}`}>
+                  <StatusIcon className="h-2.5 w-2.5 mr-1" />
+                  {status.label}
+                </Badge>
+                {isMine && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    Yours
+                  </Badge>
+                )}
+              </div>
+
+              <p className={`text-xs text-muted-foreground mb-2 ${isExpanded ? "" : "line-clamp-2"}`}>
+                {req.description}
+              </p>
+
+              {isExpanded && (
+                <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-muted-foreground">Submitted</span>
+                      <p className="text-foreground font-medium">
+                        {format(new Date(req.created_at), "MMM d, yyyy")}
+                      </p>
+                    </div>
+                    {req.updated_at !== req.created_at && (
+                      <div>
+                        <span className="text-muted-foreground">Last Updated</span>
+                        <p className="text-foreground font-medium">
+                          {format(new Date(req.updated_at), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-muted-foreground">Votes</span>
+                      <p className="text-foreground font-medium">{req.votes}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span>{format(new Date(req.created_at), "MMM d, yyyy")}</span>
+                {!showVote && (
+                  <span className="flex items-center gap-0.5">
+                    <ThumbsUp className="h-2.5 w-2.5" />
+                    {req.votes}
+                  </span>
+                )}
+                <button
+                  className="flex items-center gap-0.5 hover:text-foreground transition-colors ml-auto"
+                  onClick={() => setExpandedId(isExpanded ? null : req.id)}
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" /> Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" /> More
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderList = (items: FeatureRequest[], showVote: boolean, emptyMsg: string) => {
+    const sorted = sortAndFilter(items);
+    if (loading) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 bg-muted/30 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      );
+    }
+    if (sorted.length === 0) {
+      return (
+        <Card className="border-dashed border-border/50">
+          <CardContent className="py-10 text-center">
+            <Lightbulb className="h-8 w-8 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">{emptyMsg}</p>
+          </CardContent>
+        </Card>
+      );
+    }
+    return (
+      <ScrollArea className="max-h-[55vh]">
+        <div className="space-y-2">{sorted.map(req => renderRequestCard(req, showVote))}</div>
+      </ScrollArea>
+    );
   };
 
   return (
@@ -160,7 +380,7 @@ export function DebuggerConsole() {
             Debugger Console
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Report bugs and track your feature requests
+            Report bugs, request features, and vote on community ideas
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -185,7 +405,7 @@ export function DebuggerConsole() {
                     id="bug-title"
                     placeholder="Brief description of the issue"
                     value={bugTitle}
-                    onChange={(e) => setBugTitle(e.target.value)}
+                    onChange={e => setBugTitle(e.target.value)}
                     required
                     maxLength={200}
                   />
@@ -194,16 +414,18 @@ export function DebuggerConsole() {
                   <Label htmlFor="bug-desc">Steps to Reproduce</Label>
                   <Textarea
                     id="bug-desc"
-                    placeholder="1. Go to...&#10;2. Click on...&#10;3. Observe..."
+                    placeholder={"1. Go to...\n2. Click on...\n3. Observe..."}
                     value={bugDescription}
-                    onChange={(e) => setBugDescription(e.target.value)}
+                    onChange={e => setBugDescription(e.target.value)}
                     required
                     rows={6}
                     maxLength={2000}
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setBugOpen(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => setBugOpen(false)}>
+                    Cancel
+                  </Button>
                   <Button type="submit" disabled={submitting}>
                     {submitting ? "Submitting..." : "Submit Report"}
                   </Button>
@@ -233,7 +455,7 @@ export function DebuggerConsole() {
                     id="feat-title"
                     placeholder="Brief title for your feature request"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={e => setTitle(e.target.value)}
                     required
                     maxLength={200}
                   />
@@ -244,14 +466,16 @@ export function DebuggerConsole() {
                     id="feat-desc"
                     placeholder="Describe the feature you'd like to see..."
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={e => setDescription(e.target.value)}
                     required
                     rows={6}
                     maxLength={2000}
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setSubmitOpen(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => setSubmitOpen(false)}>
+                    Cancel
+                  </Button>
                   <Button type="submit" disabled={submitting}>
                     {submitting ? "Submitting..." : "Submit Request"}
                   </Button>
@@ -260,128 +484,111 @@ export function DebuggerConsole() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="ghost" size="sm" onClick={fetchRequests} className="h-8 w-8 p-0">
+          <Button variant="ghost" size="sm" onClick={fetchAll} className="h-8 w-8 p-0">
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-foreground">{featureRequests.length}</p>
-            <p className="text-xs text-muted-foreground">Total Requests</p>
+            <p className="text-2xl font-bold text-foreground">{communityRequests.length}</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Users className="h-3 w-3" /> Total Ideas
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-amber-400">{groupedRequests.active.length}</p>
-            <p className="text-xs text-muted-foreground">Active</p>
+            <p className="text-2xl font-bold text-amber-400">{communityActive.length}</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <TrendingUp className="h-3 w-3" /> Active
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{groupedRequests.completed.length}</p>
-            <p className="text-xs text-muted-foreground">Completed</p>
+            <p className="text-2xl font-bold text-emerald-400">{communityCompleted.length}</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Shipped
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-red-400">{groupedRequests.declined.length}</p>
-            <p className="text-xs text-muted-foreground">Declined</p>
+            <p className="text-2xl font-bold text-primary">{myVotes.size}</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <ThumbsUp className="h-3 w-3" /> Your Votes
+            </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Search + Sort */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search requests..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+          <SelectTrigger className="w-[130px] h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="votes">Most Voted</SelectItem>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="status">By Status</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="requests" className="gap-1.5">
+          <TabsTrigger value="community" className="gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            Community ({communityActive.length})
+          </TabsTrigger>
+          <TabsTrigger value="mine" className="gap-1.5">
             <Lightbulb className="h-3.5 w-3.5" />
-            Active ({groupedRequests.active.length})
+            My Requests ({myRequests.length})
           </TabsTrigger>
-          <TabsTrigger value="completed" className="gap-1.5">
+          <TabsTrigger value="shipped" className="gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Done ({groupedRequests.completed.length})
-          </TabsTrigger>
-          <TabsTrigger value="declined" className="gap-1.5">
-            <XCircle className="h-3.5 w-3.5" />
-            Declined ({groupedRequests.declined.length})
+            Shipped ({communityCompleted.length})
           </TabsTrigger>
         </TabsList>
 
-        {["requests", "completed", "declined"].map((tabKey) => {
-          const items = tabKey === "requests" ? groupedRequests.active
-            : tabKey === "completed" ? groupedRequests.completed
-            : groupedRequests.declined;
+        <TabsContent value="community" className="mt-3">
+          {renderList(
+            communityActive,
+            true,
+            "No active feature requests yet. Be the first to submit one!"
+          )}
+        </TabsContent>
 
-          return (
-            <TabsContent key={tabKey} value={tabKey} className="mt-3">
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-24 bg-muted/30 rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : items.length === 0 ? (
-                <Card className="border-dashed border-border/50">
-                  <CardContent className="py-10 text-center">
-                    <Lightbulb className="h-8 w-8 mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-sm text-muted-foreground">
-                      {tabKey === "requests"
-                        ? "No active feature requests. Submit one to get started!"
-                        : tabKey === "completed"
-                        ? "No completed requests yet."
-                        : "No declined requests."}
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <ScrollArea className="max-h-[60vh]">
-                  <div className="space-y-2">
-                    {items.map((req) => {
-                      const status = getStatus(req.status);
-                      const StatusIcon = status.icon;
-                      return (
-                        <Card key={req.id} className="border-border/40 hover:border-border/60 transition-colors">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <h3 className="font-medium text-sm text-foreground truncate">
-                                    {req.title}
-                                  </h3>
-                                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${status.color}`}>
-                                    <StatusIcon className="h-2.5 w-2.5 mr-1" />
-                                    {status.label}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                                  {req.description}
-                                </p>
-                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                                  <span>Submitted {format(new Date(req.created_at), "MMM d, yyyy")}</span>
-                                  {req.updated_at !== req.created_at && (
-                                    <span>Updated {format(new Date(req.updated_at), "MMM d, yyyy")}</span>
-                                  )}
-                                  <span className="flex items-center gap-0.5">
-                                    <ThumbsUp className="h-2.5 w-2.5" />
-                                    {req.votes}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              )}
-            </TabsContent>
-          );
-        })}
+        <TabsContent value="mine" className="mt-3">
+          {renderList(
+            myRequests,
+            false,
+            "You haven't submitted any requests yet. Click 'New Request' to get started!"
+          )}
+        </TabsContent>
+
+        <TabsContent value="shipped" className="mt-3">
+          {renderList(
+            communityCompleted,
+            true,
+            "No features shipped yet — stay tuned!"
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );
