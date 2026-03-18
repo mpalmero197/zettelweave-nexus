@@ -118,7 +118,10 @@ export function Calendar() {
 
   // Full add dialog
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newItemType, setNewItemType] = useState<'event' | 'task' | 'habit'>('event');
   const [newEvent, setNewEvent] = useState({ title: '', description: '', event_time: '' });
+  const [newTask, setNewTask] = useState({ name: '', priority: 'medium', notes: '' });
+  const [newHabit, setNewHabit] = useState({ name: '', color: '#3b82f6' });
 
   // Inline edit
   const [editingId, setEditingId] = useState<string | null>(null);
