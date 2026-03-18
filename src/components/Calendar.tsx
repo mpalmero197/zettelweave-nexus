@@ -14,9 +14,11 @@ import {
 } from 'date-fns';
 import {
   ChevronLeft, ChevronRight, Plus, Trash2, Pencil, X, Check,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon, ListTodo, Activity, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
