@@ -681,31 +681,139 @@ export function Calendar() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New Event — {format(selectedDate, 'MMM d')}</DialogTitle>
-            <DialogDescription>Add a calendar event with optional time and description.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              New Item — {format(selectedDate, 'MMM d')}
+            </DialogTitle>
+            <DialogDescription>Create an event, task, or habit for this date.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 pt-1">
-            <Input
-              value={newEvent.title}
-              onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
-              placeholder="Event title"
-              autoFocus
-              onKeyDown={e => e.key === 'Enter' && newEvent.title.trim() && handleFullAdd()}
-            />
-            <Input
-              type="time"
-              value={newEvent.event_time}
-              onChange={e => setNewEvent(p => ({ ...p, event_time: e.target.value }))}
-            />
-            <Textarea
-              value={newEvent.description}
-              onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
-              placeholder="Description (optional)"
-              rows={3}
-            />
+          <div className="space-y-4 pt-1">
+            {/* Type selector */}
+            <div className="flex gap-2">
+              {([
+                { value: 'event' as const, label: 'Event', icon: CalendarIcon, color: 'bg-orange-500' },
+                { value: 'task' as const, label: 'Task', icon: ListTodo, color: 'bg-rose-500' },
+                { value: 'habit' as const, label: 'Habit', icon: Activity, color: 'bg-teal-500' },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setNewItemType(opt.value)}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all",
+                    newItemType === opt.value
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-muted-foreground/30 hover:bg-accent/30"
+                  )}
+                >
+                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", opt.color)}>
+                    <opt.icon className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Event fields */}
+            {newItemType === 'event' && (
+              <div className="space-y-3">
+                <Input
+                  value={newEvent.title}
+                  onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Event title"
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && newEvent.title.trim() && handleFullAdd()}
+                />
+                <Input
+                  type="time"
+                  value={newEvent.event_time}
+                  onChange={e => setNewEvent(p => ({ ...p, event_time: e.target.value }))}
+                />
+                <Textarea
+                  value={newEvent.description}
+                  onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Description (optional)"
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {/* Task fields */}
+            {newItemType === 'task' && (
+              <div className="space-y-3">
+                <Input
+                  value={newTask.name}
+                  onChange={e => setNewTask(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Task name"
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && newTask.name.trim() && handleFullAdd()}
+                />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Priority</label>
+                  <Select value={newTask.priority} onValueChange={v => setNewTask(p => ({ ...p, priority: v }))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Textarea
+                  value={newTask.notes}
+                  onChange={e => setNewTask(p => ({ ...p, notes: e.target.value }))}
+                  placeholder="Notes (optional)"
+                  rows={2}
+                />
+              </div>
+            )}
+
+            {/* Habit fields */}
+            {newItemType === 'habit' && (
+              <div className="space-y-3">
+                <Input
+                  value={newHabit.name}
+                  onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Habit name (e.g. Meditate, Read)"
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && newHabit.name.trim() && handleFullAdd()}
+                />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Color</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'].map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setNewHabit(p => ({ ...p, color: c }))}
+                        className={cn(
+                          "w-8 h-8 rounded-full transition-all",
+                          newHabit.color === c ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "hover:scale-105"
+                        )}
+                        style={{ backgroundColor: c }}
+                        aria-label={`Color ${c}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This creates a new recurring habit. Track it daily from the Habit Studio.
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-              <Button onClick={handleFullAdd} disabled={!newEvent.title.trim()}>Add Event</Button>
+              <Button
+                onClick={handleFullAdd}
+                disabled={
+                  (newItemType === 'event' && !newEvent.title.trim()) ||
+                  (newItemType === 'task' && !newTask.name.trim()) ||
+                  (newItemType === 'habit' && !newHabit.name.trim())
+                }
+              >
+                {newItemType === 'event' ? 'Add Event' : newItemType === 'task' ? 'Add Task' : 'Create Habit'}
+              </Button>
             </div>
           </div>
         </DialogContent>
