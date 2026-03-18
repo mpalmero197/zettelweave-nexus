@@ -380,7 +380,7 @@ export function Calendar() {
         </div>
         <Button size="sm" onClick={() => setShowAddDialog(true)} className="gap-1.5">
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Event</span>
+          <span className="hidden sm:inline">Add</span>
         </Button>
       </div>
 
