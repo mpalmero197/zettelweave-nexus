@@ -34,14 +34,14 @@ interface TopNavBarProps {
 const navGroups = [
   {
     label: "Knowledge",
-    tabs: ["dashboard", "cards", "graph", "notes", "files", "canvas"],
+    tabs: ["dashboard", "cards", "graph", "notes", "files", "learning"],
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { id: "cards", label: "Cards", icon: FileText },
       { id: "graph", label: "Graph", icon: BarChart3 },
       { id: "notes", label: "Notes", icon: BookOpen },
       { id: "files", label: "Files", icon: FolderOpen },
-      { id: "canvas", label: "Canvas Studio", icon: Palette },
+      { id: "learning", label: "Learning Hub", icon: GraduationCap },
     ],
   },
   {
@@ -57,11 +57,11 @@ const navGroups = [
   },
   {
     label: "Create",
-    tabs: ["catalyst", "collab", "learning"],
+    tabs: ["catalyst", "collab", "canvas"],
     items: [
       { id: "catalyst", label: "Catalyst", icon: Lightbulb },
       { id: "collab", label: "Collab", icon: Users },
-      { id: "learning", label: "Learning Hub", icon: GraduationCap },
+      { id: "canvas", label: "Canvas Studio", icon: Palette },
     ],
   },
   {

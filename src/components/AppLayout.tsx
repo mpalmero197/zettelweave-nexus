@@ -146,7 +146,7 @@ export function AppLayout() {
                     alt="PendragonX"
                     className="h-5 w-5 object-contain"
                   />
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-semibold text-foreground" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
                     PendragonX
                   </span>
                   <div className="relative ml-0.5">
