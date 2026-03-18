@@ -32,17 +32,29 @@ export function AppLayout() {
 
   const isOnline = hookOnline && browserOnline;
 
-  // Derive active tab from the current route
+  const [realActiveTab, setRealActiveTab] = useState("dashboard");
+
+  // Derive active tab from the current route for non-app pages
   const activeTab = (() => {
     const path = location.pathname;
-    if (path === "/app") return "dashboard";
+    if (path === "/app") return realActiveTab;
     if (path === "/agents") return "agents";
     if (path === "/admin") return "admin";
     if (path === "/subscription") return "subscription";
     if (path === "/settings") return "settings";
     if (path === "/install") return "install";
-    return "dashboard";
+    return realActiveTab;
   })();
+
+  // Listen for tab sync from Index.tsx
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail;
+      if (tab) setRealActiveTab(tab);
+    };
+    window.addEventListener("app-tab-sync", handler);
+    return () => window.removeEventListener("app-tab-sync", handler);
+  }, []);
 
   useEffect(() => {
     const on = () => setBrowserOnline(true);
@@ -134,7 +146,7 @@ export function AppLayout() {
                     alt="PendragonX"
                     className="h-5 w-5 object-contain"
                   />
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-semibold text-foreground" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
                     PendragonX
                   </span>
                   <div className="relative ml-0.5">

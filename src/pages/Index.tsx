@@ -358,6 +358,11 @@ const Index = () => {
     return () => window.removeEventListener("app-tab-change", handler);
   }, []);
 
+  // Sync active tab back to AppLayout for header highlight
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("app-tab-sync", { detail: activeTab }));
+  }, [activeTab]);
+
   // Consume pending search query from FAB
   const outletContext = useOutletContext<{ pendingSearchQuery?: string; setPendingSearchQuery?: (q: string) => void }>();
   useEffect(() => {
