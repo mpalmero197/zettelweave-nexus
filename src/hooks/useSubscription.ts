@@ -13,9 +13,8 @@ export const useSubscription = () => {
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const hasShownError = useState(false)[0];
 
-  const checkSubscription = async (silent = false) => {
+  const checkSubscription = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
@@ -24,23 +23,21 @@ export const useSubscription = () => {
       setStatus(data);
     } catch (error) {
       console.error('Error checking subscription:', error);
-      if (!silent) {
-        toast({
-          title: 'Error',
-          description: 'Failed to check subscription status',
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: 'Error',
+        description: 'Failed to check subscription status',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    checkSubscription(false);
+    checkSubscription();
     
-    // Refresh every 5 minutes silently
-    const interval = setInterval(() => checkSubscription(true), 300000);
+    // Refresh every minute
+    const interval = setInterval(checkSubscription, 60000);
     
     return () => clearInterval(interval);
   }, []);
