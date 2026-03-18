@@ -311,9 +311,31 @@ export function Calendar() {
     setQuickTitle('');
   };
 
-  const handleFullAdd = () => {
-    addEvent(newEvent.title, newEvent.description, newEvent.event_time);
-    setNewEvent({ title: '', description: '', event_time: '' });
+  const handleFullAdd = async () => {
+    if (newItemType === 'event') {
+      addEvent(newEvent.title, newEvent.description, newEvent.event_time);
+      setNewEvent({ title: '', description: '', event_time: '' });
+    } else if (newItemType === 'task' && user && newTask.name.trim()) {
+      await supabase.from('project_tasks').insert({
+        user_id: user.id,
+        name: newTask.name.trim(),
+        priority: newTask.priority,
+        notes: newTask.notes || null,
+        due_date: format(selectedDate, 'yyyy-MM-dd'),
+        status: 'todo',
+      });
+      setNewTask({ name: '', priority: 'medium', notes: '' });
+      fetchEvents();
+    } else if (newItemType === 'habit' && user && newHabit.name.trim()) {
+      await (supabase.from('habits' as any)).insert({
+        user_id: user.id,
+        name: newHabit.name.trim(),
+        color: newHabit.color,
+        streak: 0,
+      } as any);
+      setNewHabit({ name: '', color: '#3b82f6' });
+      fetchEvents();
+    }
     setShowAddDialog(false);
   };
 
