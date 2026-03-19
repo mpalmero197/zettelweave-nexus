@@ -706,26 +706,141 @@ export function ResumeOptimizer() {
 
       {/* ════════════════ INPUT STEP ════════════════ */}
       {activeTab === 'input' && (
-        <div className="space-y-4">
-          {/* Active template chip */}
-          <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-card">
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">{currentTemplate.icon}</div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-foreground">{currentTemplate.name}</span>
-              <p className="text-[10px] text-muted-foreground truncate">{currentTemplate.sections.join(' → ')}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* ── Left column: Resume Content ── */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Resume Upload / Paste Card */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Your Resume</span>
+                </div>
+                {resumeFile && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7 gap-1 text-muted-foreground hover:text-destructive" onClick={() => { setResumeFile(null); setResumeText(''); }}>
+                    <X className="h-3 w-3" /> Remove
+                  </Button>
+                )}
+              </div>
+              <div className="p-4 space-y-3">
+                {resumeFile ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="p-2 rounded-lg bg-primary/10"><FileText className="h-4 w-4 text-primary" /></div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-medium text-foreground block truncate">{resumeFile.name}</span>
+                      <span className="text-[10px] text-muted-foreground">File imported successfully</span>
+                    </div>
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  </div>
+                ) : (
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all ${
+                      dragOver ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                    }`}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onClick={() => document.getElementById('resume-file-input')?.click()}
+                  >
+                    <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">Drop your resume here</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">PDF, DOCX, TXT, or MD</p>
+                    <input
+                      id="resume-file-input"
+                      type="file"
+                      accept=".pdf,.docx,.doc,.txt,.md"
+                      className="hidden"
+                      onChange={(e) => e.target.files && handleFileDrop(e.target.files)}
+                    />
+                  </div>
+                )}
+                {!resumeFile && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">or paste text</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                    <Textarea
+                      value={resumeText}
+                      onChange={(e) => setResumeText(e.target.value)}
+                      placeholder="Paste your resume content here..."
+                      className="min-h-[100px] text-sm bg-background border-border resize-y"
+                    />
+                  </>
+                )}
+              </div>
             </div>
-            <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={() => setActiveTab('template')}>Change</Button>
+
+            {/* Job Description Card */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Target Job Description</span>
+                <Badge variant="secondary" className="text-[10px] ml-auto">Recommended</Badge>
+              </div>
+              <div className="p-4">
+                <Textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste the job posting here for ATS keyword extraction and tailored optimization..."
+                  className="min-h-[100px] text-sm bg-background border-border resize-y"
+                />
+              </div>
+            </div>
+
+            {/* Custom Instructions Card */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-semibold text-foreground">Custom Instructions</span>
+                <span className="text-[10px] text-muted-foreground ml-auto">Optional</span>
+              </div>
+              <div className="p-4">
+                <Textarea
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
+                  placeholder="E.g., 'Emphasize leadership experience', 'Focus on data skills', 'Add a summary section'..."
+                  className="min-h-[70px] text-sm bg-background border-border resize-y"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* Left: Resume content — takes 3 cols */}
-            <div className="lg:col-span-3 space-y-3">
-              {/* Experience & Language row */}
-              <div className="grid grid-cols-2 gap-3">
+          {/* ── Right column: Settings ── */}
+          <div className="space-y-4">
+            {/* Active Template */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
+                <Edit3 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold text-foreground">Template</span>
+              </div>
+              <div className="p-3">
+                <button
+                  onClick={() => setActiveTab('template')}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-border hover:border-primary/30 hover:bg-muted/30 transition-colors text-left"
+                >
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">{currentTemplate.icon}</div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium text-foreground block">{currentTemplate.name}</span>
+                    <span className="text-[10px] text-muted-foreground block truncate">{currentTemplate.sections.join(' · ')}</span>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </button>
+              </div>
+            </div>
+
+            {/* Profile Settings */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold text-foreground">Profile</span>
+              </div>
+              <div className="p-3 space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Experience Level</Label>
+                  <Label className="text-xs text-muted-foreground">Experience Level</Label>
                   <Select value={experienceLevel} onValueChange={(v: ExperienceLevel) => setExperienceLevel(v)}>
-                    <SelectTrigger className="bg-card border-border h-9 text-sm">
+                    <SelectTrigger className="bg-background border-border h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -737,9 +852,9 @@ export function ResumeOptimizer() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Output Language</Label>
+                  <Label className="text-xs text-muted-foreground">Output Language</Label>
                   <Select value={language} onValueChange={(v: 'auto' | 'en' | 'zh') => setLanguage(v)}>
-                    <SelectTrigger className="bg-card border-border h-9 text-sm">
+                    <SelectTrigger className="bg-background border-border h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -750,85 +865,18 @@ export function ResumeOptimizer() {
                   </Select>
                 </div>
               </div>
-
-              {/* Upload / paste area */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Your Resume</Label>
-                {resumeFile ? (
-                  <div className="flex items-center gap-3 p-2.5 border border-border rounded-lg bg-card">
-                    <FileText className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-sm truncate flex-1 text-foreground">{resumeFile.name}</span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setResumeFile(null); setResumeText(''); }}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                      dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/30'
-                    }`}
-                    onDrop={handleDrop}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onClick={() => document.getElementById('resume-file-input')?.click()}
-                  >
-                    <Upload className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">Drop resume or click to browse</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">PDF, DOCX, TXT, MD</p>
-                    <input
-                      id="resume-file-input"
-                      type="file"
-                      accept=".pdf,.docx,.doc,.txt,.md"
-                      className="hidden"
-                      onChange={(e) => e.target.files && handleFileDrop(e.target.files)}
-                    />
-                  </div>
-                )}
-                {!resumeFile && (
-                  <Textarea
-                    value={resumeText}
-                    onChange={(e) => setResumeText(e.target.value)}
-                    placeholder="Or paste your resume text here..."
-                    className="min-h-[80px] text-sm bg-card border-border"
-                  />
-                )}
-              </div>
-
-              {/* Job description */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                  <Target className="h-3 w-3" /> Target Job Description
-                </Label>
-                <Textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the job posting for ATS keyword extraction..."
-                  className="min-h-[90px] text-sm bg-card border-border"
-                />
-              </div>
-
-              {/* Custom instructions */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                  <Lightbulb className="h-3 w-3" /> Custom Instructions
-                  <span className="font-normal opacity-60">(optional)</span>
-                </Label>
-                <Textarea
-                  value={customInstructions}
-                  onChange={(e) => setCustomInstructions(e.target.value)}
-                  placeholder="E.g., 'Emphasize leadership', 'Add a summary section'..."
-                  className="min-h-[60px] text-sm bg-card border-border"
-                />
-              </div>
             </div>
 
-            {/* Right: Settings sidebar — takes 2 cols */}
-            <div className="lg:col-span-2 space-y-3">
-              <div className="rounded-xl border border-border bg-card p-3 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Settings2 className="h-4 w-4 text-muted-foreground" />
-                  AI Optimization Rules
-                </div>
+            {/* Optimization Rules */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
+                <Settings2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold text-foreground">AI Rules</span>
+                <Badge variant="outline" className="text-[10px] ml-auto">
+                  {Object.values(constraints).filter(Boolean).length}/{Object.keys(constraints).length}
+                </Badge>
+              </div>
+              <div className="p-3 space-y-1">
                 {[
                   { key: 'enforceOnePage' as const, label: 'One-page limit', desc: 'Forces concise output' },
                   { key: 'cleanFormatting' as const, label: 'ATS-safe formatting', desc: 'Clean headers & bullets' },
@@ -837,9 +885,9 @@ export function ResumeOptimizer() {
                   { key: 'removePronouns' as const, label: 'Remove pronouns', desc: 'No I, my, me' },
                   { key: 'useActionVerbs' as const, label: 'Action verbs', desc: 'Led, Built, Designed...' },
                 ].map(({ key, label, desc }) => (
-                  <div key={key} className="flex items-center justify-between gap-2">
+                  <div key={key} className="flex items-center justify-between gap-2 py-2 px-1 rounded-md hover:bg-muted/30 transition-colors">
                     <div className="min-w-0">
-                      <span className="text-xs text-foreground block leading-tight">{label}</span>
+                      <span className="text-xs font-medium text-foreground block leading-tight">{label}</span>
                       <span className="text-[10px] text-muted-foreground leading-tight">{desc}</span>
                     </div>
                     <Switch
@@ -850,18 +898,19 @@ export function ResumeOptimizer() {
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Action buttons */}
+            {/* Action Buttons */}
+            <div className="space-y-2">
               <Button
                 onClick={handleOptimize}
                 disabled={isProcessing || !resumeText.trim()}
-                className="w-full gap-2"
+                className="w-full gap-2 h-11"
                 size="lg"
               >
                 {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {isProcessing ? 'Optimizing...' : 'Optimize Resume'}
               </Button>
-
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setActiveTab('template')}>
                   <ArrowLeft className="h-3 w-3 mr-1" /> Template
