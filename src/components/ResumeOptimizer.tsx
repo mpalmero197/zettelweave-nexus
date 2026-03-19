@@ -792,7 +792,7 @@ export function ResumeOptimizer() {
             {/* Custom Instructions Card */}
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
-                <Lightbulb className="h-4 w-4 text-amber-500" />
+                <Lightbulb className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">Custom Instructions</span>
                 <span className="text-[10px] text-muted-foreground ml-auto">Optional</span>
               </div>
