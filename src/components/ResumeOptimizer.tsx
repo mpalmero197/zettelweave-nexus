@@ -5,18 +5,17 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Upload, FileText, X, Sparkles, Loader2, CheckCircle2, FileDown,
   Briefcase, GraduationCap, Code, Paintbrush, Stethoscope, BarChart3,
-  Users, Wrench, Copy, RotateCcw, Eye, Edit3
+  Users, Wrench, Copy, RotateCcw, Eye, Edit3, ArrowLeft, ArrowRight,
+  Settings2, Lightbulb, Target, ChevronRight
 } from 'lucide-react';
 import { importFile } from '@/utils/fileImportUtils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import DOMPurify from 'dompurify';
 import { DocumentThemeSelector } from '@/components/DocumentThemeSelector';
 import { getThemeClass } from '@/utils/documentThemes';
 
@@ -346,6 +345,42 @@ interface ResumeConstraints {
 
 type ExperienceLevel = 'entry' | 'mid' | 'senior' | 'executive';
 
+// Step indicator component
+function StepIndicator({ steps, current }: { steps: { key: string; label: string }[]; current: string }) {
+  const currentIdx = steps.findIndex(s => s.key === current);
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto pb-1">
+      {steps.map((step, i) => {
+        const isActive = step.key === current;
+        const isDone = i < currentIdx;
+        return (
+          <div key={step.key} className="flex items-center gap-1 shrink-0">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              isActive
+                ? 'bg-primary text-primary-foreground'
+                : isDone
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-muted text-muted-foreground'
+            }`}>
+              <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border border-current/20">
+                {isDone ? '✓' : i + 1}
+              </span>
+              <span className="hidden sm:inline">{step.label}</span>
+            </div>
+            {i < steps.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const STEPS = [
+  { key: 'template', label: 'Template' },
+  { key: 'input', label: 'Input' },
+  { key: 'result', label: 'Result' },
+];
+
 export function ResumeOptimizer() {
   const { toast } = useToast();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -403,9 +438,7 @@ export function ResumeOptimizer() {
   const applyTemplate = (templateId: string) => {
     setSelectedTemplate(templateId);
     const tmpl = RESUME_TEMPLATES.find(t => t.id === templateId);
-    if (tmpl) {
-      setResumeText(tmpl.example);
-    }
+    if (tmpl) setResumeText(tmpl.example);
   };
 
   const handleOptimize = async () => {
@@ -586,133 +619,127 @@ export function ResumeOptimizer() {
     setSuggestions([]);
   };
 
-  // ATS score color
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-500';
     if (score >= 60) return 'text-yellow-500';
     return 'text-red-500';
   };
 
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return 'bg-green-500';
+    if (score >= 60) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
   return (
-    <div className="max-w-6xl mx-auto py-4 px-2 md:px-0 space-y-4">
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-          Resume AI Studio
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Comprehensive ATS optimization with industry templates, scoring, and multi-format export.
-        </p>
+    <div className="max-w-6xl mx-auto space-y-4">
+      {/* Header + Step Indicator */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Sparkles className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-foreground">Resume AI Studio</h1>
+            <p className="text-xs text-muted-foreground">ATS optimization with industry templates & scoring</p>
+          </div>
+        </div>
+        <StepIndicator steps={STEPS} current={activeTab} />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-10">
-          <TabsTrigger value="template" className="text-xs sm:text-sm">Template</TabsTrigger>
-          <TabsTrigger value="input" className="text-xs sm:text-sm">Input & Settings</TabsTrigger>
-          <TabsTrigger value="result" className="text-xs sm:text-sm" disabled={!result && !isProcessing}>
-            Result {atsScore !== null && <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0">{atsScore}</Badge>}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* ════════════════ TEMPLATE TAB ════════════════ */}
-        <TabsContent value="template" className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Choose a Resume Template</Label>
-            <p className="text-xs text-muted-foreground">Select an industry-specific structure. The AI will follow this template's sections and tone.</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* ════════════════ TEMPLATE STEP ════════════════ */}
+      {activeTab === 'template' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {RESUME_TEMPLATES.map((tmpl) => (
               <button
                 key={tmpl.id}
                 onClick={() => applyTemplate(tmpl.id)}
-                className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                className={`relative text-left p-3 rounded-xl border transition-all duration-200 ${
                   selectedTemplate === tmpl.id
-                    ? 'border-primary bg-primary/5 shadow-sm'
-                    : 'border-border hover:border-muted-foreground/40 hover:bg-accent/30 bg-card'
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                    : 'border-border hover:border-muted-foreground/30 bg-card'
                 }`}
               >
                 {selectedTemplate === tmpl.id && (
-                  <CheckCircle2 className="absolute top-3 right-3 h-4 w-4 text-primary" />
+                  <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5 text-primary" />
                 )}
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`p-1.5 rounded-md ${selectedTemplate === tmpl.id ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                    {tmpl.icon}
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">{tmpl.name}</span>
+                <div className={`p-1.5 rounded-lg w-fit mb-2 ${
+                  selectedTemplate === tmpl.id ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {tmpl.icon}
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{tmpl.description}</p>
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {tmpl.sections.slice(0, 3).map((s, i) => (
-                    <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">{s}</Badge>
-                  ))}
-                  {tmpl.sections.length > 3 && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">+{tmpl.sections.length - 3}</Badge>
-                  )}
-                </div>
+                <span className="text-xs font-semibold text-foreground block leading-tight">{tmpl.name}</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{tmpl.description}</p>
               </button>
             ))}
           </div>
 
           {/* Template Preview */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Template Preview — {currentTemplate.name}</Label>
-            <div className="border border-border rounded-lg bg-card p-4 max-h-[40vh] overflow-y-auto">
-              <div className="space-y-1 mb-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {currentTemplate.sections.map((s, i) => (
-                    <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Tone: <span className="italic">{currentTemplate.tone}</span></p>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded-md bg-primary/10 text-primary">{currentTemplate.icon}</div>
+                <span className="text-sm font-medium text-foreground">{currentTemplate.name}</span>
               </div>
-              <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed border-t border-border/50 pt-3">
-                {currentTemplate.example}
-              </pre>
+              <div className="flex flex-wrap gap-1">
+                {currentTemplate.sections.slice(0, 4).map((s, i) => (
+                  <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">{s}</Badge>
+                ))}
+                {currentTemplate.sections.length > 4 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">+{currentTemplate.sections.length - 4}</Badge>
+                )}
+              </div>
             </div>
+            <pre className="p-4 whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed max-h-[35vh] overflow-y-auto">
+              {currentTemplate.example}
+            </pre>
           </div>
 
-          <Button onClick={() => setActiveTab('input')} className="w-full sm:w-auto gap-2">
-            Continue to Input <span aria-hidden>→</span>
-          </Button>
-        </TabsContent>
+          <div className="flex justify-end">
+            <Button onClick={() => setActiveTab('input')} className="gap-2">
+              Continue <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
 
-        {/* ════════════════ INPUT TAB ════════════════ */}
-        <TabsContent value="input" className="mt-4 space-y-5">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-5">
-              {/* Selected template indicator */}
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card">
-                <div className="p-1.5 rounded-md bg-primary/10 text-primary">{currentTemplate.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-foreground">{currentTemplate.name} Template</span>
-                  <p className="text-xs text-muted-foreground truncate">{currentTemplate.sections.join(' → ')}</p>
-                </div>
-                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab('template')}>Change</Button>
-              </div>
+      {/* ════════════════ INPUT STEP ════════════════ */}
+      {activeTab === 'input' && (
+        <div className="space-y-4">
+          {/* Active template chip */}
+          <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-card">
+            <div className="p-1.5 rounded-md bg-primary/10 text-primary">{currentTemplate.icon}</div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-foreground">{currentTemplate.name}</span>
+              <p className="text-[10px] text-muted-foreground truncate">{currentTemplate.sections.join(' → ')}</p>
+            </div>
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={() => setActiveTab('template')}>Change</Button>
+          </div>
 
-              {/* Experience Level & Language */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Experience Level</Label>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Left: Resume content — takes 3 cols */}
+            <div className="lg:col-span-3 space-y-3">
+              {/* Experience & Language row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Experience Level</Label>
                   <Select value={experienceLevel} onValueChange={(v: ExperienceLevel) => setExperienceLevel(v)}>
-                    <SelectTrigger className="bg-card border-border">
+                    <SelectTrigger className="bg-card border-border h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="entry">Entry Level / New Graduate</SelectItem>
-                      <SelectItem value="mid">Mid-Level (3-7 years)</SelectItem>
-                      <SelectItem value="senior">Senior / Staff (8-15 years)</SelectItem>
-                      <SelectItem value="executive">Executive / C-Suite (15+)</SelectItem>
+                      <SelectItem value="entry">Entry / New Grad</SelectItem>
+                      <SelectItem value="mid">Mid-Level (3-7y)</SelectItem>
+                      <SelectItem value="senior">Senior (8-15y)</SelectItem>
+                      <SelectItem value="executive">Executive (15+)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Output Language</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Output Language</Label>
                   <Select value={language} onValueChange={(v: 'auto' | 'en' | 'zh') => setLanguage(v)}>
-                    <SelectTrigger className="bg-card border-border">
+                    <SelectTrigger className="bg-card border-border h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -724,30 +751,30 @@ export function ResumeOptimizer() {
                 </div>
               </div>
 
-              {/* Upload Zone */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Resume</Label>
+              {/* Upload / paste area */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Your Resume</Label>
                 {resumeFile ? (
-                  <div className="flex items-center gap-3 p-3 border border-border rounded-lg bg-card">
-                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex items-center gap-3 p-2.5 border border-border rounded-lg bg-card">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
                     <span className="text-sm truncate flex-1 text-foreground">{resumeFile.name}</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setResumeFile(null); setResumeText(''); }}>
-                      <X className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setResumeFile(null); setResumeText(''); }}>
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ) : (
                   <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                      dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/40 hover:bg-accent/30'
+                    className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                      dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/30'
                     }`}
                     onDrop={handleDrop}
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onClick={() => document.getElementById('resume-file-input')?.click()}
                   >
-                    <Upload className="h-7 w-7 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Drop your resume or click to browse</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">PDF, DOCX, TXT, MD</p>
+                    <Upload className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Drop resume or click to browse</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">PDF, DOCX, TXT, MD</p>
                     <input
                       id="resume-file-input"
                       type="file"
@@ -762,128 +789,138 @@ export function ResumeOptimizer() {
                     value={resumeText}
                     onChange={(e) => setResumeText(e.target.value)}
                     placeholder="Or paste your resume text here..."
-                    className="min-h-[100px] text-sm bg-card border-border"
+                    className="min-h-[80px] text-sm bg-card border-border"
                   />
                 )}
               </div>
 
-              {/* Job Description */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Target Job Description</Label>
+              {/* Job description */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Target className="h-3 w-3" /> Target Job Description
+                </Label>
                 <Textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the job posting for ATS keyword extraction and tailoring..."
-                  className="min-h-[120px] text-sm bg-card border-border"
+                  placeholder="Paste the job posting for ATS keyword extraction..."
+                  className="min-h-[90px] text-sm bg-card border-border"
+                />
+              </div>
+
+              {/* Custom instructions */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Lightbulb className="h-3 w-3" /> Custom Instructions
+                  <span className="font-normal opacity-60">(optional)</span>
+                </Label>
+                <Textarea
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
+                  placeholder="E.g., 'Emphasize leadership', 'Add a summary section'..."
+                  className="min-h-[60px] text-sm bg-card border-border"
                 />
               </div>
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-5">
-              {/* Custom Instructions */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Custom Instructions <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                <Textarea
-                  value={customInstructions}
-                  onChange={(e) => setCustomInstructions(e.target.value)}
-                  placeholder="E.g., 'Emphasize leadership', 'Add a summary section', 'Quantify all bullet points'..."
-                  className="min-h-[80px] text-sm bg-card border-border"
-                />
-              </div>
-
-              {/* Constraints */}
-              <div className="space-y-3 p-4 border border-border rounded-lg bg-card">
-                <Label className="text-sm font-medium text-foreground">AI Optimization Rules</Label>
+            {/* Right: Settings sidebar — takes 2 cols */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Settings2 className="h-4 w-4 text-muted-foreground" />
+                  AI Optimization Rules
+                </div>
                 {[
-                  { key: 'enforceOnePage' as const, label: 'Enforce strict 1-page limit', desc: 'Forces concise output' },
-                  { key: 'cleanFormatting' as const, label: 'Clean ATS-safe formatting', desc: 'Headers, bullets, consistent spacing' },
-                  { key: 'extractAtsKeywords' as const, label: 'Extract & inject ATS keywords', desc: 'From job description into resume' },
-                  { key: 'quantifyAchievements' as const, label: 'Quantify all achievements', desc: 'Add numbers, %, $ where possible' },
-                  { key: 'removePronouns' as const, label: 'Remove personal pronouns', desc: 'No I, my, me — standard resume style' },
-                  { key: 'useActionVerbs' as const, label: 'Start bullets with action verbs', desc: 'Led, Built, Increased, Designed...' },
+                  { key: 'enforceOnePage' as const, label: 'One-page limit', desc: 'Forces concise output' },
+                  { key: 'cleanFormatting' as const, label: 'ATS-safe formatting', desc: 'Clean headers & bullets' },
+                  { key: 'extractAtsKeywords' as const, label: 'Extract ATS keywords', desc: 'From job description' },
+                  { key: 'quantifyAchievements' as const, label: 'Quantify achievements', desc: 'Add %, $, numbers' },
+                  { key: 'removePronouns' as const, label: 'Remove pronouns', desc: 'No I, my, me' },
+                  { key: 'useActionVerbs' as const, label: 'Action verbs', desc: 'Led, Built, Designed...' },
                 ].map(({ key, label, desc }) => (
-                  <div key={key} className="flex items-center justify-between gap-3">
+                  <div key={key} className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="text-sm text-foreground block">{label}</span>
-                      <span className="text-[11px] text-muted-foreground">{desc}</span>
+                      <span className="text-xs text-foreground block leading-tight">{label}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{desc}</span>
                     </div>
                     <Switch
                       checked={constraints[key]}
                       onCheckedChange={(v) => setConstraints(prev => ({ ...prev, [key]: v }))}
+                      className="shrink-0"
                     />
                   </div>
                 ))}
               </div>
 
-              {/* Actions */}
+              {/* Action buttons */}
+              <Button
+                onClick={handleOptimize}
+                disabled={isProcessing || !resumeText.trim()}
+                className="w-full gap-2"
+                size="lg"
+              >
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {isProcessing ? 'Optimizing...' : 'Optimize Resume'}
+              </Button>
+
               <div className="flex gap-2">
-                <Button
-                  onClick={handleOptimize}
-                  disabled={isProcessing || !resumeText.trim()}
-                  className="flex-1 gap-2"
-                  size="lg"
-                >
-                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {isProcessing ? 'Optimizing...' : 'Optimize Resume'}
+                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setActiveTab('template')}>
+                  <ArrowLeft className="h-3 w-3 mr-1" /> Template
                 </Button>
-                <Button variant="outline" size="lg" onClick={clearAll} disabled={isProcessing}>
-                  Clear
+                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={clearAll} disabled={isProcessing}>
+                  Clear All
                 </Button>
               </div>
             </div>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ════════════════ RESULT TAB ════════════════ */}
-        <TabsContent value="result" className="mt-4 space-y-4">
+      {/* ════════════════ RESULT STEP ════════════════ */}
+      {activeTab === 'result' && (
+        <div className="space-y-4">
           {isProcessing ? (
-            <div className="space-y-3 p-6 border border-border rounded-lg bg-card">
-              <div className="flex items-center gap-3 mb-4">
+            <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+              <div className="flex items-center gap-3">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm font-medium text-foreground">Analyzing resume and optimizing...</span>
+                <span className="text-sm font-medium text-foreground">Analyzing & optimizing...</span>
               </div>
               <Skeleton className="h-5 w-3/4" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-5 w-1/2 mt-4" />
+              <Skeleton className="h-5 w-1/2 mt-3" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
             </div>
           ) : result ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Sidebar — Score & Analysis */}
-              <div className="space-y-4 lg:col-span-1 order-2 lg:order-1">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {/* Sidebar — Score, Keywords, Suggestions, Export */}
+              <div className="space-y-3 lg:col-span-1 order-2 lg:order-1">
                 {/* ATS Score */}
                 {atsScore !== null && (
-                  <div className="border border-border rounded-lg bg-card p-5 text-center space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">ATS Compatibility Score</Label>
-                    <div className={`text-5xl font-bold tabular-nums ${getScoreColor(atsScore)}`}>
+                  <div className="rounded-xl border border-border bg-card p-4 text-center space-y-2">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">ATS Score</span>
+                    <div className={`text-4xl font-bold tabular-nums ${getScoreColor(atsScore)}`}>
                       {atsScore}
                     </div>
-                    <p className="text-xs text-muted-foreground">out of 100</p>
-                    <div className="w-full bg-muted rounded-full h-2 mt-2">
+                    <div className="w-full bg-muted rounded-full h-1.5">
                       <div
-                        className={`h-2 rounded-full transition-all duration-700 ${
-                          atsScore >= 80 ? 'bg-green-500' : atsScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
+                        className={`h-1.5 rounded-full transition-all duration-700 ${getScoreBg(atsScore)}`}
                         style={{ width: `${atsScore}%` }}
                       />
                     </div>
+                    <p className="text-[10px] text-muted-foreground">out of 100</p>
                   </div>
                 )}
 
                 {/* Keywords */}
                 {highlightedKeywords.length > 0 && (
-                  <div className="border border-border rounded-lg bg-card p-4 space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Injected ATS Keywords ({highlightedKeywords.length})</Label>
-                    <div className="flex flex-wrap gap-1.5">
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">Keywords ({highlightedKeywords.length})</span>
+                    <div className="flex flex-wrap gap-1">
                       {highlightedKeywords.map((kw, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                          <CheckCircle2 className="h-3 w-3" />
+                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                           {kw}
                         </span>
                       ))}
@@ -893,12 +930,12 @@ export function ResumeOptimizer() {
 
                 {/* Suggestions */}
                 {suggestions.length > 0 && (
-                  <div className="border border-border rounded-lg bg-card p-4 space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Improvement Suggestions</Label>
-                    <ul className="space-y-2">
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">Suggestions</span>
+                    <ul className="space-y-1.5">
                       {suggestions.map((s, i) => (
-                        <li key={i} className="flex gap-2 text-xs text-foreground">
-                          <Wrench className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <li key={i} className="flex gap-1.5 text-[11px] text-foreground leading-snug">
+                          <Wrench className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
                           <span>{s}</span>
                         </li>
                       ))}
@@ -910,15 +947,15 @@ export function ResumeOptimizer() {
                 <div className="space-y-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="default" className="w-full gap-2">
-                        <FileDown className="h-4 w-4" />
+                      <Button variant="default" className="w-full gap-2" size="sm">
+                        <FileDown className="h-3.5 w-3.5" />
                         Export Resume
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem onClick={handleDownloadDocx}>
                         <FileDown className="mr-2 h-4 w-4" />
-                        Word (.docx) — Recommended
+                        Word (.docx)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleDownloadPdf}>
                         <FileDown className="mr-2 h-4 w-4" />
@@ -931,48 +968,48 @@ export function ResumeOptimizer() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <Button variant="outline" className="w-full gap-2" onClick={handleCopyResult}>
-                    <Copy className="h-4 w-4" />
+                  <Button variant="outline" className="w-full gap-2" size="sm" onClick={handleCopyResult}>
+                    <Copy className="h-3.5 w-3.5" />
                     Copy to Clipboard
                   </Button>
 
-                  <Button variant="ghost" className="w-full gap-2 text-muted-foreground" onClick={() => setActiveTab('input')}>
-                    <Edit3 className="h-4 w-4" />
+                  <Button variant="ghost" className="w-full gap-2 text-xs text-muted-foreground" size="sm" onClick={() => setActiveTab('input')}>
+                    <Edit3 className="h-3.5 w-3.5" />
                     Edit & Re-optimize
                   </Button>
                 </div>
               </div>
 
               {/* Main — Document Preview */}
-              <div className="lg:col-span-2 space-y-2 order-1 lg:order-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-foreground">Optimized Resume</Label>
-                  <div className="flex items-center gap-4">
+              <div className="lg:col-span-3 space-y-2 order-1 lg:order-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-foreground">Optimized Resume</span>
+                  <div className="flex items-center gap-2">
                     {resultView === 'preview' && (
                       <DocumentThemeSelector value={documentTheme} onChange={setDocumentTheme} />
                     )}
-                    <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
+                    <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
                       <button
                         onClick={() => setResultView('preview')}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                        className={`px-2 py-1 rounded-md text-xs transition-colors ${
                           resultView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
-                        <Eye className="h-3.5 w-3.5 inline mr-1" />Preview
+                        <Eye className="h-3 w-3 inline mr-1" />Preview
                       </button>
                       <button
                         onClick={() => setResultView('raw')}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                        className={`px-2 py-1 rounded-md text-xs transition-colors ${
                           resultView === 'raw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
-                        <FileText className="h-3.5 w-3.5 inline mr-1" />Raw
+                        <FileText className="h-3 w-3 inline mr-1" />Raw
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="border border-border rounded-lg bg-card max-h-[70vh] overflow-y-auto overscroll-contain">
+                <div className="rounded-xl border border-border bg-card max-h-[70vh] overflow-y-auto overscroll-contain">
                   {resultView === 'preview' ? (
                     <div className={`p-5 md:p-8 space-y-1 resume-preview-content ${getThemeClass(documentTheme)}`}>
                       {result.split('\n').map((line, i) => {
@@ -1008,14 +1045,17 @@ export function ResumeOptimizer() {
               </div>
             </div>
           ) : (
-            <div className="border border-border rounded-lg bg-card p-8 md:p-12 flex flex-col items-center justify-center text-center min-h-[300px]">
-              <FileText className="h-10 w-10 text-muted-foreground/30 mb-4" />
+            <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center text-center min-h-[250px]">
+              <FileText className="h-8 w-8 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">Your optimized resume will appear here</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Select a template, upload a resume, and click "Optimize"</p>
+              <p className="text-[11px] text-muted-foreground/60 mt-1">Select a template, upload a resume, and click "Optimize"</p>
+              <Button variant="outline" size="sm" className="mt-4 gap-1.5" onClick={() => setActiveTab('input')}>
+                <ArrowLeft className="h-3 w-3" /> Go to Input
+              </Button>
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }
