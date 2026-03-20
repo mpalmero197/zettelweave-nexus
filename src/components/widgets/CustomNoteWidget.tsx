@@ -169,61 +169,72 @@ export function CustomNoteWidget() {
     );
   }
 
+  const startEditing = () => {
+    if (!isEditing) {
+      setEditedNote(currentNote);
+      setIsEditing(true);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedNote({});
+  };
+
   return (
     <Card className="h-full border border-border/50 shadow-sm bg-card text-card-foreground">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-sm text-foreground">
-          <div className="flex items-center gap-2">
-            <StickyNote className="h-4 w-4 text-foreground" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <StickyNote className="h-4 w-4 shrink-0 text-muted-foreground" />
             {isEditing ? (
               <Input
                 value={editedNote.title || ''}
                 onChange={(e) => setEditedNote(prev => ({ ...prev, title: e.target.value }))}
-                className="h-6 text-sm bg-transparent border-none p-0 font-semibold text-foreground"
+                className="h-7 text-sm font-semibold text-foreground"
+                autoFocus
               />
             ) : (
-              <span className="truncate text-foreground">{currentNote.title}</span>
+              <button
+                onClick={startEditing}
+                className="truncate text-foreground text-left w-full rounded-md px-2 py-1 border border-dashed border-border/60 hover:border-primary/40 hover:bg-muted/50 transition-colors cursor-text"
+                title="Click to edit title"
+              >
+                {currentNote.title}
+              </button>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0 ml-2">
             {notes.length > 1 && (
               <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentNoteIndex((prev) => (prev - 1 + notes.length) % notes.length)}
+                  onClick={() => { handleCancel(); setCurrentNoteIndex((prev) => (prev - 1 + notes.length) % notes.length); }}
                   className="h-6 w-6 p-0 text-xs"
                 >
                   ←
                 </Button>
-                <span className="text-xs self-center">{currentNoteIndex + 1}/{notes.length}</span>
+                <span className="text-xs self-center text-muted-foreground">{currentNoteIndex + 1}/{notes.length}</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentNoteIndex((prev) => (prev + 1) % notes.length)}
+                  onClick={() => { handleCancel(); setCurrentNoteIndex((prev) => (prev + 1) % notes.length); }}
                   className="h-6 w-6 p-0 text-xs"
                 >
                   →
                 </Button>
               </div>
             )}
-            {isEditing ? (
+            {isEditing && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSave}
-                className="h-6 w-6 p-0"
+                className="h-6 px-2 text-xs gap-1 text-primary"
               >
                 <Save className="h-3 w-3" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleEdit}
-                className="h-6 w-6 p-0"
-              >
-                <Edit3 className="h-3 w-3" />
+                Save
               </Button>
             )}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -282,13 +293,17 @@ export function CustomNoteWidget() {
           <Textarea
             value={editedNote.content || ''}
             onChange={(e) => setEditedNote(prev => ({ ...prev, content: e.target.value }))}
-            className="min-h-[100px] bg-transparent border-none p-0 resize-none text-sm text-foreground"
+            className="min-h-[100px] resize-none text-sm text-foreground"
             placeholder="Write your note content..."
           />
         ) : (
-          <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+          <button
+            onClick={startEditing}
+            className="w-full text-left text-sm whitespace-pre-wrap leading-relaxed text-foreground rounded-md px-3 py-2 border border-dashed border-border/60 hover:border-primary/40 hover:bg-muted/50 transition-colors cursor-text min-h-[80px]"
+            title="Click to edit note"
+          >
             {currentNote.content}
-          </div>
+          </button>
         )}
       </CardContent>
     </Card>
