@@ -141,6 +141,7 @@ async function handleLogin() {
     saveData();
     updateAuthUI();
     syncFromCloud();
+    startLiveSync();
 
     authEmailEl.value = '';
     authPasswordEl.value = '';
