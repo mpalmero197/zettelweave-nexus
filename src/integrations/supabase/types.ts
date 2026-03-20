@@ -330,35 +330,71 @@ export type Database = {
       }
       calendar_events: {
         Row: {
+          client_email: string | null
+          client_name: string | null
+          color: string | null
           created_at: string
           description: string | null
+          duration_minutes: number | null
+          end_time: string | null
+          event_category: string | null
           event_date: string
           event_time: string | null
           id: string
+          is_all_day: boolean | null
+          is_recurring: boolean | null
+          location: string | null
+          recurrence_rule: string | null
+          reminder_minutes: number | null
           source_id: string
           source_type: string
+          status: string | null
           title: string
           user_id: string
         }
         Insert: {
+          client_email?: string | null
+          client_name?: string | null
+          color?: string | null
           created_at?: string
           description?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          event_category?: string | null
           event_date: string
           event_time?: string | null
           id?: string
+          is_all_day?: boolean | null
+          is_recurring?: boolean | null
+          location?: string | null
+          recurrence_rule?: string | null
+          reminder_minutes?: number | null
           source_id: string
           source_type: string
+          status?: string | null
           title: string
           user_id: string
         }
         Update: {
+          client_email?: string | null
+          client_name?: string | null
+          color?: string | null
           created_at?: string
           description?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          event_category?: string | null
           event_date?: string
           event_time?: string | null
           id?: string
+          is_all_day?: boolean | null
+          is_recurring?: boolean | null
+          location?: string | null
+          recurrence_rule?: string | null
+          reminder_minutes?: number | null
           source_id?: string
           source_type?: string
+          status?: string | null
           title?: string
           user_id?: string
         }
