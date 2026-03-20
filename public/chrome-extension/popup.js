@@ -182,11 +182,11 @@ function updateAuthUI() {
 }
 
 // Cloud sync functions
-async function syncFromCloud() {
+async function syncFromCloud(silent = false) {
   if (!authToken) return;
 
   const syncStatus = document.getElementById('sync-status');
-  if (syncStatus) {
+  if (!silent && syncStatus) {
     syncStatus.textContent = 'Syncing…';
     syncStatus.className = 'sync-status syncing';
   }
@@ -211,7 +211,13 @@ async function syncFromCloud() {
     const data = await response.json();
     const cloudNotes = data.notes || [];
 
-    // Merge cloud notes with local (cloud takes priority for same IDs)
+    // Build a set of cloud note IDs
+    const cloudIds = new Set(cloudNotes.map(n => n.id));
+
+    // Remove local synced notes that no longer exist in cloud (deleted elsewhere)
+    scratchNotes = scratchNotes.filter(n => !n.synced || cloudIds.has(n.id));
+
+    // Merge cloud notes with local (cloud takes priority)
     cloudNotes.forEach(cloudNote => {
       const localNote = scratchNotes.find(n => n.id === cloudNote.id);
       if (!localNote) {
@@ -222,6 +228,7 @@ async function syncFromCloud() {
           synced: true
         });
       } else {
+        localNote.content = cloudNote.content;
         localNote.synced = true;
       }
     });
@@ -231,13 +238,13 @@ async function syncFromCloud() {
     saveData();
     renderScratchNotes();
 
-    if (syncStatus) {
+    if (!silent && syncStatus) {
       syncStatus.textContent = 'Synced ✓';
       syncStatus.className = 'sync-status success';
       setTimeout(() => { if (syncStatus) syncStatus.textContent = ''; }, 2000);
     }
   } catch (error) {
-    if (syncStatus) {
+    if (!silent && syncStatus) {
       syncStatus.textContent = error.message;
       syncStatus.className = 'sync-status error';
     }
