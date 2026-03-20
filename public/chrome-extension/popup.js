@@ -156,6 +156,7 @@ async function handleLogin() {
 function handleLogout() {
   authToken = null;
   userEmail = null;
+  stopLiveSync();
   saveData();
   updateAuthUI();
 }
