@@ -17,12 +17,12 @@ interface CustomNote {
 }
 
 const noteColors = [
-  '#FEF3C7', // yellow
-  '#DBEAFE', // blue
-  '#D1FAE5', // green
-  '#FED7D7', // red
-  '#E9D5FF', // purple
-  '#F0F9FF', // light blue
+  'hsl(var(--card))',
+  'hsl(var(--muted))',
+  'hsl(var(--accent))',
+  'hsl(var(--secondary))',
+  'hsl(var(--card))',
+  'hsl(var(--muted))',
 ];
 
 export function CustomNoteWidget() {
@@ -170,10 +170,7 @@ export function CustomNoteWidget() {
   }
 
   return (
-    <Card 
-      className="h-full border border-border/50 shadow-sm"
-      style={{ backgroundColor: currentNote.color }}
-    >
+    <Card className="h-full border border-border/50 shadow-sm bg-card text-card-foreground">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-sm text-foreground">
           <div className="flex items-center gap-2">
