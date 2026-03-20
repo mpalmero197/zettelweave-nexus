@@ -37,6 +37,53 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     }
   }, [user]);
 
+  // Subscribe to realtime changes for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('scratchpad-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'scratchpad_notes',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newNote: ScratchNote = {
+              id: payload.new.id,
+              content: payload.new.content,
+              timestamp: new Date(payload.new.created_at),
+              synced: true,
+            };
+            setSavedNotes((prev) => {
+              // Avoid duplicates (from our own inserts)
+              if (prev.some((n) => n.id === newNote.id)) return prev;
+              return [newNote, ...prev];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setSavedNotes((prev) => prev.filter((n) => n.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            setSavedNotes((prev) =>
+              prev.map((n) =>
+                n.id === payload.new.id
+                  ? { ...n, content: payload.new.content, synced: true }
+                  : n
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const loadNotesFromLocal = () => {
     try {
       const saved = localStorage.getItem("scratchpad:notes:v1");

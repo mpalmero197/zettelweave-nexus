@@ -21,6 +21,8 @@ let stickyNotes = [];
 let authToken = null;
 let userEmail = null;
 
+let syncInterval = null;
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
@@ -30,6 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAuth();
   renderColorPicker();
 });
+
+// Clean up polling when popup closes
+window.addEventListener('unload', () => {
+  if (syncInterval) clearInterval(syncInterval);
+});
+
+// Start polling every 3 seconds for live sync
+function startLiveSync() {
+  if (syncInterval) clearInterval(syncInterval);
+  if (!authToken) return;
+  syncInterval = setInterval(() => {
+    if (authToken) syncFromCloud(true);
+  }, 3000);
+}
+
+function stopLiveSync() {
+  if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
+}
 
 // Load data from storage
 function loadData() {
@@ -47,6 +67,7 @@ function loadData() {
     // Auto-sync if logged in
     if (authToken) {
       syncFromCloud();
+      startLiveSync();
     }
   });
 }
