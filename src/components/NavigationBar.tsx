@@ -226,6 +226,17 @@ export function NavigationBar({
                       <StickyNote className="h-4 w-4" />
                       Sticky Notes
                     </Button>
+                    <Button
+                      variant={activeTab === "projects" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("projects");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <FolderKanban className="h-4 w-4" />
+                      Projects
+                    </Button>
                   </div>
 
                   {/* Collaboration Section */}
