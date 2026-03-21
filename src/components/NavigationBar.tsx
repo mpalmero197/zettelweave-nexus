@@ -31,6 +31,7 @@ import {
   BookOpen,
   Calendar as CalendarIcon,
   FolderOpen,
+  FolderKanban,
   Trash2,
   Mic,
   Home,
