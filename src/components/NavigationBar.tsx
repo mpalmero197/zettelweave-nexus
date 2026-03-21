@@ -461,7 +461,7 @@ export function NavigationBar({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant={["calendar", "journal", "habits", "stickynotes"].includes(activeTab) ? "secondary" : "ghost"}
+                        variant={["calendar", "journal", "habits", "stickynotes", "projects"].includes(activeTab) ? "secondary" : "ghost"}
                         size="sm"
                         className="h-9 px-3 gap-1"
                       >
