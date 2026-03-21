@@ -788,6 +788,10 @@ const Index = () => {
                   <DebuggerConsole />
                 </TabsContent>
 
+                <TabsContent value="projects" className="mt-0">
+                  <ProjectManager />
+                </TabsContent>
+
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
