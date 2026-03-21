@@ -48,6 +48,7 @@ import { CollabStudio } from "@/components/friends/CollabStudio";
 import { LearningHub } from "@/components/LearningHub";
 import { SpacesHub } from "@/components/spaces/SpacesHub";
 import { UnifiedSearchPage } from "@/components/UnifiedSearchPage";
+import { ProjectManager } from "@/components/ProjectManager";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
