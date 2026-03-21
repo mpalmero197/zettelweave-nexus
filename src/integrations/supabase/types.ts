@@ -1528,6 +1528,53 @@ export type Database = {
         }
         Relationships: []
       }
+      project_milestones: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          project_id: string
+          sort_order: number | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          project_id: string
+          sort_order?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          project_id?: string
+          sort_order?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_tasks: {
         Row: {
           created_at: string
@@ -1538,6 +1585,7 @@ export type Database = {
           notes: string | null
           parent_task_id: string | null
           priority: string
+          project_id: string | null
           repeat_type: string
           repeat_until: string | null
           status: string
@@ -1553,6 +1601,7 @@ export type Database = {
           notes?: string | null
           parent_task_id?: string | null
           priority?: string
+          project_id?: string | null
           repeat_type?: string
           repeat_until?: string | null
           status?: string
@@ -1568,6 +1617,7 @@ export type Database = {
           notes?: string | null
           parent_task_id?: string | null
           priority?: string
+          project_id?: string | null
           repeat_type?: string
           repeat_until?: string | null
           status?: string
@@ -1582,7 +1632,80 @@ export type Database = {
             referencedRelation: "project_tasks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      projects: {
+        Row: {
+          budget: number | null
+          budget_spent: number | null
+          client_email: string | null
+          client_name: string | null
+          color: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          icon: string | null
+          id: string
+          is_archived: boolean | null
+          is_favorite: boolean | null
+          name: string
+          priority: string
+          start_date: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          budget_spent?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_favorite?: boolean | null
+          name: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          budget_spent?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_favorite?: boolean | null
+          name?: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       quick_captures: {
         Row: {

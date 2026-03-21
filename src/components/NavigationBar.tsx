@@ -31,6 +31,7 @@ import {
   BookOpen,
   Calendar as CalendarIcon,
   FolderOpen,
+  FolderKanban,
   Trash2,
   Mic,
   Home,
@@ -224,6 +225,17 @@ export function NavigationBar({
                     >
                       <StickyNote className="h-4 w-4" />
                       Sticky Notes
+                    </Button>
+                    <Button
+                      variant={activeTab === "projects" ? "default" : "ghost"}
+                      onClick={() => {
+                        onTabChange("projects");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start gap-2"
+                    >
+                      <FolderKanban className="h-4 w-4" />
+                      Projects
                     </Button>
                   </div>
 
@@ -449,7 +461,7 @@ export function NavigationBar({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant={["calendar", "journal", "habits", "stickynotes"].includes(activeTab) ? "secondary" : "ghost"}
+                        variant={["calendar", "journal", "habits", "stickynotes", "projects"].includes(activeTab) ? "secondary" : "ghost"}
                         size="sm"
                         className="h-9 px-3 gap-1"
                       >
@@ -474,6 +486,10 @@ export function NavigationBar({
                       <DropdownMenuItem onClick={() => onTabChange("stickynotes")}>
                         <StickyNote className="h-4 w-4 mr-2" />
                         Sticky Notes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onTabChange("projects")}>
+                        <FolderKanban className="h-4 w-4 mr-2" />
+                        Projects
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
