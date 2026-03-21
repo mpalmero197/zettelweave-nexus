@@ -92,6 +92,7 @@ export function MinimalSidebar({
           <NavButton tab="habits" icon={Target} label="Habits" />
           <NavButton tab="scratchpad" icon={FileEdit} label="Scratchpad" />
           <NavButton tab="stickynotes" icon={StickyNote} label="Sticky Notes" />
+          <NavButton tab="projects" icon={FolderKanban} label="Projects" />
           
           <Separator className="my-2" />
           
