@@ -27,6 +27,7 @@ import {
   Download,
   Bug,
   Lock,
+  FolderKanban,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
