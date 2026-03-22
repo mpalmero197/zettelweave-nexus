@@ -589,6 +589,7 @@ export function ProjectManager() {
               <TabsTrigger value="overview" className="flex-1 text-xs">Overview</TabsTrigger>
               <TabsTrigger value="tasks" className="flex-1 text-xs">Tasks ({pts.length})</TabsTrigger>
               <TabsTrigger value="milestones" className="flex-1 text-xs">Milestones ({ms.length})</TabsTrigger>
+              <TabsTrigger value="team" className="flex-1 text-xs">Team ({collaborators.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
