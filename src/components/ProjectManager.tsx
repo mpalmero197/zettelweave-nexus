@@ -435,7 +435,7 @@ export function ProjectManager() {
       <div
         key={project.id}
         className="group relative bg-card border border-border/60 rounded-xl p-4 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
-        onClick={() => { setSelectedProject(project); setDetailTab('overview'); }}
+        onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
       >
         {/* Top row */}
         <div className="flex items-start justify-between mb-3">
