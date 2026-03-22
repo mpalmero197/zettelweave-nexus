@@ -20,7 +20,7 @@ import {
   CalendarIcon, Clock, Users, DollarSign, Target, ChevronRight,
   ChevronDown, MoreHorizontal, CheckCircle2, Circle, AlertCircle,
   BarChart3, ListTodo, Columns3, GripVertical, Flag, MapPin,
-  Mail, Tag
+  Mail, Tag, UserPlus, Crown, Loader2
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
@@ -29,6 +29,24 @@ import { toast } from 'sonner';
 import { format, parseISO, differenceInDays, isAfter, isBefore, isToday } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface ProjectCollaborator {
+  id: string;
+  project_id: string;
+  owner_id: string;
+  collaborator_id: string;
+  role: string;
+  status: string;
+  profile?: { display_name: string | null; avatar_url: string | null };
+}
+
+interface FriendProfile {
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
 
 interface Project {
   id: string;
@@ -126,6 +144,12 @@ export function ProjectManager() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskForm, setTaskForm] = useState({ name: '', priority: 'medium', due_date: '' });
 
+  // Collaborators
+  const [collaborators, setCollaborators] = useState<ProjectCollaborator[]>([]);
+  const [friends, setFriends] = useState<FriendProfile[]>([]);
+  const [loadingCollabs, setLoadingCollabs] = useState(false);
+  const [addingCollab, setAddingCollab] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [projectsRes, milestonesRes, tasksRes] = await Promise.all([
@@ -140,6 +164,84 @@ export function ProjectManager() {
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const fetchCollaborators = useCallback(async (projectId: string) => {
+    if (!user) return;
+    setLoadingCollabs(true);
+    try {
+      const { data: collabs } = await supabase
+        .from('project_collaborators')
+        .select('*')
+        .eq('project_id', projectId);
+
+      const collabIds = (collabs || []).map(c => c.collaborator_id);
+      let profiles: any[] = [];
+      if (collabIds.length > 0) {
+        const { data: p } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', collabIds);
+        profiles = p || [];
+      }
+
+      setCollaborators((collabs || []).map(c => ({
+        ...c,
+        profile: profiles.find(p => p.user_id === c.collaborator_id) || null,
+      })) as ProjectCollaborator[]);
+
+      // Fetch friends list
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('*')
+        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+
+      const friendIds = (friendships || []).map(f => f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1)
+        .filter(id => !collabIds.includes(id));
+
+      if (friendIds.length > 0) {
+        const { data: friendProfiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', friendIds);
+        setFriends((friendProfiles || []) as FriendProfile[]);
+      } else {
+        setFriends([]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch collaborators', e);
+    } finally {
+      setLoadingCollabs(false);
+    }
+  }, [user]);
+
+  const addCollaborator = async (friendId: string) => {
+    if (!user || !selectedProject) return;
+    setAddingCollab(true);
+    try {
+      const { error } = await supabase.from('project_collaborators').insert({
+        project_id: selectedProject.id,
+        owner_id: user.id,
+        collaborator_id: friendId,
+        role: 'member',
+        status: 'accepted',
+      });
+      if (error) throw error;
+      toast.success('Collaborator added');
+      fetchCollaborators(selectedProject.id);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add collaborator');
+    } finally {
+      setAddingCollab(false);
+    }
+  };
+
+  const removeCollaborator = async (id: string) => {
+    if (!selectedProject) return;
+    const { error } = await supabase.from('project_collaborators').delete().eq('id', id);
+    if (error) { toast.error('Failed to remove'); return; }
+    toast.success('Collaborator removed');
+    fetchCollaborators(selectedProject.id);
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
 
   const filteredProjects = useMemo(() => {
     let result = projects.filter(p => showArchived ? p.is_archived : !p.is_archived);
@@ -333,7 +435,7 @@ export function ProjectManager() {
       <div
         key={project.id}
         className="group relative bg-card border border-border/60 rounded-xl p-4 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
-        onClick={() => { setSelectedProject(project); setDetailTab('overview'); }}
+        onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
       >
         {/* Top row */}
         <div className="flex items-start justify-between mb-3">
@@ -487,6 +589,7 @@ export function ProjectManager() {
               <TabsTrigger value="overview" className="flex-1 text-xs">Overview</TabsTrigger>
               <TabsTrigger value="tasks" className="flex-1 text-xs">Tasks ({pts.length})</TabsTrigger>
               <TabsTrigger value="milestones" className="flex-1 text-xs">Milestones ({ms.length})</TabsTrigger>
+              <TabsTrigger value="team" className="flex-1 text-xs">Team ({collaborators.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
@@ -671,6 +774,95 @@ export function ProjectManager() {
                   </div>
                 ))}
               </div>
+            </TabsContent>
+
+            <TabsContent value="team" className="mt-4 space-y-4">
+              {/* Owner */}
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                      <Crown className="h-3.5 w-3.5" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">You (Owner)</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+                <Badge className="bg-primary/10 text-primary border-primary/20">Owner</Badge>
+              </div>
+
+              {/* Current collaborators */}
+              {loadingCollabs ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  {collaborators.length > 0 && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Collaborators</h4>
+                      {collaborators.map(collab => (
+                        <div key={collab.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors group">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">{getInitials(collab.profile?.display_name)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">{collab.profile?.display_name || 'Unknown'}</p>
+                              <Badge variant="outline" className="text-[9px] capitalize">{collab.role}</Badge>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100"
+                            onClick={() => removeCollaborator(collab.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Friends to add */}
+                  {friends.length > 0 && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Add from Friends</h4>
+                      <ScrollArea className="max-h-[200px]">
+                        {friends.map(friend => (
+                          <div key={friend.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">{getInitials(friend.display_name)}</AvatarFallback>
+                              </Avatar>
+                              <p className="text-sm font-medium">{friend.display_name || 'Unknown'}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => addCollaborator(friend.user_id)}
+                              disabled={addingCollab}
+                            >
+                              {addingCollab ? <Loader2 className="h-3 w-3 animate-spin" /> : <><UserPlus className="h-3 w-3 mr-1" />Add</>}
+                            </Button>
+                          </div>
+                        ))}
+                      </ScrollArea>
+                    </div>
+                  )}
+
+                  {collaborators.length === 0 && friends.length === 0 && (
+                    <div className="text-center py-6">
+                      <Users className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-xs text-muted-foreground">Add friends first to invite them as collaborators</p>
+                    </div>
+                  )}
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </SheetContent>
