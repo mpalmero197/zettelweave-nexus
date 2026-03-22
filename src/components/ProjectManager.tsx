@@ -243,6 +243,7 @@ export function ProjectManager() {
   };
 
 
+  const filteredProjects = useMemo(() => {
     let result = projects.filter(p => showArchived ? p.is_archived : !p.is_archived);
     if (filterStatus !== 'all') result = result.filter(p => p.status === filterStatus);
     if (searchQuery.trim()) {
