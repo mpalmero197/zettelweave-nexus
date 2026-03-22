@@ -144,6 +144,12 @@ export function ProjectManager() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskForm, setTaskForm] = useState({ name: '', priority: 'medium', due_date: '' });
 
+  // Collaborators
+  const [collaborators, setCollaborators] = useState<ProjectCollaborator[]>([]);
+  const [friends, setFriends] = useState<FriendProfile[]>([]);
+  const [loadingCollabs, setLoadingCollabs] = useState(false);
+  const [addingCollab, setAddingCollab] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [projectsRes, milestonesRes, tasksRes] = await Promise.all([
