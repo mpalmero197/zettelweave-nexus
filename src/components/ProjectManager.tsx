@@ -165,7 +165,84 @@ export function ProjectManager() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const filteredProjects = useMemo(() => {
+  const fetchCollaborators = useCallback(async (projectId: string) => {
+    if (!user) return;
+    setLoadingCollabs(true);
+    try {
+      const { data: collabs } = await supabase
+        .from('project_collaborators')
+        .select('*')
+        .eq('project_id', projectId);
+
+      const collabIds = (collabs || []).map(c => c.collaborator_id);
+      let profiles: any[] = [];
+      if (collabIds.length > 0) {
+        const { data: p } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', collabIds);
+        profiles = p || [];
+      }
+
+      setCollaborators((collabs || []).map(c => ({
+        ...c,
+        profile: profiles.find(p => p.user_id === c.collaborator_id) || null,
+      })) as ProjectCollaborator[]);
+
+      // Fetch friends list
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('*')
+        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+
+      const friendIds = (friendships || []).map(f => f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1)
+        .filter(id => !collabIds.includes(id));
+
+      if (friendIds.length > 0) {
+        const { data: friendProfiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', friendIds);
+        setFriends((friendProfiles || []) as FriendProfile[]);
+      } else {
+        setFriends([]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch collaborators', e);
+    } finally {
+      setLoadingCollabs(false);
+    }
+  }, [user]);
+
+  const addCollaborator = async (friendId: string) => {
+    if (!user || !selectedProject) return;
+    setAddingCollab(true);
+    try {
+      const { error } = await supabase.from('project_collaborators').insert({
+        project_id: selectedProject.id,
+        owner_id: user.id,
+        collaborator_id: friendId,
+        role: 'member',
+        status: 'accepted',
+      });
+      if (error) throw error;
+      toast.success('Collaborator added');
+      fetchCollaborators(selectedProject.id);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add collaborator');
+    } finally {
+      setAddingCollab(false);
+    }
+  };
+
+  const removeCollaborator = async (id: string) => {
+    if (!selectedProject) return;
+    const { error } = await supabase.from('project_collaborators').delete().eq('id', id);
+    if (error) { toast.error('Failed to remove'); return; }
+    toast.success('Collaborator removed');
+    fetchCollaborators(selectedProject.id);
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+
     let result = projects.filter(p => showArchived ? p.is_archived : !p.is_archived);
     if (filterStatus !== 'all') result = result.filter(p => p.status === filterStatus);
     if (searchQuery.trim()) {
