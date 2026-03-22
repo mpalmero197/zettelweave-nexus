@@ -1528,6 +1528,50 @@ export type Database = {
         }
         Relationships: []
       }
+      project_collaborators: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          id: string
+          invited_at: string
+          owner_id: string
+          project_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          owner_id: string
+          project_id: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          owner_id?: string
+          project_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_milestones: {
         Row: {
           created_at: string
