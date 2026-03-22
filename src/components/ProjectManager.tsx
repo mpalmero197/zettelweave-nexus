@@ -775,6 +775,95 @@ export function ProjectManager() {
                 ))}
               </div>
             </TabsContent>
+
+            <TabsContent value="team" className="mt-4 space-y-4">
+              {/* Owner */}
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                      <Crown className="h-3.5 w-3.5" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">You (Owner)</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+                <Badge className="bg-primary/10 text-primary border-primary/20">Owner</Badge>
+              </div>
+
+              {/* Current collaborators */}
+              {loadingCollabs ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  {collaborators.length > 0 && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Collaborators</h4>
+                      {collaborators.map(collab => (
+                        <div key={collab.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors group">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">{getInitials(collab.profile?.display_name)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">{collab.profile?.display_name || 'Unknown'}</p>
+                              <Badge variant="outline" className="text-[9px] capitalize">{collab.role}</Badge>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100"
+                            onClick={() => removeCollaborator(collab.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Friends to add */}
+                  {friends.length > 0 && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Add from Friends</h4>
+                      <ScrollArea className="max-h-[200px]">
+                        {friends.map(friend => (
+                          <div key={friend.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">{getInitials(friend.display_name)}</AvatarFallback>
+                              </Avatar>
+                              <p className="text-sm font-medium">{friend.display_name || 'Unknown'}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => addCollaborator(friend.user_id)}
+                              disabled={addingCollab}
+                            >
+                              {addingCollab ? <Loader2 className="h-3 w-3 animate-spin" /> : <><UserPlus className="h-3 w-3 mr-1" />Add</>}
+                            </Button>
+                          </div>
+                        ))}
+                      </ScrollArea>
+                    </div>
+                  )}
+
+                  {collaborators.length === 0 && friends.length === 0 && (
+                    <div className="text-center py-6">
+                      <Users className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-xs text-muted-foreground">Add friends first to invite them as collaborators</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
           </Tabs>
         </SheetContent>
       </Sheet>
