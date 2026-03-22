@@ -20,7 +20,7 @@ import {
   CalendarIcon, Clock, Users, DollarSign, Target, ChevronRight,
   ChevronDown, MoreHorizontal, CheckCircle2, Circle, AlertCircle,
   BarChart3, ListTodo, Columns3, GripVertical, Flag, MapPin,
-  Mail, Tag
+  Mail, Tag, UserPlus, Crown, Loader2
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
