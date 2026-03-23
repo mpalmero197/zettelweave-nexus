@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter
+  Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -17,21 +17,22 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   FolderKanban, Plus, Search, Star, Archive, Trash2, Pencil,
-  CalendarIcon, Clock, Users, DollarSign, Target, ChevronRight,
-  ChevronDown, MoreHorizontal, CheckCircle2, Circle, AlertCircle,
-  BarChart3, ListTodo, Columns3, GripVertical, Flag, MapPin,
-  Mail, Tag, UserPlus, Crown, Loader2
+  Clock, Users, DollarSign, Target, ChevronLeft, ChevronRight,
+  MoreHorizontal, CheckCircle2, Circle, AlertCircle,
+  BarChart3, ListTodo, Columns3, CalendarRange,
+  Flag, UserPlus, Crown, Loader2
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { format, parseISO, differenceInDays, isAfter, isBefore, isToday } from 'date-fns';
+import { format, parseISO, differenceInDays, isBefore, addDays, startOfWeek, endOfWeek, addWeeks, eachDayOfInterval, eachWeekOfInterval, isWithinInterval, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+// --- Types ---
 interface ProjectCollaborator {
   id: string;
   project_id: string;
@@ -95,23 +96,30 @@ interface Task {
   created_at: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Circle }> = {
-  active: { label: 'Active', color: 'text-emerald-500', icon: Circle },
-  planning: { label: 'Planning', color: 'text-blue-500', icon: Circle },
-  on_hold: { label: 'On Hold', color: 'text-amber-500', icon: AlertCircle },
-  completed: { label: 'Completed', color: 'text-primary', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', color: 'text-destructive', icon: AlertCircle },
+// --- Config ---
+const STATUS_CONFIG: Record<string, { label: string; dotClass: string }> = {
+  active: { label: 'Active', dotClass: 'bg-emerald-500' },
+  planning: { label: 'Planning', dotClass: 'bg-blue-500' },
+  on_hold: { label: 'On Hold', dotClass: 'bg-amber-500' },
+  completed: { label: 'Completed', dotClass: 'bg-sky-400' },
+  cancelled: { label: 'Cancelled', dotClass: 'bg-red-500' },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  low: { label: 'Low', color: 'text-muted-foreground' },
-  medium: { label: 'Medium', color: 'text-amber-500' },
-  high: { label: 'High', color: 'text-orange-500' },
-  urgent: { label: 'Urgent', color: 'text-destructive' },
+const PRIORITY_CONFIG: Record<string, { label: string; dotClass: string }> = {
+  low: { label: 'Low', dotClass: 'bg-muted-foreground' },
+  medium: { label: 'Medium', dotClass: 'bg-amber-500' },
+  high: { label: 'High', dotClass: 'bg-orange-500' },
+  urgent: { label: 'Urgent', dotClass: 'bg-red-500' },
 };
+
+const TASK_COLORS = [
+  'bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-red-500',
+  'bg-purple-500', 'bg-sky-500', 'bg-pink-500', 'bg-teal-500',
+];
 
 const PROJECT_ICONS = ['📁', '🚀', '💼', '🎯', '📊', '🏗️', '💡', '🎨', '📱', '🌐', '🔧', '📝'];
 
+// --- Component ---
 export function ProjectManager() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -120,10 +128,14 @@ export function ProjectManager() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'board'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'board' | 'timeline'>('grid');
   const [showArchived, setShowArchived] = useState(false);
 
-  // Create/Edit project
+  // Timeline
+  const [timelineMode, setTimelineMode] = useState<'days' | 'weeks'>('weeks');
+  const [timelineStart, setTimelineStart] = useState(() => startOfWeek(new Date()));
+
+  // Create/Edit
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [projectForm, setProjectForm] = useState({
@@ -132,15 +144,11 @@ export function ProjectManager() {
     budget: '', client_name: '', client_email: '', tags: '',
   });
 
-  // Project detail sheet
+  // Detail sheet
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [detailTab, setDetailTab] = useState('overview');
-
-  // Milestone form
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [milestoneForm, setMilestoneForm] = useState({ title: '', description: '', due_date: '' });
-
-  // Task form for project
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskForm, setTaskForm] = useState({ name: '', priority: 'medium', due_date: '' });
 
@@ -150,6 +158,7 @@ export function ProjectManager() {
   const [loadingCollabs, setLoadingCollabs] = useState(false);
   const [addingCollab, setAddingCollab] = useState(false);
 
+  // --- Data fetching ---
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [projectsRes, milestonesRes, tasksRes] = await Promise.all([
@@ -169,64 +178,36 @@ export function ProjectManager() {
     if (!user) return;
     setLoadingCollabs(true);
     try {
-      const { data: collabs } = await supabase
-        .from('project_collaborators')
-        .select('*')
-        .eq('project_id', projectId);
-
+      const { data: collabs } = await supabase.from('project_collaborators').select('*').eq('project_id', projectId);
       const collabIds = (collabs || []).map(c => c.collaborator_id);
       let profiles: any[] = [];
       if (collabIds.length > 0) {
         const { data: p } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', collabIds);
         profiles = p || [];
       }
+      setCollaborators((collabs || []).map(c => ({ ...c, profile: profiles.find(p => p.user_id === c.collaborator_id) || null })) as ProjectCollaborator[]);
 
-      setCollaborators((collabs || []).map(c => ({
-        ...c,
-        profile: profiles.find(p => p.user_id === c.collaborator_id) || null,
-      })) as ProjectCollaborator[]);
-
-      // Fetch friends list
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('*')
-        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
-
-      const friendIds = (friendships || []).map(f => f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1)
-        .filter(id => !collabIds.includes(id));
-
+      const { data: friendships } = await supabase.from('friendships').select('*').or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+      const friendIds = (friendships || []).map(f => f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1).filter(id => !collabIds.includes(id));
       if (friendIds.length > 0) {
-        const { data: friendProfiles } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', friendIds);
-        setFriends((friendProfiles || []) as FriendProfile[]);
-      } else {
-        setFriends([]);
-      }
-    } catch (e) {
-      console.error('Failed to fetch collaborators', e);
-    } finally {
-      setLoadingCollabs(false);
-    }
+        const { data: fp } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', friendIds);
+        setFriends((fp || []) as FriendProfile[]);
+      } else { setFriends([]); }
+    } catch (e) { console.error('Failed to fetch collaborators', e); }
+    finally { setLoadingCollabs(false); }
   }, [user]);
 
+  // --- Actions ---
   const addCollaborator = async (friendId: string) => {
     if (!user || !selectedProject) return;
     setAddingCollab(true);
     try {
-      const { error } = await supabase.from('project_collaborators').insert({
-        project_id: selectedProject.id,
-        owner_id: user.id,
-        collaborator_id: friendId,
-        role: 'member',
-        status: 'accepted',
-      });
+      const { error } = await supabase.from('project_collaborators').insert({ project_id: selectedProject.id, owner_id: user.id, collaborator_id: friendId, role: 'member', status: 'accepted' });
       if (error) throw error;
       toast.success('Collaborator added');
       fetchCollaborators(selectedProject.id);
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to add collaborator');
-    } finally {
-      setAddingCollab(false);
-    }
+    } catch (e: any) { toast.error(e.message || 'Failed to add'); }
+    finally { setAddingCollab(false); }
   };
 
   const removeCollaborator = async (id: string) => {
@@ -242,17 +223,14 @@ export function ProjectManager() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-
   const filteredProjects = useMemo(() => {
     let result = projects.filter(p => showArchived ? p.is_archived : !p.is_archived);
     if (filterStatus !== 'all') result = result.filter(p => p.status === filterStatus);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q) ||
-        p.client_name?.toLowerCase().includes(q) ||
-        p.tags?.some(t => t.toLowerCase().includes(q))
+        p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) ||
+        p.client_name?.toLowerCase().includes(q) || p.tags?.some(t => t.toLowerCase().includes(q))
       );
     }
     return result;
@@ -260,7 +238,6 @@ export function ProjectManager() {
 
   const getProjectTasks = (projectId: string) => tasks.filter(t => t.project_id === projectId);
   const getProjectMilestones = (projectId: string) => milestones.filter(m => m.project_id === projectId);
-
   const getProjectProgress = (projectId: string) => {
     const pts = getProjectTasks(projectId);
     if (pts.length === 0) return 0;
@@ -268,60 +245,27 @@ export function ProjectManager() {
   };
 
   const resetProjectForm = () => {
-    setProjectForm({
-      name: '', description: '', status: 'active', priority: 'medium',
-      color: '#3b82f6', icon: '📁', start_date: '', due_date: '',
-      budget: '', client_name: '', client_email: '', tags: '',
-    });
+    setProjectForm({ name: '', description: '', status: 'active', priority: 'medium', color: '#3b82f6', icon: '📁', start_date: '', due_date: '', budget: '', client_name: '', client_email: '', tags: '' });
     setEditingProject(null);
   };
 
   const openCreate = () => { resetProjectForm(); setShowCreateDialog(true); };
-
   const openEdit = (project: Project) => {
     setEditingProject(project);
-    setProjectForm({
-      name: project.name,
-      description: project.description || '',
-      status: project.status,
-      priority: project.priority,
-      color: project.color || '#3b82f6',
-      icon: project.icon || '📁',
-      start_date: project.start_date || '',
-      due_date: project.due_date || '',
-      budget: project.budget?.toString() || '',
-      client_name: project.client_name || '',
-      client_email: project.client_email || '',
-      tags: project.tags?.join(', ') || '',
-    });
+    setProjectForm({ name: project.name, description: project.description || '', status: project.status, priority: project.priority, color: project.color || '#3b82f6', icon: project.icon || '📁', start_date: project.start_date || '', due_date: project.due_date || '', budget: project.budget?.toString() || '', client_name: project.client_name || '', client_email: project.client_email || '', tags: project.tags?.join(', ') || '' });
     setShowCreateDialog(true);
   };
 
   const saveProject = async () => {
     if (!user || !projectForm.name.trim()) return;
-    const data = {
-      user_id: user.id,
-      name: projectForm.name.trim(),
-      description: projectForm.description || null,
-      status: projectForm.status,
-      priority: projectForm.priority,
-      color: projectForm.color,
-      icon: projectForm.icon,
-      start_date: projectForm.start_date || null,
-      due_date: projectForm.due_date || null,
-      budget: projectForm.budget ? parseFloat(projectForm.budget) : null,
-      client_name: projectForm.client_name || null,
-      client_email: projectForm.client_email || null,
-      tags: projectForm.tags ? projectForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-    };
-
+    const data = { user_id: user.id, name: projectForm.name.trim(), description: projectForm.description || null, status: projectForm.status, priority: projectForm.priority, color: projectForm.color, icon: projectForm.icon, start_date: projectForm.start_date || null, due_date: projectForm.due_date || null, budget: projectForm.budget ? parseFloat(projectForm.budget) : null, client_name: projectForm.client_name || null, client_email: projectForm.client_email || null, tags: projectForm.tags ? projectForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [] };
     if (editingProject) {
       const { error } = await supabase.from('projects').update(data).eq('id', editingProject.id);
-      if (error) { toast.error('Failed to update project'); return; }
+      if (error) { toast.error('Failed to update'); return; }
       toast.success('Project updated');
     } else {
       const { error } = await supabase.from('projects').insert(data);
-      if (error) { toast.error('Failed to create project'); return; }
+      if (error) { toast.error('Failed to create'); return; }
       toast.success('Project created');
     }
     setShowCreateDialog(false);
@@ -351,44 +295,25 @@ export function ProjectManager() {
 
   const addMilestone = async () => {
     if (!user || !selectedProject || !milestoneForm.title.trim()) return;
-    const { error } = await supabase.from('project_milestones').insert({
-      project_id: selectedProject.id,
-      user_id: user.id,
-      title: milestoneForm.title.trim(),
-      description: milestoneForm.description || null,
-      due_date: milestoneForm.due_date || null,
-      sort_order: getProjectMilestones(selectedProject.id).length,
-    });
-    if (error) { toast.error('Failed to add milestone'); return; }
+    const { error } = await supabase.from('project_milestones').insert({ project_id: selectedProject.id, user_id: user.id, title: milestoneForm.title.trim(), description: milestoneForm.description || null, due_date: milestoneForm.due_date || null, sort_order: getProjectMilestones(selectedProject.id).length });
+    if (error) { toast.error('Failed to add'); return; }
     setMilestoneForm({ title: '', description: '', due_date: '' });
     setShowMilestoneForm(false);
     toast.success('Milestone added');
     fetchData();
   };
 
-  const toggleMilestone = async (milestone: Milestone) => {
-    const newStatus = milestone.status === 'completed' ? 'pending' : 'completed';
-    await supabase.from('project_milestones').update({ status: newStatus }).eq('id', milestone.id);
+  const toggleMilestone = async (ms: Milestone) => {
+    await supabase.from('project_milestones').update({ status: ms.status === 'completed' ? 'pending' : 'completed' }).eq('id', ms.id);
     fetchData();
   };
 
-  const deleteMilestone = async (id: string) => {
-    await supabase.from('project_milestones').delete().eq('id', id);
-    fetchData();
-  };
+  const deleteMilestone = async (id: string) => { await supabase.from('project_milestones').delete().eq('id', id); fetchData(); };
 
   const addProjectTask = async () => {
     if (!user || !selectedProject || !taskForm.name.trim()) return;
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const { error } = await supabase.from('project_tasks').insert({
-      user_id: user.id,
-      name: taskForm.name.trim(),
-      priority: taskForm.priority,
-      status: 'todo',
-      due_date: taskForm.due_date || today,
-      project_id: selectedProject.id,
-    });
-    if (error) { toast.error('Failed to add task'); return; }
+    const { error } = await supabase.from('project_tasks').insert({ user_id: user.id, name: taskForm.name.trim(), priority: taskForm.priority, status: 'todo', due_date: taskForm.due_date || format(new Date(), 'yyyy-MM-dd'), project_id: selectedProject.id });
+    if (error) { toast.error('Failed to add'); return; }
     setTaskForm({ name: '', priority: 'medium', due_date: '' });
     setShowTaskForm(false);
     toast.success('Task added');
@@ -396,17 +321,12 @@ export function ProjectManager() {
   };
 
   const toggleProjectTask = async (task: Task) => {
-    const newStatus = task.status === 'done' ? 'todo' : 'done';
-    await supabase.from('project_tasks').update({ status: newStatus }).eq('id', task.id);
+    await supabase.from('project_tasks').update({ status: task.status === 'done' ? 'todo' : 'done' }).eq('id', task.id);
     fetchData();
   };
 
-  const deleteProjectTask = async (id: string) => {
-    await supabase.from('project_tasks').delete().eq('id', id);
-    fetchData();
-  };
+  const deleteProjectTask = async (id: string) => { await supabase.from('project_tasks').delete().eq('id', id); fetchData(); };
 
-  // Stats
   const stats = useMemo(() => {
     const active = projects.filter(p => !p.is_archived);
     return {
@@ -419,10 +339,215 @@ export function ProjectManager() {
 
   const getDaysRemaining = (dueDate: string | null) => {
     if (!dueDate) return null;
-    const days = differenceInDays(parseISO(dueDate), new Date());
-    return days;
+    return differenceInDays(parseISO(dueDate), new Date());
   };
 
+  // ===== TIMELINE VIEW =====
+  const timelineSpan = timelineMode === 'days' ? 28 : 8; // 28 days or 8 weeks
+  const timelineEnd = timelineMode === 'days'
+    ? addDays(timelineStart, timelineSpan - 1)
+    : addWeeks(timelineStart, timelineSpan);
+
+  const timelineColumns = timelineMode === 'days'
+    ? eachDayOfInterval({ start: timelineStart, end: timelineEnd })
+    : eachWeekOfInterval({ start: timelineStart, end: timelineEnd });
+
+  const navigateTimeline = (dir: number) => {
+    if (timelineMode === 'days') {
+      setTimelineStart(prev => addDays(prev, dir * 14));
+    } else {
+      setTimelineStart(prev => addWeeks(prev, dir * 4));
+    }
+  };
+
+  const getBarPosition = (startDate: string | null, endDate: string | null) => {
+    if (!startDate) return null;
+    const start = parseISO(startDate);
+    const end = endDate ? parseISO(endDate) : addDays(start, 7);
+    const totalMs = timelineEnd.getTime() - timelineStart.getTime();
+    if (totalMs <= 0) return null;
+
+    const startOffset = Math.max(0, (start.getTime() - timelineStart.getTime()) / totalMs);
+    const endOffset = Math.min(1, (end.getTime() - timelineStart.getTime()) / totalMs);
+
+    if (endOffset <= 0 || startOffset >= 1) return null;
+    return { left: `${startOffset * 100}%`, width: `${Math.max(2, (endOffset - startOffset) * 100)}%` };
+  };
+
+  const todayPosition = (() => {
+    const totalMs = timelineEnd.getTime() - timelineStart.getTime();
+    if (totalMs <= 0) return null;
+    const offset = (Date.now() - timelineStart.getTime()) / totalMs;
+    if (offset < 0 || offset > 1) return null;
+    return `${offset * 100}%`;
+  })();
+
+  const renderTimeline = () => {
+    const projectsWithDates = filteredProjects.filter(p => p.start_date || p.due_date);
+    const projectsWithoutDates = filteredProjects.filter(p => !p.start_date && !p.due_date);
+
+    return (
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        {/* Timeline header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold text-foreground">
+            {format(timelineStart, 'MMMM yyyy')}
+          </h3>
+          <div className="flex items-center gap-2">
+            <div className="flex border border-border rounded-lg overflow-hidden">
+              <button
+                onClick={() => setTimelineMode('days')}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${timelineMode === 'days' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >Days</button>
+              <button
+                onClick={() => setTimelineMode('weeks')}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${timelineMode === 'weeks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >Weeks</button>
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => navigateTimeline(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => navigateTimeline(1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Timeline grid */}
+        <div className="overflow-x-auto">
+          <div className="min-w-[800px]">
+            {/* Column headers */}
+            <div className="flex border-b border-border">
+              <div className="w-48 shrink-0 px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                Project
+              </div>
+              <div className="flex-1 flex relative">
+                {timelineColumns.map((col, i) => {
+                  const isToday = format(col, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                  return (
+                    <div
+                      key={i}
+                      className={`flex-1 text-center py-2 text-[10px] font-medium border-r border-border/30 last:border-r-0 ${isToday ? 'text-foreground bg-accent/30' : 'text-muted-foreground'}`}
+                    >
+                      {timelineMode === 'days' ? format(col, 'dd') : format(col, 'dd MMM')}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Project rows */}
+            {projectsWithDates.length === 0 && projectsWithoutDates.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                No projects to display. Create a project with start/due dates.
+              </div>
+            ) : (
+              <>
+                {projectsWithDates.map((project, idx) => {
+                  const bar = getBarPosition(project.start_date, project.due_date);
+                  const progress = getProjectProgress(project.id);
+                  const pts = getProjectTasks(project.id);
+                  const colorIdx = idx % TASK_COLORS.length;
+
+                  return (
+                    <div
+                      key={project.id}
+                      className="flex border-b border-border/30 hover:bg-accent/10 transition-colors cursor-pointer group"
+                      onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
+                    >
+                      {/* Project name cell */}
+                      <div className="w-48 shrink-0 px-4 py-3 border-r border-border flex items-center gap-2 min-h-[56px]">
+                        <span className="text-sm">{project.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-foreground truncate">{project.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {pts.filter(t => t.status === 'done').length}/{pts.length} tasks
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Timeline bar area */}
+                      <div className="flex-1 relative min-h-[56px]">
+                        {/* Grid lines */}
+                        <div className="absolute inset-0 flex">
+                          {timelineColumns.map((_, i) => (
+                            <div key={i} className="flex-1 border-r border-border/10 last:border-r-0" />
+                          ))}
+                        </div>
+
+                        {/* Today line */}
+                        {todayPosition && (
+                          <div className="absolute top-0 bottom-0 w-px bg-red-500/60 z-10" style={{ left: todayPosition }} />
+                        )}
+
+                        {/* Project bar */}
+                        {bar && (
+                          <div className="absolute top-3 bottom-3 flex items-center" style={{ left: bar.left, width: bar.width }}>
+                            <div
+                              className={`h-7 w-full rounded-md ${TASK_COLORS[colorIdx]} opacity-80 flex items-center px-2 overflow-hidden`}
+                              title={`${project.name} — ${progress}%`}
+                            >
+                              <div
+                                className="absolute inset-y-0 left-0 rounded-l-md bg-white/20"
+                                style={{ width: `${progress}%` }}
+                              />
+                              <span className="text-[10px] font-medium text-white relative z-10 truncate">
+                                {project.name}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Projects without dates */}
+                {projectsWithoutDates.map(project => (
+                  <div
+                    key={project.id}
+                    className="flex border-b border-border/30 hover:bg-accent/10 transition-colors cursor-pointer opacity-50"
+                    onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
+                  >
+                    <div className="w-48 shrink-0 px-4 py-3 border-r border-border flex items-center gap-2 min-h-[56px]">
+                      <span className="text-sm">{project.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{project.name}</p>
+                        <p className="text-[10px] text-muted-foreground italic">No dates set</p>
+                      </div>
+                    </div>
+                    <div className="flex-1 relative min-h-[56px]">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground">Set start & due dates to see timeline</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="px-4 py-2 border-t border-border flex items-center gap-4 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="w-8 h-1.5 rounded-full bg-emerald-500 opacity-80" /> Active
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-8 h-1.5 rounded-full bg-blue-500 opacity-80" /> Planning
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-8 h-1.5 rounded-full bg-amber-500 opacity-80" /> On Hold
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-px h-4 bg-red-500/60" /> Today
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // ===== PROJECT CARD =====
   const renderProjectCard = (project: Project) => {
     const progress = getProjectProgress(project.id);
     const pts = getProjectTasks(project.id);
@@ -434,24 +559,27 @@ export function ProjectManager() {
     return (
       <div
         key={project.id}
-        className="group relative bg-card border border-border/60 rounded-xl p-4 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
+        className="group relative bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-hover transition-all cursor-pointer overflow-hidden"
         onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
       >
-        {/* Top row */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-lg shrink-0">{project.icon}</span>
+        {/* Color accent */}
+        <div className="absolute top-0 left-0 w-full h-0.5" style={{ backgroundColor: project.color }} />
+
+        {/* Header */}
+        <div className="flex items-start justify-between mb-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">{project.icon}</div>
             <div className="min-w-0">
               <h3 className="text-sm font-semibold truncate text-foreground">{project.name}</h3>
               {project.client_name && (
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Users className="h-2.5 w-2.5" />{project.client_name}
                 </p>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button onClick={(e) => { e.stopPropagation(); toggleFavorite(project); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button onClick={(e) => { e.stopPropagation(); toggleFavorite(project); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent">
               <Star className={`h-3.5 w-3.5 ${project.is_favorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
             </button>
             <DropdownMenu>
@@ -461,91 +589,63 @@ export function ProjectManager() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(project); }}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" />Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toggleArchive(project); }}>
-                  <Archive className="h-3.5 w-3.5 mr-2" />{project.is_archived ? 'Unarchive' : 'Archive'}
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(project); }}><Pencil className="h-3.5 w-3.5 mr-2" />Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toggleArchive(project); }}><Archive className="h-3.5 w-3.5 mr-2" />{project.is_archived ? 'Unarchive' : 'Archive'}</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteProject(project.id); }} className="text-destructive">
-                  <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteProject(project.id); }} className="text-destructive"><Trash2 className="h-3.5 w-3.5 mr-2" />Delete</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        {/* Description */}
-        {project.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{project.description}</p>
-        )}
+        {project.description && <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3">{project.description}</p>}
 
-        {/* Progress */}
+        {/* Progress bar */}
         <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-muted-foreground">{progress}% complete</span>
-            <span className="text-[10px] text-muted-foreground">{pts.filter(t => t.status === 'done').length}/{pts.length} tasks</span>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground">{progress}%</span>
+            <span className="text-[10px] text-muted-foreground">{pts.filter(t => t.status === 'done').length}/{pts.length}</span>
           </div>
-          <Progress value={progress} className="h-1.5" />
+          <div className="h-1 bg-muted rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: project.color }} />
+          </div>
         </div>
 
-        {/* Bottom row */}
+        {/* Footer */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${statusCfg.color}`}>
-              {statusCfg.label}
-            </Badge>
-            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${priorityCfg.color}`}>
-              {priorityCfg.label}
-            </Badge>
+          <div className="flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dotClass}`} />
+            <span className="text-[10px] text-muted-foreground">{statusCfg.label}</span>
+            <span className="text-muted-foreground/30 mx-0.5">·</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${priorityCfg.dotClass}`} />
+            <span className="text-[10px] text-muted-foreground">{priorityCfg.label}</span>
           </div>
-          <div className="flex items-center gap-2">
-            {ms.length > 0 && (
-              <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
-                <Target className="h-2.5 w-2.5" />{ms.filter(m => m.status === 'completed').length}/{ms.length}
-              </span>
-            )}
-            {daysLeft !== null && (
-              <span className={`text-[9px] flex items-center gap-0.5 ${daysLeft < 0 ? 'text-destructive' : daysLeft <= 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                <Clock className="h-2.5 w-2.5" />
-                {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft}d left`}
-              </span>
-            )}
-          </div>
+          {daysLeft !== null && (
+            <span className={`text-[10px] font-medium ${daysLeft < 0 ? 'text-red-500' : daysLeft <= 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+              {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft}d`}
+            </span>
+          )}
         </div>
-
-        {/* Tags */}
-        {project.tags && project.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {project.tags.slice(0, 3).map(tag => (
-              <span key={tag} className="text-[9px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">{tag}</span>
-            ))}
-            {project.tags.length > 3 && <span className="text-[9px] text-muted-foreground">+{project.tags.length - 3}</span>}
-          </div>
-        )}
-
-        {/* Color strip */}
-        <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl" style={{ backgroundColor: project.color }} />
       </div>
     );
   };
 
+  // ===== BOARD VIEW =====
   const renderBoardView = () => {
     const statuses = ['planning', 'active', 'on_hold', 'completed'];
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {statuses.map(status => {
           const statusProjects = filteredProjects.filter(p => p.status === status);
           const cfg = STATUS_CONFIG[status];
           return (
-            <div key={status} className="bg-muted/30 rounded-xl p-3">
+            <div key={status} className="bg-muted/20 border border-border/50 rounded-xl p-3">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${cfg.color.replace('text-', 'bg-')}`} />
-                  <span className="text-xs font-semibold">{cfg.label}</span>
+                  <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
+                  <span className="text-xs font-semibold text-foreground">{cfg.label}</span>
                 </div>
-                <Badge variant="secondary" className="text-[10px] h-5">{statusProjects.length}</Badge>
+                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{statusProjects.length}</span>
               </div>
               <div className="space-y-2">
                 {statusProjects.map(p => renderProjectCard(p))}
@@ -557,6 +657,7 @@ export function ProjectManager() {
     );
   };
 
+  // ===== DETAIL SHEET =====
   const renderProjectDetail = () => {
     if (!selectedProject) return null;
     const project = selectedProject;
@@ -568,16 +669,15 @@ export function ProjectManager() {
 
     return (
       <Sheet open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
-        <SheetContent className="w-full sm:w-[540px] sm:max-w-[540px] overflow-y-auto">
+        <SheetContent className="w-full sm:w-[540px] sm:max-w-[540px] overflow-y-auto bg-card">
           <SheetHeader>
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{project.icon}</span>
+              <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-xl">{project.icon}</div>
               <div>
                 <SheetTitle className="text-base">{project.name}</SheetTitle>
                 {project.client_name && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <Users className="h-3 w-3" />{project.client_name}
-                    {project.client_email && <span className="text-muted-foreground/60">· {project.client_email}</span>}
                   </p>
                 )}
               </div>
@@ -585,122 +685,107 @@ export function ProjectManager() {
           </SheetHeader>
 
           <Tabs value={detailTab} onValueChange={setDetailTab} className="mt-4">
-            <TabsList className="w-full">
+            <TabsList className="w-full bg-muted/50">
               <TabsTrigger value="overview" className="flex-1 text-xs">Overview</TabsTrigger>
               <TabsTrigger value="tasks" className="flex-1 text-xs">Tasks ({pts.length})</TabsTrigger>
               <TabsTrigger value="milestones" className="flex-1 text-xs">Milestones ({ms.length})</TabsTrigger>
               <TabsTrigger value="team" className="flex-1 text-xs">Team ({collaborators.length})</TabsTrigger>
             </TabsList>
 
+            {/* Overview */}
             <TabsContent value="overview" className="space-y-4 mt-4">
-              {/* Progress */}
-              <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+              <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
                 <div className="flex justify-between text-xs">
                   <span className="font-medium">Progress</span>
-                  <span className="text-muted-foreground">{progress}%</span>
+                  <span className="text-muted-foreground font-mono">{progress}%</span>
                 </div>
-                <Progress value={progress} className="h-2" />
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{pts.length}</p>
-                    <p className="text-[10px] text-muted-foreground">Tasks</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{doneTasks}</p>
-                    <p className="text-[10px] text-muted-foreground">Completed</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{doneMs}/{ms.length}</p>
-                    <p className="text-[10px] text-muted-foreground">Milestones</p>
-                  </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: project.color }} />
+                </div>
+                <div className="grid grid-cols-3 gap-3 pt-1">
+                  {[
+                    { val: pts.length, label: 'Tasks' },
+                    { val: doneTasks, label: 'Done' },
+                    { val: `${doneMs}/${ms.length}`, label: 'Milestones' },
+                  ].map(s => (
+                    <div key={s.label} className="text-center">
+                      <p className="text-lg font-bold text-foreground">{s.val}</p>
+                      <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Details */}
               <div className="space-y-3">
                 {project.description && (
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Description</label>
-                    <p className="text-sm mt-1">{project.description}</p>
+                    <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Description</label>
+                    <p className="text-sm mt-1 text-foreground">{project.description}</p>
                   </div>
                 )}
-
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Status</label>
-                    <p className={`text-sm mt-0.5 ${STATUS_CONFIG[project.status]?.color}`}>
-                      {STATUS_CONFIG[project.status]?.label}
-                    </p>
+                  <div className="bg-muted/20 rounded-lg p-2.5">
+                    <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Status</label>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`h-2 w-2 rounded-full ${STATUS_CONFIG[project.status]?.dotClass}`} />
+                      <span className="text-xs font-medium">{STATUS_CONFIG[project.status]?.label}</span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Priority</label>
-                    <p className={`text-sm mt-0.5 ${PRIORITY_CONFIG[project.priority]?.color}`}>
-                      {PRIORITY_CONFIG[project.priority]?.label}
-                    </p>
+                  <div className="bg-muted/20 rounded-lg p-2.5">
+                    <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Priority</label>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`h-2 w-2 rounded-full ${PRIORITY_CONFIG[project.priority]?.dotClass}`} />
+                      <span className="text-xs font-medium">{PRIORITY_CONFIG[project.priority]?.label}</span>
+                    </div>
                   </div>
                   {project.start_date && (
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-                      <p className="text-sm mt-0.5">{format(parseISO(project.start_date), 'MMM d, yyyy')}</p>
+                    <div className="bg-muted/20 rounded-lg p-2.5">
+                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Start</label>
+                      <p className="text-xs font-medium mt-1">{format(parseISO(project.start_date), 'MMM d, yyyy')}</p>
                     </div>
                   )}
                   {project.due_date && (
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Due Date</label>
-                      <p className="text-sm mt-0.5">{format(parseISO(project.due_date), 'MMM d, yyyy')}</p>
+                    <div className="bg-muted/20 rounded-lg p-2.5">
+                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Deadline</label>
+                      <p className="text-xs font-medium mt-1">{format(parseISO(project.due_date), 'MMM d, yyyy')}</p>
                     </div>
                   )}
                   {project.budget != null && (
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Budget</label>
-                      <p className="text-sm mt-0.5 flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />{project.budget.toLocaleString()}
-                      </p>
+                    <div className="bg-muted/20 rounded-lg p-2.5">
+                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Budget</label>
+                      <p className="text-xs font-medium mt-1 flex items-center gap-1"><DollarSign className="h-3 w-3" />{project.budget.toLocaleString()}</p>
                     </div>
                   )}
                 </div>
-
-                {project.tags && project.tags.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Tags</label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {project.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
-                      ))}
-                    </div>
+                {project.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {project.tags.map(tag => (
+                      <span key={tag} className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{tag}</span>
+                    ))}
                   </div>
                 )}
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(project)}>
-                  <Pencil className="h-3.5 w-3.5 mr-1.5" />Edit
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toggleArchive(project)}>
-                  <Archive className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toggleFavorite(project)}>
-                  <Star className={`h-3.5 w-3.5 ${project.is_favorite ? 'fill-amber-400 text-amber-400' : ''}`} />
-                </Button>
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEdit(project)}><Pencil className="h-3.5 w-3.5 mr-1.5" />Edit</Button>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => toggleArchive(project)}><Archive className="h-3.5 w-3.5" /></Button>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => toggleFavorite(project)}><Star className={`h-3.5 w-3.5 ${project.is_favorite ? 'fill-amber-400 text-amber-400' : ''}`} /></Button>
               </div>
             </TabsContent>
 
+            {/* Tasks */}
             <TabsContent value="tasks" className="mt-4 space-y-3">
-              <Button variant="outline" size="sm" className="w-full" onClick={() => { setShowTaskForm(true); setTaskForm({ name: '', priority: 'medium', due_date: '' }); }}>
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setShowTaskForm(true); setTaskForm({ name: '', priority: 'medium', due_date: '' }); }}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" />Add Task
               </Button>
-
               {showTaskForm && (
-                <div className="border border-border rounded-lg p-3 space-y-2">
+                <div className="border border-border rounded-xl p-3 space-y-2 bg-muted/20">
                   <Input value={taskForm.name} onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))} placeholder="Task name..." className="text-sm h-8" autoFocus />
                   <div className="flex gap-2">
                     <Select value={taskForm.priority} onValueChange={v => setTaskForm(f => ({ ...f, priority: v }))}>
                       <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
+                        {Object.entries(PRIORITY_CONFIG).map(([k, c]) => <SelectItem key={k} value={k}>{c.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Input type="date" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))} className="text-xs h-8 flex-1" />
@@ -711,17 +796,16 @@ export function ProjectManager() {
                   </div>
                 </div>
               )}
-
               <div className="space-y-1">
                 {pts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No tasks yet</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">No tasks yet</p>
                 ) : pts.map(task => (
-                  <div key={task.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 group">
+                  <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 group transition-colors">
                     <Checkbox checked={task.status === 'done'} onCheckedChange={() => toggleProjectTask(task)} />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>{task.name}</p>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] capitalize ${PRIORITY_CONFIG[task.priority]?.color}`}>{task.priority}</span>
+                      <p className={`text-xs truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{task.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`h-1.5 w-1.5 rounded-full ${PRIORITY_CONFIG[task.priority]?.dotClass}`} />
                         <span className="text-[9px] text-muted-foreground">{format(parseISO(task.due_date), 'MMM d')}</span>
                       </div>
                     </div>
@@ -733,13 +817,13 @@ export function ProjectManager() {
               </div>
             </TabsContent>
 
+            {/* Milestones */}
             <TabsContent value="milestones" className="mt-4 space-y-3">
-              <Button variant="outline" size="sm" className="w-full" onClick={() => { setShowMilestoneForm(true); setMilestoneForm({ title: '', description: '', due_date: '' }); }}>
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setShowMilestoneForm(true); setMilestoneForm({ title: '', description: '', due_date: '' }); }}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" />Add Milestone
               </Button>
-
               {showMilestoneForm && (
-                <div className="border border-border rounded-lg p-3 space-y-2">
+                <div className="border border-border rounded-xl p-3 space-y-2 bg-muted/20">
                   <Input value={milestoneForm.title} onChange={e => setMilestoneForm(f => ({ ...f, title: e.target.value }))} placeholder="Milestone title..." className="text-sm h-8" autoFocus />
                   <Textarea value={milestoneForm.description} onChange={e => setMilestoneForm(f => ({ ...f, description: e.target.value }))} placeholder="Description (optional)" className="text-xs min-h-[60px]" />
                   <Input type="date" value={milestoneForm.due_date} onChange={e => setMilestoneForm(f => ({ ...f, due_date: e.target.value }))} className="text-xs h-8" />
@@ -749,24 +833,18 @@ export function ProjectManager() {
                   </div>
                 </div>
               )}
-
               <div className="space-y-2">
                 {ms.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No milestones yet</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">No milestones yet</p>
                 ) : ms.map(milestone => (
-                  <div key={milestone.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 border border-border/40 group">
+                  <div key={milestone.id} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:border-border transition-colors group">
                     <button onClick={() => toggleMilestone(milestone)} className="shrink-0">
-                      {milestone.status === 'completed'
-                        ? <CheckCircle2 className="h-4 w-4 text-primary" />
-                        : <Target className="h-4 w-4 text-muted-foreground" />
-                      }
+                      {milestone.status === 'completed' ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Target className="h-4 w-4 text-muted-foreground" />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium truncate ${milestone.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>{milestone.title}</p>
-                      {milestone.description && <p className="text-[10px] text-muted-foreground truncate">{milestone.description}</p>}
-                      {milestone.due_date && (
-                        <span className="text-[9px] text-muted-foreground">{format(parseISO(milestone.due_date), 'MMM d, yyyy')}</span>
-                      )}
+                      <p className={`text-xs font-medium truncate ${milestone.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{milestone.title}</p>
+                      {milestone.description && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{milestone.description}</p>}
+                      {milestone.due_date && <span className="text-[9px] text-muted-foreground">{format(parseISO(milestone.due_date), 'MMM d, yyyy')}</span>}
                     </div>
                     <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100" onClick={() => deleteMilestone(milestone.id)}>
                       <Trash2 className="h-2.5 w-2.5 text-destructive" />
@@ -776,77 +854,53 @@ export function ProjectManager() {
               </div>
             </TabsContent>
 
+            {/* Team */}
             <TabsContent value="team" className="mt-4 space-y-4">
-              {/* Owner */}
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                      <Crown className="h-3.5 w-3.5" />
-                    </AvatarFallback>
-                  </Avatar>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="h-8 w-8"><AvatarFallback className="text-xs bg-primary/20 text-primary"><Crown className="h-3.5 w-3.5" /></AvatarFallback></Avatar>
                   <div>
                     <p className="text-sm font-medium">You (Owner)</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <p className="text-[10px] text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>
-                <Badge className="bg-primary/10 text-primary border-primary/20">Owner</Badge>
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Owner</Badge>
               </div>
 
-              {/* Current collaborators */}
               {loadingCollabs ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
+                <div className="flex items-center justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
               ) : (
                 <>
                   {collaborators.length > 0 && (
                     <div className="space-y-1">
-                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Collaborators</h4>
-                      {collaborators.map(collab => (
-                        <div key={collab.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors group">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="text-xs">{getInitials(collab.profile?.display_name)}</AvatarFallback>
-                            </Avatar>
+                      <h4 className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Collaborators</h4>
+                      {collaborators.map(c => (
+                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/20 transition-colors group">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{getInitials(c.profile?.display_name)}</AvatarFallback></Avatar>
                             <div>
-                              <p className="text-sm font-medium">{collab.profile?.display_name || 'Unknown'}</p>
-                              <Badge variant="outline" className="text-[9px] capitalize">{collab.role}</Badge>
+                              <p className="text-sm font-medium">{c.profile?.display_name || 'Unknown'}</p>
+                              <span className="text-[10px] text-muted-foreground capitalize">{c.role}</span>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100"
-                            onClick={() => removeCollaborator(collab.id)}
-                          >
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100" onClick={() => removeCollaborator(c.id)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Friends to add */}
                   {friends.length > 0 && (
                     <div className="space-y-1">
-                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Add from Friends</h4>
+                      <h4 className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Add from Friends</h4>
                       <ScrollArea className="max-h-[200px]">
-                        {friends.map(friend => (
-                          <div key={friend.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="text-xs">{getInitials(friend.display_name)}</AvatarFallback>
-                              </Avatar>
-                              <p className="text-sm font-medium">{friend.display_name || 'Unknown'}</p>
+                        {friends.map(f => (
+                          <div key={f.user_id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/20 transition-colors">
+                            <div className="flex items-center gap-2.5">
+                              <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{getInitials(f.display_name)}</AvatarFallback></Avatar>
+                              <p className="text-sm font-medium">{f.display_name || 'Unknown'}</p>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => addCollaborator(friend.user_id)}
-                              disabled={addingCollab}
-                            >
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => addCollaborator(f.user_id)} disabled={addingCollab}>
                               {addingCollab ? <Loader2 className="h-3 w-3 animate-spin" /> : <><UserPlus className="h-3 w-3 mr-1" />Add</>}
                             </Button>
                           </div>
@@ -854,11 +908,10 @@ export function ProjectManager() {
                       </ScrollArea>
                     </div>
                   )}
-
                   {collaborators.length === 0 && friends.length === 0 && (
-                    <div className="text-center py-6">
+                    <div className="text-center py-8">
                       <Users className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Add friends first to invite them as collaborators</p>
+                      <p className="text-xs text-muted-foreground">Add friends first to invite collaborators</p>
                     </div>
                   )}
                 </>
@@ -870,42 +923,49 @@ export function ProjectManager() {
     );
   };
 
+  // ===== LOADING =====
   if (loading) {
-    return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading projects…</p></div>;
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
+  // ===== MAIN RENDER =====
   return (
     <>
       <div className="space-y-4 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <FolderKanban className="h-5 w-5 text-primary" />
-              Project Management
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <FolderKanban className="h-5 w-5" />
+              Projects
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {stats.total} project{stats.total !== 1 ? 's' : ''} · {stats.active} active · {stats.overdue > 0 && <span className="text-destructive">{stats.overdue} overdue</span>}
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {stats.total} project{stats.total !== 1 ? 's' : ''} · {stats.active} active
+              {stats.overdue > 0 && <span className="text-red-500 ml-1">· {stats.overdue} overdue</span>}
             </p>
           </div>
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={openCreate} className="rounded-lg">
             <Plus className="h-3.5 w-3.5 mr-1.5" />New Project
           </Button>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { label: 'Total', value: stats.total, icon: FolderKanban, color: 'text-primary' },
-            { label: 'Active', value: stats.active, icon: Circle, color: 'text-emerald-500' },
-            { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-blue-500' },
-            { label: 'Overdue', value: stats.overdue, icon: AlertCircle, color: 'text-destructive' },
+            { label: 'Total', value: stats.total, dotClass: 'bg-foreground' },
+            { label: 'Active', value: stats.active, dotClass: 'bg-emerald-500' },
+            { label: 'Completed', value: stats.completed, dotClass: 'bg-sky-400' },
+            { label: 'Overdue', value: stats.overdue, dotClass: 'bg-red-500' },
           ].map(stat => (
-            <div key={stat.label} className="bg-card border border-border/60 rounded-lg p-3 flex items-center gap-3">
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            <div key={stat.label} className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
+              <span className={`h-2.5 w-2.5 rounded-full ${stat.dotClass}`} />
               <div>
-                <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                <p className="text-lg font-bold text-foreground leading-none">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{stat.label}</p>
               </div>
             </div>
           ))}
@@ -915,59 +975,57 @@ export function ProjectManager() {
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search projects..."
-              className="pl-8 h-8 text-xs"
-            />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search projects..." className="pl-8 h-8 text-xs rounded-lg" />
           </div>
           <div className="flex gap-2">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 text-xs w-32"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs w-32 rounded-lg"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                  <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
-                ))}
+                <SelectItem value="all">All Status</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([k, c]) => <SelectItem key={k} value={k}>{c.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <div className="flex border border-border rounded-md overflow-hidden">
+            <div className="flex border border-border rounded-lg overflow-hidden">
               {([
-                { mode: 'grid' as const, icon: BarChart3 },
-                { mode: 'list' as const, icon: ListTodo },
-                { mode: 'board' as const, icon: Columns3 },
+                { mode: 'grid' as const, icon: BarChart3, label: 'Grid' },
+                { mode: 'list' as const, icon: ListTodo, label: 'List' },
+                { mode: 'board' as const, icon: Columns3, label: 'Board' },
+                { mode: 'timeline' as const, icon: CalendarRange, label: 'Timeline' },
               ]).map(({ mode, icon: Icon }) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === mode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+                  className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === mode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
                 >
                   <Icon className="h-3.5 w-3.5" />
                 </button>
               ))}
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setShowArchived(v => !v)}>
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => setShowArchived(v => !v)}>
               <Archive className="h-3.5 w-3.5 mr-1" />{showArchived ? 'Active' : 'Archived'}
             </Button>
           </div>
         </div>
 
-        {/* Projects */}
+        {/* Content */}
         {filteredProjects.length === 0 ? (
-          <div className="text-center py-12">
-            <FolderKanban className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+          <div className="text-center py-16">
+            <FolderKanban className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              {showArchived ? 'No archived projects' : searchQuery ? 'No projects match your search' : 'No projects yet'}
+              {showArchived ? 'No archived projects' : searchQuery ? 'No matching projects' : 'No projects yet'}
             </p>
             {!showArchived && !searchQuery && (
-              <Button variant="outline" size="sm" className="mt-3" onClick={openCreate}>
+              <Button variant="outline" size="sm" className="mt-3 rounded-lg" onClick={openCreate}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" />Create your first project
               </Button>
             )}
           </div>
-        ) : viewMode === 'board' ? renderBoardView() : (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'}>
+        ) : viewMode === 'timeline' ? (
+          renderTimeline()
+        ) : viewMode === 'board' ? (
+          renderBoardView()
+        ) : (
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2'}>
             {filteredProjects.map(renderProjectCard)}
           </div>
         )}
@@ -975,117 +1033,101 @@ export function ProjectManager() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-card">
           <DialogHeader>
             <DialogTitle className="text-base">{editingProject ? 'Edit Project' : 'New Project'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex gap-2">
               <div className="shrink-0">
-                <label className="text-xs font-medium text-muted-foreground">Icon</label>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Icon</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="h-10 w-10 text-lg mt-1">{projectForm.icon}</Button>
+                    <Button variant="outline" className="h-10 w-10 text-lg mt-1 rounded-lg">{projectForm.icon}</Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="grid grid-cols-6 gap-1 p-2 w-auto">
                     {PROJECT_ICONS.map(icon => (
-                      <button key={icon} onClick={() => setProjectForm(f => ({ ...f, icon }))} className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg">{icon}</button>
+                      <button key={icon} onClick={() => setProjectForm(f => ({ ...f, icon }))} className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent text-lg">{icon}</button>
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
               <div className="flex-1">
-                <label className="text-xs font-medium text-muted-foreground">Project Name *</label>
-                <Input value={projectForm.name} onChange={e => setProjectForm(f => ({ ...f, name: e.target.value }))} className="mt-1" placeholder="My Project" />
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Name *</label>
+                <Input value={projectForm.name} onChange={e => setProjectForm(f => ({ ...f, name: e.target.value }))} className="mt-1 rounded-lg" placeholder="My Project" />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Description</label>
-              <Textarea value={projectForm.description} onChange={e => setProjectForm(f => ({ ...f, description: e.target.value }))} className="mt-1 min-h-[60px] text-sm" placeholder="What is this project about?" />
+              <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Description</label>
+              <Textarea value={projectForm.description} onChange={e => setProjectForm(f => ({ ...f, description: e.target.value }))} className="mt-1 min-h-[60px] text-sm rounded-lg" placeholder="What is this project about?" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Status</label>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Status</label>
                 <Select value={projectForm.status} onValueChange={v => setProjectForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger className="mt-1 h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                      <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="mt-1 h-9 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(STATUS_CONFIG).map(([k, c]) => <SelectItem key={k} value={k}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Priority</label>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Priority</label>
                 <Select value={projectForm.priority} onValueChange={v => setProjectForm(f => ({ ...f, priority: v }))}>
-                  <SelectTrigger className="mt-1 h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
-                      <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="mt-1 h-9 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(PRIORITY_CONFIG).map(([k, c]) => <SelectItem key={k} value={k}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-                <Input type="date" value={projectForm.start_date} onChange={e => setProjectForm(f => ({ ...f, start_date: e.target.value }))} className="mt-1 text-xs" />
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Start Date</label>
+                <Input type="date" value={projectForm.start_date} onChange={e => setProjectForm(f => ({ ...f, start_date: e.target.value }))} className="mt-1 text-xs rounded-lg" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Due Date</label>
-                <Input type="date" value={projectForm.due_date} onChange={e => setProjectForm(f => ({ ...f, due_date: e.target.value }))} className="mt-1 text-xs" />
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Due Date</label>
+                <Input type="date" value={projectForm.due_date} onChange={e => setProjectForm(f => ({ ...f, due_date: e.target.value }))} className="mt-1 text-xs rounded-lg" />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Color</label>
-              <div className="flex gap-2 mt-1">
+              <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Color</label>
+              <div className="flex gap-2 mt-1.5">
                 {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'].map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setProjectForm(f => ({ ...f, color: c }))}
-                    className={`h-6 w-6 rounded-full border-2 transition-all ${projectForm.color === c ? 'border-foreground scale-110' : 'border-transparent'}`}
-                    style={{ backgroundColor: c }}
-                  />
+                  <button key={c} onClick={() => setProjectForm(f => ({ ...f, color: c }))} className={`h-6 w-6 rounded-full border-2 transition-all ${projectForm.color === c ? 'border-foreground scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Client Name</label>
-                <Input value={projectForm.client_name} onChange={e => setProjectForm(f => ({ ...f, client_name: e.target.value }))} className="mt-1 text-xs" placeholder="Client name" />
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Client</label>
+                <Input value={projectForm.client_name} onChange={e => setProjectForm(f => ({ ...f, client_name: e.target.value }))} className="mt-1 text-xs rounded-lg" placeholder="Client name" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Client Email</label>
-                <Input value={projectForm.client_email} onChange={e => setProjectForm(f => ({ ...f, client_email: e.target.value }))} className="mt-1 text-xs" placeholder="client@email.com" />
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Email</label>
+                <Input value={projectForm.client_email} onChange={e => setProjectForm(f => ({ ...f, client_email: e.target.value }))} className="mt-1 text-xs rounded-lg" placeholder="client@email.com" />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Budget</label>
-              <Input type="number" value={projectForm.budget} onChange={e => setProjectForm(f => ({ ...f, budget: e.target.value }))} className="mt-1 text-xs" placeholder="0.00" />
+              <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Budget</label>
+              <Input type="number" value={projectForm.budget} onChange={e => setProjectForm(f => ({ ...f, budget: e.target.value }))} className="mt-1 text-xs rounded-lg" placeholder="0.00" />
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Tags (comma separated)</label>
-              <Input value={projectForm.tags} onChange={e => setProjectForm(f => ({ ...f, tags: e.target.value }))} className="mt-1 text-xs" placeholder="design, web, client-work" />
+              <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Tags (comma separated)</label>
+              <Input value={projectForm.tags} onChange={e => setProjectForm(f => ({ ...f, tags: e.target.value }))} className="mt-1 text-xs rounded-lg" placeholder="design, web, client-work" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-            <Button onClick={saveProject} disabled={!projectForm.name.trim()}>
-              {editingProject ? 'Save Changes' : 'Create Project'}
-            </Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="rounded-lg">Cancel</Button>
+            <Button onClick={saveProject} disabled={!projectForm.name.trim()} className="rounded-lg">{editingProject ? 'Save' : 'Create'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Project Detail Sheet */}
       {renderProjectDetail()}
     </>
   );
