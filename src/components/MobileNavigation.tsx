@@ -143,7 +143,7 @@ export function MobileNavigation({
         className={cn(
           'md:hidden fixed bottom-6 right-4 z-50 h-14 w-14 rounded-2xl',
           'flex items-center justify-center',
-          'bg-primary text-primary-foreground shadow-lg shadow-primary/20',
+          'bg-primary text-primary-foreground shadow-lg',
           'transition-all duration-200 active:scale-90',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           open && 'rotate-90 rounded-full'
