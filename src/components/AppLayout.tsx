@@ -112,6 +112,7 @@ export function AppLayout() {
       case "search":
       case "debugger":
       case "learning":
+      case "projects":
       case "spaces":
         // These are all tabs within /app
         navigate("/app");
