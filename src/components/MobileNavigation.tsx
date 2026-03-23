@@ -155,7 +155,7 @@ export function MobileNavigation({
 
       {/* Full menu sheet */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] px-4 pt-5 pb-0 flex flex-col">
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] px-4 pt-5 pb-0 flex flex-col bg-card border-border">
           {/* Scrollable nav content */}
           <div className="overflow-y-auto flex-1 pb-2">
             {SECTIONS.map((section) => (
