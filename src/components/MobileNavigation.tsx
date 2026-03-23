@@ -137,16 +137,16 @@ export function MobileNavigation({
 
   return (
     <>
-      {/* FAB */}
+      {/* FAB — Halcyon gold accent */}
       <button
         onClick={() => setOpen(prev => !prev)}
         className={cn(
-          'md:hidden fixed bottom-6 right-4 z-50 h-14 w-14 rounded-full',
+          'md:hidden fixed bottom-6 right-4 z-50 h-14 w-14 rounded-2xl',
           'flex items-center justify-center',
-          'bg-primary text-primary-foreground shadow-lg',
-          'transition-transform duration-200 active:scale-90',
+          'bg-primary text-primary-foreground shadow-lg shadow-primary/20',
+          'transition-all duration-200 active:scale-90',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          open && 'rotate-90'
+          open && 'rotate-90 rounded-full'
         )}
         aria-label={open ? 'Close menu' : 'Open menu'}
       >
@@ -155,7 +155,7 @@ export function MobileNavigation({
 
       {/* Full menu sheet */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] px-4 pt-5 pb-0 flex flex-col">
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] px-4 pt-5 pb-0 flex flex-col bg-card border-border">
           {/* Scrollable nav content */}
           <div className="overflow-y-auto flex-1 pb-2">
             {SECTIONS.map((section) => (

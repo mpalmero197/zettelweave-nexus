@@ -68,11 +68,11 @@ export default function Landing() {
       </a>
 
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-border" role="banner">
-        <div className="max-w-6xl mx-auto flex h-14 items-center justify-between px-4 md:px-6">
+      <header className="fixed top-0 z-50 w-full bg-card/80 backdrop-blur-md border-b border-border" role="banner">
+        <div className="max-w-6xl mx-auto flex h-12 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2.5">
-            <img src={pendragonLogo} alt="" className="h-7 w-7 object-contain" aria-hidden="true" />
-            <span className="hidden sm:inline text-lg font-semibold tracking-tight">PendragonX</span>
+            <img src={pendragonLogo} alt="" className="h-6 w-6 object-contain" aria-hidden="true" />
+            <span className="hidden sm:inline text-base font-bold tracking-tight">PendragonX</span>
           </div>
           
           <nav className="hidden md:flex gap-8" aria-label="Main navigation">
@@ -83,8 +83,8 @@ export default function Landing() {
           </nav>
 
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>Sign In</Button>
-            <Button size="sm" onClick={() => navigate('/auth')}>
+            <Button variant="ghost" size="sm" className="rounded-lg" onClick={() => navigate('/auth')}>Sign In</Button>
+            <Button size="sm" className="rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover" onClick={() => navigate('/auth')}>
               Get Started
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
