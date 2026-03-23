@@ -78,7 +78,7 @@ const navGroups = [
 
 export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
   return (
-    <nav className="hidden md:flex items-center gap-0.5" role="navigation" aria-label="Main navigation">
+    <nav className="hidden md:flex items-center gap-0.5 ml-2" role="navigation" aria-label="Main navigation">
       {navGroups.map((group) => {
         const isActive = group.tabs.includes(activeTab);
         return (
@@ -87,21 +87,23 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs font-medium gap-1 ${
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                className={`h-8 px-3 text-xs font-medium gap-1 rounded-lg transition-colors ${
+                  isActive
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
                 }`}
               >
                 {group.label}
-                <ChevronDown className="h-3 w-3 opacity-60" />
+                <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[160px]">
+            <DropdownMenuContent align="start" className="min-w-[170px] bg-card border-border rounded-lg shadow-hover">
               {group.items.map(({ id, label, icon: Icon }) => (
                 <DropdownMenuItem
                   key={id}
                   onClick={() => onTabChange(id)}
-                  className={`gap-2 cursor-pointer ${
-                    activeTab === id ? "bg-accent text-accent-foreground" : ""
+                  className={`gap-2.5 cursor-pointer rounded-md ${
+                    activeTab === id ? "bg-primary/10 text-primary" : ""
                   }`}
                 >
                   <Icon className="h-4 w-4" />

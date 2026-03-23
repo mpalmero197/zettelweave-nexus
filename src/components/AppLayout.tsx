@@ -133,32 +133,32 @@ export function AppLayout() {
         <MobileOptimizedLayout>
           <SecurityNotice />
 
-          {/* Persistent Header */}
+          {/* Persistent Header — Halcyon style */}
           <header
-            className="h-10 border-b border-border bg-background sticky top-0 z-50"
+            className="h-12 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50"
             role="banner"
           >
-            <div className="h-full px-2 md:px-4 flex items-center justify-between gap-2">
+            <div className="h-full px-3 md:px-5 flex items-center justify-between gap-3">
               {/* Left: Logo + Nav */}
-              <div className="flex items-center gap-1.5">
-                <Link to="/app" className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2.5">
+                <Link to="/app" className="flex items-center gap-2">
                   <img
                     src={pendragonLogo}
                     alt="PendragonX"
-                    className="h-5 w-5 object-contain"
+                    className="h-6 w-6 object-contain"
                   />
-                  <span className="text-sm font-semibold text-foreground" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
+                  <span className="text-sm font-bold tracking-tight text-foreground">
                     PendragonX
                   </span>
                   <div className="relative ml-0.5">
                     <div
                       className={`h-2 w-2 rounded-full ${
-                        isOnline ? "bg-green-500" : "bg-amber-500"
+                        isOnline ? "bg-primary" : "bg-destructive"
                       }`}
                       aria-label={isOnline ? "Online" : "Offline"}
                     />
                     {isOnline && (
-                      <div className="absolute inset-0 h-2 w-2 rounded-full bg-green-500 animate-ping opacity-40" />
+                      <div className="absolute inset-0 h-2 w-2 rounded-full bg-primary animate-ping opacity-30" />
                     )}
                   </div>
                 </Link>
@@ -167,15 +167,15 @@ export function AppLayout() {
               </div>
 
               {/* Right: Actions */}
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 hidden md:flex"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
                   asChild
                 >
                   <Link to="/agents" aria-label="Agents">
-                    <Bot className="h-3.5 w-3.5" />
+                    <Bot className="h-4 w-4" />
                   </Link>
                 </Button>
                 <ThemeVariantSelector />
