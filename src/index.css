@@ -110,12 +110,12 @@
     
     --sidebar-background: 0 0% 13%;
     --sidebar-foreground: 0 0% 92%;
-    --sidebar-primary: 45 100% 55%;
-    --sidebar-primary-foreground: 0 0% 8%;
+    --sidebar-primary: 0 0% 85%;
+    --sidebar-primary-foreground: 0 0% 10%;
     --sidebar-accent: 0 0% 20%;
     --sidebar-accent-foreground: 0 0% 92%;
     --sidebar-border: 0 0% 24%;
-    --sidebar-ring: 45 100% 55%;
+    --sidebar-ring: 0 0% 85%;
     
     /* Dark mode category colors — Softer tones */
     --category-000: 0 0% 55%;
