@@ -1530,36 +1530,45 @@ export type Database = {
       }
       project_collaborators: {
         Row: {
+          can_assign_tasks: boolean
           collaborator_id: string
           created_at: string
+          hierarchy_level: number
           id: string
           invited_at: string
           owner_id: string
           project_id: string
           role: string
           status: string
+          title: string | null
           updated_at: string
         }
         Insert: {
+          can_assign_tasks?: boolean
           collaborator_id: string
           created_at?: string
+          hierarchy_level?: number
           id?: string
           invited_at?: string
           owner_id: string
           project_id: string
           role?: string
           status?: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
+          can_assign_tasks?: boolean
           collaborator_id?: string
           created_at?: string
+          hierarchy_level?: number
           id?: string
           invited_at?: string
           owner_id?: string
           project_id?: string
           role?: string
           status?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1621,6 +1630,7 @@ export type Database = {
       }
       project_tasks: {
         Row: {
+          assigned_to: string | null
           created_at: string
           due_date: string
           id: string
@@ -1637,6 +1647,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
           created_at?: string
           due_date: string
           id?: string
@@ -1653,6 +1664,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
           created_at?: string
           due_date?: string
           id?: string
@@ -1693,10 +1705,12 @@ export type Database = {
           client_name: string | null
           color: string | null
           created_at: string
+          custom_titles: Json
           description: string | null
           due_date: string | null
           icon: string | null
           id: string
+          industry: string | null
           is_archived: boolean | null
           is_favorite: boolean | null
           name: string
@@ -1704,6 +1718,7 @@ export type Database = {
           start_date: string | null
           status: string
           tags: string[] | null
+          title_mode: string
           updated_at: string
           user_id: string
         }
@@ -1714,10 +1729,12 @@ export type Database = {
           client_name?: string | null
           color?: string | null
           created_at?: string
+          custom_titles?: Json
           description?: string | null
           due_date?: string | null
           icon?: string | null
           id?: string
+          industry?: string | null
           is_archived?: boolean | null
           is_favorite?: boolean | null
           name: string
@@ -1725,6 +1742,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           tags?: string[] | null
+          title_mode?: string
           updated_at?: string
           user_id: string
         }
@@ -1735,10 +1753,12 @@ export type Database = {
           client_name?: string | null
           color?: string | null
           created_at?: string
+          custom_titles?: Json
           description?: string | null
           due_date?: string | null
           icon?: string | null
           id?: string
+          industry?: string | null
           is_archived?: boolean | null
           is_favorite?: boolean | null
           name?: string
@@ -1746,6 +1766,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           tags?: string[] | null
+          title_mode?: string
           updated_at?: string
           user_id?: string
         }
