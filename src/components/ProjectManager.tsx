@@ -20,7 +20,7 @@ import {
   Clock, Users, DollarSign, Target, ChevronLeft, ChevronRight,
   MoreHorizontal, CheckCircle2, Circle, AlertCircle,
   BarChart3, ListTodo, Columns3, CalendarRange,
-  Flag, UserPlus, Crown, Loader2
+  Flag, UserPlus, Crown, Loader2, Shield, Settings2, X
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
@@ -31,6 +31,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 // --- Types ---
 interface ProjectCollaborator {
@@ -40,6 +42,9 @@ interface ProjectCollaborator {
   collaborator_id: string;
   role: string;
   status: string;
+  title: string | null;
+  can_assign_tasks: boolean;
+  hierarchy_level: number;
   profile?: { display_name: string | null; avatar_url: string | null };
 }
 
@@ -67,6 +72,9 @@ interface Project {
   tags: string[];
   is_favorite: boolean;
   is_archived: boolean;
+  title_mode: string;
+  custom_titles: string[];
+  industry: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,8 +101,23 @@ interface Task {
   project_id: string | null;
   parent_task_id: string | null;
   user_id: string;
+  assigned_to: string | null;
   created_at: string;
 }
+
+// --- Industry presets ---
+const INDUSTRY_PRESETS: Record<string, string[]> = {
+  'Software / Tech': ['CTO', 'Tech Lead', 'Senior Developer', 'Developer', 'Junior Developer', 'QA Engineer', 'DevOps Engineer', 'UI/UX Designer', 'Product Manager', 'Scrum Master', 'Business Analyst'],
+  'Construction': ['Project Manager', 'Site Supervisor', 'Architect', 'Structural Engineer', 'Surveyor', 'Foreman', 'Safety Officer', 'Estimator', 'Drafter', 'Inspector'],
+  'Film / Media': ['Director', 'Producer', 'Executive Producer', 'Cinematographer', 'Editor', 'Sound Designer', 'Art Director', 'Gaffer', 'Script Supervisor', 'Production Assistant'],
+  'Marketing / Agency': ['Creative Director', 'Art Director', 'Copywriter', 'Account Manager', 'SEO Specialist', 'Social Media Manager', 'Graphic Designer', 'Brand Strategist', 'Content Writer', 'Media Buyer'],
+  'Architecture / Design': ['Principal Architect', 'Lead Designer', 'Project Architect', 'Lead Modeler', 'Interior Designer', 'Landscape Architect', 'Drafter', 'BIM Manager', 'Sustainability Consultant', 'Surveyor'],
+  'Healthcare': ['Chief Medical Officer', 'Department Head', 'Project Coordinator', 'Clinical Lead', 'Nurse Manager', 'Research Analyst', 'Data Manager', 'Quality Assurance', 'Compliance Officer'],
+  'Education': ['Department Chair', 'Lead Instructor', 'Curriculum Designer', 'Teaching Assistant', 'Research Associate', 'Program Coordinator', 'Assessment Specialist'],
+  'Finance': ['CFO', 'Finance Director', 'Senior Analyst', 'Financial Analyst', 'Accountant', 'Auditor', 'Risk Manager', 'Compliance Officer', 'Portfolio Manager'],
+  'Engineering': ['Chief Engineer', 'Lead Engineer', 'Senior Engineer', 'Engineer', 'Junior Engineer', 'Technician', 'Quality Control', 'Safety Manager', 'CAD Designer'],
+  'General': ['Director', 'Manager', 'Team Lead', 'Senior Associate', 'Associate', 'Coordinator', 'Specialist', 'Analyst', 'Assistant'],
+};
 
 // --- Config ---
 const STATUS_CONFIG: Record<string, { label: string; dotClass: string }> = {
@@ -142,6 +165,7 @@ export function ProjectManager() {
     name: '', description: '', status: 'active', priority: 'medium',
     color: '#3b82f6', icon: '📁', start_date: '', due_date: '',
     budget: '', client_name: '', client_email: '', tags: '',
+    title_mode: 'free_text', custom_titles: '' as string, industry: '',
   });
 
   // Detail sheet
@@ -150,13 +174,19 @@ export function ProjectManager() {
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [milestoneForm, setMilestoneForm] = useState({ title: '', description: '', due_date: '' });
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskForm, setTaskForm] = useState({ name: '', priority: 'medium', due_date: '' });
+  const [taskForm, setTaskForm] = useState({ name: '', priority: 'medium', due_date: '', assigned_to: '' });
 
   // Collaborators
   const [collaborators, setCollaborators] = useState<ProjectCollaborator[]>([]);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [loadingCollabs, setLoadingCollabs] = useState(false);
   const [addingCollab, setAddingCollab] = useState(false);
+
+  // Role editing
+  const [editingCollabId, setEditingCollabId] = useState<string | null>(null);
+  const [editCollabForm, setEditCollabForm] = useState({ title: '', role: 'member', can_assign_tasks: false, hierarchy_level: 0 });
+  const [showRoleSettings, setShowRoleSettings] = useState(false);
+  const [newCustomTitle, setNewCustomTitle] = useState('');
 
   // --- Data fetching ---
   const fetchData = useCallback(async () => {
@@ -166,7 +196,7 @@ export function ProjectManager() {
       supabase.from('project_milestones').select('*').eq('user_id', user.id).order('sort_order'),
       supabase.from('project_tasks').select('*').eq('user_id', user.id).not('project_id', 'is', null).order('created_at'),
     ]);
-    if (!projectsRes.error) setProjects(projectsRes.data as Project[] || []);
+    if (!projectsRes.error) setProjects((projectsRes.data || []).map((p: any) => ({ ...p, custom_titles: Array.isArray(p.custom_titles) ? p.custom_titles : [] })) as Project[]);
     if (!milestonesRes.error) setMilestones(milestonesRes.data as Milestone[] || []);
     if (!tasksRes.error) setTasks(tasksRes.data as Task[] || []);
     setLoading(false);
@@ -218,6 +248,23 @@ export function ProjectManager() {
     fetchCollaborators(selectedProject.id);
   };
 
+  const updateCollaborator = async (id: string, updates: { title?: string | null; role?: string; can_assign_tasks?: boolean; hierarchy_level?: number }) => {
+    const { error } = await supabase.from('project_collaborators').update(updates).eq('id', id);
+    if (error) { toast.error('Failed to update'); return; }
+    toast.success('Collaborator updated');
+    if (selectedProject) fetchCollaborators(selectedProject.id);
+    setEditingCollabId(null);
+  };
+
+  const updateProjectTitleSettings = async (updates: { title_mode?: string; custom_titles?: string[]; industry?: string | null }) => {
+    if (!selectedProject) return;
+    const { error } = await supabase.from('projects').update(updates).eq('id', selectedProject.id);
+    if (error) { toast.error('Failed to update'); return; }
+    setSelectedProject(prev => prev ? { ...prev, ...updates } as Project : null);
+    fetchData();
+    toast.success('Title settings updated');
+  };
+
   const getInitials = (name: string | null | undefined) => {
     if (!name) return '??';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -245,20 +292,21 @@ export function ProjectManager() {
   };
 
   const resetProjectForm = () => {
-    setProjectForm({ name: '', description: '', status: 'active', priority: 'medium', color: '#3b82f6', icon: '📁', start_date: '', due_date: '', budget: '', client_name: '', client_email: '', tags: '' });
+    setProjectForm({ name: '', description: '', status: 'active', priority: 'medium', color: '#3b82f6', icon: '📁', start_date: '', due_date: '', budget: '', client_name: '', client_email: '', tags: '', title_mode: 'free_text', custom_titles: '', industry: '' });
     setEditingProject(null);
   };
 
   const openCreate = () => { resetProjectForm(); setShowCreateDialog(true); };
   const openEdit = (project: Project) => {
     setEditingProject(project);
-    setProjectForm({ name: project.name, description: project.description || '', status: project.status, priority: project.priority, color: project.color || '#3b82f6', icon: project.icon || '📁', start_date: project.start_date || '', due_date: project.due_date || '', budget: project.budget?.toString() || '', client_name: project.client_name || '', client_email: project.client_email || '', tags: project.tags?.join(', ') || '' });
+    setProjectForm({ name: project.name, description: project.description || '', status: project.status, priority: project.priority, color: project.color || '#3b82f6', icon: project.icon || '📁', start_date: project.start_date || '', due_date: project.due_date || '', budget: project.budget?.toString() || '', client_name: project.client_name || '', client_email: project.client_email || '', tags: project.tags?.join(', ') || '', title_mode: project.title_mode || 'free_text', custom_titles: Array.isArray(project.custom_titles) ? project.custom_titles.join(', ') : '', industry: project.industry || '' });
     setShowCreateDialog(true);
   };
 
   const saveProject = async () => {
     if (!user || !projectForm.name.trim()) return;
-    const data = { user_id: user.id, name: projectForm.name.trim(), description: projectForm.description || null, status: projectForm.status, priority: projectForm.priority, color: projectForm.color, icon: projectForm.icon, start_date: projectForm.start_date || null, due_date: projectForm.due_date || null, budget: projectForm.budget ? parseFloat(projectForm.budget) : null, client_name: projectForm.client_name || null, client_email: projectForm.client_email || null, tags: projectForm.tags ? projectForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [] };
+    const customTitlesArray = projectForm.custom_titles ? projectForm.custom_titles.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const data = { user_id: user.id, name: projectForm.name.trim(), description: projectForm.description || null, status: projectForm.status, priority: projectForm.priority, color: projectForm.color, icon: projectForm.icon, start_date: projectForm.start_date || null, due_date: projectForm.due_date || null, budget: projectForm.budget ? parseFloat(projectForm.budget) : null, client_name: projectForm.client_name || null, client_email: projectForm.client_email || null, tags: projectForm.tags ? projectForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [], title_mode: projectForm.title_mode, custom_titles: customTitlesArray, industry: projectForm.industry || null };
     if (editingProject) {
       const { error } = await supabase.from('projects').update(data).eq('id', editingProject.id);
       if (error) { toast.error('Failed to update'); return; }
@@ -312,11 +360,22 @@ export function ProjectManager() {
 
   const addProjectTask = async () => {
     if (!user || !selectedProject || !taskForm.name.trim()) return;
-    const { error } = await supabase.from('project_tasks').insert({ user_id: user.id, name: taskForm.name.trim(), priority: taskForm.priority, status: 'todo', due_date: taskForm.due_date || format(new Date(), 'yyyy-MM-dd'), project_id: selectedProject.id });
+    const { error } = await supabase.from('project_tasks').insert({
+      user_id: user.id, name: taskForm.name.trim(), priority: taskForm.priority, status: 'todo',
+      due_date: taskForm.due_date || format(new Date(), 'yyyy-MM-dd'), project_id: selectedProject.id,
+      assigned_to: taskForm.assigned_to || null,
+    });
     if (error) { toast.error('Failed to add'); return; }
-    setTaskForm({ name: '', priority: 'medium', due_date: '' });
+    setTaskForm({ name: '', priority: 'medium', due_date: '', assigned_to: '' });
     setShowTaskForm(false);
     toast.success('Task added');
+    fetchData();
+  };
+
+  const assignTask = async (taskId: string, assigneeId: string | null) => {
+    const { error } = await supabase.from('project_tasks').update({ assigned_to: assigneeId }).eq('id', taskId);
+    if (error) { toast.error('Failed to assign'); return; }
+    toast.success(assigneeId ? 'Task assigned' : 'Task unassigned');
     fetchData();
   };
 
@@ -342,8 +401,27 @@ export function ProjectManager() {
     return differenceInDays(parseISO(dueDate), new Date());
   };
 
+  // Get available titles for a project
+  const getAvailableTitles = (project: Project): string[] => {
+    if (project.title_mode === 'custom_list') {
+      return Array.isArray(project.custom_titles) ? project.custom_titles : [];
+    }
+    if (project.title_mode === 'industry_presets') {
+      return INDUSTRY_PRESETS[project.industry || 'General'] || INDUSTRY_PRESETS['General'];
+    }
+    return []; // free_text mode - no preset list
+  };
+
+  // Find assignee name
+  const getAssigneeName = (assignedTo: string | null): string | null => {
+    if (!assignedTo) return null;
+    if (assignedTo === user?.id) return 'You';
+    const collab = collaborators.find(c => c.collaborator_id === assignedTo);
+    return collab?.profile?.display_name || 'Unknown';
+  };
+
   // ===== TIMELINE VIEW =====
-  const timelineSpan = timelineMode === 'days' ? 28 : 8; // 28 days or 8 weeks
+  const timelineSpan = timelineMode === 'days' ? 28 : 8;
   const timelineEnd = timelineMode === 'days'
     ? addDays(timelineStart, timelineSpan - 1)
     : addWeeks(timelineStart, timelineSpan);
@@ -366,10 +444,8 @@ export function ProjectManager() {
     const end = endDate ? parseISO(endDate) : addDays(start, 7);
     const totalMs = timelineEnd.getTime() - timelineStart.getTime();
     if (totalMs <= 0) return null;
-
     const startOffset = Math.max(0, (start.getTime() - timelineStart.getTime()) / totalMs);
     const endOffset = Math.min(1, (end.getTime() - timelineStart.getTime()) / totalMs);
-
     if (endOffset <= 0 || startOffset >= 1) return null;
     return { left: `${startOffset * 100}%`, width: `${Math.max(2, (endOffset - startOffset) * 100)}%` };
   };
@@ -388,47 +464,27 @@ export function ProjectManager() {
 
     return (
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {/* Timeline header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground">
-            {format(timelineStart, 'MMMM yyyy')}
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">{format(timelineStart, 'MMMM yyyy')}</h3>
           <div className="flex items-center gap-2">
             <div className="flex border border-border rounded-lg overflow-hidden">
-              <button
-                onClick={() => setTimelineMode('days')}
-                className={`px-3 py-1 text-xs font-medium transition-colors ${timelineMode === 'days' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >Days</button>
-              <button
-                onClick={() => setTimelineMode('weeks')}
-                className={`px-3 py-1 text-xs font-medium transition-colors ${timelineMode === 'weeks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >Weeks</button>
+              <button onClick={() => setTimelineMode('days')} className={`px-3 py-1 text-xs font-medium transition-colors ${timelineMode === 'days' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Days</button>
+              <button onClick={() => setTimelineMode('weeks')} className={`px-3 py-1 text-xs font-medium transition-colors ${timelineMode === 'weeks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Weeks</button>
             </div>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => navigateTimeline(-1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => navigateTimeline(1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => navigateTimeline(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => navigateTimeline(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
         </div>
 
-        {/* Timeline grid */}
         <div className="overflow-x-auto">
           <div className="min-w-[800px]">
-            {/* Column headers */}
             <div className="flex border-b border-border">
-              <div className="w-48 shrink-0 px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
-                Project
-              </div>
+              <div className="w-48 shrink-0 px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">Project</div>
               <div className="flex-1 flex relative">
                 {timelineColumns.map((col, i) => {
                   const isToday = format(col, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                   return (
-                    <div
-                      key={i}
-                      className={`flex-1 text-center py-2 text-[10px] font-medium border-r border-border/30 last:border-r-0 ${isToday ? 'text-foreground bg-accent/30' : 'text-muted-foreground'}`}
-                    >
+                    <div key={i} className={`flex-1 text-center py-2 text-[10px] font-medium border-r border-border/30 last:border-r-0 ${isToday ? 'text-foreground bg-accent/30' : 'text-muted-foreground'}`}>
                       {timelineMode === 'days' ? format(col, 'dd') : format(col, 'dd MMM')}
                     </div>
                   );
@@ -436,11 +492,8 @@ export function ProjectManager() {
               </div>
             </div>
 
-            {/* Project rows */}
             {projectsWithDates.length === 0 && projectsWithoutDates.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">
-                No projects to display. Create a project with start/due dates.
-              </div>
+              <div className="py-12 text-center text-sm text-muted-foreground">No projects to display. Create a project with start/due dates.</div>
             ) : (
               <>
                 {projectsWithDates.map((project, idx) => {
@@ -448,52 +501,23 @@ export function ProjectManager() {
                   const progress = getProjectProgress(project.id);
                   const pts = getProjectTasks(project.id);
                   const colorIdx = idx % TASK_COLORS.length;
-
                   return (
-                    <div
-                      key={project.id}
-                      className="flex border-b border-border/30 hover:bg-accent/10 transition-colors cursor-pointer group"
-                      onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
-                    >
-                      {/* Project name cell */}
+                    <div key={project.id} className="flex border-b border-border/30 hover:bg-accent/10 transition-colors cursor-pointer group" onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}>
                       <div className="w-48 shrink-0 px-4 py-3 border-r border-border flex items-center gap-2 min-h-[56px]">
                         <span className="text-sm">{project.icon}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium text-foreground truncate">{project.name}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {pts.filter(t => t.status === 'done').length}/{pts.length} tasks
-                          </p>
+                          <p className="text-[10px] text-muted-foreground">{pts.filter(t => t.status === 'done').length}/{pts.length} tasks</p>
                         </div>
                       </div>
-
-                      {/* Timeline bar area */}
                       <div className="flex-1 relative min-h-[56px]">
-                        {/* Grid lines */}
-                        <div className="absolute inset-0 flex">
-                          {timelineColumns.map((_, i) => (
-                            <div key={i} className="flex-1 border-r border-border/10 last:border-r-0" />
-                          ))}
-                        </div>
-
-                        {/* Today line */}
-                        {todayPosition && (
-                          <div className="absolute top-0 bottom-0 w-px bg-red-500/60 z-10" style={{ left: todayPosition }} />
-                        )}
-
-                        {/* Project bar */}
+                        <div className="absolute inset-0 flex">{timelineColumns.map((_, i) => (<div key={i} className="flex-1 border-r border-border/10 last:border-r-0" />))}</div>
+                        {todayPosition && <div className="absolute top-0 bottom-0 w-px bg-red-500/60 z-10" style={{ left: todayPosition }} />}
                         {bar && (
                           <div className="absolute top-3 bottom-3 flex items-center" style={{ left: bar.left, width: bar.width }}>
-                            <div
-                              className={`h-7 w-full rounded-md ${TASK_COLORS[colorIdx]} opacity-80 flex items-center px-2 overflow-hidden`}
-                              title={`${project.name} — ${progress}%`}
-                            >
-                              <div
-                                className="absolute inset-y-0 left-0 rounded-l-md bg-white/20"
-                                style={{ width: `${progress}%` }}
-                              />
-                              <span className="text-[10px] font-medium text-white relative z-10 truncate">
-                                {project.name}
-                              </span>
+                            <div className={`h-7 w-full rounded-md ${TASK_COLORS[colorIdx]} opacity-80 flex items-center px-2 overflow-hidden`} title={`${project.name} — ${progress}%`}>
+                              <div className="absolute inset-y-0 left-0 rounded-l-md bg-white/20" style={{ width: `${progress}%` }} />
+                              <span className="text-[10px] font-medium text-white relative z-10 truncate">{project.name}</span>
                             </div>
                           </div>
                         )}
@@ -501,14 +525,8 @@ export function ProjectManager() {
                     </div>
                   );
                 })}
-
-                {/* Projects without dates */}
                 {projectsWithoutDates.map(project => (
-                  <div
-                    key={project.id}
-                    className="flex border-b border-border/30 hover:bg-accent/10 transition-colors cursor-pointer opacity-50"
-                    onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
-                  >
+                  <div key={project.id} className="flex border-b border-border/30 hover:bg-accent/10 transition-colors cursor-pointer opacity-50" onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}>
                     <div className="w-48 shrink-0 px-4 py-3 border-r border-border flex items-center gap-2 min-h-[56px]">
                       <span className="text-sm">{project.icon}</span>
                       <div className="min-w-0 flex-1">
@@ -528,20 +546,11 @@ export function ProjectManager() {
           </div>
         </div>
 
-        {/* Legend */}
         <div className="px-4 py-2 border-t border-border flex items-center gap-4 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span className="w-8 h-1.5 rounded-full bg-emerald-500 opacity-80" /> Active
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-8 h-1.5 rounded-full bg-blue-500 opacity-80" /> Planning
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-8 h-1.5 rounded-full bg-amber-500 opacity-80" /> On Hold
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-px h-4 bg-red-500/60" /> Today
-          </span>
+          <span className="flex items-center gap-1.5"><span className="w-8 h-1.5 rounded-full bg-emerald-500 opacity-80" /> Active</span>
+          <span className="flex items-center gap-1.5"><span className="w-8 h-1.5 rounded-full bg-blue-500 opacity-80" /> Planning</span>
+          <span className="flex items-center gap-1.5"><span className="w-8 h-1.5 rounded-full bg-amber-500 opacity-80" /> On Hold</span>
+          <span className="flex items-center gap-1.5"><span className="w-px h-4 bg-red-500/60" /> Today</span>
         </div>
       </div>
     );
@@ -557,25 +566,14 @@ export function ProjectManager() {
     const priorityCfg = PRIORITY_CONFIG[project.priority] || PRIORITY_CONFIG.medium;
 
     return (
-      <div
-        key={project.id}
-        className="group relative bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-hover transition-all cursor-pointer overflow-hidden"
-        onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}
-      >
-        {/* Color accent */}
+      <div key={project.id} className="group relative bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-hover transition-all cursor-pointer overflow-hidden" onClick={() => { setSelectedProject(project); setDetailTab('overview'); fetchCollaborators(project.id); }}>
         <div className="absolute top-0 left-0 w-full h-0.5" style={{ backgroundColor: project.color }} />
-
-        {/* Header */}
         <div className="flex items-start justify-between mb-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">{project.icon}</div>
             <div className="min-w-0">
               <h3 className="text-sm font-semibold truncate text-foreground">{project.name}</h3>
-              {project.client_name && (
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <Users className="h-2.5 w-2.5" />{project.client_name}
-                </p>
-              )}
+              {project.client_name && (<p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5"><Users className="h-2.5 w-2.5" />{project.client_name}</p>)}
             </div>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
@@ -584,9 +582,7 @@ export function ProjectManager() {
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(project); }}><Pencil className="h-3.5 w-3.5 mr-2" />Edit</DropdownMenuItem>
@@ -600,7 +596,6 @@ export function ProjectManager() {
 
         {project.description && <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3">{project.description}</p>}
 
-        {/* Progress bar */}
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-medium text-muted-foreground">{progress}%</span>
@@ -611,7 +606,6 @@ export function ProjectManager() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dotClass}`} />
@@ -647,13 +641,96 @@ export function ProjectManager() {
                 </div>
                 <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{statusProjects.length}</span>
               </div>
-              <div className="space-y-2">
-                {statusProjects.map(p => renderProjectCard(p))}
-              </div>
+              <div className="space-y-2">{statusProjects.map(p => renderProjectCard(p))}</div>
             </div>
           );
         })}
       </div>
+    );
+  };
+
+  // ===== ROLE SETTINGS DIALOG =====
+  const renderRoleSettings = () => {
+    if (!selectedProject) return null;
+    const project = selectedProject;
+    const availableTitles = getAvailableTitles(project);
+
+    return (
+      <Dialog open={showRoleSettings} onOpenChange={setShowRoleSettings}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2"><Settings2 className="h-4 w-4" />Title & Role Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Title Mode */}
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">How collaborators set their title</label>
+              <Select value={project.title_mode} onValueChange={v => updateProjectTitleSettings({ title_mode: v })}>
+                <SelectTrigger className="mt-1 h-9 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free_text">Free text — they type anything</SelectItem>
+                  <SelectItem value="custom_list">Pick from your custom list</SelectItem>
+                  <SelectItem value="industry_presets">Pick from industry standards</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Industry selector */}
+            {project.title_mode === 'industry_presets' && (
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Industry</label>
+                <Select value={project.industry || 'General'} onValueChange={v => updateProjectTitleSettings({ industry: v })}>
+                  <SelectTrigger className="mt-1 h-9 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(INDUSTRY_PRESETS).map(ind => <SelectItem key={ind} value={ind}>{ind}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {(INDUSTRY_PRESETS[project.industry || 'General'] || []).map(t => (
+                    <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom title list */}
+            {project.title_mode === 'custom_list' && (
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Custom titles</label>
+                <div className="flex gap-2 mt-1">
+                  <Input value={newCustomTitle} onChange={e => setNewCustomTitle(e.target.value)} placeholder="Add a title..." className="text-xs h-8 rounded-lg flex-1" onKeyDown={e => {
+                    if (e.key === 'Enter' && newCustomTitle.trim()) {
+                      const updated = [...(Array.isArray(project.custom_titles) ? project.custom_titles : []), newCustomTitle.trim()];
+                      updateProjectTitleSettings({ custom_titles: updated });
+                      setNewCustomTitle('');
+                    }
+                  }} />
+                  <Button size="sm" className="h-8 text-xs" onClick={() => {
+                    if (!newCustomTitle.trim()) return;
+                    const updated = [...(Array.isArray(project.custom_titles) ? project.custom_titles : []), newCustomTitle.trim()];
+                    updateProjectTitleSettings({ custom_titles: updated });
+                    setNewCustomTitle('');
+                  }}>Add</Button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {(Array.isArray(project.custom_titles) ? project.custom_titles : []).map((t, i) => (
+                    <Badge key={i} variant="secondary" className="text-[10px] gap-1">
+                      {t}
+                      <button onClick={() => {
+                        const updated = (project.custom_titles || []).filter((_, j) => j !== i);
+                        updateProjectTitleSettings({ custom_titles: updated });
+                      }} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRoleSettings(false)} className="rounded-lg">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   };
 
@@ -666,6 +743,12 @@ export function ProjectManager() {
     const progress = getProjectProgress(project.id);
     const doneTasks = pts.filter(t => t.status === 'done').length;
     const doneMs = ms.filter(m => m.status === 'completed').length;
+    const isOwner = project.user_id === user?.id;
+    const availableTitles = getAvailableTitles(project);
+    const allAssignees = [
+      { id: user?.id || '', name: 'You (Owner)' },
+      ...collaborators.map(c => ({ id: c.collaborator_id, name: c.profile?.display_name || 'Unknown' }))
+    ];
 
     return (
       <Sheet open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
@@ -675,11 +758,7 @@ export function ProjectManager() {
               <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-xl">{project.icon}</div>
               <div>
                 <SheetTitle className="text-base">{project.name}</SheetTitle>
-                {project.client_name && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Users className="h-3 w-3" />{project.client_name}
-                  </p>
-                )}
+                {project.client_name && (<p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Users className="h-3 w-3" />{project.client_name}</p>)}
               </div>
             </div>
           </SheetHeader>
@@ -703,11 +782,7 @@ export function ProjectManager() {
                   <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: project.color }} />
                 </div>
                 <div className="grid grid-cols-3 gap-3 pt-1">
-                  {[
-                    { val: pts.length, label: 'Tasks' },
-                    { val: doneTasks, label: 'Done' },
-                    { val: `${doneMs}/${ms.length}`, label: 'Milestones' },
-                  ].map(s => (
+                  {[{ val: pts.length, label: 'Tasks' }, { val: doneTasks, label: 'Done' }, { val: `${doneMs}/${ms.length}`, label: 'Milestones' }].map(s => (
                     <div key={s.label} className="text-center">
                       <p className="text-lg font-bold text-foreground">{s.val}</p>
                       <p className="text-[10px] text-muted-foreground">{s.label}</p>
@@ -717,53 +792,21 @@ export function ProjectManager() {
               </div>
 
               <div className="space-y-3">
-                {project.description && (
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Description</label>
-                    <p className="text-sm mt-1 text-foreground">{project.description}</p>
-                  </div>
-                )}
+                {project.description && (<div><label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Description</label><p className="text-sm mt-1 text-foreground">{project.description}</p></div>)}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/20 rounded-lg p-2.5">
                     <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Status</label>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className={`h-2 w-2 rounded-full ${STATUS_CONFIG[project.status]?.dotClass}`} />
-                      <span className="text-xs font-medium">{STATUS_CONFIG[project.status]?.label}</span>
-                    </div>
+                    <div className="flex items-center gap-1.5 mt-1"><span className={`h-2 w-2 rounded-full ${STATUS_CONFIG[project.status]?.dotClass}`} /><span className="text-xs font-medium">{STATUS_CONFIG[project.status]?.label}</span></div>
                   </div>
                   <div className="bg-muted/20 rounded-lg p-2.5">
                     <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Priority</label>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className={`h-2 w-2 rounded-full ${PRIORITY_CONFIG[project.priority]?.dotClass}`} />
-                      <span className="text-xs font-medium">{PRIORITY_CONFIG[project.priority]?.label}</span>
-                    </div>
+                    <div className="flex items-center gap-1.5 mt-1"><span className={`h-2 w-2 rounded-full ${PRIORITY_CONFIG[project.priority]?.dotClass}`} /><span className="text-xs font-medium">{PRIORITY_CONFIG[project.priority]?.label}</span></div>
                   </div>
-                  {project.start_date && (
-                    <div className="bg-muted/20 rounded-lg p-2.5">
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Start</label>
-                      <p className="text-xs font-medium mt-1">{format(parseISO(project.start_date), 'MMM d, yyyy')}</p>
-                    </div>
-                  )}
-                  {project.due_date && (
-                    <div className="bg-muted/20 rounded-lg p-2.5">
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Deadline</label>
-                      <p className="text-xs font-medium mt-1">{format(parseISO(project.due_date), 'MMM d, yyyy')}</p>
-                    </div>
-                  )}
-                  {project.budget != null && (
-                    <div className="bg-muted/20 rounded-lg p-2.5">
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Budget</label>
-                      <p className="text-xs font-medium mt-1 flex items-center gap-1"><DollarSign className="h-3 w-3" />{project.budget.toLocaleString()}</p>
-                    </div>
-                  )}
+                  {project.start_date && (<div className="bg-muted/20 rounded-lg p-2.5"><label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Start</label><p className="text-xs font-medium mt-1">{format(parseISO(project.start_date), 'MMM d, yyyy')}</p></div>)}
+                  {project.due_date && (<div className="bg-muted/20 rounded-lg p-2.5"><label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Deadline</label><p className="text-xs font-medium mt-1">{format(parseISO(project.due_date), 'MMM d, yyyy')}</p></div>)}
+                  {project.budget != null && (<div className="bg-muted/20 rounded-lg p-2.5"><label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Budget</label><p className="text-xs font-medium mt-1 flex items-center gap-1"><DollarSign className="h-3 w-3" />{project.budget.toLocaleString()}</p></div>)}
                 </div>
-                {project.tags?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.tags.map(tag => (
-                      <span key={tag} className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{tag}</span>
-                    ))}
-                  </div>
-                )}
+                {project.tags?.length > 0 && (<div className="flex flex-wrap gap-1.5">{project.tags.map(tag => (<span key={tag} className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{tag}</span>))}</div>)}
               </div>
 
               <div className="flex gap-2 pt-1">
@@ -775,7 +818,7 @@ export function ProjectManager() {
 
             {/* Tasks */}
             <TabsContent value="tasks" className="mt-4 space-y-3">
-              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setShowTaskForm(true); setTaskForm({ name: '', priority: 'medium', due_date: '' }); }}>
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setShowTaskForm(true); setTaskForm({ name: '', priority: 'medium', due_date: '', assigned_to: '' }); }}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" />Add Task
               </Button>
               {showTaskForm && (
@@ -784,12 +827,23 @@ export function ProjectManager() {
                   <div className="flex gap-2">
                     <Select value={taskForm.priority} onValueChange={v => setTaskForm(f => ({ ...f, priority: v }))}>
                       <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(PRIORITY_CONFIG).map(([k, c]) => <SelectItem key={k} value={k}>{c.label}</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{Object.entries(PRIORITY_CONFIG).map(([k, c]) => <SelectItem key={k} value={k}>{c.label}</SelectItem>)}</SelectContent>
                     </Select>
                     <Input type="date" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))} className="text-xs h-8 flex-1" />
                   </div>
+                  {/* Assign to */}
+                  {allAssignees.length > 1 && (
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Assign to</label>
+                      <Select value={taskForm.assigned_to || 'unassigned'} onValueChange={v => setTaskForm(f => ({ ...f, assigned_to: v === 'unassigned' ? '' : v }))}>
+                        <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {allAssignees.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" className="h-7 text-xs" onClick={addProjectTask} disabled={!taskForm.name.trim()}>Add</Button>
                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowTaskForm(false)}>Cancel</Button>
@@ -807,8 +861,32 @@ export function ProjectManager() {
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`h-1.5 w-1.5 rounded-full ${PRIORITY_CONFIG[task.priority]?.dotClass}`} />
                         <span className="text-[9px] text-muted-foreground">{format(parseISO(task.due_date), 'MMM d')}</span>
+                        {task.assigned_to && (
+                          <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                            <Users className="h-2 w-2" />{getAssigneeName(task.assigned_to)}
+                          </span>
+                        )}
                       </div>
                     </div>
+                    {/* Quick assign dropdown */}
+                    {isOwner && allAssignees.length > 1 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100">
+                            <UserPlus className="h-2.5 w-2.5 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onClick={() => assignTask(task.id, null)} className="text-xs">Unassign</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {allAssignees.map(a => (
+                            <DropdownMenuItem key={a.id} onClick={() => assignTask(task.id, a.id)} className="text-xs">
+                              {a.name} {task.assigned_to === a.id && <CheckCircle2 className="h-3 w-3 ml-auto text-emerald-500" />}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100" onClick={() => deleteProjectTask(task.id)}>
                       <Trash2 className="h-2.5 w-2.5 text-destructive" />
                     </Button>
@@ -856,6 +934,14 @@ export function ProjectManager() {
 
             {/* Team */}
             <TabsContent value="team" className="mt-4 space-y-4">
+              {/* Role Settings button (owner only) */}
+              {isOwner && (
+                <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setShowRoleSettings(true)}>
+                  <Settings2 className="h-3.5 w-3.5 mr-1.5" />Title & Role Settings
+                </Button>
+              )}
+
+              {/* Owner card */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
                 <div className="flex items-center gap-2.5">
                   <Avatar className="h-8 w-8"><AvatarFallback className="text-xs bg-primary/20 text-primary"><Crown className="h-3.5 w-3.5" /></AvatarFallback></Avatar>
@@ -871,31 +957,108 @@ export function ProjectManager() {
                 <div className="flex items-center justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
               ) : (
                 <>
+                  {/* Collaborators list */}
                   {collaborators.length > 0 && (
                     <div className="space-y-1">
                       <h4 className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Collaborators</h4>
-                      {collaborators.map(c => (
-                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/20 transition-colors group">
-                          <div className="flex items-center gap-2.5">
-                            <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{getInitials(c.profile?.display_name)}</AvatarFallback></Avatar>
-                            <div>
-                              <p className="text-sm font-medium">{c.profile?.display_name || 'Unknown'}</p>
-                              <span className="text-[10px] text-muted-foreground capitalize">{c.role}</span>
+                      {collaborators.sort((a, b) => (b.hierarchy_level || 0) - (a.hierarchy_level || 0)).map(c => (
+                        <div key={c.id} className="rounded-xl bg-muted/10 border border-border/30 hover:border-border transition-colors">
+                          <div className="flex items-center justify-between p-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{getInitials(c.profile?.display_name)}</AvatarFallback></Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{c.profile?.display_name || 'Unknown'}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {c.title && <Badge variant="secondary" className="text-[9px] h-4">{c.title}</Badge>}
+                                  <span className="text-[10px] text-muted-foreground capitalize">{c.role}</span>
+                                  {c.can_assign_tasks && (
+                                    <Badge variant="outline" className="text-[9px] h-4 gap-0.5"><Shield className="h-2 w-2" />Can assign</Badge>
+                                  )}
+                                </div>
+                              </div>
                             </div>
+                            {isOwner && (
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
+                                  setEditingCollabId(c.id);
+                                  setEditCollabForm({ title: c.title || '', role: c.role, can_assign_tasks: c.can_assign_tasks, hierarchy_level: c.hierarchy_level || 0 });
+                                }}>
+                                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => removeCollaborator(c.id)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100" onClick={() => removeCollaborator(c.id)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+
+                          {/* Inline edit form */}
+                          {editingCollabId === c.id && (
+                            <div className="border-t border-border/30 p-3 space-y-3">
+                              {/* Title */}
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Title / Position</label>
+                                {project.title_mode === 'free_text' ? (
+                                  <Input value={editCollabForm.title} onChange={e => setEditCollabForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Lead Designer" className="text-xs h-8 mt-1" />
+                                ) : (
+                                  <Select value={editCollabForm.title || ''} onValueChange={v => setEditCollabForm(f => ({ ...f, title: v }))}>
+                                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Select title..." /></SelectTrigger>
+                                    <SelectContent>
+                                      {availableTitles.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+
+                              {/* Role */}
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Role</label>
+                                <Select value={editCollabForm.role} onValueChange={v => setEditCollabForm(f => ({ ...f, role: v }))}>
+                                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="viewer">Viewer — read only</SelectItem>
+                                    <SelectItem value="member">Member — can work on tasks</SelectItem>
+                                    <SelectItem value="editor">Editor — can edit project</SelectItem>
+                                    <SelectItem value="admin">Admin — full access</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Permissions */}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Label className="text-xs">Can assign tasks</Label>
+                                  <p className="text-[10px] text-muted-foreground">Allow this person to assign tasks to others</p>
+                                </div>
+                                <Switch checked={editCollabForm.can_assign_tasks} onCheckedChange={v => setEditCollabForm(f => ({ ...f, can_assign_tasks: v }))} />
+                              </div>
+
+                              {/* Hierarchy level */}
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Hierarchy Level</label>
+                                <p className="text-[10px] text-muted-foreground mb-1">Higher number = higher authority (0 = base level)</p>
+                                <Input type="number" min={0} max={10} value={editCollabForm.hierarchy_level} onChange={e => setEditCollabForm(f => ({ ...f, hierarchy_level: parseInt(e.target.value) || 0 }))} className="text-xs h-8 w-20" />
+                              </div>
+
+                              {/* Save/Cancel */}
+                              <div className="flex gap-2">
+                                <Button size="sm" className="h-7 text-xs" onClick={() => updateCollaborator(c.id, { title: editCollabForm.title || null, role: editCollabForm.role, can_assign_tasks: editCollabForm.can_assign_tasks, hierarchy_level: editCollabForm.hierarchy_level })}>Save</Button>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingCollabId(null)}>Cancel</Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
+
+                  {/* Add from friends */}
                   {friends.length > 0 && (
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Add from Friends</h4>
-                      <ScrollArea className="max-h-[200px]">
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Add from friends</h4>
+                      <ScrollArea className="max-h-40">
                         {friends.map(f => (
-                          <div key={f.user_id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/20 transition-colors">
+                          <div key={f.user_id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/20 transition-colors">
                             <div className="flex items-center gap-2.5">
                               <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{getInitials(f.display_name)}</AvatarFallback></Avatar>
                               <p className="text-sm font-medium">{f.display_name || 'Unknown'}</p>
@@ -908,6 +1071,7 @@ export function ProjectManager() {
                       </ScrollArea>
                     </div>
                   )}
+
                   {collaborators.length === 0 && friends.length === 0 && (
                     <div className="text-center py-8">
                       <Users className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
@@ -1120,6 +1284,39 @@ export function ProjectManager() {
               <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Tags (comma separated)</label>
               <Input value={projectForm.tags} onChange={e => setProjectForm(f => ({ ...f, tags: e.target.value }))} className="mt-1 text-xs rounded-lg" placeholder="design, web, client-work" />
             </div>
+
+            {/* Title mode settings */}
+            <div className="border-t border-border pt-4">
+              <h4 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Team Title Settings</h4>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Title mode</label>
+                <Select value={projectForm.title_mode} onValueChange={v => setProjectForm(f => ({ ...f, title_mode: v }))}>
+                  <SelectTrigger className="mt-1 h-9 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free_text">Free text</SelectItem>
+                    <SelectItem value="custom_list">Custom list</SelectItem>
+                    <SelectItem value="industry_presets">Industry presets</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {projectForm.title_mode === 'custom_list' && (
+                <div className="mt-2">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Titles (comma separated)</label>
+                  <Input value={projectForm.custom_titles} onChange={e => setProjectForm(f => ({ ...f, custom_titles: e.target.value }))} className="mt-1 text-xs rounded-lg" placeholder="Director, Lead Designer, Developer" />
+                </div>
+              )}
+              {projectForm.title_mode === 'industry_presets' && (
+                <div className="mt-2">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Industry</label>
+                  <Select value={projectForm.industry || 'General'} onValueChange={v => setProjectForm(f => ({ ...f, industry: v }))}>
+                    <SelectTrigger className="mt-1 h-9 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(INDUSTRY_PRESETS).map(ind => <SelectItem key={ind} value={ind}>{ind}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="rounded-lg">Cancel</Button>
@@ -1129,6 +1326,7 @@ export function ProjectManager() {
       </Dialog>
 
       {renderProjectDetail()}
+      {renderRoleSettings()}
     </>
   );
 }
