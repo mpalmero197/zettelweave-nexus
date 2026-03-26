@@ -24,6 +24,7 @@ import {
   Mic,
   Trash2,
   Bug,
+  Brain,
 } from "lucide-react";
 
 interface TopNavBarProps {
@@ -34,7 +35,7 @@ interface TopNavBarProps {
 const navGroups = [
   {
     label: "Knowledge",
-    tabs: ["dashboard", "cards", "graph", "notes", "files", "learning"],
+    tabs: ["dashboard", "cards", "graph", "notes", "files", "learning", "knowledge-gaps"],
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { id: "cards", label: "Cards", icon: FileText },
@@ -42,6 +43,7 @@ const navGroups = [
       { id: "notes", label: "Notes", icon: BookOpen },
       { id: "files", label: "Files", icon: FolderOpen },
       { id: "learning", label: "Learning Hub", icon: GraduationCap },
+      { id: "knowledge-gaps", label: "Knowledge Gaps", icon: Lightbulb },
     ],
   },
   {
