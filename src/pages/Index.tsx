@@ -49,6 +49,7 @@ import { LearningHub } from "@/components/LearningHub";
 import { SpacesHub } from "@/components/spaces/SpacesHub";
 import { UnifiedSearchPage } from "@/components/UnifiedSearchPage";
 import { ProjectManager } from "@/components/ProjectManager";
+import { KnowledgeGapAnalyzer } from "@/components/KnowledgeGapAnalyzer";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -790,6 +791,10 @@ const Index = () => {
 
                 <TabsContent value="projects" className="mt-0">
                   <ProjectManager />
+                </TabsContent>
+
+                <TabsContent value="knowledge-gaps" className="mt-0">
+                  <KnowledgeGapAnalyzer />
                 </TabsContent>
 
               </div>
