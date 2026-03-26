@@ -1,62 +1,61 @@
 
 
-## Evernote Import for Pendragon
+# Knowledge Gap Analyzer
 
-### The Reality of Evernote Integration
+## Overview
+Build a **Knowledge Gap Analyzer** that scans the user's cards, notes, and scratchpad content, identifies topics where their knowledge is incomplete, and surfaces free learning resources (videos, books, courses, quotes) to fill those gaps. This appears as a new section/tab accessible from the Dashboard and as a dedicated panel.
 
-Evernote uses **OAuth 1.0a** authentication, which requires:
-1. Applying for an Evernote API key (manual review process, can take days/weeks)
-2. Server-side token exchange (OAuth 1.0a requires server-side signing with a consumer secret)
-3. Evernote's API has strict rate limits and their developer program has become increasingly restrictive
+## How It Works
 
-**Recommended approach**: Support **ENEX file import** -- this is Evernote's standard export format (XML-based). Users can export their notes from Evernote (File > Export Notes) and import the `.enex` file directly into Pendragon. This works immediately with no API key approval needed.
+1. **Content Analysis**: An edge function receives the user's cards/notes content, sends it to the Lovable AI Gateway (Gemini), and asks the model to identify knowledge gaps -- topics mentioned but not fully covered, assumptions without evidence, referenced concepts lacking depth.
 
-### What will be built
+2. **Resource Discovery**: For each gap, the AI returns structured recommendations including:
+   - YouTube/video search queries
+   - Open Library book suggestions
+   - Class Central / free course suggestions
+   - Relevant quotes or key concepts to research
+   - Wikipedia/reference links
 
-1. **ENEX parser utility** (`src/utils/evernoteImport.ts`)
-   - Parse `.enex` XML files using the browser's built-in `DOMParser`
-   - Extract note title, content (ENML/HTML), tags, created/updated dates, and attachments metadata
-   - Convert ENML (Evernote Markup Language) to clean HTML suitable for Zettel cards
-   - Handle multiple notes per `.enex` file (Evernote exports entire notebooks)
+3. **UI**: A `KnowledgeGapAnalyzer` component with:
+   - A "Scan My Knowledge" button that triggers analysis
+   - Gap cards showing the topic, why it's a gap, confidence level, and source notes
+   - Each gap expands to show recommended resources (videos, books, courses, articles)
+   - Ability to mark gaps as "resolved" or "studying"
+   - Filter by subject/category
 
-2. **Add Evernote tab to Import Studio** (`src/components/ImportStudio.tsx`)
-   - New "Evernote" tab alongside existing File/URL/Obsidian/Notion tabs
-   - Drag-and-drop or file picker for `.enex` files
-   - Preview parsed notes with title, tag count, and content snippet before importing
-   - Select/deselect individual notes
-   - Map Evernote tags to Zettel card tags
-   - Import selected notes as Zettel cards with auto-categorization
+## Technical Plan
 
-3. **Also support ENEX in Catalyst Import** (`src/components/CatalystImportDialog.tsx`)
-   - Add `.enex` to the supported file types for the Computer tab
-   - Parse and convert ENEX content to HTML for use in the Catalyst editor
+### 1. New Edge Function: `supabase/functions/analyze-knowledge-gaps/index.ts`
+- Accepts user's cards and notes content (titles + content, truncated)
+- Calls Lovable AI Gateway with a system prompt that instructs the model to:
+  - Identify 5-15 knowledge gaps from the provided content
+  - For each gap, suggest specific free resources (book titles from Open Library, course topics from Class Central, video search terms for YouTube)
+- Uses tool-calling for structured JSON output with schema: `{ gaps: [{ topic, description, severity, relatedNotes, resources: { videos, books, courses, articles, quotes } }] }`
+- Handles 429/402 errors
 
-### ENEX Format Structure (for reference)
-```text
-<?xml version="1.0" encoding="UTF-8"?>
-<en-export>
-  <note>
-    <title>Note Title</title>
-    <content><![CDATA[...ENML content...]]></content>
-    <created>20230101T120000Z</created>
-    <updated>20230615T180000Z</updated>
-    <tag>tag1</tag>
-    <tag>tag2</tag>
-  </note>
-  ...more notes...
-</en-export>
-```
+### 2. New Component: `src/components/KnowledgeGapAnalyzer.tsx`
+- Fetches cards via `useZettelCards`, notes via Supabase query
+- "Analyze" button sends content to the edge function
+- Displays gaps as expandable cards with resource links
+- Gap states: `new`, `studying`, `resolved`
+- Persists gap state in localStorage (or a new `knowledge_gaps` table if desired)
+- Resources link out to:
+  - YouTube search URLs
+  - Open Library search URLs
+  - Class Central search URLs
+  - Wikipedia article URLs
 
-### Technical Details
+### 3. Integration Points
+- **Dashboard**: Add a "Knowledge Gaps" widget/card in the Dashboard stats or as a tab
+- **Index.tsx**: Add a `knowledge-gaps` tab value so it's accessible from navigation
+- **MobileNavigation**: Add entry point if space allows, or nest under an existing menu
 
-- **No new dependencies needed** -- browser `DOMParser` handles XML parsing natively
-- **No database changes** -- imported notes become standard Zettel cards via existing `onImportCards`
-- **ENML to HTML conversion**: Strip Evernote-specific elements (`en-note`, `en-media`, `en-todo`), convert checkboxes to Unicode, preserve formatting
-- **File type addition**: Add `.enex` to `getSupportedFileTypes()` in `fileImportUtils.ts`
+### 4. Files to Create
+- `supabase/functions/analyze-knowledge-gaps/index.ts`
+- `src/components/KnowledgeGapAnalyzer.tsx`
 
-### User flow
-1. In Evernote: Select notes > File > Export Notes > Save as `.enex`
-2. In Pendragon: Open Import Studio > Evernote tab > Drop/select `.enex` file
-3. Preview notes, select which to import, click Import
-4. Notes appear as Zettel cards with preserved tags and content
+### 5. Files to Edit
+- `src/pages/Index.tsx` -- add tab content for knowledge gaps
+- `src/components/Dashboard.tsx` -- add a Knowledge Gaps summary card
+- `src/components/TopNavBar.tsx` or `src/components/MobileNavigation.tsx` -- add navigation entry
 
