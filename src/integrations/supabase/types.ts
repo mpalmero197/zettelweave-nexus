@@ -1193,6 +1193,60 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_gaps: {
+        Row: {
+          created_at: string
+          description: string
+          detailed_explanation: string | null
+          id: string
+          interest: string
+          resources: Json | null
+          scan_id: string | null
+          severity: string
+          source_materials: Json | null
+          status: string
+          topic: string
+          updated_at: string
+          user_id: string
+          what_you_know: string | null
+          what_you_need_to_learn: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          detailed_explanation?: string | null
+          id?: string
+          interest?: string
+          resources?: Json | null
+          scan_id?: string | null
+          severity?: string
+          source_materials?: Json | null
+          status?: string
+          topic: string
+          updated_at?: string
+          user_id: string
+          what_you_know?: string | null
+          what_you_need_to_learn?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          detailed_explanation?: string | null
+          id?: string
+          interest?: string
+          resources?: Json | null
+          scan_id?: string | null
+          severity?: string
+          source_materials?: Json | null
+          status?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+          what_you_know?: string | null
+          what_you_need_to_learn?: string | null
+        }
+        Relationships: []
+      }
       mind_maps: {
         Row: {
           created_at: string
