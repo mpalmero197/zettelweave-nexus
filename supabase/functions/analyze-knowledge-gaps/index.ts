@@ -19,20 +19,19 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build content summary from cards and notes
     const contentParts: string[] = [];
 
     if (cards?.length) {
       for (const card of cards.slice(0, 50)) {
         const snippet = (card.content || "").slice(0, 300);
-        contentParts.push(`[Card] ${card.title}: ${snippet}`);
+        contentParts.push(`[Card] "${card.title}": ${snippet}`);
       }
     }
 
     if (notes?.length) {
       for (const note of notes.slice(0, 30)) {
         const snippet = (note.content || "").slice(0, 300);
-        contentParts.push(`[Note] ${note.title}: ${snippet}`);
+        contentParts.push(`[Note] "${note.title}": ${snippet}`);
       }
     }
 
@@ -51,7 +50,7 @@ For each gap, provide:
 - A clear topic name
 - Why it's a gap (what's missing or shallow)
 - Severity: "high" (fundamental missing knowledge), "medium" (incomplete understanding), or "low" (nice-to-know)
-- Which of the user's notes/cards relate to this gap
+- sourceMaterials: An array of objects identifying EXACTLY which of the user's cards or notes relate to this gap. Each object must have "title" (the exact title from the user's content) and "type" ("card" or "note").
 - Specific free learning resources:
   - 1-2 YouTube video search queries
   - 1-2 book titles (real, well-known books)
@@ -59,7 +58,7 @@ For each gap, provide:
   - 1 Wikipedia article title
   - 1 relevant quote from a notable figure
 
-Identify 5-12 gaps. Focus on actionable, specific gaps rather than vague suggestions.`;
+Identify 5-12 gaps. Focus on actionable, specific gaps rather than vague suggestions. Make sure sourceMaterials references real titles from the user's content.`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -99,9 +98,17 @@ Identify 5-12 gaps. Focus on actionable, specific gaps rather than vague suggest
                             type: "string",
                             enum: ["high", "medium", "low"],
                           },
-                          relatedNotes: {
+                          sourceMaterials: {
                             type: "array",
-                            items: { type: "string" },
+                            items: {
+                              type: "object",
+                              properties: {
+                                title: { type: "string" },
+                                type: { type: "string", enum: ["card", "note"] },
+                              },
+                              required: ["title", "type"],
+                              additionalProperties: false,
+                            },
                           },
                           resources: {
                             type: "object",
@@ -141,7 +148,7 @@ Identify 5-12 gaps. Focus on actionable, specific gaps rather than vague suggest
                           "topic",
                           "description",
                           "severity",
-                          "relatedNotes",
+                          "sourceMaterials",
                           "resources",
                         ],
                         additionalProperties: false,
