@@ -114,6 +114,7 @@ export function AppLayout() {
       case "learning":
       case "projects":
       case "spaces":
+      case "knowledge-gaps":
         // These are all tabs within /app
         navigate("/app");
         // We dispatch a custom event so Index.tsx can pick up the tab
