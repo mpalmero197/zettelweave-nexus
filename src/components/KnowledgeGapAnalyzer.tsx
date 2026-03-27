@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,27 +11,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Brain,
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  BookOpen,
-  Video,
-  GraduationCap,
-  Globe,
-  Quote,
-  Loader2,
-  Sparkles,
-  AlertTriangle,
-  Info,
-  Zap,
-  FileText,
-  StickyNote,
-  Plus,
-  Star,
-  HelpCircle,
-  XCircle,
-  ThumbsUp,
+  Brain, ChevronDown, ChevronRight, ExternalLink, BookOpen, Video,
+  GraduationCap, Globe, Quote, Loader2, Sparkles, AlertTriangle,
+  Info, Zap, FileText, StickyNote, Plus, HelpCircle, XCircle,
+  ThumbsUp, Save, Trash2, Eye, BookMarked, Lightbulb, Target,
 } from 'lucide-react';
 
 interface SourceMaterial {
@@ -40,11 +23,16 @@ interface SourceMaterial {
 }
 
 interface KnowledgeGap {
+  id?: string;
   topic: string;
   description: string;
+  detailed_explanation?: string;
+  what_you_know?: string;
+  what_you_need_to_learn?: string;
   severity: 'high' | 'medium' | 'low';
+  interest: 'interested' | 'unsure' | 'uninterested';
+  status: 'new' | 'studying' | 'resolved';
   sourceMaterials: SourceMaterial[];
-  relatedNotes?: string[];
   resources: {
     videos: string[];
     books: string[];
@@ -52,63 +40,113 @@ interface KnowledgeGap {
     articles: string[];
     quotes: string[];
   };
+  saved?: boolean;
 }
 
 type InterestLevel = 'interested' | 'unsure' | 'uninterested';
-type GapStatus = 'new' | 'studying' | 'resolved';
-
-interface GapState {
-  status: GapStatus;
-  interest: InterestLevel;
-}
-
-interface GapStates {
-  [topic: string]: GapState;
-}
-
-const STORAGE_KEY = 'pendragonx-knowledge-gap-states-v2';
-const CACHE_KEY = 'pendragonx-knowledge-gaps-cache-v2';
 
 export function KnowledgeGapAnalyzer() {
   const { user } = useAuth();
   const { cards, createCard } = useZettelCards();
   const [gaps, setGaps] = useState<KnowledgeGap[]>([]);
-  const [gapStates, setGapStates] = useState<GapStates>({});
+  const [savedGaps, setSavedGaps] = useState<KnowledgeGap[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [expandedGap, setExpandedGap] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'interested' | 'unsure' | 'uninterested'>('all');
+  const [filter, setFilter] = useState<'all' | 'saved' | 'interested' | 'unsure' | 'uninterested'>('all');
+  const [viewMode, setViewMode] = useState<'scan' | 'saved'>('saved');
   const [createDialog, setCreateDialog] = useState<{ open: boolean; gap: KnowledgeGap | null; mode: 'card' | 'note' }>({ open: false, gap: null, mode: 'card' });
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
   const [creating, setCreating] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(true);
 
-  useEffect(() => {
+  // Load saved gaps from Supabase
+  const loadSavedGaps = useCallback(async () => {
+    if (!user) return;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setGapStates(JSON.parse(saved));
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) setGaps(JSON.parse(cached));
-    } catch {}
-  }, []);
+      const { data, error } = await supabase
+        .from('knowledge_gaps')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(gapStates));
-  }, [gapStates]);
+      if (error) throw error;
 
-  const getState = (topic: string): GapState => gapStates[topic] || { status: 'new', interest: 'unsure' };
+      const mapped: KnowledgeGap[] = (data || []).map((row: any) => ({
+        id: row.id,
+        topic: row.topic,
+        description: row.description,
+        detailed_explanation: row.detailed_explanation,
+        what_you_know: row.what_you_know,
+        what_you_need_to_learn: row.what_you_need_to_learn,
+        severity: row.severity as 'high' | 'medium' | 'low',
+        interest: row.interest as InterestLevel,
+        status: row.status as 'new' | 'studying' | 'resolved',
+        sourceMaterials: (row.source_materials as any) || [],
+        resources: (row.resources as any) || { videos: [], books: [], courses: [], articles: [], quotes: [] },
+        saved: true,
+      }));
+      setSavedGaps(mapped);
+    } catch (err) {
+      console.error('Failed to load saved gaps:', err);
+    } finally {
+      setLoadingSaved(false);
+    }
+  }, [user]);
 
-  const setInterest = (topic: string, interest: InterestLevel) => {
-    setGapStates(prev => ({
-      ...prev,
-      [topic]: { ...getState(topic), interest },
-    }));
+  useEffect(() => { loadSavedGaps(); }, [loadSavedGaps]);
+
+  const saveGap = async (gap: KnowledgeGap) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.from('knowledge_gaps').insert({
+        user_id: user.id,
+        topic: gap.topic,
+        description: gap.description,
+        detailed_explanation: gap.detailed_explanation || null,
+        what_you_know: gap.what_you_know || null,
+        what_you_need_to_learn: gap.what_you_need_to_learn || null,
+        severity: gap.severity,
+        interest: gap.interest || 'unsure',
+        status: gap.status || 'new',
+        source_materials: gap.sourceMaterials as any,
+        resources: gap.resources as any,
+      }).select().single();
+
+      if (error) throw error;
+      toast.success(`Saved "${gap.topic}" to your knowledge gaps`);
+      // Update scan results to mark as saved
+      setGaps(prev => prev.map(g => g.topic === gap.topic ? { ...g, saved: true, id: data.id } : g));
+      await loadSavedGaps();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save gap');
+    }
   };
 
-  const setStatus = (topic: string, status: GapStatus) => {
-    setGapStates(prev => ({
-      ...prev,
-      [topic]: { ...getState(topic), status },
-    }));
+  const deleteGap = async (gap: KnowledgeGap) => {
+    if (!user || !gap.id) return;
+    try {
+      const { error } = await supabase.from('knowledge_gaps').delete().eq('id', gap.id);
+      if (error) throw error;
+      toast.success(`Removed "${gap.topic}"`);
+      setSavedGaps(prev => prev.filter(g => g.id !== gap.id));
+      setGaps(prev => prev.map(g => g.topic === gap.topic ? { ...g, saved: false, id: undefined } : g));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete');
+    }
+  };
+
+  const updateGapField = async (gap: KnowledgeGap, field: string, value: string) => {
+    if (!user || !gap.id) return;
+    try {
+      const { error } = await supabase.from('knowledge_gaps')
+        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .eq('id', gap.id);
+      if (error) throw error;
+      setSavedGaps(prev => prev.map(g => g.id === gap.id ? { ...g, [field]: value } : g));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update');
+    }
   };
 
   const analyzeKnowledge = async () => {
@@ -116,15 +154,11 @@ export function KnowledgeGapAnalyzer() {
     setAnalyzing(true);
     try {
       const { data: notes } = await supabase
-        .from('notes')
-        .select('title, content')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('updated_at', { ascending: false })
-        .limit(30);
+        .from('notes').select('title, content')
+        .eq('user_id', user.id).is('deleted_at', null)
+        .order('updated_at', { ascending: false }).limit(30);
 
       const cardData = cards.map(c => ({ title: c.title, content: c.content }));
-
       if (cardData.length === 0 && (!notes || notes.length === 0)) {
         toast.error('Add some cards or notes first');
         setAnalyzing(false);
@@ -143,8 +177,15 @@ export function KnowledgeGapAnalyzer() {
       }
 
       if (data?.gaps) {
-        setGaps(data.gaps);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data.gaps));
+        const savedTopics = new Set(savedGaps.map(g => g.topic));
+        const enrichedGaps: KnowledgeGap[] = data.gaps.map((g: any) => ({
+          ...g,
+          interest: 'unsure' as InterestLevel,
+          status: 'new' as const,
+          saved: savedTopics.has(g.topic),
+        }));
+        setGaps(enrichedGaps);
+        setViewMode('scan');
         toast.success(`Found ${data.gaps.length} knowledge gaps`);
       }
     } catch (err: any) {
@@ -156,14 +197,18 @@ export function KnowledgeGapAnalyzer() {
   };
 
   const openCreateDialog = (gap: KnowledgeGap, mode: 'card' | 'note') => {
-    const resourceList = [
+    const sections = [
+      gap.detailed_explanation && `## About This Topic\n${gap.detailed_explanation}`,
+      gap.what_you_know && `## What You Already Know\n${gap.what_you_know}`,
+      gap.what_you_need_to_learn && `## What You Need to Learn\n${gap.what_you_need_to_learn}`,
+      `## Recommended Resources`,
       ...gap.resources.books.map(b => `📚 ${b}`),
       ...gap.resources.articles.map(a => `📄 ${a}`),
       ...gap.resources.courses.map(c => `🎓 ${c}`),
-    ].join('\n');
+    ].filter(Boolean).join('\n\n');
 
     setCreateTitle(`Knowledge Gap: ${gap.topic}`);
-    setCreateContent(`${gap.description}\n\n--- Recommended Resources ---\n${resourceList}`);
+    setCreateContent(`${gap.description}\n\n${sections}`);
     setCreateDialog({ open: true, gap, mode });
   };
 
@@ -173,26 +218,22 @@ export function KnowledgeGapAnalyzer() {
     try {
       if (createDialog.mode === 'card') {
         await createCard({
-          title: createTitle,
-          content: createContent,
-          number: '',
-          description: createDialog.gap.description,
-          category: 'knowledge-gap',
-          tags: ['knowledge-gap', createDialog.gap.severity],
-          linkedCards: [],
+          title: createTitle, content: createContent, number: '',
+          description: createDialog.gap.description, category: 'knowledge-gap',
+          tags: ['knowledge-gap', createDialog.gap.severity], linkedCards: [],
         });
         toast.success('Card created from knowledge gap');
       } else {
         const { error } = await supabase.from('notes').insert({
-          user_id: user.id,
-          title: createTitle,
-          content: createContent,
+          user_id: user.id, title: createTitle, content: createContent,
           tags: ['knowledge-gap', createDialog.gap.severity],
         });
         if (error) throw error;
         toast.success('Note created from knowledge gap');
       }
-      setStatus(createDialog.gap.topic, 'studying');
+      if (createDialog.gap.id) {
+        await updateGapField(createDialog.gap, 'status', 'studying');
+      }
       setCreateDialog({ open: false, gap: null, mode: 'card' });
     } catch (err: any) {
       toast.error(err.message || 'Failed to create');
@@ -202,27 +243,29 @@ export function KnowledgeGapAnalyzer() {
   };
 
   const severityConfig = {
-    high: { color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: AlertTriangle, label: 'Critical' },
-    medium: { color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Info, label: 'Moderate' },
-    low: { color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Zap, label: 'Minor' },
+    high: { color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20', icon: AlertTriangle, label: 'Critical' },
+    medium: { color: 'text-warning', bg: 'bg-warning/10 border-warning/20', icon: Info, label: 'Moderate' },
+    low: { color: 'text-primary', bg: 'bg-primary/10 border-primary/20', icon: Zap, label: 'Minor' },
   };
 
   const interestConfig = {
-    interested: { icon: ThumbsUp, label: 'Interested', className: 'bg-green-500/10 border-green-500/30 text-green-400' },
-    unsure: { icon: HelpCircle, label: 'Unsure', className: 'bg-amber-500/10 border-amber-500/30 text-amber-400' },
+    interested: { icon: ThumbsUp, label: 'Interested', className: 'bg-primary/10 border-primary/30 text-primary' },
+    unsure: { icon: HelpCircle, label: 'Unsure', className: 'bg-warning/10 border-warning/30 text-warning' },
     uninterested: { icon: XCircle, label: 'Not Interested', className: 'bg-muted/50 border-border text-muted-foreground' },
   };
 
-  const filteredGaps = gaps.filter(gap => {
+  const displayGaps = viewMode === 'saved' ? savedGaps : gaps;
+  const filteredGaps = displayGaps.filter(gap => {
     if (filter === 'all') return true;
-    return getState(gap.topic).interest === filter;
+    if (filter === 'saved') return gap.saved;
+    return gap.interest === filter;
   });
 
   const stats = {
-    total: gaps.length,
-    interested: gaps.filter(g => getState(g.topic).interest === 'interested').length,
-    unsure: gaps.filter(g => getState(g.topic).interest === 'unsure').length,
-    uninterested: gaps.filter(g => getState(g.topic).interest === 'uninterested').length,
+    total: displayGaps.length,
+    saved: viewMode === 'scan' ? gaps.filter(g => g.saved).length : savedGaps.length,
+    interested: displayGaps.filter(g => g.interest === 'interested').length,
+    unsure: displayGaps.filter(g => g.interest === 'unsure').length,
   };
 
   return (
@@ -235,7 +278,7 @@ export function KnowledgeGapAnalyzer() {
             Knowledge Gaps
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Discover what you haven't mastered yet and find resources to fill the gaps.
+            Discover what you haven't mastered yet and save gaps to study.
           </p>
         </div>
         <Button onClick={analyzeKnowledge} disabled={analyzing} size="sm" className="shrink-0">
@@ -244,24 +287,35 @@ export function KnowledgeGapAnalyzer() {
         </Button>
       </div>
 
+      {/* View mode tabs */}
+      <div className="flex gap-2">
+        <Button variant={viewMode === 'saved' ? 'default' : 'outline'} size="sm"
+          onClick={() => { setViewMode('saved'); setFilter('all'); }}>
+          <BookMarked className="h-3.5 w-3.5 mr-1.5" />Saved Gaps ({savedGaps.length})
+        </Button>
+        {gaps.length > 0 && (
+          <Button variant={viewMode === 'scan' ? 'default' : 'outline'} size="sm"
+            onClick={() => { setViewMode('scan'); setFilter('all'); }}>
+            <Eye className="h-3.5 w-3.5 mr-1.5" />Scan Results ({gaps.length})
+          </Button>
+        )}
+      </div>
+
       {/* Filter stats */}
-      {gaps.length > 0 && (
+      {displayGaps.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
           {([
             { label: 'All', value: stats.total, key: 'all' as const },
+            { label: viewMode === 'scan' ? 'Saved' : 'Total', value: stats.saved, key: 'saved' as const },
             { label: 'Interested', value: stats.interested, key: 'interested' as const },
             { label: 'Unsure', value: stats.unsure, key: 'unsure' as const },
-            { label: 'Skip', value: stats.uninterested, key: 'uninterested' as const },
           ]).map(stat => (
-            <button
-              key={stat.key}
-              onClick={() => setFilter(stat.key)}
+            <button key={stat.key} onClick={() => setFilter(stat.key)}
               className={`p-3 rounded-lg border transition-colors text-center ${
                 filter === stat.key
                   ? 'bg-primary/10 border-primary/30 text-foreground'
                   : 'border-border bg-card hover:bg-accent/50 text-muted-foreground'
-              }`}
-            >
+              }`}>
               <p className="text-lg font-bold tabular-nums">{stat.value}</p>
               <p className="text-[10px] uppercase tracking-wide">{stat.label}</p>
             </button>
@@ -272,139 +326,47 @@ export function KnowledgeGapAnalyzer() {
       {/* Gap List */}
       {filteredGaps.length > 0 ? (
         <div className="space-y-3">
-          {filteredGaps.map((gap) => {
-            const state = getState(gap.topic);
-            const severity = severityConfig[gap.severity];
-            const SeverityIcon = severity.icon;
-            const interest = interestConfig[state.interest];
-            const InterestIcon = interest.icon;
-            const isOpen = expandedGap === gap.topic;
-
-            return (
-              <Collapsible key={gap.topic} open={isOpen} onOpenChange={() => setExpandedGap(isOpen ? null : gap.topic)}>
-                <Card className={`border transition-colors ${state.interest === 'uninterested' ? 'opacity-50' : ''}`}>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-accent/30 transition-colors pb-3">
-                      <div className="flex items-start gap-3">
-                        <SeverityIcon className={`h-4 w-4 mt-0.5 shrink-0 ${severity.color}`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <CardTitle className="text-sm font-medium">{gap.topic}</CardTitle>
-                            <Badge variant="outline" className={`text-[10px] ${severity.bg}`}>{severity.label}</Badge>
-                            <Badge variant="outline" className={`text-[10px] ${interest.className}`}>
-                              <InterestIcon className="h-2.5 w-2.5 mr-1" />{interest.label}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{gap.description}</p>
-                        </div>
-                        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent>
-                    <CardContent className="pt-0 space-y-4">
-                      {/* Interest buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        {(['interested', 'unsure', 'uninterested'] as InterestLevel[]).map(level => {
-                          const cfg = interestConfig[level];
-                          const Icon = cfg.icon;
-                          const isActive = state.interest === level;
-                          return (
-                            <Button
-                              key={level}
-                              variant={isActive ? 'default' : 'outline'}
-                              size="sm"
-                              className={`text-xs h-7 ${isActive ? '' : 'text-muted-foreground'}`}
-                              onClick={(e) => { e.stopPropagation(); setInterest(gap.topic, level); }}
-                            >
-                              <Icon className="h-3 w-3 mr-1" />{cfg.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Create card/note actions */}
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); openCreateDialog(gap, 'card'); }}>
-                          <FileText className="h-3 w-3 mr-1" />Create Card
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); openCreateDialog(gap, 'note'); }}>
-                          <StickyNote className="h-3 w-3 mr-1" />Create Note
-                        </Button>
-                      </div>
-
-                      {/* Source materials */}
-                      {gap.sourceMaterials && gap.sourceMaterials.length > 0 && (
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">Based on your content</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {gap.sourceMaterials.map((src, i) => (
-                              <Badge key={i} variant="secondary" className="text-[10px] gap-1">
-                                {src.type === 'card' ? <FileText className="h-2.5 w-2.5" /> : <BookOpen className="h-2.5 w-2.5" />}
-                                {src.title}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Fallback: relatedNotes from legacy data */}
-                      {(!gap.sourceMaterials || gap.sourceMaterials.length === 0) && gap.relatedNotes && gap.relatedNotes.length > 0 && (
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">Related Content</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {gap.relatedNotes.map((note, i) => (
-                              <Badge key={i} variant="secondary" className="text-[10px]">{note}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Resources */}
-                      <div className="space-y-3">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Learning Resources</p>
-
-                        {gap.resources.videos.length > 0 && (
-                          <ResourceSection icon={Video} label="Videos" items={gap.resources.videos} urlFn={(q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`} />
-                        )}
-                        {gap.resources.books.length > 0 && (
-                          <ResourceSection icon={BookOpen} label="Books" items={gap.resources.books} urlFn={(b) => `https://openlibrary.org/search?q=${encodeURIComponent(b)}`} />
-                        )}
-                        {gap.resources.courses.length > 0 && (
-                          <ResourceSection icon={GraduationCap} label="Free Courses" items={gap.resources.courses} urlFn={(c) => `https://www.classcentral.com/search?q=${encodeURIComponent(c)}`} />
-                        )}
-                        {gap.resources.articles.length > 0 && (
-                          <ResourceSection icon={Globe} label="Articles" items={gap.resources.articles} urlFn={(a) => `https://en.wikipedia.org/wiki/${encodeURIComponent(a.replace(/ /g, '_'))}`} />
-                        )}
-                        {gap.resources.quotes.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Quote className="h-3 w-3" /> Quotes</p>
-                            {gap.resources.quotes.map((quote, i) => (
-                              <p key={i} className="text-xs italic text-muted-foreground p-2 rounded-md bg-muted/30 border-l-2 border-primary/30">"{quote}"</p>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            );
-          })}
+          {filteredGaps.map((gap) => (
+            <GapCard
+              key={gap.id || gap.topic}
+              gap={gap}
+              isOpen={expandedGap === (gap.id || gap.topic)}
+              onToggle={() => setExpandedGap(expandedGap === (gap.id || gap.topic) ? null : (gap.id || gap.topic))}
+              severityConfig={severityConfig}
+              interestConfig={interestConfig}
+              onSave={() => saveGap(gap)}
+              onDelete={() => deleteGap(gap)}
+              onInterestChange={(interest) => {
+                if (gap.id) updateGapField(gap, 'interest', interest);
+                else setGaps(prev => prev.map(g => g.topic === gap.topic ? { ...g, interest } : g));
+              }}
+              onStatusChange={(status) => {
+                if (gap.id) updateGapField(gap, 'status', status);
+              }}
+              onCreateCard={() => openCreateDialog(gap, 'card')}
+              onCreateNote={() => openCreateDialog(gap, 'note')}
+            />
+          ))}
         </div>
-      ) : gaps.length === 0 ? (
+      ) : loadingSaved ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-6 w-6 mx-auto mb-3 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading saved gaps...</p>
+          </CardContent>
+        </Card>
+      ) : displayGaps.length === 0 && viewMode === 'saved' ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <Brain className="h-8 w-8 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground mb-1">No knowledge gaps analyzed yet</p>
-            <p className="text-xs text-muted-foreground/60 mb-4">Click "Scan My Knowledge" to analyze your cards and notes</p>
+            <p className="text-sm text-muted-foreground mb-1">No saved knowledge gaps yet</p>
+            <p className="text-xs text-muted-foreground/60 mb-4">Click "Scan My Knowledge" to find gaps, then save the ones you want to study</p>
           </CardContent>
         </Card>
       ) : (
         <Card className="border-dashed">
           <CardContent className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">No gaps match the "{filter}" filter</p>
+            <p className="text-sm text-muted-foreground">No gaps match the current filter</p>
           </CardContent>
         </Card>
       )}
@@ -420,7 +382,7 @@ export function KnowledgeGapAnalyzer() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <Input value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="Title" />
-            <Textarea value={createContent} onChange={(e) => setCreateContent(e.target.value)} placeholder="Content" rows={8} className="text-sm" />
+            <Textarea value={createContent} onChange={(e) => setCreateContent(e.target.value)} placeholder="Content" rows={10} className="text-sm" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialog({ open: false, gap: null, mode: 'card' })}>Cancel</Button>
@@ -432,6 +394,166 @@ export function KnowledgeGapAnalyzer() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function GapCard({ gap, isOpen, onToggle, severityConfig, interestConfig, onSave, onDelete, onInterestChange, onStatusChange, onCreateCard, onCreateNote }: {
+  gap: KnowledgeGap;
+  isOpen: boolean;
+  onToggle: () => void;
+  severityConfig: any;
+  interestConfig: any;
+  onSave: () => void;
+  onDelete: () => void;
+  onInterestChange: (interest: InterestLevel) => void;
+  onStatusChange: (status: string) => void;
+  onCreateCard: () => void;
+  onCreateNote: () => void;
+}) {
+  const severity = severityConfig[gap.severity];
+  const SeverityIcon = severity.icon;
+  const interest = interestConfig[gap.interest || 'unsure'];
+  const InterestIcon = interest.icon;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={onToggle}>
+      <Card className={`border transition-colors ${gap.interest === 'uninterested' ? 'opacity-50' : ''}`}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-accent/30 transition-colors pb-3">
+            <div className="flex items-start gap-3">
+              <SeverityIcon className={`h-4 w-4 mt-0.5 shrink-0 ${severity.color}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-sm font-medium">{gap.topic}</CardTitle>
+                  <Badge variant="outline" className={`text-[10px] ${severity.bg}`}>{severity.label}</Badge>
+                  <Badge variant="outline" className={`text-[10px] ${interest.className}`}>
+                    <InterestIcon className="h-2.5 w-2.5 mr-1" />{interest.label}
+                  </Badge>
+                  {gap.saved && <Badge variant="secondary" className="text-[10px]"><Save className="h-2.5 w-2.5 mr-1" />Saved</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{gap.description}</p>
+              </div>
+              {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent className="pt-0 space-y-4">
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2">
+              {!gap.saved ? (
+                <Button variant="default" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); onSave(); }}>
+                  <Save className="h-3 w-3 mr-1" />Save Gap
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="text-xs h-7 text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                  <Trash2 className="h-3 w-3 mr-1" />Remove
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); onCreateCard(); }}>
+                <FileText className="h-3 w-3 mr-1" />Create Card
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); onCreateNote(); }}>
+                <StickyNote className="h-3 w-3 mr-1" />Create Note
+              </Button>
+            </div>
+
+            {/* Interest buttons */}
+            <div className="flex flex-wrap gap-2">
+              {(['interested', 'unsure', 'uninterested'] as InterestLevel[]).map(level => {
+                const cfg = interestConfig[level];
+                const Icon = cfg.icon;
+                const isActive = gap.interest === level;
+                return (
+                  <Button key={level} variant={isActive ? 'default' : 'outline'} size="sm"
+                    className={`text-xs h-7 ${isActive ? '' : 'text-muted-foreground'}`}
+                    onClick={(e) => { e.stopPropagation(); onInterestChange(level); }}>
+                    <Icon className="h-3 w-3 mr-1" />{cfg.label}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Detailed explanation */}
+            {gap.detailed_explanation && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Lightbulb className="h-3 w-3" /> About This Topic
+                </p>
+                <div className="text-xs text-foreground/90 leading-relaxed p-3 rounded-md bg-muted/30 border border-border whitespace-pre-line">
+                  {gap.detailed_explanation}
+                </div>
+              </div>
+            )}
+
+            {/* What you know */}
+            {gap.what_you_know && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-1.5">
+                  <BookOpen className="h-3 w-3" /> What You Already Know
+                </p>
+                <div className="text-xs text-foreground/80 leading-relaxed p-3 rounded-md bg-primary/5 border border-primary/10">
+                  {gap.what_you_know}
+                </div>
+              </div>
+            )}
+
+            {/* What you need to learn */}
+            {gap.what_you_need_to_learn && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Target className="h-3 w-3" /> What You Need to Learn
+                </p>
+                <div className="text-xs text-foreground/80 leading-relaxed p-3 rounded-md bg-accent/30 border border-accent/20">
+                  {gap.what_you_need_to_learn}
+                </div>
+              </div>
+            )}
+
+            {/* Source materials */}
+            {gap.sourceMaterials && gap.sourceMaterials.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">Based on your content</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {gap.sourceMaterials.map((src, i) => (
+                    <Badge key={i} variant="secondary" className="text-[10px] gap-1">
+                      {src.type === 'card' ? <FileText className="h-2.5 w-2.5" /> : <BookOpen className="h-2.5 w-2.5" />}
+                      {src.title}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resources */}
+            <div className="space-y-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Learning Resources</p>
+              {gap.resources.videos.length > 0 && (
+                <ResourceSection icon={Video} label="Videos" items={gap.resources.videos} urlFn={(q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`} />
+              )}
+              {gap.resources.books.length > 0 && (
+                <ResourceSection icon={BookOpen} label="Books" items={gap.resources.books} urlFn={(b) => `https://openlibrary.org/search?q=${encodeURIComponent(b)}`} />
+              )}
+              {gap.resources.courses.length > 0 && (
+                <ResourceSection icon={GraduationCap} label="Free Courses" items={gap.resources.courses} urlFn={(c) => `https://www.classcentral.com/search?q=${encodeURIComponent(c)}`} />
+              )}
+              {gap.resources.articles.length > 0 && (
+                <ResourceSection icon={Globe} label="Articles" items={gap.resources.articles} urlFn={(a) => `https://en.wikipedia.org/wiki/${encodeURIComponent(a.replace(/ /g, '_'))}`} />
+              )}
+              {gap.resources.quotes.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Quote className="h-3 w-3" /> Quotes</p>
+                  {gap.resources.quotes.map((quote, i) => (
+                    <p key={i} className="text-xs italic text-muted-foreground p-2 rounded-md bg-muted/30 border-l-2 border-primary/30">"{quote}"</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
 
