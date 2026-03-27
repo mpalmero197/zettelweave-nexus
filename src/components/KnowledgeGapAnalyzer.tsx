@@ -3,6 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,18 +22,29 @@ import {
   Quote,
   Loader2,
   Sparkles,
-  CheckCircle2,
-  BookMarked,
   AlertTriangle,
   Info,
   Zap,
+  FileText,
+  StickyNote,
+  Plus,
+  Star,
+  HelpCircle,
+  XCircle,
+  ThumbsUp,
 } from 'lucide-react';
+
+interface SourceMaterial {
+  title: string;
+  type: 'card' | 'note';
+}
 
 interface KnowledgeGap {
   topic: string;
   description: string;
   severity: 'high' | 'medium' | 'low';
-  relatedNotes: string[];
+  sourceMaterials: SourceMaterial[];
+  relatedNotes?: string[];
   resources: {
     videos: string[];
     books: string[];
@@ -40,25 +54,34 @@ interface KnowledgeGap {
   };
 }
 
+type InterestLevel = 'interested' | 'unsure' | 'uninterested';
 type GapStatus = 'new' | 'studying' | 'resolved';
 
 interface GapState {
-  [topic: string]: GapStatus;
+  status: GapStatus;
+  interest: InterestLevel;
 }
 
-const STORAGE_KEY = 'pendragonx-knowledge-gap-states';
-const CACHE_KEY = 'pendragonx-knowledge-gaps-cache';
+interface GapStates {
+  [topic: string]: GapState;
+}
+
+const STORAGE_KEY = 'pendragonx-knowledge-gap-states-v2';
+const CACHE_KEY = 'pendragonx-knowledge-gaps-cache-v2';
 
 export function KnowledgeGapAnalyzer() {
   const { user } = useAuth();
-  const { cards } = useZettelCards();
+  const { cards, createCard } = useZettelCards();
   const [gaps, setGaps] = useState<KnowledgeGap[]>([]);
-  const [gapStates, setGapStates] = useState<GapState>({});
+  const [gapStates, setGapStates] = useState<GapStates>({});
   const [analyzing, setAnalyzing] = useState(false);
   const [expandedGap, setExpandedGap] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'new' | 'studying' | 'resolved'>('all');
+  const [filter, setFilter] = useState<'all' | 'interested' | 'unsure' | 'uninterested'>('all');
+  const [createDialog, setCreateDialog] = useState<{ open: boolean; gap: KnowledgeGap | null; mode: 'card' | 'note' }>({ open: false, gap: null, mode: 'card' });
+  const [createTitle, setCreateTitle] = useState('');
+  const [createContent, setCreateContent] = useState('');
+  const [creating, setCreating] = useState(false);
 
-  // Load persisted state
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -68,20 +91,30 @@ export function KnowledgeGapAnalyzer() {
     } catch {}
   }, []);
 
-  // Save state changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(gapStates));
   }, [gapStates]);
 
-  const analyzeKnowledge = async () => {
-    if (!user) {
-      toast.error('Sign in to analyze your knowledge');
-      return;
-    }
+  const getState = (topic: string): GapState => gapStates[topic] || { status: 'new', interest: 'unsure' };
 
+  const setInterest = (topic: string, interest: InterestLevel) => {
+    setGapStates(prev => ({
+      ...prev,
+      [topic]: { ...getState(topic), interest },
+    }));
+  };
+
+  const setStatus = (topic: string, status: GapStatus) => {
+    setGapStates(prev => ({
+      ...prev,
+      [topic]: { ...getState(topic), status },
+    }));
+  };
+
+  const analyzeKnowledge = async () => {
+    if (!user) { toast.error('Sign in to analyze your knowledge'); return; }
     setAnalyzing(true);
     try {
-      // Fetch notes
       const { data: notes } = await supabase
         .from('notes')
         .select('title, content')
@@ -90,13 +123,10 @@ export function KnowledgeGapAnalyzer() {
         .order('updated_at', { ascending: false })
         .limit(30);
 
-      const cardData = cards.map(c => ({
-        title: c.title,
-        content: c.content,
-      }));
+      const cardData = cards.map(c => ({ title: c.title, content: c.content }));
 
       if (cardData.length === 0 && (!notes || notes.length === 0)) {
-        toast.error('Add some cards or notes first to analyze knowledge gaps');
+        toast.error('Add some cards or notes first');
         setAnalyzing(false);
         return;
       }
@@ -106,13 +136,9 @@ export function KnowledgeGapAnalyzer() {
       });
 
       if (error) {
-        if (error.message?.includes('429')) {
-          toast.error('Rate limited — please try again in a moment');
-        } else if (error.message?.includes('402')) {
-          toast.error('AI credits exhausted. Add funds in Settings > Workspace > Usage.');
-        } else {
-          throw error;
-        }
+        if (error.message?.includes('429')) toast.error('Rate limited — try again shortly');
+        else if (error.message?.includes('402')) toast.error('AI credits exhausted');
+        else throw error;
         return;
       }
 
@@ -129,28 +155,74 @@ export function KnowledgeGapAnalyzer() {
     }
   };
 
-  const setGapStatus = (topic: string, status: GapStatus) => {
-    setGapStates(prev => ({ ...prev, [topic]: status }));
+  const openCreateDialog = (gap: KnowledgeGap, mode: 'card' | 'note') => {
+    const resourceList = [
+      ...gap.resources.books.map(b => `📚 ${b}`),
+      ...gap.resources.articles.map(a => `📄 ${a}`),
+      ...gap.resources.courses.map(c => `🎓 ${c}`),
+    ].join('\n');
+
+    setCreateTitle(`Knowledge Gap: ${gap.topic}`);
+    setCreateContent(`${gap.description}\n\n--- Recommended Resources ---\n${resourceList}`);
+    setCreateDialog({ open: true, gap, mode });
   };
 
-  const getGapStatus = (topic: string): GapStatus => gapStates[topic] || 'new';
+  const handleCreate = async () => {
+    if (!user || !createDialog.gap) return;
+    setCreating(true);
+    try {
+      if (createDialog.mode === 'card') {
+        await createCard({
+          title: createTitle,
+          content: createContent,
+          number: '',
+          description: createDialog.gap.description,
+          category: 'knowledge-gap',
+          tags: ['knowledge-gap', createDialog.gap.severity],
+          linkedCards: [],
+        });
+        toast.success('Card created from knowledge gap');
+      } else {
+        const { error } = await supabase.from('notes').insert({
+          user_id: user.id,
+          title: createTitle,
+          content: createContent,
+          tags: ['knowledge-gap', createDialog.gap.severity],
+        });
+        if (error) throw error;
+        toast.success('Note created from knowledge gap');
+      }
+      setStatus(createDialog.gap.topic, 'studying');
+      setCreateDialog({ open: false, gap: null, mode: 'card' });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const severityConfig = {
-    high: { color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: AlertTriangle, label: 'Critical Gap' },
-    medium: { color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Info, label: 'Moderate Gap' },
-    low: { color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Zap, label: 'Minor Gap' },
+    high: { color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: AlertTriangle, label: 'Critical' },
+    medium: { color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Info, label: 'Moderate' },
+    low: { color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Zap, label: 'Minor' },
+  };
+
+  const interestConfig = {
+    interested: { icon: ThumbsUp, label: 'Interested', className: 'bg-green-500/10 border-green-500/30 text-green-400' },
+    unsure: { icon: HelpCircle, label: 'Unsure', className: 'bg-amber-500/10 border-amber-500/30 text-amber-400' },
+    uninterested: { icon: XCircle, label: 'Not Interested', className: 'bg-muted/50 border-border text-muted-foreground' },
   };
 
   const filteredGaps = gaps.filter(gap => {
     if (filter === 'all') return true;
-    return getGapStatus(gap.topic) === filter;
+    return getState(gap.topic).interest === filter;
   });
 
   const stats = {
     total: gaps.length,
-    new: gaps.filter(g => getGapStatus(g.topic) === 'new').length,
-    studying: gaps.filter(g => getGapStatus(g.topic) === 'studying').length,
-    resolved: gaps.filter(g => getGapStatus(g.topic) === 'resolved').length,
+    interested: gaps.filter(g => getState(g.topic).interest === 'interested').length,
+    unsure: gaps.filter(g => getState(g.topic).interest === 'unsure').length,
+    uninterested: gaps.filter(g => getState(g.topic).interest === 'uninterested').length,
   };
 
   return (
@@ -166,35 +238,26 @@ export function KnowledgeGapAnalyzer() {
             Discover what you haven't mastered yet and find resources to fill the gaps.
           </p>
         </div>
-        <Button
-          onClick={analyzeKnowledge}
-          disabled={analyzing}
-          size="sm"
-          className="shrink-0"
-        >
-          {analyzing ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4 mr-1.5" />
-          )}
+        <Button onClick={analyzeKnowledge} disabled={analyzing} size="sm" className="shrink-0">
+          {analyzing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
           {analyzing ? 'Scanning...' : 'Scan My Knowledge'}
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Filter stats */}
       {gaps.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: 'Total', value: stats.total, active: filter === 'all', onClick: () => setFilter('all') },
-            { label: 'New', value: stats.new, active: filter === 'new', onClick: () => setFilter('new') },
-            { label: 'Studying', value: stats.studying, active: filter === 'studying', onClick: () => setFilter('studying') },
-            { label: 'Resolved', value: stats.resolved, active: filter === 'resolved', onClick: () => setFilter('resolved') },
-          ].map(stat => (
+          {([
+            { label: 'All', value: stats.total, key: 'all' as const },
+            { label: 'Interested', value: stats.interested, key: 'interested' as const },
+            { label: 'Unsure', value: stats.unsure, key: 'unsure' as const },
+            { label: 'Skip', value: stats.uninterested, key: 'uninterested' as const },
+          ]).map(stat => (
             <button
-              key={stat.label}
-              onClick={stat.onClick}
+              key={stat.key}
+              onClick={() => setFilter(stat.key)}
               className={`p-3 rounded-lg border transition-colors text-center ${
-                stat.active
+                filter === stat.key
                   ? 'bg-primary/10 border-primary/30 text-foreground'
                   : 'border-border bg-card hover:bg-accent/50 text-muted-foreground'
               }`}
@@ -210,18 +273,16 @@ export function KnowledgeGapAnalyzer() {
       {filteredGaps.length > 0 ? (
         <div className="space-y-3">
           {filteredGaps.map((gap) => {
-            const status = getGapStatus(gap.topic);
+            const state = getState(gap.topic);
             const severity = severityConfig[gap.severity];
             const SeverityIcon = severity.icon;
+            const interest = interestConfig[state.interest];
+            const InterestIcon = interest.icon;
             const isOpen = expandedGap === gap.topic;
 
             return (
-              <Collapsible
-                key={gap.topic}
-                open={isOpen}
-                onOpenChange={() => setExpandedGap(isOpen ? null : gap.topic)}
-              >
-                <Card className={`border transition-colors ${status === 'resolved' ? 'opacity-60' : ''}`}>
+              <Collapsible key={gap.topic} open={isOpen} onOpenChange={() => setExpandedGap(isOpen ? null : gap.topic)}>
+                <Card className={`border transition-colors ${state.interest === 'uninterested' ? 'opacity-50' : ''}`}>
                   <CollapsibleTrigger asChild>
                     <CardHeader className="cursor-pointer hover:bg-accent/30 transition-colors pb-3">
                       <div className="flex items-start gap-3">
@@ -229,73 +290,67 @@ export function KnowledgeGapAnalyzer() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <CardTitle className="text-sm font-medium">{gap.topic}</CardTitle>
-                            <Badge variant="outline" className={`text-[10px] ${severity.bg}`}>
-                              {severity.label}
+                            <Badge variant="outline" className={`text-[10px] ${severity.bg}`}>{severity.label}</Badge>
+                            <Badge variant="outline" className={`text-[10px] ${interest.className}`}>
+                              <InterestIcon className="h-2.5 w-2.5 mr-1" />{interest.label}
                             </Badge>
-                            {status === 'studying' && (
-                              <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/20 text-amber-400">
-                                <BookMarked className="h-2.5 w-2.5 mr-1" />Studying
-                              </Badge>
-                            )}
-                            {status === 'resolved' && (
-                              <Badge variant="outline" className="text-[10px] bg-green-500/10 border-green-500/20 text-green-400">
-                                <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Resolved
-                              </Badge>
-                            )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {gap.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{gap.description}</p>
                         </div>
-                        {isOpen ? (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                        )}
+                        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                       </div>
                     </CardHeader>
                   </CollapsibleTrigger>
 
                   <CollapsibleContent>
                     <CardContent className="pt-0 space-y-4">
-                      {/* Status actions */}
-                      <div className="flex gap-2">
-                        {status !== 'studying' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={(e) => { e.stopPropagation(); setGapStatus(gap.topic, 'studying'); }}
-                          >
-                            <BookMarked className="h-3 w-3 mr-1" />
-                            Mark as Studying
-                          </Button>
-                        )}
-                        {status !== 'resolved' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={(e) => { e.stopPropagation(); setGapStatus(gap.topic, 'resolved'); }}
-                          >
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Mark Resolved
-                          </Button>
-                        )}
-                        {status !== 'new' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs h-7 text-muted-foreground"
-                            onClick={(e) => { e.stopPropagation(); setGapStatus(gap.topic, 'new'); }}
-                          >
-                            Reset
-                          </Button>
-                        )}
+                      {/* Interest buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {(['interested', 'unsure', 'uninterested'] as InterestLevel[]).map(level => {
+                          const cfg = interestConfig[level];
+                          const Icon = cfg.icon;
+                          const isActive = state.interest === level;
+                          return (
+                            <Button
+                              key={level}
+                              variant={isActive ? 'default' : 'outline'}
+                              size="sm"
+                              className={`text-xs h-7 ${isActive ? '' : 'text-muted-foreground'}`}
+                              onClick={(e) => { e.stopPropagation(); setInterest(gap.topic, level); }}
+                            >
+                              <Icon className="h-3 w-3 mr-1" />{cfg.label}
+                            </Button>
+                          );
+                        })}
                       </div>
 
-                      {/* Related notes */}
-                      {gap.relatedNotes.length > 0 && (
+                      {/* Create card/note actions */}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); openCreateDialog(gap, 'card'); }}>
+                          <FileText className="h-3 w-3 mr-1" />Create Card
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); openCreateDialog(gap, 'note'); }}>
+                          <StickyNote className="h-3 w-3 mr-1" />Create Note
+                        </Button>
+                      </div>
+
+                      {/* Source materials */}
+                      {gap.sourceMaterials && gap.sourceMaterials.length > 0 && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">Based on your content</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {gap.sourceMaterials.map((src, i) => (
+                              <Badge key={i} variant="secondary" className="text-[10px] gap-1">
+                                {src.type === 'card' ? <FileText className="h-2.5 w-2.5" /> : <BookOpen className="h-2.5 w-2.5" />}
+                                {src.title}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fallback: relatedNotes from legacy data */}
+                      {(!gap.sourceMaterials || gap.sourceMaterials.length === 0) && gap.relatedNotes && gap.relatedNotes.length > 0 && (
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">Related Content</p>
                           <div className="flex flex-wrap gap-1.5">
@@ -310,103 +365,23 @@ export function KnowledgeGapAnalyzer() {
                       <div className="space-y-3">
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Learning Resources</p>
 
-                        {/* Videos */}
                         {gap.resources.videos.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <Video className="h-3 w-3" /> Videos
-                            </p>
-                            {gap.resources.videos.map((q, i) => (
-                              <a
-                                key={i}
-                                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-accent/50"
-                              >
-                                <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                {q}
-                              </a>
-                            ))}
-                          </div>
+                          <ResourceSection icon={Video} label="Videos" items={gap.resources.videos} urlFn={(q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`} />
                         )}
-
-                        {/* Books */}
                         {gap.resources.books.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <BookOpen className="h-3 w-3" /> Books
-                            </p>
-                            {gap.resources.books.map((book, i) => (
-                              <a
-                                key={i}
-                                href={`https://openlibrary.org/search?q=${encodeURIComponent(book)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-accent/50"
-                              >
-                                <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                {book}
-                              </a>
-                            ))}
-                          </div>
+                          <ResourceSection icon={BookOpen} label="Books" items={gap.resources.books} urlFn={(b) => `https://openlibrary.org/search?q=${encodeURIComponent(b)}`} />
                         )}
-
-                        {/* Courses */}
                         {gap.resources.courses.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <GraduationCap className="h-3 w-3" /> Free Courses
-                            </p>
-                            {gap.resources.courses.map((course, i) => (
-                              <a
-                                key={i}
-                                href={`https://www.classcentral.com/search?q=${encodeURIComponent(course)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-accent/50"
-                              >
-                                <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                {course}
-                              </a>
-                            ))}
-                          </div>
+                          <ResourceSection icon={GraduationCap} label="Free Courses" items={gap.resources.courses} urlFn={(c) => `https://www.classcentral.com/search?q=${encodeURIComponent(c)}`} />
                         )}
-
-                        {/* Articles */}
                         {gap.resources.articles.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <Globe className="h-3 w-3" /> Articles
-                            </p>
-                            {gap.resources.articles.map((article, i) => (
-                              <a
-                                key={i}
-                                href={`https://en.wikipedia.org/wiki/${encodeURIComponent(article.replace(/ /g, '_'))}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-accent/50"
-                              >
-                                <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                {article}
-                              </a>
-                            ))}
-                          </div>
+                          <ResourceSection icon={Globe} label="Articles" items={gap.resources.articles} urlFn={(a) => `https://en.wikipedia.org/wiki/${encodeURIComponent(a.replace(/ /g, '_'))}`} />
                         )}
-
-                        {/* Quotes */}
                         {gap.resources.quotes.length > 0 && (
                           <div className="space-y-1.5">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <Quote className="h-3 w-3" /> Quotes
-                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Quote className="h-3 w-3" /> Quotes</p>
                             {gap.resources.quotes.map((quote, i) => (
-                              <p
-                                key={i}
-                                className="text-xs italic text-muted-foreground p-2 rounded-md bg-muted/30 border-l-2 border-primary/30"
-                              >
-                                "{quote}"
-                              </p>
+                              <p key={i} className="text-xs italic text-muted-foreground p-2 rounded-md bg-muted/30 border-l-2 border-primary/30">"{quote}"</p>
                             ))}
                           </div>
                         )}
@@ -423,9 +398,7 @@ export function KnowledgeGapAnalyzer() {
           <CardContent className="py-12 text-center">
             <Brain className="h-8 w-8 mx-auto mb-3 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground mb-1">No knowledge gaps analyzed yet</p>
-            <p className="text-xs text-muted-foreground/60 mb-4">
-              Click "Scan My Knowledge" to analyze your cards and notes
-            </p>
+            <p className="text-xs text-muted-foreground/60 mb-4">Click "Scan My Knowledge" to analyze your cards and notes</p>
           </CardContent>
         </Card>
       ) : (
@@ -435,6 +408,43 @@ export function KnowledgeGapAnalyzer() {
           </CardContent>
         </Card>
       )}
+
+      {/* Create Card/Note Dialog */}
+      <Dialog open={createDialog.open} onOpenChange={(open) => !open && setCreateDialog({ open: false, gap: null, mode: 'card' })}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {createDialog.mode === 'card' ? <FileText className="h-4 w-4" /> : <StickyNote className="h-4 w-4" />}
+              Create {createDialog.mode === 'card' ? 'Card' : 'Note'} from Gap
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="Title" />
+            <Textarea value={createContent} onChange={(e) => setCreateContent(e.target.value)} placeholder="Content" rows={8} className="text-sm" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialog({ open: false, gap: null, mode: 'card' })}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={creating || !createTitle.trim()}>
+              {creating ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
+              Create {createDialog.mode === 'card' ? 'Card' : 'Note'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ResourceSection({ icon: Icon, label, items, urlFn }: { icon: any; label: string; items: string[]; urlFn: (item: string) => string }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Icon className="h-3 w-3" /> {label}</p>
+      {items.map((item, i) => (
+        <a key={i} href={urlFn(item)} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-2 text-xs text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-accent/50">
+          <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />{item}
+        </a>
+      ))}
     </div>
   );
 }
