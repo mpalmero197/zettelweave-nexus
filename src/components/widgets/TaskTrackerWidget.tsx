@@ -339,6 +339,14 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
           <div className="widget-header-left">
             <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
             <h3 className="text-sm font-medium text-foreground">Tasks</h3>
+            {pendingRoot.filter(t => {
+              const d = parseISO(t.due_date);
+              return d < new Date(new Date().toISOString().split('T')[0]);
+            }).length > 0 && (
+              <span className="text-[10px] font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
+                {pendingRoot.filter(t => parseISO(t.due_date) < new Date(new Date().toISOString().split('T')[0])).length} overdue
+              </span>
+            )}
           </div>
           {onNavigate && (
             <button className="widget-header-link" onClick={() => onNavigate('tasks')}>
@@ -375,19 +383,6 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
             </Button>
           </div>
 
-          <div className="flex gap-1 px-1.5">
-            {(['low', 'medium', 'high'] as const).map(p => (
-              <Button
-                key={p}
-                variant={newTaskPriority === p ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setNewTaskPriority(p)}
-                className="text-[10px] h-6 px-2 capitalize"
-              >
-                {p}
-              </Button>
-            ))}
-          </div>
 
           {loading ? (
             <div className="py-4 text-center text-xs text-muted-foreground">Loading…</div>
