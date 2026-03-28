@@ -218,6 +218,7 @@ export function AppLayout() {
 
       <PWAInstallPrompt />
       <FloatingChatBubble />
+      <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
     </>
   );
 }
