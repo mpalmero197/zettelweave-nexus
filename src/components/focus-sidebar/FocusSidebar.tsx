@@ -23,7 +23,27 @@ export function FocusSidebar({ open, onOpenChange }: FocusSidebarProps) {
   } = useFocusState();
 
   const { cards } = useZettelCards();
-  const [notes] = useState<any[]>([]); // placeholder for notes integration
+  const [notes, setNotes] = useState<any[]>([]);
+
+  // Fetch real notes
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from('notes')
+          .select('id, title, content, tags')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+          .order('updated_at', { ascending: false })
+          .limit(50);
+        if (data) setNotes(data);
+      } catch {}
+    };
+    fetchNotes();
+  }, []);
   const [snappedSide, setSnappedSide] = useState<'left' | 'right'>('right');
   const [collapsed, setCollapsed] = useState(!open);
   const [readingCard, setReadingCard] = useState<ZettelCard | null>(null);
