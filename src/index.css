@@ -708,7 +708,7 @@
 
 
 .catalyst-focus-mode > *:not(:focus-within) {
-  opacity: 0.3;
+  opacity: 0.45;
   transition: opacity 0.3s ease;
 }
 
@@ -720,6 +720,25 @@
 
 .catalyst-focus-mode .is-editor-empty:first-child::before {
   opacity: 0.5;
+}
+
+/* High contrast override for focus mode */
+@media (prefers-contrast: more) {
+  .catalyst-focus-mode > *:not(:focus-within) {
+    opacity: 0.7;
+  }
+}
+
+/* Typewriter scrolling mode */
+.catalyst-typewriter {
+  padding-top: 40vh;
+  padding-bottom: 40vh;
+}
+
+/* Highlight mark styles */
+.catalyst-word-view mark {
+  border-radius: 2px;
+  padding: 0 2px;
 }
 
 /* Catalyst Fullscreen Mode */
