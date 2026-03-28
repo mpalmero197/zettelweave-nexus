@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Pause, RotateCcw, Target, Coffee, Plus, Clock, Link2, Layers, FileText, X } from 'lucide-react';
+import { Play, Pause, RotateCcw, Target, Coffee, Plus, Clock, Link2, Layers, FileText, X, Timer } from 'lucide-react';
 import { FocusTimerRing } from './FocusTimerRing';
 import { useFocusState } from './useFocusState';
 import { FocusTask } from './FocusTaskList';
 import { useZettelCards } from '@/hooks/useZettelCards';
+
+const DURATION_OPTIONS = [15, 20, 25, 30, 45, 60];
 
 const priorityColors = {
   high: 'rgb(239,68,68)',
@@ -25,8 +27,9 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
   const {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle,
-    start, pause, reset, changeMode,
+    start, pause, reset, changeMode, setCustomDuration,
   } = useFocusState();
+  const [showDurations, setShowDurations] = useState(false);
 
   const { cards } = useZettelCards();
   const [notes, setNotes] = useState<any[]>([]);
@@ -101,6 +104,34 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                 isRunning={isRunning}
                 mode={mode}
               />
+
+              {/* Duration picker */}
+              {mode === 'work' && (
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    onClick={() => setShowDurations(!showDurations)}
+                    className="text-[11px] text-muted-foreground flex items-center gap-1 touch-manipulation"
+                  >
+                    <Timer className="h-3 w-3" />
+                    {Math.round(totalSeconds / 60)} min {showDurations ? '▲' : '▼'}
+                  </button>
+                  {showDurations && (
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {DURATION_OPTIONS.map(d => (
+                        <Button
+                          key={d}
+                          size="sm"
+                          variant={totalSeconds === d * 60 ? 'secondary' : 'ghost'}
+                          onClick={() => { setCustomDuration(d); setShowDurations(false); }}
+                          className="h-8 px-3 text-xs rounded-lg touch-manipulation"
+                        >
+                          {d}m
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Mode toggle */}
               <div className="flex gap-1.5">

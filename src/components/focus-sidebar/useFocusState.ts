@@ -122,10 +122,16 @@ export function useFocusState() {
     setTotalSeconds(PRESETS[m]);
     setDndActive(false);
   };
+  const setCustomDuration = (minutes: number) => {
+    setIsRunning(false);
+    const s = minutes * 60;
+    setSeconds(s);
+    setTotalSeconds(s);
+  };
 
   return {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle, dndActive,
-    start, pause, reset, changeMode,
+    start, pause, reset, changeMode, setCustomDuration,
   };
 }
