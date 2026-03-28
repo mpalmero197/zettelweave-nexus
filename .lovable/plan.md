@@ -1,61 +1,116 @@
 
 
-# Knowledge Gap Analyzer
+# Dashboard Overhaul — Premium Execution Environment
 
-## Overview
-Build a **Knowledge Gap Analyzer** that scans the user's cards, notes, and scratchpad content, identifies topics where their knowledge is incomplete, and surfaces free learning resources (videos, books, courses, quotes) to fill those gaps. This appears as a new section/tab accessible from the Dashboard and as a dedicated panel.
+## What's Changing
 
-## How It Works
+The current dashboard is functional but violates several core dashboard design principles: weak visual hierarchy, no contextual data (numbers without meaning), redundant widgets competing for attention, and inconsistent information density. This overhaul transforms it into a purpose-driven command center for knowledge workers.
 
-1. **Content Analysis**: An edge function receives the user's cards/notes content, sends it to the Lovable AI Gateway (Gemini), and asks the model to identify knowledge gaps -- topics mentioned but not fully covered, assumptions without evidence, referenced concepts lacking depth.
+## Design Philosophy
 
-2. **Resource Discovery**: For each gap, the AI returns structured recommendations including:
-   - YouTube/video search queries
-   - Open Library book suggestions
-   - Class Central / free course suggestions
-   - Relevant quotes or key concepts to research
-   - Wikipedia/reference links
+The dashboard answers one question: **"What should I work on right now?"** Every pixel earns its place. We apply Tufte's data-ink ratio, top-left hierarchy placement, contextual numbers, and consistent visualization patterns — all within the existing Halcyon aesthetic.
 
-3. **UI**: A `KnowledgeGapAnalyzer` component with:
-   - A "Scan My Knowledge" button that triggers analysis
-   - Gap cards showing the topic, why it's a gap, confidence level, and source notes
-   - Each gap expands to show recommended resources (videos, books, courses, articles)
-   - Ability to mark gaps as "resolved" or "studying"
-   - Filter by subject/category
+---
 
-## Technical Plan
+## Plan
 
-### 1. New Edge Function: `supabase/functions/analyze-knowledge-gaps/index.ts`
-- Accepts user's cards and notes content (titles + content, truncated)
-- Calls Lovable AI Gateway with a system prompt that instructs the model to:
-  - Identify 5-15 knowledge gaps from the provided content
-  - For each gap, suggest specific free resources (book titles from Open Library, course topics from Class Central, video search terms for YouTube)
-- Uses tool-calling for structured JSON output with schema: `{ gaps: [{ topic, description, severity, relatedNotes, resources: { videos, books, courses, articles, quotes } }] }`
-- Handles 429/402 errors
+### 1. Redesign the Header + Stats Row (Hero Zone)
 
-### 2. New Component: `src/components/KnowledgeGapAnalyzer.tsx`
-- Fetches cards via `useZettelCards`, notes via Supabase query
-- "Analyze" button sends content to the edge function
-- Displays gaps as expandable cards with resource links
-- Gap states: `new`, `studying`, `resolved`
-- Persists gap state in localStorage (or a new `knowledge_gaps` table if desired)
-- Resources link out to:
-  - YouTube search URLs
-  - Open Library search URLs
-  - Class Central search URLs
-  - Wikipedia article URLs
+**Current**: Generic greeting + sparkle icon + separate stat pills below.
+**New**: Merge greeting, date, and stats into a single compact hero strip. Stats become the greeting's right-hand companion — not a separate widget row.
 
-### 3. Integration Points
-- **Dashboard**: Add a "Knowledge Gaps" widget/card in the Dashboard stats or as a tab
-- **Index.tsx**: Add a `knowledge-gaps` tab value so it's accessible from navigation
-- **MobileNavigation**: Add entry point if space allows, or nest under an existing menu
+- Greeting (left): `Good morning, Name` with date below
+- Stats (right): Inline pill cluster showing Cards / Notes / Tasks / Events counts
+- Each stat pill shows a **delta indicator** (e.g., `+3 today` or a subtle up/down arrow) for context
+- Quick Capture stays integrated but collapsed by default — single-line input that expands on focus
+- Remove the decorative Sparkles icon and `::before` radial gradient (data-ink ratio)
 
-### 4. Files to Create
-- `supabase/functions/analyze-knowledge-gaps/index.ts`
-- `src/components/KnowledgeGapAnalyzer.tsx`
+### 2. Introduce a "Today" Focus Strip
 
-### 5. Files to Edit
-- `src/pages/Index.tsx` -- add tab content for knowledge gaps
-- `src/components/Dashboard.tsx` -- add a Knowledge Gaps summary card
-- `src/components/TopNavBar.tsx` or `src/components/MobileNavigation.tsx` -- add navigation entry
+A new horizontal strip below the hero that surfaces **actionable items due today**:
+- Tasks due today (count + top 3 names)
+- Events happening today (count + next event time)
+- Streak data if habit tracker is enabled
+
+This replaces scanning multiple widgets to answer "what's happening today?" — one glance, one row.
+
+### 3. Redesign Widget Cards for Consistency
+
+Apply a uniform card anatomy across all widgets:
+- **Header**: Icon + Title (left) + Action link (right, e.g., "View all →")
+- **Body**: Content list (max 4-5 items, no scrollable overflow on dashboard)
+- **Footer**: Contextual summary line (e.g., "3 more notes" or "Updated 2h ago")
+- Remove left-border accent colors (visual noise that doesn't encode useful data)
+- Use subtle top-border or icon tinting instead for type differentiation
+
+### 4. Improve Data Context on Every Number
+
+- **StatsWidget**: Add comparison context — show `12 Cards (+2 this week)` instead of just `12 Cards`
+- **TaskTrackerWidget**: Show completion rate as a micro progress bar (e.g., `7/12 done`) instead of just "5 pending"
+- **CalendarEventsWidget**: Add "Next in 2h" proximity label for the soonest event
+- **RecentCardsWidget / RecentNotesWidget**: Show "Updated 3m ago" relative times consistently
+
+### 5. Optimize Layout Grid
+
+**Current**: CSS columns masonry — works but creates uneven visual weight.
+**New**: CSS Grid with explicit row tracks for predictable hierarchy:
+
+```text
+┌──────────────────────────────────────┐
+│  Hero: Greeting + Stats + Capture    │  ← Full width
+├──────────────────────────────────────┤
+│  Today Strip: Tasks · Events · Streak│  ← Full width, compact
+├──────────────┬───────────────────────┤
+│ Recent Cards │ Recent Notes          │  ← 2-col, equal
+├──────────────┼───────────────────────┤
+│ Tasks        │ Calendar              │  ← 2-col, equal
+├──────────────┼───────────────────────┤
+│ Notebooks    │ Favorites             │  ← 2-col, equal
+├──────────────┴───────────────────────┤
+│  Extra widgets (auto-flow 2-col)     │
+└──────────────────────────────────────┘
+```
+
+On mobile (current 448px viewport): everything stacks single-column, hero compresses, Today strip scrolls horizontally.
+
+### 6. Polish Labels and Micro-Copy
+
+- Use short labels: "7d" not "Last 7 Days", "3h ago" not "3 hours ago"
+- Round numbers where appropriate (e.g., streak percentages)
+- Consistent date formatting across all widgets (relative for < 7d, absolute after)
+- Remove redundant "No X yet" empty states — use a single-line hint instead of icon + paragraph
+
+### 7. Subtle Interaction Upgrades
+
+- Widget headers become clickable navigation links (already partially done — make consistent)
+- Add keyboard shortcut hints in the Widgets sidebar sheet
+- Skeleton loaders use consistent height across all widgets (currently inconsistent)
+
+---
+
+## Technical Details
+
+### Files to Edit
+| File | Changes |
+|------|---------|
+| `src/components/CustomizableDashboard.tsx` | New layout structure: hero strip, today strip, grid sections |
+| `src/components/widgets/WelcomeWidget.tsx` | Merge stats inline, remove decorative elements, compact capture |
+| `src/components/widgets/StatsWidget.tsx` | Add delta/context indicators, fetch weekly comparison data |
+| `src/components/widgets/RecentCardsWidget.tsx` | Uniform card anatomy, max 4 items, footer summary |
+| `src/components/widgets/RecentNotesWidget.tsx` | Same uniform treatment |
+| `src/components/widgets/TaskTrackerWidget.tsx` | Add completion progress bar, simplify to dashboard-appropriate density |
+| `src/components/widgets/CalendarEventsWidget.tsx` | Add "next in X" proximity, compact layout |
+| `src/components/widgets/NotebookListWidget.tsx` | Uniform card anatomy |
+| `src/components/widgets/FavoritesWidget.tsx` | Uniform card anatomy |
+| `src/styles/grid-layout.css` | Replace masonry columns with CSS Grid, update widget-card to remove accent borders, add today-strip styles |
+
+### New Component
+| File | Purpose |
+|------|---------|
+| `src/components/widgets/TodayStripWidget.tsx` | Horizontal "today at a glance" strip — tasks due, next event, streak |
+
+### No Changes Needed
+- `useDashboardLayout.ts` — widget toggle system stays the same
+- `DashboardWidgetSidebar.tsx` — widget management sidebar stays functional
+- Database schema — no new tables required (all data already queryable)
 
