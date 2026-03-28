@@ -3,6 +3,7 @@ import { FocusTask } from './FocusTaskList';
 import { toast } from 'sonner';
 
 const STORAGE_KEY = 'pendragonx-focus-sidebar';
+const AUTO_IMPORT_KEY = 'pendragonx-focus-auto-imported';
 
 interface FocusState {
   tasks: FocusTask[];
@@ -42,6 +43,67 @@ export function useFocusState() {
   const [isRunning, setIsRunning] = useState(false);
   const [dndActive, setDndActive] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const autoImportedRef = useRef(false);
+
+  // Auto-import today's important tasks from project_tasks
+  useEffect(() => {
+    if (autoImportedRef.current) return;
+    autoImportedRef.current = true;
+
+    const importTodayTasks = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        const lastImport = localStorage.getItem(AUTO_IMPORT_KEY);
+        // Only auto-import once per day
+        if (lastImport === today) return;
+
+        // Fetch high-priority tasks + tasks due today that aren't done
+        const { data: dbTasks } = await supabase
+          .from('project_tasks')
+          .select('id, name, priority, due_date, status')
+          .eq('user_id', user.id)
+          .neq('status', 'done')
+          .is('parent_task_id', null)
+          .or(`priority.eq.high,due_date.eq.${today}`)
+          .order('due_date', { ascending: true })
+          .order('priority', { ascending: false })
+          .limit(10);
+
+        if (!dbTasks || dbTasks.length === 0) return;
+
+        setTasks(prev => {
+          const existingSourceIds = new Set(prev.map(t => t.id));
+          const newFocusTasks: FocusTask[] = dbTasks
+            .filter(dt => !existingSourceIds.has(`db-${dt.id}`))
+            .map(dt => ({
+              id: `db-${dt.id}`,
+              title: dt.name,
+              priority: (dt.priority === 'high' ? 'high' : dt.priority === 'medium' ? 'medium' : 'low') as 'high' | 'medium' | 'low',
+              completed: false,
+              linkedCardIds: [],
+              linkedNoteIds: [],
+              pomodoroMinutes: 0,
+            }));
+
+          if (newFocusTasks.length > 0) {
+            toast.info(`${newFocusTasks.length} task${newFocusTasks.length > 1 ? 's' : ''} loaded for today`, {
+              description: 'Your important tasks are ready in Focus Mode.',
+            });
+          }
+
+          return [...newFocusTasks, ...prev];
+        });
+
+        localStorage.setItem(AUTO_IMPORT_KEY, today);
+      } catch {}
+    };
+
+    importTodayTasks();
+  }, []);
 
   // Persist
   useEffect(() => {
