@@ -15,7 +15,8 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot } from "lucide-react";
+import { Bot, Focus } from "lucide-react";
+import { FocusSidebar } from "./focus-sidebar/FocusSidebar";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -29,6 +30,7 @@ export function AppLayout() {
   const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
+  const [focusOpen, setFocusOpen] = useState(false);
 
   const isOnline = hookOnline && browserOnline;
 
@@ -173,6 +175,15 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  onClick={() => setFocusOpen(!focusOpen)}
+                  aria-label="Focus Sidebar"
+                >
+                  <Focus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
                   asChild
                 >
                   <Link to="/agents" aria-label="Agents">
@@ -207,6 +218,7 @@ export function AppLayout() {
 
       <PWAInstallPrompt />
       <FloatingChatBubble />
+      <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
     </>
   );
 }
