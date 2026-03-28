@@ -17,6 +17,7 @@ import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
 import { Bot, Focus } from "lucide-react";
 import { FocusSidebar } from "./focus-sidebar/FocusSidebar";
+import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -219,6 +220,7 @@ export function AppLayout() {
       <PWAInstallPrompt />
       <FloatingChatBubble />
       <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
+      <FocusMiniPill />
     </>
   );
 }

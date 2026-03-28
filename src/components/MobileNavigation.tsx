@@ -3,7 +3,7 @@ import {
   Home, FileText, StickyNote, Calendar, Settings,
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
-  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban,
+  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
+import { MobileFocusSheet } from './focus-sidebar/MobileFocusSheet';
 
 interface MobileNavigationProps {
   isAdmin?: boolean;
@@ -50,6 +51,7 @@ const SECTIONS = [
       { id: 'scratchpad', label: 'Scratchpad', icon: Pencil },
       { id: 'stickynotes', label: 'Sticky Notes', icon: StickyNote },
       { id: 'projects', label: 'Projects', icon: FolderKanban },
+      { id: 'focus', label: 'Focus', icon: Focus },
     ],
   },
   {
@@ -84,6 +86,7 @@ export function MobileNavigation({
   const [searchFocused, setSearchFocused] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [focusSheetOpen, setFocusSheetOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +122,11 @@ export function MobileNavigation({
   if (!isMobile) return null;
 
   const handleNav = (id: string) => {
+    if (id === 'focus') {
+      setOpen(false);
+      setFocusSheetOpen(true);
+      return;
+    }
     setOpen(false);
     onTabChange?.(id);
   };
@@ -322,6 +330,8 @@ export function MobileNavigation({
           </div>
         </SheetContent>
       </Sheet>
+
+      <MobileFocusSheet open={focusSheetOpen} onOpenChange={setFocusSheetOpen} />
     </>
   );
 }
