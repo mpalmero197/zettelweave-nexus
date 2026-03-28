@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { format, isToday, isTomorrow, isThisWeek, parseISO } from 'date-fns';
+import { format, isToday, isTomorrow, parseISO, differenceInHours, differenceInMinutes } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
   title: string;
-  description?: string;
   event_date: string;
   event_time?: string;
-  source_type: string;
 }
 
-export function CalendarEventsWidget() {
+interface CalendarEventsWidgetProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps = {}) {
   const { user } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,82 +29,91 @@ export function CalendarEventsWidget() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('calendar_events')
-        .select('*')
+        .select('id, title, event_date, event_time')
         .eq('user_id', user.id)
         .gte('event_date', today)
         .lte('event_date', nextWeek)
         .order('event_date', { ascending: true })
         .order('event_time', { ascending: true })
-        .limit(5);
-
-      if (error) throw error;
+        .limit(4);
       setEvents(data || []);
     } catch (error) {
-      console.error('Error fetching calendar events:', error);
+      console.error('Error fetching events:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getDateLabel = (eventDate: string) => {
-    const date = parseISO(eventDate);
-    if (isToday(date)) return 'Today';
+  const getLabel = (event: CalendarEvent) => {
+    const date = parseISO(event.event_date);
+    if (isToday(date)) {
+      if (event.event_time) {
+        const eventDate = new Date(`${event.event_date}T${event.event_time}`);
+        const now = new Date();
+        if (eventDate > now) {
+          const mins = differenceInMinutes(eventDate, now);
+          if (mins < 60) return `in ${mins}m`;
+          return `in ${differenceInHours(eventDate, now)}h`;
+        }
+        try { return format(eventDate, 'h:mm a'); } catch { return 'Today'; }
+      }
+      return 'Today';
+    }
     if (isTomorrow(date)) return 'Tomorrow';
-    if (isThisWeek(date)) return format(date, 'EEEE');
-    return format(date, 'MMM d');
+    return format(date, 'EEE');
   };
 
-  const getTime = (eventTime?: string) => {
-    if (!eventTime) return null;
-    try { return format(new Date(`2000-01-01T${eventTime}`), 'h:mm a'); }
-    catch { return eventTime; }
+  const getTime = (t?: string) => {
+    if (!t) return null;
+    try { return format(new Date(`2000-01-01T${t}`), 'h:mm a'); }
+    catch { return t; }
   };
 
   return (
-    <div className="widget-card widget-accent-events p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        <h3 className="text-sm font-medium text-foreground">Upcoming</h3>
-      </div>
-
-      {loading ? (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted/50 rounded-md animate-pulse" />)}
+    <div className="widget-card">
+      <div className="widget-header">
+        <div className="widget-header-left">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <h3 className="text-sm font-medium text-foreground">Upcoming</h3>
         </div>
-      ) : (
-        <div className="space-y-1 max-h-72 overflow-y-auto">
-          {events.length > 0 ? (
-            events.map((event) => (
-              <div key={event.id} className="flex items-center gap-3 p-2.5 rounded-md hover:bg-accent/50 transition-colors">
-                <div className="w-9 h-9 rounded-md bg-muted flex flex-col items-center justify-center shrink-0">
-                  <span className="text-[9px] text-muted-foreground uppercase leading-none">{format(parseISO(event.event_date), 'MMM')}</span>
-                  <span className="text-sm font-bold text-foreground leading-none">{format(parseISO(event.event_date), 'd')}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-foreground">{event.title}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>{getDateLabel(event.event_date)}</span>
-                    {event.event_time && (
-                      <>
-                        <span>·</span>
-                        <span>{getTime(event.event_time)}</span>
-                      </>
-                    )}
-                  </div>
+        {onNavigate && (
+          <button className="widget-header-link" onClick={() => onNavigate('calendar')}>
+            View all →
+          </button>
+        )}
+      </div>
+      <div className="widget-body">
+        {loading ? (
+          <div className="space-y-2 p-2">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted/50 rounded-md animate-pulse" />)}
+          </div>
+        ) : events.length > 0 ? (
+          events.map((event) => (
+            <div key={event.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
+              <div className="w-8 h-8 rounded-md bg-muted flex flex-col items-center justify-center shrink-0">
+                <span className="text-[8px] text-muted-foreground uppercase leading-none">{format(parseISO(event.event_date), 'MMM')}</span>
+                <span className="text-xs font-bold text-foreground leading-none">{format(parseISO(event.event_date), 'd')}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate text-foreground">{event.title}</p>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span>{getLabel(event)}</span>
+                  {event.event_time && !isToday(parseISO(event.event_date)) && (
+                    <>
+                      <span>·</span>
+                      <span>{getTime(event.event_time)}</span>
+                    </>
+                  )}
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <Calendar className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
-              <p className="text-xs text-muted-foreground">No upcoming events</p>
             </div>
-          )}
-        </div>
-      )}
+          ))
+        ) : (
+          <p className="text-xs text-muted-foreground py-6 text-center">No upcoming events</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 import { DashboardWidgetSidebar } from "./DashboardWidgetSidebar";
 import { DashboardGrid, DashboardSection } from "./DashboardGrid";
 import { WelcomeWidget } from "./widgets/WelcomeWidget";
-import { StatsWidget } from "./widgets/StatsWidget";
+import { TodayStripWidget } from "./widgets/TodayStripWidget";
 import { RecentCardsWidget } from "./widgets/RecentCardsWidget";
 import { RecentNotesWidget } from "./widgets/RecentNotesWidget";
 import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { DashboardWidget } from "@/types/dashboard";
 import { Brain } from "lucide-react";
-import { format } from "date-fns";
 import '../styles/grid-layout.css';
 
 interface CustomizableDashboardProps {
@@ -34,7 +33,6 @@ interface CustomizableDashboardProps {
   onNavigate?: (tab: string) => void;
 }
 
-// Core widgets that get fixed layout positions
 const CORE_WIDGET_TYPES = ['welcome', 'stats', 'quick-capture', 'recent-cards', 'recent-notes', 'task-tracker', 'calendar-events', 'notebook-list', 'favorites'];
 
 export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavigate }: CustomizableDashboardProps) {
@@ -75,36 +73,28 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
   return (
     <div className="w-full">
       <div className="w-full max-w-[1400px] mx-auto p-3 md:p-5 space-y-1">
-        {/* Header */}
-        <div className="flex items-end justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">Dashboard</h2>
-            <p className="text-xs text-muted-foreground">{format(new Date(), 'EEEE, MMMM d')}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={resetToDefault} className="h-7 text-xs text-muted-foreground hover:text-foreground">
-              Reset
-            </Button>
-            <DashboardWidgetSidebar />
-          </div>
+        {/* Header row */}
+        <div className="flex items-end justify-end gap-2 mb-1">
+          <Button variant="ghost" size="sm" onClick={resetToDefault} className="h-7 text-xs text-muted-foreground hover:text-foreground">
+            Reset
+          </Button>
+          <DashboardWidgetSidebar />
         </div>
 
         <DashboardGrid>
-          {/* Hero: Welcome + Quick Capture */}
-          {(isVisible('welcome') || isVisible('quick-capture')) && (
-            <WelcomeWidget onCreateCard={onCreateCard} />
+          {/* Hero: Greeting + Stats + Quick Capture */}
+          {(isVisible('welcome') || isVisible('quick-capture') || isVisible('stats')) && (
+            <WelcomeWidget onCreateCard={onCreateCard} onNavigate={onNavigate} />
           )}
 
-          {/* Stat Pills */}
-          {isVisible('stats') && (
-            <StatsWidget onNavigate={onNavigate} />
-          )}
+          {/* Today Focus Strip */}
+          <TodayStripWidget />
 
           {/* Row: Recent Cards + Recent Notes */}
           {(isVisible('recent-cards') || isVisible('recent-notes')) && (
             <DashboardSection columns={2}>
-              {isVisible('recent-cards') && <RecentCardsWidget onEdit={onEdit} />}
-              {isVisible('recent-notes') && <RecentNotesWidget onOpenNote={onOpenNote} />}
+              {isVisible('recent-cards') && <RecentCardsWidget onEdit={onEdit} onNavigate={onNavigate} />}
+              {isVisible('recent-notes') && <RecentNotesWidget onOpenNote={onOpenNote} onNavigate={onNavigate} />}
             </DashboardSection>
           )}
 
@@ -112,19 +102,19 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
           {(isVisible('task-tracker') || isVisible('calendar-events')) && (
             <DashboardSection columns={2}>
               {isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
-              {isVisible('calendar-events') && <CalendarEventsWidget />}
+              {isVisible('calendar-events') && <CalendarEventsWidget onNavigate={onNavigate} />}
             </DashboardSection>
           )}
 
           {/* Row: Notebooks + Favorites */}
           {(isVisible('notebook-list') || isVisible('favorites')) && (
             <DashboardSection columns={2}>
-              {isVisible('notebook-list') && <NotebookListWidget />}
+              {isVisible('notebook-list') && <NotebookListWidget onNavigate={onNavigate} />}
               {isVisible('favorites') && <FavoritesWidget />}
             </DashboardSection>
           )}
 
-          {/* Extra widgets in auto-flow grid */}
+          {/* Extra widgets */}
           {extraWidgets.length > 0 && (
             <DashboardSection columns={2}>
               {extraWidgets.map(renderExtraWidget)}
