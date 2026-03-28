@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isToday, isTomorrow, parseISO, differenceInHours, differenceInMinutes } from 'date-fns';
+import { toast } from 'sonner';
 
 interface CalendarEvent {
   id: string;
@@ -19,6 +22,20 @@ export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps =
   const { user } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newEventTitle, setNewEventTitle] = useState('');
+
+  const addEvent = async () => {
+    if (!user || !newEventTitle.trim()) return;
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const { error } = await supabase.from('calendar_events').insert({
+      user_id: user.id, title: newEventTitle.trim(), event_date: today,
+      source_type: 'manual', source_id: crypto.randomUUID(),
+    });
+    if (error) { toast.error('Failed to add event'); return; }
+    toast.success('Event added');
+    setNewEventTitle('');
+    fetchUpcomingEvents();
+  };
 
   useEffect(() => {
     if (user) fetchUpcomingEvents();
