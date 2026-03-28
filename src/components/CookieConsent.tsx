@@ -60,11 +60,17 @@ const getBrowser = (): string => {
 const saveConsentToDatabase = async (prefs: CookiePreferences) => {
   try {
     const sessionId = getSessionId();
-    const { data: user } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Only save to database if user is authenticated (RLS requires auth)
+    if (!user) {
+      console.debug('Cookie consent: skipping DB save for unauthenticated user');
+      return;
+    }
     
     await supabase.from('cookie_consent_analytics').upsert({
       session_id: sessionId,
-      user_id: user?.user?.id || null,
+      user_id: user.id,
       necessary: prefs.necessary,
       analytics: prefs.analytics,
       functional: prefs.functional,
