@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Pause, RotateCcw, Target, Coffee, Plus, Clock, Link2, Layers, FileText, X, Timer } from 'lucide-react';
+import { Play, Pause, RotateCcw, Target, Coffee, Plus, Clock, Link2, Layers, FileText, X, Timer, Search } from 'lucide-react';
 import { FocusTimerRing } from './FocusTimerRing';
 import { useFocusState } from './useFocusState';
 import { FocusTask } from './FocusTaskList';
@@ -35,6 +35,8 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
   const [notes, setNotes] = useState<any[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [linkSearchTaskId, setLinkSearchTaskId] = useState<string | null>(null);
+  const [linkQuery, setLinkQuery] = useState('');
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -82,6 +84,38 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
 
   const getLinkedCards = (task: FocusTask) => cards.filter(c => task.linkedCardIds.includes(c.id));
   const getLinkedNotes = (task: FocusTask) => notes.filter(n => task.linkedNoteIds.includes(n.id));
+
+  const linkItem = (taskId: string, type: 'card' | 'note', itemId: string) => {
+    setTasks(tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return type === 'card'
+        ? { ...t, linkedCardIds: [...t.linkedCardIds, itemId] }
+        : { ...t, linkedNoteIds: [...t.linkedNoteIds, itemId] };
+    }));
+  };
+
+  const unlinkItem = (taskId: string, type: 'card' | 'note', itemId: string) => {
+    setTasks(tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return type === 'card'
+        ? { ...t, linkedCardIds: t.linkedCardIds.filter(id => id !== itemId) }
+        : { ...t, linkedNoteIds: t.linkedNoteIds.filter(id => id !== itemId) };
+    }));
+  };
+
+  const getLinkResults = (task: FocusTask) => {
+    if (!linkQuery.trim()) return [];
+    const q = linkQuery.toLowerCase();
+    const matchedCards = cards
+      .filter(c => !task.linkedCardIds.includes(c.id) && c.title.toLowerCase().includes(q))
+      .slice(0, 4)
+      .map(c => ({ type: 'card' as const, id: c.id, title: c.title }));
+    const matchedNotes = notes
+      .filter(n => !task.linkedNoteIds.includes(n.id) && n.title.toLowerCase().includes(q))
+      .slice(0, 4)
+      .map(n => ({ type: 'note' as const, id: n.id, title: n.title }));
+    return [...matchedCards, ...matchedNotes].slice(0, 6);
+  };
 
   const activeTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
