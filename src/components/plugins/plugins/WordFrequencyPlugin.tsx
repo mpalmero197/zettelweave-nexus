@@ -11,7 +11,7 @@ export function WordFrequencyPlugin({}: PluginProps) {
 
   const analysis = useMemo(() => {
     if (!text.trim()) return null;
-    const words = text.toLowerCase().match(/\b[a-z']+\b/g) || [];
+    const words: string[] = text.toLowerCase().match(/\b[a-z']+\b/g) || [];
     const freq: Record<string, number> = {};
     words.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
     const sorted = Object.entries(freq)
