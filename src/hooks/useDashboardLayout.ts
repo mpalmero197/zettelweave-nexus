@@ -49,14 +49,14 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     type: 'task-tracker',
     title: 'Quick Tasks',
     position: { x: 0, y: 9, w: 6, h: 4 },
-    isVisible: true
+    isVisible: false
   },
   {
     id: 'calendar-events',
     type: 'calendar-events',
     title: 'Upcoming Events',
     position: { x: 6, y: 9, w: 6, h: 4 },
-    isVisible: true
+    isVisible: false
   },
   // Row 5: Notebooks + Favorites
   {

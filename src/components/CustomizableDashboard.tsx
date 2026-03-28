@@ -87,15 +87,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
           {/* 2. Action Agenda (full width) */}
           <ActionAgendaWidget onNavigate={onNavigate} />
 
-          {/* 3. Tasks + Calendar Events (2-col) */}
-          {(isVisible('task-tracker') || isVisible('calendar-events')) && (
-            <DashboardSection columns={2}>
-              {isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
-              {isVisible('calendar-events') && <CalendarEventsWidget onNavigate={onNavigate} />}
-            </DashboardSection>
-          )}
-
-          {/* 4. Recent Work + Favorites (2-col) */}
+          {/* 3. Continue Working + Favorites (2-col) */}
           {(isVisible('recent-cards') || isVisible('recent-notes') || isVisible('favorites')) && (
             <DashboardSection columns={2}>
               {(isVisible('recent-cards') || isVisible('recent-notes')) && (

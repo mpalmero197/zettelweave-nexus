@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, CheckSquare, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckSquare, Calendar, ChevronDown, ChevronRight, Clock, Timer } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO, differenceInDays, isToday, isTomorrow, isAfter, isBefore, startOfDay } from 'date-fns';
+import { format, parseISO, differenceInDays, isToday, isTomorrow, isBefore, startOfDay, addDays } from 'date-fns';
 import { toast } from 'sonner';
 
 interface AgendaItem {
@@ -95,7 +96,6 @@ export function ActionAgendaWidget({ onNavigate }: ActionAgendaWidgetProps) {
       else result.week.push(item);
     }
 
-    // Sort today items by time
     result.today.sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
 
     setItems(result);
@@ -111,6 +111,14 @@ export function ActionAgendaWidget({ onNavigate }: ActionAgendaWidgetProps) {
     fetchAgenda();
   };
 
+  const snoozeToTomorrow = async (taskId: string) => {
+    const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+    const { error } = await supabase.from('project_tasks').update({ due_date: tomorrow }).eq('id', taskId);
+    if (error) { toast.error('Failed to snooze'); return; }
+    toast.success('Snoozed to tomorrow');
+    fetchAgenda();
+  };
+
   const totalItems = Object.values(items).reduce((s, arr) => s + arr.length, 0);
   const sections = (['overdue', 'today', 'tomorrow', 'week'] as Section[]).filter(s => items[s].length > 0);
 
@@ -120,7 +128,7 @@ export function ActionAgendaWidget({ onNavigate }: ActionAgendaWidgetProps) {
   };
 
   const renderItem = (item: AgendaItem) => (
-    <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 p-1.5 rounded-md hover:bg-accent/50 transition-colors">
+    <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 p-1.5 rounded-md hover:bg-accent/50 transition-colors group">
       {item.type === 'task' ? (
         <Checkbox
           checked={false}
@@ -146,6 +154,29 @@ export function ActionAgendaWidget({ onNavigate }: ActionAgendaWidgetProps) {
           )}
         </div>
       </div>
+      {/* Inline actions — visible on hover/focus */}
+      {item.type === 'task' && (
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+            onClick={(e) => { e.stopPropagation(); snoozeToTomorrow(item.id); }}
+            title="Snooze to tomorrow"
+          >
+            <Clock className="h-2.5 w-2.5 mr-0.5" /> Tomorrow
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+            onClick={(e) => { e.stopPropagation(); onNavigate?.('tasks'); }}
+            title="Start focus session"
+          >
+            <Timer className="h-2.5 w-2.5 mr-0.5" /> Focus
+          </Button>
+        </div>
+      )}
     </div>
   );
 
