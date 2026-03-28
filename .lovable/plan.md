@@ -1,97 +1,122 @@
 
 
-# Mobile Focus Mode — Compact Pomodoro Overlay
+# Dashboard Actionability Revamp
 
-## Problem
-The Focus Sidebar is desktop-only (hidden behind `md:flex` on the header button, and renders as a full-height 300px-wide panel that covers the entire mobile screen). Users need a lightweight way to run Pomodoro sessions on mobile that works **alongside** other apps — meaning it should be minimal, non-blocking, and usable in a split-screen or quick-glance pattern.
+## Current Problems
+1. **Hero zone wastes space** — greeting + stats pills + 3 tiny action buttons don't drive action. The quick actions (Capture, Task, Event) are hidden behind a click and feel like afterthoughts.
+2. **Action Agenda is passive** — it shows what's due but you can't act on items inline (no snooze, no reschedule, no start focus session).
+3. **Tasks and Calendar widgets duplicate** the Action Agenda content — the user sees the same tasks/events in 3 places.
+4. **Recent Work and Favorites are read-only** — they show titles but offer no quick actions (edit, continue writing, move to project).
+5. **No writing-centric focus** — for a writer-focused app, there's no "Continue Writing" or "Writing Streak" prompt.
 
-## Design
+## Redesign Philosophy
+Merge redundant widgets, add inline actions everywhere, and introduce a **Command Row** that puts the 3 most impactful next actions front and center. Every widget earns its space by enabling *doing*, not just *viewing*.
 
-A **two-layer mobile experience**:
-
-1. **Persistent Mini Pill** — A small floating pill (like a music player mini-bar) fixed at the top of the screen showing: timer countdown, active task name, and play/pause. Always visible when a focus session is active. Tapping it expands to the full view.
-
-2. **Full Mobile Focus Sheet** — A bottom Sheet (85vh) opened either from the mini pill tap or from the FAB menu. Contains the timer, task list with linked cards/notes, and controls — all touch-optimized with 44px+ targets.
-
-```text
-┌─────────────────────────┐
-│ ⏱ 18:42 · Write draft ▶│  ← Mini pill (fixed top, only when timer active)
-├─────────────────────────┤
-│                         │
-│    [Rest of app]        │
-│                         │
-└─────────────────────────┘
-
-Tap pill → opens:
-┌─────────────────────────┐
-│  ──── (drag handle)     │
-│                         │
-│      ⏱ 18:42            │  ← Large timer ring
-│   Focus · Short · Long  │
-│   [  ▶ Start  ] [↺]    │
-│                         │
-│  ─── Priority Tasks ─── │
-│  ☑ Write draft    ●red  │  ← Active task highlighted
-│    📎 Card: Research    │  ← Linked items inline
-│    📎 Note: Outline     │
-│  ☐ Review PR      ●yel │
-│  ☐ Email team     ●grn │
-│                         │
-└─────────────────────────┘
-```
+---
 
 ## Changes
 
-### 1. Add Focus entry to Mobile FAB menu
-**File**: `src/components/MobileNavigation.tsx`
-- Add a "Focus" item with the `Focus` icon to the Planner section of the SECTIONS array
+### 1. Replace Hero with Command Row
+**File**: `src/components/widgets/WelcomeWidget.tsx` (rewrite)
 
-### 2. Create Mobile Focus Sheet component
-**File**: `src/components/focus-sidebar/MobileFocusSheet.tsx` (new)
-- Bottom-anchored Sheet (85vh) with the same `useFocusState` hook
-- Touch-optimized layout: large timer ring at top, mode buttons, play/pause/reset
-- Active task name displayed prominently below timer
-- Simplified task list: shows tasks with checkboxes, priority dots, linked card/note count
-- Tapping a task's linked items expands inline to show them (same `FocusTaskList` but with larger touch targets)
-- Add task input at bottom with larger hit area
+The greeting shrinks to a single line. Below it, a **Command Row** shows 3 auto-generated "smart action" cards based on real data:
+- **"Continue Writing"** — links to the most recently edited note/card (fetched from Supabase, sorted by `updated_at`). One click navigates to it.
+- **"Next Task"** — shows the highest-priority pending task with a checkbox to complete it inline and a "Start Focus" button that opens the Pomodoro sheet.
+- **"Upcoming"** — next event with time, or "No events today" with a quick "Add Event" button.
 
-### 3. Create Floating Mini Pill
-**File**: `src/components/focus-sidebar/FocusMiniPill.tsx` (new)
-- Only renders on mobile AND when a focus session is running (`isRunning === true`)
-- Fixed position at top of screen (below header, `top: 3rem`)
-- Shows: timer countdown (MM:SS), truncated active task title, play/pause button
-- Tap anywhere on the pill (except play/pause) opens the full Mobile Focus Sheet
-- Subtle glassmorphic style matching the sidebar aesthetic
-- Pulses gently during work mode (same `focus-pulse` animation)
+Below the command row: the existing Capture/Task/Event inline forms stay but move into a collapsible "+" row (single icon button that expands).
 
-### 4. Wire into AppLayout
-**File**: `src/components/AppLayout.tsx`
-- Import and render `FocusMiniPill` (it self-manages visibility based on mobile + running state)
-- The existing desktop `FocusSidebar` stays unchanged
-- Pass a shared mechanism: the mini pill and mobile sheet both use `useFocusState` which reads from localStorage, so they share state automatically
+```text
+┌──────────────────────────────────────────────────┐
+│ Good morning, Alex · Friday, March 28            │
+│                                                  │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
+│ │ ✏ Resume  │ │ ☑ Review │ │ 📅 2:00pm │          │
+│ │ Ch. 3    │ │ outline  │ │ Team call│          │
+│ │ [Open]   │ │ [✓] [⏱] │ │ [Open]   │          │
+│ └──────────┘ └──────────┘ └──────────┘          │
+│                                    [+ Capture]   │
+└──────────────────────────────────────────────────┘
+```
 
-### 5. Adjust existing FocusSidebar for mobile
-**File**: `src/components/focus-sidebar/FocusSidebar.tsx`
-- On mobile, don't render the full sidebar at all (return null when `isMobile`)
-- Mobile users use the Sheet + Mini Pill instead
+### 2. Upgrade Action Agenda with Inline Actions
+**File**: `src/components/widgets/ActionAgendaWidget.tsx` (edit)
+
+Each item gets contextual action buttons on hover/tap:
+- **Tasks**: checkbox (existing) + "Snooze to tomorrow" button (updates `due_date` to tomorrow) + "Start Focus" (opens Pomodoro with task pre-selected)
+- **Events**: "Reschedule" button (opens a date picker popover)
+- Swipe-right on mobile = complete task; swipe-left = snooze
+
+### 3. Remove Redundant Task/Calendar Widgets from Default
+**File**: `src/hooks/useDashboardLayout.ts` (edit)
+
+Set `task-tracker` and `calendar-events` to `isVisible: false` in DEFAULT_WIDGETS since Action Agenda now covers their role with more context. They remain available in the widget sidebar for users who want them.
+
+### 4. Upgrade Recent Work to "Continue Working"
+**File**: `src/components/widgets/RecentWorkWidget.tsx` (edit)
+
+- Rename header to "Continue Working"
+- Add inline action buttons per item: "Open", "Add to Focus" (links item to current Pomodoro task)
+- The most recent item gets a highlighted "Resume" treatment (slightly larger, accent border-left)
+- Show word count delta for notes ("+342 words today") if available
+
+### 5. Add Writing Streak Indicator to Stats
+**File**: `src/components/widgets/StatsWidget.tsx` (edit)
+
+Add a "streak" pill that shows consecutive days with edits (calculated from `updated_at` timestamps on cards/notes). Shows like: `🔥 5-day streak`. Motivates daily writing habit.
+
+### 6. Update Dashboard Layout
+**File**: `src/components/CustomizableDashboard.tsx` (edit)
+
+New layout order:
+1. **Command Row** (WelcomeWidget, rewritten)
+2. **Action Agenda** (enhanced with inline actions)
+3. **Continue Working + Favorites** (2-col)
+4. **Extra widgets** (user-added)
+
+Remove the separate Tasks + Calendar section from the default grid.
+
+---
 
 ## Technical Details
 
-- **State sharing**: `useFocusState` persists to localStorage, so the mini pill and sheet both read the same state. No prop drilling needed — each component instantiates the hook independently.
-- **No new dependencies**: Uses existing Sheet, Button, Checkbox components
-- **Touch targets**: All interactive elements ≥ 44px height on mobile
-- **Works alongside other apps**: The mini pill is compact enough for split-screen use; the sheet dismisses easily with a swipe down
+### Smart Action Cards (WelcomeWidget)
+```typescript
+// Fetch data for command row
+const [latestWork, nextTask, nextEvent] = await Promise.all([
+  supabase.from('notes').select('id,title').eq('user_id', uid)
+    .is('deleted_at', null).order('updated_at', { ascending: false }).limit(1).single(),
+  supabase.from('project_tasks').select('id,name,priority').eq('user_id', uid)
+    .neq('status', 'done').is('parent_task_id', null)
+    .order('due_date').order('priority', { ascending: false }).limit(1).single(),
+  supabase.from('calendar_events').select('id,title,event_time').eq('user_id', uid)
+    .gte('event_date', today).order('event_date').order('event_time').limit(1).single(),
+]);
+```
 
-### Files to Create
-| File | Purpose |
-|------|---------|
-| `src/components/focus-sidebar/MobileFocusSheet.tsx` | Full mobile focus view as bottom Sheet |
-| `src/components/focus-sidebar/FocusMiniPill.tsx` | Floating mini timer pill for mobile |
+### Snooze Action (ActionAgendaWidget)
+```typescript
+const snoozeToTomorrow = async (taskId: string) => {
+  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+  await supabase.from('project_tasks').update({ due_date: tomorrow }).eq('id', taskId);
+  toast.success('Snoozed to tomorrow');
+  fetchAgenda();
+};
+```
 
-### Files to Edit
-| File | Changes |
-|------|---------|
-| `src/components/focus-sidebar/FocusSidebar.tsx` | Return null on mobile |
-| `src/components/MobileNavigation.tsx` | Add Focus item to Planner section |
-| `src/components/AppLayout.tsx` | Import and render FocusMiniPill |
+### Writing Streak (StatsWidget)
+Query distinct dates from recent card/note edits and count consecutive days backward from today.
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `src/components/widgets/WelcomeWidget.tsx` | Rewrite: Command Row with smart action cards |
+| `src/components/widgets/ActionAgendaWidget.tsx` | Add snooze/focus inline actions per item |
+| `src/components/widgets/RecentWorkWidget.tsx` | Rename, add "Resume" highlight + action buttons |
+| `src/components/widgets/StatsWidget.tsx` | Add writing streak pill |
+| `src/components/CustomizableDashboard.tsx` | Remove Tasks+Calendar section from default grid |
+| `src/hooks/useDashboardLayout.ts` | Set task-tracker/calendar-events `isVisible: false` |
+
+### No Database Changes
+All queries use existing tables (`notes`, `zettel_cards`, `project_tasks`, `calendar_events`).
 
