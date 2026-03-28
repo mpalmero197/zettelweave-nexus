@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
+import { MobileFocusSheet } from './focus-sidebar/MobileFocusSheet';
 
 interface MobileNavigationProps {
   isAdmin?: boolean;
@@ -85,6 +86,7 @@ export function MobileNavigation({
   const [searchFocused, setSearchFocused] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [focusSheetOpen, setFocusSheetOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
 
@@ -120,6 +122,11 @@ export function MobileNavigation({
   if (!isMobile) return null;
 
   const handleNav = (id: string) => {
+    if (id === 'focus') {
+      setOpen(false);
+      setFocusSheetOpen(true);
+      return;
+    }
     setOpen(false);
     onTabChange?.(id);
   };
