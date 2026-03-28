@@ -330,6 +330,8 @@ export function MobileNavigation({
           </div>
         </SheetContent>
       </Sheet>
+
+      <MobileFocusSheet open={focusSheetOpen} onOpenChange={setFocusSheetOpen} />
     </>
   );
 }
