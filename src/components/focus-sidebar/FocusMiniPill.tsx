@@ -18,7 +18,7 @@ export function FocusMiniPill() {
   const modeColors = {
     work: 'hsl(var(--primary))',
     'short-break': 'hsl(142 71% 45%)',
-    'long-break': 'hsl(270 70% 65%)',
+    'long-break': 'hsl(200 15% 50%)',
   };
 
   return (

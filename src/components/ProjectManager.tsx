@@ -137,7 +137,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; dotClass: string }> = {
 
 const TASK_COLORS = [
   'bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-red-500',
-  'bg-purple-500', 'bg-sky-500', 'bg-pink-500', 'bg-teal-500',
+  'bg-slate-500', 'bg-sky-500', 'bg-pink-500', 'bg-teal-500',
 ];
 
 const PROJECT_ICONS = ['📁', '🚀', '💼', '🎯', '📊', '🏗️', '💡', '🎨', '📱', '🌐', '🔧', '📝'];
@@ -1258,7 +1258,7 @@ export function ProjectManager() {
             <div>
               <label className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Color</label>
               <div className="flex gap-2 mt-1.5">
-                {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'].map(c => (
+                {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#64748b', '#ec4899', '#06b6d4', '#f97316'].map(c => (
                   <button key={c} onClick={() => setProjectForm(f => ({ ...f, color: c }))} className={`h-6 w-6 rounded-full border-2 transition-all ${projectForm.color === c ? 'border-foreground scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>

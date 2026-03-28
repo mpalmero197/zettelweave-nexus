@@ -32,7 +32,7 @@ const MODE_CONFIG: Record<RecordingMode, { icon: typeof Mic; label: string; shor
   audio: { icon: Mic, label: 'Audio', shortLabel: 'Mic', color: '#f97316' },
   video: { icon: Video, label: 'Video', shortLabel: 'Cam', color: '#ef4444' },
   screen: { icon: Monitor, label: 'Screen', shortLabel: 'Screen', color: '#3b82f6' },
-  screen_with_audio: { icon: Monitor, label: 'Screen + Mic', shortLabel: 'S+M', color: '#8b5cf6' },
+  screen_with_audio: { icon: Monitor, label: 'Screen + Mic', shortLabel: 'S+M', color: '#64748b' },
 };
 
 const getRelativeDate = (dateStr: string) => {
