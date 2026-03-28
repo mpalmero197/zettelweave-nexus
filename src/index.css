@@ -741,6 +741,147 @@
   padding: 0 2px;
 }
 
+/* ── Document Layout Modes ── */
+
+/* Page Layout (default) — A4/Letter page with shadow */
+.catalyst-layout-page .catalyst-word-view {
+  max-width: 8.5in;
+  margin: 0 auto;
+  box-shadow: 0 1px 4px hsl(0 0% 0% / 0.08);
+}
+
+/* Web Layout — full-width fluid, no page constraints */
+.catalyst-layout-web .catalyst-word-view {
+  max-width: 100%;
+  box-shadow: none;
+  padding: 2rem 3rem;
+}
+
+/* Book Layout — two-page spread with gutter */
+.catalyst-layout-book .catalyst-word-view {
+  max-width: 5.5in;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 2.5rem 2.5rem;
+  box-shadow: 
+    -1px 0 0 hsl(0 0% 80%),
+    2px 1px 6px hsl(0 0% 0% / 0.06);
+  border-left: 1px solid hsl(0 0% 85%);
+  min-height: 8in;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.dark .catalyst-layout-book .catalyst-word-view {
+  border-left-color: hsl(0 0% 25%);
+  box-shadow:
+    -1px 0 0 hsl(0 0% 25%),
+    2px 1px 6px hsl(0 0% 0% / 0.3);
+}
+
+/* Reading Layout — narrow serif column for proofing */
+.catalyst-layout-reading .catalyst-word-view {
+  max-width: 580px;
+  margin: 0 auto;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 19px;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  box-shadow: none;
+  padding: 3rem 2rem;
+}
+
+/* Manuscript Layout — double-spaced Courier for submissions */
+.catalyst-layout-manuscript .catalyst-word-view {
+  max-width: 8.5in;
+  margin: 0 auto;
+  font-family: 'Courier New', 'Courier', monospace;
+  font-size: 16px;
+  line-height: 2;
+  padding: 3rem 3rem;
+  box-shadow: 0 1px 4px hsl(0 0% 0% / 0.06);
+}
+
+.catalyst-layout-manuscript .catalyst-word-view p {
+  text-indent: 2em;
+  margin-bottom: 0;
+}
+
+.catalyst-layout-manuscript .catalyst-word-view h1,
+.catalyst-layout-manuscript .catalyst-word-view h2,
+.catalyst-layout-manuscript .catalyst-word-view h3 {
+  text-indent: 0;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 16px;
+  font-weight: normal;
+  margin: 2rem 0;
+}
+
+/* ── Table Styles ── */
+.catalyst-word-view table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.catalyst-word-view th,
+.catalyst-word-view td {
+  border: 1px solid hsl(0 0% 80%);
+  padding: 8px 12px;
+  min-width: 80px;
+  vertical-align: top;
+  font-size: 0.95em;
+}
+
+.catalyst-word-view th {
+  background: hsl(0 0% 96%);
+  font-weight: 600;
+}
+
+.dark .catalyst-word-view th,
+.dark .catalyst-word-view td {
+  border-color: hsl(0 0% 30%);
+}
+
+.dark .catalyst-word-view th {
+  background: hsl(220 16% 20%);
+}
+
+.catalyst-word-view .selectedCell {
+  background: hsl(210 100% 95%);
+}
+
+.dark .catalyst-word-view .selectedCell {
+  background: hsl(210 50% 20%);
+}
+
+/* Resize handle for tables */
+.catalyst-word-view .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: hsl(210 100% 50%);
+  cursor: col-resize;
+}
+
+.catalyst-word-view .tableWrapper {
+  overflow-x: auto;
+}
+
+/* ── Link Styles ── */
+.catalyst-link {
+  color: hsl(210 80% 45%);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.dark .catalyst-link {
+  color: hsl(210 80% 65%);
+}
+
 /* Catalyst Fullscreen Mode */
 .catalyst-fullscreen {
   position: fixed;
