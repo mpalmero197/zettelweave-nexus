@@ -84,7 +84,7 @@ export function Notes() {
   // Notebook management
   const [editingNotebook, setEditingNotebook] = useState<Notebook | null>(null);
   const [newNotebookName, setNewNotebookName] = useState('');
-  const [newNotebookColor, setNewNotebookColor] = useState('#6366f1');
+  const [newNotebookColor, setNewNotebookColor] = useState('#64748b');
   const [showNewNotebook, setShowNewNotebook] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -354,7 +354,7 @@ export function Notes() {
         .insert({ user_id: user.id, name: newNotebookName.trim(), color: newNotebookColor });
       if (error) throw error;
       setNewNotebookName('');
-      setNewNotebookColor('#6366f1');
+      setNewNotebookColor('#64748b');
       setShowNewNotebook(false);
       fetchNotebooks();
       toast.success('Notebook created');
@@ -409,7 +409,7 @@ export function Notes() {
   // Category-to-color mapping for auto-created notebooks
   const categoryColors: Record<string, string> = {
     'Technology': '#3b82f6', 'Science': '#06b6d4', 'Business': '#f97316',
-    'Health': '#22c55e', 'Education': '#8b5cf6', 'Creative': '#ec4899',
+    'Health': '#22c55e', 'Education': '#64748b', 'Creative': '#ec4899',
     'Personal': '#eab308', 'Reference': '#6b7280', 'Projects': '#14b8a6',
     'Philosophy': '#a855f7',
   };

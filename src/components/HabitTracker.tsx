@@ -35,7 +35,7 @@ interface Habit {
 
 const HABIT_CATEGORIES = [
   { id: 'health', name: 'Health & Fitness', color: '#22c55e' },
-  { id: 'mindfulness', name: 'Mindfulness', color: '#8b5cf6' },
+  { id: 'mindfulness', name: 'Mindfulness', color: '#64748b' },
   { id: 'productivity', name: 'Productivity', color: '#3b82f6' },
   { id: 'learning', name: 'Learning', color: '#f59e0b' },
   { id: 'social', name: 'Social', color: '#ec4899' },
@@ -44,7 +44,7 @@ const HABIT_CATEGORIES = [
 ];
 
 const HABIT_COLORS = [
-  '#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', 
+  '#22c55e', '#3b82f6', '#64748b', '#f59e0b', 
   '#ec4899', '#06b6d4', '#ef4444', '#84cc16'
 ];
 

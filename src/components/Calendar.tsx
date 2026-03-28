@@ -80,7 +80,7 @@ type ViewMode = 'month' | 'week' | 'day' | 'agenda';
 
 const CATEGORIES = [
   { value: 'event', label: 'Event', icon: CalendarIcon, color: 'hsl(var(--primary))' },
-  { value: 'appointment', label: 'Appointment', icon: Briefcase, color: '#8b5cf6' },
+  { value: 'appointment', label: 'Appointment', icon: Briefcase, color: '#64748b' },
   { value: 'meeting', label: 'Meeting', icon: Video, color: '#3b82f6' },
   { value: 'call', label: 'Phone Call', icon: Phone, color: '#22c55e' },
   { value: 'personal', label: 'Personal', icon: Heart, color: '#ec4899' },
@@ -90,7 +90,7 @@ const CATEGORIES = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   event: 'bg-primary',
-  appointment: 'bg-violet-500',
+  appointment: 'bg-slate-500',
   meeting: 'bg-blue-500',
   call: 'bg-green-500',
   personal: 'bg-pink-500',
@@ -111,7 +111,7 @@ const CATEGORY_BORDER_COLORS: Record<string, string> = {
 const SOURCE_DOT_COLORS: Record<string, string> = {
   zettel_card: 'bg-primary',
   note: 'bg-blue-500',
-  scratch_pad: 'bg-purple-500',
+  scratch_pad: 'bg-slate-500',
   sticky_note: 'bg-yellow-500',
   manual: 'bg-orange-500',
   task: 'bg-rose-500',
@@ -1501,7 +1501,7 @@ export function Calendar() {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Color</label>
                   <div className="flex gap-2 flex-wrap">
-                    {['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'].map(c => (
+                    {['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#64748b', '#ec4899', '#14b8a6', '#f97316'].map(c => (
                       <button
                         key={c}
                         onClick={() => setNewHabit(p => ({ ...p, color: c }))}
