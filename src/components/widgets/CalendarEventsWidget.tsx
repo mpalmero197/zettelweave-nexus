@@ -102,6 +102,19 @@ export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps =
         )}
       </div>
       <div className="widget-body">
+        <div className="flex gap-2 px-1.5 pb-1">
+          <Input
+            value={newEventTitle}
+            onChange={e => setNewEventTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addEvent(); }}
+            placeholder="Add event (today)…"
+            className="text-xs h-8"
+            aria-label="New event title"
+          />
+          <Button onClick={addEvent} disabled={!newEventTitle.trim()} size="sm" className="h-8 w-8 p-0 shrink-0" aria-label="Add event">
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         {loading ? (
           <div className="space-y-2 p-2">
             {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted/50 rounded-md animate-pulse" />)}
