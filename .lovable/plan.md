@@ -1,81 +1,73 @@
 
 
-# Catalyst Writer Enhancement + WCAG Compliance
+# Milanote-Style Whiteboard Enhancement
 
-## Part A: Writer-Dream Features
+## Overview
+Upgrade the existing Fabric.js whiteboard with Milanote's signature features: rich note cards, task lists, link cards, connector lines, a minimap, smart guides, board templates, and a color palette tool.
 
-### 1. Typewriter Scrolling Mode
-**File**: `src/components/CatalystEditor.tsx`, `src/index.css`
+## New Features
 
-Add a "typewriter" toggle to the toolbar that keeps the active cursor line vertically centered in the viewport as the user types. Implemented via a TipTap `onTransaction` handler that calls `scrollIntoView` with `block: 'center'` on the cursor position after each keystroke.
+### 1. Rich Note Cards
+Add a "Note Card" tool that creates a styled card with a bold title field and a multi-line body field (two `Textbox` objects grouped with a rounded `Rect` background). Distinct from sticky notes -- these are white, have a subtle shadow, and look like index cards.
 
-### 2. Highlight / Marker Extension
-**File**: `src/components/CatalystEditor.tsx`
+### 2. Task/Checklist Objects
+Add a "Checklist" tool that places an interactive checklist card on the canvas. Each item is a `Group` of a checkbox rect + text. Clicking the checkbox toggles a checkmark (strike-through text + filled square). Users can double-click to add new items.
 
-Add TipTap's `Highlight` extension with a toolbar color-picker (4 preset colors: yellow, green, blue, pink). Writers use highlighting for revision passes -- e.g., "yellow = needs citation", "pink = cut candidate".
+### 3. Link Cards
+Add a "Link Card" tool -- user pastes a URL into a prompt, and a card is created showing the URL domain + title text. No external API needed; just parses the URL for domain display.
 
-### 3. Reading Time Estimate in Stats Bar
-**File**: `src/components/catalyst/CatalystStatsBar.tsx`
+### 4. Connector Lines (Object-to-Object)
+Add a "Connector" tool. User clicks a source object, then clicks a target object, and a line is drawn between their centers. On `object:moving`, connected lines update their endpoints. Store connections in a ref map keyed by object IDs.
 
-Add a "~X min read" pill next to the word count, calculated as `Math.ceil(wordCount / 238)` (average adult reading speed). Already has the data; just needs the display.
+### 5. Minimap
+Render a small (150x100px) overview in the bottom-left corner showing all objects as tiny dots/rectangles. Clicking the minimap pans the viewport to that area. Updates on `after:render`.
 
-### 4. Auto-Save Status Indicator
-**File**: `src/components/Catalyst.tsx`
+### 6. Smart Guides / Snap to Grid
+On `object:moving`, calculate alignment with nearby objects and show red guide lines when edges/centers align (within 5px threshold). Optionally snap objects to a configurable grid (20px default).
 
-Show a subtle "Saved" / "Saving..." / "Unsaved changes" indicator next to the document title. Track dirty state by comparing current content to last-saved content, and show the timestamp of last save.
+### 7. Board Templates
+Add a "Templates" button in the toolbar that opens a popover with 4 presets:
+- **Mood Board**: 3x3 grid of image placeholder frames
+- **Project Plan**: columns with headers (To Do / In Progress / Done)
+- **Brainstorm**: central topic card with radiating sticky notes
+- **Storyboard**: horizontal sequence of numbered frames
 
-### 5. Markdown Input Rules (Smart Shortcuts)
-**File**: `src/components/CatalystEditor.tsx`
+Each template places pre-built Fabric objects on the canvas.
 
-TipTap's StarterKit already includes basic input rules, but add `Typography` extension for smart quotes (`"` to curly quotes), em-dashes (`--` to `—`), and ellipsis (`...` to `…`). Writers expect these automatically.
-
----
-
-## Part B: WCAG 2.1 AA Compliance for Document Window
-
-### 1. Toolbar Accessibility
-**File**: `src/components/CatalystEditor.tsx`
-
-- Add `role="toolbar"` and `aria-label="Formatting toolbar"` to the toolbar container
-- Add `aria-label` to every Toggle button (e.g., "Bold", "Italic", "Heading 1", "Undo")
-- Add `aria-pressed` state (already handled by Radix Toggle, but verify)
-- Group related controls with `role="group"` and `aria-label` (e.g., "Text formatting", "Alignment")
-
-### 2. Focus Mode Contrast Fix
-**File**: `src/index.css`
-
-Current focus mode dims inactive paragraphs to `opacity: 0.3` which fails WCAG contrast. Change to `opacity: 0.45` minimum and add a `prefers-contrast: more` override that sets it to `0.7`.
-
-### 3. Live Regions for Dynamic Content
-**File**: `src/components/CatalystEditor.tsx`, `src/components/catalyst/CatalystStatsBar.tsx`
-
-- Wrap word count display in `aria-live="polite"` so screen readers announce changes
-- Add `aria-live="assertive"` for save status changes
-- Add `sr-only` announcements for toolbar state changes
-
-### 4. Editor Area Semantics
-**File**: `src/components/CatalystEditor.tsx`
-
-- Add `aria-label="Document editor"` to the EditorContent wrapper
-- Add `role="region"` and `aria-label` to the overall editor container
-- Ensure the ProseMirror element gets `aria-multiline="true"`
-
-### 5. Keyboard Navigation Enhancement
-**File**: `src/components/CatalystEditor.tsx`
-
-- Add `Escape` key handler to exit the editor and return focus to the toolbar
-- Add `aria-keyshortcuts` attributes to toolbar buttons with shortcuts (Ctrl+B, Ctrl+I, etc.)
+### 8. Color Palette Tool
+Add a "Swatch" tool that places a row of 5 color circles on the canvas, acting as a visual palette/mood reference. User can change colors by clicking each circle.
 
 ---
 
-## Files Changed
+## Technical Details
+
+### Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/components/CatalystEditor.tsx` | Typewriter mode, Highlight extension, Typography extension, full WCAG toolbar markup, keyboard nav, editor semantics |
-| `src/index.css` | Typewriter scroll CSS, focus mode opacity fix, high-contrast overrides |
-| `src/components/catalyst/CatalystStatsBar.tsx` | Reading time pill, aria-live region |
-| `src/components/Catalyst.tsx` | Auto-save status indicator near title |
+| `src/components/DesktopWhiteboard.tsx` | Add 5 new tools (noteCard, checklist, linkCard, connector, swatch) to Tool type. Add connector tracking refs + update logic. Add smart guide rendering. Add minimap canvas. Add templates popover. Extend `handleToolClick` and keyboard shortcuts. |
+| `src/index.css` | Add `.whiteboard-minimap`, `.whiteboard-smart-guide`, `.whiteboard-note-card` styles |
 
-No database changes required.
+### New Tool Type Additions
+```text
+Tool union += "noteCard" | "checklist" | "linkCard" | "connector" | "swatch"
+```
+
+### Connector Architecture
+- `connectionsRef = useRef<Map<string, {from: string, to: string, line: Line}>>()`
+- Assign unique IDs to objects via `obj.set('data', { id: nanoid() })`
+- On `object:moving`, iterate connections and update line coordinates
+- Connector mode: first click sets source, second click draws line
+
+### Smart Guides
+- On `object:moving`, compare active object edges (left, right, center, top, bottom, middle) against all other objects
+- Render temporary `Line` objects (red, 1px) as guides
+- Remove guides on `object:modified`
+
+### Minimap
+- Secondary offscreen canvas (150x100) rendered in a `div` overlay
+- Re-render on `after:render` by iterating objects and drawing scaled rectangles
+- Click handler calculates viewport pan target from click position
+
+### No new dependencies required -- all built with existing Fabric.js primitives.
 
