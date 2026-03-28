@@ -328,37 +328,40 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
     );
   };
 
+  const totalRoot = rootTasks.length;
+  const doneCount = completedRoot.length;
+  const progressPct = totalRoot > 0 ? Math.round((doneCount / totalRoot) * 100) : 0;
+
   return (
     <>
-      <div className="widget-card widget-accent-tasks p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <CheckSquare className="h-4 w-4 text-destructive/70" aria-hidden="true" />
-            <button
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-              onClick={() => onNavigate?.('tasks')}
-            >
-              Tasks
+      <div className="widget-card">
+        <div className="widget-header">
+          <div className="widget-header-left">
+            <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <h3 className="text-sm font-medium text-foreground">Tasks</h3>
+          </div>
+          {onNavigate && (
+            <button className="widget-header-link" onClick={() => onNavigate('tasks')}>
+              View all →
             </button>
-          </div>
-          <div className="flex items-center gap-2">
-            {pendingRoot.length > 0 && (
-              <span className="text-[10px] text-muted-foreground tabular-nums">{pendingRoot.length} pending</span>
-            )}
-            {onNavigate && (
-              <button
-                onClick={() => onNavigate('tasks')}
-                className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
-                aria-label="Open full task manager"
-              >
-                View all <ExternalLink className="h-2.5 w-2.5" />
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        <div className="space-y-3">
-          <div className="flex gap-2">
+        {/* Progress bar */}
+        {totalRoot > 0 && (
+          <div className="px-4 pt-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-muted-foreground tabular-nums">{doneCount}/{totalRoot} done</span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">{progressPct}%</span>
+            </div>
+            <div className="progress-micro">
+              <div className="progress-micro-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+        )}
+
+        <div className="widget-body space-y-2">
+          <div className="flex gap-2 px-1.5">
             <Input
               value={newTaskTitle}
               onChange={e => setNewTaskTitle(e.target.value)}
@@ -372,7 +375,7 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
             </Button>
           </div>
 
-          <div className="flex gap-1">
+          <div className="flex gap-1 px-1.5">
             {(['low', 'medium', 'high'] as const).map(p => (
               <Button
                 key={p}
@@ -389,8 +392,8 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
           {loading ? (
             <div className="py-4 text-center text-xs text-muted-foreground">Loading…</div>
           ) : (
-            <div className="space-y-0 max-h-64 overflow-y-auto">
-              {pendingRoot.map(task => renderTask(task))}
+            <div className="space-y-0 max-h-56 overflow-y-auto">
+              {pendingRoot.slice(0, 5).map(task => renderTask(task))}
 
               {completedRoot.length > 0 && (
                 <>
@@ -401,19 +404,20 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
                     {showCompleted ? <ChevronDown className="h-2.5 w-2.5" /> : <ChevronRight className="h-2.5 w-2.5" />}
                     Completed ({completedRoot.length})
                   </button>
-                  {showCompleted && completedRoot.map(task => renderTask(task))}
+                  {showCompleted && completedRoot.slice(0, 3).map(task => renderTask(task))}
                 </>
               )}
 
               {rootTasks.length === 0 && (
-                <div className="text-center py-6">
-                  <CheckSquare className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" aria-hidden="true" />
-                  <p className="text-xs text-muted-foreground">No tasks yet</p>
-                </div>
+                <p className="text-xs text-muted-foreground py-6 text-center">No tasks yet</p>
               )}
             </div>
           )}
         </div>
+
+        {pendingRoot.length > 5 && (
+          <div className="widget-footer">{pendingRoot.length - 5} more pending</div>
+        )}
       </div>
 
       {/* Edit Sheet */}
