@@ -911,10 +911,23 @@ const DOCUMENT_TEMPLATES = [
                 onChange={(e) => setDocumentTitle(e.target.value)}
                 className="w-64"
                 placeholder="Document title..."
+                aria-label="Document title"
               />
               <Badge variant="outline" className="px-3 py-1">
                 {wordCount.toLocaleString()} words
               </Badge>
+              <span
+                className="text-xs text-muted-foreground"
+                aria-live="assertive"
+              >
+                {saveDocumentMutation.isPending ? (
+                  <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Saving…</span>
+                ) : currentDocId ? (
+                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-500" /> Saved</span>
+                ) : (
+                  <span className="text-muted-foreground/60">Unsaved</span>
+                )}
+              </span>
             </div>
           )}
         </div>

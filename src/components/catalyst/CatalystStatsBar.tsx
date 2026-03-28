@@ -83,7 +83,7 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-t text-xs text-muted-foreground flex-wrap">
+      <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-t text-xs text-muted-foreground flex-wrap" role="status" aria-live="polite" aria-label="Document statistics">
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-1.5">
