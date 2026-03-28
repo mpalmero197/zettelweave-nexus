@@ -311,8 +311,8 @@ export function AdminOverview() {
         <Card className="border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Cards</CardTitle>
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <FileStack className="h-4 w-4 text-purple-500" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileStack className="h-4 w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
@@ -641,7 +641,7 @@ export function AdminOverview() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Cards Created</span>
-                <span className="text-sm text-purple-500">+{analytics.cardsThisWeek}</span>
+                <span className="text-sm text-primary">+{analytics.cardsThisWeek}</span>
               </div>
               <Progress value={Math.min((analytics.cardsThisWeek / Math.max(analytics.totalCards, 1)) * 100, 100)} className="h-2" />
               <p className="text-xs text-muted-foreground">{((analytics.cardsThisWeek / Math.max(analytics.totalCards, 1)) * 100).toFixed(1)}% of total</p>

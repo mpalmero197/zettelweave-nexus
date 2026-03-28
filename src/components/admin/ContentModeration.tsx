@@ -147,8 +147,8 @@ export function ContentModeration() {
         <Card className="border-primary/10 hover:shadow-lg transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Cards</CardTitle>
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <FileText className="h-4 w-4 text-purple-500" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
@@ -221,7 +221,7 @@ export function ContentModeration() {
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <BarChart3 className="h-5 w-5 text-purple-500" />
+              <BarChart3 className="h-5 w-5 text-primary" />
               Knowledge Cards Metrics
             </CardTitle>
             <CardDescription>Aggregate card statistics (content hidden)</CardDescription>

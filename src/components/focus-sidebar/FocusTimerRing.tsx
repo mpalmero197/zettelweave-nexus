@@ -14,7 +14,7 @@ export function FocusTimerRing({ seconds, totalSeconds, isRunning, mode }: Focus
   const accentColors = {
     work: { r: 56, g: 189, b: 248 },       // cyan
     'short-break': { r: 74, g: 222, b: 128 }, // green
-    'long-break': { r: 168, g: 85, b: 247 },  // purple
+    'long-break': { r: 140, g: 140, b: 160 },  // muted neutral
   };
 
   useEffect(() => {

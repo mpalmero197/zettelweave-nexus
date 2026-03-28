@@ -182,7 +182,7 @@ export function GraphViewPremium() {
     
     gradient.append('stop')
       .attr('offset', '0%')
-      .attr('stop-color', 'hsl(271, 76%, 53%)')
+      .attr('stop-color', 'hsl(0, 0%, 55%)')
       .attr('stop-opacity', 0.3);
     
     gradient.append('stop')
@@ -217,12 +217,12 @@ export function GraphViewPremium() {
     node.append('circle')
       .attr('r', d => d.type === 'card' ? 20 : 15)
       .attr('fill', d => d.type === 'card' 
-        ? 'hsl(271, 76%, 53%)' 
-        : 'hsl(346, 60%, 49%)'
+        ? 'hsl(0, 0%, 55%)' 
+        : 'hsl(0, 0%, 40%)'
       )
       .attr('stroke', 'hsl(var(--background))')
       .attr('stroke-width', 3)
-      .style('filter', 'drop-shadow(0 4px 20px hsla(271, 76%, 53%, 0.3))')
+      .style('filter', 'drop-shadow(0 4px 20px hsla(0, 0%, 55%, 0.3))')
       .style('transition', 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)');
 
     // Add glow effect on hover

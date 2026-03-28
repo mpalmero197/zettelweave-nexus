@@ -167,7 +167,7 @@ export function AgentsOverview({ agents, findings, notifications, onSelectAgent,
           { label: 'Fleet Size', value: agents.length, icon: Bot, accent: 'border-l-foreground' },
           { label: 'Active', value: enabledAgents.length, icon: Zap, accent: 'border-l-green-500' },
           { label: 'Discoveries', value: unreadFindings, icon: TrendingUp, accent: 'border-l-blue-500' },
-          { label: 'Capabilities', value: totalCapabilities, icon: CheckCircle2, accent: 'border-l-purple-500' },
+          { label: 'Capabilities', value: totalCapabilities, icon: CheckCircle2, accent: 'border-l-primary' },
         ].map(stat => (
           <div
             key={stat.label}
