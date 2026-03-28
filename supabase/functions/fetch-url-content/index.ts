@@ -69,6 +69,27 @@ serve(async (req) => {
       );
     }
 
+    // Block internal/private IP addresses to prevent SSRF
+    const hostname = parsedUrl.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '::1') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Cannot fetch localhost URLs' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipv4Match) {
+      const [, a, b] = ipv4Match.map(Number);
+      if (a === 10 || (a === 172 && b >= 16 && b <= 31) ||
+          (a === 192 && b === 168) || (a === 169 && b === 254) || a === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Cannot fetch private IP addresses' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('Fetching URL:', url);
 
     // Fetch the webpage

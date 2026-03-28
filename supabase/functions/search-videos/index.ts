@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -43,7 +45,6 @@ function buildThumbnail(url: string): string {
 function extractChannel(url: string, title: string): string {
   if (url.includes('khanacademy.org')) return 'Khan Academy';
   if (url.includes('ted.com')) return 'TED';
-  // Try to extract from title patterns like "Title - Channel"
   const dash = title.lastIndexOf(' - ');
   if (dash > 0 && dash < title.length - 3) return title.substring(dash + 3).trim();
   const pipe = title.lastIndexOf(' | ');
@@ -52,7 +53,6 @@ function extractChannel(url: string, title: string): string {
 }
 
 function cleanTitle(title: string): string {
-  // Remove channel suffix
   const dash = title.lastIndexOf(' - ');
   if (dash > title.length * 0.4) return title.substring(0, dash).trim();
   const pipe = title.lastIndexOf(' | ');
@@ -66,6 +66,29 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { query } = await req.json();
 
     if (!query?.trim()) {
