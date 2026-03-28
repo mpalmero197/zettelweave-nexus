@@ -249,14 +249,17 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                                 <Clock className="h-3 w-3" />{task.pomodoroMinutes}m
                               </span>
                             )}
-                            {linkedCount > 0 && (
-                              <button
-                                className="text-[11px] text-muted-foreground flex items-center gap-0.5"
-                                onClick={(e) => { e.stopPropagation(); setExpandedTaskId(isExpanded ? null : task.id); }}
-                              >
-                                <Link2 className="h-3 w-3" />{linkedCount}
-                              </button>
-                            )}
+                            <button
+                              className="text-[11px] text-muted-foreground flex items-center gap-0.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const next = isExpanded ? null : task.id;
+                                setExpandedTaskId(next);
+                                if (next) setLinkSearchTaskId(null);
+                              }}
+                            >
+                              <Link2 className="h-3 w-3" />{linkedCount > 0 ? linkedCount : 'Link'}
+                            </button>
                           </div>
                         </div>
                         <Button
@@ -269,21 +272,70 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                         </Button>
                       </div>
 
-                      {/* Expanded linked items */}
-                      {isExpanded && (linkedCards.length > 0 || linkedNotes.length > 0) && (
-                        <div className="pl-11 pr-3 space-y-1">
+                      {/* Expanded: linked items + search */}
+                      {isExpanded && (
+                        <div className="pl-11 pr-3 space-y-1.5">
                           {linkedCards.map(card => (
-                            <div key={card.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30">
+                            <div key={card.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30 min-h-[40px]">
                               <Layers className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                               <span className="text-xs text-foreground/80 truncate flex-1">{card.title}</span>
+                              <button onClick={() => unlinkItem(task.id, 'card', card.id)} className="h-7 w-7 flex items-center justify-center text-muted-foreground touch-manipulation">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           ))}
                           {linkedNotes.map(note => (
-                            <div key={note.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30">
-                              <FileText className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                            <div key={note.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30 min-h-[40px]">
+                              <FileText className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
                               <span className="text-xs text-foreground/80 truncate flex-1">{note.title}</span>
+                              <button onClick={() => unlinkItem(task.id, 'note', note.id)} className="h-7 w-7 flex items-center justify-center text-muted-foreground touch-manipulation">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           ))}
+
+                          {/* Link search */}
+                          {linkSearchTaskId === task.id ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <Input
+                                  autoFocus
+                                  value={linkQuery}
+                                  onChange={e => setLinkQuery(e.target.value)}
+                                  placeholder="Search cards & notes…"
+                                  className="h-9 text-xs rounded-lg flex-1"
+                                />
+                                <Button size="sm" variant="ghost" onClick={() => { setLinkSearchTaskId(null); setLinkQuery(''); }} className="h-9 w-9 p-0 touch-manipulation">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              {getLinkResults(task).map(r => (
+                                <button
+                                  key={`${r.type}-${r.id}`}
+                                  onClick={() => { linkItem(task.id, r.type, r.id); setLinkQuery(''); }}
+                                  className="flex items-center gap-2 w-full text-left p-2 rounded-lg bg-muted/20 active:bg-accent min-h-[44px] touch-manipulation"
+                                >
+                                  {r.type === 'card'
+                                    ? <Layers className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                    : <FileText className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                                  }
+                                  <span className="text-xs text-foreground truncate flex-1">{r.title}</span>
+                                  <span className="text-[10px] text-muted-foreground">{r.type}</span>
+                                </button>
+                              ))}
+                              {linkQuery.trim() && getLinkResults(task).length === 0 && (
+                                <p className="text-xs text-muted-foreground/50 italic pl-1">No matches</p>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setLinkSearchTaskId(task.id); setLinkQuery(''); }}
+                              className="flex items-center gap-1.5 text-xs text-muted-foreground active:text-foreground py-2 touch-manipulation"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Link card or note…
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
