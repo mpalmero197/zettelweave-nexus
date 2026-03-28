@@ -27,7 +27,7 @@
     .header img { width: 22px; height: 22px; border-radius: 4px; }
     .header h1 { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
 
-    /* Login screen — shown when not authenticated */
+    /* Login screen */
     .login-screen {
       display: flex;
       flex-direction: column;
@@ -115,7 +115,7 @@
     }
     .icon-btn:hover { background: #27272a; color: #e4e4e7; }
 
-    /* App content — hidden until logged in */
+    /* App content */
     .app-content { display: none; }
 
     /* Tabs */
@@ -169,6 +169,8 @@
     .btn-primary:hover { background: #2563eb; }
     .btn-secondary { background: #27272a; color: #d4d4d8; }
     .btn-secondary:hover { background: #3f3f46; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
     .actions { display: flex; gap: 8px; }
 
     /* Notes list */
@@ -283,6 +285,138 @@
     .color-btn:hover { transform: scale(1.1); }
     .color-btn.active { border-color: #fff; }
 
+    /* ── Pomodoro Timer ── */
+    .pomodoro-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 0;
+    }
+
+    .pomo-ring-wrapper {
+      position: relative;
+      width: 160px;
+      height: 160px;
+    }
+    .pomo-ring-wrapper svg {
+      transform: rotate(-90deg);
+      width: 160px;
+      height: 160px;
+    }
+    .pomo-ring-bg {
+      fill: none;
+      stroke: #27272a;
+      stroke-width: 6;
+    }
+    .pomo-ring-progress {
+      fill: none;
+      stroke: #3b82f6;
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s linear;
+    }
+    .pomo-ring-progress.break {
+      stroke: #22c55e;
+    }
+    .pomo-time-display {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .pomo-time {
+      font-size: 36px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+    .pomo-label {
+      font-size: 11px;
+      color: #71717a;
+      margin-top: 2px;
+    }
+
+    .pomo-presets {
+      display: flex;
+      gap: 6px;
+    }
+    .pomo-preset-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid #27272a;
+      background: #18181b;
+      color: #a1a1aa;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pomo-preset-btn:hover { border-color: #3f3f46; color: #e4e4e7; }
+    .pomo-preset-btn.active {
+      border-color: #3b82f6;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .pomo-controls {
+      display: flex;
+      gap: 8px;
+    }
+    .pomo-controls .btn {
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .pomo-stats {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      background: #18181b;
+      border-radius: 8px;
+      border: 1px solid #27272a;
+      width: 100%;
+    }
+    .pomo-stat {
+      flex: 1;
+      text-align: center;
+    }
+    .pomo-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .pomo-stat-label {
+      font-size: 10px;
+      color: #52525b;
+      margin-top: 2px;
+    }
+
+    .pomo-break-banner {
+      display: none;
+      padding: 8px 14px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 8px;
+      text-align: center;
+      width: 100%;
+    }
+    .pomo-break-banner.visible { display: block; }
+    .pomo-break-banner p {
+      font-size: 12px;
+      color: #4ade80;
+      font-weight: 500;
+    }
+    .pomo-break-banner span {
+      font-size: 10px;
+      color: #52525b;
+      display: block;
+      margin-top: 2px;
+    }
+
     .footer {
       padding: 10px 14px;
       border-top: 1px solid #27272a;
@@ -304,10 +438,10 @@
   <div class="header">
     <img src="icon-48.png" alt="PendragonX">
     <h1>PendragonX</h1>
-    <span id="header-version" style="font-size:10px; color:#3f3f46;">v1.0</span>
+    <span id="header-version" style="font-size:10px; color:#3f3f46;">v1.1</span>
   </div>
 
-  <!-- Login Screen (shown when not authenticated) -->
+  <!-- Login Screen -->
   <div id="login-screen" class="login-screen">
     <img src="icon-128.png" alt="PendragonX" class="logo-large">
     <h2>Welcome back</h2>
@@ -331,11 +465,12 @@
     <button id="logout-btn" class="icon-btn">Sign Out</button>
   </div>
 
-  <!-- App content (hidden until authenticated) -->
+  <!-- App content -->
   <div id="app-content" class="app-content">
     <div class="tabs">
       <button class="tab active" data-tab="scratch">Scratch Pad</button>
       <button class="tab" data-tab="sticky">Sticky Notes</button>
+      <button class="tab" data-tab="pomodoro">Pomodoro</button>
     </div>
 
     <div class="content">
@@ -352,6 +487,59 @@
         <div class="color-picker" id="color-picker"></div>
         <button class="btn btn-primary" id="add-sticky" style="width: 100%; margin-bottom: 10px;">+ Add Sticky Note</button>
         <div id="sticky-grid" class="sticky-grid"></div>
+      </div>
+
+      <div id="pomodoro-tab" style="display: none;">
+        <div class="pomodoro-container">
+          <!-- Break banner -->
+          <div id="pomo-break-banner" class="pomo-break-banner">
+            <p>☕ Break time!</p>
+            <span>Take a short rest before the next session</span>
+          </div>
+
+          <!-- Timer ring -->
+          <div class="pomo-ring-wrapper">
+            <svg viewBox="0 0 160 160">
+              <circle class="pomo-ring-bg" cx="80" cy="80" r="70" />
+              <circle id="pomo-ring" class="pomo-ring-progress" cx="80" cy="80" r="70"
+                stroke-dasharray="439.82" stroke-dashoffset="0" />
+            </svg>
+            <div class="pomo-time-display">
+              <span id="pomo-time" class="pomo-time">25:00</span>
+              <span id="pomo-label" class="pomo-label">Focus</span>
+            </div>
+          </div>
+
+          <!-- Duration presets -->
+          <div class="pomo-presets" id="pomo-presets">
+            <button class="pomo-preset-btn" data-minutes="15">15m</button>
+            <button class="pomo-preset-btn active" data-minutes="25">25m</button>
+            <button class="pomo-preset-btn" data-minutes="45">45m</button>
+            <button class="pomo-preset-btn" data-minutes="60">60m</button>
+          </div>
+
+          <!-- Controls -->
+          <div class="pomo-controls">
+            <button class="btn btn-primary" id="pomo-start">Start</button>
+            <button class="btn btn-secondary" id="pomo-reset">Reset</button>
+          </div>
+
+          <!-- Session stats -->
+          <div class="pomo-stats">
+            <div class="pomo-stat">
+              <div id="pomo-sessions" class="pomo-stat-value">0</div>
+              <div class="pomo-stat-label">Sessions</div>
+            </div>
+            <div class="pomo-stat">
+              <div id="pomo-total-time" class="pomo-stat-value">0m</div>
+              <div class="pomo-stat-label">Focus Time</div>
+            </div>
+            <div class="pomo-stat">
+              <div id="pomo-streak" class="pomo-stat-value">0</div>
+              <div class="pomo-stat-label">Streak</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
