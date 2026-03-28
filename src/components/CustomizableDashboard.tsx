@@ -2,23 +2,20 @@ import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 import { DashboardWidgetSidebar } from "./DashboardWidgetSidebar";
 import { DashboardGrid, DashboardSection } from "./DashboardGrid";
 import { WelcomeWidget } from "./widgets/WelcomeWidget";
-import { TodayStripWidget } from "./widgets/TodayStripWidget";
-import { RecentCardsWidget } from "./widgets/RecentCardsWidget";
-import { RecentNotesWidget } from "./widgets/RecentNotesWidget";
-import { QuickCaptureWidget } from "./widgets/QuickCaptureWidget";
+import { ActionAgendaWidget } from "./widgets/ActionAgendaWidget";
+import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
+import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
+import { RecentWorkWidget } from "./widgets/RecentWorkWidget";
+import { FavoritesWidget } from "./widgets/FavoritesWidget";
 import { HabitTrackerWidget } from "./widgets/HabitTrackerWidget";
-import { TaskManagerWidget } from "./widgets/TaskManagerWidget";
 import { ContentSummarizerWidget } from "./widgets/ContentSummarizerWidget";
 import { DocumentsWidget } from "./widgets/DocumentsWidget";
 import { DatabaseWidget } from "./widgets/DatabaseWidget";
 import { ActivityFeedWidget } from "./widgets/ActivityFeedWidget";
-import { NotebookListWidget } from "./widgets/NotebookListWidget";
 import { WeatherWidget } from "./widgets/WeatherWidget";
 import { QuotesWidget } from "./widgets/QuotesWidget";
 import { CustomNoteWidget } from "./widgets/CustomNoteWidget";
-import { FavoritesWidget } from "./widgets/FavoritesWidget";
-import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
-import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
+import { TaskManagerWidget } from "./widgets/TaskManagerWidget";
 import { ToolHealthWidget } from "./widgets/ToolHealthWidget";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -82,23 +79,15 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
         </div>
 
         <DashboardGrid>
-          {/* Hero: Greeting + Stats + Quick Capture */}
+          {/* 1. Hero: Greeting + Quick Actions */}
           {(isVisible('welcome') || isVisible('quick-capture') || isVisible('stats')) && (
             <WelcomeWidget onCreateCard={onCreateCard} onNavigate={onNavigate} />
           )}
 
-          {/* Today Focus Strip */}
-          <TodayStripWidget />
+          {/* 2. Action Agenda (full width) */}
+          <ActionAgendaWidget onNavigate={onNavigate} />
 
-          {/* Row: Recent Cards + Recent Notes */}
-          {(isVisible('recent-cards') || isVisible('recent-notes')) && (
-            <DashboardSection columns={2}>
-              {isVisible('recent-cards') && <RecentCardsWidget onEdit={onEdit} onNavigate={onNavigate} />}
-              {isVisible('recent-notes') && <RecentNotesWidget onOpenNote={onOpenNote} onNavigate={onNavigate} />}
-            </DashboardSection>
-          )}
-
-          {/* Row: Tasks + Calendar */}
+          {/* 3. Tasks + Calendar Events (2-col) */}
           {(isVisible('task-tracker') || isVisible('calendar-events')) && (
             <DashboardSection columns={2}>
               {isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
@@ -106,15 +95,17 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
             </DashboardSection>
           )}
 
-          {/* Row: Notebooks + Favorites */}
-          {(isVisible('notebook-list') || isVisible('favorites')) && (
+          {/* 4. Recent Work + Favorites (2-col) */}
+          {(isVisible('recent-cards') || isVisible('recent-notes') || isVisible('favorites')) && (
             <DashboardSection columns={2}>
-              {isVisible('notebook-list') && <NotebookListWidget onNavigate={onNavigate} />}
+              {(isVisible('recent-cards') || isVisible('recent-notes')) && (
+                <RecentWorkWidget onEdit={onEdit} onOpenNote={onOpenNote} onNavigate={onNavigate} />
+              )}
               {isVisible('favorites') && <FavoritesWidget />}
             </DashboardSection>
           )}
 
-          {/* Extra widgets */}
+          {/* 5. Extra widgets */}
           {extraWidgets.length > 0 && (
             <DashboardSection columns={2}>
               {extraWidgets.map(renderExtraWidget)}
