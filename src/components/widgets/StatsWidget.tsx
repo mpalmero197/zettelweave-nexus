@@ -85,8 +85,8 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
   return (
     <nav className="flex flex-wrap gap-1.5" aria-label="Quick stats">
       {streak > 1 && (
-        <span className="stat-pill !bg-accent/80">
-          <Flame className="h-3 w-3 text-orange-500" aria-hidden="true" />
+        <span className="stat-pill !bg-accent/80" aria-label={`${streak} day writing streak`}>
+          <Flame className="h-3 w-3 text-destructive" aria-hidden="true" />
           <span className="font-semibold text-foreground tabular-nums">{streak}</span>
           <span className="text-muted-foreground">day streak</span>
         </span>
