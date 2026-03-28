@@ -16,6 +16,14 @@ interface FocusSidebarProps {
 
 export function FocusSidebar({ open, onOpenChange }: FocusSidebarProps) {
   const isMobile = useIsMobile();
+
+  // Mobile uses FocusMiniPill + MobileFocusSheet instead
+  if (isMobile) return null;
+
+  return <FocusSidebarInner open={open} onOpenChange={onOpenChange} />;
+}
+
+function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
   const {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle, dndActive,
