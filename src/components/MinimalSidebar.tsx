@@ -28,6 +28,7 @@ import {
   Bug,
   Lock,
   FolderKanban,
+  Puzzle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -129,6 +130,7 @@ export function MinimalSidebar({
           <Separator className="my-2" />
           
           <NavButton tab="recorder" icon={Mic} label="Recorder" />
+          <NavButton tab="plugins" icon={Puzzle} label="Plugins" />
           <NavButton tab="recycle" icon={Trash2} label="Recycle Bin" />
           
           <Separator className="my-2" />
