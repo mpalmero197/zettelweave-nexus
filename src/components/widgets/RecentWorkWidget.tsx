@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Brain, FileText, Clock } from 'lucide-react';
+import { Brain, FileText, Clock, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -76,7 +77,7 @@ export function RecentWorkWidget({ onEdit, onOpenNote, onNavigate }: RecentWorkW
       <div className="widget-header">
         <div className="widget-header-left">
           <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-          <h3 className="text-sm font-medium text-foreground">Recent Work</h3>
+          <h3 className="text-sm font-medium text-foreground">Continue Working</h3>
         </div>
         {onNavigate && (
           <button className="widget-header-link" onClick={() => onNavigate('cards')}>
@@ -90,21 +91,35 @@ export function RecentWorkWidget({ onEdit, onOpenNote, onNavigate }: RecentWorkW
             {[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-muted/50 rounded-md animate-pulse" />)}
           </div>
         ) : items.length > 0 ? (
-          items.map(item => (
+          items.map((item, idx) => (
             <div
               key={`${item.type}-${item.id}`}
-              className="flex items-center gap-2.5 p-1.5 rounded-md hover:bg-accent/50 transition-colors cursor-pointer"
-              onClick={() => handleClick(item)}
+              className={`flex items-center gap-2.5 p-1.5 rounded-md hover:bg-accent/50 transition-colors group ${
+                idx === 0 ? 'border-l-2 border-primary bg-accent/30 pl-2.5' : ''
+              }`}
             >
               {item.type === 'card' ? (
                 <Brain className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
               ) : (
                 <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
               )}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleClick(item)}>
                 <p className="text-xs truncate text-foreground">{item.title}</p>
+                {idx === 0 && <p className="text-[10px] text-muted-foreground">Last edited {relTime(item.updatedAt)} ago</p>}
               </div>
-              <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">{relTime(item.updatedAt)}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                {idx !== 0 && (
+                  <span className="text-[10px] text-muted-foreground tabular-nums group-hover:hidden">{relTime(item.updatedAt)}</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-5 px-1.5 text-[10px] gap-0.5 ${idx === 0 ? '' : 'hidden group-hover:flex'}`}
+                  onClick={() => handleClick(item)}
+                >
+                  <ExternalLink className="h-2.5 w-2.5" /> {idx === 0 ? 'Resume' : 'Open'}
+                </Button>
+              </div>
             </div>
           ))
         ) : (

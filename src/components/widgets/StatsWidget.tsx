@@ -1,8 +1,9 @@
-import { Brain, FileText, BookOpen, Calendar } from "lucide-react";
+import { Brain, FileText, BookOpen, Calendar, Flame } from "lucide-react";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { format, subDays, parseISO, differenceInCalendarDays } from "date-fns";
 
 interface StatsWidgetProps {
   onNavigate?: (tab: string) => void;
@@ -13,6 +14,7 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
   const { user } = useAuth();
   const [stats, setStats] = useState({ notes: 0, notebooks: 0, events: 0 });
   const [deltas, setDeltas] = useState({ cards: 0, notes: 0 });
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     if (user) fetchStats();
@@ -23,13 +25,16 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
     try {
       const today = new Date().toISOString().split('T')[0];
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const monthAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
 
-      const [notesData, notebooksData, eventsData, recentNotes, recentCards] = await Promise.all([
+      const [notesData, notebooksData, eventsData, recentNotes, recentCards, notesDates, cardsDates] = await Promise.all([
         supabase.from('notes').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('deleted_at', null),
         supabase.from('notebooks').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('calendar_events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('event_date', today),
         supabase.from('notes').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('deleted_at', null).gte('created_at', weekAgo),
         supabase.from('zettel_cards').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', weekAgo),
+        supabase.from('notes').select('updated_at').eq('user_id', user.id).is('deleted_at', null).gte('updated_at', monthAgo + 'T00:00:00'),
+        supabase.from('zettel_cards').select('updated_at').eq('user_id', user.id).gte('updated_at', monthAgo + 'T00:00:00'),
       ]);
 
       setStats({
@@ -41,6 +46,30 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
         cards: recentCards.count || 0,
         notes: recentNotes.count || 0,
       });
+
+      // Calculate writing streak
+      const allDates = new Set<string>();
+      for (const n of (notesDates.data || [])) {
+        allDates.add(format(parseISO(n.updated_at), 'yyyy-MM-dd'));
+      }
+      for (const c of (cardsDates.data || [])) {
+        allDates.add(format(parseISO(c.updated_at), 'yyyy-MM-dd'));
+      }
+
+      let streakCount = 0;
+      const now = new Date();
+      for (let i = 0; i < 30; i++) {
+        const d = format(subDays(now, i), 'yyyy-MM-dd');
+        if (allDates.has(d)) {
+          streakCount++;
+        } else if (i === 0) {
+          // Today doesn't count as breaking streak if no edits yet
+          continue;
+        } else {
+          break;
+        }
+      }
+      setStreak(streakCount);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -55,6 +84,13 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
 
   return (
     <nav className="flex flex-wrap gap-1.5" aria-label="Quick stats">
+      {streak > 1 && (
+        <span className="stat-pill !bg-accent/80">
+          <Flame className="h-3 w-3 text-orange-500" aria-hidden="true" />
+          <span className="font-semibold text-foreground tabular-nums">{streak}</span>
+          <span className="text-muted-foreground">day streak</span>
+        </span>
+      )}
       {items.map((stat) => (
         <button
           key={stat.label}
@@ -65,7 +101,7 @@ export function StatsWidget({ onNavigate }: StatsWidgetProps = {}) {
           <stat.icon className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
           <span className="font-semibold text-foreground tabular-nums">{stat.value}</span>
           <span className="text-muted-foreground">{stat.label}</span>
-          {'delta' in stat && stat.delta > 0 && (
+          {'delta' in stat && stat.delta !== undefined && stat.delta > 0 && (
             <span className="text-[10px] text-muted-foreground/70">+{stat.delta} 7d</span>
           )}
         </button>
