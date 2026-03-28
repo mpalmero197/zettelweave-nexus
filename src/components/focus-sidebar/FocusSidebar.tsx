@@ -279,7 +279,14 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
 
         {/* Task list */}
         <div>
-          <h4 className="text-[10px] uppercase tracking-widest text-white/30 mb-2">Priority Tasks</h4>
+          <h4 className="text-[10px] uppercase tracking-widest text-white/30 mb-2">
+            Today's Tasks
+            {tasks.filter(t => !t.completed).length > 0 && (
+              <span className="ml-2 text-cyan-400/60 normal-case tracking-normal">
+                {tasks.filter(t => !t.completed).length} remaining
+              </span>
+            )}
+          </h4>
           <FocusTaskList
             tasks={tasks}
             onTasksChange={setTasks}
