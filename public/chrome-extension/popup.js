@@ -7,7 +7,9 @@ const STORAGE_KEYS = {
   STICKY_NOTES: 'pendragonx_sticky_notes',
   SELECTED_COLOR: 'pendragonx_selected_color',
   AUTH_TOKEN: 'pendragonx_auth_token',
-  USER_EMAIL: 'pendragonx_user_email'
+  USER_EMAIL: 'pendragonx_user_email',
+  POMO_STATE: 'pendragonx_pomo_state',
+  POMO_STATS: 'pendragonx_pomo_stats',
 };
 
 const STICKY_COLORS = [
@@ -23,6 +25,17 @@ let userEmail = null;
 
 let syncInterval = null;
 
+// ── Pomodoro State ──
+const CIRCUMFERENCE = 2 * Math.PI * 70; // ~439.82
+let pomoDuration = 25 * 60; // seconds
+let pomoRemaining = pomoDuration;
+let pomoRunning = false;
+let pomoInterval = null;
+let pomoIsBreak = false;
+const BREAK_DURATION = 5 * 60; // 5 min break
+
+let pomoStats = { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
@@ -31,11 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
   setupStickyNotes();
   setupAuth();
   renderColorPicker();
+  setupPomodoro();
 });
 
 // Clean up polling when popup closes
 window.addEventListener('unload', () => {
   if (syncInterval) clearInterval(syncInterval);
+  // Persist pomodoro state so it survives popup close
+  savePomodoroState();
 });
 
 // Start polling every 3 seconds for live sync
@@ -59,12 +75,41 @@ function loadData() {
     selectedColor = result[STORAGE_KEYS.SELECTED_COLOR] || STICKY_COLORS[0];
     authToken = result[STORAGE_KEYS.AUTH_TOKEN] || null;
     userEmail = result[STORAGE_KEYS.USER_EMAIL] || null;
+    pomoStats = result[STORAGE_KEYS.POMO_STATS] || { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
+
+    // Restore running timer state
+    const savedPomo = result[STORAGE_KEYS.POMO_STATE];
+    if (savedPomo) {
+      pomoDuration = savedPomo.duration || 25 * 60;
+      pomoIsBreak = savedPomo.isBreak || false;
+      if (savedPomo.running && savedPomo.endTime) {
+        const now = Date.now();
+        const remaining = Math.round((savedPomo.endTime - now) / 1000);
+        if (remaining > 0) {
+          pomoRemaining = remaining;
+          pomoRunning = true;
+        } else {
+          // Timer expired while popup was closed
+          pomoRemaining = 0;
+          pomoRunning = false;
+          handlePomodoroComplete();
+        }
+      } else {
+        pomoRemaining = savedPomo.remaining || pomoDuration;
+      }
+    }
 
     renderScratchNotes();
     renderStickyNotes();
     updateAuthUI();
+    updatePomoUI();
+    updatePomoStats();
 
-    // Auto-sync if logged in
+    // Check streak
+    checkStreak();
+
+    if (pomoRunning) startPomoTick();
+
     if (authToken) {
       syncFromCloud();
       startLiveSync();
@@ -83,7 +128,200 @@ function saveData() {
   });
 }
 
-// Auth setup
+function savePomodoroState() {
+  const state = {
+    duration: pomoDuration,
+    remaining: pomoRemaining,
+    running: pomoRunning,
+    isBreak: pomoIsBreak,
+    endTime: pomoRunning ? Date.now() + pomoRemaining * 1000 : null,
+  };
+  chrome.storage.local.set({
+    [STORAGE_KEYS.POMO_STATE]: state,
+    [STORAGE_KEYS.POMO_STATS]: pomoStats,
+  });
+}
+
+// ── Pomodoro Logic ──
+
+function setupPomodoro() {
+  const startBtn = document.getElementById('pomo-start');
+  const resetBtn = document.getElementById('pomo-reset');
+  const presetBtns = document.querySelectorAll('.pomo-preset-btn');
+
+  startBtn?.addEventListener('click', togglePomodoro);
+  resetBtn?.addEventListener('click', resetPomodoro);
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (pomoRunning) return; // Can't change while running
+      const minutes = parseInt(btn.dataset.minutes);
+      pomoDuration = minutes * 60;
+      pomoRemaining = pomoDuration;
+      pomoIsBreak = false;
+
+      presetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      updatePomoUI();
+      savePomodoroState();
+    });
+  });
+
+  // Highlight current preset
+  highlightActivePreset();
+}
+
+function highlightActivePreset() {
+  const presetBtns = document.querySelectorAll('.pomo-preset-btn');
+  const currentMinutes = Math.round(pomoDuration / 60);
+  presetBtns.forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.minutes) === currentMinutes && !pomoIsBreak);
+  });
+}
+
+function togglePomodoro() {
+  if (pomoRunning) {
+    pausePomodoro();
+  } else {
+    startPomodoro();
+  }
+}
+
+function startPomodoro() {
+  pomoRunning = true;
+  startPomoTick();
+  updatePomoUI();
+  savePomodoroState();
+}
+
+function pausePomodoro() {
+  pomoRunning = false;
+  if (pomoInterval) { clearInterval(pomoInterval); pomoInterval = null; }
+  updatePomoUI();
+  savePomodoroState();
+}
+
+function resetPomodoro() {
+  pomoRunning = false;
+  pomoIsBreak = false;
+  if (pomoInterval) { clearInterval(pomoInterval); pomoInterval = null; }
+  pomoRemaining = pomoDuration;
+  updatePomoUI();
+  highlightActivePreset();
+  savePomodoroState();
+
+  const banner = document.getElementById('pomo-break-banner');
+  if (banner) banner.classList.remove('visible');
+}
+
+function startPomoTick() {
+  if (pomoInterval) clearInterval(pomoInterval);
+  pomoInterval = setInterval(() => {
+    if (pomoRemaining <= 0) {
+      clearInterval(pomoInterval);
+      pomoInterval = null;
+      pomoRunning = false;
+      handlePomodoroComplete();
+      return;
+    }
+    pomoRemaining--;
+    updatePomoUI();
+  }, 1000);
+}
+
+function handlePomodoroComplete() {
+  if (!pomoIsBreak) {
+    // Focus session completed
+    pomoStats.sessions++;
+    pomoStats.totalMinutes += Math.round(pomoDuration / 60);
+    pomoStats.lastDate = new Date().toDateString();
+    checkStreak();
+    updatePomoStats();
+    savePomodoroState();
+
+    // Switch to break
+    pomoIsBreak = true;
+    pomoRemaining = BREAK_DURATION;
+    const banner = document.getElementById('pomo-break-banner');
+    if (banner) banner.classList.add('visible');
+
+    // Auto-start break
+    startPomodoro();
+  } else {
+    // Break completed
+    pomoIsBreak = false;
+    pomoRemaining = pomoDuration;
+    const banner = document.getElementById('pomo-break-banner');
+    if (banner) banner.classList.remove('visible');
+    highlightActivePreset();
+    updatePomoUI();
+    savePomodoroState();
+  }
+}
+
+function checkStreak() {
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+  if (pomoStats.lastDate === today) {
+    // Already active today, streak continues
+  } else if (pomoStats.lastDate === yesterday) {
+    pomoStats.streak++;
+  } else if (pomoStats.lastDate !== today) {
+    pomoStats.streak = pomoStats.sessions > 0 && pomoStats.lastDate === null ? 1 : 0;
+  }
+}
+
+function updatePomoUI() {
+  const timeEl = document.getElementById('pomo-time');
+  const labelEl = document.getElementById('pomo-label');
+  const ringEl = document.getElementById('pomo-ring');
+  const startBtn = document.getElementById('pomo-start');
+
+  if (timeEl) {
+    const mins = Math.floor(pomoRemaining / 60);
+    const secs = pomoRemaining % 60;
+    timeEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  if (labelEl) {
+    labelEl.textContent = pomoIsBreak ? 'Break' : 'Focus';
+  }
+
+  if (ringEl) {
+    const total = pomoIsBreak ? BREAK_DURATION : pomoDuration;
+    const progress = total > 0 ? (total - pomoRemaining) / total : 0;
+    ringEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+    ringEl.classList.toggle('break', pomoIsBreak);
+  }
+
+  if (startBtn) {
+    if (pomoRunning) {
+      startBtn.textContent = 'Pause';
+      startBtn.className = 'btn btn-secondary';
+    } else {
+      startBtn.textContent = pomoRemaining < (pomoIsBreak ? BREAK_DURATION : pomoDuration) ? 'Resume' : 'Start';
+      startBtn.className = 'btn btn-primary';
+    }
+  }
+}
+
+function updatePomoStats() {
+  const sessionsEl = document.getElementById('pomo-sessions');
+  const totalEl = document.getElementById('pomo-total-time');
+  const streakEl = document.getElementById('pomo-streak');
+
+  if (sessionsEl) sessionsEl.textContent = pomoStats.sessions;
+  if (totalEl) {
+    const hrs = Math.floor(pomoStats.totalMinutes / 60);
+    totalEl.textContent = hrs > 0 ? `${hrs}h ${pomoStats.totalMinutes % 60}m` : `${pomoStats.totalMinutes}m`;
+  }
+  if (streakEl) streakEl.textContent = pomoStats.streak;
+}
+
+// ── Auth ──
+
 function setupAuth() {
   const loginBtn = document.getElementById('login-btn');
   const logoutBtn = document.getElementById('logout-btn');
@@ -95,7 +333,6 @@ function setupAuth() {
     if (authToken) syncFromCloud();
   });
 
-  // Allow Enter key to submit login
   const passwordInput = document.getElementById('auth-password');
   passwordInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleLogin();
@@ -108,10 +345,7 @@ async function handleLogin() {
   const errorEl = document.getElementById('auth-error');
   const loginBtn = document.getElementById('login-btn');
 
-  if (!authEmailEl || !authPasswordEl || !errorEl || !loginBtn) {
-    console.error('Login elements not found');
-    return;
-  }
+  if (!authEmailEl || !authPasswordEl || !errorEl || !loginBtn) return;
 
   const email = authEmailEl.value.trim();
   const password = authPasswordEl.value;
@@ -182,7 +416,8 @@ function updateAuthUI() {
   }
 }
 
-// Cloud sync functions
+// ── Cloud Sync ──
+
 async function syncFromCloud(silent = false) {
   if (!authToken) return;
 
@@ -212,13 +447,9 @@ async function syncFromCloud(silent = false) {
     const data = await response.json();
     const cloudNotes = data.notes || [];
 
-    // Build a set of cloud note IDs
     const cloudIds = new Set(cloudNotes.map(n => n.id));
-
-    // Remove local synced notes that no longer exist in cloud (deleted elsewhere)
     scratchNotes = scratchNotes.filter(n => !n.synced || cloudIds.has(n.id));
 
-    // Merge cloud notes with local (cloud takes priority)
     cloudNotes.forEach(cloudNote => {
       const localNote = scratchNotes.find(n => n.id === cloudNote.id);
       if (!localNote) {
@@ -234,7 +465,6 @@ async function syncFromCloud(silent = false) {
       }
     });
 
-    // Sort by timestamp
     scratchNotes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     saveData();
     renderScratchNotes();
@@ -299,11 +529,14 @@ async function deleteNoteFromCloud(noteId) {
   }
 }
 
-// Setup tabs
+// ── Tabs ──
+
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab');
   const scratchTab = document.getElementById('scratch-tab');
   const stickyTab = document.getElementById('sticky-tab');
+  const pomodoroTab = document.getElementById('pomodoro-tab');
+
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
@@ -312,11 +545,13 @@ function setupTabs() {
       const tabName = tab.dataset.tab;
       if (scratchTab) scratchTab.style.display = tabName === 'scratch' ? 'flex' : 'none';
       if (stickyTab) stickyTab.style.display = tabName === 'sticky' ? 'block' : 'none';
+      if (pomodoroTab) pomodoroTab.style.display = tabName === 'pomodoro' ? 'block' : 'none';
     });
   });
 }
 
-// Scratch Pad
+// ── Scratch Pad ──
+
 function setupScratchPad() {
   const input = document.getElementById('scratch-input');
   const saveBtn = document.getElementById('save-scratch');
@@ -337,7 +572,6 @@ function setupScratchPad() {
       renderScratchNotes();
       input.value = '';
 
-      // Sync to cloud if logged in
       if (authToken) syncNoteToCloud(newNote);
     }
   });
@@ -390,7 +624,8 @@ function renderScratchNotes() {
   });
 }
 
-// Sticky Notes
+// ── Sticky Notes ──
+
 function setupStickyNotes() {
   const addStickyBtn = document.getElementById('add-sticky');
   if (!addStickyBtn) return;
@@ -448,7 +683,8 @@ function renderStickyNotes() {
   });
 }
 
-// Helpers
+// ── Helpers ──
+
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
