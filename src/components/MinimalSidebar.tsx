@@ -13,7 +13,7 @@ import {
   GitBranch,
   CalendarIcon,
   StickyNote,
-  Target,
+  
   Lightbulb,
   Users,
   Mic,
@@ -90,7 +90,7 @@ export function MinimalSidebar({
           </div>
           <NavButton tab="calendar" icon={CalendarIcon} label="Calendar" />
           <NavButton tab="journal" icon={StickyNote} label="Journal" />
-          <NavButton tab="habits" icon={Target} label="Habits" />
+          
           <NavButton tab="scratchpad" icon={FileEdit} label="Scratchpad" />
           <NavButton tab="stickynotes" icon={StickyNote} label="Sticky Notes" />
           <NavButton tab="projects" icon={FolderKanban} label="Projects" />

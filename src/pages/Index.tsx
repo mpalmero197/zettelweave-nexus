@@ -73,7 +73,7 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-import HabitTracker from "@/components/HabitTracker";
+
 
 // Lazy load heavy components for better performance
 const BulletJournal = lazy(() => import("@/components/BulletJournal"));
@@ -734,19 +734,6 @@ const Index = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="habits" className="mt-0">
-                  {hasPremium ? (
-                    <HabitTracker />
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Habit Tracker is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
-                </TabsContent>
 
                 <TabsContent value="stickynotes" className="mt-0">
                   <StickyNotesSimple />
