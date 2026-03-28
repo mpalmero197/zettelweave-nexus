@@ -784,6 +784,10 @@ const Index = () => {
                   <KnowledgeGapAnalyzer />
                 </TabsContent>
 
+                <TabsContent value="plugins" className="mt-0">
+                  <PluginHub />
+                </TabsContent>
+
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
