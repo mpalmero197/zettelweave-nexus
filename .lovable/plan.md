@@ -1,116 +1,122 @@
 
 
-# Dashboard Overhaul — Premium Execution Environment
+# Dashboard Action Hub Revamp
 
-## What's Changing
+## Philosophy
 
-The current dashboard is functional but violates several core dashboard design principles: weak visual hierarchy, no contextual data (numbers without meaning), redundant widgets competing for attention, and inconsistent information density. This overhaul transforms it into a purpose-driven command center for knowledge workers.
+The dashboard shifts from a **passive information display** to an **active execution center**. Every element answers: "What do I need to do next?" Passive widgets (Recent Cards, Recent Notes, Notebooks, Favorites) get demoted or removed from the default view. Action-oriented content (tasks, events, deadlines, overdue items, quick actions) takes center stage.
 
-## Design Philosophy
-
-The dashboard answers one question: **"What should I work on right now?"** Every pixel earns its place. We apply Tufte's data-ink ratio, top-left hierarchy placement, contextual numbers, and consistent visualization patterns — all within the existing Halcyon aesthetic.
-
----
-
-## Plan
-
-### 1. Redesign the Header + Stats Row (Hero Zone)
-
-**Current**: Generic greeting + sparkle icon + separate stat pills below.
-**New**: Merge greeting, date, and stats into a single compact hero strip. Stats become the greeting's right-hand companion — not a separate widget row.
-
-- Greeting (left): `Good morning, Name` with date below
-- Stats (right): Inline pill cluster showing Cards / Notes / Tasks / Events counts
-- Each stat pill shows a **delta indicator** (e.g., `+3 today` or a subtle up/down arrow) for context
-- Quick Capture stays integrated but collapsed by default — single-line input that expands on focus
-- Remove the decorative Sparkles icon and `::before` radial gradient (data-ink ratio)
-
-### 2. Introduce a "Today" Focus Strip
-
-A new horizontal strip below the hero that surfaces **actionable items due today**:
-- Tasks due today (count + top 3 names)
-- Events happening today (count + next event time)
-- Streak data if habit tracker is enabled
-
-This replaces scanning multiple widgets to answer "what's happening today?" — one glance, one row.
-
-### 3. Redesign Widget Cards for Consistency
-
-Apply a uniform card anatomy across all widgets:
-- **Header**: Icon + Title (left) + Action link (right, e.g., "View all →")
-- **Body**: Content list (max 4-5 items, no scrollable overflow on dashboard)
-- **Footer**: Contextual summary line (e.g., "3 more notes" or "Updated 2h ago")
-- Remove left-border accent colors (visual noise that doesn't encode useful data)
-- Use subtle top-border or icon tinting instead for type differentiation
-
-### 4. Improve Data Context on Every Number
-
-- **StatsWidget**: Add comparison context — show `12 Cards (+2 this week)` instead of just `12 Cards`
-- **TaskTrackerWidget**: Show completion rate as a micro progress bar (e.g., `7/12 done`) instead of just "5 pending"
-- **CalendarEventsWidget**: Add "Next in 2h" proximity label for the soonest event
-- **RecentCardsWidget / RecentNotesWidget**: Show "Updated 3m ago" relative times consistently
-
-### 5. Optimize Layout Grid
-
-**Current**: CSS columns masonry — works but creates uneven visual weight.
-**New**: CSS Grid with explicit row tracks for predictable hierarchy:
+## Layout
 
 ```text
 ┌──────────────────────────────────────┐
-│  Hero: Greeting + Stats + Capture    │  ← Full width
+│  Hero: Greeting + Quick Actions Bar  │  Capture · New Task · New Event
 ├──────────────────────────────────────┤
-│  Today Strip: Tasks · Events · Streak│  ← Full width, compact
+│  Action Agenda (full width)          │  Unified timeline: overdue → today → tomorrow → this week
 ├──────────────┬───────────────────────┤
-│ Recent Cards │ Recent Notes          │  ← 2-col, equal
+│  Tasks       │  Upcoming Events      │  Interactive, checkable, inline-addable
 ├──────────────┼───────────────────────┤
-│ Tasks        │ Calendar              │  ← 2-col, equal
-├──────────────┼───────────────────────┤
-│ Notebooks    │ Favorites             │  ← 2-col, equal
-├──────────────┴───────────────────────┤
-│  Extra widgets (auto-flow 2-col)     │
-└──────────────────────────────────────┘
+│  Recent Work │  Favorites            │  Compact, secondary priority
+└──────────────┴───────────────────────┘
 ```
 
-On mobile (current 448px viewport): everything stacks single-column, hero compresses, Today strip scrolls horizontally.
+## Changes
 
-### 6. Polish Labels and Micro-Copy
+### 1. Hero Zone — Quick Actions Bar
+**File**: `WelcomeWidget.tsx`
 
-- Use short labels: "7d" not "Last 7 Days", "3h ago" not "3 hours ago"
-- Round numbers where appropriate (e.g., streak percentages)
-- Consistent date formatting across all widgets (relative for < 7d, absolute after)
-- Remove redundant "No X yet" empty states — use a single-line hint instead of icon + paragraph
+Replace the Quick Capture textarea with a **Quick Actions Bar** — a row of action buttons:
+- **Capture** (opens inline text input on click, same as current but collapsed to a button)
+- **New Task** (inline single-field task creation, saved directly to `project_tasks`)
+- **New Event** (inline fields for title + date, saved to `calendar_events`)
 
-### 7. Subtle Interaction Upgrades
+Stats pills move into a subtle secondary line below the greeting. Remove the hero-banner decorative styling — use a clean, flat card.
 
-- Widget headers become clickable navigation links (already partially done — make consistent)
-- Add keyboard shortcut hints in the Widgets sidebar sheet
-- Skeleton loaders use consistent height across all widgets (currently inconsistent)
+### 2. New: Action Agenda Widget (Full Width)
+**New file**: `src/components/widgets/ActionAgendaWidget.tsx`
+
+A **unified timeline** that merges tasks and events into a single chronological feed, grouped by urgency:
+- **Overdue** (red accent): Past-due tasks and missed events
+- **Today**: Tasks due today + events happening today, sorted by time
+- **Tomorrow**: Same pattern
+- **This Week**: Remaining items
+
+Each item is interactive:
+- Tasks have inline checkboxes to mark done
+- Events show time and clickable title to navigate to calendar
+- Overdue items show "X days late" badge
+- Max 3 items per section, with "Show more" expanding inline
+
+Data source: Single query joining `project_tasks` (due_date) and `calendar_events` (event_date, event_time), sorted chronologically.
+
+### 3. Slim Down Today Strip
+**File**: `TodayStripWidget.tsx`
+
+Remove this widget entirely — its purpose is absorbed by the Action Agenda which provides richer, more actionable today data.
+
+### 4. Task Widget — Keep but Streamline
+**File**: `TaskTrackerWidget.tsx`
+
+- Remove the priority selector buttons (clutters the dashboard; priority is set in the edit sheet)
+- Keep inline add (single input + enter)
+- Keep progress bar
+- Add **overdue count** badge next to the title: "Tasks · 2 overdue"
+
+### 5. Calendar Widget — Add Quick-Add
+**File**: `CalendarEventsWidget.tsx`
+
+- Add an inline "Add event" input at the top (title + today's date by default)
+- Keep the proximity labels ("in 2h")
+
+### 6. Demote Passive Widgets
+**File**: `CustomizableDashboard.tsx`
+
+- Move Recent Cards + Recent Notes into a **single "Recent Work" widget** that interleaves both, sorted by last updated. This halves the passive widget real estate.
+- Notebooks widget removed from default layout (still toggleable via widget sidebar)
+- Favorites stays but moves to the bottom row
+
+### 7. New: Recent Work Widget (Combined)
+**New file**: `src/components/widgets/RecentWorkWidget.tsx`
+
+Merges Recent Cards and Recent Notes into one widget:
+- Each item shows an icon (Brain for cards, FileText for notes), title, and relative time
+- Max 5 items, sorted by most recently updated
+- Clicking navigates to the item
+- Footer: "X more items"
+
+### 8. Dashboard Layout Update
+**File**: `CustomizableDashboard.tsx`
+
+New ordering:
+1. Hero (greeting + quick actions)
+2. Action Agenda (full width)
+3. Tasks + Calendar Events (2-col)
+4. Recent Work + Favorites (2-col)
+5. Extra widgets (2-col auto-flow)
 
 ---
 
 ## Technical Details
 
+### Files to Create
+| File | Purpose |
+|------|---------|
+| `src/components/widgets/ActionAgendaWidget.tsx` | Unified overdue → today → tomorrow → week timeline |
+| `src/components/widgets/RecentWorkWidget.tsx` | Combined cards + notes recent activity |
+
 ### Files to Edit
 | File | Changes |
 |------|---------|
-| `src/components/CustomizableDashboard.tsx` | New layout structure: hero strip, today strip, grid sections |
-| `src/components/widgets/WelcomeWidget.tsx` | Merge stats inline, remove decorative elements, compact capture |
-| `src/components/widgets/StatsWidget.tsx` | Add delta/context indicators, fetch weekly comparison data |
-| `src/components/widgets/RecentCardsWidget.tsx` | Uniform card anatomy, max 4 items, footer summary |
-| `src/components/widgets/RecentNotesWidget.tsx` | Same uniform treatment |
-| `src/components/widgets/TaskTrackerWidget.tsx` | Add completion progress bar, simplify to dashboard-appropriate density |
-| `src/components/widgets/CalendarEventsWidget.tsx` | Add "next in X" proximity, compact layout |
-| `src/components/widgets/NotebookListWidget.tsx` | Uniform card anatomy |
-| `src/components/widgets/FavoritesWidget.tsx` | Uniform card anatomy |
-| `src/styles/grid-layout.css` | Replace masonry columns with CSS Grid, update widget-card to remove accent borders, add today-strip styles |
+| `src/components/widgets/WelcomeWidget.tsx` | Replace textarea with Quick Actions bar (Capture, New Task, New Event buttons with inline expansion) |
+| `src/components/widgets/TaskTrackerWidget.tsx` | Remove priority buttons from add form, add overdue badge |
+| `src/components/widgets/CalendarEventsWidget.tsx` | Add inline quick-add event input |
+| `src/components/CustomizableDashboard.tsx` | New layout order, replace Recent Cards/Notes with RecentWork, add ActionAgenda, remove TodayStrip, remove Notebooks from default |
 
-### New Component
-| File | Purpose |
-|------|---------|
-| `src/components/widgets/TodayStripWidget.tsx` | Horizontal "today at a glance" strip — tasks due, next event, streak |
+### Files to Remove from Dashboard (keep components, just not imported)
+- `TodayStripWidget` (absorbed by ActionAgenda)
+- `RecentCardsWidget` / `RecentNotesWidget` (replaced by RecentWorkWidget)
+- `NotebookListWidget` (demoted, still in widget sidebar)
 
-### No Changes Needed
-- `useDashboardLayout.ts` — widget toggle system stays the same
-- `DashboardWidgetSidebar.tsx` — widget management sidebar stays functional
-- Database schema — no new tables required (all data already queryable)
+### No Database Changes
+All data already exists in `project_tasks` and `calendar_events`. The Action Agenda just queries both tables with date range filters.
 
