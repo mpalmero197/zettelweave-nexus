@@ -175,6 +175,15 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  onClick={() => setFocusOpen(!focusOpen)}
+                  aria-label="Focus Sidebar"
+                >
+                  <Focus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
                   asChild
                 >
                   <Link to="/agents" aria-label="Agents">
