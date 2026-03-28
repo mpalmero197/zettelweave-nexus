@@ -62,7 +62,7 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
   const dragStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const WIDTH = isMobile ? 300 : 350;
+  const WIDTH = 350;
   const EDGE_HANDLE = 5;
   const SNAP_THRESHOLD = 20;
 
@@ -174,7 +174,7 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
         left: position.x,
         top: position.y,
         width: WIDTH,
-        height: isMobile ? '100vh' : 'auto',
+        height: 'auto',
         maxHeight: '100vh',
         zIndex: 9998,
       };
