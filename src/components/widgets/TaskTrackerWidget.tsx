@@ -211,17 +211,31 @@ export function TaskTrackerWidget({ onNavigate }: TaskTrackerWidgetProps) {
   };
 
   // Build task tree: root tasks + subtask map
+  const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+  const sortTasks = (a: Task, b: Task) => {
+    // 1. Sort by due_date ascending (earliest first, null last)
+    if (a.due_date && b.due_date) {
+      const diff = a.due_date.localeCompare(b.due_date);
+      if (diff !== 0) return diff;
+    } else if (a.due_date && !b.due_date) return -1;
+    else if (!a.due_date && b.due_date) return 1;
+
+    // 2. Sort by priority descending (high > medium > low)
+    return (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
+  };
+
   const rootTasks = tasks.filter(t => !t.parent_task_id);
   const subtaskMap = tasks.reduce<Record<string, Task[]>>((acc, t) => {
     if (t.parent_task_id) {
-      acc[t.parent_task_id] = [...(acc[t.parent_task_id] || []), t];
+      acc[t.parent_task_id] = [...(acc[t.parent_task_id] || []), t].sort(sortTasks);
     }
     return acc;
   }, {});
 
   const [showCompleted, setShowCompleted] = useState(false);
 
-  const pendingRoot = rootTasks.filter(t => t.status !== 'done');
+  const pendingRoot = rootTasks.filter(t => t.status !== 'done').sort(sortTasks);
   const completedRoot = rootTasks.filter(t => t.status === 'done');
 
   const renderTask = (task: Task, depth = 0) => {
