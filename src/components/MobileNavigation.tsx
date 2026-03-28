@@ -13,6 +13,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { MobileFocusSheet } from './focus-sidebar/MobileFocusSheet';
+import { useFocusState } from './focus-sidebar/useFocusState';
 
 interface MobileNavigationProps {
   isAdmin?: boolean;
@@ -83,6 +84,7 @@ export function MobileNavigation({
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const { hasPremium } = useSubscription();
+  const { isRunning: focusRunning, seconds: focusSeconds, totalSeconds: focusTotalSeconds, mode: focusMode } = useFocusState();
   const [searchFocused, setSearchFocused] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,7 +148,7 @@ export function MobileNavigation({
 
   return (
     <>
-      {/* FAB — Halcyon gold accent */}
+      {/* FAB — with focus progress ring */}
       <button
         onClick={() => setOpen(prev => !prev)}
         className={cn(
@@ -160,6 +162,32 @@ export function MobileNavigation({
         aria-label={open ? 'Close menu' : 'Open menu'}
       >
         {open ? <X className="h-6 w-6" /> : <LayoutGrid className="h-6 w-6" />}
+        {/* Progress ring overlay */}
+        {focusRunning && !open && (
+          <svg
+            className="absolute inset-0 w-14 h-14 -rotate-90 pointer-events-none"
+            viewBox="0 0 56 56"
+          >
+            <circle
+              cx="28" cy="28" r="25"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              opacity={0.15}
+            />
+            <circle
+              cx="28" cy="28" r="25"
+              fill="none"
+              stroke={focusMode === 'work' ? 'hsl(var(--primary-foreground))' : 'hsl(142 71% 45%)'}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 25}`}
+              strokeDashoffset={`${2 * Math.PI * 25 * (1 - (focusTotalSeconds > 0 ? (focusTotalSeconds - focusSeconds) / focusTotalSeconds : 0))}`}
+              className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+            />
+          </svg>
+        )}
       </button>
 
       {/* Full menu sheet */}
