@@ -24,7 +24,7 @@ export function WordFrequencyPlugin({}: PluginProps) {
     const sentences = (text.match(/[.!?]+/g) || []).length || 1;
     const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim()).length;
     const uniqueWords = Object.keys(freq).length;
-    const avgWordLen = words.length ? (words.reduce((s, w) => s + w.length, 0) / words.length).toFixed(1) : '0';
+    const avgWordLen = words.length ? (words.reduce((s: number, w: string) => s + w.length, 0) / words.length).toFixed(1) : '0';
     const readingTime = Math.max(1, Math.ceil(words.length / 200));
 
     return { sorted, maxCount, total: words.length, unique: uniqueWords, chars, charNoSpaces, sentences, paragraphs, avgWordLen, readingTime };
