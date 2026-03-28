@@ -13,7 +13,7 @@ import {
   GitBranch,
   CalendarIcon,
   StickyNote,
-  Target,
+  
   Lightbulb,
   Users,
   Mic,
