@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Trash2, ArrowRight, X as XIcon, Tag, CheckCircle2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, ArrowRight, X as XIcon, Tag, CheckCircle2, Pencil } from 'lucide-react';
 import { BulletEntry, BULLET_SYMBOLS, SIGNIFIER_MAP } from './types';
 import { format } from 'date-fns';
 
@@ -16,17 +17,42 @@ interface BulletEntryRowProps {
 export const BulletEntryRow: React.FC<BulletEntryRowProps> = ({
   entry, isLast, onUpdate, onDelete, onMigrate,
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(entry.content);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const isCompleted = entry.status === 'completed';
   const isMigrated = entry.status === 'migrated';
   const isCancelled = entry.status === 'cancelled';
   const isDone = isCompleted || isMigrated || isCancelled;
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
 
   const toggleComplete = () => {
     if (entry.type !== 'task') return;
     onUpdate(entry.id, { status: isCompleted ? 'open' : 'completed' });
   };
 
-  // Render the bullet symbol based on type + status
+  const commitEdit = () => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== entry.content) {
+      onUpdate(entry.id, { content: trimmed });
+    } else {
+      setEditValue(entry.content);
+    }
+    setIsEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setEditValue(entry.content);
+    setIsEditing(false);
+  };
+
   const renderBullet = () => {
     if (entry.type === 'task') {
       if (isCompleted) return <span className="font-mono text-sm text-muted-foreground select-none">✕</span>;
@@ -59,11 +85,28 @@ export const BulletEntryRow: React.FC<BulletEntryRowProps> = ({
 
       {/* Content */}
       <div className="flex-1 min-w-0 space-y-0.5">
-        <p className={`text-sm leading-relaxed ${
-          isDone ? 'line-through text-muted-foreground/60' : 'text-foreground'
-        } ${isMigrated ? 'italic' : ''}`}>
-          {entry.content}
-        </p>
+        {isEditing ? (
+          <Input
+            ref={inputRef}
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') commitEdit();
+              if (e.key === 'Escape') cancelEdit();
+            }}
+            onBlur={commitEdit}
+            className="h-7 text-sm px-1.5 py-0 bg-transparent border-border/40"
+          />
+        ) : (
+          <p
+            className={`text-sm leading-relaxed cursor-pointer ${
+              isDone ? 'line-through text-muted-foreground/60' : 'text-foreground'
+            } ${isMigrated ? 'italic' : ''}`}
+            onDoubleClick={() => { setEditValue(entry.content); setIsEditing(true); }}
+          >
+            {entry.content}
+          </p>
+        )}
 
         {entry.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -96,6 +139,9 @@ export const BulletEntryRow: React.FC<BulletEntryRowProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={() => { setEditValue(entry.content); setIsEditing(true); }}>
+              <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+            </DropdownMenuItem>
             {entry.type === 'task' && entry.status === 'open' && (
               <>
                 <DropdownMenuItem onClick={toggleComplete}>
@@ -107,9 +153,14 @@ export const BulletEntryRow: React.FC<BulletEntryRowProps> = ({
                 <DropdownMenuItem onClick={() => onUpdate(entry.id, { status: 'cancelled' })}>
                   <XIcon className="h-3.5 w-3.5 mr-2" /> Cancel
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
               </>
             )}
+            {entry.type === 'task' && entry.status !== 'open' && (
+              <DropdownMenuItem onClick={() => onUpdate(entry.id, { status: 'open' })}>
+                <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Reopen
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             {onMigrate && !isMigrated && (
               <DropdownMenuItem onClick={() => onMigrate(entry)}>
                 <ArrowRight className="h-3.5 w-3.5 mr-2" /> Migrate to card
