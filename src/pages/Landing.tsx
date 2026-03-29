@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Network, Brain, Layout, FileText, Check, Crown, ArrowRight, ChevronDown, Sparkles, MessageSquare, Link2, PenTool, Zap, Users } from "lucide-react";
@@ -132,6 +133,9 @@ export default function Landing() {
           <ChevronDown className="h-5 w-5 text-muted-foreground/50" />
         </div>
       </section>
+
+      {/* Built For Banner — Rotating Words */}
+      <BuiltForBanner />
 
       {/* Problem */}
       <section ref={problemAnimation.ref} className={cn(
