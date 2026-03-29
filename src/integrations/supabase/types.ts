@@ -1321,15 +1321,19 @@ export type Database = {
           attachments: string[] | null
           content: string
           content_embedding: string | null
+          cover_color: string | null
           created_at: string
           deleted_at: string | null
           encrypted_content: string | null
           encryption_iv: string | null
+          icon: string | null
           id: string
           is_encrypted: boolean | null
           is_favorite: boolean | null
           notebook_id: string | null
           permanent_delete_at: string | null
+          position_x: number | null
+          position_y: number | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -1339,15 +1343,19 @@ export type Database = {
           attachments?: string[] | null
           content?: string
           content_embedding?: string | null
+          cover_color?: string | null
           created_at?: string
           deleted_at?: string | null
           encrypted_content?: string | null
           encryption_iv?: string | null
+          icon?: string | null
           id?: string
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           notebook_id?: string | null
           permanent_delete_at?: string | null
+          position_x?: number | null
+          position_y?: number | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -1357,15 +1365,19 @@ export type Database = {
           attachments?: string[] | null
           content?: string
           content_embedding?: string | null
+          cover_color?: string | null
           created_at?: string
           deleted_at?: string | null
           encrypted_content?: string | null
           encryption_iv?: string | null
+          icon?: string | null
           id?: string
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           notebook_id?: string | null
           permanent_delete_at?: string | null
+          position_x?: number | null
+          position_y?: number | null
           tags?: string[] | null
           title?: string
           updated_at?: string

@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNowStrict } from 'date-fns';
 import {
   FileText, Plus, Star, Search, Edit, Trash2, MoreHorizontal,
-  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2, Wand2
+  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2, Wand2,
+  PanelTop, CalendarDays, Columns2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
@@ -25,6 +26,9 @@ import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { readEnexFile } from '@/utils/evernoteImport';
 import DOMPurify from 'dompurify';
 import { smartCategorize, CATEGORIES } from '@/utils/categoryUtils';
+import { NotesBoard } from './NotesBoard';
+import { NotesSplitView } from './NotesSplitView';
+import { format } from 'date-fns';
 
 const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
 
@@ -76,7 +80,8 @@ export function Notes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotebook, setSelectedNotebook] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'created' | 'alpha' | 'favorites'>('recent');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'board'>('grid');
+  const [splitNote, setSplitNote] = useState<Note | null>(null);
   const [quickTitle, setQuickTitle] = useState('');
   const [currentNoteForSimilar, setCurrentNoteForSimilar] = useState<Note | null>(null);
   const { loading: similarLoading, similarItems, findSimilar, mergeContent, generateEmbedding } = useSimilarContent();
@@ -904,12 +909,82 @@ export function Notes() {
           </DropdownMenu>
 
           {/* View toggle */}
+          <div className="flex items-center bg-muted/40 rounded-lg p-0.5">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-7 w-7 p-0"
+              title="Grid view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-7 w-7 p-0"
+              title="List view"
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'board' ? 'secondary' : 'ghost'} size="sm"
+              onClick={() => setViewMode('board')}
+              className="h-7 w-7 p-0"
+              title="Board view"
+            >
+              <PanelTop className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {/* Daily journal */}
           <Button
-            variant="ghost" size="sm"
-            onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
-            className="h-8 w-8 p-0 text-muted-foreground"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs rounded-lg"
+            onClick={async () => {
+              if (!user) return;
+              const today = format(new Date(), 'yyyy-MM-dd');
+              // Check if today's journal note exists
+              const { data: existing } = await supabase
+                .from('notes')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('title', today)
+                .is('deleted_at', null)
+                .limit(1);
+              if (existing && existing.length > 0) {
+                setEditingNote(existing[0] as Note);
+              } else {
+                // Find or create Journal notebook
+                let journalNbId: string | null = null;
+                const jnb = notebooks.find(nb => nb.name.toLowerCase() === 'journal');
+                if (jnb) {
+                  journalNbId = jnb.id;
+                } else {
+                  const { data: newNb } = await supabase
+                    .from('notebooks')
+                    .insert({ user_id: user.id, name: 'Journal', color: '#f59e0b', description: 'Daily journal entries' })
+                    .select('id')
+                    .single();
+                  if (newNb) {
+                    journalNbId = newNb.id;
+                    fetchNotebooks();
+                  }
+                }
+                const { data: newNote } = await supabase
+                  .from('notes')
+                  .insert({ user_id: user.id, title: today, content: '', notebook_id: journalNbId, tags: ['journal'] })
+                  .select()
+                  .single();
+                if (newNote) {
+                  fetchNotes();
+                  setEditingNote(newNote as Note);
+                }
+              }
+            }}
           >
-            {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Journal</span>
           </Button>
 
           {/* Auto-categorize */}
@@ -1038,7 +1113,18 @@ export function Notes() {
 
         {/* ===== NOTES GRID / LIST (scrollable) ===== */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-20 md:pb-4 -mx-1 px-1">
-          {displayedNotes.length > 0 ? (
+        {viewMode === 'board' ? (
+            <NotesBoard
+              notes={displayedNotes as any}
+              notebooks={notebooks}
+              onViewNote={(n) => setViewingNote(n as Note)}
+              onEditNote={(n) => setEditingNote(n as Note)}
+              onDeleteNote={deleteNote}
+              onToggleFavorite={(n) => toggleFavorite(n as Note)}
+              onFindSimilar={(n) => handleFindSimilarNote(n as Note)}
+              onRefresh={fetchNotes}
+            />
+          ) : displayedNotes.length > 0 ? (
             viewMode === 'list' ? (
               <div className="space-y-1.5">
                 {displayedNotes.map(note => <NoteCardList key={note.id} note={note} />)}
