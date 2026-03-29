@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -57,7 +57,6 @@ function BuiltForBanner() {
 
   const total = ROTATING_WORDS.length;
 
-  // Easing curve: slow → fast → slow. Peak speed at midpoint.
   const getDelay = (i: number) => {
     const mid = (total - 1) / 2;
     const dist = Math.abs(i - mid) / mid;
@@ -78,7 +77,6 @@ function BuiltForBanner() {
     const dur = getTransitionDuration(index);
 
     const timer = setTimeout(() => {
-      // Exit current word
       setPhase("exit");
 
       setTimeout(() => {
@@ -100,9 +98,11 @@ function BuiltForBanner() {
   const transDur = done && phase === "enter" ? 600 : getTransitionDuration(index);
 
   return (
-    <section ref={animation.ref} className="py-16 md:py-20 bg-primary/[0.03] border-y border-border">
-      <div className="max-w-3xl mx-auto px-4 text-center">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+    <section ref={animation.ref} className="py-16 md:py-20 relative overflow-hidden">
+      <div className="gradient-divider absolute top-0 left-0 right-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-primary/[0.04] to-primary/[0.02]" />
+      <div className="max-w-3xl mx-auto px-4 text-center relative">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-balance">
           Built for{" "}
           <span className="inline-block relative overflow-hidden h-[1.2em] align-bottom min-w-[220px]">
             <span
@@ -127,18 +127,49 @@ function BuiltForBanner() {
           </span>
         </h2>
       </div>
+      <div className="gradient-divider absolute bottom-0 left-0 right-0" />
     </section>
   );
 }
 
-/* ─── Social Proof Stats ─── */
+/* ─── Social Proof Stats with Count-Up ─── */
 
 const stats = [
-  { value: "10K+", label: "Notes created" },
-  { value: "50K+", label: "Connections discovered" },
-  { value: "4.9★", label: "User rating" },
-  { value: "99.9%", label: "Uptime" },
+  { value: "10K+", numericValue: 10, suffix: "K+", label: "Notes created" },
+  { value: "50K+", numericValue: 50, suffix: "K+", label: "Connections discovered" },
+  { value: "4.9★", numericValue: 4.9, suffix: "★", label: "User rating", decimals: 1 },
+  { value: "99.9%", numericValue: 99.9, suffix: "%", label: "Uptime", decimals: 1 },
 ];
+
+function CountUpStat({ target, suffix, decimals = 0, isVisible }: { target: number; suffix: string; decimals?: number; isVisible: boolean }) {
+  const [value, setValue] = useState(0);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (!isVisible || hasAnimated.current) return;
+    hasAnimated.current = true;
+
+    const duration = 1200;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(eased * target);
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+  }, [isVisible, target]);
+
+  return (
+    <span>
+      {decimals > 0 ? value.toFixed(decimals) : Math.round(value)}
+      {suffix}
+    </span>
+  );
+}
 
 const testimonials = [
   { quote: "PendragonX replaced three apps for me. My ideas finally talk to each other.", name: "Sarah M.", role: "Nonfiction Author" },
@@ -182,6 +213,13 @@ export default function Landing() {
   const faqAnimation = useScrollAnimation(0.1);
   const ctaAnimation = useScrollAnimation(0.1);
   const currentYear = new Date().getFullYear();
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setHeaderScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
@@ -205,11 +243,22 @@ export default function Landing() {
       </a>
 
       {/* ────────────────────────── HEADER ────────────────────────── */}
-      <header className="fixed top-0 z-50 w-full bg-card/80 backdrop-blur-md border-b border-border" role="banner">
+      <header
+        className={cn(
+          "fixed top-0 z-50 w-full bg-card/80 backdrop-blur-md border-b transition-all duration-300",
+          headerScrolled ? "border-border shadow-md" : "border-transparent shadow-none"
+        )}
+        role="banner"
+      >
         <div className="max-w-6xl mx-auto flex h-14 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2.5">
-            <img src={pendragonLogo} alt="" className="h-6 w-6 object-contain" aria-hidden="true" />
-            <span className="hidden sm:inline text-base font-bold tracking-tight">PendragonX</span>
+            <img src={pendragonLogo} alt="" className="h-7 w-7 object-contain" aria-hidden="true" />
+            <span
+              className="hidden sm:inline text-base font-bold tracking-tight"
+              style={{ fontFamily: "'Cinzel Decorative', serif" }}
+            >
+              PendragonX
+            </span>
           </div>
 
           <nav className="hidden md:flex gap-8" aria-label="Main navigation">
@@ -220,7 +269,7 @@ export default function Landing() {
               { label: "FAQ", id: "faq" },
             ].map((item) => (
               <button key={item.id} onClick={() => scrollToSection(item.id)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-foreground after:scale-x-0 after:origin-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-left">
                 {item.label}
               </button>
             ))}
@@ -237,7 +286,8 @@ export default function Landing() {
 
       {/* ────────────────────────── 1. HERO ────────────────────────── */}
       <section id="main-hero" ref={heroAnimation.ref} className="min-h-[92vh] flex items-center justify-center pt-14 relative" aria-labelledby="hero-heading">
-        <div className="max-w-3xl mx-auto px-4 text-center">
+        <div className="hero-glow absolute inset-0 pointer-events-none" />
+        <div className="max-w-3xl mx-auto px-4 text-center relative">
           <div className={cn(
             "space-y-7 transition-all duration-700",
             heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
@@ -247,18 +297,18 @@ export default function Landing() {
               AI-Powered Knowledge System
             </Badge>
 
-            <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08]">
+            <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
               The fastest way to turn
               <span className="block text-primary mt-1">notes into insights</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
               PendragonX automatically connects your ideas, surfaces hidden patterns, and lets you
               ask your knowledge anything — so you can think deeper, write better, and create faster.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button size="lg" className="h-12 px-10 text-base" onClick={goAuth}>
+              <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
                 Start Free — No Credit Card
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -296,26 +346,26 @@ export default function Landing() {
             problemAnimation.isVisible ? "opacity-100" : "opacity-0"
           )}>Sound familiar?</p>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[
               { text: "You have notes everywhere — but can never find the right one.", opacity: "text-foreground" },
-              { text: "You know you've read something relevant — but can't remember where.", opacity: "text-muted-foreground/80" },
-              { text: "Your knowledge sits in folders, siloed and forgotten.", opacity: "text-muted-foreground/50" },
+              { text: "You know you've read something relevant — but can't remember where.", opacity: "text-muted-foreground" },
+              { text: "Your knowledge sits in folders, siloed and forgotten.", opacity: "text-muted-foreground/60" },
             ].map((line, i) => (
               <p key={i} className={cn(
-                "text-xl sm:text-2xl md:text-3xl font-bold leading-tight transition-all duration-600",
+                "text-2xl sm:text-3xl md:text-4xl font-bold leading-tight transition-all duration-600 text-balance",
                 line.opacity,
                 problemAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-              )} style={{ transitionDelay: `${i * 150 + 200}ms` }}>
+              )} style={{ transitionDelay: `${i * 200 + 200}ms` }}>
                 {line.text}
               </p>
             ))}
           </div>
 
           <p className={cn(
-            "mt-10 text-muted-foreground text-base max-w-lg mx-auto transition-all duration-500",
+            "mt-12 text-muted-foreground text-base md:text-lg max-w-lg mx-auto transition-all duration-500",
             problemAnimation.isVisible ? "opacity-100" : "opacity-0"
-          )} style={{ transitionDelay: "700ms" }}>
+          )} style={{ transitionDelay: "800ms" }}>
             Traditional note apps store your thinking. They don't help you think.
           </p>
         </div>
@@ -323,13 +373,13 @@ export default function Landing() {
 
       {/* ────────────────────────── 4. SOLUTION ────────────────────────── */}
       <section ref={solutionAnimation.ref} className={cn(
-        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
+        "py-20 md:py-28 section-alt transition-all duration-700",
         solutionAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">The Solution</p>
-            <h2 className="text-3xl md:text-4xl font-bold leading-tight max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold leading-tight max-w-2xl mx-auto text-balance">
               PendragonX turns your notes into a <span className="text-primary">living knowledge system</span>
             </h2>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
@@ -337,14 +387,16 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
+          <div className="grid md:grid-cols-3 gap-4">
             {[
-              { icon: Link2, title: "Auto-links related ideas", description: "No tagging, no filing. AI discovers relationships between your notes — even ones you wrote months apart." },
-              { icon: Sparkles, title: "Surfaces hidden patterns", description: "See connections across your entire knowledge base that linear note apps make invisible." },
-              { icon: MessageSquare, title: "Answer questions from your notes", description: "Ask anything. Get answers grounded in your own research — not the internet's." },
+              { icon: Link2, title: "Auto-links related ideas", description: "No tagging, no filing. AI discovers relationships between your notes — even ones you wrote months apart.", accent: "border-t-2 border-t-primary/20" },
+              { icon: Sparkles, title: "Surfaces hidden patterns", description: "See connections across your entire knowledge base that linear note apps make invisible.", accent: "border-t-2 border-t-primary/15" },
+              { icon: MessageSquare, title: "Answer questions from your notes", description: "Ask anything. Get answers grounded in your own research — not the internet's.", accent: "border-t-2 border-t-primary/10" },
             ].map((item, i) => (
               <div key={i} className={cn(
-                "bg-card p-8 md:p-10 transition-all duration-500",
+                "bg-card p-8 md:p-10 rounded-xl border border-border card-hover-lift",
+                item.accent,
+                "transition-all duration-500",
                 solutionAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 120}ms` }}>
                 <item.icon className="h-6 w-6 text-primary mb-5" aria-hidden="true" />
@@ -364,19 +416,19 @@ export default function Landing() {
         <div className="max-w-3xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">How It Works</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">Three steps. Zero friction.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-balance">Three steps. Zero friction.</h2>
             <p className="text-muted-foreground">From scattered thinking to connected knowledge in minutes.</p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 step-connector">
             {howToSteps.map((step, i) => {
               const Icon = step.icon;
               return (
                 <div key={i} className={cn(
-                  "flex items-start gap-5 p-6 rounded-xl border border-border bg-card transition-all duration-500 hover:border-primary/20",
+                  "flex items-start gap-5 p-6 rounded-xl border border-border bg-card card-hover-lift relative z-10 transition-all duration-500",
                   howToAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 )} style={{ transitionDelay: `${i * 120}ms` }}>
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-lg font-bold shrink-0 shadow-md">
                     {i + 1}
                   </div>
                   <div className="pt-1.5">
@@ -389,7 +441,7 @@ export default function Landing() {
           </div>
 
           <div className="text-center mt-10">
-            <Button size="lg" className="h-11 px-8" onClick={goAuth}>
+            <Button size="lg" className="h-11 px-8 cta-glow" onClick={goAuth}>
               Start Building Your Second Brain
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -399,23 +451,25 @@ export default function Landing() {
 
       {/* ────────────────────────── 6. FEATURES — OUTCOME-BASED ────────────────────────── */}
       <section id="features" ref={featuresAnimation.ref} className={cn(
-        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
+        "py-20 md:py-28 section-alt transition-all duration-700",
         featuresAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">What You Get</p>
-            <h2 className="text-3xl md:text-4xl font-bold">Outcomes, not features</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Outcomes, not features</h2>
             <p className="text-muted-foreground mt-2">Everything you need to think deeper and create faster.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map((f, i) => (
               <div key={i} className={cn(
-                "p-6 rounded-xl border border-border bg-card transition-all duration-500 hover:border-primary/20 hover:shadow-sm",
+                "p-6 rounded-xl border border-border bg-card card-hover-lift transition-all duration-500",
                 featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 80}ms` }}>
-                <f.icon className="h-5 w-5 text-primary mb-4" aria-hidden="true" />
+                <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center mb-4">
+                  <f.icon className="h-4.5 w-4.5 text-primary" aria-hidden="true" />
+                </div>
                 <h3 className="text-sm font-semibold mb-1.5">{f.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
               </div>
@@ -436,9 +490,16 @@ export default function Landing() {
             socialProofAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           )}>
             {stats.map((s, i) => (
-              <div key={i} className="text-center p-6 rounded-xl border border-border bg-card"
+              <div key={i} className="text-center p-6 rounded-xl border border-border bg-card card-hover-lift"
                 style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="text-2xl md:text-3xl font-bold text-primary">{s.value}</div>
+                <div className="text-2xl md:text-3xl font-bold text-primary">
+                  <CountUpStat
+                    target={s.numericValue}
+                    suffix={s.suffix}
+                    decimals={s.decimals}
+                    isVisible={socialProofAnimation.isVisible}
+                  />
+                </div>
                 <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
               </div>
             ))}
@@ -447,13 +508,13 @@ export default function Landing() {
           {/* Testimonials */}
           <div className="text-center mb-10">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Loved By</p>
-            <h2 className="text-3xl md:text-4xl font-bold">What thinkers are saying</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">What thinkers are saying</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
             {testimonials.map((t, i) => (
               <div key={i} className={cn(
-                "p-6 rounded-xl border border-border bg-card transition-all duration-500",
+                "p-6 rounded-xl border border-border bg-card card-hover-lift testimonial-quote transition-all duration-500",
                 socialProofAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 100 + 300}ms` }}>
                 <div className="flex gap-0.5 mb-3">
@@ -474,24 +535,25 @@ export default function Landing() {
 
       {/* ────────────────────────── 8. AUDIENCE ────────────────────────── */}
       <section ref={audienceAnimation.ref} className={cn(
-        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
+        "py-20 md:py-28 section-alt transition-all duration-700",
         audienceAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Built For</p>
-            <h2 className="text-3xl md:text-4xl font-bold">People who think for a living</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">People who think for a living</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {personas.map((p, i) => (
               <div key={i} className={cn(
-                "p-5 rounded-xl border border-border bg-card transition-all duration-500 hover:border-primary/20",
+                "p-5 rounded-xl border border-border bg-card card-hover-lift transition-all duration-500",
                 audienceAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               )} style={{ transitionDelay: `${i * 80}ms` }}>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <p.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+                  <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center relative">
+                    <div className="absolute inset-0 rounded-lg bg-primary/5 blur-sm" />
+                    <p.icon className="h-4 w-4 text-primary relative" aria-hidden="true" />
                   </div>
                   <h3 className="text-sm font-semibold">{p.label}</h3>
                 </div>
@@ -510,14 +572,14 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Pricing</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">Start free. Think bigger.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-balance">Start free. Think bigger.</h2>
             <p className="text-muted-foreground">No surprises. No hidden fees. Upgrade when you're ready.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {/* Free */}
             <div className={cn(
-              "rounded-xl border border-border p-7 transition-all duration-500",
+              "rounded-xl border border-border bg-card p-7 card-hover-lift transition-all duration-500",
               pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             )}>
               <h3 className="text-lg font-semibold">Free</h3>
@@ -538,7 +600,7 @@ export default function Landing() {
 
             {/* Premium */}
             <div className={cn(
-              "rounded-xl border-2 border-foreground p-7 relative transition-all duration-500",
+              "rounded-xl bg-card p-7 relative premium-border transition-all duration-500",
               pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             )} style={{ transitionDelay: "100ms" }}>
               <Badge className="absolute -top-3 left-5 bg-foreground text-background border-0 text-xs gap-1">
@@ -557,7 +619,7 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Button className="w-full h-11" onClick={goAuth}>
+              <Button className="w-full h-11 cta-glow" onClick={goAuth}>
                 Try 7 Days Free <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </div>
@@ -567,27 +629,27 @@ export default function Landing() {
 
       {/* ────────────────────────── 10. FAQ ────────────────────────── */}
       <section id="faq" ref={faqAnimation.ref} className={cn(
-        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
+        "py-20 md:py-28 section-alt transition-all duration-700",
         faqAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-3xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">FAQ</p>
-            <h2 className="text-3xl md:text-4xl font-bold">Frequently asked questions</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Frequently asked questions</h2>
           </div>
 
           <Accordion type="single" collapsible className="space-y-2">
             {faqs.map((faq, i) => (
               <AccordionItem key={i} value={`faq-${i}`}
                 className={cn(
-                  "border border-border rounded-xl px-5 bg-card transition-all duration-500",
+                  "border border-border rounded-xl px-5 bg-card card-hover-lift transition-all duration-500",
                   faqAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                 )}
                 style={{ transitionDelay: `${i * 50}ms` }}>
                 <AccordionTrigger className="text-left hover:no-underline py-4 text-sm font-medium">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="pb-4 text-sm text-muted-foreground leading-relaxed">
+                <AccordionContent className="pb-5 text-sm text-muted-foreground leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
@@ -597,19 +659,20 @@ export default function Landing() {
       </section>
 
       {/* ────────────────────────── 11. FINAL CTA ────────────────────────── */}
-      <section ref={ctaAnimation.ref} className="py-24 md:py-32">
+      <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
+        <div className="absolute inset-0 hero-glow pointer-events-none" />
         <div className={cn(
-          "max-w-2xl mx-auto px-4 text-center transition-all duration-700",
+          "max-w-2xl mx-auto px-4 text-center relative transition-all duration-700",
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         )}>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-balance">
             Stop storing ideas.
             <span className="block text-primary mt-1">Start thinking with them.</span>
           </h2>
-          <p className="text-muted-foreground text-lg mb-8 max-w-lg mx-auto">
+          <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-lg mx-auto text-balance">
             Join writers, researchers, and deep thinkers who've built a second brain that actually works.
           </p>
-          <Button size="lg" className="h-12 px-10 text-base" onClick={goAuth}>
+          <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
             Get Started Free
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -618,11 +681,12 @@ export default function Landing() {
       </section>
 
       {/* ────────────────────────── FOOTER ────────────────────────── */}
-      <footer className="border-t border-border py-8" role="contentinfo">
+      <footer className="py-8 relative" role="contentinfo">
+        <div className="gradient-divider absolute top-0 left-0 right-0" />
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
             <img src={pendragonLogo} alt="" className="h-5 w-5 object-contain" aria-hidden="true" />
-            <span className="font-medium">PendragonX</span>
+            <span className="font-medium" style={{ fontFamily: "'Cinzel Decorative', serif" }}>PendragonX</span>
             <span className="text-muted-foreground">© {currentYear}</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground" aria-label="Footer navigation">
