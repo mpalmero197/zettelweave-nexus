@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Network, Brain, Layout, FileText, Check, Crown, ArrowRight, ChevronDown, HelpCircle, BookOpen, PenTool, Link2, Search } from "lucide-react";
+import { Network, Brain, Layout, FileText, Check, Crown, ArrowRight, ChevronDown, Sparkles, MessageSquare, Link2, PenTool, Zap, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
@@ -21,26 +20,26 @@ const faqs = [
 ];
 
 const howToSteps = [
-  { name: "Create Your Account", text: "Sign up for a free PendragonX account using your email. No credit card required.", icon: BookOpen },
-  { name: "Create Your First Card", text: "Click the 'New Card' button and write a single, atomic idea. Keep it focused on one concept.", icon: PenTool },
-  { name: "Add Tags and Categories", text: "Organize your card with relevant tags and select a category using the Dewey or Luhmann system.", icon: FileText },
-  { name: "Link Related Ideas", text: "Connect your card to related cards using the link feature. PendragonX will also suggest connections automatically.", icon: Link2 },
-  { name: "Explore Your Knowledge Graph", text: "View your growing network of ideas in the 3D knowledge graph. Discover unexpected connections between concepts.", icon: Search }
+  { name: "Capture anything", text: "Write notes, import content from Obsidian or Notion, or just think freely. Every idea gets a home.", icon: PenTool },
+  { name: "AI connects everything", text: "Related ideas link automatically into a living knowledge graph. No manual tagging required.", icon: Link2 },
+  { name: "Ask your knowledge", text: "Query your notes like ChatGPT. Get real insights drawn from your own thinking.", icon: MessageSquare }
 ];
 
 const howToSchema = createHowToSchema({
-  name: "How to Create Your First Zettelkasten Card in PendragonX",
-  description: "Learn how to create and connect your first knowledge card in PendragonX's AI-powered Zettelkasten system in just 5 simple steps.",
+  name: "How to Build Your Second Brain with PendragonX",
+  description: "Start using PendragonX to capture ideas, connect them with AI, and query your knowledge in 3 simple steps.",
   steps: howToSteps.map(step => ({ name: step.name, text: step.text }))
 });
 
 export default function Landing() {
   const navigate = useNavigate();
   const heroAnimation = useScrollAnimation(0.1);
-  const valueAnimation = useScrollAnimation(0.1);
-  const featuresAnimation = useScrollAnimation(0.1);
-  const galleryAnimation = useScrollAnimation(0.1);
+  const problemAnimation = useScrollAnimation(0.1);
+  const solutionAnimation = useScrollAnimation(0.1);
   const howToAnimation = useScrollAnimation(0.1);
+  const featuresAnimation = useScrollAnimation(0.1);
+  const audienceAnimation = useScrollAnimation(0.1);
+  const galleryAnimation = useScrollAnimation(0.1);
   const pricingAnimation = useScrollAnimation(0.1);
   const faqAnimation = useScrollAnimation(0.1);
   const ctaAnimation = useScrollAnimation(0.1);
@@ -54,15 +53,14 @@ export default function Landing() {
   return (
     <main className="min-h-screen bg-background">
       <SEOHead 
-        title="PendragonX - AI-Powered Knowledge Management & Zettelkasten System"
-        description="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools. Start free today."
-        keywords="zettelkasten, knowledge management, note-taking, second brain, PKM, personal knowledge management, AI notes, knowledge graph, connected thinking, productivity"
+        title="PendragonX — A Second Brain That Actually Thinks With You"
+        description="Connect your ideas, surface insights, and ask your knowledge anything. AI-powered Zettelkasten for writers, researchers, and deep thinkers. Start free today."
+        keywords="second brain, zettelkasten, knowledge management, AI note-taking, connected thinking, knowledge graph, PKM, personal knowledge management, obsidian alternative"
         canonicalUrl="https://pendragonx.com/"
         ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
       />
 
-      {/* Skip to content */}
       <a href="#main-hero" className="skip-to-main focus-visible:ring-2 focus-visible:ring-offset-2">
         Skip to main content
       </a>
@@ -76,16 +74,16 @@ export default function Landing() {
           </div>
           
           <nav className="hidden md:flex gap-8" aria-label="Main navigation">
+            <button onClick={() => scrollToSection('how-it-works')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</button>
             <button onClick={() => scrollToSection('features')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</button>
             <button onClick={() => scrollToSection('pricing')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</button>
             <button onClick={() => scrollToSection('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</button>
-            <button onClick={() => navigate('/changelog')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Changelog</button>
           </nav>
 
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" className="rounded-lg" onClick={() => navigate('/auth')}>Sign In</Button>
             <Button size="sm" className="rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover" onClick={() => navigate('/auth')}>
-              Get Started
+              Try It Free
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           </div>
@@ -100,20 +98,19 @@ export default function Landing() {
             heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           )}>
             <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
-              Think
-              <span className="block text-primary">Brilliantly</span>
+              Build a second brain
+              <span className="block text-primary">that actually thinks with you</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Transform scattered thoughts into an intelligent knowledge network. 
-              Visualize connections. Unlock insights.
+              PendragonX connects your ideas, surfaces insights, and lets you ask your knowledge anything — powered by AI.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button size="lg" className="h-11 px-8" onClick={() => navigate('/auth')}>
-                Start Free
+                Try It Free
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button size="lg" variant="outline" className="h-11 px-8" onClick={() => scrollToSection('features')}>
+              <Button size="lg" variant="outline" className="h-11 px-8" onClick={() => scrollToSection('how-it-works')}>
                 See How It Works
               </Button>
             </div>
@@ -125,7 +122,7 @@ export default function Landing() {
               </span>
               <span className="hidden sm:flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                10,000+ knowledge workers
+                Free forever plan
               </span>
             </div>
           </div>
@@ -136,30 +133,52 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Value Proposition */}
-      <section ref={valueAnimation.ref} className={cn(
+      {/* Problem */}
+      <section ref={problemAnimation.ref} className={cn(
         "py-20 md:py-28 transition-all duration-700",
-        valueAnimation.isVisible ? "opacity-100" : "opacity-0"
+        problemAnimation.isVisible ? "opacity-100" : "opacity-0"
+      )}>
+        <div className={cn(
+          "max-w-3xl mx-auto px-4 text-center space-y-4 transition-all duration-700",
+          problemAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        )}>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6">Sound familiar?</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-foreground">
+            Your ideas are scattered.
+          </p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-muted-foreground/70">
+            Your notes don't connect.
+          </p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-muted-foreground/40">
+            Your knowledge sits there — but never works for you.
+          </p>
+        </div>
+      </section>
+
+      {/* Solution */}
+      <section ref={solutionAnimation.ref} className={cn(
+        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
+        solutionAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-5xl mx-auto px-4 md:px-6">
-          <div className="max-w-lg mb-12">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Why PendragonX</p>
+          <div className="text-center mb-12">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">The Fix</p>
             <h2 className="text-3xl md:text-4xl font-bold leading-tight">
-              Everything you need. Nothing you don't.
+              PendragonX turns your notes into a living system
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden">
             {[
-              { icon: Brain, title: "Ideas That Connect", description: "Watch your thoughts weave together automatically. Surface forgotten insights and reveal hidden patterns." },
-              { icon: Network, title: "See Your Mind", description: "Navigate your knowledge in stunning 3D. Discover connections and watch your understanding grow." },
-              { icon: Layout, title: "Your Way", description: "Sketch freely, organize precisely, or let thoughts flow. PendragonX adapts to how you think." }
+              { icon: Link2, title: "Automatically connects related ideas", description: "No manual tagging. AI finds relationships between your notes and links them for you." },
+              { icon: Sparkles, title: "Shows patterns you didn't see", description: "Discover hidden connections across your thinking that linear note apps miss entirely." },
+              { icon: MessageSquare, title: "Lets you ask your notes questions", description: "Chat with your knowledge base like ChatGPT — except every answer comes from your own work." }
             ].map((item, i) => (
               <div key={i} className={cn(
                 "bg-card p-8 transition-all duration-500",
-                valueAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                solutionAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               )} style={{ transitionDelay: `${i * 100}ms` }}>
-                <item.icon className="h-5 w-5 text-muted-foreground mb-4" aria-hidden="true" />
+                <item.icon className="h-5 w-5 text-primary mb-4" aria-hidden="true" />
                 <h3 className="text-base font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
@@ -168,29 +187,70 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features */}
+      {/* How It Works */}
+      <section id="how-it-works" ref={howToAnimation.ref} className={cn(
+        "py-20 md:py-28 transition-all duration-700",
+        howToAnimation.isVisible ? "opacity-100" : "opacity-0"
+      )}>
+        <div className="max-w-3xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">How It Works</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2">3 Steps. Zero Friction.</h2>
+            <p className="text-muted-foreground">From scattered thoughts to connected knowledge in minutes</p>
+          </div>
+
+          <div className="space-y-3">
+            {howToSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div key={index} className={cn(
+                  "flex items-start gap-4 p-5 rounded-lg border border-border bg-card transition-all duration-500",
+                  howToAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                )} style={{ transitionDelay: `${index * 100}ms` }}>
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-base font-bold shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="pt-1">
+                    <h3 className="text-base font-semibold mb-1">{step.name}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{step.text}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-8">
+            <Button size="lg" className="h-11 px-8" onClick={() => navigate('/auth')}>
+              Start Building Your Second Brain
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features — Outcome-Based */}
       <section id="features" ref={featuresAnimation.ref} className={cn(
         "py-20 md:py-28 bg-muted/30 transition-all duration-700",
         featuresAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Capabilities</p>
-            <h2 className="text-3xl md:text-4xl font-bold">Built for Brilliant Minds</h2>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Features</p>
+            <h2 className="text-3xl md:text-4xl font-bold">What You Actually Get</h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             {[
-              { icon: Network, title: "Knowledge Graph", description: "Navigate your mind in 3D. Watch ideas cluster and discover surprising connections." },
-              { icon: Brain, title: "AI Assistant", description: "An AI that knows you. Ask anything, get smart answers from your own notes." },
-              { icon: Layout, title: "Infinite Canvas", description: "Sketch, diagram, and dream on a canvas that never ends." },
-              { icon: FileText, title: "Unified Notes", description: "Notebooks, captures, sticky notes, and cards. All connected, all in one place." }
+              { icon: Link2, title: "Never lose an idea", description: "Notes link themselves automatically. Every thought finds its connections without manual effort." },
+              { icon: Brain, title: "Discover hidden patterns", description: "AI surfaces connections across your thinking — insights you'd never find scrolling through folders." },
+              { icon: Network, title: "See your mind in 3D", description: "A living knowledge graph shows how your ideas evolve, cluster, and connect over time." },
+              { icon: MessageSquare, title: "Ask your notes anything", description: "Chat with your entire knowledge base. Get answers drawn from your own research and thinking." }
             ].map((feature, i) => (
               <div key={i} className={cn(
                 "p-6 rounded-lg border border-border bg-card transition-all duration-500",
                 featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               )} style={{ transitionDelay: `${i * 80}ms` }}>
-                <feature.icon className="h-5 w-5 text-muted-foreground mb-3" aria-hidden="true" />
+                <feature.icon className="h-5 w-5 text-primary mb-3" aria-hidden="true" />
                 <h3 className="text-base font-semibold mb-1.5">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
@@ -199,9 +259,40 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Built For — Target Audience */}
+      <section ref={audienceAnimation.ref} className={cn(
+        "py-20 md:py-28 transition-all duration-700",
+        audienceAnimation.isVisible ? "opacity-100" : "opacity-0"
+      )}>
+        <div className="max-w-4xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-10">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Built For</p>
+            <h2 className="text-3xl md:text-4xl font-bold">People Who Think for a Living</h2>
+          </div>
+
+          <div className={cn(
+            "flex flex-wrap justify-center gap-3 transition-all duration-700",
+            audienceAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          )}>
+            {[
+              { icon: PenTool, label: "Writers" },
+              { icon: FileText, label: "Researchers" },
+              { icon: Zap, label: "Founders" },
+              { icon: Brain, label: "Students" },
+              { icon: Users, label: "Deep Thinkers" }
+            ].map((persona, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-5 py-3 rounded-full border border-border bg-card text-sm font-medium transition-all hover:border-primary/40 hover:bg-primary/5" style={{ transitionDelay: `${i * 60}ms` }}>
+                <persona.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+                {persona.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Screenshots */}
       <section ref={galleryAnimation.ref} className={cn(
-        "py-20 md:py-28 transition-all duration-700",
+        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
         galleryAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className="max-w-5xl mx-auto px-4 md:px-6">
@@ -212,10 +303,10 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-2 gap-4">
             {[
-              { title: "Knowledge Graph", desc: "3D visualization of your connected thoughts", screenshot: "graph-view" },
-              { title: "Zettelkasten Cards", desc: "Atomic notes with bidirectional links", screenshot: "zettelkasten-ui" },
-              { title: "Infinite Whiteboard", desc: "Boundless space for your ideas", screenshot: "whiteboard" },
-              { title: "AI Search", desc: "Find anything, understand everything", screenshot: "ai-search" }
+              { title: "Knowledge Graph", desc: "Watch your ideas connect in a living 3D network", screenshot: "graph-view" },
+              { title: "Zettelkasten Cards", desc: "Atomic notes that link themselves", screenshot: "zettelkasten-ui" },
+              { title: "Infinite Whiteboard", desc: "Boundless space to think visually", screenshot: "whiteboard" },
+              { title: "AI Search", desc: "Ask your knowledge anything", screenshot: "ai-search" }
             ].map((item, i) => (
               <div key={i} className={cn(
                 "group overflow-hidden rounded-lg border border-border bg-card transition-all duration-500",
@@ -240,47 +331,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How To */}
-      <section id="how-to" ref={howToAnimation.ref} className={cn(
-        "py-20 md:py-28 bg-muted/30 transition-all duration-700",
-        howToAnimation.isVisible ? "opacity-100" : "opacity-0"
-      )}>
-        <div className="max-w-3xl mx-auto px-4 md:px-6">
-          <div className="text-center mb-12">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Get Started</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">5 Simple Steps</h2>
-            <p className="text-muted-foreground">Building your second brain is easier than you think</p>
-          </div>
-
-          <div className="space-y-3">
-            {howToSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div key={index} className={cn(
-                  "flex items-start gap-4 p-4 rounded-lg border border-border bg-card transition-all duration-500",
-                  howToAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-                )} style={{ transitionDelay: `${index * 80}ms` }}>
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold mb-0.5">{step.name}</h3>
-                    <p className="text-sm text-muted-foreground">{step.text}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button size="lg" className="h-11 px-8" onClick={() => navigate('/auth')}>
-              Start Building Your Knowledge
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing */}
       <section id="pricing" ref={pricingAnimation.ref} className={cn(
         "py-20 md:py-28 transition-all duration-700",
@@ -289,7 +339,7 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Pricing</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">Start Free. Scale Infinitely.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2">Start Free. Think Bigger.</h2>
             <p className="text-muted-foreground">No surprises. No hidden fees.</p>
           </div>
 
@@ -301,7 +351,7 @@ export default function Landing() {
                 <span className="text-4xl font-bold">$0</span>
                 <span className="text-sm text-muted-foreground">forever</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">Perfect for exploring connected thinking.</p>
+              <p className="text-sm text-muted-foreground mb-6">Everything you need to start building your second brain.</p>
               <ul className="space-y-2.5 mb-6">
                 {["Up to 50 Zettelcards", "Full Note-Taking", "Unlimited Notebooks", "Basic Organization"].map((f, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
@@ -324,7 +374,7 @@ export default function Landing() {
                 <span className="text-4xl font-bold">$4.99</span>
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">For serious thinkers and creators.</p>
+              <p className="text-sm text-muted-foreground mb-6">For serious thinkers who want the full power of AI.</p>
               <ul className="space-y-2.5 mb-6">
                 {["Unlimited Zettelcards", "Advanced Knowledge Graph", "Unlimited Whiteboards", "AI-Powered Everything", "Collaboration Features", "Priority Support"].map((f, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
@@ -383,11 +433,11 @@ export default function Landing() {
           ctaAnimation.isVisible ? "opacity-100" : "opacity-0 translate-y-6"
         )}>
           <h2 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
-            Your Ideas Deserve
-            <span className="block text-primary">a Better Home</span>
+            Stop storing ideas.
+            <span className="block text-primary">Start thinking with them.</span>
           </h2>
           <p className="text-muted-foreground mb-6">
-            Stop letting brilliant thoughts vanish. Build a knowledge system that grows with you.
+            Join thousands of writers, researchers, and thinkers who've built a second brain that actually works.
           </p>
           <Button size="lg" className="h-11 px-8" onClick={() => navigate('/auth')}>
             Get Started Free

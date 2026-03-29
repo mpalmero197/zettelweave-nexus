@@ -11,8 +11,8 @@ interface SEOHeadProps {
   jsonLd?: object | object[];
 }
 
-const defaultTitle = 'PendragonX - AI-Powered Knowledge Management & Zettelkasten System';
-const defaultDescription = 'Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools.';
+const defaultTitle = 'PendragonX — A Second Brain That Actually Thinks With You';
+const defaultDescription = 'Connect your ideas, surface insights, and ask your knowledge anything. AI-powered Zettelkasten for writers, researchers, and deep thinkers.';
 const defaultImage = 'https://storage.googleapis.com/gpt-engineer-file-uploads/Y2B2K0ExlLhjZt1L59MceqNQLdp1/social-images/social-1758934637901-PendragonLogo-01.jpg';
 const baseUrl = 'https://pendragonx.com';
 
