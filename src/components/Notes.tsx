@@ -909,12 +909,82 @@ export function Notes() {
           </DropdownMenu>
 
           {/* View toggle */}
+          <div className="flex items-center bg-muted/40 rounded-lg p-0.5">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-7 w-7 p-0"
+              title="Grid view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-7 w-7 p-0"
+              title="List view"
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'board' ? 'secondary' : 'ghost'} size="sm"
+              onClick={() => setViewMode('board')}
+              className="h-7 w-7 p-0"
+              title="Board view"
+            >
+              <PanelTop className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {/* Daily journal */}
           <Button
-            variant="ghost" size="sm"
-            onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
-            className="h-8 w-8 p-0 text-muted-foreground"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs rounded-lg"
+            onClick={async () => {
+              if (!user) return;
+              const today = format(new Date(), 'yyyy-MM-dd');
+              // Check if today's journal note exists
+              const { data: existing } = await supabase
+                .from('notes')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('title', today)
+                .is('deleted_at', null)
+                .limit(1);
+              if (existing && existing.length > 0) {
+                setEditingNote(existing[0] as Note);
+              } else {
+                // Find or create Journal notebook
+                let journalNbId: string | null = null;
+                const jnb = notebooks.find(nb => nb.name.toLowerCase() === 'journal');
+                if (jnb) {
+                  journalNbId = jnb.id;
+                } else {
+                  const { data: newNb } = await supabase
+                    .from('notebooks')
+                    .insert({ user_id: user.id, name: 'Journal', color: '#f59e0b', description: 'Daily journal entries' })
+                    .select('id')
+                    .single();
+                  if (newNb) {
+                    journalNbId = newNb.id;
+                    fetchNotebooks();
+                  }
+                }
+                const { data: newNote } = await supabase
+                  .from('notes')
+                  .insert({ user_id: user.id, title: today, content: '', notebook_id: journalNbId, tags: ['journal'] })
+                  .select()
+                  .single();
+                if (newNote) {
+                  fetchNotes();
+                  setEditingNote(newNote as Note);
+                }
+              }
+            }}
           >
-            {viewMode === 'grid' ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Journal</span>
           </Button>
 
           {/* Auto-categorize */}
