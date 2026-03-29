@@ -39,6 +39,11 @@ const changelogData = [
   { date: "Feb 15, 2026", title: "Persistent Navigation", description: "Shared AppLayout with consistent header/sidebar across all pages" },
   { date: "Feb 16, 2026", title: "Mind Map Studio", description: "Premium mind mapping with minimap, 3 layout modes, context menus, and organic branches" },
   { date: "Feb 16, 2026", title: "Online/Offline Indicator", description: "Green/amber status dot with pulse animation in header" },
+  { date: "Mar 15, 2026", title: "Plugin Hub Expansion", description: "Expanded from 7 to 22 plugins — Pomodoro Timer, Habit Streaks, Eisenhower Matrix, Citation Generator, Readability Analyzer, JSON Formatter, Diff Checker, Password Generator, and more" },
+  { date: "Mar 22, 2026", title: "Focus Mode Sidebar", description: "Distraction-free reading view, focus task list, Pomodoro timer ring, and mobile focus sheet" },
+  { date: "Mar 25, 2026", title: "Spaces & Object System", description: "Structured knowledge spaces with custom object types, relation definitions, and configurable set views" },
+  { date: "Mar 27, 2026", title: "Learning Hub", description: "Courses, books, video search, topic maps, and mock exam generator for structured learning" },
+  { date: "Mar 29, 2026", title: "Landing Page Rewrite", description: "Conversion-optimized structure with rotating 'Built for' banner, social proof section, outcome-based features, and audience persona cards" },
 ];
 
 function TimelineEntry({ entry, index }: { entry: typeof changelogData[0]; index: number }) {
