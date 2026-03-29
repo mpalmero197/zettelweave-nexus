@@ -41,11 +41,11 @@ const howToSchema = createHowToSchema({
 /* ─── Rotating Words Banner ─── */
 
 const ROTATING_WORDS = [
-  "authors", "creators", "thinkers", "researchers", "scholars",
-  "dreamers", "builders", "storytellers", "designers", "developers",
-  "entrepreneurs", "journalists", "educators", "strategists", "poets",
-  "filmmakers", "scientists", "architects", "musicians", "analysts",
-  "visionaries", "innovators", "freelancers", "consultants", "curators",
+  "authors", "thinkers", "bloggers", "students", "researchers",
+  "scholars", "writers", "essayists", "note-takers", "journalists",
+  "academics", "learners", "storytellers", "poets", "novelists",
+  "educators", "diarists", "philosophers", "bookworms", "scribes",
+  "dreamers", "readers", "creators", "deep thinkers",
 ];
 
 function BuiltForBanner() {
