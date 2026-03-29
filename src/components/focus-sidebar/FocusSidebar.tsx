@@ -70,6 +70,22 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
     setCollapsed(!open);
   }, [open]);
 
+  // Set CSS variable so main content can adjust width when sidebar is snapped
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!collapsed && isSnapped) {
+      root.style.setProperty('--focus-sidebar-width', `${WIDTH}px`);
+      root.style.setProperty('--focus-sidebar-side', snappedSide);
+    } else {
+      root.style.setProperty('--focus-sidebar-width', '0px');
+      root.style.setProperty('--focus-sidebar-side', '');
+    }
+    return () => {
+      root.style.setProperty('--focus-sidebar-width', '0px');
+      root.style.setProperty('--focus-sidebar-side', '');
+    };
+  }, [collapsed, isSnapped, snappedSide]);
+
   // Dragging
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button, input, select, [role="checkbox"]')) return;
