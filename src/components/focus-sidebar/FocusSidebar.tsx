@@ -74,15 +74,15 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
   useEffect(() => {
     const root = document.documentElement;
     if (!collapsed && isSnapped) {
-      root.style.setProperty('--focus-sidebar-width', `${WIDTH}px`);
-      root.style.setProperty('--focus-sidebar-side', snappedSide);
+      root.style.setProperty('--focus-sidebar-ml', snappedSide === 'left' ? `${WIDTH}px` : '0px');
+      root.style.setProperty('--focus-sidebar-mr', snappedSide === 'right' ? `${WIDTH}px` : '0px');
     } else {
-      root.style.setProperty('--focus-sidebar-width', '0px');
-      root.style.setProperty('--focus-sidebar-side', '');
+      root.style.setProperty('--focus-sidebar-ml', '0px');
+      root.style.setProperty('--focus-sidebar-mr', '0px');
     }
     return () => {
-      root.style.setProperty('--focus-sidebar-width', '0px');
-      root.style.setProperty('--focus-sidebar-side', '');
+      root.style.setProperty('--focus-sidebar-ml', '0px');
+      root.style.setProperty('--focus-sidebar-mr', '0px');
     };
   }, [collapsed, isSnapped, snappedSide]);
 

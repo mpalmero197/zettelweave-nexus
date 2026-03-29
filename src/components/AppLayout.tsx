@@ -139,10 +139,9 @@ export function AppLayout() {
           <div
             className="flex flex-col min-h-screen transition-all duration-300"
             style={{
-              marginLeft: 'var(--focus-sidebar-side, "") === "left" ? var(--focus-sidebar-width, 0px) : 0px',
-              marginRight: 'var(--focus-sidebar-side, "") === "right" ? var(--focus-sidebar-width, 0px) : 0px',
+              marginLeft: 'var(--focus-sidebar-ml, 0px)',
+              marginRight: 'var(--focus-sidebar-mr, 0px)',
             }}
-            ref={undefined}
           >
           <SecurityNotice />
 
