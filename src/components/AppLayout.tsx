@@ -136,6 +136,14 @@ export function AppLayout() {
       <OfflineDataManager />
       <MobileDetector>
         <MobileOptimizedLayout>
+          <div
+            className="flex flex-col min-h-screen transition-all duration-300"
+            style={{
+              marginLeft: 'var(--focus-sidebar-side, "") === "left" ? var(--focus-sidebar-width, 0px) : 0px',
+              marginRight: 'var(--focus-sidebar-side, "") === "right" ? var(--focus-sidebar-width, 0px) : 0px',
+            }}
+            ref={undefined}
+          >
           <SecurityNotice />
 
           {/* Persistent Header — Halcyon style */}
@@ -215,6 +223,7 @@ export function AppLayout() {
             onSignOut={handleSignOut}
             onAccountSettings={() => navigate("/settings")}
           />
+          </div>
         </MobileOptimizedLayout>
       </MobileDetector>
 
