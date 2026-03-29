@@ -3,7 +3,7 @@ import {
   Home, FileText, StickyNote, Calendar, Settings,
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
-  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus,
+  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus, Puzzle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -62,6 +62,7 @@ const SECTIONS = [
       { id: 'collab', label: 'Collab', icon: Users },
       { id: 'recorder', label: 'Recorder', icon: Mic },
       { id: 'canvas', label: 'Canvas', icon: Palette },
+      { id: 'plugins', label: 'Plugins', icon: Puzzle },
     ],
   },
   {
