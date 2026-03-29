@@ -80,7 +80,8 @@ export function Notes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotebook, setSelectedNotebook] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'created' | 'alpha' | 'favorites'>('recent');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'board'>('grid');
+  const [splitNote, setSplitNote] = useState<Note | null>(null);
   const [quickTitle, setQuickTitle] = useState('');
   const [currentNoteForSimilar, setCurrentNoteForSimilar] = useState<Note | null>(null);
   const { loading: similarLoading, similarItems, findSimilar, mergeContent, generateEmbedding } = useSimilarContent();
