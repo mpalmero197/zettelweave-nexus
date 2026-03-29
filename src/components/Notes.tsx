@@ -1113,7 +1113,18 @@ export function Notes() {
 
         {/* ===== NOTES GRID / LIST (scrollable) ===== */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-20 md:pb-4 -mx-1 px-1">
-          {displayedNotes.length > 0 ? (
+        {viewMode === 'board' ? (
+            <NotesBoard
+              notes={displayedNotes as any}
+              notebooks={notebooks}
+              onViewNote={(n) => setViewingNote(n as Note)}
+              onEditNote={(n) => setEditingNote(n as Note)}
+              onDeleteNote={deleteNote}
+              onToggleFavorite={(n) => toggleFavorite(n as Note)}
+              onFindSimilar={(n) => handleFindSimilarNote(n as Note)}
+              onRefresh={fetchNotes}
+            />
+          ) : displayedNotes.length > 0 ? (
             viewMode === 'list' ? (
               <div className="space-y-1.5">
                 {displayedNotes.map(note => <NoteCardList key={note.id} note={note} />)}
