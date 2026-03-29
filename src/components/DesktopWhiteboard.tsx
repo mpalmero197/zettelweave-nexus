@@ -96,7 +96,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Connector refs
-  const connectionsRef = useRef(new Map<string, { from: string; to: string; line: any }>());
+  const connectionsRef = useRef<globalThis.Map<string, { from: string; to: string; line: any }>>(new globalThis.Map());
   const connectorSourceRef = useRef<string | null>(null);
 
   // Smart guides
