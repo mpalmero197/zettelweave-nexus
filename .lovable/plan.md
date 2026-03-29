@@ -1,46 +1,100 @@
 
 
-# Comprehensive Plugin Hub Expansion
+# Landing Page & Site-Wide Design Enhancement
 
-## Overview
-Add 15 new fully functional plugins to the Plugin Hub, expanding from 7 to 22. All client-side, no API keys needed.
+## Goal
+Elevate the visual design from "clean and functional" to "modern, beautiful, and memorable" — without being flashy. Focus on typographic refinement, spatial rhythm, subtle depth, and micro-interactions that feel polished.
 
-## Files to Create (15)
-All in `src/components/plugins/plugins/`:
+## Key Design Principles
+- **Typographic hierarchy**: Use the Cinzel Decorative brand font for the logo, and tighten heading letter-spacing for a premium editorial feel
+- **Spatial rhythm**: Consistent section cadence with generous whitespace between sections but tight internal grouping
+- **Subtle depth**: Refined glassmorphism on the header, gentle gradient backgrounds for alternating sections instead of flat `bg-muted/30`
+- **Micro-interactions**: Smooth hover lifts on cards, border glow on focus, elegant link underlines
+- **Visual anchors**: A subtle radial gradient or grain texture on the hero for depth
 
-| Plugin | Category | Core Logic |
-|--------|----------|------------|
-| `PomodoroPlugin.tsx` | productivity | Wraps existing `PomodoroTimer` component with compact mode |
-| `HabitStreakPlugin.tsx` | productivity | Daily check-ins with localStorage persistence, streak counter, calendar heatmap grid |
-| `EisenhowerPlugin.tsx` | productivity | 4-quadrant grid (urgent/important), add/delete/move tasks between quadrants |
-| `CountdownPlugin.tsx` | productivity | Multiple named countdowns, Notification API alerts, localStorage persistence |
-| `CitationPlugin.tsx` | writing | Form inputs (title/author/year/URL/publisher), outputs APA/MLA/Chicago/Harvard strings |
-| `ReadabilityPlugin.tsx` | writing | Textarea input, computes Flesch-Kincaid, Gunning Fog, Coleman-Liau scores with grade levels |
-| `LoremIpsumPlugin.tsx` | writing | Paragraph/word count selector, style variants (classic, hipster, tech, pirate), copy button |
-| `MarkdownPreviewPlugin.tsx` | writing | Split pane: textarea left, rendered HTML right using basic markdown-to-HTML regex conversion |
-| `JsonFormatterPlugin.tsx` | data | Textarea input, JSON.parse validation, pretty-print/minify toggle, error display |
-| `Base64Plugin.tsx` | utilities | Encode/decode tabs, text input + file drag-and-drop via FileReader API |
-| `ColorPalettePlugin.tsx` | utilities | Color input picker, generates complementary/analogous/triadic/split-complementary palettes via HSL math |
-| `UnitConverterPlugin.tsx` | utilities | Category tabs (length/weight/temp/data/time), from/to selects, conversion factor math |
-| `PasswordGeneratorPlugin.tsx` | utilities | Length slider, character set toggles, entropy display, crypto.getRandomValues generation |
-| `HashGeneratorPlugin.tsx` | utilities | Textarea input, Web Crypto API (SHA-256/SHA-512), hex output, copy button |
-| `DiffCheckerPlugin.tsx` | data | Two textareas, line-by-line diff with colored additions (green) and deletions (red) |
+---
 
-## Files to Modify
+## Changes
 
-### `src/components/plugins/PluginHub.tsx`
-- Import all 15 new plugin components
-- Add 15 entries to `PLUGINS` array following existing pattern
-- Add new icons to `ICON_MAP`: `Clock`, `Flame`, `LayoutGrid`, `Hourglass`, `BookOpen`, `Eye`, `FileText`, `Code`, `FileJson`, `Binary`, `Palette`, `Ruler`, `Lock`, `Hash`, `GitCompare`
-- Add `'productivity'` to `CATEGORY_LABELS`
+### 1. `src/index.css` — Design System Polish
+- Add a subtle noise/grain texture utility class for hero backgrounds
+- Add a `.section-gradient` class using a soft radial gradient (instead of flat muted backgrounds) for alternating sections
+- Refine card hover states with a subtle border-color transition + translateY lift
+- Add a `.text-balance` utility for headings (CSS `text-wrap: balance`)
+- Add smooth gradient divider utility between sections (replaces hard `border-y`)
 
-### `src/components/plugins/types.ts`
-- Add `'productivity'` to the category union type
+### 2. `src/pages/Landing.tsx` — Visual Overhaul
 
-## Each plugin follows the established pattern
-- Accepts `PluginProps` with `onClose`
-- Self-contained with `useState`/`useEffect`
-- Uses existing shadcn/ui components (Button, Input, Textarea, Badge, Card, Tabs, Select, Slider, Switch)
-- localStorage for persistence where needed
-- No external dependencies or API calls
+**Header**: Add subtle `shadow-sm` on scroll, increase logo size slightly, use Cinzel Decorative for brand name
+
+**Hero section**:
+- Add a subtle radial gradient overlay behind the hero (dark mode: warm dark center fade, light mode: soft warm glow)
+- Increase heading size on large screens, apply `text-balance` for better line breaks
+- Upgrade CTA button with a subtle glow/shadow effect
+- Add a soft animated gradient border on the primary CTA
+
+**Built-For Banner**: Add a subtle gradient background instead of flat `bg-primary/[0.03]`
+
+**Problem section**: Use larger, more impactful typography with a staggered fade that feels cinematic
+
+**Solution section**: Replace `gap-px bg-border` grid hack with proper cards that have hover elevation — each card gets a subtle top-border accent color
+
+**How It Works**: Upgrade step numbers with a gradient ring instead of solid fill; add a vertical connecting line between steps
+
+**Features grid**: Add hover glow effect (subtle box-shadow) and a slight scale on hover
+
+**Social Proof / Stats**: Animate stat numbers with a count-up effect on scroll; add quotation mark decorators to testimonials
+
+**Audience cards**: Add subtle icon background glow; hover state lifts card with shadow
+
+**Pricing**: Premium card gets a subtle animated gradient border; free card stays clean
+
+**FAQ**: Smoother accordion with better padding rhythm
+
+**Final CTA**: Add a subtle background gradient that draws the eye; larger, bolder typography
+
+**Footer**: Add a subtle gradient divider line at the top instead of a flat border
+
+### 3. `tailwind.config.ts` — Extended Utilities
+- Add `text-balance` utility
+- Add subtle `shadow-glow-sm` for card hover states
+- Add `animate-gradient` for slow gradient border animation on premium pricing card
+
+---
+
+## Technical Details
+
+### New CSS classes (index.css)
+```css
+.section-alt {
+  background: radial-gradient(ellipse at 50% 0%, hsl(var(--muted) / 0.5) 0%, transparent 70%);
+}
+.hero-glow {
+  background: radial-gradient(ellipse at 50% 40%, hsl(var(--primary) / 0.04) 0%, transparent 60%);
+}
+.card-hover-lift {
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+  border-color: hsl(var(--primary) / 0.15);
+}
+```
+
+### Landing page structural changes
+- All alternating sections switch from `bg-muted/30` to `section-alt` class
+- All cards get `card-hover-lift` class
+- Hero gets `hero-glow` wrapper div
+- Steps get a vertical connecting line via `relative` positioning + `::before` pseudo-element
+- Stats get a simple count-up animation via `useEffect` + `useState`
+- Testimonials get a decorative `"` character in `text-primary/10` as background
+- Premium pricing card border uses `bg-gradient-to-br` with subtle animation
+
+### Files modified
+| File | Scope |
+|------|-------|
+| `src/index.css` | ~15 new utility classes |
+| `src/pages/Landing.tsx` | Visual class updates across all 11 sections |
+| `tailwind.config.ts` | 2-3 new animation/shadow entries |
 
