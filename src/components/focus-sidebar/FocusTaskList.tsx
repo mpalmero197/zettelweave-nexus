@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, ChevronDown, Clock, FileText, Layers, X, Search, Link2 } from 'lucide-react';
+import { Plus, ChevronDown, Clock, FileText, Layers, X, Search, Link2, GripVertical } from 'lucide-react';
 import { ZettelCard } from '@/types/zettel';
 
 export interface FocusTask {
@@ -34,6 +34,50 @@ const priorityColors = {
   medium: 'rgb(251,191,36)',
   low: 'rgb(74,222,128)',
 };
+
+// Generic drag-reorder hook for lists
+function useDragReorder<T>(items: T[], onReorder: (items: T[]) => void) {
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const dragData = useRef({ startY: 0, itemHeight: 0 });
+
+  const onDragStart = useCallback((idx: number, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = (e.target as HTMLElement).closest('[data-drag-item]') as HTMLElement;
+    if (el) dragData.current.itemHeight = el.getBoundingClientRect().height;
+    dragData.current.startY = e.clientY;
+    setDragIdx(idx);
+    setOverIdx(idx);
+
+    const onMove = (ev: PointerEvent) => {
+      const dy = ev.clientY - dragData.current.startY;
+      const shift = Math.round(dy / Math.max(dragData.current.itemHeight, 30));
+      const newIdx = Math.max(0, Math.min(items.length - 1, idx + shift));
+      setOverIdx(newIdx);
+    };
+
+    const onUp = () => {
+      setDragIdx(null);
+      setOverIdx(prev => {
+        if (prev !== null && prev !== idx) {
+          const arr = [...items];
+          const [moved] = arr.splice(idx, 1);
+          arr.splice(prev, 0, moved);
+          onReorder(arr);
+        }
+        return null;
+      });
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }, [items, onReorder]);
+
+  return { dragIdx, overIdx, onDragStart };
+}
 
 function LinkPicker({
   cards,
@@ -118,12 +162,50 @@ function LinkPicker({
   );
 }
 
+// Draggable linked item row
+function DraggableLinkedItem({
+  idx, isDragging, isOver, onDragStart, children,
+}: {
+  idx: number;
+  isDragging: boolean;
+  isOver: boolean;
+  onDragStart: (idx: number, e: React.PointerEvent) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-drag-item
+      className={`flex items-center gap-0.5 transition-all ${
+        isDragging ? 'opacity-40 scale-95' : ''
+      } ${isOver ? 'border-t border-cyan-400/30' : ''}`}
+    >
+      <button
+        onPointerDown={e => onDragStart(idx, e)}
+        className="cursor-grab active:cursor-grabbing text-white/15 hover:text-white/40 p-0.5 touch-none"
+      >
+        <GripVertical className="h-2.5 w-2.5" />
+      </button>
+      {children}
+    </div>
+  );
+}
+
 export function FocusTaskList({
   tasks, onTasksChange, activeTaskId, onSetActiveTask,
   cards, notes, onViewCard, onViewNote
 }: FocusTaskListProps) {
   const [newTitle, setNewTitle] = useState('');
   const [newPriority, setNewPriority] = useState<'high' | 'medium' | 'low'>('medium');
+
+  // Separate incomplete tasks for drag reordering
+  const incompleteTasks = tasks.filter(t => !t.completed);
+  const completedTasks = tasks.filter(t => t.completed);
+
+  const reorderTasks = useCallback((reordered: FocusTask[]) => {
+    onTasksChange([...reordered, ...completedTasks]);
+  }, [completedTasks, onTasksChange]);
+
+  const { dragIdx: taskDragIdx, overIdx: taskOverIdx, onDragStart: onTaskDragStart } = useDragReorder(incompleteTasks, reorderTasks);
 
   const addTask = () => {
     if (!newTitle.trim()) return;
@@ -170,6 +252,13 @@ export function FocusTaskList({
     }));
   };
 
+  const reorderLinkedItems = (taskId: string, newCardIds: string[], newNoteIds: string[]) => {
+    onTasksChange(tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return { ...t, linkedCardIds: newCardIds, linkedNoteIds: newNoteIds };
+    }));
+  };
+
   const getLinkedCards = (task: FocusTask) =>
     cards.filter(c => task.linkedCardIds.includes(c.id));
 
@@ -202,21 +291,39 @@ export function FocusTaskList({
 
       <ScrollArea className="max-h-[300px]">
         <div className="flex flex-col gap-1">
-          {tasks.filter(t => !t.completed).map(task => {
+          {incompleteTasks.map((task, idx) => {
             const linkedCards = getLinkedCards(task);
             const linkedNotes = getLinkedNotes(task);
             const linkedCount = linkedCards.length + linkedNotes.length;
 
+            // Merge linked items into a unified list for reordering
+            const linkedItems = [
+              ...task.linkedCardIds.map(id => ({ type: 'card' as const, id })),
+              ...task.linkedNoteIds.map(id => ({ type: 'note' as const, id })),
+            ];
+
             return (
               <Collapsible key={task.id}>
                 <div
-                  className={`group flex items-start gap-2 p-2 rounded-lg transition-all cursor-pointer ${
+                  data-drag-item
+                  className={`group flex items-start gap-1 p-2 rounded-lg transition-all cursor-pointer ${
+                    taskDragIdx === idx ? 'opacity-40 scale-[0.97]' : ''
+                  } ${taskOverIdx === idx && taskDragIdx !== null && taskDragIdx !== idx ? 'border-t-2 border-cyan-400/40' : ''} ${
                     activeTaskId === task.id
                       ? 'bg-white/10 ring-1 ring-cyan-400/30'
                       : 'bg-white/[0.03] hover:bg-white/[0.06]'
                   }`}
                   onClick={() => onSetActiveTask(activeTaskId === task.id ? null : task.id)}
                 >
+                  {/* Drag handle */}
+                  <button
+                    onPointerDown={e => onTaskDragStart(idx, e)}
+                    onClick={e => e.stopPropagation()}
+                    className="cursor-grab active:cursor-grabbing text-white/15 hover:text-white/40 p-0.5 mt-0.5 touch-none"
+                  >
+                    <GripVertical className="h-3 w-3" />
+                  </button>
+
                   <Checkbox
                     checked={task.completed}
                     onCheckedChange={() => toggleComplete(task.id)}
@@ -256,44 +363,18 @@ export function FocusTaskList({
                 </div>
 
                 <CollapsibleContent className="pl-8 pr-2 pb-1">
-                  {/* Linked items */}
-                  {(linkedCards.length > 0 || linkedNotes.length > 0) && (
-                    <div className="flex flex-col gap-0.5 mt-1">
-                      {linkedCards.map(card => (
-                        <div key={card.id} className="flex items-center gap-1 group/link">
-                          <button
-                            onClick={() => onViewCard(card)}
-                            className="flex items-center gap-1.5 text-left text-[11px] text-cyan-300/80 hover:text-cyan-300 p-1 rounded hover:bg-white/5 transition-colors flex-1 min-w-0"
-                          >
-                            <Layers className="h-2.5 w-2.5 flex-shrink-0" />
-                            <span className="truncate">{card.title}</span>
-                          </button>
-                          <button
-                            onClick={() => unlinkItem(task.id, 'card', card.id)}
-                            className="opacity-0 group-hover/link:opacity-100 text-white/20 hover:text-white/50 p-0.5"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      ))}
-                      {linkedNotes.map(note => (
-                        <div key={note.id} className="flex items-center gap-1 group/link">
-                          <button
-                            onClick={() => onViewNote(note)}
-                            className="flex items-center gap-1.5 text-left text-[11px] text-emerald-300/80 hover:text-emerald-300 p-1 rounded hover:bg-white/5 transition-colors flex-1 min-w-0"
-                          >
-                            <FileText className="h-2.5 w-2.5 flex-shrink-0" />
-                            <span className="truncate">{note.title}</span>
-                          </button>
-                          <button
-                            onClick={() => unlinkItem(task.id, 'note', note.id)}
-                            className="opacity-0 group-hover/link:opacity-100 text-white/20 hover:text-white/50 p-0.5"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Linked items with drag reorder */}
+                  {linkedItems.length > 0 && (
+                    <LinkedItemsList
+                      task={task}
+                      linkedItems={linkedItems}
+                      cards={cards}
+                      notes={notes}
+                      onViewCard={onViewCard}
+                      onViewNote={onViewNote}
+                      onUnlink={unlinkItem}
+                      onReorder={(newCardIds, newNoteIds) => reorderLinkedItems(task.id, newCardIds, newNoteIds)}
+                    />
                   )}
 
                   {/* Link picker */}
@@ -310,10 +391,10 @@ export function FocusTaskList({
             );
           })}
 
-          {tasks.filter(t => t.completed).length > 0 && (
+          {completedTasks.length > 0 && (
             <div className="mt-2 pt-2 border-t border-white/5">
               <span className="text-[10px] uppercase tracking-wider text-white/20">Completed</span>
-              {tasks.filter(t => t.completed).map(task => (
+              {completedTasks.map(task => (
                 <div key={task.id} className="flex items-center gap-2 p-1.5 opacity-40">
                   <Checkbox
                     checked
@@ -327,6 +408,88 @@ export function FocusTaskList({
           )}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+// Sub-component for draggable linked items within a task
+function LinkedItemsList({
+  task, linkedItems, cards, notes, onViewCard, onViewNote, onUnlink, onReorder,
+}: {
+  task: FocusTask;
+  linkedItems: { type: 'card' | 'note'; id: string }[];
+  cards: ZettelCard[];
+  notes: any[];
+  onViewCard: (card: ZettelCard) => void;
+  onViewNote: (note: any) => void;
+  onUnlink: (taskId: string, type: 'card' | 'note', itemId: string) => void;
+  onReorder: (newCardIds: string[], newNoteIds: string[]) => void;
+}) {
+  const reorderLinked = useCallback((reordered: { type: 'card' | 'note'; id: string }[]) => {
+    const newCardIds = reordered.filter(i => i.type === 'card').map(i => i.id);
+    const newNoteIds = reordered.filter(i => i.type === 'note').map(i => i.id);
+    onReorder(newCardIds, newNoteIds);
+  }, [onReorder]);
+
+  const { dragIdx, overIdx, onDragStart } = useDragReorder(linkedItems, reorderLinked);
+
+  return (
+    <div className="flex flex-col gap-0.5 mt-1">
+      {linkedItems.map((item, idx) => {
+        if (item.type === 'card') {
+          const card = cards.find(c => c.id === item.id);
+          if (!card) return null;
+          return (
+            <DraggableLinkedItem
+              key={`card-${item.id}`}
+              idx={idx}
+              isDragging={dragIdx === idx}
+              isOver={overIdx === idx && dragIdx !== null && dragIdx !== idx}
+              onDragStart={onDragStart}
+            >
+              <button
+                onClick={() => onViewCard(card)}
+                className="flex items-center gap-1.5 text-left text-[11px] text-cyan-300/80 hover:text-cyan-300 p-1 rounded hover:bg-white/5 transition-colors flex-1 min-w-0"
+              >
+                <Layers className="h-2.5 w-2.5 flex-shrink-0" />
+                <span className="truncate">{card.title}</span>
+              </button>
+              <button
+                onClick={() => onUnlink(task.id, 'card', card.id)}
+                className="text-white/20 hover:text-white/50 p-0.5"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </DraggableLinkedItem>
+          );
+        } else {
+          const note = notes.find(n => n.id === item.id);
+          if (!note) return null;
+          return (
+            <DraggableLinkedItem
+              key={`note-${item.id}`}
+              idx={idx}
+              isDragging={dragIdx === idx}
+              isOver={overIdx === idx && dragIdx !== null && dragIdx !== idx}
+              onDragStart={onDragStart}
+            >
+              <button
+                onClick={() => onViewNote(note)}
+                className="flex items-center gap-1.5 text-left text-[11px] text-emerald-300/80 hover:text-emerald-300 p-1 rounded hover:bg-white/5 transition-colors flex-1 min-w-0"
+              >
+                <FileText className="h-2.5 w-2.5 flex-shrink-0" />
+                <span className="truncate">{note.title}</span>
+              </button>
+              <button
+                onClick={() => onUnlink(task.id, 'note', note.id)}
+                className="text-white/20 hover:text-white/50 p-0.5"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </DraggableLinkedItem>
+          );
+        }
+      })}
     </div>
   );
 }
