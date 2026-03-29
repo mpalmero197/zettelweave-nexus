@@ -1,43 +1,53 @@
 
 
-# Milanote-Style Whiteboard Enhancement
+# Landing Page Rewrite — Conversion-Optimized Structure
 
 ## Overview
-Upgrade the existing Fabric.js whiteboard with Milanote's signature features: rich note cards, task lists, link cards, connector lines, a minimap, smart guides, board templates, and a color palette tool.
+Complete rewrite of `src/pages/Landing.tsx` based on the teardown, restructuring from a feature-listing page to a conversion-focused narrative: Problem → Solution → How It Works → Outcome-Based Features → Social Proof → Audience → Pricing → FAQ → Final CTA.
 
-## New Features
+## New Page Structure
 
-### 1. Rich Note Cards
-Add a "Note Card" tool that creates a styled card with a bold title field and a multi-line body field (two `Textbox` objects grouped with a rounded `Rect` background). Distinct from sticky notes -- these are white, have a subtle shadow, and look like index cards.
+### 1. Hero (Above the Fold)
+- **Headline**: "Build a second brain that actually thinks with you"
+- **Subheadline**: "PendragonX connects your ideas, surfaces insights, and lets you ask your knowledge anything — powered by AI."
+- **CTA**: Primary "Try it free" + Secondary "See how it works"
+- **Trust signals**: "No credit card required" + "Free forever plan"
 
-### 2. Task/Checklist Objects
-Add a "Checklist" tool that places an interactive checklist card on the canvas. Each item is a `Group` of a checkbox rect + text. Clicking the checkbox toggles a checkmark (strike-through text + filled square). Users can double-click to add new items.
+### 2. Problem Section (NEW)
+Emotional hook — three short pain statements:
+- "Your ideas are scattered."
+- "Your notes don't connect."
+- "Your knowledge sits there — but never works for you."
 
-### 3. Link Cards
-Add a "Link Card" tool -- user pastes a URL into a prompt, and a card is created showing the URL domain + title text. No external API needed; just parses the URL for domain display.
+### 3. Solution Section (NEW)
+Three-column grid reframing PendragonX as the answer:
+- "Automatically connects related ideas"
+- "Shows patterns you didn't see"
+- "Lets you ask your notes questions"
 
-### 4. Connector Lines (Object-to-Object)
-Add a "Connector" tool. User clicks a source object, then clicks a target object, and a line is drawn between their centers. On `object:moving`, connected lines update their endpoints. Store connections in a ref map keyed by object IDs.
+### 4. How It Works — 3 Steps (SIMPLIFIED from 5)
+1. **Capture anything** — Write notes, import content, or think freely
+2. **AI connects everything** — Related ideas link automatically into a knowledge graph
+3. **Ask your knowledge** — Query your notes like ChatGPT and get real insights
 
-### 5. Minimap
-Render a small (150x100px) overview in the bottom-left corner showing all objects as tiny dots/rectangles. Clicking the minimap pans the viewport to that area. Updates on `after:render`.
+### 5. Features (OUTCOME-BASED rewrite)
+Four cards with benefit-first language:
+- "Never lose an idea" — Notes link themselves automatically
+- "Discover hidden patterns" — AI surfaces connections across your thinking
+- "See your mind in 3D" — Visual knowledge graph shows how ideas evolve
+- "Ask your notes anything" — Chat with your knowledge base like ChatGPT
 
-### 6. Smart Guides / Snap to Grid
-On `object:moving`, calculate alignment with nearby objects and show red guide lines when edges/centers align (within 5px threshold). Optionally snap objects to a configurable grid (20px default).
+### 6. Built For Section (NEW — Target Audience)
+Horizontal badges/cards: Writers, Researchers, Founders, Students, Deep Thinkers
 
-### 7. Board Templates
-Add a "Templates" button in the toolbar that opens a popover with 4 presets:
-- **Mood Board**: 3x3 grid of image placeholder frames
-- **Project Plan**: columns with headers (To Do / In Progress / Done)
-- **Brainstorm**: central topic card with radiating sticky notes
-- **Storyboard**: horizontal sequence of numbered frames
+### 7. Screenshots (KEPT, minor copy update)
 
-Each template places pre-built Fabric objects on the canvas.
+### 8. Pricing (KEPT, copy refined)
 
-### 8. Color Palette Tool
-Add a "Swatch" tool that places a row of 5 color circles on the canvas, acting as a visual palette/mood reference. User can change colors by clicking each circle.
+### 9. FAQ (KEPT)
 
----
+### 10. Final CTA
+- "Stop storing ideas. Start thinking with them."
 
 ## Technical Details
 
@@ -45,29 +55,14 @@ Add a "Swatch" tool that places a row of 5 color circles on the canvas, acting a
 
 | File | Changes |
 |------|---------|
-| `src/components/DesktopWhiteboard.tsx` | Add 5 new tools (noteCard, checklist, linkCard, connector, swatch) to Tool type. Add connector tracking refs + update logic. Add smart guide rendering. Add minimap canvas. Add templates popover. Extend `handleToolClick` and keyboard shortcuts. |
-| `src/index.css` | Add `.whiteboard-minimap`, `.whiteboard-smart-guide`, `.whiteboard-note-card` styles |
+| `src/pages/Landing.tsx` | Full rewrite of section order, copy, and structure. Add Problem, Solution, and Audience sections. Simplify How It Works to 3 steps. Rewrite all feature copy to outcome-based. Update hero headline/subheadline. |
+| `src/components/SEOHead.tsx` | Update `defaultTitle` and `defaultDescription` to match new positioning |
 
-### New Tool Type Additions
-```text
-Tool union += "noteCard" | "checklist" | "linkCard" | "connector" | "swatch"
-```
+### SEO Updates
+- New title: "PendragonX — A Second Brain That Actually Thinks With You"
+- New description: "Connect your ideas, surface insights, and ask your knowledge anything. AI-powered Zettelkasten for writers, researchers, and deep thinkers."
+- HowTo schema updated to 3 steps
+- FAQ schema unchanged
 
-### Connector Architecture
-- `connectionsRef = useRef<Map<string, {from: string, to: string, line: Line}>>()`
-- Assign unique IDs to objects via `obj.set('data', { id: nanoid() })`
-- On `object:moving`, iterate connections and update line coordinates
-- Connector mode: first click sets source, second click draws line
-
-### Smart Guides
-- On `object:moving`, compare active object edges (left, right, center, top, bottom, middle) against all other objects
-- Render temporary `Line` objects (red, 1px) as guides
-- Remove guides on `object:modified`
-
-### Minimap
-- Secondary offscreen canvas (150x100) rendered in a `div` overlay
-- Re-render on `after:render` by iterating objects and drawing scaled rectangles
-- Click handler calculates viewport pan target from click position
-
-### No new dependencies required -- all built with existing Fabric.js primitives.
+### No new dependencies. No new files. Halcyon aesthetic preserved throughout.
 
