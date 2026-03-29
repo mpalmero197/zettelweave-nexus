@@ -48,19 +48,39 @@ function BuiltForBanner() {
   const [done, setDone] = useState(false);
   const animation = useScrollAnimation(0.3);
 
+  // Easing curve: slow → fast → slow. Peak speed at midpoint.
+  const total = ROTATING_WORDS.length;
+  const getDelay = (i: number) => {
+    const mid = (total - 1) / 2;
+    const dist = Math.abs(i - mid) / mid; // 0 at center, 1 at edges
+    const ease = 0.3 + 0.7 * dist * dist; // quadratic: fast in middle, slow at edges
+    return Math.round(ease * 1800 + 200); // range: ~200ms (peak) to ~2000ms (edges)
+  };
+
+  const getTransitionDuration = (i: number) => {
+    const mid = (total - 1) / 2;
+    const dist = Math.abs(i - mid) / mid;
+    return Math.round(150 + 350 * dist); // faster transitions in the middle
+  };
+
   useEffect(() => {
     if (done || !animation.isVisible) return;
+    const delay = index === total ? 600 : getDelay(index);
     const timer = setTimeout(() => {
-      if (index < ROTATING_WORDS.length - 1) {
+      if (index < total - 1) {
         setAnimating(true);
-        setTimeout(() => { setIndex((p) => p + 1); setAnimating(false); }, 400);
+        const dur = getTransitionDuration(index);
+        setTimeout(() => { setIndex((p) => p + 1); setAnimating(false); }, dur);
       } else {
+        // Final word → land on "you"
         setAnimating(true);
-        setTimeout(() => { setDone(true); setAnimating(false); }, 400);
+        setTimeout(() => { setDone(true); setAnimating(false); }, 500);
       }
-    }, 1600);
+    }, delay);
     return () => clearTimeout(timer);
   }, [index, done, animation.isVisible]);
+
+  const transDur = done ? 500 : getTransitionDuration(index);
 
   return (
     <section ref={animation.ref} className="py-16 md:py-20 bg-primary/[0.03] border-y border-border">
@@ -71,10 +91,17 @@ function BuiltForBanner() {
             <span
               key={done ? "final" : index}
               className={cn(
-                "inline-block text-primary transition-all",
-                animating ? "opacity-0 -translate-y-full" : "opacity-100 translate-y-0"
+                "inline-block text-primary",
+                animating
+                  ? "opacity-0 -translate-y-full"
+                  : "opacity-100 translate-y-0",
+                done && !animating && "scale-110"
               )}
-              style={{ transitionDuration: "400ms" }}
+              style={{
+                transitionProperty: "all",
+                transitionTimingFunction: done ? "cubic-bezier(0.34, 1.56, 0.64, 1)" : "ease-out",
+                transitionDuration: `${transDur}ms`,
+              }}
             >
               {done ? "you." : ROTATING_WORDS[index]}
             </span>
