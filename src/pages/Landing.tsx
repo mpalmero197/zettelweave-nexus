@@ -40,70 +40,89 @@ const howToSchema = createHowToSchema({
 
 /* ─── Rotating Words Banner ─── */
 
-const ROTATING_WORDS = ["authors", "creators", "thinkers", "researchers", "scholars", "dreamers", "builders", "storytellers"];
+const ROTATING_WORDS = [
+  "authors", "creators", "thinkers", "researchers", "scholars",
+  "dreamers", "builders", "storytellers", "designers", "developers",
+  "entrepreneurs", "journalists", "educators", "strategists", "poets",
+  "filmmakers", "scientists", "architects", "musicians", "analysts",
+  "visionaries", "innovators", "freelancers", "consultants", "curators",
+];
 
 function BuiltForBanner() {
   const [index, setIndex] = useState(0);
-  const [animating, setAnimating] = useState(false);
+  const [phase, setPhase] = useState<"enter" | "exit">("enter");
   const [done, setDone] = useState(false);
+  const [displayWord, setDisplayWord] = useState(ROTATING_WORDS[0]);
   const animation = useScrollAnimation(0.3);
 
-  // Easing curve: slow → fast → slow. Peak speed at midpoint.
   const total = ROTATING_WORDS.length;
+
+  // Easing curve: slow → fast → slow. Peak speed at midpoint.
   const getDelay = (i: number) => {
     const mid = (total - 1) / 2;
-    const dist = Math.abs(i - mid) / mid; // 0 at center, 1 at edges
-    const ease = 0.3 + 0.7 * dist * dist; // quadratic: fast in middle, slow at edges
-    return Math.round(ease * 1800 + 200); // range: ~200ms (peak) to ~2000ms (edges)
+    const dist = Math.abs(i - mid) / mid;
+    const ease = 0.15 + 0.85 * dist * dist;
+    return Math.round(ease * 1400 + 100);
   };
 
   const getTransitionDuration = (i: number) => {
     const mid = (total - 1) / 2;
     const dist = Math.abs(i - mid) / mid;
-    return Math.round(150 + 350 * dist); // faster transitions in the middle
+    return Math.round(120 + 380 * dist);
   };
 
   useEffect(() => {
     if (done || !animation.isVisible) return;
-    const delay = index === total ? 600 : getDelay(index);
+
+    const delay = getDelay(index);
+    const dur = getTransitionDuration(index);
+
     const timer = setTimeout(() => {
-      if (index < total - 1) {
-        setAnimating(true);
-        const dur = getTransitionDuration(index);
-        setTimeout(() => { setIndex((p) => p + 1); setAnimating(false); }, dur);
-      } else {
-        // Final word → land on "you"
-        setAnimating(true);
-        setTimeout(() => { setDone(true); setAnimating(false); }, 500);
-      }
+      // Exit current word
+      setPhase("exit");
+
+      setTimeout(() => {
+        if (index < total - 1) {
+          const next = index + 1;
+          setDisplayWord(ROTATING_WORDS[next]);
+          setIndex(next);
+        } else {
+          setDisplayWord("you.");
+          setDone(true);
+        }
+        setPhase("enter");
+      }, dur);
     }, delay);
+
     return () => clearTimeout(timer);
   }, [index, done, animation.isVisible]);
 
-  const transDur = done ? 500 : getTransitionDuration(index);
+  const transDur = done && phase === "enter" ? 600 : getTransitionDuration(index);
 
   return (
     <section ref={animation.ref} className="py-16 md:py-20 bg-primary/[0.03] border-y border-border">
       <div className="max-w-3xl mx-auto px-4 text-center">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
           Built for{" "}
-          <span className="inline-block relative overflow-hidden h-[1.2em] align-bottom min-w-[200px]">
+          <span className="inline-block relative overflow-hidden h-[1.2em] align-bottom min-w-[220px]">
             <span
-              key={done ? "final" : index}
               className={cn(
-                "inline-block text-primary",
-                animating
-                  ? "opacity-0 -translate-y-full"
-                  : "opacity-100 translate-y-0",
-                done && !animating && "scale-110"
+                "inline-block text-primary will-change-transform",
+                phase === "exit" && "opacity-0 -translate-y-[70%] blur-[2px]",
+                phase === "enter" && "opacity-100 translate-y-0 blur-0",
+                done && phase === "enter" && "scale-110"
               )}
               style={{
-                transitionProperty: "all",
-                transitionTimingFunction: done ? "cubic-bezier(0.34, 1.56, 0.64, 1)" : "ease-out",
+                transitionProperty: "opacity, transform, filter",
+                transitionTimingFunction: done && phase === "enter"
+                  ? "cubic-bezier(0.34, 1.56, 0.64, 1)"
+                  : phase === "exit"
+                    ? "cubic-bezier(0.4, 0, 1, 1)"
+                    : "cubic-bezier(0, 0, 0.2, 1)",
                 transitionDuration: `${transDur}ms`,
               }}
             >
-              {done ? "you." : ROTATING_WORDS[index]}
+              {displayWord}
             </span>
           </span>
         </h2>
