@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sun, Cloud, CloudRain, Snowflake, Wind, Droplets } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Snowflake, Wind, Droplets, CloudDrizzle, CloudLightning, CloudFog, CloudSun } from 'lucide-react';
 
 interface WeatherData {
   location: string;
@@ -8,39 +8,100 @@ interface WeatherData {
   condition: string;
   humidity: number;
   windSpeed: number;
-  icon: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+  icon: keyof typeof iconMap;
 }
 
-const icons = { sunny: Sun, cloudy: Cloud, rainy: CloudRain, snowy: Snowflake };
+const iconMap = {
+  sunny: Sun,
+  "partly-cloudy": CloudSun,
+  cloudy: Cloud,
+  foggy: CloudFog,
+  drizzle: CloudDrizzle,
+  rainy: CloudRain,
+  thunderstorm: CloudLightning,
+  snowy: Snowflake,
+};
+
+// WMO Weather interpretation codes → display info
+function interpretWMO(code: number): { condition: string; icon: keyof typeof iconMap } {
+  if (code === 0) return { condition: "Clear sky", icon: "sunny" };
+  if (code <= 3) return { condition: "Partly cloudy", icon: "partly-cloudy" };
+  if (code <= 48) return { condition: "Fog", icon: "foggy" };
+  if (code <= 55) return { condition: "Drizzle", icon: "drizzle" };
+  if (code <= 57) return { condition: "Freezing drizzle", icon: "drizzle" };
+  if (code <= 65) return { condition: "Rain", icon: "rainy" };
+  if (code <= 67) return { condition: "Freezing rain", icon: "rainy" };
+  if (code <= 77) return { condition: "Snow", icon: "snowy" };
+  if (code <= 82) return { condition: "Rain showers", icon: "rainy" };
+  if (code <= 86) return { condition: "Snow showers", icon: "snowy" };
+  if (code <= 99) return { condition: "Thunderstorm", icon: "thunderstorm" };
+  return { condition: "Cloudy", icon: "cloudy" };
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    if (!res.ok) return "Your location";
+    const data = await res.json();
+    return data.address?.city || data.address?.town || data.address?.village || data.address?.county || "Your location";
+  } catch {
+    return "Your location";
+  }
+}
 
 export function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { fetchWeather(); }, []);
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported");
+      setLoading(false);
+      return;
+    }
 
-  const fetchWeather = () => {
-    if (!navigator.geolocation) { setLoading(false); return; }
     navigator.geolocation.getCurrentPosition(
-      () => {
-        setWeather({
-          location: 'Current Location',
-          temperature: Math.floor(Math.random() * 30) + 10,
-          condition: ['Sunny', 'Cloudy', 'Partly Cloudy', 'Light Rain'][Math.floor(Math.random() * 4)],
-          humidity: Math.floor(Math.random() * 40) + 40,
-          windSpeed: Math.floor(Math.random() * 20) + 5,
-          icon: ['sunny', 'cloudy', 'rainy', 'snowy'][Math.floor(Math.random() * 4)] as any,
-        });
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const [weatherRes, locationName] = await Promise.all([
+            fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`
+            ),
+            reverseGeocode(latitude, longitude),
+          ]);
+
+          if (!weatherRes.ok) throw new Error("Weather API failed");
+          const data = await weatherRes.json();
+          const current = data.current;
+          const { condition, icon } = interpretWMO(current.weather_code);
+
+          setWeather({
+            location: locationName,
+            temperature: Math.round(current.temperature_2m),
+            condition,
+            humidity: Math.round(current.relative_humidity_2m),
+            windSpeed: Math.round(current.wind_speed_10m),
+            icon,
+          });
+        } catch {
+          setError("Could not fetch weather");
+        }
         setLoading(false);
       },
       () => {
-        setWeather({ location: 'Default', temperature: 22, condition: 'Partly Cloudy', humidity: 65, windSpeed: 12, icon: 'cloudy' });
+        setError("Location access denied");
         setLoading(false);
-      }
+      },
+      { timeout: 10000 }
     );
-  };
+  }, []);
 
-  if (loading || !weather) {
+  if (loading) {
     return (
       <Card className="h-full">
         <CardContent className="p-4 h-full flex items-center justify-center">
@@ -50,14 +111,28 @@ export function WeatherWidget() {
     );
   }
 
-  const Icon = icons[weather.icon];
+  if (error || !weather) {
+    return (
+      <Card className="h-full">
+        <CardContent className="p-4 h-full flex flex-col items-center justify-center gap-1">
+          <Cloud className="h-6 w-6 text-muted-foreground/40" aria-hidden="true" />
+          <p className="text-xs text-muted-foreground">{error || "No weather data"}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const Icon = iconMap[weather.icon];
 
   return (
     <Card className="h-full">
       <CardHeader className="pb-1">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-          Weather
+        <CardTitle className="flex items-center justify-between text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <span className="flex items-center gap-2">
+            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+            Weather
+          </span>
+          <span className="text-[10px] normal-case tracking-normal font-normal">{weather.location}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
