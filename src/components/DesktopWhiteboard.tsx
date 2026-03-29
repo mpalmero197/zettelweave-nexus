@@ -14,7 +14,8 @@ import {
   Copy, Clipboard, Lock, Unlock, Diamond, Octagon, Plus, MessageSquare,
   ArrowLeftRight, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown,
   Maximize2, Layers, Pentagon, SquareDashed, Palette, FileDown, FileUp,
-  AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd
+  AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
+  FileText, CheckSquare, Link2, GitBranch, LayoutTemplate, Map
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
@@ -24,7 +25,7 @@ interface DesktopWhiteboardProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
 }
 
-type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "highlighter" | "diamond" | "pentagon" | "octagon" | "cross" | "doubleArrow" | "speechBubble" | "frame";
+type Tool = "select" | "pen" | "eraser" | "rectangle" | "circle" | "triangle" | "star" | "polygon" | "line" | "arrow" | "text" | "sticky" | "image" | "pan" | "highlighter" | "diamond" | "pentagon" | "octagon" | "cross" | "doubleArrow" | "speechBubble" | "frame" | "noteCard" | "checklist" | "linkCard" | "connector" | "swatch";
 type LineStyle = "solid" | "dashed" | "dotted";
 
 const penColors = [
@@ -59,9 +60,13 @@ const getDashArray = (style: LineStyle, width: number): number[] | undefined => 
   return undefined;
 };
 
+let _objIdCounter = 0;
+const genObjId = () => `obj-${Date.now()}-${++_objIdCounter}`;
+
 export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const minimapCanvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<FabricCanvas | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("pen");
   const [penColor, setPenColor] = useState("#1a1a1a");
@@ -71,7 +76,10 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   const [objectOpacity, setObjectOpacity] = useState(100);
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(true);
+  const [showMinimap, setShowMinimap] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  const [gridSize] = useState(20);
   
   // Undo/Redo
   const historyRef = useRef<string[]>([]);
@@ -86,6 +94,13 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
   // Panning refs
   const isPanningRef = useRef(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Connector refs
+  const connectionsRef = useRef<Map<string, { from: string; to: string; line: Line }>>(new Map());
+  const connectorSourceRef = useRef<string | null>(null);
+
+  // Smart guides
+  const guideLinesRef = useRef<Line[]>([]);
 
   // --- Canvas init (mount once) ---
   useEffect(() => {
@@ -298,6 +313,250 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     canvas.on('mouse:wheel', handleWheel);
     return () => { canvas.off('mouse:wheel', handleWheel); };
   }, [isReady]);
+
+  // --- Smart Guides on object:moving ---
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const THRESHOLD = 5;
+
+    const clearGuides = () => {
+      guideLinesRef.current.forEach(l => canvas.remove(l));
+      guideLinesRef.current = [];
+    };
+
+    const onMoving = (e: any) => {
+      clearGuides();
+      const target = e.target;
+      if (!target) return;
+
+      // Snap to grid
+      if (snapToGrid) {
+        target.set({
+          left: Math.round((target.left || 0) / gridSize) * gridSize,
+          top: Math.round((target.top || 0) / gridSize) * gridSize,
+        });
+      }
+
+      const tRect = target.getBoundingRect();
+      const tCx = tRect.left + tRect.width / 2;
+      const tCy = tRect.top + tRect.height / 2;
+
+      const objects = canvas.getObjects().filter((o: FabricObject) => o !== target && !(o as any)._isGuide);
+
+      for (const obj of objects) {
+        const oRect = obj.getBoundingRect();
+        const oCx = oRect.left + oRect.width / 2;
+        const oCy = oRect.top + oRect.height / 2;
+
+        // Vertical center alignment
+        if (Math.abs(tCx - oCx) < THRESHOLD) {
+          const gl = new Line([oCx, Math.min(tRect.top, oRect.top) - 20, oCx, Math.max(tRect.top + tRect.height, oRect.top + oRect.height) + 20], {
+            stroke: '#E74C3C', strokeWidth: 1, selectable: false, evented: false, strokeDashArray: [4, 4],
+          });
+          (gl as any)._isGuide = true;
+          canvas.add(gl);
+          guideLinesRef.current.push(gl);
+        }
+        // Horizontal center alignment
+        if (Math.abs(tCy - oCy) < THRESHOLD) {
+          const gl = new Line([Math.min(tRect.left, oRect.left) - 20, oCy, Math.max(tRect.left + tRect.width, oRect.left + oRect.width) + 20, oCy], {
+            stroke: '#E74C3C', strokeWidth: 1, selectable: false, evented: false, strokeDashArray: [4, 4],
+          });
+          (gl as any)._isGuide = true;
+          canvas.add(gl);
+          guideLinesRef.current.push(gl);
+        }
+        // Left edge
+        if (Math.abs(tRect.left - oRect.left) < THRESHOLD) {
+          const gl = new Line([oRect.left, Math.min(tRect.top, oRect.top) - 20, oRect.left, Math.max(tRect.top + tRect.height, oRect.top + oRect.height) + 20], {
+            stroke: '#3498DB', strokeWidth: 1, selectable: false, evented: false, strokeDashArray: [4, 4],
+          });
+          (gl as any)._isGuide = true;
+          canvas.add(gl);
+          guideLinesRef.current.push(gl);
+        }
+        // Top edge
+        if (Math.abs(tRect.top - oRect.top) < THRESHOLD) {
+          const gl = new Line([Math.min(tRect.left, oRect.left) - 20, oRect.top, Math.max(tRect.left + tRect.width, oRect.left + oRect.width) + 20, oRect.top], {
+            stroke: '#3498DB', strokeWidth: 1, selectable: false, evented: false, strokeDashArray: [4, 4],
+          });
+          (gl as any)._isGuide = true;
+          canvas.add(gl);
+          guideLinesRef.current.push(gl);
+        }
+      }
+
+      // Update connectors
+      updateConnectors(canvas);
+    };
+
+    const onModified = () => {
+      clearGuides();
+      updateConnectors(canvas);
+    };
+
+    canvas.on('object:moving', onMoving);
+    canvas.on('object:modified', onModified);
+
+    return () => {
+      canvas.off('object:moving', onMoving);
+      canvas.off('object:modified', onModified);
+    };
+  }, [isReady, snapToGrid, gridSize]);
+
+  // --- Connector update logic ---
+  const updateConnectors = useCallback((canvas: FabricCanvas) => {
+    connectionsRef.current.forEach((conn) => {
+      const fromObj = canvas.getObjects().find((o: FabricObject) => (o as any)._objId === conn.from);
+      const toObj = canvas.getObjects().find((o: FabricObject) => (o as any)._objId === conn.to);
+      if (fromObj && toObj) {
+        const fRect = fromObj.getBoundingRect();
+        const tRect = toObj.getBoundingRect();
+        const fCx = fRect.left + fRect.width / 2;
+        const fCy = fRect.top + fRect.height / 2;
+        const tCx = tRect.left + tRect.width / 2;
+        const tCy = tRect.top + tRect.height / 2;
+        conn.line.set({ x1: fCx, y1: fCy, x2: tCx, y2: tCy });
+        conn.line.setCoords();
+      }
+    });
+    canvas.renderAll();
+  }, []);
+
+  // --- Connector mode click handler ---
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || activeTool !== 'connector') return;
+
+    const handleClick = (e: any) => {
+      if (!e.target || (e.target as any)._isGuide || (e.target as any)._isConnectorLine) return;
+      
+      // Ensure object has an ID
+      if (!(e.target as any)._objId) {
+        (e.target as any)._objId = genObjId();
+      }
+
+      const objId = (e.target as any)._objId;
+
+      if (!connectorSourceRef.current) {
+        connectorSourceRef.current = objId;
+        toast.info("Click another object to connect");
+      } else {
+        if (connectorSourceRef.current === objId) {
+          connectorSourceRef.current = null;
+          return;
+        }
+
+        const fromObj = canvas.getObjects().find((o: FabricObject) => (o as any)._objId === connectorSourceRef.current);
+        const toObj = e.target;
+
+        if (fromObj && toObj) {
+          const fRect = fromObj.getBoundingRect();
+          const tRect = toObj.getBoundingRect();
+          const line = new Line([
+            fRect.left + fRect.width / 2, fRect.top + fRect.height / 2,
+            tRect.left + tRect.width / 2, tRect.top + tRect.height / 2
+          ], {
+            stroke: '#9B59B6',
+            strokeWidth: 2,
+            selectable: false,
+            evented: false,
+            strokeDashArray: [6, 3],
+          });
+          (line as any)._isConnectorLine = true;
+
+          const connId = genObjId();
+          connectionsRef.current.set(connId, {
+            from: connectorSourceRef.current!,
+            to: objId,
+            line,
+          });
+
+          canvas.add(line);
+          canvas.sendObjectToBack(line);
+          canvas.renderAll();
+          toast.success("Connected!");
+        }
+
+        connectorSourceRef.current = null;
+      }
+    };
+
+    canvas.on('mouse:down', handleClick);
+    return () => {
+      canvas.off('mouse:down', handleClick);
+      connectorSourceRef.current = null;
+    };
+  }, [activeTool, isReady]);
+
+  // --- Minimap rendering ---
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    const minimapEl = minimapCanvasRef.current;
+    if (!canvas || !minimapEl || !showMinimap) return;
+
+    const ctx = minimapEl.getContext('2d');
+    if (!ctx) return;
+
+    const renderMinimap = () => {
+      const mmW = 160;
+      const mmH = 110;
+      ctx.clearRect(0, 0, mmW, mmH);
+      ctx.fillStyle = '#f8f8f6';
+      ctx.fillRect(0, 0, mmW, mmH);
+
+      const objects = canvas.getObjects().filter((o: FabricObject) => !(o as any)._isGuide);
+      if (objects.length === 0) return;
+
+      // Compute bounding box of all objects
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      objects.forEach((obj: FabricObject) => {
+        const r = obj.getBoundingRect();
+        minX = Math.min(minX, r.left);
+        minY = Math.min(minY, r.top);
+        maxX = Math.max(maxX, r.left + r.width);
+        maxY = Math.max(maxY, r.top + r.height);
+      });
+
+      const padding = 40;
+      const contentW = maxX - minX + padding * 2;
+      const contentH = maxY - minY + padding * 2;
+      const scale = Math.min(mmW / contentW, mmH / contentH);
+
+      objects.forEach((obj: FabricObject) => {
+        const r = obj.getBoundingRect();
+        const x = (r.left - minX + padding) * scale;
+        const y = (r.top - minY + padding) * scale;
+        const w = Math.max(r.width * scale, 3);
+        const h = Math.max(r.height * scale, 3);
+        ctx.fillStyle = (obj as any).fill && (obj as any).fill !== 'transparent' ? (obj as any).fill : '#94a3b8';
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(x, y, w, h);
+        ctx.globalAlpha = 1;
+      });
+
+      // Viewport indicator
+      const vt = canvas.viewportTransform;
+      if (vt) {
+        const vpLeft = (-vt[4] / canvas.getZoom() - minX + padding) * scale;
+        const vpTop = (-vt[5] / canvas.getZoom() - minY + padding) * scale;
+        const vpW = ((canvas.width || 800) / canvas.getZoom()) * scale;
+        const vpH = ((canvas.height || 600) / canvas.getZoom()) * scale;
+        ctx.strokeStyle = '#3498DB';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(vpLeft, vpTop, vpW, vpH);
+      }
+    };
+
+    canvas.on('after:render', renderMinimap);
+    renderMinimap();
+
+    return () => {
+      canvas.off('after:render', renderMinimap);
+    };
+  }, [isReady, showMinimap]);
 
   // --- Apply styles to selected objects ---
   const applyStrokeToSelected = useCallback((color: string) => {
@@ -606,6 +865,8 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
         case 't': handleToolClick('text'); break;
         case 's': handleToolClick('sticky'); break;
         case 'e': setActiveTool('eraser'); break;
+        case 'n': handleToolClick('noteCard'); break;
+        case 'c': if (!e.ctrlKey && !e.metaKey) { setActiveTool('connector'); } break;
         case '=': case '+': handleZoomIn(); break;
         case '-': handleZoomOut(); break;
       }
@@ -712,6 +973,21 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       const txt = new Textbox("Note...", { left: 14, top: 14, fill: "#444", fontSize: 15, fontFamily: 'Inter, Arial, sans-serif', width: 172, editable: true });
       const group = new Group([bg, txt], { left: cx - 100, top: cy - 100, angle: rotation, subTargetCheck: true, opacity: objectOpacity / 100 });
       canvas.add(group); canvas.setActiveObject(group); canvas.renderAll(); setActiveTool("select");
+    } else if (tool === "noteCard") {
+      createNoteCard(canvas, cx, cy);
+      setActiveTool("select");
+    } else if (tool === "checklist") {
+      createChecklist(canvas, cx, cy);
+      setActiveTool("select");
+    } else if (tool === "linkCard") {
+      const url = prompt("Enter URL:");
+      if (url) {
+        createLinkCard(canvas, cx, cy, url);
+      }
+      setActiveTool("select");
+    } else if (tool === "swatch") {
+      createSwatchPalette(canvas, cx, cy);
+      setActiveTool("select");
     } else if (tool === "image") {
       const input = document.createElement('input');
       input.type = 'file'; input.accept = 'image/*';
@@ -732,6 +1008,263 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
       input.click();
       setActiveTool("select");
     }
+  };
+
+  // --- Note Card (Milanote style) ---
+  const createNoteCard = (canvas: FabricCanvas, left: number, top: number) => {
+    const cardW = 240;
+    const cardH = 180;
+    const bg = new Rect({
+      left: 0, top: 0, fill: '#FFFFFF', width: cardW, height: cardH,
+      rx: 8, ry: 8, stroke: '#e2e2e2', strokeWidth: 1,
+      shadow: new Shadow({ color: 'rgba(0,0,0,0.08)', blur: 16, offsetY: 4 }),
+    });
+    const accent = new Rect({
+      left: 0, top: 0, fill: '#3498DB', width: cardW, height: 4,
+      rx: 8, ry: 8,
+    });
+    const title = new Textbox("Card Title", {
+      left: 16, top: 14, fill: '#1a1a1a', fontSize: 16, fontWeight: 'bold',
+      fontFamily: 'Inter, Arial, sans-serif', width: cardW - 32, editable: true,
+    });
+    const body = new Textbox("Add your notes here...", {
+      left: 16, top: 42, fill: '#64748b', fontSize: 13,
+      fontFamily: 'Inter, Arial, sans-serif', width: cardW - 32, editable: true,
+    });
+
+    const group = new Group([bg, accent, title, body], {
+      left: left - cardW / 2, top: top - cardH / 2,
+      subTargetCheck: true,
+    });
+    (group as any)._objId = genObjId();
+    canvas.add(group);
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+  };
+
+  // --- Checklist Card ---
+  const createChecklist = (canvas: FabricCanvas, left: number, top: number) => {
+    const cardW = 220;
+    const items = ["Task one", "Task two", "Task three"];
+    const itemH = 28;
+    const headerH = 36;
+    const cardH = headerH + items.length * itemH + 16;
+
+    const bg = new Rect({
+      left: 0, top: 0, fill: '#FFFFFF', width: cardW, height: cardH,
+      rx: 8, ry: 8, stroke: '#e2e2e2', strokeWidth: 1,
+      shadow: new Shadow({ color: 'rgba(0,0,0,0.06)', blur: 12, offsetY: 3 }),
+    });
+    const header = new Textbox("Checklist", {
+      left: 14, top: 8, fill: '#1a1a1a', fontSize: 14, fontWeight: 'bold',
+      fontFamily: 'Inter, Arial, sans-serif', width: cardW - 28, editable: true,
+    });
+
+    const elements: FabricObject[] = [bg, header];
+
+    items.forEach((item, i) => {
+      const y = headerH + i * itemH;
+      const checkbox = new Rect({
+        left: 14, top: y + 4, fill: 'transparent', width: 16, height: 16,
+        rx: 3, ry: 3, stroke: '#94a3b8', strokeWidth: 1.5,
+      });
+      const label = new Textbox(item, {
+        left: 38, top: y + 2, fill: '#334155', fontSize: 13,
+        fontFamily: 'Inter, Arial, sans-serif', width: cardW - 52, editable: true,
+      });
+      elements.push(checkbox, label);
+    });
+
+    const group = new Group(elements, {
+      left: left - cardW / 2, top: top - cardH / 2,
+      subTargetCheck: true,
+    });
+    (group as any)._objId = genObjId();
+    canvas.add(group);
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+  };
+
+  // --- Link Card ---
+  const createLinkCard = (canvas: FabricCanvas, left: number, top: number, url: string) => {
+    const cardW = 260;
+    const cardH = 72;
+    let domain = url;
+    try { domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname; } catch { /* keep raw */ }
+
+    const bg = new Rect({
+      left: 0, top: 0, fill: '#f8fafc', width: cardW, height: cardH,
+      rx: 8, ry: 8, stroke: '#e2e8f0', strokeWidth: 1,
+      shadow: new Shadow({ color: 'rgba(0,0,0,0.05)', blur: 8, offsetY: 2 }),
+    });
+    const icon = new Circle({
+      left: 14, top: 18, fill: '#e2e8f0', radius: 16,
+      stroke: '#cbd5e1', strokeWidth: 1,
+    });
+    const iconText = new Textbox("🔗", {
+      left: 18, top: 22, fontSize: 16, width: 24,
+    });
+    const domainText = new Textbox(domain, {
+      left: 54, top: 14, fill: '#1e293b', fontSize: 13, fontWeight: 'bold',
+      fontFamily: 'Inter, Arial, sans-serif', width: cardW - 68, editable: false,
+    });
+    const urlText = new Textbox(url.length > 40 ? url.substring(0, 40) + '...' : url, {
+      left: 54, top: 34, fill: '#94a3b8', fontSize: 11,
+      fontFamily: 'Inter, Arial, sans-serif', width: cardW - 68, editable: false,
+    });
+
+    const group = new Group([bg, icon, iconText, domainText, urlText], {
+      left: left - cardW / 2, top: top - cardH / 2,
+      subTargetCheck: true,
+    });
+    (group as any)._objId = genObjId();
+    (group as any)._linkUrl = url;
+    canvas.add(group);
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+  };
+
+  // --- Swatch Palette ---
+  const createSwatchPalette = (canvas: FabricCanvas, left: number, top: number) => {
+    const colors = ['#E74C3C', '#F39C12', '#2ECC71', '#3498DB', '#9B59B6'];
+    const r = 18;
+    const gap = 44;
+    const elements: FabricObject[] = [];
+
+    colors.forEach((color, i) => {
+      const circle = new Circle({
+        left: i * gap, top: 0, fill: color, radius: r,
+        stroke: '#fff', strokeWidth: 2,
+        shadow: new Shadow({ color: 'rgba(0,0,0,0.15)', blur: 6, offsetY: 2 }),
+      });
+      elements.push(circle);
+    });
+
+    const group = new Group(elements, {
+      left: left - (colors.length * gap) / 2, top: top - r,
+      subTargetCheck: true,
+    });
+    (group as any)._objId = genObjId();
+    canvas.add(group);
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+  };
+
+  // --- Board Templates ---
+  const applyTemplate = (templateName: string) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const startX = 60;
+    const startY = 80;
+
+    if (templateName === 'moodboard') {
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const frame = new Rect({
+            left: startX + col * 220, top: startY + row * 200,
+            fill: '#f1f5f9', width: 200, height: 180,
+            rx: 8, ry: 8, stroke: '#cbd5e1', strokeWidth: 1,
+            shadow: new Shadow({ color: 'rgba(0,0,0,0.04)', blur: 8, offsetY: 2 }),
+          });
+          const label = new Textbox("Drop image", {
+            left: startX + col * 220 + 55, top: startY + row * 200 + 75,
+            fill: '#94a3b8', fontSize: 12, fontFamily: 'Inter, Arial, sans-serif', width: 90,
+          });
+          canvas.add(frame, label);
+        }
+      }
+      toast.success("Mood Board template applied");
+    } else if (templateName === 'projectplan') {
+      const cols = ["To Do", "In Progress", "Done"];
+      const colColors = ['#fee2e2', '#fef3c7', '#d1fae5'];
+      cols.forEach((col, i) => {
+        const bg = new Rect({
+          left: startX + i * 260, top: startY,
+          fill: colColors[i], width: 240, height: 500,
+          rx: 12, ry: 12, stroke: '#e5e7eb', strokeWidth: 1,
+        });
+        const header = new Textbox(col, {
+          left: startX + i * 260 + 16, top: startY + 14,
+          fill: '#1e293b', fontSize: 16, fontWeight: 'bold',
+          fontFamily: 'Inter, Arial, sans-serif', width: 208,
+        });
+        canvas.add(bg, header);
+
+        // Add 2 placeholder cards per column
+        for (let j = 0; j < 2; j++) {
+          const card = new Rect({
+            left: startX + i * 260 + 12, top: startY + 50 + j * 80,
+            fill: '#ffffff', width: 216, height: 64,
+            rx: 6, ry: 6, stroke: '#e2e8f0', strokeWidth: 1,
+            shadow: new Shadow({ color: 'rgba(0,0,0,0.04)', blur: 4, offsetY: 1 }),
+          });
+          const cardText = new Textbox(`Task ${j + 1}`, {
+            left: startX + i * 260 + 24, top: startY + 64 + j * 80,
+            fill: '#475569', fontSize: 13, fontFamily: 'Inter, Arial, sans-serif', width: 192, editable: true,
+          });
+          canvas.add(card, cardText);
+        }
+      });
+      toast.success("Project Plan template applied");
+    } else if (templateName === 'brainstorm') {
+      // Center topic
+      createNoteCard(canvas, 400, 300);
+      
+      // Radiating stickies
+      const angles = [0, 72, 144, 216, 288];
+      const radius = 250;
+      angles.forEach(angle => {
+        const rad = (angle * Math.PI) / 180;
+        const x = 400 + radius * Math.cos(rad);
+        const y = 300 + radius * Math.sin(rad);
+        const color = stickyColors[Math.floor(Math.random() * stickyColors.length)];
+        const bg = new Rect({
+          left: 0, top: 0, fill: color, width: 140, height: 140,
+          rx: 6, ry: 6, stroke: '#e0ddd5', strokeWidth: 1,
+          shadow: new Shadow({ color: 'rgba(0,0,0,0.06)', blur: 8, offsetY: 3 }),
+        });
+        const txt = new Textbox("Idea...", {
+          left: 12, top: 12, fill: '#444', fontSize: 13,
+          fontFamily: 'Inter, Arial, sans-serif', width: 116, editable: true,
+        });
+        const group = new Group([bg, txt], {
+          left: x - 70, top: y - 70,
+          angle: (Math.random() - 0.5) * 8,
+          subTargetCheck: true,
+        });
+        canvas.add(group);
+      });
+      toast.success("Brainstorm template applied");
+    } else if (templateName === 'storyboard') {
+      for (let i = 0; i < 6; i++) {
+        const frame = new Rect({
+          left: startX + i * 200, top: startY,
+          fill: '#ffffff', width: 180, height: 260,
+          rx: 8, ry: 8, stroke: '#d1d5db', strokeWidth: 1,
+          shadow: new Shadow({ color: 'rgba(0,0,0,0.05)', blur: 8, offsetY: 2 }),
+        });
+        const imgArea = new Rect({
+          left: startX + i * 200 + 10, top: startY + 10,
+          fill: '#f3f4f6', width: 160, height: 140,
+          rx: 4, ry: 4,
+        });
+        const number = new Textbox(`${i + 1}`, {
+          left: startX + i * 200 + 14, top: startY + 160,
+          fill: '#9ca3af', fontSize: 11, fontWeight: 'bold',
+          fontFamily: 'Inter, Arial, sans-serif', width: 30,
+        });
+        const desc = new Textbox("Description...", {
+          left: startX + i * 200 + 14, top: startY + 180,
+          fill: '#64748b', fontSize: 12,
+          fontFamily: 'Inter, Arial, sans-serif', width: 152, editable: true,
+        });
+        canvas.add(frame, imgArea, number, desc);
+      }
+      toast.success("Storyboard template applied");
+    }
+
+    canvas.renderAll();
   };
 
   const handleZoomIn = () => {
@@ -798,6 +1331,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
     if (!canvas || !confirm("Clear entire whiteboard?")) return;
     canvas.clear();
     canvas.backgroundColor = "#FAFAF8";
+    connectionsRef.current.clear();
     canvas.renderAll();
     toast.success("Whiteboard cleared");
   };
@@ -891,7 +1425,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
           variant={tool && activeTool === tool ? "default" : "ghost"}
           size="icon"
           className={cn("h-9 w-9 rounded-xl transition-all", tool && activeTool === tool && "shadow-md")}
-          onClick={onClick || (() => tool && (["rectangle","circle","triangle","star","polygon","line","arrow","text","sticky","image","diamond","pentagon","octagon","cross","doubleArrow","speechBubble","frame"].includes(tool) ? handleToolClick(tool) : setActiveTool(tool)))}
+          onClick={onClick || (() => tool && (["rectangle","circle","triangle","star","polygon","line","arrow","text","sticky","image","diamond","pentagon","octagon","cross","doubleArrow","speechBubble","frame","noteCard","checklist","linkCard","swatch"].includes(tool) ? handleToolClick(tool) : setActiveTool(tool)))}
           disabled={disabled}
         >
           <Icon className="h-4 w-4" />
@@ -961,10 +1495,45 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
           
           <Separator orientation="vertical" className="h-5 mx-1" />
           
-          {/* Content */}
+          {/* Content - including new Milanote tools */}
           <ToolBtn tool="text" icon={Type} label="Text (T)" />
           <ToolBtn tool="sticky" icon={StickyNote} label="Sticky (S)" />
+          <ToolBtn tool="noteCard" icon={FileText} label="Note Card (N)" />
+          <ToolBtn tool="checklist" icon={CheckSquare} label="Checklist" />
+          <ToolBtn tool="linkCard" icon={Link2} label="Link Card" />
           <ToolBtn tool="image" icon={ImageIcon} label="Image" />
+          
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Connector & Swatch */}
+          <ToolBtn tool="connector" icon={GitBranch} label="Connector (C)" />
+          <ToolBtn tool="swatch" icon={Palette} label="Color Swatch" />
+
+          {/* Templates Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                <LayoutTemplate className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-2" side="bottom">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">Board Templates</p>
+              <div className="space-y-1">
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => applyTemplate('moodboard')}>
+                  🎨 Mood Board
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => applyTemplate('projectplan')}>
+                  📋 Project Plan
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => applyTemplate('brainstorm')}>
+                  💡 Brainstorm
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => applyTemplate('storyboard')}>
+                  🎬 Storyboard
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
           
           <Separator orientation="vertical" className="h-5 mx-1" />
           
@@ -1043,6 +1612,14 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
                       </Button>
                     ))}
                   </div>
+                </div>
+
+                {/* Snap to Grid toggle */}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-muted-foreground">Snap to Grid</label>
+                  <Button variant={snapToGrid ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setSnapToGrid(!snapToGrid)}>
+                    {snapToGrid ? "On" : "Off"}
+                  </Button>
                 </div>
               </div>
             </PopoverContent>
@@ -1192,6 +1769,7 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
           <ToolBtn icon={ZoomIn} label="Zoom In (+)" onClick={handleZoomIn} />
           <ToolBtn icon={Maximize2} label="Zoom to Fit" onClick={handleZoomFit} />
           <ToolBtn icon={Grid3x3} label="Toggle Grid" onClick={() => setShowGrid(!showGrid)} />
+          <ToolBtn icon={Map} label="Toggle Minimap" onClick={() => setShowMinimap(!showMinimap)} />
           
           <Separator orientation="vertical" className="h-5 mx-1" />
           
@@ -1221,6 +1799,20 @@ export const DesktopWhiteboard = ({ onCreateCard }: DesktopWhiteboardProps) => {
             </PopoverContent>
           </Popover>
         </div>
+
+        {/* Minimap */}
+        {showMinimap && (
+          <div className="absolute bottom-4 left-4 z-10 rounded-lg border border-border bg-card/90 backdrop-blur-sm shadow-lg overflow-hidden">
+            <canvas ref={minimapCanvasRef} width={160} height={110} className="block" />
+          </div>
+        )}
+
+        {/* Connector mode indicator */}
+        {activeTool === 'connector' && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium shadow-lg animate-pulse">
+            {connectorSourceRef.current ? "Click target object" : "Click source object"}
+          </div>
+        )}
 
         {/* Zoom badge */}
         <div className="absolute bottom-4 right-4 z-10 whiteboard-zoom-badge">
