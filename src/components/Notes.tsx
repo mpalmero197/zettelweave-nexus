@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNowStrict } from 'date-fns';
 import {
   FileText, Plus, Star, Search, Edit, Trash2, MoreHorizontal,
-  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2, Wand2
+  LayoutGrid, List, ArrowUpDown, Copy, Expand, Pencil, BookOpen, FolderOpen, X, FileUp, Loader2, Wand2,
+  PanelTop, CalendarDays, Columns2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimilarContentDialog } from './SimilarContentDialog';
@@ -25,6 +26,9 @@ import { importFile, getSupportedFileTypes } from '@/utils/fileImportUtils';
 import { readEnexFile } from '@/utils/evernoteImport';
 import DOMPurify from 'dompurify';
 import { smartCategorize, CATEGORIES } from '@/utils/categoryUtils';
+import { NotesBoard } from './NotesBoard';
+import { NotesSplitView } from './NotesSplitView';
+import { format } from 'date-fns';
 
 const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
 
