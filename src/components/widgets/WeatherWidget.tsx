@@ -52,53 +52,72 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
   }
 }
 
+async function getIPLocation(): Promise<{ latitude: number; longitude: number; city: string } | null> {
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.latitude && data.longitude) {
+      return { latitude: data.latitude, longitude: data.longitude, city: data.city || "Your location" };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchWeather(latitude: number, longitude: number, locationName: string): Promise<WeatherData> {
+  const weatherRes = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`
+  );
+  if (!weatherRes.ok) throw new Error("Weather API failed");
+  const data = await weatherRes.json();
+  const current = data.current;
+  const { condition, icon } = interpretWMO(current.weather_code);
+  return {
+    location: locationName,
+    temperature: Math.round(current.temperature_2m),
+    condition,
+    humidity: Math.round(current.relative_humidity_2m),
+    windSpeed: Math.round(current.wind_speed_10m),
+    icon,
+  };
+}
+
 export function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setError("Geolocation not supported");
+    async function loadWeather() {
+      // Try browser geolocation first
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) { reject(new Error("no geo")); return; }
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+        const { latitude, longitude } = pos.coords;
+        const locationName = await reverseGeocode(latitude, longitude);
+        setWeather(await fetchWeather(latitude, longitude, locationName));
+        setLoading(false);
+        return;
+      } catch {
+        // Geolocation denied or unavailable — fall through to IP
+      }
+
+      // Fallback: IP-based location
+      try {
+        const ipLoc = await getIPLocation();
+        if (!ipLoc) throw new Error("IP location failed");
+        setWeather(await fetchWeather(ipLoc.latitude, ipLoc.longitude, ipLoc.city));
+      } catch {
+        setError("Could not fetch weather");
+      }
       setLoading(false);
-      return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        try {
-          const [weatherRes, locationName] = await Promise.all([
-            fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`
-            ),
-            reverseGeocode(latitude, longitude),
-          ]);
-
-          if (!weatherRes.ok) throw new Error("Weather API failed");
-          const data = await weatherRes.json();
-          const current = data.current;
-          const { condition, icon } = interpretWMO(current.weather_code);
-
-          setWeather({
-            location: locationName,
-            temperature: Math.round(current.temperature_2m),
-            condition,
-            humidity: Math.round(current.relative_humidity_2m),
-            windSpeed: Math.round(current.wind_speed_10m),
-            icon,
-          });
-        } catch {
-          setError("Could not fetch weather");
-        }
-        setLoading(false);
-      },
-      () => {
-        setError("Location access denied");
-        setLoading(false);
-      },
-      { timeout: 10000 }
-    );
+    loadWeather();
   }, []);
 
   if (loading) {
