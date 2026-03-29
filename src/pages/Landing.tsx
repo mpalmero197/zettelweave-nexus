@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Network, Brain, Layout, FileText, Check, Crown, ArrowRight, ChevronDown, Sparkles, MessageSquare, Link2, PenTool, Zap, Users } from "lucide-react";
@@ -30,6 +31,58 @@ const howToSchema = createHowToSchema({
   description: "Start using PendragonX to capture ideas, connect them with AI, and query your knowledge in 3 simple steps.",
   steps: howToSteps.map(step => ({ name: step.name, text: step.text }))
 });
+
+const ROTATING_WORDS = ["authors", "creators", "thinkers", "researchers", "scholars", "dreamers", "builders", "storytellers"];
+
+function BuiltForBanner() {
+  const [index, setIndex] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (done) return;
+    const timer = setTimeout(() => {
+      if (index < ROTATING_WORDS.length - 1) {
+        setAnimating(true);
+        setTimeout(() => {
+          setIndex(prev => prev + 1);
+          setAnimating(false);
+        }, 400);
+      } else {
+        setAnimating(true);
+        setTimeout(() => {
+          setDone(true);
+          setAnimating(false);
+        }, 400);
+      }
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [index, done]);
+
+  return (
+    <section className="py-12 md:py-16 bg-primary/5 border-y border-primary/10">
+      <div className="max-w-3xl mx-auto px-4 text-center">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+          Built for{" "}
+          <span className="inline-block relative overflow-hidden h-[1.2em] align-bottom min-w-[180px]">
+            <span
+              key={done ? "final" : index}
+              className={cn(
+                "inline-block text-primary transition-all duration-400",
+                animating
+                  ? "opacity-0 -translate-y-full"
+                  : "opacity-100 translate-y-0"
+              )}
+              style={{ transitionDuration: "400ms" }}
+            >
+              {done ? "you" : ROTATING_WORDS[index]}
+            </span>
+          </span>
+        </h2>
+      </div>
+    </section>
+  );
+}
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -132,6 +185,9 @@ export default function Landing() {
           <ChevronDown className="h-5 w-5 text-muted-foreground/50" />
         </div>
       </section>
+
+      {/* Built For Banner — Rotating Words */}
+      <BuiltForBanner />
 
       {/* Problem */}
       <section ref={problemAnimation.ref} className={cn(
