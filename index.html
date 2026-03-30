@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content" />
     
     <!-- Primary Meta Tags -->
-    <title>PendragonX - AI-Powered Knowledge Management & Zettelkasten System</title>
-    <meta name="title" content="PendragonX - AI-Powered Knowledge Management & Zettelkasten System" />
-    <meta name="description" content="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, connected note-taking, and advanced organizational tools. Start free today." />
-    <meta name="keywords" content="zettelkasten, knowledge management, note-taking, second brain, PKM, personal knowledge management, AI notes, knowledge graph, connected thinking, productivity, research tools" />
+    <title>PendragonX — AI-Powered Second Brain for Writers & Researchers</title>
+    <meta name="title" content="PendragonX — AI-Powered Second Brain for Writers & Researchers" />
+    <meta name="description" content="Turn scattered notes into connected insights. PendragonX uses AI to link your ideas, surface hidden patterns, and let you ask your knowledge anything. Free Zettelkasten system for writers, researchers, and deep thinkers." />
+    <meta name="keywords" content="zettelkasten, knowledge management, note-taking, second brain, PKM, personal knowledge management, AI notes, knowledge graph, connected thinking, productivity, research tools, obsidian alternative, notion alternative" />
     <meta name="author" content="Mills Tech Industry" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow" />
     <link rel="canonical" href="https://pendragonx.com/" />
+    <link rel="alternate" hreflang="en" href="https://pendragonx.com/" />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
     
     <!-- Mobile Web App Capable -->
@@ -30,9 +31,9 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     
     <!-- Mobile Theme Color -->
-    <meta name="theme-color" content="#262626" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#262626" media="(prefers-color-scheme: dark)">
-    <meta name="msapplication-TileColor" content="#262626">
+    <meta name="theme-color" content="#1c2333" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f8f5f0" media="(prefers-color-scheme: light)">
+    <meta name="msapplication-TileColor" content="#1c2333">
     
     <!-- Preconnect for critical domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,22 +49,22 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://pendragonx.com/" />
-    <meta property="og:title" content="PendragonX - AI-Powered Knowledge Management & Zettelkasten System" />
-    <meta property="og:description" content="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, and connected note-taking." />
+    <meta property="og:title" content="PendragonX — AI-Powered Second Brain for Writers & Researchers" />
+    <meta property="og:description" content="Turn scattered notes into connected insights. AI links your ideas, surfaces hidden patterns, and lets you ask your knowledge anything. Free Zettelkasten system." />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/Y2B2K0ExlLhjZt1L59MceqNQLdp1/social-images/social-1758934637901-PendragonLogo-01.jpg">
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="PendragonX - Your Second Brain, Evolved" />
+    <meta property="og:image:alt" content="PendragonX — Your Second Brain, Evolved" />
     <meta property="og:site_name" content="PendragonX" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://pendragonx.com/" />
-    <meta name="twitter:title" content="PendragonX - AI-Powered Knowledge Management & Zettelkasten System" />
-    <meta name="twitter:description" content="Transform your thinking with PendragonX. Revolutionary Zettelkasten system featuring AI-powered insights, visual knowledge graphs, and connected note-taking." />
+    <meta name="twitter:title" content="PendragonX — AI-Powered Second Brain for Writers & Researchers" />
+    <meta name="twitter:description" content="Turn scattered notes into connected insights. AI links your ideas, surfaces hidden patterns, and lets you ask your knowledge anything." />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/Y2B2K0ExlLhjZt1L59MceqNQLdp1/social-images/social-1758934637901-PendragonLogo-01.jpg">
-    <meta name="twitter:image:alt" content="PendragonX - Your Second Brain, Evolved" />
+    <meta name="twitter:image:alt" content="PendragonX — Your Second Brain, Evolved" />
     <meta name="twitter:site" content="@pendragonx" />
     <meta name="twitter:creator" content="@pendragonx" />
     
@@ -145,7 +146,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, hsl(0 0% 99%), hsl(0 0% 97%));
+        background: linear-gradient(135deg, hsl(40 20% 97%), hsl(35 15% 95%));
         z-index: 9999;
       }
       
@@ -174,7 +175,7 @@
         font-size: 28px;
         font-weight: 700;
         margin: 0;
-        background: linear-gradient(135deg, hsl(0 0% 15%), hsl(0 0% 30%));
+        background: linear-gradient(135deg, hsl(36 72% 48%), hsl(36 60% 38%));
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -183,8 +184,8 @@
       #app-loading-spinner {
         width: 40px;
         height: 40px;
-        border: 3px solid hsl(220 15% 90%);
-        border-top-color: hsl(0 0% 15%);
+        border: 3px solid hsl(36 30% 88%);
+        border-top-color: hsl(36 72% 48%);
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
         margin: 0 auto 16px;
@@ -202,17 +203,17 @@
       
       @media (prefers-color-scheme: dark) {
         #app-loading {
-          background: linear-gradient(135deg, hsl(0 0% 7%), hsl(0 0% 9%));
+          background: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 15% 11%));
         }
         #app-loading-title h1 {
-          background: linear-gradient(135deg, hsl(0 0% 85%), hsl(0 0% 70%));
+          background: linear-gradient(135deg, hsl(36 72% 52%), hsl(36 50% 42%));
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
         }
         #app-loading-spinner {
-          border-color: hsl(0 0% 18%);
-          border-top-color: hsl(0 0% 85%);
+          border-color: hsl(220 10% 20%);
+          border-top-color: hsl(36 72% 52%);
         }
         #app-loading-text {
           color: hsl(0 0% 65%);
