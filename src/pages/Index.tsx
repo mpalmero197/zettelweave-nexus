@@ -503,7 +503,16 @@ const Index = () => {
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
-                    onEdit={(card) => setViewingCard(card)}
+                    onEdit={(item) => {
+                      // Look up the full card from the cards array
+                      const fullCard = cards.find(c => c.id === item.id);
+                      if (fullCard) {
+                        setViewingCard(fullCard);
+                      } else {
+                        // If card not in local state, navigate to cards tab
+                        setActiveTab("cards");
+                      }
+                    }}
                     onOpenNote={(note) => {
                       setActiveTab("notes");
                     }}
