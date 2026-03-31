@@ -67,6 +67,11 @@ Disallow: /subscription
 Disallow: /*.json$
 Disallow: /*?*
 
+# LLM knowledge base files
+# These provide structured information for AI answer engines
+Allow: /llms.txt
+Allow: /llms-full.txt
+
 # Sitemap location
 Sitemap: https://pendragonx.com/sitemap.xml
 
