@@ -319,7 +319,7 @@ export default function Landing() {
             </div>
 
             <div className="pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {["Free forever plan", "No credit card", "Import from Obsidian & Notion"].map((t) => (
+              {["Free forever plan", "No credit card", "Import from Obsidian & Notion", "End-to-end encrypted"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
                   <Check className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />{t}
                 </span>
