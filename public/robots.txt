@@ -50,6 +50,12 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
+User-agent: Applebot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
 # Default rule for all other bots
 User-agent: *
 Allow: /
