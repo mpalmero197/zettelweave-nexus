@@ -231,9 +231,9 @@ export default function Landing() {
   return (
     <main className="min-h-screen bg-background">
       <SEOHead
-        title="PendragonX — A Second Brain That Actually Thinks With You"
-        description="Connect your ideas, surface insights, and ask your knowledge anything. AI-powered Zettelkasten for writers, researchers, and deep thinkers. Start free today."
-        keywords="second brain, zettelkasten, knowledge management, AI note-taking, connected thinking, knowledge graph, PKM, personal knowledge management, obsidian alternative"
+        title="PendragonX: AI Second Brain with 3D Knowledge Graph & Agents | vs Notion & Obsidian"
+        description="PendragonX is the AI-powered second brain that auto-connects every idea in a living 3D knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
+        keywords="AI second brain, 3D knowledge graph, PendragonX vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with 3D graph 2026, second brain that thinks with you"
         canonicalUrl="https://pendragonx.com/"
         ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
