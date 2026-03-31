@@ -16,14 +16,15 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 /* ─── Static Data ─── */
 
 const faqs = [
-  { question: "What is PendragonX?", answer: "PendragonX is an AI-powered knowledge management system based on the Zettelkasten method. It helps you capture, connect, and discover insights across all your notes, ideas, and research using visual knowledge graphs and intelligent AI assistance." },
+  { question: "How is PendragonX different from Notion?", answer: "Notion is great for linear databases and templates, but PendragonX automatically builds a living 3D knowledge graph and lets you chat with your own notes using private AI—no manual tagging or folder organization required. Your ideas connect themselves." },
+  { question: "Does PendragonX work with Obsidian files?", answer: "Yes—drag-and-drop import from Obsidian vaults (plus Notion and Roam) with duplicate detection. Your existing Zettelkasten works instantly inside PendragonX's 3D graph and AI assistant." },
   { question: "What is the Zettelkasten method?", answer: "Zettelkasten (German for 'slip box') is a personal knowledge management system developed by sociologist Niklas Luhmann. It involves creating atomic notes that are interconnected through links, allowing you to build a 'second brain' that surfaces unexpected connections between ideas." },
-  { question: "Is PendragonX free to use?", answer: "Yes! PendragonX offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, and unlimited notebooks. Premium features like unlimited cards, AI assistance, and advanced knowledge graphs are available for $4.99/month." },
-  { question: "How does the AI assistant work?", answer: "PendragonX's AI assistant understands the context of your entire knowledge base. It can answer questions using your notes, suggest connections between ideas, help generate content, and surface relevant insights you may have forgotten." },
-  { question: "Can I import notes from other apps?", answer: "Yes! PendragonX supports importing from popular note-taking apps including Obsidian vaults, Notion exports, Roam Research, and standard Markdown files. Your existing knowledge seamlessly integrates into the system." },
-  { question: "Is my data secure and private?", answer: "Absolutely. PendragonX uses end-to-end encryption for sensitive content, and your data is stored securely in enterprise-grade cloud infrastructure. You maintain full ownership of your data and can export it anytime." },
-  { question: "What devices does PendragonX work on?", answer: "PendragonX is a progressive web app (PWA) that works on any device with a modern web browser. Install it on your desktop, tablet, or phone for offline access and a native app-like experience." },
-  { question: "How is PendragonX different from other note-taking apps?", answer: "Unlike traditional note-taking apps, PendragonX focuses on knowledge connections. Our 3D knowledge graph visualization, AI-powered linking suggestions, and Zettelkasten-first approach help you see the bigger picture and discover insights that linear note apps miss." },
+  { question: "Is PendragonX free to use?", answer: "Yes! PendragonX offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, unlimited notebooks, and 22+ built-in plugins. Premium features like unlimited cards, AI agents, and advanced 3D knowledge graphs are available for $4.99/month." },
+  { question: "How does the private AI assistant work?", answer: "PendragonX's AI assistant is grounded only in your own notes—never the internet. It can answer questions using your knowledge base, suggest connections between ideas, build autonomous agents, and surface relevant insights you may have forgotten." },
+  { question: "Can I import notes from other apps?", answer: "Yes! PendragonX supports importing from Obsidian vaults, Notion exports, Roam Research, Evernote, and standard Markdown files with automatic duplicate detection. Your existing knowledge seamlessly integrates into the 3D knowledge graph." },
+  { question: "Is my data secure and private?", answer: "Absolutely. PendragonX uses end-to-end zero-knowledge encryption for sensitive content, and your data is stored securely in enterprise-grade cloud infrastructure. You maintain full ownership of your data and can export it anytime." },
+  { question: "What makes PendragonX better than OneNote or Evernote?", answer: "OneNote and Evernote are purely linear—they store notes but don't help you think. PendragonX automatically links related ideas, visualizes your entire knowledge base in an interactive 3D graph, and includes a private AI assistant, Canvas/Whiteboard/Mind Map studios, real-time collaboration, and offline PWA support." },
+  { question: "What devices does PendragonX work on?", answer: "PendragonX is a progressive web app (PWA) that works on any device with a modern web browser. Install it on your desktop, tablet, or phone for offline access, plus use the Chrome extension for web clipping." },
 ];
 
 const howToSteps = [
@@ -180,12 +181,12 @@ const testimonials = [
 /* ─── Features (Outcome-Based) ─── */
 
 const features = [
-  { icon: Link2, title: "Never lose an idea again", description: "Every note links itself to related ideas automatically. Your thoughts build on each other — no filing, no folders, no forgotten drafts." },
-  { icon: Brain, title: "See patterns you'd never notice", description: "AI analyzes your entire knowledge base and surfaces hidden connections — across topics, across time, across projects." },
-  { icon: Network, title: "Watch your mind grow in 3D", description: "A living, interactive knowledge graph reveals how your ideas cluster, evolve, and connect as your thinking deepens." },
-  { icon: MessageSquare, title: "Ask your notes anything", description: "Chat with your entire knowledge base like ChatGPT — except every answer is grounded in your own research and writing." },
-  { icon: Layers, title: "Import everything you've built", description: "Bring your existing notes from Obsidian, Notion, Roam, or plain Markdown. Nothing gets left behind." },
-  { icon: Shield, title: "End-to-end encrypted", description: "Your ideas are yours alone. Enterprise-grade encryption protects sensitive content with zero-knowledge architecture." },
+  { icon: Link2, title: "Never lose an idea—AI connects everything automatically", description: "Every note links itself to related ideas. Your thoughts build on each other — no filing, no folders, no forgotten drafts. Unlike Notion or OneNote, connections happen without manual work." },
+  { icon: Network, title: "Visualize thought evolution in 3D (not just 2D graphs)", description: "A living, interactive 3D knowledge graph reveals how your ideas cluster, evolve, and connect. Go beyond Obsidian's flat 2D graph view." },
+  { icon: MessageSquare, title: "Get grounded answers from your personal knowledge base", description: "Chat with your entire knowledge base like ChatGPT — except every answer comes from your own research and writing. Build autonomous AI agents that monitor your knowledge." },
+  { icon: Layout, title: "Visual Studios: Canvas, Whiteboard & Mind Maps", description: "Spatial thinking tools that no competitor combines in one app. Arrange ideas on infinite canvases, brainstorm on whiteboards, and map concepts visually." },
+  { icon: Layers, title: "Migrate from Notion or Obsidian in seconds", description: "Seamless import from Obsidian vaults, Notion exports, Roam Research, and Markdown with automatic duplicate detection. Nothing gets left behind." },
+  { icon: Shield, title: "Collaborate in real time or work fully offline", description: "End-to-end zero-knowledge encryption, offline PWA mode, real-time collaboration, Chrome extension, and 22+ plugins. Privacy-first by design." },
 ];
 
 /* ─── Audience Personas ─── */
@@ -230,9 +231,9 @@ export default function Landing() {
   return (
     <main className="min-h-screen bg-background">
       <SEOHead
-        title="PendragonX — A Second Brain That Actually Thinks With You"
-        description="Connect your ideas, surface insights, and ask your knowledge anything. AI-powered Zettelkasten for writers, researchers, and deep thinkers. Start free today."
-        keywords="second brain, zettelkasten, knowledge management, AI note-taking, connected thinking, knowledge graph, PKM, personal knowledge management, obsidian alternative"
+        title="PendragonX: AI Second Brain with 3D Knowledge Graph & Agents | vs Notion & Obsidian"
+        description="PendragonX is the AI-powered second brain that auto-connects every idea in a living 3D knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
+        keywords="AI second brain, 3D knowledge graph, PendragonX vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with 3D graph 2026, second brain that thinks with you"
         canonicalUrl="https://pendragonx.com/"
         ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
@@ -298,13 +299,13 @@ export default function Landing() {
             </Badge>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
-              The fastest way to turn
-              <span className="block text-primary mt-1">notes into insights</span>
+              The Fastest Way to Turn Notes into Insights
+              <span className="block text-primary mt-1">with AI That Thinks With You</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
-              PendragonX automatically connects your ideas, surfaces hidden patterns, and lets you
-              ask your knowledge anything — so you can think deeper, write better, and create faster.
+              Automatically links every idea, surfaces hidden patterns, and powers a private AI that
+              knows everything you've ever written. The smarter alternative to Notion, Obsidian, and OneNote.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
@@ -318,7 +319,7 @@ export default function Landing() {
             </div>
 
             <div className="pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {["Free forever plan", "No credit card", "Import from Obsidian & Notion"].map((t) => (
+              {["Free forever plan", "No credit card", "Import from Obsidian & Notion", "End-to-end encrypted"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
                   <Check className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />{t}
                 </span>
@@ -380,7 +381,7 @@ export default function Landing() {
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">The Solution</p>
             <h2 className="text-3xl md:text-4xl font-bold leading-tight max-w-2xl mx-auto text-balance">
-              PendragonX turns your notes into a <span className="text-primary">living knowledge system</span>
+              Living 3D Knowledge Graph — <span className="text-primary">Automatic Connections, No Manual Work</span>
             </h2>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
               It reads everything you write, finds how ideas connect, and gives you a second brain you can actually talk to.
@@ -457,8 +458,8 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">What You Get</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">Outcomes, not features</h2>
-            <p className="text-muted-foreground mt-2">Everything you need to think deeper and create faster.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Chat With Your Own Notes + AI Agents</h2>
+            <p className="text-muted-foreground mt-2">Visual Studios, instant imports, collaboration & privacy-first design.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -508,7 +509,7 @@ export default function Landing() {
           {/* Testimonials */}
           <div className="text-center mb-10">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Loved By</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">What thinkers are saying</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">PendragonX vs Notion, Obsidian, and OneNote: The Thinking Advantage</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -541,7 +542,7 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Built For</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">People who think for a living</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Instant Imports, Collaboration & Privacy-First Design</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -666,11 +667,11 @@ export default function Landing() {
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         )}>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-balance">
-            Stop storing ideas.
-            <span className="block text-primary mt-1">Start thinking with them.</span>
+            Why linear apps fall short.
+            <span className="block text-primary mt-1">Start thinking in 3D.</span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-lg mx-auto text-balance">
-            Join writers, researchers, and deep thinkers who've built a second brain that actually works.
+            Join writers, researchers, and founders who've replaced Notion, Obsidian, and OneNote with an AI second brain that actually thinks.
           </p>
           <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
             Get Started Free
