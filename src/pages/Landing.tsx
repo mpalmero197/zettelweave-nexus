@@ -667,11 +667,11 @@ export default function Landing() {
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         )}>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-balance">
-            Stop storing ideas.
-            <span className="block text-primary mt-1">Start thinking with them.</span>
+            Why linear apps fall short.
+            <span className="block text-primary mt-1">Start thinking in 3D.</span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-lg mx-auto text-balance">
-            Join writers, researchers, and deep thinkers who've built a second brain that actually works.
+            Join writers, researchers, and founders who've replaced Notion, Obsidian, and OneNote with an AI second brain that actually thinks.
           </p>
           <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
             Get Started Free
