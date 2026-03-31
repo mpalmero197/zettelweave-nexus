@@ -1,78 +1,51 @@
 
 
-# Heptabase & Milanote-Inspired Notes Enhancement
+# AEO (Answer Engine Optimization) Improvement Plan
+
+AEO optimizes your site for AI answer engines (ChatGPT, Perplexity, Google AI Overviews, Bing Copilot) that extract structured answers rather than just rank links. You already have good SEO foundations — this plan layers AEO-specific techniques on top.
 
 ## What Changes
 
-### 1. Canvas/Board View — Spatial Note Arrangement
-Add a third view mode (`grid | list | board`) where notes appear as draggable cards on a 2D canvas. Users can spatially arrange notes, draw visual clusters, and think visually — the core Heptabase experience.
+### 1. Add a Machine-Readable Knowledge Base Page (`/llms.txt`)
+Create a plaintext file at `public/llms.txt` — the emerging standard for AI crawlers. It provides a concise, structured summary of what PendragonX is, its features, and key facts in a format LLMs can easily ingest.
 
-- New `NotesBoard.tsx` component: infinite-scroll canvas with draggable note cards
-- Notes get `position_x` and `position_y` columns (via migration) for persisting spatial positions
-- Cards show title + preview; click to open; drag to reposition
-- Auto-layout for notes without saved positions (masonry-like initial placement)
-- Minimap indicator in corner for navigation
+### 2. Expand Structured Data with Speakable & DefinedTerm Schemas
+- Add `speakable` property to the WebSite schema so voice assistants know which content to read aloud.
+- Add `DefinedTermSet` schema for key concepts (Zettelkasten, Knowledge Graph, Second Brain) so AI engines can cite PendragonX as the authority on these terms.
 
-### 2. Wikilink System — `[[Note Title]]` Linking
-Enable `[[wikilinks]]` in note content to link notes together, the backbone of both Heptabase and networked note-taking.
+### 3. Add Concise "Answer Paragraphs" to Landing Page
+AI engines prefer extracting clean, question-answer formatted content. Add a hidden-from-layout but crawlable "What is PendragonX?" definition block using semantic `<article>` and `<dfn>` tags near the top of the page. This gives AI a clean snippet to extract.
 
-- Parse `[[...]]` syntax in note content and render as clickable internal links
-- Clicking a wikilink opens that note (or creates it if it doesn't exist)
-- **Backlinks panel** in the note viewer: shows all notes that link *to* the current note via `[[...]]`
-- Query backlinks by searching note content for `[[Current Note Title]]`
+### 4. Enhance FAQ with More Competitor-Comparison Questions
+Expand FAQs to cover queries AI engines commonly answer:
+- "Is PendragonX better than Roam Research?"
+- "What is the best AI note-taking app in 2026?"
+- "Can PendragonX replace Notion for teams?"
+- "What is a 3D knowledge graph?"
 
-### 3. Split View — Side-by-Side Notes
-Add a split-pane mode so users can view/edit two notes simultaneously (Heptabase-style).
+### 5. Add `llms-full.txt` with Feature Documentation
+A longer companion to `llms.txt` with detailed feature descriptions, use cases, and comparisons — giving AI engines deep content to draw from.
 
-- Button in note viewer to "Open in split"
-- Uses `ResizablePanelGroup` (already in project) for a left/right pane layout
-- Each pane is an independent note editor/viewer
-- Only on desktop (≥768px)
+### 6. Update `robots.txt` with `llms.txt` references
+Add explicit paths for AI crawlers to find the knowledge base files.
 
-### 4. Daily Journal Quick Entry
-A "Today" button that auto-creates or opens today's daily note (named `YYYY-MM-DD`), inspired by Heptabase's Journal feature.
-
-- Adds a journal icon button to the toolbar
-- Creates a note titled with today's date in a "Journal" notebook (auto-created if needed)
-- If today's note exists, opens it directly for appending
-
-### 5. Note Properties Sidebar
-A collapsible metadata panel in the note viewer showing:
-- Word count, character count, reading time
-- Created/modified timestamps
-- Tags (editable inline)
-- Backlinks list
-- Notebook assignment
-
-### 6. Visual Enhancements (Milanote-inspired)
-- **Cover color/gradient** strip at top of note cards (user-selectable, stored as `cover_color`)
-- **Note icon/emoji** selector for visual differentiation
-- **Column sections** in board view — optional vertical dividers to group spatial notes
-
----
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `supabase/migrations/` | New migration: add `position_x`, `position_y`, `cover_color`, `icon` columns to `notes` table |
-| `src/components/Notes.tsx` | Add board view toggle, daily journal button, split view trigger |
-| `src/components/NotesBoard.tsx` | **New** — Canvas/board view with draggable note cards and minimap |
-| `src/components/NotesSplitView.tsx` | **New** — Resizable split-pane for side-by-side note editing |
-| `src/components/NotePropertiesPanel.tsx` | **New** — Metadata sidebar with backlinks, word count, properties |
-| `src/components/NoteViewerDialog.tsx` | Add wikilink rendering, backlinks section, properties panel toggle |
-| `src/components/EditNoteDialog.tsx` | Add wikilink autocomplete, cover color picker, icon selector |
-| `src/types/zettel.ts` or Note interface | Extend Note type with new fields |
+### 7. Add Speakable & DefinedTerm JSON-LD to `index.html`
+Inject additional structured data schemas optimized for answer extraction.
 
 ## Technical Details
 
-**Board view drag**: Use pointer events with `onPointerDown/Move/Up` for drag (no new dependency). Store positions via debounced Supabase update on drag end.
+**`public/llms.txt`** — ~50 lines of plaintext covering: what PendragonX is, core features, pricing, comparisons, and links. Follows the `llms.txt` proposal format.
 
-**Wikilinks**: Regex `/\[\[([^\]]+)\]\]/g` to detect links. Render as `<button>` elements styled as inline links. On click, find note by title match and open it.
+**`public/llms-full.txt`** — ~200 lines with detailed feature breakdowns, use cases per persona, and direct competitor comparisons.
 
-**Backlinks query**: `supabase.from('notes').select('id, title').ilike('content', '%[[' + noteTitle + ']]%')` — simple content search.
+**Landing page answer block** — A visually hidden but crawlable `<article>` with semantic markup (`<dfn>`, `<p>`) providing a clean 2-3 sentence definition that AI engines can extract as a featured answer.
 
-**Split view**: Wrap the main notes area in a conditional `ResizablePanelGroup` when split mode is active. Second pane renders an independent `NoteViewerDialog`-style inline view.
+**New FAQ entries** — 4 additional questions targeting long-tail AI queries, added to the existing `faqs` array in `Landing.tsx`.
 
-**Daily journal**: On click, query for a note titled `YYYY-MM-DD` in the Journal notebook. If not found, insert one and open the editor.
+**JSON-LD additions in `index.html`**:
+- `speakable` CSS selectors pointing to the hero heading and definition block
+- `DefinedTermSet` for "Zettelkasten", "Knowledge Graph", "Second Brain"
+
+**Files to create**: `public/llms.txt`, `public/llms-full.txt`
+**Files to edit**: `src/pages/Landing.tsx`, `index.html`, `public/robots.txt`, `public/sitemap.xml`
 
