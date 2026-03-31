@@ -299,13 +299,13 @@ export default function Landing() {
             </Badge>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
-              The fastest way to turn
-              <span className="block text-primary mt-1">notes into insights</span>
+              The Fastest Way to Turn Notes into Insights
+              <span className="block text-primary mt-1">with AI That Thinks With You</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
-              PendragonX automatically connects your ideas, surfaces hidden patterns, and lets you
-              ask your knowledge anything — so you can think deeper, write better, and create faster.
+              Automatically links every idea, surfaces hidden patterns, and powers a private AI that
+              knows everything you've ever written. The smarter alternative to Notion, Obsidian, and OneNote.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
