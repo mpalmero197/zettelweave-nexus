@@ -458,8 +458,8 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">What You Get</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">Outcomes, not features</h2>
-            <p className="text-muted-foreground mt-2">Everything you need to think deeper and create faster.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Chat With Your Own Notes + AI Agents</h2>
+            <p className="text-muted-foreground mt-2">Visual Studios, instant imports, collaboration & privacy-first design.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
