@@ -181,12 +181,12 @@ const testimonials = [
 /* ─── Features (Outcome-Based) ─── */
 
 const features = [
-  { icon: Link2, title: "Never lose an idea again", description: "Every note links itself to related ideas automatically. Your thoughts build on each other — no filing, no folders, no forgotten drafts." },
-  { icon: Brain, title: "See patterns you'd never notice", description: "AI analyzes your entire knowledge base and surfaces hidden connections — across topics, across time, across projects." },
-  { icon: Network, title: "Watch your mind grow in 3D", description: "A living, interactive knowledge graph reveals how your ideas cluster, evolve, and connect as your thinking deepens." },
-  { icon: MessageSquare, title: "Ask your notes anything", description: "Chat with your entire knowledge base like ChatGPT — except every answer is grounded in your own research and writing." },
-  { icon: Layers, title: "Import everything you've built", description: "Bring your existing notes from Obsidian, Notion, Roam, or plain Markdown. Nothing gets left behind." },
-  { icon: Shield, title: "End-to-end encrypted", description: "Your ideas are yours alone. Enterprise-grade encryption protects sensitive content with zero-knowledge architecture." },
+  { icon: Link2, title: "Never lose an idea—AI connects everything automatically", description: "Every note links itself to related ideas. Your thoughts build on each other — no filing, no folders, no forgotten drafts. Unlike Notion or OneNote, connections happen without manual work." },
+  { icon: Network, title: "Visualize thought evolution in 3D (not just 2D graphs)", description: "A living, interactive 3D knowledge graph reveals how your ideas cluster, evolve, and connect. Go beyond Obsidian's flat 2D graph view." },
+  { icon: MessageSquare, title: "Get grounded answers from your personal knowledge base", description: "Chat with your entire knowledge base like ChatGPT — except every answer comes from your own research and writing. Build autonomous AI agents that monitor your knowledge." },
+  { icon: Layout, title: "Visual Studios: Canvas, Whiteboard & Mind Maps", description: "Spatial thinking tools that no competitor combines in one app. Arrange ideas on infinite canvases, brainstorm on whiteboards, and map concepts visually." },
+  { icon: Layers, title: "Migrate from Notion or Obsidian in seconds", description: "Seamless import from Obsidian vaults, Notion exports, Roam Research, and Markdown with automatic duplicate detection. Nothing gets left behind." },
+  { icon: Shield, title: "Collaborate in real time or work fully offline", description: "End-to-end zero-knowledge encryption, offline PWA mode, real-time collaboration, Chrome extension, and 22+ plugins. Privacy-first by design." },
 ];
 
 /* ─── Audience Personas ─── */
