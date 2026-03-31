@@ -50,6 +50,12 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
+User-agent: Applebot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
 # Default rule for all other bots
 User-agent: *
 Allow: /
@@ -60,6 +66,11 @@ Disallow: /settings
 Disallow: /subscription
 Disallow: /*.json$
 Disallow: /*?*
+
+# LLM knowledge base files
+# These provide structured information for AI answer engines
+Allow: /llms.txt
+Allow: /llms-full.txt
 
 # Sitemap location
 Sitemap: https://pendragonx.com/sitemap.xml

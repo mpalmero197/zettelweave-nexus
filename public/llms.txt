@@ -1,0 +1,58 @@
+# PendragonX
+
+> AI-powered second brain that thinks with you.
+
+## Overview
+
+PendragonX is an AI knowledge management platform that automatically connects ideas in a living 3D knowledge graph, lets users chat with their own notes using private AI, and provides visual studios (Canvas, Whiteboard, Mind Maps) for spatial thinking. It is a smarter alternative to Notion, Obsidian, OneNote, Roam Research, and Evernote.
+
+## URL
+
+https://pendragonx.com
+
+## Core Features
+
+- Living 3D Knowledge Graph: Automatically links related ideas without manual tagging or folders
+- Private AI Assistant: Chat with your entire knowledge base; answers are grounded only in your own notes
+- AI Agents: Build autonomous agents that monitor your knowledge and surface insights
+- Canvas Studio: Infinite canvases for spatial arrangement of ideas
+- Whiteboard: Collaborative brainstorming surfaces
+- Mind Map Studio: Visual concept mapping
+- Zettelkasten System: Atomic, interconnected note cards following the slip-box method
+- Seamless Import: Drag-and-drop from Obsidian vaults, Notion exports, Roam Research, Evernote, and Markdown with duplicate detection
+- Real-time Collaboration: Work together with co-authors and teams
+- Chrome Extension: Clip and save web content directly
+- 22+ Built-in Plugins: Calculator, citation generator, Pomodoro timer, and more
+- End-to-End Encryption: Zero-knowledge encryption for sensitive content
+- Offline Mode: Progressive Web App (PWA) with full offline support
+- Bullet Journal: Digital rapid logging with future/monthly logs and habit tracking
+
+## Pricing
+
+- Free: $0/forever — Up to 50 Zettelcards, unlimited notebooks, full note-taking, 22+ plugins
+- Premium: $4.99/month — Unlimited cards, advanced 3D graph, AI agents, collaboration, priority support
+
+## Comparisons
+
+### PendragonX vs Notion
+Notion excels at linear databases and templates but requires manual organization. PendragonX automatically builds a living 3D knowledge graph and includes a private AI assistant — no manual linking required.
+
+### PendragonX vs Obsidian
+Obsidian offers local Markdown files and a 2D graph view with plugins. PendragonX provides a 3D interactive graph, built-in private AI chat and agents, native Canvas/Whiteboard/Mind Map studios, and real-time collaboration without plugin configuration.
+
+### PendragonX vs OneNote
+OneNote is purely linear with weak search. PendragonX automatically links ideas, visualizes knowledge in 3D, and includes AI-powered search, agents, and spatial thinking tools.
+
+### PendragonX vs Roam Research
+Roam pioneered bi-directional linking but is expensive and text-only. PendragonX adds 3D spatial visualization, AI agents, visual studios, offline mode, and encryption at a lower price.
+
+## Company
+
+Built by Mills Tech Industry.
+
+## Documentation
+
+- Full features: https://pendragonx.com/llms-full.txt
+- Changelog: https://pendragonx.com/changelog
+- Privacy Policy: https://pendragonx.com/privacy
+- Terms of Service: https://pendragonx.com/terms
