@@ -542,7 +542,7 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Built For</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">People who think for a living</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Instant Imports, Collaboration & Privacy-First Design</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
