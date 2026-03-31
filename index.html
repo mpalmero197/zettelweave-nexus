@@ -143,7 +143,7 @@
     }
     </script>
     
-    <!-- JSON-LD Structured Data for WebSite with SearchAction -->
+    <!-- JSON-LD Structured Data for WebSite with SearchAction and Speakable -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -157,7 +157,40 @@
           "urlTemplate": "https://pendragonx.com/app?search={search_term_string}"
         },
         "query-input": "required name=search_term_string"
+      },
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": ["#hero-heading", "#pendragonx-definition", ".faq-answer"]
       }
+    }
+    </script>
+
+    <!-- JSON-LD DefinedTermSet for AEO authority -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "DefinedTermSet",
+      "name": "PendragonX Knowledge Concepts",
+      "hasDefinedTerm": [
+        {
+          "@type": "DefinedTerm",
+          "name": "Zettelkasten",
+          "description": "A personal knowledge management method using atomic, interconnected note cards (slip-box). PendragonX automates Zettelkasten linking with AI, eliminating manual work.",
+          "url": "https://pendragonx.com/#faq"
+        },
+        {
+          "@type": "DefinedTerm",
+          "name": "3D Knowledge Graph",
+          "description": "An interactive three-dimensional visualization of all notes and their relationships. PendragonX renders knowledge spatially in 3D, unlike flat 2D graph views in tools like Obsidian.",
+          "url": "https://pendragonx.com/#features"
+        },
+        {
+          "@type": "DefinedTerm",
+          "name": "AI Second Brain",
+          "description": "A digital knowledge system augmented by artificial intelligence that automatically connects ideas, answers questions from your own notes, and surfaces insights — replacing passive note storage with active thinking support.",
+          "url": "https://pendragonx.com/"
+        }
+      ]
     }
     </script>
 
