@@ -509,7 +509,7 @@ export default function Landing() {
           {/* Testimonials */}
           <div className="text-center mb-10">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Loved By</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">What thinkers are saying</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">PendragonX vs Notion, Obsidian, and OneNote: The Thinking Advantage</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
