@@ -381,7 +381,7 @@ export default function Landing() {
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">The Solution</p>
             <h2 className="text-3xl md:text-4xl font-bold leading-tight max-w-2xl mx-auto text-balance">
-              PendragonX turns your notes into a <span className="text-primary">living knowledge system</span>
+              Living 3D Knowledge Graph — <span className="text-primary">Automatic Connections, No Manual Work</span>
             </h2>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
               It reads everything you write, finds how ideas connect, and gives you a second brain you can actually talk to.
