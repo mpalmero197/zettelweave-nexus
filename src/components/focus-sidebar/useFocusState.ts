@@ -1,9 +1,21 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FocusTask } from './FocusTaskList';
 import { toast } from 'sonner';
 
 const STORAGE_KEY = 'pendragonx-focus-sidebar';
 const AUTO_IMPORT_KEY = 'pendragonx-focus-auto-imported';
+const HISTORY_KEY = 'pendragonx-focus-history';
+const GOAL_KEY = 'pendragonx-focus-daily-goal';
+const STREAK_KEY = 'pendragonx-focus-streak';
+
+export interface FocusSession {
+  id: string;
+  timestamp: number;
+  duration: number; // seconds
+  mode: 'work' | 'short-break' | 'long-break';
+  taskTitle?: string;
+  note?: string;
+}
 
 interface FocusState {
   tasks: FocusTask[];
@@ -13,15 +25,77 @@ interface FocusState {
   timerTotal: number;
   cycle: number;
   dndActive: boolean;
+  autoStart: boolean;
+  ambientSound: string;
+  ambientVolume: number;
 }
 
 const PRESETS = { work: 25 * 60, 'short-break': 5 * 60, 'long-break': 15 * 60 };
+
+function todayKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function loadHistory(): FocusSession[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveHistory(sessions: FocusSession[]) {
+  // Keep last 50
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(-50)));
+}
+
+function loadDailyGoal(): number {
+  try {
+    return parseInt(localStorage.getItem(GOAL_KEY) || '8') || 8;
+  } catch { return 8; }
+}
+
+function computeStreak(sessions: FocusSession[]): number {
+  const workDays = new Set(
+    sessions
+      .filter(s => s.mode === 'work')
+      .map(s => new Date(s.timestamp).toISOString().split('T')[0])
+  );
+  let streak = 0;
+  const d = new Date();
+  // Check if today has sessions; if not, start from yesterday
+  const todayStr = todayKey();
+  if (!workDays.has(todayStr)) {
+    d.setDate(d.getDate() - 1);
+  }
+  while (true) {
+    const key = d.toISOString().split('T')[0];
+    if (workDays.has(key)) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else break;
+  }
+  return streak;
+}
 
 export function useFocusState() {
   const loadState = (): FocusState => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          tasks: parsed.tasks || [],
+          activeTaskId: parsed.activeTaskId || null,
+          timerMode: parsed.timerMode || 'work',
+          timerSeconds: parsed.timerSeconds ?? PRESETS.work,
+          timerTotal: parsed.timerTotal ?? PRESETS.work,
+          cycle: parsed.cycle || 1,
+          dndActive: parsed.dndActive || false,
+          autoStart: parsed.autoStart || false,
+          ambientSound: parsed.ambientSound || 'none',
+          ambientVolume: parsed.ambientVolume ?? 0.5,
+        };
+      }
     } catch {}
     return {
       tasks: [],
@@ -31,19 +105,45 @@ export function useFocusState() {
       timerTotal: PRESETS.work,
       cycle: 1,
       dndActive: false,
+      autoStart: false,
+      ambientSound: 'none',
+      ambientVolume: 0.5,
     };
   };
 
-  const [tasks, setTasks] = useState<FocusTask[]>(() => loadState().tasks);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => loadState().activeTaskId);
-  const [mode, setMode] = useState<'work' | 'short-break' | 'long-break'>(() => loadState().timerMode);
-  const [seconds, setSeconds] = useState(() => loadState().timerSeconds);
-  const [totalSeconds, setTotalSeconds] = useState(() => loadState().timerTotal);
-  const [cycle, setCycle] = useState(() => loadState().cycle);
+  const initial = loadState();
+  const [tasks, setTasks] = useState<FocusTask[]>(initial.tasks);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(initial.activeTaskId);
+  const [mode, setMode] = useState<'work' | 'short-break' | 'long-break'>(initial.timerMode);
+  const [seconds, setSeconds] = useState(initial.timerSeconds);
+  const [totalSeconds, setTotalSeconds] = useState(initial.timerTotal);
+  const [cycle, setCycle] = useState(initial.cycle);
   const [isRunning, setIsRunning] = useState(false);
   const [dndActive, setDndActive] = useState(false);
+  const [autoStart, setAutoStart] = useState(initial.autoStart);
+  const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(null);
+  const [ambientSound, setAmbientSound] = useState(initial.ambientSound);
+  const [ambientVolume, setAmbientVolume] = useState(initial.ambientVolume);
+  const [sessionHistory, setSessionHistory] = useState<FocusSession[]>(loadHistory);
+  const [dailyGoal, setDailyGoal] = useState(loadDailyGoal);
+  const [pendingNote, setPendingNote] = useState(false);
+
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const autoStartRef = useRef<ReturnType<typeof setTimeout>>();
   const autoImportedRef = useRef(false);
+
+  // Computed daily stats
+  const dailyStats = useMemo(() => {
+    const today = todayKey();
+    const todaySessions = sessionHistory.filter(
+      s => new Date(s.timestamp).toISOString().split('T')[0] === today && s.mode === 'work'
+    );
+    return {
+      sessionsToday: todaySessions.length,
+      minutesToday: Math.round(todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60),
+      streak: computeStreak(sessionHistory),
+    };
+  }, [sessionHistory]);
 
   // Auto-import today's important tasks from project_tasks
   useEffect(() => {
@@ -56,12 +156,10 @@ export function useFocusState() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayKey();
         const lastImport = localStorage.getItem(AUTO_IMPORT_KEY);
-        // Only auto-import once per day
         if (lastImport === today) return;
 
-        // Fetch high-priority tasks + tasks due today that aren't done
         const { data: dbTasks } = await supabase
           .from('project_tasks')
           .select('id, name, priority, due_date, status')
@@ -105,14 +203,19 @@ export function useFocusState() {
     importTodayTasks();
   }, []);
 
-  // Persist
+  // Persist main state
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       tasks, activeTaskId, timerMode: mode,
       timerSeconds: seconds, timerTotal: totalSeconds,
-      cycle, dndActive,
+      cycle, dndActive, autoStart, ambientSound, ambientVolume,
     }));
-  }, [tasks, activeTaskId, mode, seconds, totalSeconds, cycle, dndActive]);
+  }, [tasks, activeTaskId, mode, seconds, totalSeconds, cycle, dndActive, autoStart, ambientSound, ambientVolume]);
+
+  // Persist daily goal
+  useEffect(() => {
+    localStorage.setItem(GOAL_KEY, String(dailyGoal));
+  }, [dailyGoal]);
 
   // Timer tick
   useEffect(() => {
@@ -132,11 +235,27 @@ export function useFocusState() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning]);
 
+  const addSessionToHistory = useCallback((sessionMode: 'work' | 'short-break' | 'long-break', duration: number) => {
+    const session: FocusSession = {
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      duration,
+      mode: sessionMode,
+      taskTitle: activeTaskId ? tasks.find(t => t.id === activeTaskId)?.title : undefined,
+    };
+    setSessionHistory(prev => {
+      const updated = [...prev, session].slice(-50);
+      saveHistory(updated);
+      return updated;
+    });
+    return session.id;
+  }, [activeTaskId, tasks]);
+
   const completeSession = useCallback(() => {
     setIsRunning(false);
     setDndActive(false);
 
-    // Auto-log time to active task
+    // Log time to active task
     if (mode === 'work' && activeTaskId) {
       setTasks(prev => prev.map(t =>
         t.id === activeTaskId
@@ -145,7 +264,11 @@ export function useFocusState() {
       ));
     }
 
+    // Add to history
+    addSessionToHistory(mode, totalSeconds);
+
     if (mode === 'work') {
+      setPendingNote(true); // prompt for session note
       const nextCycle = cycle + 1;
       setCycle(nextCycle);
       if (cycle % 4 === 0) {
@@ -164,21 +287,56 @@ export function useFocusState() {
       setTotalSeconds(PRESETS.work);
       toast.success('Break over!', { description: 'Ready to focus?' });
     }
-  }, [mode, activeTaskId, cycle, totalSeconds]);
+
+    // Auto-start next session
+    if (autoStart) {
+      setAutoStartCountdown(5);
+    }
+  }, [mode, activeTaskId, cycle, totalSeconds, autoStart, addSessionToHistory]);
+
+  // Auto-start countdown
+  useEffect(() => {
+    if (autoStartCountdown === null) return;
+    if (autoStartCountdown <= 0) {
+      setAutoStartCountdown(null);
+      start();
+      return;
+    }
+    const t = setTimeout(() => setAutoStartCountdown(prev => prev !== null ? prev - 1 : null), 1000);
+    return () => clearTimeout(t);
+  }, [autoStartCountdown]);
+
+  const cancelAutoStart = () => setAutoStartCountdown(null);
+
+  const addNoteToLastSession = useCallback((note: string) => {
+    setSessionHistory(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      updated[updated.length - 1] = { ...updated[updated.length - 1], note };
+      saveHistory(updated);
+      return updated;
+    });
+    setPendingNote(false);
+  }, []);
+
+  const dismissNote = () => setPendingNote(false);
 
   const start = () => {
+    setAutoStartCountdown(null);
     setIsRunning(true);
     if (mode === 'work') setDndActive(true);
   };
   const pause = () => setIsRunning(false);
   const reset = () => {
     setIsRunning(false);
+    setAutoStartCountdown(null);
     setSeconds(PRESETS[mode]);
     setTotalSeconds(PRESETS[mode]);
     setDndActive(false);
   };
   const changeMode = (m: 'work' | 'short-break' | 'long-break') => {
     setIsRunning(false);
+    setAutoStartCountdown(null);
     setMode(m);
     setSeconds(PRESETS[m]);
     setTotalSeconds(PRESETS[m]);
@@ -195,5 +353,12 @@ export function useFocusState() {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle, dndActive,
     start, pause, reset, changeMode, setCustomDuration,
+    // New
+    autoStart, setAutoStart,
+    autoStartCountdown, cancelAutoStart,
+    ambientSound, setAmbientSound,
+    ambientVolume, setAmbientVolume,
+    sessionHistory, dailyStats, dailyGoal, setDailyGoal,
+    pendingNote, addNoteToLastSession, dismissNote,
   };
 }

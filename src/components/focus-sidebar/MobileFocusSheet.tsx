@@ -4,13 +4,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Pause, RotateCcw, Target, Coffee, Plus, Clock, Link2, Layers, FileText, X, Timer, Search } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import {
+  Play, Pause, RotateCcw, Target, Coffee, Plus, Clock, Link2, Layers,
+  FileText, X, Timer, Search, Volume2, SkipForward,
+} from 'lucide-react';
 import { FocusTimerRing } from './FocusTimerRing';
+import { FocusStatsPanel } from './FocusStatsPanel';
+import { FocusSessionLog } from './FocusSessionLog';
+import { FocusAmbientSound } from './FocusAmbientSound';
 import { useFocusState } from './useFocusState';
 import { FocusTask } from './FocusTaskList';
 import { useZettelCards } from '@/hooks/useZettelCards';
 
 const DURATION_OPTIONS = [15, 20, 25, 30, 45, 60];
+const AMBIENT_OPTIONS = [
+  { value: 'none', label: 'Off' },
+  { value: 'white-noise', label: 'White' },
+  { value: 'brown-noise', label: 'Brown' },
+  { value: 'rain', label: 'Rain' },
+  { value: 'binaural', label: 'Binaural' },
+];
 
 const priorityColors = {
   high: 'rgb(239,68,68)',
@@ -28,8 +43,13 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle,
     start, pause, reset, changeMode, setCustomDuration,
+    autoStart, setAutoStart, autoStartCountdown, cancelAutoStart,
+    ambientSound, setAmbientSound, ambientVolume, setAmbientVolume,
+    sessionHistory, dailyStats, dailyGoal, setDailyGoal,
+    pendingNote, addNoteToLastSession, dismissNote,
   } = useFocusState();
   const [showDurations, setShowDurations] = useState(false);
+  const [sessionNote, setSessionNote] = useState('');
 
   const { cards } = useZettelCards();
   const [notes, setNotes] = useState<any[]>([]);
@@ -60,13 +80,8 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
   const addTask = () => {
     if (!newTitle.trim()) return;
     const task: FocusTask = {
-      id: crypto.randomUUID(),
-      title: newTitle.trim(),
-      priority: 'medium',
-      completed: false,
-      linkedCardIds: [],
-      linkedNoteIds: [],
-      pomodoroMinutes: 0,
+      id: crypto.randomUUID(), title: newTitle.trim(), priority: 'medium',
+      completed: false, linkedCardIds: [], linkedNoteIds: [], pomodoroMinutes: 0,
     };
     setTasks([...tasks, task]);
     setNewTitle('');
@@ -106,14 +121,8 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
   const getLinkResults = (task: FocusTask) => {
     if (!linkQuery.trim()) return [];
     const q = linkQuery.toLowerCase();
-    const matchedCards = cards
-      .filter(c => !task.linkedCardIds.includes(c.id) && c.title.toLowerCase().includes(q))
-      .slice(0, 4)
-      .map(c => ({ type: 'card' as const, id: c.id, title: c.title }));
-    const matchedNotes = notes
-      .filter(n => !task.linkedNoteIds.includes(n.id) && n.title.toLowerCase().includes(q))
-      .slice(0, 4)
-      .map(n => ({ type: 'note' as const, id: n.id, title: n.title }));
+    const matchedCards = cards.filter(c => !task.linkedCardIds.includes(c.id) && c.title.toLowerCase().includes(q)).slice(0, 4).map(c => ({ type: 'card' as const, id: c.id, title: c.title }));
+    const matchedNotes = notes.filter(n => !task.linkedNoteIds.includes(n.id) && n.title.toLowerCase().includes(q)).slice(0, 4).map(n => ({ type: 'note' as const, id: n.id, title: n.title }));
     return [...matchedCards, ...matchedNotes].slice(0, 6);
   };
 
@@ -123,42 +132,60 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] px-0 pt-0 pb-0 flex flex-col bg-card border-border">
-        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
         </div>
 
+        {/* Ambient sound engine */}
+        <FocusAmbientSound sound={ambientSound} volume={ambientVolume} isPlaying={isRunning && mode === 'work'} />
+
         <ScrollArea className="flex-1 px-5">
           <div className="space-y-5 pb-6">
+            {/* Session note prompt */}
+            {pendingNote && (
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-medium text-primary">What did you accomplish?</p>
+                <Input
+                  value={sessionNote}
+                  onChange={e => setSessionNote(e.target.value)}
+                  placeholder="Quick note…"
+                  className="h-10 text-sm rounded-lg"
+                  onKeyDown={e => { if (e.key === 'Enter') { addNoteToLastSession(sessionNote); setSessionNote(''); } }}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => { addNoteToLastSession(sessionNote); setSessionNote(''); }} className="h-8 text-xs rounded-lg">Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { dismissNote(); setSessionNote(''); }} className="h-8 text-xs">Skip</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Auto-start countdown */}
+            {autoStartCountdown !== null && (
+              <div className="flex items-center justify-center gap-3 py-2 bg-primary/10 rounded-xl">
+                <span className="text-sm text-primary font-medium">Starting in {autoStartCountdown}s</span>
+                <Button size="sm" variant="ghost" onClick={cancelAutoStart} className="h-8 text-xs">Cancel</Button>
+              </div>
+            )}
+
             {/* Timer */}
             <div className="flex flex-col items-center gap-3">
-              <FocusTimerRing
-                seconds={seconds}
-                totalSeconds={totalSeconds}
-                isRunning={isRunning}
-                mode={mode}
-              />
+              <FocusTimerRing seconds={seconds} totalSeconds={totalSeconds} isRunning={isRunning} mode={mode} />
 
               {/* Duration picker */}
               {mode === 'work' && (
                 <div className="flex flex-col items-center gap-1.5">
-                  <button
-                    onClick={() => setShowDurations(!showDurations)}
-                    className="text-[11px] text-muted-foreground flex items-center gap-1 touch-manipulation"
-                  >
+                  <button onClick={() => setShowDurations(!showDurations)}
+                    className="text-[11px] text-muted-foreground flex items-center gap-1 touch-manipulation">
                     <Timer className="h-3 w-3" />
                     {Math.round(totalSeconds / 60)} min {showDurations ? '▲' : '▼'}
                   </button>
                   {showDurations && (
                     <div className="flex flex-wrap justify-center gap-1.5">
                       {DURATION_OPTIONS.map(d => (
-                        <Button
-                          key={d}
-                          size="sm"
-                          variant={totalSeconds === d * 60 ? 'secondary' : 'ghost'}
+                        <Button key={d} size="sm" variant={totalSeconds === d * 60 ? 'secondary' : 'ghost'}
                           onClick={() => { setCustomDuration(d); setShowDurations(false); }}
-                          className="h-8 px-3 text-xs rounded-lg touch-manipulation"
-                        >
+                          className="h-8 px-3 text-xs rounded-lg touch-manipulation">
                           {d}m
                         </Button>
                       ))}
@@ -170,13 +197,8 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
               {/* Mode toggle */}
               <div className="flex gap-1.5">
                 {([['work', 'Focus', Target], ['short-break', 'Short', Coffee], ['long-break', 'Long', Coffee]] as const).map(([m, label, Icon]) => (
-                  <Button
-                    key={m}
-                    size="sm"
-                    variant={mode === m ? 'secondary' : 'ghost'}
-                    onClick={() => changeMode(m)}
-                    className="h-9 text-xs px-3 rounded-xl touch-manipulation"
-                  >
+                  <Button key={m} size="sm" variant={mode === m ? 'secondary' : 'ghost'}
+                    onClick={() => changeMode(m)} className="h-9 text-xs px-3 rounded-xl touch-manipulation">
                     <Icon className="h-3.5 w-3.5 mr-1" />{label}
                   </Button>
                 ))}
@@ -184,18 +206,10 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
 
               {/* Controls */}
               <div className="flex gap-2">
-                <Button
-                  onClick={isRunning ? pause : start}
-                  className="h-11 px-8 text-sm rounded-xl touch-manipulation"
-                >
+                <Button onClick={isRunning ? pause : start} className="h-11 px-8 text-sm rounded-xl touch-manipulation">
                   {isRunning ? <><Pause className="h-4 w-4 mr-1.5" />Pause</> : <><Play className="h-4 w-4 mr-1.5" />Start</>}
                 </Button>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={reset}
-                  className="h-11 w-11 rounded-xl touch-manipulation"
-                >
+                <Button size="icon" variant="outline" onClick={reset} className="h-11 w-11 rounded-xl touch-manipulation">
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
@@ -205,16 +219,56 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                   Logging to: <span className="text-foreground font-medium">{tasks.find(t => t.id === activeTaskId)?.title}</span>
                 </p>
               )}
-              <span className="text-[11px] text-muted-foreground/50">Cycle {cycle}</span>
+
+              {/* Cycle + auto-start */}
+              <div className="flex items-center gap-4">
+                <span className="text-[11px] text-muted-foreground/50">Cycle {cycle}</span>
+                <div className="flex items-center gap-1.5">
+                  <SkipForward className="h-3 w-3 text-muted-foreground/50" />
+                  <span className="text-[11px] text-muted-foreground/50">Auto</span>
+                  <Switch checked={autoStart} onCheckedChange={setAutoStart} className="h-4 w-7" />
+                </div>
+              </div>
             </div>
 
-            {/* Divider */}
+            {/* Ambient sound */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ambient</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {AMBIENT_OPTIONS.map(opt => (
+                  <Button key={opt.value} size="sm"
+                    variant={ambientSound === opt.value ? 'secondary' : 'ghost'}
+                    onClick={() => setAmbientSound(opt.value)}
+                    className="h-8 px-3 text-xs rounded-lg touch-manipulation">
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+              {ambientSound !== 'none' && (
+                <Slider value={[ambientVolume * 100]} onValueChange={([v]) => setAmbientVolume(v / 100)} max={100} step={5} />
+              )}
+            </div>
+
+            <div className="h-px bg-border" />
+
+            {/* Daily stats */}
+            <FocusStatsPanel
+              sessionsToday={dailyStats.sessionsToday}
+              minutesToday={dailyStats.minutesToday}
+              streak={dailyStats.streak}
+              dailyGoal={dailyGoal}
+              onGoalChange={setDailyGoal}
+              variant="mobile"
+            />
+
             <div className="h-px bg-border" />
 
             {/* Task list */}
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Priority Tasks</h4>
-
               <div className="flex flex-col gap-2">
                 {activeTasks.map(task => {
                   const linkedCards = getLinkedCards(task);
@@ -226,18 +280,12 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                     <div key={task.id} className="space-y-1">
                       <div
                         className={`flex items-center gap-3 p-3 rounded-xl transition-all touch-manipulation min-h-[52px] ${
-                          activeTaskId === task.id
-                            ? 'bg-accent ring-1 ring-primary/30'
-                            : 'bg-muted/50 active:bg-accent'
+                          activeTaskId === task.id ? 'bg-accent ring-1 ring-primary/30' : 'bg-muted/50 active:bg-accent'
                         }`}
                         onClick={() => setActiveTaskId(activeTaskId === task.id ? null : task.id)}
                       >
-                        <Checkbox
-                          checked={task.completed}
-                          onCheckedChange={() => toggleComplete(task.id)}
-                          onClick={e => e.stopPropagation()}
-                          className="h-5 w-5"
-                        />
+                        <Checkbox checked={task.completed} onCheckedChange={() => toggleComplete(task.id)}
+                          onClick={e => e.stopPropagation()} className="h-5 w-5" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-foreground truncate">{task.title}</span>
@@ -249,30 +297,18 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                                 <Clock className="h-3 w-3" />{task.pomodoroMinutes}m
                               </span>
                             )}
-                            <button
-                              className="text-[11px] text-muted-foreground flex items-center gap-0.5"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const next = isExpanded ? null : task.id;
-                                setExpandedTaskId(next);
-                                if (next) setLinkSearchTaskId(null);
-                              }}
-                            >
+                            <button className="text-[11px] text-muted-foreground flex items-center gap-0.5"
+                              onClick={(e) => { e.stopPropagation(); setExpandedTaskId(isExpanded ? null : task.id); if (!isExpanded) setLinkSearchTaskId(null); }}>
                               <Link2 className="h-3 w-3" />{linkedCount > 0 ? linkedCount : 'Link'}
                             </button>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={e => { e.stopPropagation(); removeTask(task.id); }}
-                          className="h-9 w-9 p-0 text-muted-foreground touch-manipulation"
-                        >
+                        <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); removeTask(task.id); }}
+                          className="h-9 w-9 p-0 text-muted-foreground touch-manipulation">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      {/* Expanded: linked items + search */}
                       {isExpanded && (
                         <div className="pl-11 pr-3 space-y-1.5">
                           {linkedCards.map(card => (
@@ -293,33 +329,20 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                               </button>
                             </div>
                           ))}
-
-                          {/* Link search */}
                           {linkSearchTaskId === task.id ? (
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
                                 <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                <Input
-                                  autoFocus
-                                  value={linkQuery}
-                                  onChange={e => setLinkQuery(e.target.value)}
-                                  placeholder="Search cards & notes…"
-                                  className="h-9 text-xs rounded-lg flex-1"
-                                />
-                                <Button size="sm" variant="ghost" onClick={() => { setLinkSearchTaskId(null); setLinkQuery(''); }} className="h-9 w-9 p-0 touch-manipulation">
-                                  <X className="h-4 w-4" />
-                                </Button>
+                                <Input autoFocus value={linkQuery} onChange={e => setLinkQuery(e.target.value)}
+                                  placeholder="Search cards & notes…" className="h-9 text-xs rounded-lg flex-1" />
+                                <Button size="sm" variant="ghost" onClick={() => { setLinkSearchTaskId(null); setLinkQuery(''); }}
+                                  className="h-9 w-9 p-0 touch-manipulation"><X className="h-4 w-4" /></Button>
                               </div>
                               {getLinkResults(task).map(r => (
-                                <button
-                                  key={`${r.type}-${r.id}`}
+                                <button key={`${r.type}-${r.id}`}
                                   onClick={() => { linkItem(task.id, r.type, r.id); setLinkQuery(''); }}
-                                  className="flex items-center gap-2 w-full text-left p-2 rounded-lg bg-muted/20 active:bg-accent min-h-[44px] touch-manipulation"
-                                >
-                                  {r.type === 'card'
-                                    ? <Layers className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                                    : <FileText className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-                                  }
+                                  className="flex items-center gap-2 w-full text-left p-2 rounded-lg bg-muted/20 active:bg-accent min-h-[44px] touch-manipulation">
+                                  {r.type === 'card' ? <Layers className="h-3.5 w-3.5 text-primary flex-shrink-0" /> : <FileText className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />}
                                   <span className="text-xs text-foreground truncate flex-1">{r.title}</span>
                                   <span className="text-[10px] text-muted-foreground">{r.type}</span>
                                 </button>
@@ -329,10 +352,8 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                               )}
                             </div>
                           ) : (
-                            <button
-                              onClick={() => { setLinkSearchTaskId(task.id); setLinkQuery(''); }}
-                              className="flex items-center gap-1.5 text-xs text-muted-foreground active:text-foreground py-2 touch-manipulation"
-                            >
+                            <button onClick={() => { setLinkSearchTaskId(task.id); setLinkQuery(''); }}
+                              className="flex items-center gap-1.5 text-xs text-muted-foreground active:text-foreground py-2 touch-manipulation">
                               <Plus className="h-3.5 w-3.5" /> Link card or note…
                             </button>
                           )}
@@ -347,11 +368,7 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                     <span className="text-[11px] uppercase tracking-wider text-muted-foreground/50">Completed</span>
                     {completedTasks.map(task => (
                       <div key={task.id} className="flex items-center gap-3 p-2 opacity-50 min-h-[44px]">
-                        <Checkbox
-                          checked
-                          onCheckedChange={() => toggleComplete(task.id)}
-                          className="h-5 w-5"
-                        />
+                        <Checkbox checked onCheckedChange={() => toggleComplete(task.id)} className="h-5 w-5" />
                         <span className="text-sm line-through text-muted-foreground truncate">{task.title}</span>
                       </div>
                     ))}
@@ -359,27 +376,19 @@ export function MobileFocusSheet({ open, onOpenChange }: MobileFocusSheetProps) 
                 )}
               </div>
             </div>
+
+            <div className="h-px bg-border" />
+
+            {/* Session log */}
+            <FocusSessionLog sessions={sessionHistory} variant="mobile" />
           </div>
         </ScrollArea>
 
-        {/* Add task input — pinned bottom */}
+        {/* Add task input */}
         <div className="border-t border-border bg-background px-4 py-3">
-          <form
-            onSubmit={e => { e.preventDefault(); addTask(); }}
-            className="flex items-center gap-2"
-          >
-            <Input
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              placeholder="Add task…"
-              className="h-11 text-sm rounded-xl flex-1"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!newTitle.trim()}
-              className="h-11 w-11 rounded-xl touch-manipulation"
-            >
+          <form onSubmit={e => { e.preventDefault(); addTask(); }} className="flex items-center gap-2">
+            <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Add task…" className="h-11 text-sm rounded-xl flex-1" />
+            <Button type="submit" size="icon" disabled={!newTitle.trim()} className="h-11 w-11 rounded-xl touch-manipulation">
               <Plus className="h-5 w-5" />
             </Button>
           </form>
