@@ -315,11 +315,11 @@
 
   /* Landing page design utilities */
   .section-alt {
-    background: radial-gradient(ellipse at 50% 0%, hsl(36 72% 48% / 0.04) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 0%, hsl(184 31% 34% / 0.04) 0%, transparent 70%);
   }
 
   .hero-glow {
-    background: radial-gradient(ellipse at 50% 40%, hsl(36 72% 48% / 0.08) 0%, hsl(220 15% 11% / 0) 60%);
+    background: radial-gradient(ellipse at 50% 40%, hsl(184 31% 34% / 0.08) 0%, hsl(220 15% 11% / 0) 60%);
   }
 
   .card-hover-lift {
@@ -402,11 +402,11 @@
   }
 
   .cta-glow {
-    box-shadow: 0 0 20px hsl(36 72% 48% / 0.25), 0 4px 12px hsl(36 72% 48% / 0.15);
+    box-shadow: 0 0 20px hsl(184 31% 34% / 0.25), 0 4px 12px hsl(184 31% 34% / 0.15);
   }
 
   .cta-glow:hover {
-    box-shadow: 0 0 32px hsl(36 72% 48% / 0.35), 0 6px 20px hsl(36 72% 48% / 0.2);
+    box-shadow: 0 0 32px hsl(184 31% 34% / 0.35), 0 6px 20px hsl(184 31% 34% / 0.2);
   }
 }
 
