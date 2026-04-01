@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud, Loader2 } from "lucide-react";
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
