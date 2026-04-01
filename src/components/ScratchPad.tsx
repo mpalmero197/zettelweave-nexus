@@ -236,26 +236,14 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const handleDownloadExtension = async () => {
     setIsDownloading(true);
     try {
-      const zip = new JSZip();
-
-      const textFiles = ["manifest.json", "popup.html", "popup.js"];
-      const imageFiles = ["icon-16.png", "icon-48.png", "icon-128.png"];
-
-      const cacheBuster = `?t=${Date.now()}`;
-      const textPromises = textFiles.map(async (file) => {
-        const res = await fetch(`/chrome-extension/${file}${cacheBuster}`);
-        zip.file(file, await res.text());
-      });
-
-      const imagePromises = imageFiles.map(async (file) => {
-        const res = await fetch(`/chrome-extension/${file}${cacheBuster}`);
-        zip.file(file, await res.arrayBuffer());
-      });
-
-      await Promise.all([...textPromises, ...imagePromises]);
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      saveAs(blob, "pendragonx-chrome-extension.zip");
+      const res = await fetch(`/pendragonx-chrome-extension.zip?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "pendragonx-chrome-extension.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
 
       toast.success("Extension downloaded!", {
         description: "1. Unzip the file\n2. Go to chrome://extensions\n3. Enable Developer Mode\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
