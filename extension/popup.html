@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PendragonX Quick Notes</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 340px;
+      min-height: 420px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0b;
+      color: #e4e4e7;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .header {
+      padding: 10px 14px;
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header img { width: 22px; height: 22px; border-radius: 4px; }
+    .header h1 { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+
+    /* Login screen */
+    .login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 28px 32px;
+      text-align: center;
+      min-height: 340px;
+    }
+    .login-screen .logo-large { width: 56px; height: 56px; border-radius: 12px; margin-bottom: 16px; }
+    .login-screen h2 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .login-screen .subtitle { font-size: 12px; color: #71717a; margin-bottom: 24px; line-height: 1.4; }
+    .login-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .login-form input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      background: #18181b;
+      color: #e4e4e7;
+      font-size: 13px;
+      transition: border-color 0.15s;
+    }
+    .login-form input:focus { outline: none; border-color: #3b82f6; }
+    .login-form input::placeholder { color: #52525b; }
+    #login-btn {
+      width: 100%;
+      padding: 9px;
+      background: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
+    }
+    #login-btn:hover { background: #2563eb; }
+    #login-btn:disabled { background: #1e3a5f; cursor: wait; }
+    .auth-error {
+      display: none;
+      padding: 6px 10px;
+      background: #450a0a;
+      border-radius: 6px;
+      color: #fca5a5;
+      font-size: 11px;
+      text-align: left;
+    }
+    .login-footer { margin-top: 20px; font-size: 11px; color: #52525b; }
+    .login-footer a { color: #3b82f6; text-decoration: none; }
+    .login-footer a:hover { text-decoration: underline; }
+
+    /* Logged-in user bar */
+    .user-bar {
+      display: none;
+      padding: 8px 14px;
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-bar .user-email {
+      flex: 1;
+      font-size: 11px;
+      color: #a1a1aa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .user-bar .sync-status { font-size: 10px; color: #71717a; white-space: nowrap; }
+    .user-bar .sync-status.success { color: #4ade80; }
+    .user-bar .sync-status.error { color: #f87171; }
+    .user-bar .sync-status.syncing { color: #60a5fa; }
+    .icon-btn {
+      padding: 4px 8px;
+      background: transparent;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      color: #a1a1aa;
+      font-size: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { background: #27272a; color: #e4e4e7; }
+
+    /* App content */
+    .app-content { display: none; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 1px solid #27272a; }
+    .tab {
+      flex: 1;
+      padding: 9px;
+      background: none;
+      border: none;
+      color: #71717a;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: #d4d4d8; background: rgba(255,255,255,0.03); }
+    .tab.active { color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
+
+    .content { padding: 12px 14px; }
+
+    /* Scratch Pad */
+    .scratch-area { display: flex; flex-direction: column; gap: 10px; }
+    textarea {
+      width: 100%;
+      min-height: 88px;
+      max-height: 140px;
+      padding: 10px;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      background: #18181b;
+      color: #e4e4e7;
+      font-size: 13px;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { outline: none; border-color: #3b82f6; }
+    textarea::placeholder { color: #52525b; }
+
+    .btn {
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #27272a; color: #d4d4d8; }
+    .btn-secondary:hover { background: #3f3f46; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .actions { display: flex; gap: 8px; }
+
+    /* Notes list */
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .note-card {
+      padding: 10px;
+      background: #18181b;
+      border-radius: 8px;
+      border: 1px solid #27272a;
+      transition: border-color 0.15s;
+    }
+    .note-card:hover { border-color: #3f3f46; }
+    .note-card.synced { border-left: 2px solid #3b82f6; }
+    .note-card p {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #d4d4d8;
+      white-space: pre-wrap;
+      word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .note-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #1e1e21;
+    }
+    .note-meta span { font-size: 10px; color: #52525b; }
+    .note-actions { display: flex; gap: 4px; }
+    .note-actions button {
+      padding: 3px 8px;
+      font-size: 10px;
+      background: #27272a;
+      border: none;
+      border-radius: 4px;
+      color: #a1a1aa;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .note-actions button:hover { background: #3f3f46; color: #fff; }
+    .note-actions button.delete:hover { background: #450a0a; color: #f87171; }
+
+    .empty-state { text-align: center; padding: 20px 16px; color: #3f3f46; }
+    .empty-state svg { width: 28px; height: 28px; margin-bottom: 6px; opacity: 0.4; }
+    .empty-state p { font-size: 12px; }
+
+    /* Sticky Notes */
+    .sticky-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .sticky-note {
+      padding: 8px;
+      border-radius: 6px;
+      min-height: 72px;
+      position: relative;
+    }
+    .sticky-note textarea {
+      width: 100%;
+      min-height: 52px;
+      max-height: 80px;
+      background: transparent;
+      border: none;
+      color: #1a1a1a;
+      font-size: 11px;
+      padding: 2px;
+      line-height: 1.4;
+    }
+    .sticky-note textarea:focus { outline: none; }
+    .sticky-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.15);
+      border: none;
+      cursor: pointer;
+      font-size: 10px;
+      color: #333;
+      opacity: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .sticky-note:hover .sticky-delete { opacity: 1; }
+    .color-picker { display: flex; gap: 6px; margin-bottom: 10px; }
+    .color-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .color-btn:hover { transform: scale(1.1); }
+    .color-btn.active { border-color: #fff; }
+
+    /* ── Pomodoro Timer ── */
+    .pomodoro-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 0;
+    }
+
+    .pomo-ring-wrapper {
+      position: relative;
+      width: 160px;
+      height: 160px;
+    }
+    .pomo-ring-wrapper svg {
+      transform: rotate(-90deg);
+      width: 160px;
+      height: 160px;
+    }
+    .pomo-ring-bg {
+      fill: none;
+      stroke: #27272a;
+      stroke-width: 6;
+    }
+    .pomo-ring-progress {
+      fill: none;
+      stroke: #3b82f6;
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s linear;
+    }
+    .pomo-ring-progress.break {
+      stroke: #22c55e;
+    }
+    .pomo-time-display {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .pomo-time {
+      font-size: 36px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+    .pomo-label {
+      font-size: 11px;
+      color: #71717a;
+      margin-top: 2px;
+    }
+
+    .pomo-presets {
+      display: flex;
+      gap: 6px;
+    }
+    .pomo-preset-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid #27272a;
+      background: #18181b;
+      color: #a1a1aa;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pomo-preset-btn:hover { border-color: #3f3f46; color: #e4e4e7; }
+    .pomo-preset-btn.active {
+      border-color: #3b82f6;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .pomo-controls {
+      display: flex;
+      gap: 8px;
+    }
+    .pomo-controls .btn {
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .pomo-stats {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      background: #18181b;
+      border-radius: 8px;
+      border: 1px solid #27272a;
+      width: 100%;
+    }
+    .pomo-stat {
+      flex: 1;
+      text-align: center;
+    }
+    .pomo-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .pomo-stat-label {
+      font-size: 10px;
+      color: #52525b;
+      margin-top: 2px;
+    }
+
+    .pomo-break-banner {
+      display: none;
+      padding: 8px 14px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 8px;
+      text-align: center;
+      width: 100%;
+    }
+    .pomo-break-banner.visible { display: block; }
+    .pomo-break-banner p {
+      font-size: 12px;
+      color: #4ade80;
+      font-weight: 500;
+    }
+    .pomo-break-banner span {
+      font-size: 10px;
+      color: #52525b;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .footer {
+      padding: 10px 14px;
+      border-top: 1px solid #27272a;
+      text-align: center;
+    }
+    .footer a { font-size: 11px; color: #3b82f6; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Scrollbar */
+    .notes-list::-webkit-scrollbar,
+    .sticky-grid::-webkit-scrollbar { width: 4px; }
+    .notes-list::-webkit-scrollbar-thumb,
+    .sticky-grid::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+    .notes-list::-webkit-scrollbar-track,
+    .sticky-grid::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icon-48.png" alt="PendragonX">
+    <h1>PendragonX</h1>
+    <span id="header-version" style="font-size:10px; color:#3f3f46;">v1.1</span>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <img src="icon-128.png" alt="PendragonX" class="logo-large">
+    <h2>Welcome back</h2>
+    <p class="subtitle">Sign in to your PendragonX account to capture and sync notes across devices.</p>
+    <div class="login-form">
+      <input type="email" id="auth-email" placeholder="Email address" autocomplete="email">
+      <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+      <div id="auth-error" class="auth-error"></div>
+      <button id="login-btn">Sign In</button>
+    </div>
+    <p class="login-footer">
+      Don't have an account? <a href="https://pendragonx.com" target="_blank">Sign up</a>
+    </p>
+  </div>
+
+  <!-- Logged-in user bar -->
+  <div id="user-bar" class="user-bar">
+    <span id="user-email" class="user-email">user@email.com</span>
+    <span id="sync-status" class="sync-status"></span>
+    <button id="sync-btn" class="icon-btn">⟳ Sync</button>
+    <button id="logout-btn" class="icon-btn">Sign Out</button>
+  </div>
+
+  <!-- App content -->
+  <div id="app-content" class="app-content">
+    <div class="tabs">
+      <button class="tab active" data-tab="scratch">Scratch Pad</button>
+      <button class="tab" data-tab="sticky">Sticky Notes</button>
+      <button class="tab" data-tab="pomodoro">Pomodoro</button>
+    </div>
+
+    <div class="content">
+      <div id="scratch-tab" class="scratch-area">
+        <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes..." rows="3"></textarea>
+        <div class="actions">
+          <button class="btn btn-primary" id="save-scratch">Save Note</button>
+          <button class="btn btn-secondary" id="clear-scratch">Clear</button>
+        </div>
+        <div id="notes-list" class="notes-list"></div>
+      </div>
+
+      <div id="sticky-tab" style="display: none;">
+        <div class="color-picker" id="color-picker"></div>
+        <button class="btn btn-primary" id="add-sticky" style="width: 100%; margin-bottom: 10px;">+ Add Sticky Note</button>
+        <div id="sticky-grid" class="sticky-grid"></div>
+      </div>
+
+      <div id="pomodoro-tab" style="display: none;">
+        <div class="pomodoro-container">
+          <!-- Break banner -->
+          <div id="pomo-break-banner" class="pomo-break-banner">
+            <p>☕ Break time!</p>
+            <span>Take a short rest before the next session</span>
+          </div>
+
+          <!-- Timer ring -->
+          <div class="pomo-ring-wrapper">
+            <svg viewBox="0 0 160 160">
+              <circle class="pomo-ring-bg" cx="80" cy="80" r="70" />
+              <circle id="pomo-ring" class="pomo-ring-progress" cx="80" cy="80" r="70"
+                stroke-dasharray="439.82" stroke-dashoffset="0" />
+            </svg>
+            <div class="pomo-time-display">
+              <span id="pomo-time" class="pomo-time">25:00</span>
+              <span id="pomo-label" class="pomo-label">Focus</span>
+            </div>
+          </div>
+
+          <!-- Duration presets -->
+          <div class="pomo-presets" id="pomo-presets">
+            <button class="pomo-preset-btn" data-minutes="15">15m</button>
+            <button class="pomo-preset-btn active" data-minutes="25">25m</button>
+            <button class="pomo-preset-btn" data-minutes="45">45m</button>
+            <button class="pomo-preset-btn" data-minutes="60">60m</button>
+          </div>
+
+          <!-- Controls -->
+          <div class="pomo-controls">
+            <button class="btn btn-primary" id="pomo-start">Start</button>
+            <button class="btn btn-secondary" id="pomo-reset">Reset</button>
+          </div>
+
+          <!-- Session stats -->
+          <div class="pomo-stats">
+            <div class="pomo-stat">
+              <div id="pomo-sessions" class="pomo-stat-value">0</div>
+              <div class="pomo-stat-label">Sessions</div>
+            </div>
+            <div class="pomo-stat">
+              <div id="pomo-total-time" class="pomo-stat-value">0m</div>
+              <div class="pomo-stat-label">Focus Time</div>
+            </div>
+            <div class="pomo-stat">
+              <div id="pomo-streak" class="pomo-stat-value">0</div>
+              <div class="pomo-stat-label">Streak</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="https://pendragonx.com" target="_blank">Open PendragonX App →</a>
+    </div>
+  </div>
+</body>
+<script src="popup.js"></script>
+</html>
