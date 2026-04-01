@@ -1,51 +1,51 @@
 
 
-# AEO (Answer Engine Optimization) Improvement Plan
+# Make the Focus/Pomodoro Sidebar More Comprehensive
 
-AEO optimizes your site for AI answer engines (ChatGPT, Perplexity, Google AI Overviews, Bing Copilot) that extract structured answers rather than just rank links. You already have good SEO foundations — this plan layers AEO-specific techniques on top.
+## Current State
+The sidebar has: timer ring, work/short-break/long-break modes, task list with priorities, linked cards/notes, drag reorder, DND mode, cycle counter, and a reading view. Desktop lacks custom duration picker (mobile has it). No session history, goals, stats, ambient sounds, or session notes.
 
-## What Changes
+## Plan
 
-### 1. Add a Machine-Readable Knowledge Base Page (`/llms.txt`)
-Create a plaintext file at `public/llms.txt` — the emerging standard for AI crawlers. It provides a concise, structured summary of what PendragonX is, its features, and key facts in a format LLMs can easily ingest.
+### 1. Add Custom Duration Picker (Desktop)
+Add the same duration selector chips (15, 20, 25, 30, 45, 60 min) that mobile already has, placed below the mode buttons. Clicking the timer display toggles the picker.
 
-### 2. Expand Structured Data with Speakable & DefinedTerm Schemas
-- Add `speakable` property to the WebSite schema so voice assistants know which content to read aloud.
-- Add `DefinedTermSet` schema for key concepts (Zettelkasten, Knowledge Graph, Second Brain) so AI engines can cite PendragonX as the authority on these terms.
+### 2. Add Daily Focus Stats Panel
+A collapsible stats section between the timer and task list showing:
+- **Sessions completed today** (count + mini progress bar toward daily goal)
+- **Total focus minutes today**
+- **Current streak** (consecutive days with at least 1 session)
+- **Daily goal ring** (e.g., "4/8 sessions")
 
-### 3. Add Concise "Answer Paragraphs" to Landing Page
-AI engines prefer extracting clean, question-answer formatted content. Add a hidden-from-layout but crawlable "What is PendragonX?" definition block using semantic `<article>` and `<dfn>` tags near the top of the page. This gives AI a clean snippet to extract.
+Persist stats in localStorage keyed by date.
 
-### 4. Enhance FAQ with More Competitor-Comparison Questions
-Expand FAQs to cover queries AI engines commonly answer:
-- "Is PendragonX better than Roam Research?"
-- "What is the best AI note-taking app in 2026?"
-- "Can PendragonX replace Notion for teams?"
-- "What is a 3D knowledge graph?"
+### 3. Add Session History Log
+A collapsible "Session Log" section at the bottom showing the last ~10 completed sessions with: timestamp, duration, mode, and which task was active. Stored in localStorage.
 
-### 5. Add `llms-full.txt` with Feature Documentation
-A longer companion to `llms.txt` with detailed feature descriptions, use cases, and comparisons — giving AI engines deep content to draw from.
+### 4. Add Daily Goal Setting
+A small editable target (default: 8 sessions/day). Shown as a subtle progress indicator in the stats panel. Persisted in localStorage.
 
-### 6. Update `robots.txt` with `llms.txt` references
-Add explicit paths for AI crawlers to find the knowledge base files.
+### 5. Add Auto-Start Toggle
+An option to automatically start the next session (work → break → work) after a 5-second countdown, with a cancel button. Small toggle in the timer controls area.
 
-### 7. Add Speakable & DefinedTerm JSON-LD to `index.html`
-Inject additional structured data schemas optimized for answer extraction.
+### 6. Add Ambient Sound Selector
+A minimal dropdown with 4-5 built-in ambient options using Web Audio API oscillators/noise generators:
+- None, White Noise, Brown Noise, Rain (synthesized), Binaural Focus
+Plays only during work sessions. Volume slider. No external audio files needed.
 
-## Technical Details
+### 7. Add Session Notes
+When a work session completes, show a small optional text input to jot a quick note about what was accomplished. Notes are saved to the session history log.
 
-**`public/llms.txt`** — ~50 lines of plaintext covering: what PendragonX is, core features, pricing, comparisons, and links. Follows the `llms.txt` proposal format.
+## Files to Edit
+- `src/components/focus-sidebar/useFocusState.ts` — Add stats tracking, session history, daily goal, auto-start logic
+- `src/components/focus-sidebar/FocusSidebar.tsx` — Add custom duration chips, stats panel, session log, ambient sound selector, auto-start toggle, session notes prompt
+- `src/components/focus-sidebar/FocusTimerRing.tsx` — Add daily goal ring overlay (optional secondary ring)
+- `src/components/focus-sidebar/MobileFocusSheet.tsx` — Mirror new features (stats, session log, ambient sounds)
 
-**`public/llms-full.txt`** — ~200 lines with detailed feature breakdowns, use cases per persona, and direct competitor comparisons.
-
-**Landing page answer block** — A visually hidden but crawlable `<article>` with semantic markup (`<dfn>`, `<p>`) providing a clean 2-3 sentence definition that AI engines can extract as a featured answer.
-
-**New FAQ entries** — 4 additional questions targeting long-tail AI queries, added to the existing `faqs` array in `Landing.tsx`.
-
-**JSON-LD additions in `index.html`**:
-- `speakable` CSS selectors pointing to the hero heading and definition block
-- `DefinedTermSet` for "Zettelkasten", "Knowledge Graph", "Second Brain"
-
-**Files to create**: `public/llms.txt`, `public/llms-full.txt`
-**Files to edit**: `src/pages/Landing.tsx`, `index.html`, `public/robots.txt`, `public/sitemap.xml`
+## Technical Approach
+- All new state persisted via the existing localStorage mechanism in `useFocusState`
+- Ambient sounds via `OscillatorNode` / `AudioContext` — zero external dependencies
+- Session history capped at 50 entries, auto-pruned
+- Stats computed from session history on render (no separate tracking needed)
+- Auto-start uses a 5-second `setTimeout` with visual countdown in the timer ring area
 
