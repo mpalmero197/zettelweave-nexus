@@ -420,12 +420,14 @@ export default function Landing() {
               { icon: MessageSquare, title: "Answer questions from your notes", description: "Ask anything. Get answers grounded in your own research — not the internet's.", accent: "border-t-2 border-t-primary/10" },
             ].map((item, i) => (
               <div key={i} className={cn(
-                "bg-card p-8 md:p-10 rounded-xl border border-border card-hover-lift",
+                "bg-card/80 backdrop-blur-sm p-8 md:p-10 rounded-xl border border-border card-hover-lift group",
                 item.accent,
                 "transition-all duration-500",
                 solutionAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 120}ms` }}>
-                <item.icon className="h-6 w-6 text-primary mb-5" aria-hidden="true" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
+                  <item.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
                 <h3 className="text-base font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
