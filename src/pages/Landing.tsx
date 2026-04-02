@@ -251,8 +251,8 @@ export default function Landing() {
       {/* ────────────────────────── HEADER ────────────────────────── */}
       <header
         className={cn(
-          "fixed top-0 z-50 w-full bg-card/80 backdrop-blur-md border-b transition-all duration-300",
-          headerScrolled ? "border-border shadow-md" : "border-transparent shadow-none"
+          "fixed top-0 z-50 w-full backdrop-blur-xl border-b transition-all duration-300",
+          headerScrolled ? "bg-card/90 border-border shadow-lg shadow-background/20" : "bg-transparent border-transparent shadow-none"
         )}
         role="banner"
       >
