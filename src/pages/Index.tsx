@@ -123,6 +123,7 @@ const Index = () => {
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
   const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
   const [showImportStudio, setShowImportStudio] = useState(false);
+  const [graphMode, setGraphMode] = useState<'2d' | '3d'>('2d');
 
   // Helper to check if a card is "new" (created within last 24 hours)
   const isNewCard = (card: ZettelCardType) => {
