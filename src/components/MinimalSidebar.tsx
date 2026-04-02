@@ -67,7 +67,7 @@ export function MinimalSidebar({
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-1">
+        <div className="p-3 pr-4 space-y-1">
           <NavButton tab="dashboard" icon={Home} label="Dashboard" />
           
           <Separator className="my-2" />
