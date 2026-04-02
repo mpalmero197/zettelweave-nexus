@@ -325,9 +325,9 @@
 
   .hero-glow {
     background: 
-      radial-gradient(ellipse at 50% 30%, hsl(184 31% 34% / 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 20% 60%, hsl(184 40% 45% / 0.06) 0%, transparent 40%),
-      radial-gradient(ellipse at 80% 50%, hsl(200 30% 40% / 0.05) 0%, transparent 40%);
+      radial-gradient(ellipse at 50% 30%, hsl(265 85% 60% / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 60%, hsl(265 90% 70% / 0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 80% 50%, hsl(280 70% 55% / 0.05) 0%, transparent 40%);
   }
 
   .landing-grid-bg {
