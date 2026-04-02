@@ -492,10 +492,10 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map((f, i) => (
               <div key={i} className={cn(
-                "p-6 rounded-xl border border-border bg-card card-hover-lift transition-all duration-500",
+                "p-6 rounded-xl border border-border bg-card/80 backdrop-blur-sm card-hover-lift group transition-all duration-500",
                 featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center mb-4 group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
                   <f.icon className="h-4.5 w-4.5 text-primary" aria-hidden="true" />
                 </div>
                 <h3 className="text-sm font-semibold mb-1.5">{f.title}</h3>
