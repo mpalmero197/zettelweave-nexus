@@ -451,7 +451,7 @@
   }
 
   .cta-glow {
-    box-shadow: 0 0 20px hsl(184 31% 34% / 0.25), 0 4px 12px hsl(184 31% 34% / 0.15);
+    box-shadow: 0 0 20px hsl(265 85% 60% / 0.25), 0 4px 12px hsl(265 85% 60% / 0.15);
     position: relative;
     overflow: hidden;
   }
