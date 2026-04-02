@@ -689,20 +689,21 @@ export default function Landing() {
       {/* ────────────────────────── 11. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 hero-glow pointer-events-none" />
+        <div className="floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />
         <div className={cn(
-          "max-w-2xl mx-auto px-4 text-center relative transition-all duration-700",
+          "max-w-2xl mx-auto px-4 text-center relative z-10 transition-all duration-700",
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         )}>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-balance">
             Why linear apps fall short.
-            <span className="block text-primary mt-1">Start thinking in 3D.</span>
+            <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">Start thinking in 3D.</span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-lg mx-auto text-balance">
             Join writers, researchers, and founders who've replaced Notion, Obsidian, and OneNote with an AI second brain that actually thinks.
           </p>
-          <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
+          <Button size="lg" className="h-12 px-10 text-base cta-glow group" onClick={goAuth}>
             Get Started Free
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Button>
           <p className="text-xs text-muted-foreground mt-4">Free forever plan · No credit card required</p>
         </div>
