@@ -10,9 +10,9 @@
     --background: 40 20% 97%;
     --foreground: 30 10% 10%;
     
-    --primary: 184 31% 34%;
+    --primary: 265 85% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 184 31% 28%;
+    --primary-hover: 265 85% 52%;
     
     --secondary: 35 15% 92%;
     --secondary-foreground: 30 10% 12%;
@@ -28,7 +28,7 @@
     
     --border: 35 12% 88%;
     --input: 35 15% 95%;
-    --ring: 184 31% 34%;
+    --ring: 265 85% 60%;
     
     --muted: 35 10% 94%;
     --muted-foreground: 30 5% 44%;
@@ -41,12 +41,12 @@
     
     --sidebar-background: 35 15% 95%;
     --sidebar-foreground: 30 10% 12%;
-    --sidebar-primary: 184 31% 34%;
+    --sidebar-primary: 265 85% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 35 12% 91%;
     --sidebar-accent-foreground: 30 10% 12%;
     --sidebar-border: 35 12% 88%;
-    --sidebar-ring: 184 31% 34%;
+    --sidebar-ring: 265 85% 60%;
     
     /* Category colors — Warm tones */
     --category-000: 30 10% 60%;
@@ -62,10 +62,10 @@
     
     /* Shadows — Warm amber */
     --shadow-card: 0 1px 3px hsl(30 20% 0% / 0.05);
-    --shadow-hover: 0 4px 16px hsl(184 31% 30% / 0.1);
+    --shadow-hover: 0 4px 16px hsl(265 85% 60% / 0.1);
     --shadow-active: 0 1px 2px hsl(30 20% 0% / 0.04);
-    --shadow-glow: 0 0 20px hsl(184 31% 34% / 0.08);
-    --shadow-glow-accent: 0 0 30px hsl(184 31% 34% / 0.12);
+    --shadow-glow: 0 0 20px hsl(265 85% 60% / 0.08);
+    --shadow-glow-accent: 0 0 30px hsl(265 85% 60% / 0.12);
     
     --shadow-material-1: 0 1px 2px hsl(30 20% 0% / 0.04);
     --shadow-material-2: 0 2px 4px hsl(30 20% 0% / 0.06);
@@ -82,9 +82,9 @@
     --background: 220 15% 11%;
     --foreground: 40 15% 92%;
     
-    --primary: 184 31% 40%;
+    --primary: 265 85% 65%;
     --primary-foreground: 220 15% 8%;
-    --primary-hover: 184 31% 34%;
+    --primary-hover: 265 85% 58%;
     
     --secondary: 220 12% 16%;
     --secondary-foreground: 40 10% 90%;
@@ -100,7 +100,7 @@
     
     --border: 220 10% 20%;
     --input: 220 12% 16%;
-    --ring: 184 31% 40%;
+    --ring: 265 85% 65%;
     
     --muted: 220 10% 18%;
     --muted-foreground: 220 8% 55%;
@@ -110,12 +110,12 @@
     
     --sidebar-background: 220 16% 9%;
     --sidebar-foreground: 40 10% 92%;
-    --sidebar-primary: 184 31% 40%;
+    --sidebar-primary: 265 85% 65%;
     --sidebar-primary-foreground: 220 15% 8%;
     --sidebar-accent: 220 12% 16%;
     --sidebar-accent-foreground: 40 10% 92%;
     --sidebar-border: 220 10% 20%;
-    --sidebar-ring: 184 31% 40%;
+    --sidebar-ring: 265 85% 65%;
     
     /* Dark mode category colors — Vibrant on dark */
     --category-000: 40 10% 55%;
@@ -131,10 +131,10 @@
     
     /* Dark mode shadows — with subtle amber glow */
     --shadow-card: 0 1px 4px hsl(220 30% 0% / 0.3);
-    --shadow-hover: 0 8px 24px hsl(220 30% 0% / 0.4), 0 0 40px hsl(184 31% 40% / 0.06);
+    --shadow-hover: 0 8px 24px hsl(220 30% 0% / 0.4), 0 0 40px hsl(265 85% 65% / 0.06);
     --shadow-active: 0 1px 2px hsl(220 30% 0% / 0.25);
-    --shadow-glow: 0 0 20px hsl(184 31% 40% / 0.06);
-    --shadow-glow-accent: 0 0 30px hsl(184 31% 40% / 0.1);
+    --shadow-glow: 0 0 20px hsl(265 85% 65% / 0.06);
+    --shadow-glow-accent: 0 0 30px hsl(265 85% 65% / 0.1);
     
     --shadow-material-1: 0 1px 2px hsl(220 30% 0% / 0.3);
     --shadow-material-2: 0 2px 4px hsl(220 30% 0% / 0.35);
@@ -320,14 +320,14 @@
 
   /* Landing page design utilities */
   .section-alt {
-    background: radial-gradient(ellipse at 50% 0%, hsl(184 31% 34% / 0.04) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 0%, hsl(265 85% 60% / 0.04) 0%, transparent 70%);
   }
 
   .hero-glow {
     background: 
-      radial-gradient(ellipse at 50% 30%, hsl(184 31% 34% / 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 20% 60%, hsl(184 40% 45% / 0.06) 0%, transparent 40%),
-      radial-gradient(ellipse at 80% 50%, hsl(200 30% 40% / 0.05) 0%, transparent 40%);
+      radial-gradient(ellipse at 50% 30%, hsl(265 85% 60% / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 60%, hsl(265 90% 70% / 0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 80% 50%, hsl(280 70% 55% / 0.05) 0%, transparent 40%);
   }
 
   .landing-grid-bg {
@@ -451,7 +451,7 @@
   }
 
   .cta-glow {
-    box-shadow: 0 0 20px hsl(184 31% 34% / 0.25), 0 4px 12px hsl(184 31% 34% / 0.15);
+    box-shadow: 0 0 20px hsl(265 85% 60% / 0.25), 0 4px 12px hsl(265 85% 60% / 0.15);
     position: relative;
     overflow: hidden;
   }
@@ -466,7 +466,7 @@
   }
 
   .cta-glow:hover {
-    box-shadow: 0 0 32px hsl(184 31% 34% / 0.35), 0 6px 20px hsl(184 31% 34% / 0.2);
+    box-shadow: 0 0 32px hsl(265 85% 60% / 0.35), 0 6px 20px hsl(265 85% 60% / 0.2);
   }
 
   .cta-glow:hover::before {

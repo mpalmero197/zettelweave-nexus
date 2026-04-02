@@ -547,7 +547,7 @@ export default function Landing() {
               )} style={{ transitionDelay: `${i * 100 + 300}ms` }}>
                 <div className="flex gap-0.5 mb-3">
                   {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="h-3.5 w-3.5 fill-primary text-primary" />
+                    <Star key={j} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
                 <blockquote className="text-sm leading-relaxed mb-4">"{t.quote}"</blockquote>
