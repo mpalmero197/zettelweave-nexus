@@ -104,18 +104,18 @@ function BuiltForBanner() {
 
   return (
     <section ref={animation.ref} className="py-16 md:py-20 relative overflow-hidden">
-      <div className="gradient-divider absolute top-0 left-0 right-0" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-primary/[0.04] to-primary/[0.02]" />
+      <div className="section-divider-glow absolute top-0 left-0 right-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] via-primary/[0.05] to-primary/[0.03]" />
       <div className="max-w-3xl mx-auto px-4 text-center relative">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-balance">
           Built for{" "}
           <span className="inline-block relative overflow-hidden h-[1.2em] align-bottom min-w-[220px]">
             <span
               className={cn(
-                "inline-block text-primary will-change-transform",
+                "inline-block will-change-transform",
                 phase === "exit" && "opacity-0 -translate-y-[70%] blur-[2px]",
                 phase === "enter" && "opacity-100 translate-y-0 blur-0",
-                done && phase === "enter" && "scale-110"
+                done && phase === "enter" && "scale-110 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
               )}
               style={{
                 transitionProperty: "opacity, transform, filter",
@@ -125,6 +125,7 @@ function BuiltForBanner() {
                     ? "cubic-bezier(0.4, 0, 1, 1)"
                     : "cubic-bezier(0, 0, 0.2, 1)",
                 transitionDuration: `${transDur}ms`,
+                color: !done ? 'hsl(var(--primary))' : undefined,
               }}
             >
               {displayWord}
@@ -132,7 +133,7 @@ function BuiltForBanner() {
           </span>
         </h2>
       </div>
-      <div className="gradient-divider absolute bottom-0 left-0 right-0" />
+      <div className="section-divider-glow absolute bottom-0 left-0 right-0" />
     </section>
   );
 }
@@ -233,7 +234,7 @@ export default function Landing() {
   const goAuth = () => navigate("/auth");
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background landing-noise landing-grid-bg relative overflow-hidden">
       <SEOHead
         title="PendragonX: AI Second Brain with 3D Knowledge Graph & Agents | vs Notion & Obsidian"
         description="PendragonX is the AI-powered second brain that auto-connects every idea in a living 3D knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
@@ -250,8 +251,8 @@ export default function Landing() {
       {/* ────────────────────────── HEADER ────────────────────────── */}
       <header
         className={cn(
-          "fixed top-0 z-50 w-full bg-card/80 backdrop-blur-md border-b transition-all duration-300",
-          headerScrolled ? "border-border shadow-md" : "border-transparent shadow-none"
+          "fixed top-0 z-50 w-full backdrop-blur-xl border-b transition-all duration-300",
+          headerScrolled ? "bg-card/90 border-border shadow-lg shadow-background/20" : "bg-transparent border-transparent shadow-none"
         )}
         role="banner"
       >
@@ -292,19 +293,24 @@ export default function Landing() {
       {/* ────────────────────────── 1. HERO ────────────────────────── */}
       <section id="main-hero" ref={heroAnimation.ref} className="min-h-[92vh] flex items-center justify-center pt-14 relative" aria-labelledby="hero-heading">
         <div className="hero-glow absolute inset-0 pointer-events-none" />
-        <div className="max-w-3xl mx-auto px-4 text-center relative">
+        {/* Floating orbs */}
+        <div className="floating-orb w-[500px] h-[500px] bg-primary top-[10%] left-[-10%]" style={{ animationDelay: '0s' }} />
+        <div className="floating-orb w-[400px] h-[400px] bg-primary top-[30%] right-[-5%]" style={{ animationDelay: '-7s' }} />
+        <div className="floating-orb w-[300px] h-[300px] bg-primary/60 bottom-[10%] left-[20%]" style={{ animationDelay: '-13s' }} />
+        
+        <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
           <div className={cn(
             "space-y-7 transition-all duration-700",
             heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}>
-            <Badge variant="outline" className="mx-auto text-xs px-3 py-1 gap-1.5 border-primary/20">
-              <Sparkles className="h-3 w-3" aria-hidden="true" />
+            <Badge variant="outline" className="mx-auto text-xs px-4 py-1.5 gap-1.5 border-primary/30 bg-primary/5 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
               AI-Powered Knowledge System
             </Badge>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
               The Fastest Way to Turn Notes into Insights
-              <span className="block text-primary mt-1">with AI That Thinks With You</span>
+              <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">with AI That Thinks With You</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
@@ -313,11 +319,11 @@ export default function Landing() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
+              <Button size="lg" className="h-12 px-10 text-base cta-glow group" onClick={goAuth}>
                 Start Free — No Credit Card
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base" onClick={() => scrollToSection("how-it-works")}>
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base backdrop-blur-sm bg-background/50" onClick={() => scrollToSection("how-it-works")}>
                 See How It Works
               </Button>
             </div>
@@ -414,12 +420,14 @@ export default function Landing() {
               { icon: MessageSquare, title: "Answer questions from your notes", description: "Ask anything. Get answers grounded in your own research — not the internet's.", accent: "border-t-2 border-t-primary/10" },
             ].map((item, i) => (
               <div key={i} className={cn(
-                "bg-card p-8 md:p-10 rounded-xl border border-border card-hover-lift",
+                "bg-card/80 backdrop-blur-sm p-8 md:p-10 rounded-xl border border-border card-hover-lift group",
                 item.accent,
                 "transition-all duration-500",
                 solutionAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 120}ms` }}>
-                <item.icon className="h-6 w-6 text-primary mb-5" aria-hidden="true" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
+                  <item.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
                 <h3 className="text-base font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
@@ -484,10 +492,10 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map((f, i) => (
               <div key={i} className={cn(
-                "p-6 rounded-xl border border-border bg-card card-hover-lift transition-all duration-500",
+                "p-6 rounded-xl border border-border bg-card/80 backdrop-blur-sm card-hover-lift group transition-all duration-500",
                 featuresAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               )} style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center mb-4 group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
                   <f.icon className="h-4.5 w-4.5 text-primary" aria-hidden="true" />
                 </div>
                 <h3 className="text-sm font-semibold mb-1.5">{f.title}</h3>
@@ -681,20 +689,21 @@ export default function Landing() {
       {/* ────────────────────────── 11. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 hero-glow pointer-events-none" />
+        <div className="floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />
         <div className={cn(
-          "max-w-2xl mx-auto px-4 text-center relative transition-all duration-700",
+          "max-w-2xl mx-auto px-4 text-center relative z-10 transition-all duration-700",
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         )}>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-balance">
             Why linear apps fall short.
-            <span className="block text-primary mt-1">Start thinking in 3D.</span>
+            <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">Start thinking in 3D.</span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-lg mx-auto text-balance">
             Join writers, researchers, and founders who've replaced Notion, Obsidian, and OneNote with an AI second brain that actually thinks.
           </p>
-          <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
+          <Button size="lg" className="h-12 px-10 text-base cta-glow group" onClick={goAuth}>
             Get Started Free
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Button>
           <p className="text-xs text-muted-foreground mt-4">Free forever plan · No credit card required</p>
         </div>
