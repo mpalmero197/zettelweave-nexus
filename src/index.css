@@ -237,28 +237,33 @@
     transition: var(--transition-smooth);
   }
 
-  /* Scrollbar - Minimal */
-  .scrollbar-minimal {
+  /* Scrollbar - Ultra Minimal (global default) */
+  .scrollbar-minimal,
+  * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.15) transparent;
   }
 
-  .scrollbar-minimal::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  .scrollbar-minimal::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
   }
 
-  .scrollbar-minimal::-webkit-scrollbar-track {
+  .scrollbar-minimal::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .scrollbar-minimal::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 3px;
+  .scrollbar-minimal::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.15);
+    border-radius: 100px;
   }
 
-  .scrollbar-minimal::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+  .scrollbar-minimal::-webkit-scrollbar-thumb:hover,
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
   }
 
   /* Hide scrollbar */
