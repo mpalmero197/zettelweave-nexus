@@ -104,18 +104,18 @@ function BuiltForBanner() {
 
   return (
     <section ref={animation.ref} className="py-16 md:py-20 relative overflow-hidden">
-      <div className="gradient-divider absolute top-0 left-0 right-0" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-primary/[0.04] to-primary/[0.02]" />
+      <div className="section-divider-glow absolute top-0 left-0 right-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] via-primary/[0.05] to-primary/[0.03]" />
       <div className="max-w-3xl mx-auto px-4 text-center relative">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-balance">
           Built for{" "}
           <span className="inline-block relative overflow-hidden h-[1.2em] align-bottom min-w-[220px]">
             <span
               className={cn(
-                "inline-block text-primary will-change-transform",
+                "inline-block will-change-transform",
                 phase === "exit" && "opacity-0 -translate-y-[70%] blur-[2px]",
                 phase === "enter" && "opacity-100 translate-y-0 blur-0",
-                done && phase === "enter" && "scale-110"
+                done && phase === "enter" && "scale-110 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
               )}
               style={{
                 transitionProperty: "opacity, transform, filter",
@@ -125,6 +125,7 @@ function BuiltForBanner() {
                     ? "cubic-bezier(0.4, 0, 1, 1)"
                     : "cubic-bezier(0, 0, 0.2, 1)",
                 transitionDuration: `${transDur}ms`,
+                color: !done ? 'hsl(var(--primary))' : undefined,
               }}
             >
               {displayWord}
@@ -132,7 +133,7 @@ function BuiltForBanner() {
           </span>
         </h2>
       </div>
-      <div className="gradient-divider absolute bottom-0 left-0 right-0" />
+      <div className="section-divider-glow absolute bottom-0 left-0 right-0" />
     </section>
   );
 }
