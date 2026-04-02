@@ -292,19 +292,24 @@ export default function Landing() {
       {/* ────────────────────────── 1. HERO ────────────────────────── */}
       <section id="main-hero" ref={heroAnimation.ref} className="min-h-[92vh] flex items-center justify-center pt-14 relative" aria-labelledby="hero-heading">
         <div className="hero-glow absolute inset-0 pointer-events-none" />
-        <div className="max-w-3xl mx-auto px-4 text-center relative">
+        {/* Floating orbs */}
+        <div className="floating-orb w-[500px] h-[500px] bg-primary top-[10%] left-[-10%]" style={{ animationDelay: '0s' }} />
+        <div className="floating-orb w-[400px] h-[400px] bg-primary top-[30%] right-[-5%]" style={{ animationDelay: '-7s' }} />
+        <div className="floating-orb w-[300px] h-[300px] bg-primary/60 bottom-[10%] left-[20%]" style={{ animationDelay: '-13s' }} />
+        
+        <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
           <div className={cn(
             "space-y-7 transition-all duration-700",
             heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}>
-            <Badge variant="outline" className="mx-auto text-xs px-3 py-1 gap-1.5 border-primary/20">
-              <Sparkles className="h-3 w-3" aria-hidden="true" />
+            <Badge variant="outline" className="mx-auto text-xs px-4 py-1.5 gap-1.5 border-primary/30 bg-primary/5 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
               AI-Powered Knowledge System
             </Badge>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
               The Fastest Way to Turn Notes into Insights
-              <span className="block text-primary mt-1">with AI That Thinks With You</span>
+              <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">with AI That Thinks With You</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
@@ -313,11 +318,11 @@ export default function Landing() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button size="lg" className="h-12 px-10 text-base cta-glow" onClick={goAuth}>
+              <Button size="lg" className="h-12 px-10 text-base cta-glow group" onClick={goAuth}>
                 Start Free — No Credit Card
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base" onClick={() => scrollToSection("how-it-works")}>
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base backdrop-blur-sm bg-background/50" onClick={() => scrollToSection("how-it-works")}>
                 See How It Works
               </Button>
             </div>
