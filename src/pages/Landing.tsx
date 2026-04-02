@@ -233,7 +233,7 @@ export default function Landing() {
   const goAuth = () => navigate("/auth");
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background landing-noise landing-grid-bg relative overflow-hidden">
       <SEOHead
         title="PendragonX: AI Second Brain with 3D Knowledge Graph & Agents | vs Notion & Obsidian"
         description="PendragonX is the AI-powered second brain that auto-connects every idea in a living 3D knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
