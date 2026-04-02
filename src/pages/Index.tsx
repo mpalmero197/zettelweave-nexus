@@ -9,6 +9,7 @@ import { ZettelCard } from "@/components/ZettelCard";
 import { CreateCardDialog } from "@/components/CreateCardDialog";
 import { ImportStudio } from "@/components/ImportStudio";
 import { GraphView } from "@/components/GraphViewNew";
+import { Graph3D } from "@/components/Graph3D";
 import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
