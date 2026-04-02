@@ -680,18 +680,46 @@ const Index = () => {
 
                 <TabsContent value="graph" className="mt-0">
                   {hasPremium ? (
-                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)]">
-                      <GraphView 
-                        cards={filteredCards} 
-                        onCardSelect={setViewingCard}
-                        onCardUpdate={handleUpdateCard}
-                        className="h-full"
-                      />
+                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] relative">
+                      {/* 2D/3D toggle */}
+                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1">
+                        <Button
+                          size="sm"
+                          variant={graphMode === '2d' ? 'default' : 'ghost'}
+                          className="h-7 px-3 text-xs"
+                          onClick={() => setGraphMode('2d')}
+                        >
+                          2D
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={graphMode === '3d' ? 'default' : 'ghost'}
+                          className="h-7 px-3 text-xs"
+                          onClick={() => setGraphMode('3d')}
+                        >
+                          3D
+                        </Button>
+                      </div>
+                      
+                      {graphMode === '2d' ? (
+                        <GraphView 
+                          cards={filteredCards} 
+                          onCardSelect={setViewingCard}
+                          onCardUpdate={handleUpdateCard}
+                          className="h-full"
+                        />
+                      ) : (
+                        <Graph3D
+                          cards={filteredCards}
+                          onCardSelect={setViewingCard}
+                          className="h-full"
+                        />
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">
                       <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Knowledge Graph (3D) is available for premium subscribers only.</p>
+                      <p className="text-muted-foreground mb-4 text-sm">Knowledge Graph is available for premium subscribers only.</p>
                       <Button size="sm" onClick={() => window.location.href = '/subscription'}>
                         Upgrade to Premium
                       </Button>
