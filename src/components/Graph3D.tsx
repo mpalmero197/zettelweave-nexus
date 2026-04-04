@@ -139,41 +139,20 @@ function NodeMesh({ position, card, onClick, isHighlighted, isSearchMatch, isDim
 
 // ── Animated connection ───────────────────────────────────────────────
 function AnimatedEdge({ start, end, color, isDimmed }: { start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean }) {
-  const ref = useRef<THREE.Line>(null);
+  const points = useMemo(() => [
+    new THREE.Vector3(...start),
+    new THREE.Vector3(...end),
+  ], [start, end]);
 
-  const geometry = useMemo(() => {
-    const g = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(...start),
-      new THREE.Vector3(...end),
-    ]);
-    g.computeBoundingSphere();
-    return g;
-  }, [start, end]);
-
-  const material = useMemo(() => {
-    const m = new THREE.LineDashedMaterial({
-      color,
-      dashSize: 0.3,
-      gapSize: 0.2,
-      transparent: true,
-      opacity: isDimmed ? 0.05 : 0.5,
-    });
-    return m;
-  }, [color, isDimmed]);
-
-  useFrame(() => {
-    if (material) {
-      (material as any).dashOffset -= 0.01;
-    }
-  });
-
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.computeLineDistances();
-    }
-  }, [geometry]);
-
-  return <primitive ref={ref} object={new THREE.Line(geometry, material)} />;
+  return (
+    <Line
+      points={points}
+      color={color}
+      lineWidth={1.5}
+      transparent
+      opacity={isDimmed ? 0.05 : 0.5}
+    />
+  );
 }
 
 // ── Camera controller ─────────────────────────────────────────────────
