@@ -360,15 +360,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
         );
       })()}
 
-      {/* Bloom */}
-      <EffectComposer>
-        <Bloom
-          mipmapBlur
-          luminanceThreshold={0.4}
-          luminanceSmoothing={0.6}
-          intensity={0.8}
-        />
-      </EffectComposer>
+      {/* Glow is handled by emissive materials - no postprocessing needed */}
 
       {/* Camera */}
       <CameraController target={focusTarget} resetTrigger={0} />
