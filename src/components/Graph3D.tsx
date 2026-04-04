@@ -2,7 +2,6 @@ import { useEffect, useRef, useMemo, useState, useCallback, Suspense } from 'rea
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Sphere, Line, Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import * as THREE from 'three';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
 import { Button } from '@/components/ui/button';
