@@ -1,51 +1,52 @@
 
 
-# Make the Focus/Pomodoro Sidebar More Comprehensive
+# Enhance the 3D Knowledge Graph
 
-## Current State
-The sidebar has: timer ring, work/short-break/long-break modes, task list with priorities, linked cards/notes, drag reorder, DND mode, cycle counter, and a reading view. Desktop lacks custom duration picker (mobile has it). No session history, goals, stats, ambient sounds, or session notes.
+## Current Gaps
+- All nodes are the same blue color regardless of category
+- No hover tooltip / detail preview
+- No particle effects on edges
+- No bloom/glow post-processing
+- No starfield or atmospheric background
+- No click-to-focus camera animation
+- No auto-rotate toggle
+- Connections are plain static lines
 
 ## Plan
 
-### 1. Add Custom Duration Picker (Desktop)
-Add the same duration selector chips (15, 20, 25, 30, 45, 60 min) that mobile already has, placed below the mode buttons. Clicking the timer display toggles the picker.
+### 1. Category-Colored Nodes with Glow
+Map each Dewey category to a distinct color (using the existing category CSS vars). Add emissive glow to all nodes, stronger for highlighted/search matches. Use `MeshPhysicalMaterial` for a glassy, reflective look instead of `meshStandardMaterial`.
 
-### 2. Add Daily Focus Stats Panel
-A collapsible stats section between the timer and task list showing:
-- **Sessions completed today** (count + mini progress bar toward daily goal)
-- **Total focus minutes today**
-- **Current streak** (consecutive days with at least 1 session)
-- **Daily goal ring** (e.g., "4/8 sessions")
+### 2. Hover Tooltip with Card Preview
+On pointer hover, show an HTML overlay (using drei's `Html` component) displaying the card title, category name, tag badges, and a truncated content preview. Fades in/out smoothly.
 
-Persist stats in localStorage keyed by date.
+### 3. Click-to-Focus Camera Animation
+When a node is clicked, smoothly animate the camera to orbit around that node (lerp camera target). Add a "Reset View" button to return to default position.
 
-### 3. Add Session History Log
-A collapsible "Session Log" section at the bottom showing the last ~10 completed sessions with: timestamp, duration, mode, and which task was active. Stored in localStorage.
+### 4. Bloom Post-Processing
+Add `@react-three/postprocessing` with `Bloom` effect for a neon glow on emissive node materials and connection lines. Subtle but impactful.
 
-### 4. Add Daily Goal Setting
-A small editable target (default: 8 sessions/day). Shown as a subtle progress indicator in the stats panel. Persisted in localStorage.
+### 5. Animated Edge Particles
+Replace static lines with animated dashed lines (using `LineDashedMaterial` with animated dash offset) to show "flow" between connected nodes.
 
-### 5. Add Auto-Start Toggle
-An option to automatically start the next session (work → break → work) after a 5-second countdown, with a cancel button. Small toggle in the timer controls area.
+### 6. Starfield Background
+Add drei's `Stars` component for an ambient cosmic particle background behind the graph.
 
-### 6. Add Ambient Sound Selector
-A minimal dropdown with 4-5 built-in ambient options using Web Audio API oscillators/noise generators:
-- None, White Noise, Brown Noise, Rain (synthesized), Binaural Focus
-Plays only during work sessions. Volume slider. No external audio files needed.
+### 7. Auto-Rotate Toggle
+Add an auto-rotate button to the controls panel. When enabled, the graph slowly spins for a showcase effect.
 
-### 7. Add Session Notes
-When a work session completes, show a small optional text input to jot a quick note about what was accomplished. Notes are saved to the session history log.
+### 8. Neighborhood Highlight
+On node hover, highlight all directly connected nodes and dim everything else, making the local cluster pop.
 
 ## Files to Edit
-- `src/components/focus-sidebar/useFocusState.ts` — Add stats tracking, session history, daily goal, auto-start logic
-- `src/components/focus-sidebar/FocusSidebar.tsx` — Add custom duration chips, stats panel, session log, ambient sound selector, auto-start toggle, session notes prompt
-- `src/components/focus-sidebar/FocusTimerRing.tsx` — Add daily goal ring overlay (optional secondary ring)
-- `src/components/focus-sidebar/MobileFocusSheet.tsx` — Mirror new features (stats, session log, ambient sounds)
+- `src/components/Graph3D.tsx` — All visual and interaction improvements
 
-## Technical Approach
-- All new state persisted via the existing localStorage mechanism in `useFocusState`
-- Ambient sounds via `OscillatorNode` / `AudioContext` — zero external dependencies
-- Session history capped at 50 entries, auto-pruned
-- Stats computed from session history on render (no separate tracking needed)
-- Auto-start uses a 5-second `setTimeout` with visual countdown in the timer ring area
+## Dependencies
+- `@react-three/postprocessing` — for Bloom effect (will need to install)
+
+## Technical Notes
+- Category color map: 10 distinct hues mapped from the Dewey `000`–`900` ranges
+- `Html` from drei renders React DOM inside the 3D scene for tooltips
+- Bloom uses `UnrealBloomPass` under the hood, configured with low intensity for subtlety
+- Camera animation via `useFrame` lerping `controls.target` and `camera.position`
 
