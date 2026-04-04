@@ -1,7 +1,7 @@
-import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import { useEffect, useRef, useMemo, useState, useCallback, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Sphere, Line, Stars, Html } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import * as THREE from 'three';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
