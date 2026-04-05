@@ -7,7 +7,8 @@ import { getCategoryInfo } from '@/utils/deweySystem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, EyeOff, RotateCw, Crosshair } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Search, Eye, EyeOff, RotateCw, Crosshair, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 // ── Category color map ────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, THREE.Color> = {
@@ -35,8 +36,130 @@ interface Graph3DProps {
   className?: string;
 }
 
+// ── Force-directed layout ─────────────────────────────────────────────
+function computeForceLayout(cards: ZettelCard[]): Record<string, [number, number, number]> {
+  const n = cards.length;
+  if (n === 0) return {};
+
+  const idToIdx: Record<string, number> = {};
+  cards.forEach((c, i) => { idToIdx[c.id] = i; });
+
+  // Initialize random positions
+  const pos: [number, number, number][] = cards.map((_, i) => {
+    const phi = Math.acos(-1 + (2 * i + 1) / Math.max(n, 1));
+    const theta = Math.sqrt(n * Math.PI) * phi;
+    const r = 4 + Math.random() * 2;
+    return [r * Math.cos(theta) * Math.sin(phi), r * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi)];
+  });
+
+  const vel: [number, number, number][] = cards.map(() => [0, 0, 0]);
+
+  // Build link list
+  const links: [number, number][] = [];
+  cards.forEach((c, i) => {
+    c.linkedCards.forEach(lid => {
+      const j = idToIdx[lid];
+      if (j !== undefined && i < j) links.push([i, j]);
+    });
+  });
+
+  const ITERATIONS = 80;
+  const REPULSION = 8;
+  const SPRING = 0.02;
+  const IDEAL_LENGTH = 3;
+  const DAMPING = 0.85;
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    const temp = 1 - iter / ITERATIONS;
+
+    // Repulsion between all pairs
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const dx = pos[i][0] - pos[j][0];
+        const dy = pos[i][1] - pos[j][1];
+        const dz = pos[i][2] - pos[j][2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+        const force = (REPULSION * temp) / (dist * dist);
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        const fz = (dz / dist) * force;
+        vel[i][0] += fx; vel[i][1] += fy; vel[i][2] += fz;
+        vel[j][0] -= fx; vel[j][1] -= fy; vel[j][2] -= fz;
+      }
+    }
+
+    // Spring attraction for links
+    for (const [i, j] of links) {
+      const dx = pos[j][0] - pos[i][0];
+      const dy = pos[j][1] - pos[i][1];
+      const dz = pos[j][2] - pos[i][2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+      const force = SPRING * (dist - IDEAL_LENGTH);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      const fz = (dz / dist) * force;
+      vel[i][0] += fx; vel[i][1] += fy; vel[i][2] += fz;
+      vel[j][0] -= fx; vel[j][1] -= fy; vel[j][2] -= fz;
+    }
+
+    // Apply velocity and dampen
+    for (let i = 0; i < n; i++) {
+      pos[i][0] += vel[i][0];
+      pos[i][1] += vel[i][1];
+      pos[i][2] += vel[i][2];
+      vel[i][0] *= DAMPING;
+      vel[i][1] *= DAMPING;
+      vel[i][2] *= DAMPING;
+    }
+  }
+
+  const result: Record<string, [number, number, number]> = {};
+  cards.forEach((c, i) => { result[c.id] = pos[i]; });
+  return result;
+}
+
+// ── Connection count helper ───────────────────────────────────────────
+function getConnectionCounts(cards: ZettelCard[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  cards.forEach(c => { counts[c.id] = (counts[c.id] || 0) + c.linkedCards.length; });
+  cards.forEach(c => { c.linkedCards.forEach(lid => { counts[lid] = (counts[lid] || 0) + 1; }); });
+  return counts;
+}
+
+// ── BFS hop reachability ──────────────────────────────────────────────
+function getReachable(startId: string, cards: ZettelCard[], depth: number): Set<string> {
+  const adj: Record<string, string[]> = {};
+  cards.forEach(c => {
+    if (!adj[c.id]) adj[c.id] = [];
+    c.linkedCards.forEach(lid => {
+      adj[c.id].push(lid);
+      if (!adj[lid]) adj[lid] = [];
+      adj[lid].push(c.id);
+    });
+  });
+
+  const visited = new Set<string>([startId]);
+  let frontier = [startId];
+  for (let d = 0; d < depth; d++) {
+    const next: string[] = [];
+    for (const id of frontier) {
+      for (const nb of (adj[id] || [])) {
+        if (!visited.has(nb)) { visited.add(nb); next.push(nb); }
+      }
+    }
+    frontier = next;
+  }
+  return visited;
+}
+
+// ── Shared tag count ──────────────────────────────────────────────────
+function sharedTagCount(a: ZettelCard, b: ZettelCard): number {
+  const setB = new Set(b.tags);
+  return a.tags.filter(t => setB.has(t)).length;
+}
+
 // ── Glow ring around nodes ────────────────────────────────────────────
-function GlowRing({ color, active }: { color: THREE.Color; active: boolean }) {
+function GlowRing({ color, active, radius }: { color: THREE.Color; active: boolean; radius: number }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (!ref.current) return;
@@ -44,22 +167,27 @@ function GlowRing({ color, active }: { color: THREE.Color; active: boolean }) {
     const s = active ? 1.1 + Math.sin(state.clock.elapsedTime * 3) * 0.08 : 1;
     ref.current.scale.set(s, s, s);
   });
+  const inner = radius * 1.3;
+  const outer = inner + 0.1;
   return (
-    <Ring ref={ref} args={[0.62, 0.72, 32]}>
+    <Ring ref={ref} args={[inner, outer, 32]}>
       <meshBasicMaterial color={color} transparent opacity={active ? 0.6 : 0.15} side={THREE.DoubleSide} />
     </Ring>
   );
 }
 
 // ── Node ──────────────────────────────────────────────────────────────
-function NodeMesh({ position, card, onClick, isSearchMatch, isDimmed, onHoverStart, onHoverEnd }: {
+function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDimmed, isHidden, onHoverStart, onHoverEnd, radius }: {
   position: [number, number, number];
   card: ZettelCard;
   onClick: () => void;
+  onDoubleClick: () => void;
   isSearchMatch: boolean;
   isDimmed: boolean;
+  isHidden: boolean;
   onHoverStart: (card: ZettelCard) => void;
   onHoverEnd: () => void;
+  radius: number;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -69,25 +197,25 @@ function NodeMesh({ position, card, onClick, isSearchMatch, isDimmed, onHoverSta
 
   useFrame((state) => {
     if (!meshRef.current || !groupRef.current) return;
-    // Gentle float
     groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.6 + position[0] * 0.7) * 0.15;
-    // Scale pulse
     const s = hovered ? 1.4 : isSearchMatch ? 1.15 : 1;
     meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.1);
   });
+
+  if (isHidden) return null;
 
   const emissiveIntensity = hovered ? 2.2 : isSearchMatch ? 1.5 : 0.5;
   const opacity = isDimmed ? 0.12 : 1;
 
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
-      {/* Outer glow ring */}
-      <GlowRing color={categoryColor} active={hovered || isSearchMatch} />
+      <GlowRing color={categoryColor} active={hovered || isSearchMatch} radius={radius} />
 
       <Sphere
         ref={meshRef}
-        args={[0.45, 32, 32]}
+        args={[radius, 32, 32]}
         onClick={(e) => { e.stopPropagation(); onClick(); }}
+        onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
         onPointerOver={(e) => {
           e.stopPropagation();
           setHovered(true);
@@ -115,10 +243,9 @@ function NodeMesh({ position, card, onClick, isSearchMatch, isDimmed, onHoverSta
         />
       </Sphere>
 
-      {/* Label */}
       {!isDimmed && (
         <Text
-          position={[0, -0.9, 0]}
+          position={[0, -(radius + 0.5), 0]}
           fontSize={0.22}
           maxWidth={3}
           textAlign="center"
@@ -131,7 +258,6 @@ function NodeMesh({ position, card, onClick, isSearchMatch, isDimmed, onHoverSta
         </Text>
       )}
 
-      {/* Tooltip */}
       {hovered && (
         <Html distanceFactor={10} center style={{ pointerEvents: 'none' }}>
           <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl p-3 w-60 -translate-y-24 animate-in fade-in-0 zoom-in-95 duration-150">
@@ -164,19 +290,23 @@ function NodeMesh({ position, card, onClick, isSearchMatch, isDimmed, onHoverSta
 }
 
 // ── Edge ──────────────────────────────────────────────────────────────
-function AnimatedEdge({ start, end, color, isDimmed, isHighlighted }: {
-  start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean; isHighlighted?: boolean;
+function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, thickness }: {
+  start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean; isHighlighted?: boolean; isHidden?: boolean; thickness?: number;
 }) {
   const points = useMemo(() => [
     new THREE.Vector3(...start),
     new THREE.Vector3(...end),
   ], [start, end]);
 
+  if (isHidden) return null;
+
+  const baseWidth = thickness || 1.2;
+
   return (
     <Line
       points={points}
       color={color}
-      lineWidth={isHighlighted ? 2.5 : 1.2}
+      lineWidth={isHighlighted ? baseWidth * 2 : baseWidth}
       transparent
       opacity={isDimmed ? 0.03 : isHighlighted ? 0.8 : 0.35}
     />
@@ -202,7 +332,6 @@ function CameraController({ target, autoRotate, onReset }: {
     controlsRef.current.update();
   });
 
-  // Reset camera
   useEffect(() => {
     if (onReset > 0 && controlsRef.current) {
       camera.position.set(0, 0, 15);
@@ -228,7 +357,7 @@ function CameraController({ target, autoRotate, onReset }: {
 }
 
 // ── Scene ─────────────────────────────────────────────────────────────
-function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges, autoRotate, focusTarget, setFocusTarget, resetCount }: {
+function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges, autoRotate, focusTarget, setFocusTarget, resetCount, focusedCardId, setFocusedCardId, hopDepth, connectionCounts, cardMap }: {
   cards: ZettelCard[];
   onCardSelect?: (card: ZettelCard) => void;
   searchTerm: string;
@@ -238,10 +367,15 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   focusTarget: THREE.Vector3 | null;
   setFocusTarget: (v: THREE.Vector3 | null) => void;
   resetCount: number;
+  focusedCardId: string | null;
+  setFocusedCardId: (id: string | null) => void;
+  hopDepth: number;
+  connectionCounts: Record<string, number>;
+  cardMap: Record<string, ZettelCard>;
 }) {
   const [hoveredCard, setHoveredCard] = useState<ZettelCard | null>(null);
 
-  // Neighborhood set
+  // Neighborhood set (hover)
   const neighborSet = useMemo(() => {
     if (!hoveredCard) return null;
     const s = new Set<string>([hoveredCard.id]);
@@ -250,28 +384,40 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
     return s;
   }, [hoveredCard, cards]);
 
+  // Hop-depth reachable set (focus)
+  const hopReachable = useMemo(() => {
+    if (!focusedCardId || hopDepth >= 3) return null;
+    return getReachable(focusedCardId, cards, hopDepth);
+  }, [focusedCardId, cards, hopDepth]);
+
+  // Max connections for sizing
+  const maxConn = useMemo(() => Math.max(1, ...Object.values(connectionCounts)), [connectionCounts]);
+
+  // Node radius
+  const getRadius = useCallback((cardId: string) => {
+    const count = connectionCounts[cardId] || 0;
+    return 0.35 + (count / maxConn) * 0.45;
+  }, [connectionCounts, maxConn]);
+
   // 3D Layouts
   const nodePositions = useMemo(() => {
-    const positions: Record<string, [number, number, number]> = {};
     const n = cards.length || 1;
 
     switch (layoutType) {
-      case 'sphere':
+      case 'force':
+        return computeForceLayout(cards);
+      case 'sphere': {
+        const positions: Record<string, [number, number, number]> = {};
         cards.forEach((card, i) => {
           const phi = Math.acos(-1 + (2 * i + 1) / n);
           const theta = Math.sqrt(n * Math.PI) * phi;
           const r = 8;
           positions[card.id] = [r * Math.cos(theta) * Math.sin(phi), r * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi)];
         });
-        break;
-      case 'helix':
-        cards.forEach((card, i) => {
-          const t = (i / n) * 5 * Math.PI;
-          const r = 5;
-          positions[card.id] = [r * Math.cos(t), (i / n) * 12 - 6, r * Math.sin(t)];
-        });
-        break;
+        return positions;
+      }
       case 'layers': {
+        const positions: Record<string, [number, number, number]> = {};
         const groups: Record<string, ZettelCard[]> = {};
         cards.forEach(c => { const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c); });
         const keys = Object.keys(groups);
@@ -284,9 +430,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
             positions[card.id] = [r * Math.cos(a), y, r * Math.sin(a)];
           });
         });
-        break;
+        return positions;
       }
       default: {
+        const positions: Record<string, [number, number, number]> = {};
         const sz = Math.max(2, Math.ceil(Math.cbrt(n)));
         cards.forEach((card, i) => {
           positions[card.id] = [
@@ -295,9 +442,9 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
             (Math.floor(i / (sz * sz)) - sz / 2) * 3,
           ];
         });
+        return positions;
       }
     }
-    return positions;
   }, [cards, layoutType]);
 
   // Search
@@ -316,47 +463,57 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   const handleNodeClick = useCallback((card: ZettelCard) => {
     const pos = nodePositions[card.id];
     if (pos) setFocusTarget(new THREE.Vector3(...pos));
+    setFocusedCardId(card.id);
+  }, [nodePositions, setFocusTarget, setFocusedCardId]);
+
+  const handleNodeDoubleClick = useCallback((card: ZettelCard) => {
     onCardSelect?.(card);
-  }, [nodePositions, onCardSelect, setFocusTarget]);
+  }, [onCardSelect]);
 
   return (
     <>
-      {/* Lighting */}
       <ambientLight intensity={0.3} />
       <pointLight position={[20, 15, 15]} intensity={0.7} color="#c4b5fd" />
       <pointLight position={[-15, -12, -15]} intensity={0.35} color="#06b6d4" />
       <pointLight position={[0, -20, 5]} intensity={0.2} color="#ec4899" />
 
-      {/* Starfield */}
       <Stars radius={100} depth={80} count={3000} factor={3.5} saturation={0.3} fade speed={0.6} />
 
-      {/* Nodes */}
       {cards.map(card => {
         const pos = nodePositions[card.id] || [0, 0, 0];
-        const isDimmed = neighborSet !== null && !neighborSet.has(card.id);
+        const isDimmedByHover = neighborSet !== null && !neighborSet.has(card.id);
+        const isHiddenByHop = hopReachable !== null && !hopReachable.has(card.id);
+        const isDimmed = isDimmedByHover || isHiddenByHop;
         return (
           <NodeMesh
             key={card.id}
             position={pos}
             card={card}
             onClick={() => handleNodeClick(card)}
+            onDoubleClick={() => handleNodeDoubleClick(card)}
             isSearchMatch={searchMatches.has(card.id)}
             isDimmed={isDimmed}
+            isHidden={false}
             onHoverStart={setHoveredCard}
             onHoverEnd={() => setHoveredCard(null)}
+            radius={getRadius(card.id)}
           />
         );
       })}
 
-      {/* Direct linked edges */}
       {cards.flatMap(card => {
         const startPos = nodePositions[card.id];
         if (!startPos) return [];
         return card.linkedCards.map(linkedId => {
           const endPos = nodePositions[linkedId];
           if (!endPos) return null;
+          const linkedCard = cardMap[linkedId];
           const isNeighborEdge = neighborSet !== null && neighborSet.has(card.id) && neighborSet.has(linkedId);
-          const isDimmed = neighborSet !== null && !isNeighborEdge;
+          const isDimmedByHover = neighborSet !== null && !isNeighborEdge;
+          const isHiddenByHop = hopReachable !== null && (!hopReachable.has(card.id) || !hopReachable.has(linkedId));
+          const isDimmed = isDimmedByHover || isHiddenByHop;
+          const shared = linkedCard ? sharedTagCount(card, linkedCard) : 0;
+          const thickness = 1 + Math.min(shared, 3);
           return (
             <AnimatedEdge
               key={`${card.id}-${linkedId}`}
@@ -365,12 +522,12 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
               color={getCategoryColor(card.category)}
               isDimmed={isDimmed}
               isHighlighted={isNeighborEdge}
+              thickness={thickness}
             />
           );
         });
       })}
 
-      {/* Category edges */}
       {showCategoryEdges && (() => {
         const groups: Record<string, ZettelCard[]> = {};
         cards.forEach(c => { const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c); });
@@ -380,21 +537,21 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
             const s = nodePositions[card.id];
             const e = nodePositions[next.id];
             if (!s || !e) return null;
-            const isDimmed = neighborSet !== null && (!neighborSet.has(card.id) || !neighborSet.has(next.id));
+            const isDimmedByHover = neighborSet !== null && (!neighborSet.has(card.id) || !neighborSet.has(next.id));
+            const isHiddenByHop = hopReachable !== null && (!hopReachable.has(card.id) || !hopReachable.has(next.id));
             return (
               <AnimatedEdge
                 key={`cat-${card.id}-${next.id}`}
                 start={s}
                 end={e}
                 color={new THREE.Color(0x10b981)}
-                isDimmed={isDimmed}
+                isDimmed={isDimmedByHover || isHiddenByHop}
               />
             );
           })
         );
       })()}
 
-      {/* Camera */}
       <CameraController target={focusTarget} autoRotate={autoRotate} onReset={resetCount} />
     </>
   );
@@ -403,21 +560,88 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 // ── Main export ───────────────────────────────────────────────────────
 export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [layoutType, setLayoutType] = useState<'sphere' | 'cube' | 'helix' | 'layers'>('sphere');
+  const [layoutType, setLayoutType] = useState<'sphere' | 'cube' | 'force' | 'layers'>('force');
   const [showCategoryEdges, setShowCategoryEdges] = useState(true);
   const [autoRotate, setAutoRotate] = useState(false);
   const [focusTarget, setFocusTarget] = useState<THREE.Vector3 | null>(null);
   const [resetCount, setResetCount] = useState(0);
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [hopDepth, setHopDepth] = useState(3);
+  const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
+  const [showTags, setShowTags] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // All unique tags
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    cards.forEach(c => c.tags.forEach(t => tagSet.add(t)));
+    return Array.from(tagSet).sort();
+  }, [cards]);
+
+  // Filter cards by selected tags
+  const filteredCards = useMemo(() => {
+    if (selectedTags.size === 0) return cards;
+    const taggedIds = new Set<string>();
+    cards.forEach(c => {
+      if (c.tags.some(t => selectedTags.has(t))) {
+        taggedIds.add(c.id);
+        c.linkedCards.forEach(lid => taggedIds.add(lid));
+      }
+    });
+    return cards.filter(c => taggedIds.has(c.id));
+  }, [cards, selectedTags]);
+
+  const connectionCounts = useMemo(() => getConnectionCounts(filteredCards), [filteredCards]);
+  const cardMap = useMemo(() => {
+    const m: Record<string, ZettelCard> = {};
+    filteredCards.forEach(c => { m[c.id] = c; });
+    return m;
+  }, [filteredCards]);
 
   const handleReset = useCallback(() => {
     setFocusTarget(null);
+    setFocusedCardId(null);
     setResetCount(c => c + 1);
+    setHopDepth(3);
+  }, []);
+
+  const handleFocus = useCallback((target: THREE.Vector3 | null) => {
+    setFocusTarget(target);
+  }, []);
+
+  // Track focused card via onCardSelect wrapper
+  const handleNodeFocus = useCallback((target: THREE.Vector3 | null) => {
+    setFocusTarget(target);
+  }, []);
+
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag); else next.add(tag);
+      return next;
+    });
+  }, []);
+
+  const handleScreenshot = useCallback(() => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return;
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'knowledge-graph-3d.png';
+    a.click();
+  }, []);
+
+  // Wrap setFocusTarget to also set focusedCardId
+  const setFocusTargetWithCard = useCallback((v: THREE.Vector3 | null) => {
+    setFocusTarget(v);
+    // Find the card at this position — handled via Scene onClick
   }, []);
 
   return (
     <div className={`h-full w-full relative ${className}`}>
       {/* Controls */}
-      <div className="absolute top-3 left-3 z-10 space-y-2 p-3 bg-card/85 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl max-w-[220px]">
+      <div className="absolute top-3 left-3 z-10 space-y-2 p-3 bg-card/85 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl max-w-[220px] max-h-[80vh] overflow-y-auto">
         <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-2">
           <Search className="h-3 w-3 text-muted-foreground shrink-0" />
           <Input
@@ -433,9 +657,9 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="force">🌐 Force-Directed</SelectItem>
             <SelectItem value="sphere">🔮 Sphere</SelectItem>
             <SelectItem value="cube">🧊 Cube</SelectItem>
-            <SelectItem value="helix">🧬 Helix</SelectItem>
             <SelectItem value="layers">📚 Category Layers</SelectItem>
           </SelectContent>
         </Select>
@@ -459,38 +683,110 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
             <RotateCw className={`h-3 w-3 mr-1 ${autoRotate ? 'animate-spin' : ''}`} style={autoRotate ? { animationDuration: '3s' } : {}} />
             Spin
           </Button>
+        </div>
+
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="sm"
             onClick={handleReset}
-            className="h-7 w-7 p-0"
+            className="h-7 px-2 text-[11px] flex-1"
             title="Reset camera"
           >
-            <Crosshair className="h-3 w-3" />
+            <Crosshair className="h-3 w-3 mr-1" />
+            Reset
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScreenshot}
+            className="h-7 px-2 text-[11px] flex-1"
+            title="Screenshot"
+          >
+            <Camera className="h-3 w-3 mr-1" />
+            Export
           </Button>
         </div>
 
+        {/* Hop Depth Slider */}
+        {focusedCardId && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground font-medium">Hop Depth: {hopDepth}</p>
+            <Slider
+              value={[hopDepth]}
+              onValueChange={([v]) => setHopDepth(v)}
+              min={1}
+              max={3}
+              step={1}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {/* Tag Filters */}
+        {allTags.length > 0 && (
+          <div>
+            <button
+              onClick={() => setShowTags(!showTags)}
+              className="flex items-center justify-between w-full text-[10px] text-muted-foreground font-medium hover:text-foreground transition-colors"
+            >
+              <span>Tags ({selectedTags.size > 0 ? `${selectedTags.size} active` : allTags.length})</span>
+              {showTags ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+            {showTags && (
+              <div className="mt-1.5 space-y-1.5">
+                {selectedTags.size > 0 && (
+                  <button
+                    onClick={() => setSelectedTags(new Set())}
+                    className="text-[9px] text-destructive hover:underline flex items-center gap-0.5"
+                  >
+                    <X className="h-2.5 w-2.5" /> Clear
+                  </button>
+                )}
+                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                  {allTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium transition-colors ${
+                        selectedTags.has(tag)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <p className="text-[10px] text-muted-foreground">
-            {cards.length} node{cards.length !== 1 ? 's' : ''} · 3D
+            {filteredCards.length} node{filteredCards.length !== 1 ? 's' : ''} · 3D
           </p>
           {searchTerm && (
             <p className="text-[10px] text-primary font-medium">
-              {cards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).length} match{cards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).length !== 1 ? 'es' : ''}
+              {filteredCards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).length} match{filteredCards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).length !== 1 ? 'es' : ''}
             </p>
           )}
         </div>
+
+        <p className="text-[9px] text-muted-foreground/50">Click to focus · Double-click to open</p>
       </div>
 
       {/* Canvas */}
       <Canvas
+        ref={canvasRef as any}
         camera={{ position: [0, 0, 15], fov: 60 }}
         style={{ background: 'transparent' }}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
         dpr={[1, 1.5]}
       >
         <Scene
-          cards={cards}
+          cards={filteredCards}
           onCardSelect={onCardSelect}
           searchTerm={searchTerm}
           layoutType={layoutType}
@@ -499,6 +795,11 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
           focusTarget={focusTarget}
           setFocusTarget={setFocusTarget}
           resetCount={resetCount}
+          focusedCardId={focusedCardId}
+          setFocusedCardId={setFocusedCardId}
+          hopDepth={hopDepth}
+          connectionCounts={connectionCounts}
+          cardMap={cardMap}
         />
       </Canvas>
     </div>
