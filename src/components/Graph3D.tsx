@@ -796,6 +796,7 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
           setFocusTarget={setFocusTarget}
           resetCount={resetCount}
           focusedCardId={focusedCardId}
+          setFocusedCardId={setFocusedCardId}
           hopDepth={hopDepth}
           connectionCounts={connectionCounts}
           cardMap={cardMap}
