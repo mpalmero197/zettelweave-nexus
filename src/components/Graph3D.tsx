@@ -293,11 +293,12 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, thickness }: {
   start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean; isHighlighted?: boolean; isHidden?: boolean; thickness?: number;
 }) {
-  if (isHidden) return null;
   const points = useMemo(() => [
     new THREE.Vector3(...start),
     new THREE.Vector3(...end),
   ], [start, end]);
+
+  if (isHidden) return null;
 
   const baseWidth = thickness || 1.2;
 
