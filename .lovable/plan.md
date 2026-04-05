@@ -1,52 +1,55 @@
 
 
-# Enhance the 3D Knowledge Graph
+# Enhance 3D Knowledge Graph — Full Upgrade
 
-## Current Gaps
-- All nodes are the same blue color regardless of category
-- No hover tooltip / detail preview
-- No particle effects on edges
-- No bloom/glow post-processing
-- No starfield or atmospheric background
-- No click-to-focus camera animation
-- No auto-rotate toggle
-- Connections are plain static lines
+## Summary
+Replace the Helix layout with a force-directed physics simulation, add node sizing by connection count, tag filter chips, depth-of-field hop slider, double-click to open cards, and a screenshot export button. All changes in one file: `src/components/Graph3D.tsx`.
 
-## Plan
+## Changes
 
-### 1. Category-Colored Nodes with Glow
-Map each Dewey category to a distinct color (using the existing category CSS vars). Add emissive glow to all nodes, stronger for highlighted/search matches. Use `MeshPhysicalMaterial` for a glassy, reflective look instead of `meshStandardMaterial`.
+### 1. Replace Helix with Force-Directed Layout
+Remove the `helix` option. Add a `force` layout that runs a simple iterative force simulation (spring-attraction for linked nodes, repulsion between all nodes) computed in `useMemo` with ~80 iterations. This gives organic clustering where hubs pull together and isolated nodes drift apart. No external physics library needed — just a loop over positions.
 
-### 2. Hover Tooltip with Card Preview
-On pointer hover, show an HTML overlay (using drei's `Html` component) displaying the card title, category name, tag badges, and a truncated content preview. Fades in/out smoothly.
+### 2. Node Size by Connection Count
+Scale each node's sphere radius proportionally to its number of connections (`linkedCards.length` + incoming links). Hub nodes become visibly larger (radius 0.35–0.8), making important nodes immediately obvious.
 
-### 3. Click-to-Focus Camera Animation
-When a node is clicked, smoothly animate the camera to orbit around that node (lerp camera target). Add a "Reset View" button to return to default position.
+### 3. Edge Thickness by Shared Tags
+When two connected nodes share tags, make the edge thicker (lineWidth 1–4) based on the number of shared tags. This visually encodes relationship strength.
 
-### 4. Bloom Post-Processing
-Add `@react-three/postprocessing` with `Bloom` effect for a neon glow on emissive node materials and connection lines. Subtle but impactful.
+### 4. Tag Filter Chips
+Add a collapsible "Tags" section in the control panel. Extract all unique tags from cards, display as small clickable chips. When tags are selected, only nodes with those tags (and their direct connections) are shown; others are hidden entirely. A "Clear" button resets the filter.
 
-### 5. Animated Edge Particles
-Replace static lines with animated dashed lines (using `LineDashedMaterial` with animated dash offset) to show "flow" between connected nodes.
+### 5. Depth / Hop Slider
+Add a slider (1–3 hops) that works with the focused node. After clicking a node, the slider controls how many connection hops away from it remain visible. Default: show all. When a node is focused and depth=1, only direct neighbors show; depth=2 includes neighbors-of-neighbors, etc.
 
-### 6. Starfield Background
-Add drei's `Stars` component for an ambient cosmic particle background behind the graph.
+### 6. Double-Click to Open Card
+Add `onDoubleClick` to each node sphere that calls `onCardSelect`. Single click still does camera focus. This matches the intuitive "click to look, double-click to open" pattern.
 
-### 7. Auto-Rotate Toggle
-Add an auto-rotate button to the controls panel. When enabled, the graph slowly spins for a showcase effect.
+### 7. Screenshot Export
+Add a camera icon button in the control panel. On click, call `gl.domElement.toDataURL('image/png')` from the Canvas ref and trigger a download. Zero dependencies.
 
-### 8. Neighborhood Highlight
-On node hover, highlight all directly connected nodes and dim everything else, making the local cluster pop.
+### 8. Layout Dropdown Update
+- Remove "🧬 Helix"
+- Add "🌐 Force-Directed"
+- Keep Sphere, Cube, Category Layers
 
-## Files to Edit
-- `src/components/Graph3D.tsx` — All visual and interaction improvements
+## Technical Details
 
-## Dependencies
-- `@react-three/postprocessing` — for Bloom effect (will need to install)
+**Force simulation** (computed once per card change, not per-frame):
+```
+for 80 iterations:
+  - repulsion: each pair pushes apart (coulomb-like, capped)
+  - attraction: linked pairs pull together (spring)
+  - dampen velocities
+```
+Positions stored in the same `nodePositions` record. No animation of the simulation itself — just the final result.
 
-## Technical Notes
-- Category color map: 10 distinct hues mapped from the Dewey `000`–`900` ranges
-- `Html` from drei renders React DOM inside the 3D scene for tooltips
-- Bloom uses `UnrealBloomPass` under the hood, configured with low intensity for subtlety
-- Camera animation via `useFrame` lerping `controls.target` and `camera.position`
+**Screenshot**: Access the Canvas GL context via a `ref` on `<Canvas>`, then `canvas.toDataURL()`.
+
+**Tag filter**: New state `selectedTags: Set<string>`. Cards are pre-filtered before passing to the Scene. The control panel renders tag chips from `useMemo` that extracts unique tags.
+
+**Hop depth**: New state `hopDepth: number | null`. When a node is focused, compute reachable set via BFS up to `hopDepth` levels. Nodes outside the set get `isDimmed`.
+
+## File
+- `src/components/Graph3D.tsx` — all changes
 
