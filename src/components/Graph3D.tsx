@@ -463,7 +463,8 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   const handleNodeClick = useCallback((card: ZettelCard) => {
     const pos = nodePositions[card.id];
     if (pos) setFocusTarget(new THREE.Vector3(...pos));
-  }, [nodePositions, setFocusTarget]);
+    setFocusedCardId(card.id);
+  }, [nodePositions, setFocusTarget, setFocusedCardId]);
 
   const handleNodeDoubleClick = useCallback((card: ZettelCard) => {
     onCardSelect?.(card);
