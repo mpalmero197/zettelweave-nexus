@@ -357,7 +357,7 @@ function CameraController({ target, autoRotate, onReset }: {
 }
 
 // ── Scene ─────────────────────────────────────────────────────────────
-function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges, autoRotate, focusTarget, setFocusTarget, resetCount, focusedCardId, hopDepth, connectionCounts, cardMap }: {
+function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges, autoRotate, focusTarget, setFocusTarget, resetCount, focusedCardId, setFocusedCardId, hopDepth, connectionCounts, cardMap }: {
   cards: ZettelCard[];
   onCardSelect?: (card: ZettelCard) => void;
   searchTerm: string;
@@ -368,6 +368,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   setFocusTarget: (v: THREE.Vector3 | null) => void;
   resetCount: number;
   focusedCardId: string | null;
+  setFocusedCardId: (id: string | null) => void;
   hopDepth: number;
   connectionCounts: Record<string, number>;
   cardMap: Record<string, ZettelCard>;
