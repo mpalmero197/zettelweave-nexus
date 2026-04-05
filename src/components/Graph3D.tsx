@@ -793,17 +793,7 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
           showCategoryEdges={showCategoryEdges}
           autoRotate={autoRotate}
           focusTarget={focusTarget}
-          setFocusTarget={(v) => {
-            setFocusTarget(v);
-            if (v) {
-              // Find the card closest to this position
-              let closest: string | null = null;
-              let minDist = Infinity;
-              filteredCards.forEach(c => {
-                // We don't have positions here, so we track via Scene click
-              });
-            }
-          }}
+          setFocusTarget={setFocusTarget}
           resetCount={resetCount}
           focusedCardId={focusedCardId}
           hopDepth={hopDepth}
