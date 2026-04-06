@@ -233,13 +233,14 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           color={categoryColor}
           emissive={categoryColor}
           emissiveIntensity={emissiveIntensity}
-          roughness={0.12}
-          metalness={0.15}
+          roughness={0.05}
+          metalness={0.3}
           clearcoat={1}
-          clearcoatRoughness={0.08}
+          clearcoatRoughness={0.03}
           transparent
           opacity={opacity}
           toneMapped={false}
+          envMapIntensity={1.5}
         />
       </Sphere>
 
