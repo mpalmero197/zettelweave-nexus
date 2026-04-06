@@ -783,10 +783,10 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
       {/* Canvas */}
       <Canvas
         ref={canvasRef as any}
-        camera={{ position: [0, 0, 15], fov: 60 }}
-        style={{ background: 'transparent' }}
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
-        dpr={[1, 1.5]}
+        camera={{ position: [0, 2, 20], fov: 55 }}
+        style={{ background: '#030008' }}
+        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        dpr={[1, 2]}
       >
         <Scene
           cards={filteredCards}
