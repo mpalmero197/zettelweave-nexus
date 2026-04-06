@@ -335,7 +335,7 @@ function CameraController({ target, autoRotate, onReset }: {
 
   useEffect(() => {
     if (onReset > 0 && controlsRef.current) {
-      camera.position.set(0, 0, 15);
+      camera.position.set(0, 2, 30);
       controlsRef.current.target.set(0, 0, 0);
     }
   }, [onReset, camera]);
