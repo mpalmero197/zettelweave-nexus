@@ -63,10 +63,10 @@ function computeForceLayout(cards: ZettelCard[]): Record<string, [number, number
     });
   });
 
-  const ITERATIONS = 80;
-  const REPULSION = 8;
-  const SPRING = 0.02;
-  const IDEAL_LENGTH = 3;
+  const ITERATIONS = 100;
+  const REPULSION = 12;
+  const SPRING = 0.015;
+  const IDEAL_LENGTH = 4.5;
   const DAMPING = 0.85;
 
   for (let iter = 0; iter < ITERATIONS; iter++) {
