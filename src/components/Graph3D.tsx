@@ -301,15 +301,15 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
 
   if (isHidden) return null;
 
-  const baseWidth = thickness || 1.2;
+  const baseWidth = thickness || 0.6;
 
   return (
     <Line
       points={points}
-      color={color}
-      lineWidth={isHighlighted ? baseWidth * 2 : baseWidth}
+      color={isHighlighted ? color : new THREE.Color(0x888899)}
+      lineWidth={isHighlighted ? baseWidth * 2.5 : baseWidth}
       transparent
-      opacity={isDimmed ? 0.03 : isHighlighted ? 0.8 : 0.35}
+      opacity={isDimmed ? 0.02 : isHighlighted ? 0.7 : 0.15}
     />
   );
 }
