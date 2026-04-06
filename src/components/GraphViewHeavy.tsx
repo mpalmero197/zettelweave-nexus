@@ -448,87 +448,85 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           size={2}
         />
         
-        {/* Enhanced Controls Panel */}
-        <Panel position="top-left" className="space-y-3 p-4 bg-card border border-border rounded-lg shadow-card max-w-sm">
-          <div className="flex items-center gap-2">
+        {/* Controls Panel — responsive for mobile */}
+        <Panel position="top-left" className="space-y-2 p-2 sm:p-4 bg-card/90 backdrop-blur-md border border-border rounded-lg shadow-card max-w-[160px] sm:max-w-sm">
+          {/* 3D toggle + reset row */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant={is3D ? "default" : "outline"}
               size="sm"
               onClick={() => setIs3D(!is3D)}
-              className="h-8 px-2"
+              className="h-7 sm:h-8 px-1.5 sm:px-2"
               title="Toggle 3D View"
             >
               <Box className="h-3 w-3" />
             </Button>
-            <span className="text-xs text-muted-foreground">
-              {is3D ? '3D' : '2D'} View
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search cards..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="force">Force Layout</SelectItem>
-                <SelectItem value="circular">Circular</SelectItem>
-                <SelectItem value="hierarchical">Hierarchical</SelectItem>
-                <SelectItem value="category">By Category</SelectItem>
-              </SelectContent>
-            </Select>
-            
             <Button
               variant="outline"
               size="sm"
               onClick={resetLayout}
-              className="h-8 px-2"
+              className="h-7 sm:h-8 px-1.5 sm:px-2"
+              title="Reset view"
             >
               <RotateCcw className="h-3 w-3" />
             </Button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>
-                    {getCategoryInfo(cat).name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCategoryEdges(!showCategoryEdges)}
-              className="h-8 px-2"
+              className="h-7 sm:h-8 px-1.5 sm:px-2"
+              title={showCategoryEdges ? 'Hide category links' : 'Show category links'}
             >
               {showCategoryEdges ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
             </Button>
           </div>
+
+          {/* Search */}
+          <div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-1.5">
+            <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Input
+              placeholder="Search…"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="h-7 text-xs border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
+            />
+          </div>
+
+          {/* Layout selector */}
+          <Select value={layoutType} onValueChange={(value) => setLayoutType(value as typeof layoutType)}>
+            <SelectTrigger className="h-7 sm:h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="force">Force Layout</SelectItem>
+              <SelectItem value="circular">Circular</SelectItem>
+              <SelectItem value="hierarchical">Hierarchical</SelectItem>
+              <SelectItem value="category">Star Schema</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Category filter */}
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="h-7 sm:h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat} value={cat}>
+                  {getCategoryInfo(cat).name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
-          <div className="text-xs text-muted-foreground">
-            Showing {filteredCards.length} of {cards.length} cards
+          <div className="text-[10px] text-muted-foreground">
+            {filteredCards.length}/{cards.length} cards
           </div>
         </Panel>
 
-        {/* Stats Panel */}
-        <Panel position="top-right" className="p-3 bg-card border border-border rounded-lg shadow-card">
+        {/* Stats Panel — hidden on mobile */}
+        <Panel position="top-right" className="hidden sm:block p-3 bg-card border border-border rounded-lg shadow-card">
           <div className="text-sm font-medium mb-2">Graph Stats</div>
           <div className="space-y-1 text-xs text-muted-foreground">
             <div>Nodes: {nodes.length}</div>
@@ -542,7 +540,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         
         <MiniMap 
           nodeClassName={nodeClassName}
-          className="bg-card border border-border rounded-lg shadow-card"
+          className="hidden sm:block bg-card border border-border rounded-lg shadow-card"
           maskColor="hsl(var(--background) / 0.8)"
           pannable
           zoomable
