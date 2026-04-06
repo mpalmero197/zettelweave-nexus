@@ -525,8 +525,8 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           </div>
         </Panel>
 
-        {/* Stats Panel */}
-        <Panel position="top-right" className="p-3 bg-card border border-border rounded-lg shadow-card">
+        {/* Stats Panel — hidden on mobile */}
+        <Panel position="top-right" className="hidden sm:block p-3 bg-card border border-border rounded-lg shadow-card">
           <div className="text-sm font-medium mb-2">Graph Stats</div>
           <div className="space-y-1 text-xs text-muted-foreground">
             <div>Nodes: {nodes.length}</div>
@@ -540,7 +540,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         
         <MiniMap 
           nodeClassName={nodeClassName}
-          className="bg-card border border-border rounded-lg shadow-card"
+          className="hidden sm:block bg-card border border-border rounded-lg shadow-card"
           maskColor="hsl(var(--background) / 0.8)"
           pannable
           zoomable
