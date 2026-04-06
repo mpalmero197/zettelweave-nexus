@@ -397,7 +397,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   // Node radius
   const getRadius = useCallback((cardId: string) => {
     const count = connectionCounts[cardId] || 0;
-    return 0.35 + (count / maxConn) * 0.45;
+    return 0.15 + (count / maxConn) * 0.95;
   }, [connectionCounts, maxConn]);
 
   // 3D Layouts
