@@ -12,16 +12,16 @@ import { Search, Eye, EyeOff, RotateCw, Crosshair, Camera, X, ChevronDown, Chevr
 
 // ── Category color map ────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, THREE.Color> = {
-  '0': new THREE.Color(0x06b6d4),
-  '1': new THREE.Color(0xa855f7),
-  '2': new THREE.Color(0xf59e0b),
-  '3': new THREE.Color(0xef4444),
-  '4': new THREE.Color(0x22d3ee),
-  '5': new THREE.Color(0x10b981),
-  '6': new THREE.Color(0x3b82f6),
-  '7': new THREE.Color(0xec4899),
-  '8': new THREE.Color(0xf97316),
-  '9': new THREE.Color(0x8b5cf6),
+  '0': new THREE.Color(0x00e5ff),
+  '1': new THREE.Color(0xd500f9),
+  '2': new THREE.Color(0xffea00),
+  '3': new THREE.Color(0xff1744),
+  '4': new THREE.Color(0x00e676),
+  '5': new THREE.Color(0x651fff),
+  '6': new THREE.Color(0x2979ff),
+  '7': new THREE.Color(0xff4081),
+  '8': new THREE.Color(0xff9100),
+  '9': new THREE.Color(0x76ff03),
 };
 
 function getCategoryColor(category: string): THREE.Color {
