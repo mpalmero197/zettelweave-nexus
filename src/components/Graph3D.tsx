@@ -473,12 +473,14 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <pointLight position={[20, 15, 15]} intensity={0.7} color="#c4b5fd" />
-      <pointLight position={[-15, -12, -15]} intensity={0.35} color="#06b6d4" />
-      <pointLight position={[0, -20, 5]} intensity={0.2} color="#ec4899" />
+      <ambientLight intensity={0.15} />
+      <pointLight position={[25, 20, 20]} intensity={1.2} color="#e0c0ff" />
+      <pointLight position={[-20, -15, -20]} intensity={0.6} color="#00e5ff" />
+      <pointLight position={[0, -25, 10]} intensity={0.4} color="#ff4081" />
+      <pointLight position={[15, 0, -25]} intensity={0.3} color="#76ff03" />
+      <hemisphereLight args={['#1a0030', '#000510', 0.3]} />
 
-      <Stars radius={100} depth={80} count={3000} factor={3.5} saturation={0.3} fade speed={0.6} />
+      <Stars radius={120} depth={100} count={5000} factor={4} saturation={0.5} fade speed={0.4} />
 
       {cards.map(card => {
         const pos = nodePositions[card.id] || [0, 0, 0];
