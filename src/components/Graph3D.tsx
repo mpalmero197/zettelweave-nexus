@@ -348,8 +348,8 @@ function CameraController({ target, autoRotate, onReset }: {
       enableRotate
       autoRotate={autoRotate}
       autoRotateSpeed={0.6}
-      minDistance={3}
-      maxDistance={50}
+      minDistance={1}
+      maxDistance={200}
       enableDamping
       dampingFactor={0.05}
       makeDefault
