@@ -12,16 +12,16 @@ import { Search, Eye, EyeOff, RotateCw, Crosshair, Camera, X, ChevronDown, Chevr
 
 // ── Category color map ────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, THREE.Color> = {
-  '0': new THREE.Color(0x06b6d4),
-  '1': new THREE.Color(0xa855f7),
-  '2': new THREE.Color(0xf59e0b),
-  '3': new THREE.Color(0xef4444),
-  '4': new THREE.Color(0x22d3ee),
-  '5': new THREE.Color(0x10b981),
-  '6': new THREE.Color(0x3b82f6),
-  '7': new THREE.Color(0xec4899),
-  '8': new THREE.Color(0xf97316),
-  '9': new THREE.Color(0x8b5cf6),
+  '0': new THREE.Color(0x00e5ff),
+  '1': new THREE.Color(0xd500f9),
+  '2': new THREE.Color(0xffea00),
+  '3': new THREE.Color(0xff1744),
+  '4': new THREE.Color(0x00e676),
+  '5': new THREE.Color(0x651fff),
+  '6': new THREE.Color(0x2979ff),
+  '7': new THREE.Color(0xff4081),
+  '8': new THREE.Color(0xff9100),
+  '9': new THREE.Color(0x76ff03),
 };
 
 function getCategoryColor(category: string): THREE.Color {
@@ -63,10 +63,10 @@ function computeForceLayout(cards: ZettelCard[]): Record<string, [number, number
     });
   });
 
-  const ITERATIONS = 80;
-  const REPULSION = 8;
-  const SPRING = 0.02;
-  const IDEAL_LENGTH = 3;
+  const ITERATIONS = 100;
+  const REPULSION = 12;
+  const SPRING = 0.015;
+  const IDEAL_LENGTH = 4.5;
   const DAMPING = 0.85;
 
   for (let iter = 0; iter < ITERATIONS; iter++) {
@@ -197,15 +197,15 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
   useFrame((state) => {
     if (!meshRef.current || !groupRef.current) return;
-    groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.6 + position[0] * 0.7) * 0.15;
-    const s = hovered ? 1.4 : isSearchMatch ? 1.15 : 1;
-    meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.1);
+    groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.4 + position[0] * 0.5) * 0.08;
+    const s = hovered ? 1.5 : isSearchMatch ? 1.2 : 1;
+    meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.12);
   });
 
   if (isHidden) return null;
 
-  const emissiveIntensity = hovered ? 2.2 : isSearchMatch ? 1.5 : 0.5;
-  const opacity = isDimmed ? 0.12 : 1;
+  const emissiveIntensity = hovered ? 3.5 : isSearchMatch ? 2.5 : 1.2;
+  const opacity = isDimmed ? 0.06 : 1;
 
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
@@ -233,28 +233,29 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           color={categoryColor}
           emissive={categoryColor}
           emissiveIntensity={emissiveIntensity}
-          roughness={0.12}
-          metalness={0.15}
+          roughness={0.05}
+          metalness={0.3}
           clearcoat={1}
-          clearcoatRoughness={0.08}
+          clearcoatRoughness={0.03}
           transparent
           opacity={opacity}
           toneMapped={false}
+          envMapIntensity={1.5}
         />
       </Sphere>
 
-      {!isDimmed && (
+      {!isDimmed && radius > 0.35 && (
         <Text
-          position={[0, -(radius + 0.5), 0]}
-          fontSize={0.22}
+          position={[0, -(radius + 0.4), 0]}
+          fontSize={Math.min(0.25, radius * 0.4)}
           maxWidth={3}
           textAlign="center"
           color="white"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.85}
+          fillOpacity={0.7}
         >
-          {card.title.length > 22 ? card.title.slice(0, 20) + '…' : card.title}
+          {card.title.length > 18 ? card.title.slice(0, 16) + '…' : card.title}
         </Text>
       )}
 
@@ -300,15 +301,15 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
 
   if (isHidden) return null;
 
-  const baseWidth = thickness || 1.2;
+  const baseWidth = thickness || 0.6;
 
   return (
     <Line
       points={points}
-      color={color}
-      lineWidth={isHighlighted ? baseWidth * 2 : baseWidth}
+      color={isHighlighted ? color : new THREE.Color(0x888899)}
+      lineWidth={isHighlighted ? baseWidth * 2.5 : baseWidth}
       transparent
-      opacity={isDimmed ? 0.03 : isHighlighted ? 0.8 : 0.35}
+      opacity={isDimmed ? 0.02 : isHighlighted ? 0.7 : 0.15}
     />
   );
 }
@@ -396,7 +397,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   // Node radius
   const getRadius = useCallback((cardId: string) => {
     const count = connectionCounts[cardId] || 0;
-    return 0.35 + (count / maxConn) * 0.45;
+    return 0.15 + (count / maxConn) * 0.95;
   }, [connectionCounts, maxConn]);
 
   // 3D Layouts
@@ -472,12 +473,14 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <pointLight position={[20, 15, 15]} intensity={0.7} color="#c4b5fd" />
-      <pointLight position={[-15, -12, -15]} intensity={0.35} color="#06b6d4" />
-      <pointLight position={[0, -20, 5]} intensity={0.2} color="#ec4899" />
+      <ambientLight intensity={0.15} />
+      <pointLight position={[25, 20, 20]} intensity={1.2} color="#e0c0ff" />
+      <pointLight position={[-20, -15, -20]} intensity={0.6} color="#00e5ff" />
+      <pointLight position={[0, -25, 10]} intensity={0.4} color="#ff4081" />
+      <pointLight position={[15, 0, -25]} intensity={0.3} color="#76ff03" />
+      <hemisphereLight args={['#1a0030', '#000510', 0.3]} />
 
-      <Stars radius={100} depth={80} count={3000} factor={3.5} saturation={0.3} fade speed={0.6} />
+      <Stars radius={120} depth={100} count={5000} factor={4} saturation={0.5} fade speed={0.4} />
 
       {cards.map(card => {
         const pos = nodePositions[card.id] || [0, 0, 0];
@@ -780,10 +783,10 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
       {/* Canvas */}
       <Canvas
         ref={canvasRef as any}
-        camera={{ position: [0, 0, 15], fov: 60 }}
-        style={{ background: 'transparent' }}
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
-        dpr={[1, 1.5]}
+        camera={{ position: [0, 2, 20], fov: 55 }}
+        style={{ background: '#030008' }}
+        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        dpr={[1, 2]}
       >
         <Scene
           cards={filteredCards}
