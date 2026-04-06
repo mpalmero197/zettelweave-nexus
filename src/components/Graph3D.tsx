@@ -197,15 +197,15 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
   useFrame((state) => {
     if (!meshRef.current || !groupRef.current) return;
-    groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.6 + position[0] * 0.7) * 0.15;
-    const s = hovered ? 1.4 : isSearchMatch ? 1.15 : 1;
-    meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.1);
+    groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.4 + position[0] * 0.5) * 0.08;
+    const s = hovered ? 1.5 : isSearchMatch ? 1.2 : 1;
+    meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.12);
   });
 
   if (isHidden) return null;
 
-  const emissiveIntensity = hovered ? 2.2 : isSearchMatch ? 1.5 : 0.5;
-  const opacity = isDimmed ? 0.12 : 1;
+  const emissiveIntensity = hovered ? 3.5 : isSearchMatch ? 2.5 : 1.2;
+  const opacity = isDimmed ? 0.06 : 1;
 
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
