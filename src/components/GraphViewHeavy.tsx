@@ -107,7 +107,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         break;
 
       case 'category':
-        const categoryColors = ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
+        // Star-schema layout: each category is a "table" block radiating from center
         const catGroups: Record<string, ZettelCard[]> = {};
         cards.forEach(card => {
           const mainCategory = card.category.substring(0, 1) + '00';
@@ -117,19 +117,47 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
           catGroups[mainCategory].push(card);
         });
 
-        Object.keys(catGroups).forEach((category, catIndex) => {
+        const catKeys = Object.keys(catGroups).sort();
+        const numCats = catKeys.length;
+
+        // Find the largest group to place in the center as the "fact table"
+        let hubCatIndex = 0;
+        let hubSize = 0;
+        catKeys.forEach((cat, i) => {
+          if (catGroups[cat].length > hubSize) {
+            hubSize = catGroups[cat].length;
+            hubCatIndex = i;
+          }
+        });
+
+        const hubCat = catKeys[hubCatIndex];
+        const spokeCats = catKeys.filter((_, i) => i !== hubCatIndex);
+        const nodeW = 200;
+        const nodeH = 50;
+        const spokeRadius = Math.max(450, spokeCats.length * 80);
+
+        // Place hub cards in a vertical column at center
+        const hubCards = catGroups[hubCat];
+        const hubStartY = centerY - ((hubCards.length - 1) * nodeH) / 2;
+        hubCards.forEach((card, i) => {
+          positions[card.id] = {
+            x: centerX,
+            y: hubStartY + i * nodeH
+          };
+        });
+
+        // Place spoke categories around the hub in a star pattern
+        spokeCats.forEach((category, spokeIndex) => {
+          const angle = (spokeIndex / spokeCats.length) * 2 * Math.PI - Math.PI / 2;
+          const spokeCenterX = Math.cos(angle) * spokeRadius + centerX;
+          const spokeCenterY = Math.sin(angle) * spokeRadius + centerY;
           const group = catGroups[category];
-          const angle = (catIndex / Object.keys(catGroups).length) * 2 * Math.PI;
-          const radius = 250;
-          const catCenterX = Math.cos(angle) * radius + centerX;
-          const catCenterY = Math.sin(angle) * radius + centerY;
+          const startY = spokeCenterY - ((group.length - 1) * nodeH) / 2;
 
           group.forEach((card, cardIndex) => {
-            const cardAngle = (cardIndex / group.length) * 2 * Math.PI;
-            const cardRadius = Math.min(80, group.length * 15);
             positions[card.id] = {
-              x: Math.cos(cardAngle) * cardRadius + catCenterX,
-              y: Math.sin(cardAngle) * cardRadius + catCenterY
+              x: spokeCenterX,
+              y: startY + cardIndex * nodeH
             };
           });
         });
