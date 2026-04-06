@@ -244,18 +244,18 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
         />
       </Sphere>
 
-      {!isDimmed && (
+      {!isDimmed && radius > 0.35 && (
         <Text
-          position={[0, -(radius + 0.5), 0]}
-          fontSize={0.22}
+          position={[0, -(radius + 0.4), 0]}
+          fontSize={Math.min(0.25, radius * 0.4)}
           maxWidth={3}
           textAlign="center"
           color="white"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.85}
+          fillOpacity={0.7}
         >
-          {card.title.length > 22 ? card.title.slice(0, 20) + '…' : card.title}
+          {card.title.length > 18 ? card.title.slice(0, 16) + '…' : card.title}
         </Text>
       )}
 
