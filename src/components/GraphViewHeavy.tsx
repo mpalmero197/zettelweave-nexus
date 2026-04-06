@@ -449,7 +449,7 @@ function GraphViewInner({ cards, onCardSelect, className, is3D, setIs3D }: Graph
         />
         
         {/* Controls Panel — responsive for mobile */}
-        <Panel position="top-left" className="space-y-2 p-2 sm:p-4 bg-card/90 backdrop-blur-md border border-border rounded-lg shadow-card max-w-[160px] sm:max-w-sm">
+        <Panel position="top-left" className="space-y-2 p-2 sm:p-4 bg-card/90 backdrop-blur-md border border-border rounded-lg shadow-card max-w-[150px] sm:max-w-sm max-h-[50vh] overflow-y-auto">
           {/* 3D toggle + reset row */}
           <div className="flex items-center gap-1 sm:gap-2">
             <Button

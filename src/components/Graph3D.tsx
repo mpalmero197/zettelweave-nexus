@@ -348,7 +348,7 @@ function CameraController({ target, autoRotate, onReset }: {
       enableRotate
       autoRotate={autoRotate}
       autoRotateSpeed={0.6}
-      minDistance={1}
+      minDistance={0.5}
       maxDistance={200}
       enableDamping
       dampingFactor={0.05}
@@ -424,10 +424,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
         const keys = Object.keys(groups);
         keys.forEach((cat, li) => {
           const g = groups[cat];
-          const y = li * 3.5 - (keys.length - 1) * 1.75;
+          const y = li * 5 - (keys.length - 1) * 2.5;
           g.forEach((card, ci) => {
             const a = (ci / g.length) * 2 * Math.PI;
-            const r = Math.max(2, Math.min(5, g.length * 0.6));
+            const r = Math.max(3, Math.min(8, g.length * 0.9));
             positions[card.id] = [r * Math.cos(a), y, r * Math.sin(a)];
           });
         });
