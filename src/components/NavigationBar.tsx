@@ -204,18 +204,6 @@ export function NavigationBar({
                       {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                     <Button
-                      variant={activeTab === "habits" ? "default" : "ghost"}
-                      onClick={() => {
-                        onTabChange("habits");
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Target className="h-4 w-4" />
-                      Habits
-                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
-                    </Button>
-                    <Button
                       variant={activeTab === "stickynotes" ? "default" : "ghost"}
                       onClick={() => {
                         onTabChange("stickynotes");
