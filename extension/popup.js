@@ -543,6 +543,7 @@ function setupTabs() {
   const scratchTab = document.getElementById('scratch-tab');
   const stickyTab = document.getElementById('sticky-tab');
   const pomodoroTab = document.getElementById('pomodoro-tab');
+  const habitsTab = document.getElementById('habits-tab');
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -553,6 +554,7 @@ function setupTabs() {
       if (scratchTab) scratchTab.style.display = tabName === 'scratch' ? 'flex' : 'none';
       if (stickyTab) stickyTab.style.display = tabName === 'sticky' ? 'block' : 'none';
       if (pomodoroTab) pomodoroTab.style.display = tabName === 'pomodoro' ? 'block' : 'none';
+      if (habitsTab) habitsTab.style.display = tabName === 'habits' ? 'block' : 'none';
     });
   });
 }
