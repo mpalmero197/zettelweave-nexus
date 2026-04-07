@@ -117,6 +117,7 @@ function loadData() {
 
     if (authToken) {
       syncFromCloud();
+      syncHabitsFromCloud();
       startLiveSync();
     }
   });
