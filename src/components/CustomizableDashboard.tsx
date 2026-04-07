@@ -7,7 +7,7 @@ import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
 import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
 import { RecentWorkWidget } from "./widgets/RecentWorkWidget";
 import { FavoritesWidget } from "./widgets/FavoritesWidget";
-import { HabitTrackerWidget } from "./widgets/HabitTrackerWidget";
+
 import { ContentSummarizerWidget } from "./widgets/ContentSummarizerWidget";
 import { DocumentsWidget } from "./widgets/DocumentsWidget";
 import { DatabaseWidget } from "./widgets/DatabaseWidget";
@@ -41,7 +41,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
     const content = (() => {
       switch (widget.type) {
         case 'activity-feed': return <ActivityFeedWidget />;
-        case 'habit-tracker': return <HabitTrackerWidget />;
+        
         case 'weather': return <WeatherWidget />;
         case 'quotes': return <QuotesWidget />;
         case 'custom-note': return <CustomNoteWidget />;

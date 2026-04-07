@@ -204,18 +204,6 @@ export function NavigationBar({
                       {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
                     </Button>
                     <Button
-                      variant={activeTab === "habits" ? "default" : "ghost"}
-                      onClick={() => {
-                        onTabChange("habits");
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Target className="h-4 w-4" />
-                      Habits
-                      {!hasPremium && <PremiumBadge variant="icon-only" className="ml-auto" />}
-                    </Button>
-                    <Button
                       variant={activeTab === "stickynotes" ? "default" : "ghost"}
                       onClick={() => {
                         onTabChange("stickynotes");
@@ -461,7 +449,7 @@ export function NavigationBar({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant={["calendar", "journal", "habits", "stickynotes", "projects"].includes(activeTab) ? "secondary" : "ghost"}
+                        variant={["calendar", "journal", "stickynotes", "projects"].includes(activeTab) ? "secondary" : "ghost"}
                         size="sm"
                         className="h-9 px-3 gap-1"
                       >
@@ -478,10 +466,6 @@ export function NavigationBar({
                       <DropdownMenuItem onClick={() => onTabChange("journal")}>
                         <StickyNote className="h-4 w-4 mr-2" />
                         Journal
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onTabChange("habits")}>
-                        <Target className="h-4 w-4 mr-2" />
-                        Habits
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onTabChange("stickynotes")}>
                         <StickyNote className="h-4 w-4 mr-2" />
