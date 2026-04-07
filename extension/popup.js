@@ -21,6 +21,7 @@ const STICKY_COLORS = [
 let selectedColor = STICKY_COLORS[0];
 let scratchNotes = [];
 let stickyNotes = [];
+let habits = [];
 let authToken = null;
 let userEmail = null;
 
