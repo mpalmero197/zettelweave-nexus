@@ -105,6 +105,7 @@ function loadData() {
 
     renderScratchNotes();
     renderStickyNotes();
+    renderHabits();
     updateAuthUI();
     updatePomoUI();
     updatePomoStats();
