@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAuth();
   renderColorPicker();
   setupPomodoro();
+  setupHabits();
 });
 
 // Clean up polling when popup closes
