@@ -417,6 +417,38 @@
       margin-top: 2px;
     }
 
+    /* Habits */
+    .habits-container { display: flex; flex-direction: column; gap: 10px; }
+    .habit-add-row { display: flex; gap: 6px; }
+    .habit-add-row input {
+      flex: 1; padding: 8px 10px; border: 1px solid #27272a; border-radius: 8px;
+      background: #18181b; color: #e4e4e7; font-size: 12px;
+    }
+    .habit-add-row input:focus { outline: none; border-color: #3b82f6; }
+    .habit-add-row input::placeholder { color: #52525b; }
+    .habit-card {
+      padding: 10px; background: #18181b; border-radius: 8px; border: 1px solid #27272a;
+    }
+    .habit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .habit-name { font-size: 12px; font-weight: 600; color: #e4e4e7; }
+    .habit-streak { font-size: 10px; color: #f59e0b; display: flex; align-items: center; gap: 3px; }
+    .habit-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 8px; }
+    .heat-cell { width: 100%; aspect-ratio: 1; border-radius: 3px; background: #27272a; }
+    .heat-cell.active { background: #3b82f6; }
+    .habit-checkin-btn {
+      width: 100%; padding: 6px; border: none; border-radius: 6px;
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    }
+    .habit-checkin-btn.pending { background: #3b82f6; color: white; }
+    .habit-checkin-btn.pending:hover { background: #2563eb; }
+    .habit-checkin-btn.done { background: #27272a; color: #4ade80; cursor: default; }
+    .habit-delete {
+      padding: 2px 6px; background: transparent; border: none; color: #52525b;
+      cursor: pointer; font-size: 12px; transition: color 0.15s;
+    }
+    .habit-delete:hover { color: #f87171; }
+    .habits-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+
     .footer {
       padding: 10px 14px;
       border-top: 1px solid #27272a;
@@ -427,11 +459,14 @@
 
     /* Scrollbar */
     .notes-list::-webkit-scrollbar,
-    .sticky-grid::-webkit-scrollbar { width: 4px; }
+    .sticky-grid::-webkit-scrollbar,
+    .habits-list::-webkit-scrollbar { width: 4px; }
     .notes-list::-webkit-scrollbar-thumb,
-    .sticky-grid::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+    .sticky-grid::-webkit-scrollbar-thumb,
+    .habits-list::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
     .notes-list::-webkit-scrollbar-track,
-    .sticky-grid::-webkit-scrollbar-track { background: transparent; }
+    .sticky-grid::-webkit-scrollbar-track,
+    .habits-list::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
