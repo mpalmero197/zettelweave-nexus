@@ -7,7 +7,7 @@ import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
 import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
 import { RecentWorkWidget } from "./widgets/RecentWorkWidget";
 import { FavoritesWidget } from "./widgets/FavoritesWidget";
-import { HabitTrackerWidget } from "./widgets/HabitTrackerWidget";
+
 import { ContentSummarizerWidget } from "./widgets/ContentSummarizerWidget";
 import { DocumentsWidget } from "./widgets/DocumentsWidget";
 import { DatabaseWidget } from "./widgets/DatabaseWidget";

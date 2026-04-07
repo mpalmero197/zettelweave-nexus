@@ -48,12 +48,11 @@ const navGroups = [
   },
   {
     label: "Planner",
-    tabs: ["calendar", "journal", "habits", "scratchpad", "stickynotes", "projects"],
+    tabs: ["calendar", "journal", "scratchpad", "stickynotes", "projects"],
     items: [
       { id: "calendar", label: "Calendar", icon: Calendar },
       { id: "projects", label: "Projects", icon: FolderOpen },
       { id: "journal", label: "Journal", icon: NotebookPen },
-      { id: "habits", label: "Habits", icon: Target },
       { id: "scratchpad", label: "Scratchpad", icon: PenLine },
       { id: "stickynotes", label: "Sticky Notes", icon: StickyNote },
     ],

@@ -467,10 +467,6 @@ export function NavigationBar({
                         <StickyNote className="h-4 w-4 mr-2" />
                         Journal
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onTabChange("habits")}>
-                        <Target className="h-4 w-4 mr-2" />
-                        Habits
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onTabChange("stickynotes")}>
                         <StickyNote className="h-4 w-4 mr-2" />
                         Sticky Notes

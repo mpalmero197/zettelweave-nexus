@@ -66,7 +66,7 @@ export function UnifiedHeader({
     { id: "recorder", icon: Mic },
     { id: "canvas", icon: Palette },
     { id: "journal", icon: StickyNote },
-    { id: "habits", icon: Target },
+    
     { id: "stickynotes", icon: StickyNote },
   ];
 

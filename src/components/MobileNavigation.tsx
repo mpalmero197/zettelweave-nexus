@@ -48,7 +48,7 @@ const SECTIONS = [
     label: 'Planner',
     items: [
       { id: 'journal', label: 'Journal', icon: StickyNote },
-      { id: 'habits', label: 'Habits', icon: Target },
+      
       { id: 'scratchpad', label: 'Scratchpad', icon: Pencil },
       { id: 'stickynotes', label: 'Sticky Notes', icon: StickyNote },
       { id: 'projects', label: 'Projects', icon: FolderKanban },

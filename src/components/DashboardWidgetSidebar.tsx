@@ -20,7 +20,7 @@ const WIDGET_DEFINITIONS: WidgetDefinition[] = [
   { type: 'activity-feed', name: 'Activity', description: 'Recent workspace activity', icon: Activity, defaultSize: { w: 2, h: 3 }, minSize: { w: 2, h: 2 } },
   { type: 'favorites', name: 'Favorites', description: 'Starred content', icon: Heart, defaultSize: { w: 2, h: 2 }, minSize: { w: 2, h: 2 } },
   { type: 'task-tracker', name: 'Tasks', description: 'Quick task tracker', icon: CheckSquare, defaultSize: { w: 2, h: 2 }, minSize: { w: 2, h: 2 } },
-  { type: 'habit-tracker', name: 'Habits', description: 'Daily habit tracking', icon: Activity, defaultSize: { w: 2, h: 2 }, minSize: { w: 2, h: 2 } },
+  
   { type: 'weather', name: 'Weather', description: 'Current conditions', icon: Sun, defaultSize: { w: 1, h: 1 }, minSize: { w: 1, h: 1 } },
   { type: 'quotes', name: 'Daily Quote', description: 'Inspirational quotes', icon: Quote, defaultSize: { w: 2, h: 1 }, minSize: { w: 2, h: 1 } },
   { type: 'custom-note', name: 'Custom Note', description: 'Freeform content', icon: StickyNote, defaultSize: { w: 2, h: 2 }, minSize: { w: 1, h: 1 } },
