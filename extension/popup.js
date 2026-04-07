@@ -78,6 +78,7 @@ function loadData() {
     selectedColor = result[STORAGE_KEYS.SELECTED_COLOR] || STICKY_COLORS[0];
     authToken = result[STORAGE_KEYS.AUTH_TOKEN] || null;
     userEmail = result[STORAGE_KEYS.USER_EMAIL] || null;
+    habits = result[STORAGE_KEYS.HABITS] || [];
     pomoStats = result[STORAGE_KEYS.POMO_STATS] || { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
 
     // Restore running timer state
