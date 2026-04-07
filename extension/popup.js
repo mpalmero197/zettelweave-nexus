@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   USER_EMAIL: 'pendragonx_user_email',
   POMO_STATE: 'pendragonx_pomo_state',
   POMO_STATS: 'pendragonx_pomo_stats',
+  HABITS: 'pendragonx_habits',
 };
 
 const STICKY_COLORS = [
