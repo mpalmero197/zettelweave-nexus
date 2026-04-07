@@ -692,6 +692,191 @@ function renderStickyNotes() {
   });
 }
 
+// ── Habits ──
+
+function setupHabits() {
+  const addBtn = document.getElementById('add-habit-btn');
+  const input = document.getElementById('habit-name-input');
+  if (!addBtn || !input) return;
+
+  addBtn.addEventListener('click', () => addHabit());
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addHabit(); });
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getHabitStreak(checkins) {
+  const sorted = [...new Set(checkins)].sort().reverse();
+  if (!sorted.length) return 0;
+  let streak = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const ds = d.toISOString().slice(0, 10);
+    if (sorted.includes(ds)) { streak++; d.setDate(d.getDate() - 1); }
+    else if (i === 0) { d.setDate(d.getDate() - 1); continue; }
+    else break;
+  }
+  return streak;
+}
+
+function addHabit() {
+  const input = document.getElementById('habit-name-input');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+
+  const habit = { id: Date.now().toString(), name, checkins: [], synced: false };
+  habits.push(habit);
+  input.value = '';
+  saveData();
+  renderHabits();
+
+  if (authToken) syncHabitToCloud(habit);
+}
+
+function checkinHabit(id) {
+  const habit = habits.find(h => h.id === id);
+  if (!habit) return;
+  const today = todayStr();
+  if (habit.checkins.includes(today)) return;
+  habit.checkins.push(today);
+  saveData();
+  renderHabits();
+
+  if (authToken) syncHabitCheckinToCloud(habit);
+}
+
+function deleteHabit(id) {
+  habits = habits.filter(h => h.id !== id);
+  saveData();
+  renderHabits();
+}
+
+function renderHabits() {
+  const container = document.getElementById('habits-list');
+  if (!container) return;
+
+  if (habits.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>No habits yet. Add one above!</p></div>';
+    return;
+  }
+
+  const today = todayStr();
+
+  container.innerHTML = habits.map(h => {
+    const streak = getHabitStreak(h.checkins);
+    const doneToday = h.checkins.includes(today);
+
+    // Build 28-day heatmap
+    const cells = [];
+    const d = new Date();
+    for (let i = 27; i >= 0; i--) {
+      const nd = new Date(d);
+      nd.setDate(nd.getDate() - i);
+      const ds = nd.toISOString().slice(0, 10);
+      cells.push(`<div class="heat-cell ${h.checkins.includes(ds) ? 'active' : ''}" title="${ds}"></div>`);
+    }
+
+    return `
+      <div class="habit-card" data-id="${h.id}">
+        <div class="habit-header">
+          <span class="habit-name">${escapeHtml(h.name)}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="habit-streak">🔥 ${streak}d</span>
+            <button class="habit-delete" data-id="${h.id}">✕</button>
+          </div>
+        </div>
+        <div class="habit-heatmap">${cells.join('')}</div>
+        <button class="habit-checkin-btn ${doneToday ? 'done' : 'pending'}" data-id="${h.id}" ${doneToday ? 'disabled' : ''}>
+          ${doneToday ? '✓ Done today' : '✓ Check in'}
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.habit-checkin-btn.pending').forEach(btn => {
+    btn.addEventListener('click', () => checkinHabit(btn.dataset.id));
+  });
+  container.querySelectorAll('.habit-delete').forEach(btn => {
+    btn.addEventListener('click', () => deleteHabit(btn.dataset.id));
+  });
+}
+
+async function syncHabitsFromCloud() {
+  if (!authToken) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/habits?select=id,name,color,streak`, {
+      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY }
+    });
+    if (!res.ok) return;
+    const cloudHabits = await res.json();
+
+    const compRes = await fetch(`${SUPABASE_URL}/rest/v1/habit_completions?select=habit_id,completion_date,completed`, {
+      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY }
+    });
+    const completions = compRes.ok ? await compRes.json() : [];
+
+    const byHabit = {};
+    completions.forEach(c => {
+      if (!byHabit[c.habit_id]) byHabit[c.habit_id] = [];
+      if (c.completed) byHabit[c.habit_id].push(c.completion_date);
+    });
+
+    habits = cloudHabits.map(h => ({
+      id: h.id,
+      name: h.name,
+      checkins: byHabit[h.id] || [],
+      synced: true,
+    }));
+
+    saveData();
+    renderHabits();
+  } catch (e) {
+    console.error('Habit sync failed:', e);
+  }
+}
+
+async function syncHabitToCloud(habit) {
+  if (!authToken) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/habits`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify({ name: habit.name, color: '#3b82f6', streak: 0 }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data[0]) {
+        const local = habits.find(h => h.id === habit.id);
+        if (local) { local.id = data[0].id; local.synced = true; saveData(); renderHabits(); }
+      }
+    }
+  } catch (e) { console.error('Failed to sync habit:', e); }
+}
+
+async function syncHabitCheckinToCloud(habit) {
+  if (!authToken || !habit.synced) return;
+  const today = todayStr();
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/habit_completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ habit_id: habit.id, completion_date: today, completed: true }),
+    });
+  } catch (e) { console.error('Failed to sync checkin:', e); }
+}
+
 // ── Helpers ──
 
 function escapeHtml(text) {
