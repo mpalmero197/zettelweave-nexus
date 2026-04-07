@@ -41,7 +41,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
     const content = (() => {
       switch (widget.type) {
         case 'activity-feed': return <ActivityFeedWidget />;
-        case 'habit-tracker': return <HabitTrackerWidget />;
+        
         case 'weather': return <WeatherWidget />;
         case 'quotes': return <QuotesWidget />;
         case 'custom-note': return <CustomNoteWidget />;
