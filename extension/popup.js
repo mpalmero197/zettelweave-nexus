@@ -130,7 +130,8 @@ function saveData() {
     [STORAGE_KEYS.STICKY_NOTES]: stickyNotes,
     [STORAGE_KEYS.SELECTED_COLOR]: selectedColor,
     [STORAGE_KEYS.AUTH_TOKEN]: authToken,
-    [STORAGE_KEYS.USER_EMAIL]: userEmail
+    [STORAGE_KEYS.USER_EMAIL]: userEmail,
+    [STORAGE_KEYS.HABITS]: habits,
   });
 }
 
