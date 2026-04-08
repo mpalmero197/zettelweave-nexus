@@ -199,6 +199,7 @@ export function AppLayout() {
                   aria-label="AI Modify"
                 >
                   <Wand2 className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
