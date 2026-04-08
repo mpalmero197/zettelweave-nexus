@@ -13,6 +13,7 @@ import {
   Wrench,
   Activity,
   Lock,
+  FileSearch,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -70,6 +71,7 @@ export const adminNavItems: AdminNavItem[] = [
       { id: 'settings', label: 'System Settings', icon: Settings },
       { id: 'export', label: 'Export & Backup', icon: Download },
       { id: 'tools', label: 'Test Tools', icon: Wrench },
+      { id: 'report', label: 'Platform Report', icon: FileSearch },
     ],
   },
   {
