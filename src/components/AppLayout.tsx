@@ -241,6 +241,7 @@ export function AppLayout() {
       <FloatingChatBubble />
       <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
       <FocusMiniPill />
+      <AIModifySidebar open={aiModifyOpen} onOpenChange={setAiModifyOpen} />
     </>
   );
 }

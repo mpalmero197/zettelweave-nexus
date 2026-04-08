@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.platform-report]
 verify_jwt = false
+
+[functions.ai-modify-content]
+verify_jwt = true
