@@ -15,9 +15,10 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Focus } from "lucide-react";
+import { Bot, Focus, Wand2 } from "lucide-react";
 import { FocusSidebar } from "./focus-sidebar/FocusSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
+import { AIModifySidebar } from "./ai-modify/AIModifySidebar";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -32,6 +33,7 @@ export function AppLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
   const [focusOpen, setFocusOpen] = useState(false);
+  const [aiModifyOpen, setAiModifyOpen] = useState(false);
 
   const isOnline = hookOnline && browserOnline;
 
