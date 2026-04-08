@@ -16,6 +16,7 @@ import { FeatureRequestsPanel } from '@/components/admin/FeatureRequestsPanel';
 import { ErrorReportsPanel } from '@/components/admin/ErrorReportsPanel';
 import { CookieAnalytics } from '@/components/admin/CookieAnalytics';
 import { ToolTester } from '@/components/admin/ToolTester';
+import { PlatformReport } from '@/components/admin/PlatformReport';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -367,6 +368,8 @@ export default function Admin() {
         );
       case 'system-tools':
         return <ToolTester />;
+      case 'system-report':
+        return <PlatformReport />;
       case 'docs':
         return <DocumentationViewer />;
       default:
