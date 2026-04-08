@@ -368,6 +368,8 @@ export default function Admin() {
         );
       case 'system-tools':
         return <ToolTester />;
+      case 'system-report':
+        return <PlatformReport />;
       case 'docs':
         return <DocumentationViewer />;
       default:
