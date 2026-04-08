@@ -195,6 +195,14 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  onClick={() => setAiModifyOpen(!aiModifyOpen)}
+                  aria-label="AI Modify"
+                >
+                  <Wand2 className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
                   asChild
                 >
                   <Link to="/agents" aria-label="Agents">
