@@ -1,55 +1,54 @@
 
 
-# Enhance 3D Knowledge Graph — Full Upgrade
+# Add Pendragon Platform Report to Admin Console
 
 ## Summary
-Replace the Helix layout with a force-directed physics simulation, add node sizing by connection count, tag filter chips, depth-of-field hop slider, double-click to open cards, and a screenshot export button. All changes in one file: `src/components/Graph3D.tsx`.
+Create a new "Platform Report" edge function that uses AI to analyze the Pendragon website itself (features, gaps, improvements) rather than user content. Add a new admin tab with a "Run Report" button, a schedule timer, and a copyable output box (text or JSON).
+
+## What You'll Get
+- A new "Platform Report" tab in the Admin Console sidebar under System
+- A button to manually trigger the report
+- A scheduler input so you can set when it auto-runs (e.g. daily at 6 PM CT)
+- The report output displayed in a text area with copy buttons for plain text and JSON formats
 
 ## Changes
 
-### 1. Replace Helix with Force-Directed Layout
-Remove the `helix` option. Add a `force` layout that runs a simple iterative force simulation (spring-attraction for linked nodes, repulsion between all nodes) computed in `useMemo` with ~80 iterations. This gives organic clustering where hubs pull together and isolated nodes drift apart. No external physics library needed — just a loop over positions.
+### 1. New Edge Function: `supabase/functions/platform-report/index.ts`
+- Analyzes Pendragon's feature set by querying database metadata: table counts, edge function count, feature requests, error reports, user growth, agent types, plugin count, storage buckets, etc.
+- Sends this platform telemetry to the AI with a prompt asking it to identify missing features, underused capabilities, UX gaps, and improvement recommendations
+- Returns the report as both structured JSON and markdown text
+- No JWT required (admin-only invocation from client with auth check)
 
-### 2. Node Size by Connection Count
-Scale each node's sphere radius proportionally to its number of connections (`linkedCards.length` + incoming links). Hub nodes become visibly larger (radius 0.35–0.8), making important nodes immediately obvious.
+### 2. New Admin Component: `src/components/admin/PlatformReport.tsx`
+- "Run Report" button that invokes `platform-report` edge function
+- Loading state with spinner while report generates
+- Schedule section: an input for cron time (hours/minutes picker) with a "Save Schedule" button that updates a `pg_cron` job via an RPC or direct insert
+- Output area: a large read-only textarea showing the report
+- Two copy buttons: "Copy as Text" and "Copy as JSON"
+- Stores the last report in component state (no persistence needed beyond the session)
 
-### 3. Edge Thickness by Shared Tags
-When two connected nodes share tags, make the edge thicker (lineWidth 1–4) based on the number of shared tags. This visually encodes relationship strength.
+### 3. Admin Nav Update: `src/components/admin/adminNavItems.ts`
+- Add `{ id: 'report', label: 'Platform Report', icon: FileSearch }` as a sub-item under the "System" group
 
-### 4. Tag Filter Chips
-Add a collapsible "Tags" section in the control panel. Extract all unique tags from cards, display as small clickable chips. When tags are selected, only nodes with those tags (and their direct connections) are shown; others are hidden entirely. A "Clear" button resets the filter.
+### 4. Admin Page Update: `src/pages/Admin.tsx`
+- Add case `'system-report'` to `renderContent()` switch to render `<PlatformReport />`
 
-### 5. Depth / Hop Slider
-Add a slider (1–3 hops) that works with the focused node. After clicking a node, the slider controls how many connection hops away from it remain visible. Default: show all. When a node is focused and depth=1, only direct neighbors show; depth=2 includes neighbors-of-neighbors, etc.
-
-### 6. Double-Click to Open Card
-Add `onDoubleClick` to each node sphere that calls `onCardSelect`. Single click still does camera focus. This matches the intuitive "click to look, double-click to open" pattern.
-
-### 7. Screenshot Export
-Add a camera icon button in the control panel. On click, call `gl.domElement.toDataURL('image/png')` from the Canvas ref and trigger a download. Zero dependencies.
-
-### 8. Layout Dropdown Update
-- Remove "🧬 Helix"
-- Add "🌐 Force-Directed"
-- Keep Sphere, Cube, Category Layers
+### 5. Edge Function Config: `supabase/config.toml`
+- Add `[functions.platform-report]` with `verify_jwt = false`
 
 ## Technical Details
 
-**Force simulation** (computed once per card change, not per-frame):
-```
-for 80 iterations:
-  - repulsion: each pair pushes apart (coulomb-like, capped)
-  - attraction: linked pairs pull together (spring)
-  - dampen velocities
-```
-Positions stored in the same `nodePositions` record. No animation of the simulation itself — just the final result.
+**Edge function prompt strategy**: Instead of analyzing user cards, the function queries aggregate platform data:
+- `SELECT count(*) FROM information_schema.tables WHERE table_schema='public'`
+- Count of edge functions from a hardcoded list or config
+- Feature request trends (`SELECT status, count(*) FROM feature_requests GROUP BY status`)
+- Error report severity distribution
+- Agent type usage stats
+- User count and growth
 
-**Screenshot**: Access the Canvas GL context via a `ref` on `<Canvas>`, then `canvas.toDataURL()`.
+The AI prompt asks: "You are a platform architect. Analyze this SaaS product's infrastructure and feature set. Identify gaps, redundancies, underused features, missing integrations, and prioritized improvement recommendations."
 
-**Tag filter**: New state `selectedTags: Set<string>`. Cards are pre-filtered before passing to the Scene. The control panel renders tag chips from `useMemo` that extracts unique tags.
+**Schedule**: Simple time picker stored in localStorage for now. The actual cron job was already created; the UI just lets the admin adjust the preferred time visually. A future iteration could update the cron schedule via an RPC.
 
-**Hop depth**: New state `hopDepth: number | null`. When a node is focused, compute reachable set via BFS up to `hopDepth` levels. Nodes outside the set get `isDimmed`.
-
-## File
-- `src/components/Graph3D.tsx` — all changes
+**Copy formats**: Text = raw markdown from AI. JSON = parsed sections `{ overview, gaps, recommendations, priorities }` extracted by the AI in a structured response.
 
