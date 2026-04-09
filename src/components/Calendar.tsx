@@ -28,6 +28,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ReminderPicker } from '@/components/notifications/ReminderPicker';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
