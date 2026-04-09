@@ -115,6 +115,32 @@ export function Notes({ initialView }: NotesProps = {}) {
     }
   }, [user]);
 
+  // Sync initialView prop
+  useEffect(() => {
+    if (initialView) setCurrentView(initialView);
+  }, [initialView]);
+
+  // Listen for open-notebook events from dashboard widget
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const nbId = (e as CustomEvent).detail;
+      if (nbId) {
+        setPendingNotebookId(nbId);
+      }
+    };
+    window.addEventListener('open-notebook', handler);
+    return () => window.removeEventListener('open-notebook', handler);
+  }, []);
+
+  // Apply pending notebook selection after notebooks load
+  useEffect(() => {
+    if (pendingNotebookId && notebooks.length > 0) {
+      setSelectedNotebook(pendingNotebookId);
+      setCurrentView('notes');
+      setPendingNotebookId(null);
+    }
+  }, [pendingNotebookId, notebooks]);
+
   const fetchNotes = async () => {
     if (!user) return;
     try {
