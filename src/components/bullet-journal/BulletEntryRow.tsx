@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, Trash2, ArrowRight, X as XIcon, Tag, CheckCircle2, Pencil } from 'lucide-react';
 import { BulletEntry, BULLET_SYMBOLS, SIGNIFIER_MAP } from './types';
 import { format } from 'date-fns';
+import { ReminderPicker } from '@/components/notifications/ReminderPicker';
 
 interface BulletEntryRowProps {
   entry: BulletEntry;
@@ -129,6 +130,17 @@ export const BulletEntryRow: React.FC<BulletEntryRowProps> = ({
           <ArrowRight className="h-2 w-2 mr-0.5" /> migrated
         </Badge>
       )}
+
+      {/* Reminder */}
+      <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <ReminderPicker
+          compact
+          itemType="entry"
+          itemId={entry.id}
+          itemTitle={entry.content}
+          eventTime={new Date(entry.date)}
+        />
+      </div>
 
       {/* Actions */}
       <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
