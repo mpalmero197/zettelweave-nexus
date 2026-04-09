@@ -729,6 +729,20 @@ export function Calendar() {
           </div>
           <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => e.stopPropagation()}>
+            <ReminderPicker
+              compact
+              itemType={item.source_type === 'task' ? 'task' : 'event'}
+              itemId={item.id}
+              itemTitle={item.title}
+              eventTime={(() => {
+                const d = parseISO(item.event_date);
+                if (item.event_time) {
+                  const [h, m] = item.event_time.split(':').map(Number);
+                  d.setHours(h, m, 0, 0);
+                }
+                return d;
+              })()}
+            />
             {ev && ev.source_type === 'manual' && (
               <>
                 <button onClick={() => startEdit(ev)} className="p-1 rounded hover:bg-accent" aria-label="Edit event">

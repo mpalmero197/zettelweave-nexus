@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Timer, Clock, Check, X, Play, Pause, RotateCcw, Edit3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ReminderPicker } from '@/components/notifications/ReminderPicker';
 
 interface Task {
   id: string;
