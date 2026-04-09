@@ -98,6 +98,8 @@ export function Notes({ initialView }: NotesProps = {}) {
   const importFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [autoCategorizing, setAutoCategorizing] = useState(false);
+  const [currentView, setCurrentView] = useState<'notes' | 'notebooks'>(initialView || 'notes');
+  const [pendingNotebookId, setPendingNotebookId] = useState<string | null>(null);
 
   const [newNote, setNewNote] = useState({
     title: '',
