@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Brain, Sun, Moon, User, Menu, X, Search } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -125,6 +126,9 @@ export function UnifiedHeader({
 
           {/* Right Actions */}
           <div className="flex items-center gap-1 md:gap-2">
+            {/* Notification Bell */}
+            <NotificationBell />
+
             {/* Theme Toggle - Always Visible */}
             <Button
               variant="outline"

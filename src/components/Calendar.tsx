@@ -1396,25 +1396,20 @@ export function Calendar() {
                   </Select>
                 </div>
 
-                {/* Reminder */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Reminder</label>
-                  <Select
-                    value={newEvent.reminder_minutes?.toString() ?? 'none'}
-                    onValueChange={v => setNewEvent(p => ({ ...p, reminder_minutes: v === 'none' ? undefined : parseInt(v) }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <Bell className="h-3 w-3 mr-1" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No reminder</SelectItem>
-                      {REMINDER_OPTIONS.map(r => (
-                        <SelectItem key={r.value} value={r.value.toString()}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Reminder - using new ReminderPicker */}
+                <ReminderPicker
+                  itemType="event"
+                  itemId={`new-event-${format(selectedDate, 'yyyy-MM-dd')}`}
+                  itemTitle={newEvent.title || 'Untitled Event'}
+                  eventTime={(() => {
+                    const d = new Date(selectedDate);
+                    if (newEvent.event_time) {
+                      const [h, m] = newEvent.event_time.split(':').map(Number);
+                      d.setHours(h, m, 0, 0);
+                    }
+                    return d;
+                  })()}
+                />
 
                 {/* Recurring */}
                 <div className="flex items-center justify-between">
