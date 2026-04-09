@@ -1193,6 +1193,39 @@ export type Database = {
         }
         Relationships: []
       }
+      in_app_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          item_id: string | null
+          item_type: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          item_id?: string | null
+          item_type?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          item_id?: string | null
+          item_type?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       knowledge_gaps: {
         Row: {
           created_at: string
@@ -1838,6 +1871,33 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quick_captures: {
         Row: {
           content: string
@@ -1995,6 +2055,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          id: string
+          is_sent: boolean
+          item_id: string
+          item_title: string
+          item_type: string
+          offset_minutes: number
+          remind_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_sent?: boolean
+          item_id: string
+          item_title?: string
+          item_type: string
+          offset_minutes?: number
+          remind_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_sent?: boolean
+          item_id?: string
+          item_title?: string
+          item_type?: string
+          offset_minutes?: number
+          remind_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       saved_courses: {
         Row: {
