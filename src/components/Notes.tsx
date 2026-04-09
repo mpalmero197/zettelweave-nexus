@@ -68,7 +68,11 @@ const getRelativeDate = (dateStr: string) => {
   } catch { return ''; }
 };
 
-export function Notes() {
+interface NotesProps {
+  initialView?: 'notes' | 'notebooks';
+}
+
+export function Notes({ initialView }: NotesProps = {}) {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [notes, setNotes] = useState<Note[]>([]);
