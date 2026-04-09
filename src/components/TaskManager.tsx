@@ -244,6 +244,13 @@ export function TaskManager() {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  <ReminderPicker
+                    compact
+                    itemType="task"
+                    itemId={task.id}
+                    itemTitle={task.title}
+                    eventTime={new Date(Date.now() + task.estimatedTime * 60000)}
+                  />
                   {!task.isActive ? (
                     <Button
                       size="sm"
