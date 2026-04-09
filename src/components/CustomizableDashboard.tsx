@@ -7,6 +7,7 @@ import { TaskTrackerWidget } from "./widgets/TaskTrackerWidget";
 import { CalendarEventsWidget } from "./widgets/CalendarEventsWidget";
 import { RecentWorkWidget } from "./widgets/RecentWorkWidget";
 import { FavoritesWidget } from "./widgets/FavoritesWidget";
+import { NotebookListWidget } from "./widgets/NotebookListWidget";
 
 import { ContentSummarizerWidget } from "./widgets/ContentSummarizerWidget";
 import { DocumentsWidget } from "./widgets/DocumentsWidget";
@@ -94,6 +95,14 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
                 <RecentWorkWidget onEdit={onEdit} onOpenNote={onOpenNote} onNavigate={onNavigate} />
               )}
               {isVisible('favorites') && <FavoritesWidget />}
+            </DashboardSection>
+          )}
+
+          {/* 4. Notebook List + Task Tracker / Calendar (2-col) */}
+          {(isVisible('notebook-list') || isVisible('task-tracker') || isVisible('calendar-events')) && (
+            <DashboardSection columns={2}>
+              {isVisible('notebook-list') && <NotebookListWidget onNavigate={onNavigate} />}
+              {isVisible('task-tracker') && <TaskTrackerWidget onNavigate={onNavigate} />}
             </DashboardSection>
           )}
 

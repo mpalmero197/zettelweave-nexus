@@ -68,7 +68,11 @@ const getRelativeDate = (dateStr: string) => {
   } catch { return ''; }
 };
 
-export function Notes() {
+interface NotesProps {
+  initialView?: 'notes' | 'notebooks';
+}
+
+export function Notes({ initialView }: NotesProps = {}) {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -94,6 +98,8 @@ export function Notes() {
   const importFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [autoCategorizing, setAutoCategorizing] = useState(false);
+  const [currentView, setCurrentView] = useState<'notes' | 'notebooks'>(initialView || 'notes');
+  const [pendingNotebookId, setPendingNotebookId] = useState<string | null>(null);
 
   const [newNote, setNewNote] = useState({
     title: '',
@@ -108,6 +114,32 @@ export function Notes() {
       fetchNotebooks();
     }
   }, [user]);
+
+  // Sync initialView prop
+  useEffect(() => {
+    if (initialView) setCurrentView(initialView);
+  }, [initialView]);
+
+  // Listen for open-notebook events from dashboard widget
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const nbId = (e as CustomEvent).detail;
+      if (nbId) {
+        setPendingNotebookId(nbId);
+      }
+    };
+    window.addEventListener('open-notebook', handler);
+    return () => window.removeEventListener('open-notebook', handler);
+  }, []);
+
+  // Apply pending notebook selection after notebooks load
+  useEffect(() => {
+    if (pendingNotebookId && notebooks.length > 0) {
+      setSelectedNotebook(pendingNotebookId);
+      setCurrentView('notes');
+      setPendingNotebookId(null);
+    }
+  }, [pendingNotebookId, notebooks]);
 
   const fetchNotes = async () => {
     if (!user) return;
@@ -496,6 +528,136 @@ export function Notes() {
             <div key={i} className="h-32 bg-muted/20 rounded-xl animate-pulse" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // === NOTEBOOK DIRECTORY VIEW ===
+  if (currentView === 'notebooks') {
+    return (
+      <div className="p-4 max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Notebooks</h2>
+            <Badge variant="secondary" className="text-xs">{notebooks.length}</Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentView('notes')} className="text-xs">
+              ← All Notes
+            </Button>
+            <Button size="sm" onClick={() => setShowNewNotebook(true)} className="text-xs gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> New Notebook
+            </Button>
+          </div>
+        </div>
+
+        {/* Notebook Grid */}
+        {notebooks.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {notebooks.map((nb) => {
+              const count = notebookCounts.counts[nb.id] || 0;
+              return (
+                <button
+                  key={nb.id}
+                  onClick={() => {
+                    setSelectedNotebook(nb.id);
+                    setCurrentView('notes');
+                  }}
+                  className="group relative rounded-xl border border-border/60 bg-card text-left p-5 transition-all duration-200 hover:shadow-lg hover:shadow-foreground/[0.03] hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
+                  style={{ borderLeftWidth: '4px', borderLeftColor: nb.color || 'hsl(var(--border))' }}
+                >
+                  {/* Subtle color accent bg */}
+                  <div
+                    className="absolute inset-0 opacity-[0.04] pointer-events-none"
+                    style={{ background: `linear-gradient(135deg, ${nb.color || 'transparent'}, transparent)` }}
+                  />
+                  <div className="relative">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <h3 className="text-sm font-semibold text-foreground">{nb.name}</h3>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] tabular-nums shrink-0">{count}</Badge>
+                    </div>
+                    {nb.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{nb.description}</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nb.color }} />
+                      <span className="text-[11px] text-muted-foreground/70">
+                        {count} note{count !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-16 border border-dashed border-border rounded-xl">
+            <BookOpen className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-1">No notebooks yet</p>
+            <p className="text-xs text-muted-foreground/60 mb-4">Create your first notebook to organize your notes</p>
+            <Button size="sm" onClick={() => setShowNewNotebook(true)} className="text-xs gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Create Notebook
+            </Button>
+          </div>
+        )}
+
+        {/* Uncategorized notes section */}
+        {notebookCounts.uncategorized > 0 && (
+          <button
+            onClick={() => {
+              setSelectedNotebook('none');
+              setCurrentView('notes');
+            }}
+            className="w-full rounded-xl border border-dashed border-border/60 bg-card/50 p-4 text-left transition-all hover:bg-card hover:border-border"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Uncategorized Notes</span>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{notebookCounts.uncategorized}</Badge>
+            </div>
+          </button>
+        )}
+
+        {/* New notebook dialog inline */}
+        {showNewNotebook && (
+          <Dialog open={showNewNotebook} onOpenChange={setShowNewNotebook}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Create Notebook</DialogTitle>
+                <DialogDescription>Give your notebook a name and color.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <Input
+                  placeholder="Notebook name"
+                  value={newNotebookName}
+                  onChange={(e) => setNewNotebookName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && createNotebook()}
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-2">
+                  {presetColors.map((c) => (
+                    <button
+                      key={c}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform ${newNotebookColor === c ? 'border-foreground scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setNewNotebookColor(c)}
+                    />
+                  ))}
+                </div>
+                <Button onClick={createNotebook} disabled={!newNotebookName.trim()} className="w-full">
+                  Create
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     );
   }

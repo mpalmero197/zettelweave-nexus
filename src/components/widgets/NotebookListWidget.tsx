@@ -69,13 +69,20 @@ export function NotebookListWidget({ onNavigate }: NotebookListWidgetProps = {})
           </div>
         ) : notebooks.length > 0 ? (
           notebooks.map((nb) => (
-            <div key={nb.id} className="flex items-center gap-2.5 p-2 rounded-md hover:bg-accent/50 transition-colors">
+            <button
+              key={nb.id}
+              className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-accent/50 transition-colors text-left"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-notebook', { detail: nb.id }));
+                onNavigate?.('notebooks');
+              }}
+            >
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: nb.color }} aria-hidden="true" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{nb.name}</p>
               </div>
               <Badge variant="outline" className="text-[10px] shrink-0">{nb.note_count}</Badge>
-            </div>
+            </button>
           ))
         ) : (
           <p className="text-xs text-muted-foreground py-6 text-center">No notebooks yet</p>

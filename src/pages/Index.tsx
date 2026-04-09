@@ -598,6 +598,10 @@ const Index = () => {
                   <Notes />
                 </TabsContent>
 
+                <TabsContent value="notebooks" className="mt-0">
+                  <Notes initialView="notebooks" />
+                </TabsContent>
+
                 <TabsContent value="calendar" className="mt-0">
                   <Calendar />
                 </TabsContent>
