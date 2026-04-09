@@ -28,6 +28,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ReminderPicker } from '@/components/notifications/ReminderPicker';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -728,6 +729,20 @@ export function Calendar() {
           </div>
           <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => e.stopPropagation()}>
+            <ReminderPicker
+              compact
+              itemType={item.source_type === 'task' ? 'task' : 'event'}
+              itemId={item.id}
+              itemTitle={item.title}
+              eventTime={(() => {
+                const d = parseISO(item.event_date);
+                if (item.event_time) {
+                  const [h, m] = item.event_time.split(':').map(Number);
+                  d.setHours(h, m, 0, 0);
+                }
+                return d;
+              })()}
+            />
             {ev && ev.source_type === 'manual' && (
               <>
                 <button onClick={() => startEdit(ev)} className="p-1 rounded hover:bg-accent" aria-label="Edit event">
@@ -1396,25 +1411,20 @@ export function Calendar() {
                   </Select>
                 </div>
 
-                {/* Reminder */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Reminder</label>
-                  <Select
-                    value={newEvent.reminder_minutes?.toString() ?? 'none'}
-                    onValueChange={v => setNewEvent(p => ({ ...p, reminder_minutes: v === 'none' ? undefined : parseInt(v) }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <Bell className="h-3 w-3 mr-1" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No reminder</SelectItem>
-                      {REMINDER_OPTIONS.map(r => (
-                        <SelectItem key={r.value} value={r.value.toString()}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Reminder - using new ReminderPicker */}
+                <ReminderPicker
+                  itemType="event"
+                  itemId={`new-event-${format(selectedDate, 'yyyy-MM-dd')}`}
+                  itemTitle={newEvent.title || 'Untitled Event'}
+                  eventTime={(() => {
+                    const d = new Date(selectedDate);
+                    if (newEvent.event_time) {
+                      const [h, m] = newEvent.event_time.split(':').map(Number);
+                      d.setHours(h, m, 0, 0);
+                    }
+                    return d;
+                  })()}
+                />
 
                 {/* Recurring */}
                 <div className="flex items-center justify-between">

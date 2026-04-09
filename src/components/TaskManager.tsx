@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Timer, Clock, Check, X, Play, Pause, RotateCcw, Edit3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ReminderPicker } from '@/components/notifications/ReminderPicker';
 
 interface Task {
   id: string;
@@ -243,6 +244,13 @@ export function TaskManager() {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  <ReminderPicker
+                    compact
+                    itemType="task"
+                    itemId={task.id}
+                    itemTitle={task.title}
+                    eventTime={new Date(Date.now() + task.estimatedTime * 60000)}
+                  />
                   {!task.isActive ? (
                     <Button
                       size="sm"
