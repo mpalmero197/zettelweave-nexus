@@ -147,7 +147,7 @@ export function IntegrationsHub() {
     if (id === "evernote") { setEvernoteOpen(true); return; }
     if (id === "onedrive") {
       // Trigger existing OneDrive picker if available
-      if (window.OneDrive) {
+      if ((window as any).OneDrive) {
         toast.info("Opening OneDrive picker…");
       } else {
         toast.error("OneDrive SDK not loaded. Please try again later.");
