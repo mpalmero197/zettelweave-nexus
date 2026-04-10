@@ -119,7 +119,7 @@ export function AppLayout() {
       case "learning":
       case "projects":
       case "spaces":
-      case "plugins":
+      case "integrations":
       case "knowledge-gaps":
       case "notebooks":
         // These are all tabs within /app
