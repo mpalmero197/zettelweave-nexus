@@ -2514,6 +2514,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_integrations: {
+        Row: {
+          config: Json
+          connected_at: string
+          id: string
+          integration_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          connected_at?: string
+          id?: string
+          integration_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          connected_at?: string
+          id?: string
+          integration_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           auto_delete_days: number
