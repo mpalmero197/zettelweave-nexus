@@ -119,12 +119,18 @@ export default function Subscription() {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {!hasPremium && (
-                <Button onClick={startCheckout} className="flex-1">
-                  <Crown className="mr-2 h-4 w-4" />
-                  Upgrade to Premium - $4.99/month
-                </Button>
+                <>
+                  <Button onClick={() => startCheckout('monthly')} className="flex-1">
+                    <Crown className="mr-2 h-4 w-4" />
+                    Monthly — $4.99/mo
+                  </Button>
+                  <Button onClick={() => startCheckout('yearly')} variant="outline" className="flex-1 border-primary/50">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Yearly — $29.99/yr (50% off)
+                  </Button>
+                </>
               )}
               
               {hasPremium && status?.source === 'stripe' && (
@@ -331,10 +337,14 @@ export default function Subscription() {
             </div>
             
             {!hasPremium && (
-              <div className="mt-6 pt-6 border-t text-center">
-                <Button size="lg" onClick={startCheckout} className="bg-gradient-primary hover:opacity-90">
+              <div className="mt-6 pt-6 border-t flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button size="lg" onClick={() => startCheckout('monthly')} className="bg-gradient-primary hover:opacity-90">
                   <Crown className="mr-2 h-5 w-5" />
-                  Upgrade to Premium - $4.99/month
+                  Monthly — $4.99/mo
+                </Button>
+                <Button size="lg" variant="outline" onClick={() => startCheckout('yearly')} className="border-primary/50">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Yearly — $29.99/yr (50% off)
                 </Button>
               </div>
             )}

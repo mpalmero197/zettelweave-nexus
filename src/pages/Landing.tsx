@@ -605,7 +605,7 @@ export default function Landing() {
             <p className="text-muted-foreground">No surprises. No hidden fees. Upgrade when you're ready.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {/* Free */}
             <div className={cn(
               "rounded-xl border border-border bg-card p-7 card-hover-lift transition-all duration-500",
@@ -627,20 +627,47 @@ export default function Landing() {
               <Button variant="outline" className="w-full h-11" onClick={goAuth}>Get Started Free</Button>
             </div>
 
-            {/* Premium */}
+            {/* Monthly */}
             <div className={cn(
-              "rounded-xl bg-card p-7 relative premium-border transition-all duration-500",
+              "rounded-xl border border-border bg-card p-7 card-hover-lift transition-all duration-500",
               pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             )} style={{ transitionDelay: "100ms" }}>
-              <Badge className="absolute -top-3 left-5 bg-foreground text-background border-0 text-xs gap-1">
-                <Crown className="h-3 w-3" />Popular
-              </Badge>
-              <h3 className="text-lg font-semibold">Premium</h3>
+              <h3 className="text-lg font-semibold">Premium Monthly</h3>
               <div className="flex items-baseline gap-1 mt-2 mb-4">
                 <span className="text-4xl font-bold">$4.99</span>
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>
               <p className="text-sm text-muted-foreground mb-6">For serious thinkers who want the full power of AI.</p>
+              <ul className="space-y-2.5 mb-8">
+                {["Unlimited Zettelcards", "Advanced 3D Knowledge Graph", "Unlimited Whiteboards", "AI-Powered Everything", "Collaboration Features", "Priority Support"].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2.5 text-sm">
+                    <Check className="h-3.5 w-3.5 shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <Button variant="outline" className="w-full h-11" onClick={goAuth}>
+                Try 7 Days Free <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            {/* Yearly — Best Value */}
+            <div className={cn(
+              "rounded-xl bg-card p-7 relative premium-border transition-all duration-500",
+              pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            )} style={{ transitionDelay: "200ms" }}>
+              <Badge className="absolute -top-3 left-5 bg-foreground text-background border-0 text-xs gap-1">
+                <Crown className="h-3 w-3" />Best Value
+              </Badge>
+              <h3 className="text-lg font-semibold">Premium Yearly</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-1">
+                <span className="text-4xl font-bold">$29.99</span>
+                <span className="text-sm text-muted-foreground">/year</span>
+              </div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm line-through text-muted-foreground">$59.88/yr</span>
+                <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-0">Save 50%</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">Same premium features — half the price. Just $2.50/mo.</p>
               <ul className="space-y-2.5 mb-8">
                 {["Unlimited Zettelcards", "Advanced 3D Knowledge Graph", "Unlimited Whiteboards", "AI-Powered Everything", "Collaboration Features", "Priority Support"].map((f, i) => (
                   <li key={i} className="flex items-center gap-2.5 text-sm">

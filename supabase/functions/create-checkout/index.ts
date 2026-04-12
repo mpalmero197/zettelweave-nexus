@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const PRICES: Record<string, string> = {
+  monthly: "price_1SSC3UIGUijDvKksTl5UlnYQ",
+  yearly: "price_1TLIM1IGUijDvKksAPtEfypx",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +23,9 @@ serve(async (req) => {
   );
 
   try {
+    const { plan = "monthly" } = await req.json().catch(() => ({}));
+    const priceId = PRICES[plan] || PRICES.monthly;
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -36,7 +44,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1SSC3UIGUijDvKksTl5UlnYQ",
+          price: priceId,
           quantity: 1,
         },
       ],
