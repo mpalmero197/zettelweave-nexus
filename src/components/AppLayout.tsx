@@ -7,6 +7,7 @@ import { FloatingChatBubble } from "./FloatingChatBubble";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { OfflineDataManager } from "./OfflineDataManager";
 import { SecurityNotice } from "./SecurityNotice";
+import { PushNotificationPrompt } from "./PushNotificationPrompt";
 import { MobileDetector } from "./MobileDetector";
 import { MobileOptimizedLayout } from "./MobileOptimizedLayout";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
