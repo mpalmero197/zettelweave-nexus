@@ -73,6 +73,77 @@ export function ErrorReportsPanel() {
     }
   };
 
+  const diagnoseError = async (error: ErrorReport) => {
+    setDiagnosingId(error.id);
+    let content = '';
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-ai-assistant`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            mode: 'diagnose',
+            errorContext: {
+              error_type: error.error_type,
+              error_message: error.error_message,
+              stack_trace: error.stack_trace,
+              filename: error.filename,
+              line_number: error.line_number,
+              column_number: error.column_number,
+              occurrence_count: error.occurrence_count,
+              severity: error.severity,
+            },
+            messages: [{ role: 'user', content: `Diagnose this error and suggest a fix: ${error.error_type}: ${error.error_message}` }],
+          }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      if (!resp.body) throw new Error('No response body');
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              content += delta;
+              setDiagnoses(prev => ({ ...prev, [error.id]: content }));
+            }
+          } catch { /* partial */ }
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to diagnose error');
+    } finally {
+      setDiagnosingId(null);
+    }
+  };
+
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case "error":
