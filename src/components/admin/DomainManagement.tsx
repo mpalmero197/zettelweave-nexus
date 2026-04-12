@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Ban, CheckCircle, Trash2, Plus, AlertTriangle, Download, RefreshCw, Bot, User, Clock } from 'lucide-react';
+import { Shield, Ban, CheckCircle, Trash2, Plus, AlertTriangle, Download, RefreshCw, Bot, User, Clock, Search } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface DomainRestriction {
@@ -30,6 +30,7 @@ export function DomainManagement() {
   const [restrictionType, setRestrictionType] = useState<'banned' | 'allowed'>('banned');
   const [reason, setReason] = useState('');
   const [runningScan, setRunningScan] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -151,6 +152,10 @@ export function DomainManagement() {
   const lastAutoScan = autoAddedDomains.length > 0
     ? autoAddedDomains.reduce((latest, d) => new Date(d.created_at) > new Date(latest.created_at) ? d : latest)
     : null;
+
+  const filteredDomains = searchQuery.trim()
+    ? domains.filter(d => d.domain.toLowerCase().includes(searchQuery.trim().toLowerCase()) || d.reason?.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : domains;
 
   return (
     <div className="space-y-6">
@@ -296,11 +301,31 @@ export function DomainManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          {domains.length === 0 ? (
+          {/* Search bar */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search domains or reasons…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          {filteredDomains.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>No domain restrictions configured</p>
-              <p className="text-sm mt-1">Add domains to ban known spam or scam sources, or run an auto-scan</p>
+              {searchQuery.trim() ? (
+                <>
+                  <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No domains match "{searchQuery}"</p>
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={() => setSearchQuery('')}>Clear search</Button>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No domain restrictions configured</p>
+                  <p className="text-sm mt-1">Add domains to ban known spam or scam sources, or run an auto-scan</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="rounded-md border">
@@ -316,7 +341,7 @@ export function DomainManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {domains.map((domain) => {
+                  {filteredDomains.map((domain) => {
                     const isAutoAdded = domain.reason?.startsWith('Auto-scan:');
                     return (
                       <TableRow key={domain.id}>
