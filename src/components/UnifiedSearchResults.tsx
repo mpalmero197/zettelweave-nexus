@@ -8,7 +8,7 @@ import {
   FileText, BookOpen, StickyNote, ExternalLink, Globe,
   Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart,
   Newspaper, Image as ImageIcon, Sparkles, MoreVertical,
-  Save, CheckSquare, XSquare, ArrowRight, MessageSquare,
+  Save, CheckSquare, XSquare, ArrowRight, MessageSquare, Play,
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
