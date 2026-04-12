@@ -58,6 +58,10 @@ const changelogData = [
   { date: "Mar 26, 2026", title: "Chrome Extension", description: "Browser extension for quick-capturing web content, highlights, and URLs directly into PendragonX" },
   { date: "Mar 28, 2026", title: "Enhanced Import Studio", description: "Drag-and-drop import with duplicate detection, import history tracking, and batch processing for Obsidian, Notion, and Roam" },
   { date: "Mar 29, 2026", title: "Landing Page Rewrite", description: "Conversion-optimized structure with rotating 'Built for' banner, social proof section, outcome-based features, and audience persona cards" },
+  { date: "Apr 2, 2026", title: "Domain Blocklist Search", description: "Admins can now search and filter domains within the block list for faster moderation" },
+  { date: "Apr 4, 2026", title: "Push Notification Confirmation", description: "Instant confirmation notification sent to phone when push notifications are enabled" },
+  { date: "Apr 8, 2026", title: "Zettelkasten Naming Consistency", description: "Unified all UI references to use correct 'Zettelkasten' spelling across the platform" },
+  { date: "Apr 12, 2026", title: "Catalyst View Modes", description: "Word-like document views — web, single page, two-page spread, manuscript, reading, print, and draft modes with edge-to-edge writing" },
 ];
 
 function TimelineEntry({ entry, index }: { entry: typeof changelogData[0]; index: number }) {
