@@ -143,18 +143,16 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
     setIsLoading(true);
 
     try {
-      // Get sticky notes from localStorage
-      const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
-      const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
-
       const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
         body: { 
           messages: [...messages, userMessage],
           context: {
             cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
             notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
-            stickyNotes: stickyNotes.map((s: any) => ({ id: s.id, content: s.content })),
-            scratchPad: scratchPad.map((s: any) => ({ id: s.id, content: s.content })),
+            catalystDocs: catalystDocs,
+            calendarEvents: calendarEvents.map((e: any) => ({ id: e.id, title: e.title, event_date: e.event_date, description: e.description })),
+            tasks: tasks.map((t: any) => ({ id: t.id, title: t.title, notes: t.notes, is_completed: t.is_completed, due_date: t.due_date, priority: t.priority })),
+            scratchPad: scratchpadNotes.map((s: any) => ({ id: s.id, content: s.content })),
           }
         }
       });
@@ -284,17 +282,16 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
       // Same logic as handleSend
       (async () => {
         try {
-          const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
-          const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
-
           const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
             body: { 
               messages: [...messages, userMessage],
               context: {
                 cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
                 notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
-                stickyNotes: stickyNotes.map((s: any) => ({ id: s.id, content: s.content })),
-                scratchPad: scratchPad.map((s: any) => ({ id: s.id, content: s.content })),
+                catalystDocs: catalystDocs,
+                calendarEvents: calendarEvents.map((e: any) => ({ id: e.id, title: e.title, event_date: e.event_date, description: e.description })),
+                tasks: tasks.map((t: any) => ({ id: t.id, title: t.title, notes: t.notes, is_completed: t.is_completed })),
+                scratchPad: scratchpadNotes.map((s: any) => ({ id: s.id, content: s.content })),
               }
             }
           });
