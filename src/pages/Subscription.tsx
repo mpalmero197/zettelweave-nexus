@@ -144,7 +144,31 @@ export default function Subscription() {
           </CardContent>
         </Card>
 
-        {/* Pricing Comparison Chart */}
+        {/* Coupon Code Section */}
+        {!hasPremium && (
+          <Card className="border-2 border-dashed border-primary/40 bg-primary/5">
+            <CardContent className="py-5">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <Tag className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Have a coupon code?</p>
+                    <p className="text-xs text-muted-foreground">Enter it at checkout — click any upgrade button below</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+                  <ArrowRight className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                  <p className="text-xs text-muted-foreground italic">
+                    You'll see a "Add promotion code" field on the checkout page
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Free Plan */}
           <Card className="border border-border/60">
