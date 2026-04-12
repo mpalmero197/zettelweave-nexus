@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -624,6 +624,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'activity', label: 'Activity Log', icon: BookOpen },
     { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'ai', label: 'AI & Automation', icon: Brain },
     { id: 'debug', label: 'Debug Logs', icon: Bug },
     ...(user?.email === 'mpalmero197@gmail.com' ? [{ id: 'backup', label: 'Backup', icon: Download }] : []),
   ];
