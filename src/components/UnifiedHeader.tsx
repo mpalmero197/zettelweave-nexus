@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Brain, Sun, Moon, User, Menu, X, Search } from "lucide-react";
+import { Brain, Sun, Moon, User, Menu, X, Search, Crown } from "lucide-react";
+import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -53,6 +54,11 @@ export function UnifiedHeader({
 }: UnifiedHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { hasAccess: hasPremium } = usePremiumAccess();
+
+  const PREMIUM_TABS = new Set([
+    'graph', 'canvas', 'journal', 'recorder', 'collab',
+  ]);
 
   const navItems = [
     { id: "dashboard", icon: Home },
@@ -67,7 +73,6 @@ export function UnifiedHeader({
     { id: "recorder", icon: Mic },
     { id: "canvas", icon: Palette },
     { id: "journal", icon: StickyNote },
-    
     { id: "stickynotes", icon: StickyNote },
   ];
 
@@ -105,23 +110,30 @@ export function UnifiedHeader({
             role="navigation"
             aria-label="Main navigation"
           >
-            {navItems.map(({ id, icon: Icon }) => (
-              <Button
-                key={id}
-                variant={activeTab === id ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onTabChange(id)}
-                className={`h-9 w-9 p-0 rounded-full transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring ${
-                  activeTab === id 
-                    ? 'shadow-lg shadow-primary/30 scale-110' 
-                    : 'hover:scale-105 hover:bg-accent/50'
-                }`}
-                aria-label={`Navigate to ${id.charAt(0).toUpperCase() + id.slice(1)}`}
-                aria-current={activeTab === id ? 'page' : undefined}
-              >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            ))}
+            {navItems.map(({ id, icon: Icon }) => {
+              const isPremiumItem = PREMIUM_TABS.has(id) && !hasPremium;
+              return (
+                <div key={id} className="relative">
+                  <Button
+                    variant={activeTab === id ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => onTabChange(id)}
+                    className={`h-9 w-9 p-0 rounded-full transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring ${
+                      activeTab === id 
+                        ? 'shadow-lg shadow-primary/30 scale-110' 
+                        : 'hover:scale-105 hover:bg-accent/50'
+                    }`}
+                    aria-label={`Navigate to ${id.charAt(0).toUpperCase() + id.slice(1)}`}
+                    aria-current={activeTab === id ? 'page' : undefined}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  {isPremiumItem && (
+                    <Crown className="h-2.5 w-2.5 text-primary absolute -top-0.5 -right-0.5 pointer-events-none" />
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           {/* Right Actions */}
