@@ -301,9 +301,31 @@ export function AdminAIChat() {
                       }`}
                     >
                       {msg.role === 'assistant' ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-background [&_pre]:border [&_pre]:border-border/50 [&_code]:text-xs">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
+                        <>
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-background [&_pre]:border [&_pre]:border-border/50 [&_code]:text-xs">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                          <div className="flex justify-end mt-2 pt-2 border-t border-border/20">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(msg.content, i)}
+                              className="h-6 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              {copiedIndex === i ? (
+                                <>
+                                  <Check className="h-3 w-3 text-green-500" />
+                                  <span className="text-green-500">Copied</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </>
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       )}
