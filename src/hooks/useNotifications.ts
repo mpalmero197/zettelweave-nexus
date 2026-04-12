@@ -134,8 +134,7 @@ export function useNotifications() {
           icon: '/icon-192x192.png',
           badge: '/icon-192x192.png',
           tag: 'push-enabled-confirmation',
-          vibrate: [200, 100, 200],
-        });
+        } as NotificationOptions);
       } catch (notifErr) {
         console.warn('Confirmation notification failed:', notifErr);
       }
