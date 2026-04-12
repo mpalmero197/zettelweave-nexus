@@ -143,213 +143,201 @@ export default function Subscription() {
           </CardContent>
         </Card>
 
-        {/* Feature Comparison Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle>Feature Comparison</CardTitle>
-            </div>
-            <CardDescription>
-              See what's included in each plan
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[300px]">Feature</TableHead>
-                    <TableHead className="text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-lg font-bold">Free</span>
-                        <span className="text-xs text-muted-foreground">$0/month</span>
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-center bg-primary/5">
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-1">
-                          <Crown className="h-4 w-4 text-primary" />
-                          <span className="text-lg font-bold">Premium</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">$4.99/month</span>
-                      </div>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        Unlimited Notes
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
-                        Notebooks
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                        End-to-End Encryption
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Brain className="h-4 w-4 text-muted-foreground" />
-                        Zettel Cards
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-sm text-muted-foreground">Limited</span>
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        Knowledge Graph (3D)
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Palette className="h-4 w-4 text-muted-foreground" />
-                        Interactive Whiteboard
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        Catalyst Writing Suite
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Mic className="h-4 w-4 text-muted-foreground" />
-                        Audio/Video Recording
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                        Advanced Analytics
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        Habit Tracker
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Brain className="h-4 w-4 text-muted-foreground" />
-                        AI-Powered Features
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-            
-            {!hasPremium && (
-              <div className="mt-6 pt-6 border-t flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button size="lg" onClick={() => startCheckout('monthly')} className="bg-gradient-primary hover:opacity-90">
-                  <Crown className="mr-2 h-5 w-5" />
-                  Monthly — $4.99/mo
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => startCheckout('yearly')} className="border-primary/50">
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Yearly — $29.99/yr (50% off)
-                </Button>
+        {/* Pricing Comparison Chart */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Free Plan */}
+          <Card className="border border-border/60">
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-xl">Free Forever</CardTitle>
+              <div className="mt-2">
+                <span className="text-4xl font-bold">$0</span>
+                <span className="text-muted-foreground">/month</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <CardDescription className="mt-2">
+                Get started with the essentials
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {[
+                { label: 'Unlimited Notes', included: true },
+                { label: 'Notebooks', included: true },
+                { label: 'End-to-End Encryption', included: true },
+                { label: 'Zettel Cards (50 limit)', included: true },
+                { label: 'Calendar', included: true },
+                { label: 'File Manager', included: true },
+                { label: 'Sticky Notes', included: true },
+                { label: 'Scratchpad', included: true },
+                { label: 'Habit Tracker', included: true },
+                { label: 'Knowledge Graph', included: false },
+                { label: 'Canvas Studio', included: false },
+                { label: 'Bullet Journal', included: false },
+                { label: 'Recorder Studio', included: false },
+                { label: 'Collaboration Studio', included: false },
+                { label: 'Learning Hub', included: false },
+                { label: 'Spaces', included: false },
+                { label: 'Project Manager', included: false },
+                { label: 'Knowledge Gap Analyzer', included: false },
+                { label: 'Integrations Hub', included: false },
+                { label: 'AI Agents', included: false },
+                { label: 'AI-Powered Features', included: false },
+                { label: 'Unlimited Zettel Cards', included: false },
+              ].map((feature) => (
+                <div key={feature.label} className="flex items-center gap-2">
+                  {feature.included ? (
+                    <Check className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : (
+                    <X className="h-4 w-4 text-destructive shrink-0" />
+                  )}
+                  <span className={feature.included ? '' : 'text-muted-foreground line-through'}>
+                    {feature.label}
+                  </span>
+                </div>
+              ))}
+              {hasPremium ? (
+                <Button variant="outline" className="w-full mt-4" disabled>
+                  Current Plan
+                </Button>
+              ) : (
+                <div className="pt-2">
+                  <Badge variant="outline" className="w-full justify-center py-1.5">Current Plan</Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Monthly Plan */}
+          <Card className="border-2 border-primary/50 relative">
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-xl flex items-center justify-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                Monthly
+              </CardTitle>
+              <div className="mt-2">
+                <span className="text-4xl font-bold">$4.99</span>
+                <span className="text-muted-foreground">/month</span>
+              </div>
+              <CardDescription className="mt-2">
+                Full access, billed monthly
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {[
+                'Unlimited Notes',
+                'Notebooks',
+                'End-to-End Encryption',
+                'Unlimited Zettel Cards',
+                'Calendar',
+                'File Manager',
+                'Sticky Notes',
+                'Scratchpad',
+                'Habit Tracker',
+                'Knowledge Graph',
+                'Canvas Studio',
+                'Bullet Journal',
+                'Recorder Studio',
+                'Collaboration Studio',
+                'Learning Hub',
+                'Spaces',
+                'Project Manager',
+                'Knowledge Gap Analyzer',
+                'Integrations Hub',
+                'AI Agents',
+                'AI-Powered Features',
+                'Priority Support',
+              ].map((feature) => (
+                <div key={feature} className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500 shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
+              {!hasPremium ? (
+                <Button onClick={() => startCheckout('monthly')} className="w-full mt-4">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Upgrade — $4.99/mo
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full mt-4" disabled>
+                  {status?.source === 'stripe' ? 'Current Plan' : 'Active'}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Yearly Plan */}
+          <Card className="border-2 border-primary relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg">
+              BEST VALUE
+            </div>
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-xl flex items-center justify-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Yearly
+              </CardTitle>
+              <div className="mt-2">
+                <span className="text-4xl font-bold">$29.99</span>
+                <span className="text-muted-foreground">/year</span>
+              </div>
+              <div className="mt-1">
+                <span className="text-sm text-muted-foreground line-through mr-2">$59.88/yr</span>
+                <Badge variant="default" className="text-xs">Save 50%</Badge>
+              </div>
+              <CardDescription className="mt-2">
+                Everything in Monthly, save big
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {[
+                'Unlimited Notes',
+                'Notebooks',
+                'End-to-End Encryption',
+                'Unlimited Zettel Cards',
+                'Calendar',
+                'File Manager',
+                'Sticky Notes',
+                'Scratchpad',
+                'Habit Tracker',
+                'Knowledge Graph',
+                'Canvas Studio',
+                'Bullet Journal',
+                'Recorder Studio',
+                'Collaboration Studio',
+                'Learning Hub',
+                'Spaces',
+                'Project Manager',
+                'Knowledge Gap Analyzer',
+                'Integrations Hub',
+                'AI Agents',
+                'AI-Powered Features',
+                'Priority Support',
+              ].map((feature) => (
+                <div key={feature} className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500 shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
+              {!hasPremium ? (
+                <Button onClick={() => startCheckout('yearly')} className="w-full mt-4 bg-gradient-primary hover:opacity-90">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Upgrade — $29.99/yr
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full mt-4" disabled>
+                  {status?.source === 'stripe' ? 'Current Plan' : 'Active'}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Manage Billing */}
+        {hasPremium && status?.source === 'stripe' && (
+          <div className="text-center">
+            <Button onClick={manageBilling} variant="outline" size="lg">
+              <CreditCard className="mr-2 h-4 w-4" />
+              Manage Billing & Invoices
+            </Button>
+          </div>
+        )}
 
         {/* FAQ Section */}
         <Card>
