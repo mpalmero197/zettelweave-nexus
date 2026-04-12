@@ -4,13 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check } from "lucide-react";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import ReactMarkdown from 'react-markdown';
 
 interface ErrorReport {
   id: string;
@@ -32,6 +33,8 @@ export function ErrorReportsPanel() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<number>(7);
   const [copied, setCopied] = useState(false);
+  const [diagnosingId, setDiagnosingId] = useState<string | null>(null);
+  const [diagnoses, setDiagnoses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchErrors();
@@ -67,6 +70,77 @@ export function ErrorReportsPanel() {
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Failed to update status");
+    }
+  };
+
+  const diagnoseError = async (error: ErrorReport) => {
+    setDiagnosingId(error.id);
+    let content = '';
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-ai-assistant`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            mode: 'diagnose',
+            errorContext: {
+              error_type: error.error_type,
+              error_message: error.error_message,
+              stack_trace: error.stack_trace,
+              filename: error.filename,
+              line_number: error.line_number,
+              column_number: error.column_number,
+              occurrence_count: error.occurrence_count,
+              severity: error.severity,
+            },
+            messages: [{ role: 'user', content: `Diagnose this error and suggest a fix: ${error.error_type}: ${error.error_message}` }],
+          }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      if (!resp.body) throw new Error('No response body');
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              content += delta;
+              setDiagnoses(prev => ({ ...prev, [error.id]: content }));
+            }
+          } catch { /* partial */ }
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to diagnose error');
+    } finally {
+      setDiagnosingId(null);
     }
   };
 
@@ -593,7 +667,22 @@ export function ErrorReportsPanel() {
                             </ScrollArea>
                           </div>
                         )}
+                        {/* AI Diagnosis */}
                         <div className="flex items-center gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={diagnosingId === error.id}
+                            onClick={() => diagnoseError(error)}
+                          >
+                            {diagnosingId === error.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            )}
+                            {diagnosingId === error.id ? 'Diagnosing…' : 'AI Diagnose'}
+                          </Button>
                           <Select
                             value={error.status}
                             onValueChange={(value) => updateStatus(error.id, value)}
@@ -610,6 +699,31 @@ export function ErrorReportsPanel() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {/* Diagnosis result */}
+                        {diagnoses[error.id] && (
+                          <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg relative">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-1 right-1 h-6 w-6 p-0"
+                              onClick={() => setDiagnoses(prev => {
+                                const next = { ...prev };
+                                delete next[error.id];
+                                return next;
+                              })}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-xs font-semibold text-primary uppercase tracking-wider">AI Diagnosis</span>
+                            </div>
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&_pre]:bg-background [&_pre]:border [&_pre]:text-xs [&_code]:text-xs">
+                              <ReactMarkdown>{diagnoses[error.id]}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </CollapsibleContent>
                   </Card>
