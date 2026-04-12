@@ -1647,9 +1647,12 @@ export type Database = {
           id: string
           metadata: Json | null
           priority: string | null
+          recommendation: string | null
           reviewed_at: string | null
+          source_reference: string | null
           status: string | null
           title: string
+          utility_score: number | null
         }
         Insert: {
           category: string
@@ -1659,9 +1662,12 @@ export type Database = {
           id?: string
           metadata?: Json | null
           priority?: string | null
+          recommendation?: string | null
           reviewed_at?: string | null
+          source_reference?: string | null
           status?: string | null
           title: string
+          utility_score?: number | null
         }
         Update: {
           category?: string
@@ -1671,9 +1677,12 @@ export type Database = {
           id?: string
           metadata?: Json | null
           priority?: string | null
+          recommendation?: string | null
           reviewed_at?: string | null
+          source_reference?: string | null
           status?: string | null
           title?: string
+          utility_score?: number | null
         }
         Relationships: []
       }

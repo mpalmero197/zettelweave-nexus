@@ -26,15 +26,15 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Gather platform metrics
+    // Gather platform metrics + full feature requests + full error reports
     const [
       { count: userCount },
       { count: cardCount },
       { count: noteCount },
       { count: docCount },
       { count: mindMapCount },
-      { data: topFeatureRequests },
-      { data: recentErrors },
+      { data: allFeatureRequests },
+      { data: allErrorReports },
       { count: insightCount },
     ] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
@@ -44,21 +44,20 @@ serve(async (req) => {
       supabase.from("mind_maps").select("*", { count: "exact", head: true }),
       supabase
         .from("feature_requests")
-        .select("title, description, votes, status")
+        .select("title, description, votes, status, created_at")
         .order("votes", { ascending: false })
-        .limit(10),
+        .limit(100),
       supabase
         .from("error_reports")
-        .select("error_type, error_message, occurrence_count, severity, status")
+        .select("error_type, error_message, occurrence_count, severity, status, filename, stack_trace, last_seen_at, error_signature")
         .order("last_seen_at", { ascending: false })
-        .limit(5),
+        .limit(50),
       supabase
         .from("platform_insights")
         .select("*", { count: "exact", head: true })
         .eq("status", "new"),
     ]);
 
-    // Skip if too many unreviewed insights already
     if ((insightCount ?? 0) >= 30) {
       return new Response(JSON.stringify({ skipped: true, reason: "Too many unreviewed insights" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -71,8 +70,8 @@ serve(async (req) => {
       notes: noteCount ?? 0,
       catalystDocs: docCount ?? 0,
       mindMaps: mindMapCount ?? 0,
-      topFeatureRequests: topFeatureRequests ?? [],
-      recentErrors: recentErrors ?? [],
+      featureRequests: allFeatureRequests ?? [],
+      errorReports: allErrorReports ?? [],
     };
 
     const pendragonFeatures = [
@@ -100,37 +99,51 @@ serve(async (req) => {
       "Sitemap, robots.txt, JSON-LD structured data",
     ];
 
-    const systemPrompt = `You are a senior product strategist and SEO consultant analyzing Pendragon, an AI-powered "Thinking Second Brain" platform. Your job is to compare it against Notion, Obsidian, and OneNote, and generate actionable improvement insights.
+    const systemPrompt = `You are a senior product strategist, SEO consultant, and bug triage specialist analyzing Pendragon, an AI-powered "Thinking Second Brain" platform. Your job is threefold:
+
+1. **Bug Triage**: Analyze error reports by severity × occurrence count, identify patterns (same component breaking repeatedly), and flag critical bugs that degrade user experience.
+
+2. **Feature Request Evaluation**: For each feature request, evaluate:
+   - **Alignment**: Does it fit Pendragon's identity as a "Thinking Second Brain"? Does it enhance knowledge capture, organization, or retrieval?
+   - **Utility score** (1-10): Would it benefit many users or just a niche few? Factor in vote count.
+   - **Competitive edge**: Does it close a gap with Notion/Obsidian/OneNote or create a unique differentiator?
+   - **Complexity vs. value**: Is the effort justified by the impact?
+   - **Risk**: Could it dilute the product's focus or add bloat?
+   Only recommend requests that genuinely enhance the Pendragon experience. Explicitly reject low-utility or off-brand requests with reasoning.
+
+3. **Strategic Insights**: Compare against competitors and suggest SEO/growth/UX improvements.
 
 ## Pendragon's Current Features
 ${pendragonFeatures.map((f) => `- ${f}`).join("\n")}
 
 ## Platform Metrics
 - Total users: ${platformData.users}
-- Zettel cards created: ${platformData.zettelCards}
-- Notes created: ${platformData.notes}
+- Zettel cards: ${platformData.zettelCards}
+- Notes: ${platformData.notes}
 - Catalyst documents: ${platformData.catalystDocs}
 - Mind maps: ${platformData.mindMaps}
 
-## Top Feature Requests (by votes)
-${JSON.stringify(platformData.topFeatureRequests, null, 2)}
+## All Feature Requests (${platformData.featureRequests.length} total)
+${JSON.stringify(platformData.featureRequests, null, 2)}
 
-## Recent Errors
-${JSON.stringify(platformData.recentErrors, null, 2)}
+## Error Reports (${platformData.errorReports.length} open)
+${JSON.stringify(platformData.errorReports, null, 2)}
 
 ## SEO Configuration
-- Has sitemap.xml with 9 URLs
-- Has robots.txt allowing all crawlers
-- Has llms.txt and llms-full.txt for AI crawlers
-- Has JSON-LD structured data (SoftwareApplication, FAQPage)
+- Has sitemap.xml, robots.txt, llms.txt, llms-full.txt, JSON-LD structured data
 - Domain: pendragonx.com
 
-## Competitor Feature Sets (for reference)
-**Notion**: Databases, wikis, projects, AI assistant, team workspaces, API, templates marketplace, Notion Calendar, connected databases, formulas, relations, rollups, synced blocks, embeds, web clipper
+## Competitor Feature Sets
+**Notion**: Databases, wikis, projects, AI assistant, team workspaces, API, templates marketplace, connected databases, formulas, relations, rollups, synced blocks, web clipper
 **Obsidian**: Local-first markdown, graph view, community plugins (1000+), Canvas, Sync, Publish, backlinks, templates, daily notes, Dataview plugin, YAML frontmatter
-**OneNote**: Freeform canvas, handwriting/ink, Office 365 integration, Copilot AI, sections/pages hierarchy, audio recording with linked notes, math equations, stickers, shared notebooks
+**OneNote**: Freeform canvas, handwriting/ink, Office 365 integration, Copilot AI, sections/pages hierarchy, audio recording with linked notes, math equations, shared notebooks
 
-Generate exactly 6 insights. Each must be specific and actionable. Avoid generic advice.`;
+Generate exactly 8 insights. Include a mix of:
+- 2-3 bug_triage insights for the most critical errors
+- 3-4 feature_evaluation insights evaluating the top feature requests (include utility_score and recommendation)
+- 1-2 strategic insights (seo, competitive, growth, ux, performance)
+
+For feature evaluations, ONLY surface requests you recommend implementing (utility_score >= 7). For requests with utility_score < 7, still include them but mark recommendation as "defer" or "reject" with reasoning.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -144,8 +157,7 @@ Generate exactly 6 insights. Each must be specific and actionable. Avoid generic
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content:
-              "Analyze the platform and generate 6 improvement insights. Return them as a JSON array using the generate_insights tool.",
+            content: "Analyze the platform bugs, feature requests, and competitive positioning. Generate 8 insights using the generate_insights tool.",
           },
         ],
         tools: [
@@ -153,7 +165,7 @@ Generate exactly 6 insights. Each must be specific and actionable. Avoid generic
             type: "function",
             function: {
               name: "generate_insights",
-              description: "Generate platform improvement insights",
+              description: "Generate platform improvement insights including bug triage and feature evaluations",
               parameters: {
                 type: "object",
                 properties: {
@@ -164,7 +176,7 @@ Generate exactly 6 insights. Each must be specific and actionable. Avoid generic
                       properties: {
                         category: {
                           type: "string",
-                          enum: ["seo", "feature_gap", "ux", "performance", "competitive", "growth"],
+                          enum: ["seo", "feature_gap", "ux", "performance", "competitive", "growth", "bug_triage", "feature_evaluation"],
                         },
                         title: { type: "string", description: "Short actionable title (max 80 chars)" },
                         description: {
@@ -176,6 +188,19 @@ Generate exactly 6 insights. Each must be specific and actionable. Avoid generic
                           type: "string",
                           enum: ["notion", "obsidian", "onenote"],
                           description: "Which competitor this insight relates to, if any",
+                        },
+                        source_reference: {
+                          type: "string",
+                          description: "The original feature request title or error signature this insight references",
+                        },
+                        utility_score: {
+                          type: "integer",
+                          description: "Utility score 1-10 for feature evaluations. 10 = essential, 1 = unnecessary",
+                        },
+                        recommendation: {
+                          type: "string",
+                          enum: ["implement", "defer", "reject"],
+                          description: "Recommendation for feature evaluations",
                         },
                       },
                       required: ["category", "title", "description", "priority"],
@@ -220,7 +245,7 @@ Generate exactly 6 insights. Each must be specific and actionable. Avoid generic
       });
     }
 
-    // Deduplicate: skip insights with similar titles from last 7 days
+    // Deduplicate against last 7 days
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: recentInsights } = await supabase
       .from("platform_insights")
@@ -231,13 +256,16 @@ Generate exactly 6 insights. Each must be specific and actionable. Avoid generic
 
     const newInsights = insights
       .filter((i: any) => !existingTitles.has(i.title.toLowerCase()))
-      .slice(0, 8)
+      .slice(0, 10)
       .map((i: any) => ({
         category: i.category,
         title: i.title,
         description: i.description,
         priority: i.priority,
         competitor_reference: i.competitor_reference || null,
+        source_reference: i.source_reference || null,
+        utility_score: i.utility_score || null,
+        recommendation: i.recommendation || null,
         status: "new",
         metadata: {},
       }));
