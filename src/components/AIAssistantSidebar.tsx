@@ -398,9 +398,9 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                 <div className="space-y-2">
                   {[
                     'Summarize my recent notes',
-                    'What time is it in Paris?',
-                    'Who won the latest Nobel Prize?',
-                    'Find connections between my cards'
+                    'Find connections between my cards',
+                    'What subjects could you create master documents for?',
+                    'What are my upcoming tasks and events?'
                   ].map((suggestion, i) => (
                     <button
                       key={i}
