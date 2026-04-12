@@ -625,6 +625,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          is_master_document: boolean | null
           permanent_delete_at: string | null
           selected_items: Json | null
           selected_source: string
@@ -639,6 +640,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_master_document?: boolean | null
           permanent_delete_at?: string | null
           selected_items?: Json | null
           selected_source: string
@@ -653,6 +655,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_master_document?: boolean | null
           permanent_delete_at?: string | null
           selected_items?: Json | null
           selected_source?: string
@@ -1280,6 +1283,53 @@ export type Database = {
         }
         Relationships: []
       }
+      master_document_subjects: {
+        Row: {
+          catalyst_document_id: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          keywords: string[] | null
+          last_synthesized_at: string | null
+          source_count: number | null
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          catalyst_document_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          keywords?: string[] | null
+          last_synthesized_at?: string | null
+          source_count?: number | null
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          catalyst_document_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          keywords?: string[] | null
+          last_synthesized_at?: string | null
+          source_count?: number | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_document_subjects_catalyst_document_id_fkey"
+            columns: ["catalyst_document_id"]
+            isOneToOne: false
+            referencedRelation: "catalyst_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mind_maps: {
         Row: {
           created_at: string
@@ -1591,6 +1641,7 @@ export type Database = {
       profiles: {
         Row: {
           about_me: string | null
+          auto_master_docs: boolean | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -1603,6 +1654,7 @@ export type Database = {
         }
         Insert: {
           about_me?: string | null
+          auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -1615,6 +1667,7 @@ export type Database = {
         }
         Update: {
           about_me?: string | null
+          auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -2402,6 +2455,33 @@ export type Database = {
           stripe_product_id?: string
           stripe_subscription_id?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      synthesis_queue: {
+        Row: {
+          created_at: string | null
+          id: string
+          status: string | null
+          trigger_item_id: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          trigger_item_id?: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          trigger_item_id?: string | null
+          trigger_type?: string
           user_id?: string
         }
         Relationships: []
