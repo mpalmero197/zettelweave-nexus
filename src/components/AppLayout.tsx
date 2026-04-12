@@ -239,6 +239,7 @@ export function AppLayout() {
       </MobileDetector>
 
       <PWAInstallPrompt />
+      <PushNotificationPrompt />
       <FloatingChatBubble />
       <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
       <FocusMiniPill />
