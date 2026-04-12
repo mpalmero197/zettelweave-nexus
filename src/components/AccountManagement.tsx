@@ -44,7 +44,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { toast } = useToast();
   const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions, lowPowerMode, setLowPowerMode } = useAnimationPreference();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'backup' | 'debug'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'backup' | 'debug'>('profile');
+  const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -70,7 +71,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Load profile data
       supabase
         .from('profiles')
-        .select('display_name, about_me, avatar_url')
+        .select('display_name, about_me, avatar_url, auto_master_docs')
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data, error }) => {
@@ -82,6 +83,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setDisplayName(data.display_name || '');
             setAboutMe(data.about_me || '');
             setAvatarUrl(data.avatar_url || '');
+            setAutoMasterDocs(data.auto_master_docs || false);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
