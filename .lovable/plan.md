@@ -1,94 +1,63 @@
 
 
-# Living Platform: Self-Improvement Engine + SEO Assistant
+# Enhance Self-Improvement Engine: Bug & Feature Request Analysis
 
 ## Overview
 
-Two interconnected features that make Pendragon feel "alive":
+Update the `platform-self-improve` edge function to deeply analyze bugs and feature requests, weigh each request's utility to the Pendragon experience, and surface only the most valuable ones to the admin.
 
-1. **Scheduled Self-Improvement Edge Function** (`platform-self-improve`) -- runs daily in the background, analyzes the platform's health, content, features, and competitive positioning vs Notion/Obsidian/OneNote, then stores actionable improvement suggestions in a new `platform_insights` table.
+## Changes
 
-2. **Enhanced Admin AI Assistant** -- add SEO analysis to quick prompts and enrich the system prompt with competitive intelligence and SEO context. Surface the auto-generated insights as a "Platform Pulse" panel alongside the chat.
+### 1. Expand Data Fetching (platform-self-improve/index.ts)
 
----
+- Fetch **all** feature requests (not just top 10) with full details: `title`, `description`, `votes`, `status`, `created_at`
+- Fetch **all** open error reports with full context: `error_type`, `error_message`, `occurrence_count`, `severity`, `status`, `filename`, `stack_trace`, `last_seen_at`
 
-## Step 1: Database -- `platform_insights` Table
+### 2. Enhanced System Prompt
 
-Create a migration with:
+Add a dedicated analysis section to the AI prompt instructing it to:
 
-```sql
-create table public.platform_insights (
-  id uuid primary key default gen_random_uuid(),
-  category text not null, -- 'seo', 'feature_gap', 'ux', 'performance', 'competitive', 'growth'
-  title text not null,
-  description text not null,
-  priority text default 'medium', -- 'critical', 'high', 'medium', 'low'
-  competitor_reference text, -- 'notion', 'obsidian', 'onenote', null
-  status text default 'new', -- 'new', 'reviewed', 'implemented', 'dismissed'
-  metadata jsonb default '{}',
-  created_at timestamptz default now(),
-  reviewed_at timestamptz
-);
+- **Bugs**: Triage each error by severity x occurrence count, identify patterns (e.g., same component breaking repeatedly), and flag critical bugs that degrade user experience
+- **Feature Requests**: For each request, evaluate:
+  - **Alignment**: Does it fit Pendragon's identity as a "Thinking Second Brain"?
+  - **Utility score**: Would it benefit many users or a niche few?
+  - **Competitive edge**: Does it close a gap with Notion/Obsidian/OneNote or create a unique differentiator?
+  - **Complexity vs. value**: Is the effort justified by the impact?
+  - **Risk**: Could it dilute the product's focus or add bloat?
+- Only recommend requests that genuinely enhance the Pendragon experience; explicitly reject low-utility or off-brand requests with reasoning
 
-alter table public.platform_insights enable row level security;
+### 3. Expanded Tool Schema
 
-create policy "Admins can manage insights"
-  on public.platform_insights for all
-  to authenticated
-  using (public.has_role(auth.uid(), 'admin'))
-  with check (public.has_role(auth.uid(), 'admin'));
-```
+Add new insight categories and fields:
+- New categories: `bug_triage`, `feature_evaluation`
+- New optional field `source_reference` to link insights back to specific feature request titles or error signatures
+- New optional field `utility_score` (1-10) for feature evaluations
+- New optional field `recommendation` (`implement`, `defer`, `reject`) for feature evaluations
 
-## Step 2: Edge Function -- `platform-self-improve`
+### 4. Database Migration
 
-Create `supabase/functions/platform-self-improve/index.ts`:
+Add columns to `platform_insights`:
+- `source_reference text` -- links to original feature request or error
+- `utility_score integer` -- AI's utility rating (1-10)
+- `recommendation text` -- implement/defer/reject
 
-- Uses service role key (scheduled, no JWT)
-- Gathers platform metrics: user count, content counts (cards, notes, catalyst docs, mind maps), feature request themes, error trends, SEO config (sitemap pages, meta tags, llms.txt status)
-- Sends a structured prompt to Gemini asking it to act as a **product strategist and SEO consultant** comparing Pendragon against Notion, Obsidian, and OneNote
-- Prompt instructs the AI to return structured JSON via tool calling with 5-8 insights across categories: `seo`, `feature_gap`, `ux`, `performance`, `competitive`, `growth`
-- Each insight includes: title, description, priority, competitor_reference
-- Inserts new insights into `platform_insights`, skipping duplicates by checking title similarity
-- Caps at 8 insights per run
+### 5. Admin UI Update (AdminAIChat.tsx)
 
-The prompt will include real platform data (user count, feature list, content volume, recent feature requests, current SEO setup) and ask the AI to think like a PM competing with Notion/Obsidian/OneNote.
-
-## Step 3: Schedule the Function
-
-Add a `pg_cron` job to run `platform-self-improve` once daily at 6:00 AM UTC.
-
-## Step 4: Enhanced Admin AI Chat
-
-**AdminAIChat.tsx changes:**
-
-- Add new quick prompts:
-  - `SEO audit` -- "Analyze my current SEO setup (meta tags, sitemap, robots.txt, llms.txt, structured data) and suggest improvements to rank higher than Notion and Obsidian for 'AI second brain' keywords."
-  - `Competitive analysis` -- "Compare Pendragon's current feature set against Notion, Obsidian, and OneNote. What key features am I missing? Where do I have an advantage?"
-  - `Growth strategy` -- "Based on current user metrics and content patterns, suggest growth strategies to increase user acquisition and retention."
-
-- Enrich the system prompt in `admin-ai-assistant/index.ts` with:
-  - Current SEO config summary (sitemap URL count, robots.txt rules, llms.txt presence)
-  - Feature request themes (top 5 most-voted)
-  - Recent `platform_insights` (last 10 unreviewed)
-  - Explicit competitive context paragraph about Notion/Obsidian/OneNote feature sets
-
-**New "Platform Pulse" panel** in AdminAIChat:
-- When no chat is active, show a card grid of recent unreviewed `platform_insights`
-- Each card shows category badge, priority indicator, title, truncated description, and competitor reference
-- Actions: "Mark Reviewed", "Dismiss", "Ask AI about this" (sends insight as chat prompt)
-- Pulsing dot animation on the header when new insights exist
-
-## Step 5: Update `supabase/config.toml`
-
-Register `platform-self-improve` with `verify_jwt = false`.
-
----
+- Show utility score as a colored badge (green 8-10, yellow 5-7, red 1-4)
+- Show recommendation badge (implement = green, defer = amber, reject = red)
+- Filter insights by category including new `bug_triage` and `feature_evaluation` types
+- Show `source_reference` as a subtitle on insight cards
 
 ## Technical Details
 
-- The self-improve function uses Lovable AI Gateway with `google/gemini-3-flash-preview` and structured output via tool calling to get clean JSON insights
-- SEO suggestions will reference actual current config (robots.txt rules, sitemap pages, meta tag patterns) rather than generic advice
-- Competitive analysis is grounded in real feature comparisons (e.g., "Notion has native databases; Pendragon has Zettelkasten cards -- suggest bridging features")
-- The Platform Pulse panel replaces the empty state (currently just quick prompts) with a living feed of AI-generated improvement ideas
-- Insights are deduplicated by checking if a similar title already exists in the last 7 days
+- The prompt will receive the full list of feature requests and errors, enabling the AI to cross-reference patterns (e.g., a heavily voted feature that would also fix a recurring bug)
+- Utility scoring uses a 1-10 scale factoring in votes, alignment, and competitive positioning
+- Only insights with `recommendation: 'implement'` or critical bugs are surfaced prominently; `defer`/`reject` items are shown in a collapsed section
+
+## Files Modified
+
+- **Migration**: Add `source_reference`, `utility_score`, `recommendation` columns to `platform_insights`
+- **Edit**: `supabase/functions/platform-self-improve/index.ts` -- expanded data fetch, enhanced prompt, updated tool schema
+- **Edit**: `src/components/admin/AdminAIChat.tsx` -- utility score badges, recommendation badges, category filters
+- **Edit**: `src/integrations/supabase/types.ts` -- auto-updated after migration
 
