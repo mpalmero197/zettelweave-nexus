@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Check, X, Sparkles, Zap, Brain, FileText, BookOpen, Palette, Mic, BarChart3, HelpCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Crown, Calendar, CreditCard, Shield, Check, X, Sparkles, Zap, Brain, FileText, BookOpen, Palette, Mic, BarChart3, HelpCircle, Tag, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { format } from 'date-fns';
