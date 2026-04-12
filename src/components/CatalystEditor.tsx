@@ -111,7 +111,7 @@ export function CatalystEditor({
 }: CatalystEditorProps) {
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [typewriterMode, setTypewriterMode] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<DocumentLayout>('page');
+  const [layoutMode, setLayoutMode] = useState<DocumentLayout>('web');
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -245,11 +245,13 @@ export function CatalystEditor({
   if (!editor) return null;
 
   const layoutClass =
-    layoutMode === 'web' ? 'catalyst-layout-web' :
-    layoutMode === 'book' ? 'catalyst-layout-book' :
+    layoutMode === 'single-page' ? 'catalyst-layout-page' :
+    layoutMode === 'two-page' ? 'catalyst-layout-book' :
     layoutMode === 'reading' ? 'catalyst-layout-reading' :
     layoutMode === 'manuscript' ? 'catalyst-layout-manuscript' :
-    'catalyst-layout-page';
+    layoutMode === 'print' ? 'catalyst-layout-print' :
+    layoutMode === 'draft' ? 'catalyst-layout-draft' :
+    'catalyst-layout-web';
 
   return (
     <div className={`border rounded-lg overflow-hidden relative ${layoutClass}`} ref={editorRef} role="region" aria-label="Document editor">
