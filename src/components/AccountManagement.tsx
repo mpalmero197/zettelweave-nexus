@@ -1162,6 +1162,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
               </div>
             )}
 
+            {activeTab === 'backup' && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium mb-4">Data Backup & Export</h3>
