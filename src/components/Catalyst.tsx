@@ -759,8 +759,8 @@ const DOCUMENT_TEMPLATES = [
   const handleLoadFromCloud = (doc: CatalystDocument) => {
     setDocumentTitle(doc.title);
     setEditorContent(convertMarkdownToHtml(doc.content));
-    setSelectedSource(doc.selected_source as ContentSource);
-    setSelectedItems(new Set(doc.selected_items));
+    setSelectedSource((doc.selected_source || 'cards') as ContentSource);
+    setSelectedItems(new Set(doc.selected_items || []));
     setDocumentTheme(doc.theme_id || 'default');
     setCurrentDocId(doc.id);
     setShowLoadDialog(false);
