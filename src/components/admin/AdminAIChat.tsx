@@ -45,6 +45,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   performance: 'bg-green-500/10 text-green-500 border-green-500/20',
   competitive: 'bg-red-500/10 text-red-500 border-red-500/20',
   growth: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+  bug_triage: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
+  feature_evaluation: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
 };
 
 const PRIORITY_DOTS: Record<string, string> = {
@@ -240,7 +242,30 @@ export function AdminAIChat() {
                         </div>
                       </div>
                       <p className="text-sm font-medium leading-tight">{insight.title}</p>
+                      {insight.source_reference && (
+                        <p className="text-[10px] text-muted-foreground italic truncate">↳ {insight.source_reference}</p>
+                      )}
                       <p className="text-xs text-muted-foreground line-clamp-2">{insight.description}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {insight.utility_score != null && (
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                            insight.utility_score >= 8 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                            insight.utility_score >= 5 ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                            'bg-red-500/10 text-red-500 border-red-500/20'
+                          }`}>
+                            Utility: {insight.utility_score}/10
+                          </Badge>
+                        )}
+                        {insight.recommendation && (
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                            insight.recommendation === 'implement' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                            insight.recommendation === 'defer' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                            'bg-red-500/10 text-red-500 border-red-500/20'
+                          }`}>
+                            {insight.recommendation}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => updateInsightStatus(insight.id, 'reviewed')}>
                           <Eye className="h-3 w-3 mr-1" /> Reviewed
