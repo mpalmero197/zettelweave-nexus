@@ -4,13 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check } from "lucide-react";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import ReactMarkdown from 'react-markdown';
 
 interface ErrorReport {
   id: string;
@@ -32,6 +33,8 @@ export function ErrorReportsPanel() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<number>(7);
   const [copied, setCopied] = useState(false);
+  const [diagnosingId, setDiagnosingId] = useState<string | null>(null);
+  const [diagnoses, setDiagnoses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchErrors();
