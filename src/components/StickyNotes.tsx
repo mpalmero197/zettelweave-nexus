@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import Draggable from "react-draggable";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +54,12 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
   }, [user]);
 
   useEffect(() => { loadNotes(); }, [loadNotes]);
+
+  // Auto-refresh when sticky notes change on other devices/tabs
+  useRealtimeSync('sticky_notes', {
+    userId: user?.id,
+    onChanged: loadNotes,
+  });
 
   const addNote = async () => {
     if (!user) return;

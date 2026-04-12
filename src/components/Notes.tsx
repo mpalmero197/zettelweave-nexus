@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -114,6 +115,12 @@ export function Notes({ initialView }: NotesProps = {}) {
       fetchNotebooks();
     }
   }, [user]);
+
+  // Auto-refresh when notes change on other devices/tabs
+  useRealtimeSync('notes', {
+    userId: user?.id,
+    onChanged: () => { fetchNotes(); fetchNotebooks(); },
+  });
 
   // Sync initialView prop
   useEffect(() => {
