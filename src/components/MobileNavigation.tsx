@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { useSubscription } from '@/hooks/useSubscription';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { MobileFocusSheet } from './focus-sidebar/MobileFocusSheet';
@@ -84,7 +84,7 @@ export function MobileNavigation({
 }: MobileNavigationProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
-  const { hasPremium } = useSubscription();
+  const { hasAccess: hasPremium } = usePremiumAccess();
   const { isRunning: focusRunning, seconds: focusSeconds, totalSeconds: focusTotalSeconds, mode: focusMode } = useFocusState();
   const [searchFocused, setSearchFocused] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);

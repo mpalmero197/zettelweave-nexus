@@ -123,7 +123,7 @@ export function Catalyst() {
   const { cards } = useZettelCards();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { hasPremium } = useSubscription();
+  const { hasAccess: hasPremium } = usePremiumAccess();
   const queryClient = useQueryClient();
   const localLoadRef = useRef<HTMLInputElement>(null);
   
