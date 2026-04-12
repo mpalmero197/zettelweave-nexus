@@ -1,10 +1,15 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, BookOpen, StickyNote, ExternalLink, Globe, Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart, Newspaper, Image as ImageIcon, Sparkles, MoreVertical, Save, CheckSquare, XSquare } from "lucide-react";
+import {
+  FileText, BookOpen, StickyNote, ExternalLink, Globe,
+  Link as LinkIcon, Plus, FileEdit, Video, ShoppingCart,
+  Newspaper, Image as ImageIcon, Sparkles, MoreVertical,
+  Save, CheckSquare, XSquare, ArrowRight, MessageSquare,
+} from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -20,7 +25,7 @@ interface Note {
   created_at: string;
 }
 
-interface StickyNote {
+interface StickyNoteType {
   id: string;
   content: string;
   color: string;
@@ -37,16 +42,16 @@ interface SearchResultsProps {
   query: string;
   cards: ZettelCardType[];
   notes: Note[];
-  stickyNotes: StickyNote[];
+  stickyNotes: StickyNoteType[];
   scratchNotes?: ScratchNote[];
-  webResults?: { 
-    query: string; 
-    result: string; 
-    images?: string[]; 
+  webResults?: {
+    query: string;
+    result: string;
+    images?: string[];
     videos?: string[];
     shopping?: string[];
     news?: string[];
-    citations?: string[]; 
+    citations?: string[];
     relatedQuestions?: string[];
     contextualData?: any;
   } | null;
@@ -87,1137 +92,621 @@ export function UnifiedSearchResults({
   onSaveToScratchpad
 }: SearchResultsProps) {
   const totalResults = cards.length + notes.length + stickyNotes.length + scratchNotes.length;
-  
+
   // Batch selection state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isBatchMode, setIsBatchMode] = useState(false);
-  
+
   const toggleItemSelection = (id: string, type: 'image' | 'video' | 'citation') => {
     setSelectedItems(prev => {
       const next = new Set(prev);
       const key = `${type}:${id}`;
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   };
-  
+
   const selectAllOfType = (type: 'images' | 'videos' | 'citations') => {
     const items = type === 'images' ? (multimediaResults?.images || []) :
                   type === 'videos' ? (multimediaResults?.videos || []) :
                   (webResults?.citations || []);
-    
     setSelectedItems(prev => {
       const next = new Set(prev);
-      items.forEach((item: any, idx: number) => {
-        next.add(`${type.slice(0, -1)}:${idx}`);
-      });
+      items.forEach((_: any, idx: number) => next.add(`${type.slice(0, -1)}:${idx}`));
       return next;
     });
   };
-  
-  const clearSelection = () => {
-    setSelectedItems(new Set());
-  };
-  
+
+  const clearSelection = () => setSelectedItems(new Set());
+
   const handleBatchSave = async (action: 'card' | 'note' | 'scratch') => {
-    if (selectedItems.size === 0) {
-      toast.error('No items selected');
-      return;
-    }
-    
+    if (selectedItems.size === 0) { toast.error('No items selected'); return; }
     let savedCount = 0;
-    
     for (const key of selectedItems) {
       const [type, id] = key.split(':');
       const idx = parseInt(id);
-      
+      let content = '';
+      let source = '';
+
       if (type === 'image') {
-        const images = multimediaResults?.images || [];
-        if (images[idx]) {
-          const content = `![${query}](${images[idx]})\n\nImage source: ${images[idx]}`;
-          if (action === 'card' && onSaveAsCard) {
-            onSaveAsCard(content, images[idx]);
-            savedCount++;
-          } else if (action === 'note' && onSaveAsNote) {
-            onSaveAsNote(content, images[idx]);
-            savedCount++;
-          } else if (action === 'scratch' && onSaveToScratchpad) {
-            onSaveToScratchpad(content);
-            savedCount++;
-          }
-        }
+        const img = (multimediaResults?.images || [])[idx];
+        if (!img) continue;
+        content = `![${query}](${img})\n\nImage source: ${img}`;
+        source = img;
       } else if (type === 'video') {
-        const videos = multimediaResults?.videos || [];
-        if (videos[idx]) {
-          const content = `Video: ${videos[idx]}`;
-          if (action === 'card' && onSaveAsCard) {
-            onSaveAsCard(content, videos[idx]);
-            savedCount++;
-          } else if (action === 'note' && onSaveAsNote) {
-            onSaveAsNote(content, videos[idx]);
-            savedCount++;
-          } else if (action === 'scratch' && onSaveToScratchpad) {
-            onSaveToScratchpad(content);
-            savedCount++;
-          }
-        }
+        const vid = (multimediaResults?.videos || [])[idx];
+        if (!vid) continue;
+        content = `Video: ${vid}`;
+        source = vid;
       } else if (type === 'citation') {
-        const citations = webResults?.citations || [];
-        if (citations[idx]) {
-          const content = `Web Result: ${citations[idx]}`;
-          if (action === 'card' && onSaveAsCard) {
-            onSaveAsCard(content, citations[idx]);
-            savedCount++;
-          } else if (action === 'note' && onSaveAsNote) {
-            onSaveAsNote(content, citations[idx]);
-            savedCount++;
-          } else if (action === 'scratch' && onSaveToScratchpad) {
-            onSaveToScratchpad(content);
-            savedCount++;
-          }
-        }
+        const cite = (webResults?.citations || [])[idx];
+        if (!cite) continue;
+        content = `Web Result: ${cite}`;
+        source = cite;
       }
+
+      if (action === 'card' && onSaveAsCard) { onSaveAsCard(content, source); savedCount++; }
+      else if (action === 'note' && onSaveAsNote) { onSaveAsNote(content, source); savedCount++; }
+      else if (action === 'scratch' && onSaveToScratchpad) { onSaveToScratchpad(content); savedCount++; }
     }
-    
-    toast.success(`Saved ${savedCount} item${savedCount !== 1 ? 's' : ''} to ${action === 'card' ? 'cards' : action === 'note' ? 'notes' : 'scratchpad'}`);
+    toast.success(`Saved ${savedCount} item${savedCount !== 1 ? 's' : ''}`);
     clearSelection();
   };
-  
+
   if (totalResults === 0 && !webResults && !generatedImage && !multimediaResults) {
     return (
-      <Card className="p-6 text-center">
-        <p className="text-muted-foreground">No results found for "{query}"</p>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="rounded-2xl bg-muted/40 p-5 mb-5 text-muted-foreground/50">
+          <Globe className="h-10 w-10" />
+        </div>
+        <p className="text-base font-semibold text-foreground mb-1">No results found</p>
+        <p className="text-sm text-muted-foreground">No matches for "{query}" — try different keywords</p>
+      </div>
     );
   }
 
-  const getIntentBadge = () => {
-    if (!intent) return null;
-    
-    const badges = {
-      internal_search: { label: "In Your Notes", variant: "default" as const },
-      web_search: { label: "Live Web Search", variant: "secondary" as const },
-      image_generation: { label: "AI Generated", variant: "outline" as const },
-      multimedia_search: { label: "Multimedia Search", variant: "secondary" as const }
-    };
-    
-    const badge = badges[intent as keyof typeof badges];
-    if (!badge) return null;
-    
-    return (
-      <Badge variant={badge.variant} className="mb-2">
-        <Sparkles className="h-3 w-3 mr-1" />
-        {badge.label}
-      </Badge>
-    );
-  };
-
   const handleSaveImage = (imageUrl: string, action: 'card' | 'note' | 'scratch') => {
     const content = `![${query}](${imageUrl})\n\nImage source: ${imageUrl}`;
-    if (action === 'card' && onSaveAsCard) {
-      onSaveAsCard(content, imageUrl);
-      toast.success('Image saved as card');
-    } else if (action === 'note' && onSaveAsNote) {
-      onSaveAsNote(content, imageUrl);
-      toast.success('Image saved as note');
-    } else if (action === 'scratch' && onSaveToScratchpad) {
-      onSaveToScratchpad(content);
-      toast.success('Image saved to scratchpad');
-    }
+    if (action === 'card' && onSaveAsCard) { onSaveAsCard(content, imageUrl); toast.success('Image saved as card'); }
+    else if (action === 'note' && onSaveAsNote) { onSaveAsNote(content, imageUrl); toast.success('Image saved as note'); }
+    else if (action === 'scratch' && onSaveToScratchpad) { onSaveToScratchpad(content); toast.success('Image saved to scratchpad'); }
   };
 
   const handleSaveLink = (url: string, type: string, action: 'card' | 'note' | 'scratch') => {
     const content = `${type}: ${url}`;
-    if (action === 'card' && onSaveAsCard) {
-      onSaveAsCard(content, url);
-      toast.success(`${type} saved as card`);
-    } else if (action === 'note' && onSaveAsNote) {
-      onSaveAsNote(content, url);
-      toast.success(`${type} saved as note`);
-    } else if (action === 'scratch' && onSaveToScratchpad) {
-      onSaveToScratchpad(content);
-      toast.success(`${type} saved to scratchpad`);
-    }
+    if (action === 'card' && onSaveAsCard) { onSaveAsCard(content, url); toast.success(`${type} saved as card`); }
+    else if (action === 'note' && onSaveAsNote) { onSaveAsNote(content, url); toast.success(`${type} saved as note`); }
+    else if (action === 'scratch' && onSaveToScratchpad) { onSaveToScratchpad(content); toast.success(`${type} saved to scratchpad`); }
   };
 
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text;
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, i) => 
-      part.toLowerCase() === query.toLowerCase() ? 
-        <mark key={i} className="bg-primary/30 text-foreground">{part}</mark> : 
+  const highlightText = (text: string, q: string) => {
+    if (!q) return text;
+    const parts = text.split(new RegExp(`(${q})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === q.toLowerCase() ?
+        <mark key={i} className="bg-primary/20 text-foreground rounded-sm px-0.5">{part}</mark> :
         part
     );
   };
 
+  const intentConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+    internal_search: { label: "Your Knowledge", icon: <Sparkles className="h-3 w-3" />, color: "bg-primary/10 text-primary border-primary/20" },
+    web_search: { label: "Web Search", icon: <Globe className="h-3 w-3" />, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+    image_generation: { label: "AI Generated", icon: <Sparkles className="h-3 w-3" />, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20" },
+    multimedia_search: { label: "Multimedia", icon: <Video className="h-3 w-3" />, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
+  };
+
+  const SaveDropdown = ({ onSave }: { onSave: (action: 'card' | 'note' | 'scratch') => void }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+          <MoreVertical className="h-3.5 w-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="rounded-xl">
+        {onSaveAsCard && <DropdownMenuItem onClick={() => onSave('card')}><FileText className="h-3.5 w-3.5 mr-2" />Save as Card</DropdownMenuItem>}
+        {onSaveAsNote && <DropdownMenuItem onClick={() => onSave('note')}><BookOpen className="h-3.5 w-3.5 mr-2" />Save as Note</DropdownMenuItem>}
+        {onSaveToScratchpad && <DropdownMenuItem onClick={() => onSave('scratch')}><FileEdit className="h-3.5 w-3.5 mr-2" />Save to Scratchpad</DropdownMenuItem>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Search Summary */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getIntentBadge()}
-              Search Results for "{query}"
-            </div>
-            {(multimediaResults || webResults?.citations) && (
-              <Button
-                variant={isBatchMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setIsBatchMode(!isBatchMode);
-                  if (isBatchMode) clearSelection();
-                }}
-              >
-                {isBatchMode ? <XSquare className="h-4 w-4 mr-2" /> : <CheckSquare className="h-4 w-4 mr-2" />}
-                {isBatchMode ? 'Exit Batch Mode' : 'Batch Select'}
-              </Button>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {intent === 'internal_search' && (
-              <p className="text-muted-foreground">
-                Found {totalResults} result{totalResults !== 1 ? 's' : ''} in your notes
-              </p>
-            )}
-            {intent === 'web_search' && (
-              <p className="text-muted-foreground">Live web search results</p>
-            )}
-            {intent === 'image_generation' && (
-              <p className="text-muted-foreground">AI-generated image</p>
-            )}
-            {intent === 'multimedia_search' && (
-              <p className="text-muted-foreground">Multimedia search results</p>
-            )}
-            {reasoning && (
-              <Badge variant="secondary" className="text-xs">
-                {reasoning}
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Batch Actions Toolbar */}
+    <div className="space-y-5">
+      {/* ── Search Header ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {intent && intentConfig[intent] && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border ${intentConfig[intent].color}`}>
+              {intentConfig[intent].icon}
+              {intentConfig[intent].label}
+            </span>
+          )}
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Results for <span className="text-foreground font-semibold">"{query}"</span>
+          </h2>
+        </div>
+        {(multimediaResults || webResults?.citations) && (
+          <Button
+            variant={isBatchMode ? "default" : "ghost"}
+            size="sm"
+            className="h-8 rounded-lg text-xs"
+            onClick={() => { setIsBatchMode(!isBatchMode); if (isBatchMode) clearSelection(); }}
+          >
+            {isBatchMode ? <XSquare className="h-3.5 w-3.5 mr-1.5" /> : <CheckSquare className="h-3.5 w-3.5 mr-1.5" />}
+            {isBatchMode ? 'Exit' : 'Select'}
+          </Button>
+        )}
+      </div>
+
+      {/* ── Reasoning badge ── */}
+      {reasoning && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2 border border-border/30">
+          <Sparkles className="h-3 w-3 text-primary shrink-0" />
+          <span>{reasoning}</span>
+        </div>
+      )}
+
+      {/* ── Batch Actions ── */}
       {isBatchMode && selectedItems.size > 0 && (
-        <Card className="glass-card border-primary">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="default">{selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected</Badge>
-                <Button variant="ghost" size="sm" onClick={clearSelection}>
-                  Clear
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleBatchSave('card')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Save as Cards
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleBatchSave('note')}>
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Save as Notes
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleBatchSave('scratch')}>
-                  <FileEdit className="h-4 w-4 mr-2" />
-                  Save to Scratchpad
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-primary text-primary-foreground">{selectedItems.size}</Badge>
+            <span className="text-sm text-muted-foreground">selected</span>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearSelection}>Clear</Button>
+          </div>
+          <div className="flex gap-1.5">
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => handleBatchSave('card')}>
+              <FileText className="h-3.5 w-3.5 mr-1.5" />Cards
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => handleBatchSave('note')}>
+              <BookOpen className="h-3.5 w-3.5 mr-1.5" />Notes
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => handleBatchSave('scratch')}>
+              <FileEdit className="h-3.5 w-3.5 mr-1.5" />Scratchpad
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* AI Generated Image */}
+      {/* ── AI Generated Image ── */}
       {generatedImage && (
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              AI Generated Image
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <img 
-              src={generatedImage.imageUrl} 
-              alt={generatedImage.prompt}
-              className="w-full rounded-lg border"
-            />
+        <Card className="overflow-hidden rounded-xl border-border/40 bg-card/50 backdrop-blur-sm">
+          <div className="p-4 border-b border-border/30 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">AI Generated Image</span>
+          </div>
+          <div className="p-4 space-y-3">
+            <img src={generatedImage.imageUrl} alt={generatedImage.prompt} className="w-full rounded-lg" />
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Prompt: {generatedImage.prompt}</p>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleSaveImage(generatedImage.imageUrl, 'card')}>
-                    Save as Card
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSaveImage(generatedImage.imageUrl, 'note')}>
-                    Save as Note
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSaveImage(generatedImage.imageUrl, 'scratch')}>
-                    Save to Scratchpad
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <p className="text-xs text-muted-foreground italic">"{generatedImage.prompt}"</p>
+              <SaveDropdown onSave={(action) => handleSaveImage(generatedImage.imageUrl, action)} />
             </div>
-          </CardContent>
+          </div>
         </Card>
       )}
 
-      {/* Multimedia Results */}
+      {/* ── Multimedia Results ── */}
       {multimediaResults && (multimediaResults.videos.length > 0 || multimediaResults.images.length > 0) && (
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Video className="h-5 w-5" />
-              Multimedia Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="videos">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="videos">
-                  Videos ({multimediaResults.videos?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="images">
-                  Images ({multimediaResults.images?.length || 0})
-                </TabsTrigger>
+        <Card className="overflow-hidden rounded-xl border-border/40 bg-card/50 backdrop-blur-sm">
+          <div className="p-4 border-b border-border/30 flex items-center gap-2">
+            <Video className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">Multimedia</span>
+          </div>
+          <Tabs defaultValue="videos" className="w-full">
+            <div className="px-4 pt-3">
+              <TabsList className="h-8 p-0.5 bg-muted/40 rounded-lg">
+                <TabsTrigger value="videos" className="text-xs h-7 rounded-md px-3">Videos ({multimediaResults.videos?.length || 0})</TabsTrigger>
+                <TabsTrigger value="images" className="text-xs h-7 rounded-md px-3">Images ({multimediaResults.images?.length || 0})</TabsTrigger>
               </TabsList>
+            </div>
 
-              <TabsContent value="videos" className="space-y-4 mt-4">
-                {multimediaResults.videos && multimediaResults.videos.length > 0 ? (
-                  <>
-                    {isBatchMode && (
-                      <div className="flex justify-end mb-2">
-                        <Button variant="ghost" size="sm" onClick={() => selectAllOfType('videos')}>
-                          Select All Videos
-                        </Button>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {multimediaResults.videos.map((video: string, index: number) => {
-                        const itemKey = `video:${index}`;
-                        const isSelected = selectedItems.has(itemKey);
-                        
-                        return (
-                          <Card key={index} className={`p-4 ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-                            <div className="flex items-start justify-between gap-2">
-                              {isBatchMode && (
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => toggleItemSelection(String(index), 'video')}
-                                  className="mt-1"
-                                />
-                              )}
-                              <a 
-                                href={video}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary hover:underline flex-1 truncate"
-                              >
-                                {new URL(video).hostname}
-                              </a>
-                              {!isBatchMode && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent>
-                                    <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'card')}>
-                                      Save as Card
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'note')}>
-                                      Save as Note
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleSaveLink(video, 'Video', 'scratch')}>
-                                      Save to Scratchpad
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">No videos found</p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="images" className="space-y-4 mt-4">
-                {multimediaResults.images && multimediaResults.images.length > 0 ? (
-                  <>
-                    {isBatchMode && (
-                      <div className="flex justify-end mb-2">
-                        <Button variant="ghost" size="sm" onClick={() => selectAllOfType('images')}>
-                          Select All Images
-                        </Button>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {multimediaResults.images.map((image: string, index: number) => {
-                        const itemKey = `image:${index}`;
-                        const isSelected = selectedItems.has(itemKey);
-                        
-                        return (
-                          <Card key={index} className={`p-2 ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-                            <div className="relative group">
-                              {isBatchMode && (
-                                <div className="absolute top-2 left-2 z-10">
-                                  <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={() => toggleItemSelection(String(index), 'image')}
-                                    className="bg-background"
-                                  />
-                                </div>
-                              )}
-                              <img 
-                                src={image} 
-                                alt={`Result ${index + 1}`}
-                                className="w-full h-32 object-cover rounded"
-                              />
-                              {!isBatchMode && (
-                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="secondary" size="sm">
-                                        <Save className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                      <DropdownMenuItem onClick={() => handleSaveImage(image, 'card')}>
-                                        Save as Card
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleSaveImage(image, 'note')}>
-                                        Save as Note
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleSaveImage(image, 'scratch')}>
-                                        Save to Scratchpad
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">No images found</p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Cards Results */}
-      {cards.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Zettelkarten Cards ({cards.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card) => (
-              <Card key={card.id} className="glass-card hover:shadow-hover transition-all">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span>{highlightText(card.title, query)}</span>
-                    <Badge variant="outline">{card.category}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {highlightText(card.content.substring(0, 150), query)}...
-                  </p>
-                  {card.tags && card.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {card.tags.map((tag, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
-                          {highlightText(tag, query)}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  {onNavigateToCard && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => onNavigateToCard(card.id)}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View Card
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Notes Results */}
-      {notes.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Notes ({notes.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {notes.map((note) => (
-              <Card key={note.id} className="glass-card hover:shadow-hover transition-all">
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    {highlightText(note.title, query)}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {highlightText(note.content.substring(0, 150), query)}...
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(note.created_at), 'PPp')}
-                  </p>
-                  {note.tags && note.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {note.tags.map((tag, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
-                          {highlightText(tag, query)}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  {onNavigateToNote && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => onNavigateToNote(note.id)}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View Note
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sticky Notes Results */}
-      {stickyNotes.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <StickyNote className="h-5 w-5" />
-            Sticky Notes ({stickyNotes.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {stickyNotes.map((note) => (
-              <Card 
-                key={note.id} 
-                className="hover:shadow-hover transition-all"
-                style={{ backgroundColor: note.color }}
-              >
-                <CardContent className="pt-4">
-                  <p className="text-sm whitespace-pre-wrap mb-2">
-                    {highlightText(note.content.substring(0, 150), query)}
-                    {note.content.length > 150 && '...'}
-                  </p>
-                  <p className="text-xs opacity-70 mb-3">
-                    {note.timestamp}
-                  </p>
-                  {onNavigateToStickyNote && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => onNavigateToStickyNote(note.id)}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View Note
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Scratch Notes Results */}
-      {scratchNotes.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Scratchpad Notes ({scratchNotes.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {scratchNotes.map((note) => (
-              <Card key={note.id} className="glass-card hover:shadow-hover transition-all">
-                <CardContent className="pt-4">
-                  <p className="text-sm whitespace-pre-wrap mb-2 font-mono">
-                    {highlightText(note.content.substring(0, 150), query)}
-                    {note.content.length > 150 && '...'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(note.timestamp), 'PPp')}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Web Results with Tabs */}
-      {webResults && webResults.result && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Globe className="h-6 w-6 text-primary" />
-              Web Search Results
-            </h2>
-            {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {webResults.relatedQuestions.length} related questions
-              </Badge>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Search Results */}
-            <div className="lg:col-span-2">
-              <Tabs defaultValue="all" className="w-full">
-                <TabsList className="grid w-full grid-cols-6 mb-6 h-auto p-1 bg-muted/50 rounded-lg">
-                  <TabsTrigger value="all" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Globe className="h-4 w-4" />
-                    <span className="hidden sm:inline">All</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="web" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden sm:inline">Web</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="images" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <ImageIcon className="h-4 w-4" />
-                    <span className="hidden sm:inline">Images</span>
-                    {webResults.images && webResults.images.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.images.length}</Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="videos" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Video className="h-4 w-4" />
-                    <span className="hidden sm:inline">Videos</span>
-                    {webResults.videos && webResults.videos.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.videos.length}</Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="shopping" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <ShoppingCart className="h-4 w-4" />
-                    <span className="hidden sm:inline">Shop</span>
-                    {webResults.shopping && webResults.shopping.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.shopping.length}</Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="news" className="flex items-center gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Newspaper className="h-4 w-4" />
-                    <span className="hidden sm:inline">News</span>
-                    {webResults.news && webResults.news.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{webResults.news.length}</Badge>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
-
-            {/* All Tab */}
-            <TabsContent value="all" className="space-y-8">
-              {/* Images Preview */}
-              {webResults.images && webResults.images.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <ImageIcon className="h-5 w-5 text-primary" />
-                      Images from the web
-                    </h3>
-                    <Badge variant="outline">{webResults.images.length} found</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {webResults.images.slice(0, 12).map((img, idx) => (
-                      <div key={idx} className="group relative">
-                        <a href={img} target="_blank" rel="noopener noreferrer" className="block">
-                          <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                            <img
-                              src={img}
-                              alt={`${query} - Result ${idx + 1}`}
-                              className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity"
-                              loading="lazy"
-                              onError={(e) => { 
-                                const card = e.currentTarget.closest('.group');
-                                if (card) card.remove();
-                              }}
-                            />
-                          </Card>
-                        </a>
-                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="secondary" className="h-7 w-7 p-0 shadow-lg">
-                                  <Save className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {onSaveAsCard && (
-                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'card')}>
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    Save as Card
-                                  </DropdownMenuItem>
-                                )}
-                                {onSaveAsNote && (
-                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'note')}>
-                                    <BookOpen className="h-4 w-4 mr-2" />
-                                    Save as Note
-                                  </DropdownMenuItem>
-                                )}
-                                {onSaveToScratchpad && (
-                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'scratch')}>
-                                    <FileEdit className="h-4 w-4 mr-2" />
-                                    Save to Scratchpad
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {webResults.images.length > 12 && (
-                    <div className="text-center">
-                      <Badge variant="secondary" className="cursor-default">
-                        + {webResults.images.length - 12} more images in the Images tab
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Main Content */}
-              <Card className="glass-card border-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" />
-                    Search Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{webResults.result}</ReactMarkdown>
-                  </div>
-                  {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                    <div className="flex flex-wrap gap-2 pt-4 border-t">
-                      {onSaveAsCard && (
-                        <Button variant="outline" size="sm" onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Save as Card
-                        </Button>
-                      )}
-                      {onSaveAsNote && (
-                        <Button variant="outline" size="sm" onClick={() => onSaveAsNote(webResults.result, webResults.citations?.[0])}>
-                          <FileEdit className="h-4 w-4 mr-2" />
-                          Save as Note
-                        </Button>
-                      )}
-                      {onSaveToScratchpad && (
-                        <Button variant="outline" size="sm" onClick={() => onSaveToScratchpad(webResults.result)}>
-                          <FileEdit className="h-4 w-4 mr-2" />
-                          Save to Scratchpad
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {/* Related Questions */}
-              {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      People also ask
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {webResults.relatedQuestions.map((question, idx) => (
-                        <Card key={idx} className="p-3 hover:shadow-md transition-all cursor-pointer hover:border-primary/30">
-                          <p className="text-sm font-medium">{question}</p>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Citations */}
-              {webResults.citations && webResults.citations.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <LinkIcon className="h-4 w-4" />
-                        Sources ({webResults.citations.length})
-                      </div>
-                      {isBatchMode && (
-                        <Button variant="ghost" size="sm" onClick={() => selectAllOfType('citations')}>
-                          Select All
-                        </Button>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {webResults.citations.map((citation, idx) => {
-                        const itemKey = `citation:${idx}`;
-                        const isSelected = selectedItems.has(itemKey);
-                        
-                        return (
-                          <Card key={idx} className={`p-3 hover:shadow-hover transition-all group ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-                            <div className="flex items-start justify-between gap-2">
-                              {isBatchMode && (
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => toggleItemSelection(String(idx), 'citation')}
-                                  className="mt-1"
-                                />
-                              )}
-                              <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline flex-1 min-w-0">
-                                <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                <span className="break-all">{citation}</span>
-                              </a>
-                              {!isBatchMode && (onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <MoreVertical className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {onSaveAsCard && (
-                                      <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'card')}>
-                                        <FileText className="h-4 w-4 mr-2" />
-                                        Save as Card
-                                      </DropdownMenuItem>
-                                    )}
-                                    {onSaveAsNote && (
-                                      <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'note')}>
-                                        <BookOpen className="h-4 w-4 mr-2" />
-                                        Save as Note
-                                      </DropdownMenuItem>
-                                    )}
-                                    {onSaveToScratchpad && (
-                                      <DropdownMenuItem onClick={() => handleSaveLink(citation, 'Source', 'scratch')}>
-                                        <FileEdit className="h-4 w-4 mr-2" />
-                                        Save to Scratchpad
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* Web Tab */}
-            <TabsContent value="web" className="space-y-6">
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{webResults.result}</ReactMarkdown>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {webResults.citations && webResults.citations.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      Sources ({webResults.citations.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {webResults.citations.map((citation, idx) => (
-                        <Card key={idx} className="p-3 hover:shadow-hover transition-all">
-                          <a href={citation} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-sm text-primary hover:underline">
-                            <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span className="break-all">{citation}</span>
-                          </a>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* Images Tab */}
-            <TabsContent value="images" className="space-y-4">
-              {webResults.images && webResults.images.length > 0 ? (
+            <TabsContent value="videos" className="p-4 pt-3">
+              {multimediaResults.videos?.length > 0 ? (
                 <>
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {webResults.images.length} image{webResults.images.length !== 1 ? 's' : ''} from across the web
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                    {webResults.images.map((img, idx) => (
-                      <div key={idx} className="group relative">
-                        <a href={img} target="_blank" rel="noopener noreferrer" className="block">
-                          <Card className="overflow-hidden hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-primary/30">
-                            <div className="relative aspect-square">
-                              <img
-                                src={img}
-                                alt={`${query} - Result ${idx + 1}`}
-                                className="w-full h-full object-cover group-hover:opacity-95 transition-opacity"
-                                loading="lazy"
-                                onError={(e) => { 
-                                  const card = e.currentTarget.closest('.group');
-                                  if (card) card.remove();
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </div>
-                            </div>
-                          </Card>
-                        </a>
-                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="secondary" className="h-7 w-7 p-0 shadow-lg">
-                                  <Save className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {onSaveAsCard && (
-                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'card')}>
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    Save as Card
-                                  </DropdownMenuItem>
-                                )}
-                                {onSaveAsNote && (
-                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'note')}>
-                                    <BookOpen className="h-4 w-4 mr-2" />
-                                    Save as Note
-                                  </DropdownMenuItem>
-                                )}
-                                {onSaveToScratchpad && (
-                                  <DropdownMenuItem onClick={() => handleSaveImage(img, 'scratch')}>
-                                    <FileEdit className="h-4 w-4 mr-2" />
-                                    Save to Scratchpad
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                  {isBatchMode && (
+                    <div className="flex justify-end mb-2">
+                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => selectAllOfType('videos')}>Select All</Button>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {multimediaResults.videos.map((video: string, index: number) => {
+                      const isSelected = selectedItems.has(`video:${index}`);
+                      return (
+                        <div key={index} className={`group flex items-center gap-3 p-3 rounded-xl border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/30 hover:border-primary/20 hover:bg-muted/20'}`}>
+                          {isBatchMode && (
+                            <Checkbox checked={isSelected} onCheckedChange={() => toggleItemSelection(String(index), 'video')} />
+                          )}
+                          <Video className="h-4 w-4 text-primary shrink-0" />
+                          <a href={video} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex-1 truncate font-medium">
+                            {(() => { try { return new URL(video).hostname; } catch { return video; } })()}
+                          </a>
+                          {!isBatchMode && <SaveDropdown onSave={(action) => handleSaveLink(video, 'Video', action)} />}
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
-              ) : (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground font-medium">No images found for "{query}"</p>
-                  <p className="text-sm text-muted-foreground/70 mt-2">Try a different search term</p>
-                </Card>
-              )}
+              ) : <p className="text-muted-foreground text-center py-6 text-sm">No videos found</p>}
             </TabsContent>
 
-            {/* Videos Tab */}
-            <TabsContent value="videos">
-              {webResults.videos && webResults.videos.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {webResults.videos.map((videoUrl, idx) => (
-                    <Card key={idx} className="p-4 hover:shadow-hover transition-all group">
-                      <div className="flex items-start justify-between gap-3">
-                        <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm flex-1 min-w-0">
-                          <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                          <span className="text-primary group-hover:underline break-all">{videoUrl}</span>
-                        </a>
-                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {onSaveAsCard && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(videoUrl, 'Video', 'card')}>
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  Save as Card
-                                </DropdownMenuItem>
-                              )}
-                              {onSaveAsNote && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(videoUrl, 'Video', 'note')}>
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Save as Note
-                                </DropdownMenuItem>
-                              )}
-                              {onSaveToScratchpad && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(videoUrl, 'Video', 'scratch')}>
-                                  <FileEdit className="h-4 w-4 mr-2" />
-                                  Save to Scratchpad
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">No videos found for this search</p>
-                </Card>
-              )}
+            <TabsContent value="images" className="p-4 pt-3">
+              {multimediaResults.images?.length > 0 ? (
+                <>
+                  {isBatchMode && (
+                    <div className="flex justify-end mb-2">
+                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => selectAllOfType('images')}>Select All</Button>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {multimediaResults.images.map((image: string, index: number) => {
+                      const isSelected = selectedItems.has(`image:${index}`);
+                      return (
+                        <div key={index} className={`group relative rounded-xl overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                          {isBatchMode && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <Checkbox checked={isSelected} onCheckedChange={() => toggleItemSelection(String(index), 'image')} className="bg-background/80 backdrop-blur-sm" />
+                            </div>
+                          )}
+                          <img src={image} alt={`Result ${index + 1}`} className="w-full h-28 object-cover" loading="lazy" />
+                          {!isBatchMode && (
+                            <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="secondary" size="sm" className="h-7 w-7 p-0 rounded-lg shadow-lg"><Save className="h-3 w-3" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl">
+                                  <DropdownMenuItem onClick={() => handleSaveImage(image, 'card')}>Save as Card</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleSaveImage(image, 'note')}>Save as Note</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleSaveImage(image, 'scratch')}>Save to Scratchpad</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : <p className="text-muted-foreground text-center py-6 text-sm">No images found</p>}
             </TabsContent>
+          </Tabs>
+        </Card>
+      )}
 
-            {/* Shopping Tab */}
-            <TabsContent value="shopping">
-              {webResults.shopping && webResults.shopping.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {webResults.shopping.map((shopUrl, idx) => (
-                    <Card key={idx} className="p-4 hover:shadow-hover transition-all group">
-                      <div className="flex items-start justify-between gap-3">
-                        <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm flex-1 min-w-0">
-                          <ShoppingCart className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                          <span className="text-primary group-hover:underline break-all">{shopUrl}</span>
-                        </a>
-                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {onSaveAsCard && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(shopUrl, 'Shopping', 'card')}>
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  Save as Card
-                                </DropdownMenuItem>
-                              )}
-                              {onSaveAsNote && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(shopUrl, 'Shopping', 'note')}>
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Save as Note
-                                </DropdownMenuItem>
-                              )}
-                              {onSaveToScratchpad && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(shopUrl, 'Shopping', 'scratch')}>
-                                  <FileEdit className="h-4 w-4 mr-2" />
-                                  Save to Scratchpad
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
+      {/* ── Local Results: Cards ── */}
+      {cards.length > 0 && (
+        <ResultSection icon={<FileText className="h-4 w-4" />} title="Cards" count={cards.length}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {cards.map((card) => (
+              <div
+                key={card.id}
+                onClick={() => onNavigateToCard?.(card.id)}
+                className="group p-3.5 rounded-xl border border-border/30 bg-card/50 backdrop-blur-sm hover:border-primary/20 hover:shadow-md transition-all duration-200 cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-sm font-semibold leading-snug line-clamp-1">{highlightText(card.title, query)}</h3>
+                  <Badge variant="outline" className="text-[10px] shrink-0 ml-2 rounded-md">{card.category}</Badge>
                 </div>
-              ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">No shopping results found for this search</p>
-                </Card>
-              )}
-            </TabsContent>
+                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2.5">
+                  {highlightText(card.content.substring(0, 120), query)}
+                </p>
+                {card.tags && card.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {card.tags.slice(0, 3).map((tag, i) => (
+                      <span key={i} className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+      )}
 
-            {/* News Tab */}
-            <TabsContent value="news">
-              {webResults.news && webResults.news.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {webResults.news.map((newsUrl, idx) => (
-                    <Card key={idx} className="p-4 hover:shadow-hover transition-all group">
-                      <div className="flex items-start justify-between gap-3">
-                        <a href={newsUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-sm flex-1 min-w-0">
-                          <Newspaper className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                          <span className="text-primary group-hover:underline break-all">{newsUrl}</span>
-                        </a>
-                        {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {onSaveAsCard && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(newsUrl, 'News', 'card')}>
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  Save as Card
-                                </DropdownMenuItem>
-                              )}
-                              {onSaveAsNote && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(newsUrl, 'News', 'note')}>
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Save as Note
-                                </DropdownMenuItem>
-                              )}
-                              {onSaveToScratchpad && (
-                                <DropdownMenuItem onClick={() => handleSaveLink(newsUrl, 'News', 'scratch')}>
-                                  <FileEdit className="h-4 w-4 mr-2" />
-                                  Save to Scratchpad
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </Card>
+      {/* ── Local Results: Notes ── */}
+      {notes.length > 0 && (
+        <ResultSection icon={<BookOpen className="h-4 w-4" />} title="Notes" count={notes.length}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {notes.map((note) => (
+              <div
+                key={note.id}
+                onClick={() => onNavigateToNote?.(note.id)}
+                className="group p-3.5 rounded-xl border border-border/30 bg-card/50 backdrop-blur-sm hover:border-primary/20 hover:shadow-md transition-all duration-200 cursor-pointer"
+              >
+                <h3 className="text-sm font-semibold leading-snug line-clamp-1 mb-1.5">{highlightText(note.title, query)}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2">
+                  {highlightText(note.content.substring(0, 120), query)}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground/70">{format(new Date(note.created_at), 'MMM d, yyyy')}</span>
+                  {note.tags?.slice(0, 2).map((tag, i) => (
+                    <span key={i} className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">{tag}</span>
                   ))}
                 </div>
-              ) : (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">No news found for this search</p>
-                </Card>
-              )}
-            </TabsContent>
-            </Tabs>
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+      )}
+
+      {/* ── Local Results: Sticky Notes ── */}
+      {stickyNotes.length > 0 && (
+        <ResultSection icon={<StickyNote className="h-4 w-4" />} title="Sticky Notes" count={stickyNotes.length}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {stickyNotes.map((note) => (
+              <div
+                key={note.id}
+                onClick={() => onNavigateToStickyNote?.(note.id)}
+                className="group p-3.5 rounded-xl border border-border/30 hover:border-primary/20 hover:shadow-md transition-all duration-200 cursor-pointer"
+                style={{ backgroundColor: `${note.color}20` }}
+              >
+                <p className="text-xs whitespace-pre-wrap line-clamp-3 leading-relaxed mb-2">
+                  {highlightText(note.content.substring(0, 120), query)}
+                </p>
+                <span className="text-[10px] text-muted-foreground/70">{note.timestamp}</span>
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+      )}
+
+      {/* ── Local Results: Scratchpad ── */}
+      {scratchNotes.length > 0 && (
+        <ResultSection icon={<FileEdit className="h-4 w-4" />} title="Scratchpad" count={scratchNotes.length}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {scratchNotes.map((note) => (
+              <div key={note.id} className="p-3.5 rounded-xl border border-border/30 bg-card/50 backdrop-blur-sm">
+                <p className="text-xs whitespace-pre-wrap font-mono line-clamp-3 leading-relaxed mb-2">
+                  {highlightText(note.content.substring(0, 120), query)}
+                </p>
+                <span className="text-[10px] text-muted-foreground/70">{format(new Date(note.timestamp), 'MMM d, yyyy')}</span>
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+      )}
+
+      {/* ── Web Results ── */}
+      {webResults && webResults.result && (
+        <div className="space-y-5">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Globe className="h-4 w-4 text-primary" />
             </div>
-            
-            {/* Contextual Insights Panel */}
+            <h2 className="text-base font-bold">Web Results</h2>
+            {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] rounded-md ml-auto">
+                {webResults.relatedQuestions.length} related
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="lg:col-span-2 space-y-4">
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="w-full grid grid-cols-6 h-9 p-0.5 bg-muted/30 backdrop-blur-sm rounded-xl border border-border/20">
+                  {[
+                    { value: "all", icon: Globe, label: "All" },
+                    { value: "web", icon: FileText, label: "Web" },
+                    { value: "images", icon: ImageIcon, label: "Images", count: webResults.images?.length },
+                    { value: "videos", icon: Video, label: "Videos", count: webResults.videos?.length },
+                    { value: "shopping", icon: ShoppingCart, label: "Shop", count: webResults.shopping?.length },
+                    { value: "news", icon: Newspaper, label: "News", count: webResults.news?.length },
+                  ].map(({ value, icon: Icon, label, count }) => (
+                    <TabsTrigger key={value} value={value} className="text-[11px] gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                      <Icon className="h-3 w-3" />
+                      <span className="hidden sm:inline">{label}</span>
+                      {count != null && count > 0 && <span className="text-[9px] bg-muted rounded-full px-1 min-w-[16px] text-center">{count}</span>}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {/* All Tab */}
+                <TabsContent value="all" className="space-y-5 mt-4">
+                  {/* Image preview strip */}
+                  {webResults.images && webResults.images.length > 0 && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Images</span>
+                        <span className="text-[10px] text-muted-foreground">{webResults.images.length} found</span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                        {webResults.images.slice(0, 8).map((img, idx) => (
+                          <a key={idx} href={img} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 rounded-xl overflow-hidden hover:ring-2 hover:ring-primary/30 transition-all">
+                            <img src={img} alt={`${query} ${idx + 1}`} className="h-20 w-20 object-cover bg-muted"
+                              loading="lazy" onError={(e) => { (e.currentTarget as HTMLElement).parentElement?.remove(); }} />
+                          </a>
+                        ))}
+                        {webResults.images.length > 8 && (
+                          <div className="shrink-0 h-20 w-20 rounded-xl bg-muted/40 flex items-center justify-center text-xs text-muted-foreground font-medium">
+                            +{webResults.images.length - 8}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary card */}
+                  <Card className="rounded-xl border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+                    <div className="p-4 border-b border-border/20 flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold">Summary</span>
+                    </div>
+                    <CardContent className="p-4 space-y-4">
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-semibold">
+                        <ReactMarkdown>{webResults.result}</ReactMarkdown>
+                      </div>
+                      {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                        <div className="flex flex-wrap gap-2 pt-3 border-t border-border/20">
+                          {onSaveAsCard && (
+                            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => onSaveAsCard(webResults.result, webResults.citations?.[0])}>
+                              <Plus className="h-3 w-3 mr-1.5" />Save as Card
+                            </Button>
+                          )}
+                          {onSaveAsNote && (
+                            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => onSaveAsNote(webResults.result, webResults.citations?.[0])}>
+                              <FileEdit className="h-3 w-3 mr-1.5" />Save as Note
+                            </Button>
+                          )}
+                          {onSaveToScratchpad && (
+                            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => onSaveToScratchpad(webResults.result)}>
+                              <FileEdit className="h-3 w-3 mr-1.5" />Scratchpad
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Related Questions */}
+                  {webResults.relatedQuestions && webResults.relatedQuestions.length > 0 && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">People also ask</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {webResults.relatedQuestions.map((q, idx) => (
+                          <div key={idx} className="px-3.5 py-2.5 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-muted/20 transition-all cursor-pointer text-sm">
+                            {q}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Citations */}
+                  {webResults.citations && webResults.citations.length > 0 && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <LinkIcon className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sources</span>
+                        </div>
+                        {isBatchMode && (
+                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => selectAllOfType('citations')}>Select All</Button>
+                        )}
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {webResults.citations.map((citation, idx) => {
+                          const isSelected = selectedItems.has(`citation:${idx}`);
+                          let hostname = '';
+                          try { hostname = new URL(citation).hostname.replace('www.', ''); } catch { hostname = citation; }
+                          return (
+                            <div key={idx} className={`group flex items-center gap-2.5 p-3 rounded-xl border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/30 hover:border-primary/20 hover:bg-muted/10'}`}>
+                              {isBatchMode && <Checkbox checked={isSelected} onCheckedChange={() => toggleItemSelection(String(idx), 'citation')} />}
+                              <div className="flex-1 min-w-0">
+                                <a href={citation} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-primary hover:underline truncate block">
+                                  {hostname}
+                                </a>
+                                <span className="text-[10px] text-muted-foreground/60 truncate block">{citation}</span>
+                              </div>
+                              <ExternalLink className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                              {!isBatchMode && <SaveDropdown onSave={(action) => handleSaveLink(citation, 'Source', action)} />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Web Tab */}
+                <TabsContent value="web" className="space-y-4 mt-4">
+                  <Card className="rounded-xl border-border/40 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown>{webResults.result}</ReactMarkdown>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  {webResults.citations && webResults.citations.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sources</span>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {webResults.citations.map((citation, idx) => {
+                          let hostname = '';
+                          try { hostname = new URL(citation).hostname.replace('www.', ''); } catch { hostname = citation; }
+                          return (
+                            <a key={idx} href={citation} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-2.5 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-muted/10 transition-all text-xs text-primary font-medium">
+                              <ExternalLink className="h-3 w-3 shrink-0" />{hostname}
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Images Tab */}
+                <TabsContent value="images" className="mt-4">
+                  {webResults.images && webResults.images.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {webResults.images.map((img, idx) => (
+                        <div key={idx} className="group relative rounded-xl overflow-hidden">
+                          <a href={img} target="_blank" rel="noopener noreferrer">
+                            <img src={img} alt={`${query} ${idx + 1}`} className="w-full aspect-square object-cover bg-muted hover:opacity-90 transition-opacity"
+                              loading="lazy" onError={(e) => { (e.currentTarget.closest('.group') as HTMLElement)?.remove(); }} />
+                          </a>
+                          {(onSaveAsCard || onSaveAsNote || onSaveToScratchpad) && (
+                            <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="secondary" className="h-7 w-7 p-0 rounded-lg shadow-lg"><Save className="h-3 w-3" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl">
+                                  {onSaveAsCard && <DropdownMenuItem onClick={() => handleSaveImage(img, 'card')}>Save as Card</DropdownMenuItem>}
+                                  {onSaveAsNote && <DropdownMenuItem onClick={() => handleSaveImage(img, 'note')}>Save as Note</DropdownMenuItem>}
+                                  {onSaveToScratchpad && <DropdownMenuItem onClick={() => handleSaveImage(img, 'scratch')}>Scratchpad</DropdownMenuItem>}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : <EmptyTab icon={ImageIcon} label="No images found" />}
+                </TabsContent>
+
+                {/* Videos Tab */}
+                <TabsContent value="videos" className="mt-4">
+                  {webResults.videos && webResults.videos.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {webResults.videos.map((videoUrl, idx) => (
+                        <LinkRow key={idx} url={videoUrl} icon={Video} type="Video" onSave={handleSaveLink} />
+                      ))}
+                    </div>
+                  ) : <EmptyTab icon={Video} label="No videos found" />}
+                </TabsContent>
+
+                {/* Shopping Tab */}
+                <TabsContent value="shopping" className="mt-4">
+                  {webResults.shopping && webResults.shopping.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {webResults.shopping.map((shopUrl, idx) => (
+                        <LinkRow key={idx} url={shopUrl} icon={ShoppingCart} type="Shopping" onSave={handleSaveLink} />
+                      ))}
+                    </div>
+                  ) : <EmptyTab icon={ShoppingCart} label="No shopping results" />}
+                </TabsContent>
+
+                {/* News Tab */}
+                <TabsContent value="news" className="mt-4">
+                  {webResults.news && webResults.news.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {webResults.news.map((newsUrl, idx) => (
+                        <LinkRow key={idx} url={newsUrl} icon={Newspaper} type="News" onSave={handleSaveLink} />
+                      ))}
+                    </div>
+                  ) : <EmptyTab icon={Newspaper} label="No news found" />}
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Contextual Insights */}
             {webResults.contextualData && (
               <div className="lg:col-span-1">
                 <div className="lg:sticky lg:top-6">
@@ -1229,13 +718,78 @@ export function UnifiedSearchResults({
         </div>
       )}
 
-      {/* No Results Message */}
+      {/* No Results */}
       {totalResults === 0 && !webResults && (
-        <Card className="p-12 text-center">
-          <p className="text-muted-foreground text-lg">No results found for "{query}"</p>
-          <p className="text-sm text-muted-foreground mt-2">Try different keywords or check your spelling</p>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="rounded-2xl bg-muted/40 p-5 mb-5 text-muted-foreground/50">
+            <Globe className="h-10 w-10" />
+          </div>
+          <p className="text-base font-semibold mb-1">No results found</p>
+          <p className="text-sm text-muted-foreground">Try different keywords or check your spelling</p>
+        </div>
       )}
+    </div>
+  );
+}
+
+/* ── Shared sub-components ── */
+
+function ResultSection({ icon, title, count, children }: {
+  icon: React.ReactNode;
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 rounded-lg bg-muted/50 text-muted-foreground">{icon}</div>
+        <h2 className="text-sm font-bold">{title}</h2>
+        <span className="text-[10px] text-muted-foreground bg-muted/40 rounded-full px-2 py-0.5">{count}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function EmptyTab({ icon: Icon, label }: { icon: React.FC<any>; label: string }) {
+  return (
+    <div className="flex flex-col items-center py-12 text-center">
+      <Icon className="h-8 w-8 text-muted-foreground/30 mb-3" />
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function LinkRow({ url, icon: Icon, type, onSave }: {
+  url: string;
+  icon: React.FC<any>;
+  type: string;
+  onSave: (url: string, type: string, action: 'card' | 'note' | 'scratch') => void;
+}) {
+  let hostname = '';
+  try { hostname = new URL(url).hostname.replace('www.', ''); } catch { hostname = url; }
+
+  return (
+    <div className="group flex items-center gap-2.5 p-3 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-muted/10 transition-all">
+      <Icon className="h-4 w-4 text-primary shrink-0" />
+      <div className="flex-1 min-w-0">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-primary hover:underline truncate block">{hostname}</a>
+        <span className="text-[10px] text-muted-foreground/60 truncate block">{url}</span>
+      </div>
+      <ExternalLink className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <MoreVertical className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="rounded-xl">
+          <DropdownMenuItem onClick={() => onSave(url, type, 'card')}><FileText className="h-3.5 w-3.5 mr-2" />Save as Card</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onSave(url, type, 'note')}><BookOpen className="h-3.5 w-3.5 mr-2" />Save as Note</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onSave(url, type, 'scratch')}><FileEdit className="h-3.5 w-3.5 mr-2" />Scratchpad</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

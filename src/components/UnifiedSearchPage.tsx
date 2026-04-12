@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   Search, Loader2, Brain, GraduationCap, Video, BookOpen,
-  ExternalLink, Play, Sparkles, X,
+  ExternalLink, Play, Sparkles, X, ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -186,7 +186,6 @@ export function UnifiedSearchPage({
 
   const handleRerunSearch = (q: string) => {
     handleQueryChange(q);
-    // Auto-execute on current sub-tab
     if (subTab === "videos") searchVideos(q);
     else if (subTab === "books") searchBooks(q);
     else if (subTab === "courses") {
@@ -216,10 +215,13 @@ export function UnifiedSearchPage({
     }
   };
 
+  const isLoading = videoLoading || bookLoading;
+
+  /* ── Render ── */
   return (
     <div className="space-y-0">
-      {/* ── Unified search bar for all tabs ── */}
-      <div className="sticky top-10 md:top-12 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-2 sm:px-3 py-2">
+      {/* ── Premium search bar ── */}
+      <div className="sticky top-10 md:top-12 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-3 sm:px-4 py-2.5">
         <div className="max-w-3xl mx-auto">
           {subTab === "knowledge" ? (
             <div className="flex items-center gap-2">
@@ -229,13 +231,7 @@ export function UnifiedSearchPage({
                   autoFocus
                   initialQuery={currentQuery || undefined}
                   cards={cards}
-                  onSearchResults={(results) => {
-                    if (results.query) {
-                      onSearchResults(results);
-                    } else {
-                      onSearchResults(results);
-                    }
-                  }}
+                  onSearchResults={(results) => onSearchResults(results)}
                   onQueryChange={onQueryChange}
                 />
               </div>
@@ -250,7 +246,7 @@ export function UnifiedSearchPage({
           ) : (
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   value={query}
                   onChange={(e) => handleQueryChange(e.target.value)}
@@ -261,17 +257,31 @@ export function UnifiedSearchPage({
                       ? "Search educational videos…"
                       : "Search millions of books…"
                   }
-                  className="pl-9"
+                  className="pl-9 h-10 bg-muted/30 border-border/50 focus-visible:ring-primary/30 rounded-xl"
                   autoFocus
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => handleQueryChange("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-              <Button type="submit" disabled={videoLoading || bookLoading}>
-                {(videoLoading || bookLoading) ? (
+              <Button
+                type="submit"
+                disabled={isLoading}
+                size="sm"
+                className="h-10 px-4 rounded-xl gap-1.5 font-medium"
+              >
+                {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : subTab === "courses" ? (
-                  <><ExternalLink className="h-4 w-4 mr-1.5" />Search</>
+                  <><ExternalLink className="h-3.5 w-3.5" />Search</>
                 ) : (
-                  <><Search className="h-4 w-4 mr-1.5" />Search</>
+                  <><Search className="h-3.5 w-3.5" />Search</>
                 )}
               </Button>
               <SearchHistorySidebar
@@ -287,30 +297,30 @@ export function UnifiedSearchPage({
       </div>
 
       {/* ── Sub-tab strip ── */}
-      <div className="px-2 sm:px-3 pt-2">
+      <div className="px-3 sm:px-4 pt-3">
         <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-4 max-w-lg">
-            <TabsTrigger value="knowledge" className="gap-1.5 text-xs sm:text-sm">
+          <TabsList className="w-full grid grid-cols-4 max-w-md h-10 p-1 bg-muted/40 backdrop-blur-sm rounded-xl border border-border/30">
+            <TabsTrigger value="knowledge" className="gap-1.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground transition-all">
               <Brain className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Knowledge</span>
             </TabsTrigger>
-            <TabsTrigger value="courses" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="courses" className="gap-1.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground transition-all">
               <GraduationCap className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Courses</span>
             </TabsTrigger>
-            <TabsTrigger value="videos" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="videos" className="gap-1.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground transition-all">
               <Video className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Videos</span>
             </TabsTrigger>
-            <TabsTrigger value="books" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="books" className="gap-1.5 text-xs sm:text-sm rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground transition-all">
               <BookOpen className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Books</span>
             </TabsTrigger>
           </TabsList>
 
           {/* ── Knowledge ── */}
-          <TabsContent value="knowledge" className="mt-3">
-            <div className="p-3 sm:p-4">
+          <TabsContent value="knowledge" className="mt-4">
+            <div className="px-1 sm:px-2">
               {searchResults ? (
                 <UnifiedSearchResults
                   query={searchResults.query}
@@ -331,117 +341,92 @@ export function UnifiedSearchPage({
                   onSaveToScratchpad={onSaveToScratchpad}
                 />
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground text-sm">
-                    Use the search bar above to find content across your notes, cards, and sticky notes.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={<Brain className="h-10 w-10" />}
+                  title="Search your second brain"
+                  description="Ask questions, search your notes, or explore the web — all from one place."
+                />
               )}
             </div>
           </TabsContent>
 
           {/* ── Courses ── */}
-          <TabsContent value="courses" className="mt-3">
-            <div className="p-3 sm:p-4 space-y-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <TabsContent value="courses" className="mt-4">
+            <div className="px-1 sm:px-2 space-y-5">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <ExternalLink className="h-3 w-3" />
                 Results open on Class Central in a new tab
-              </p>
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground font-medium">Popular topics</p>
-                <div className="flex flex-wrap gap-2">
-                  {POPULAR_TOPICS.map((topic) => (
-                    <Badge
-                      key={topic}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-accent transition-colors"
-                      onClick={() => chipAction(topic)}
-                    >
-                      {topic}
-                    </Badge>
-                  ))}
-                </div>
               </div>
+              <TopicChips topics={POPULAR_TOPICS} onSelect={chipAction} label="Popular topics" />
             </div>
           </TabsContent>
 
           {/* ── Videos ── */}
-          <TabsContent value="videos" className="mt-3">
-            <div className="p-3 sm:p-4 space-y-4">
+          <TabsContent value="videos" className="mt-4">
+            <div className="px-1 sm:px-2 space-y-5">
               {!videoSearched && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground font-medium">Popular topics</p>
-                  <div className="flex flex-wrap gap-2">
-                    {POPULAR_TOPICS.map((topic) => (
-                      <Badge
-                        key={topic}
-                        variant="outline"
-                        className="cursor-pointer hover:bg-accent transition-colors"
-                        onClick={() => chipAction(topic)}
-                      >
-                        {topic}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <>
+                  <TopicChips topics={POPULAR_TOPICS} onSelect={chipAction} label="Popular topics" />
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Video className="h-3 w-3" />
                     Searches YouTube, Odysee, Khan Academy, TED & more
-                  </p>
-                </div>
+                  </div>
+                </>
               )}
 
-              {videoLoading && (
-                <div className="text-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Searching videos…</p>
-                </div>
-              )}
+              {videoLoading && <LoadingState label="Searching videos…" />}
 
               {!videoLoading && videoSearched && videoResults.length === 0 && (
-                <div className="text-center py-12 space-y-3">
-                  <Video className="h-10 w-10 mx-auto opacity-40 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">No results found</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() =>
-                      window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer")
-                    }>
+                <EmptyState
+                  icon={<Video className="h-10 w-10" />}
+                  title="No videos found"
+                  description="Try a different search term"
+                  action={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg"
+                      onClick={() =>
+                        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer")
+                      }
+                    >
                       <ExternalLink className="h-3.5 w-3.5 mr-1.5" />Search YouTube
                     </Button>
-                  </div>
-                </div>
+                  }
+                />
               )}
 
               {videoResults.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {videoResults.map((video, i) => (
-                    <Card key={i} className="overflow-hidden border-border/50 hover:border-primary/30 transition-colors group">
+                    <Card key={i} className="overflow-hidden border-border/40 hover:border-primary/30 hover:shadow-lg transition-all duration-300 group bg-card/50 backdrop-blur-sm rounded-xl">
                       <div className="relative">
                         <AspectRatio ratio={16 / 9}>
                           {video.thumbnail ? (
                             <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover bg-muted" loading="lazy" />
                           ) : (
                             <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <Video className="h-8 w-8 text-muted-foreground/40" />
+                              <Video className="h-8 w-8 text-muted-foreground/30" />
                             </div>
                           )}
                         </AspectRatio>
-                        <Badge className={`absolute top-2 left-2 text-[10px] ${VIDEO_PROVIDER_COLOR[video.provider] || VIDEO_PROVIDER_COLOR.Web}`}>
+                        <Badge className={`absolute top-2.5 left-2.5 text-[10px] shadow-md ${VIDEO_PROVIDER_COLOR[video.provider] || VIDEO_PROVIDER_COLOR.Web}`}>
                           {video.provider}
                         </Badge>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                          <div className="rounded-full bg-background/90 p-2">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[2px]">
+                          <div className="rounded-full bg-background/90 p-2.5 shadow-lg">
                             <Play className="h-5 w-5 text-foreground fill-foreground" />
                           </div>
                         </div>
                       </div>
-                      <CardContent className="p-3 space-y-1.5">
+                      <CardContent className="p-3.5 space-y-1.5">
                         <h3 className="text-sm font-medium leading-snug line-clamp-2 text-foreground">{video.title}</h3>
-                        <p className="text-[11px] text-muted-foreground">{video.channel}</p>
-                        {video.description && <p className="text-xs text-muted-foreground line-clamp-2">{video.description}</p>}
+                        <p className="text-[11px] text-muted-foreground font-medium">{video.channel}</p>
+                        {video.description && <p className="text-xs text-muted-foreground/80 line-clamp-2 leading-relaxed">{video.description}</p>}
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="w-full text-xs h-7 mt-1"
+                          variant="ghost"
+                          className="w-full text-xs h-8 mt-1.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
                           onClick={() => window.open(video.url, "_blank", "noopener,noreferrer")}
                         >
                           <ExternalLink className="h-3 w-3 mr-1.5" />Watch
@@ -455,74 +440,54 @@ export function UnifiedSearchPage({
           </TabsContent>
 
           {/* ── Books ── */}
-          <TabsContent value="books" className="mt-3">
-            <div className="p-3 sm:p-4 space-y-4">
-              {!bookSearched && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground font-medium">Try searching for</p>
-                  <div className="flex flex-wrap gap-2">
-                    {POPULAR_BOOKS.map((term) => (
-                      <Badge
-                        key={term}
-                        variant="outline"
-                        className="cursor-pointer hover:bg-accent transition-colors"
-                        onClick={() => chipAction(term)}
-                      >
-                        {term}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <TabsContent value="books" className="mt-4">
+            <div className="px-1 sm:px-2 space-y-5">
+              {!bookSearched && <TopicChips topics={POPULAR_BOOKS} onSelect={chipAction} label="Try searching for" />}
 
-              {bookLoading && (
-                <div className="text-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Searching books…</p>
-                </div>
-              )}
+              {bookLoading && <LoadingState label="Searching books…" />}
 
               {!bookLoading && bookSearched && bookResults.length === 0 && (
-                <div className="text-center py-12">
-                  <BookOpen className="h-10 w-10 mx-auto opacity-40 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mt-2">No books found</p>
-                </div>
+                <EmptyState
+                  icon={<BookOpen className="h-10 w-10" />}
+                  title="No books found"
+                  description="Try a different search term"
+                />
               )}
 
               {bookResults.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {bookResults.map((book) => (
-                    <Card key={book.key} className="overflow-hidden border-border/50 hover:border-primary/30 transition-colors">
-                      <CardContent className="p-3 flex gap-3">
+                    <Card key={book.key} className="overflow-hidden border-border/40 hover:border-primary/30 hover:shadow-lg transition-all duration-300 bg-card/50 backdrop-blur-sm rounded-xl">
+                      <CardContent className="p-3.5 flex gap-3.5">
                         {book.coverId ? (
                           <img
                             src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
                             alt={book.title}
-                            className="w-16 h-24 object-cover rounded bg-muted shrink-0"
+                            className="w-16 h-24 object-cover rounded-lg bg-muted shrink-0 shadow-sm"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-16 h-24 bg-muted rounded flex items-center justify-center shrink-0">
-                            <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                          <div className="w-16 h-24 bg-muted rounded-lg flex items-center justify-center shrink-0">
+                            <BookOpen className="h-6 w-6 text-muted-foreground/30" />
                           </div>
                         )}
-                        <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex-1 min-w-0 space-y-1.5">
                           <h3 className="text-sm font-medium leading-snug line-clamp-2 text-foreground">{book.title}</h3>
                           <p className="text-[11px] text-muted-foreground">{book.author}{book.year ? ` · ${book.year}` : ""}</p>
                           {book.subjects && book.subjects.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {book.subjects.slice(0, 3).map((s) => (
-                                <Badge key={s} variant="secondary" className="text-[9px]">{s}</Badge>
+                                <Badge key={s} variant="secondary" className="text-[9px] rounded-md bg-muted/60">{s}</Badge>
                               ))}
                             </div>
                           )}
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="text-xs h-7 mt-1"
+                            variant="ghost"
+                            className="text-xs h-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors px-2"
                             onClick={() => window.open(`https://openlibrary.org${book.key}`, "_blank", "noopener,noreferrer")}
                           >
-                            <ExternalLink className="h-3 w-3 mr-1.5" />View on Open Library
+                            <ExternalLink className="h-3 w-3 mr-1.5" />Open Library
                           </Button>
                         </div>
                       </CardContent>
@@ -533,6 +498,62 @@ export function UnifiedSearchPage({
             </div>
           </TabsContent>
         </Tabs>
+      </div>
+    </div>
+  );
+}
+
+/* ── Shared sub-components ── */
+
+function EmptyState({ icon, title, description, action }: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="rounded-2xl bg-muted/40 p-5 mb-5 text-muted-foreground/50">
+        {icon}
+      </div>
+      <h3 className="text-base font-semibold text-foreground mb-1.5">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+function LoadingState({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16">
+      <div className="relative">
+        <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary relative" />
+      </div>
+      <p className="text-sm text-muted-foreground mt-4 font-medium">{label}</p>
+    </div>
+  );
+}
+
+function TopicChips({ topics, onSelect, label }: {
+  topics: string[];
+  onSelect: (t: string) => void;
+  label: string;
+}) {
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {topics.map((topic) => (
+          <button
+            key={topic}
+            onClick={() => onSelect(topic)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full border border-border/50 bg-muted/30 text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all duration-200"
+          >
+            {topic}
+            <ArrowRight className="h-3 w-3 opacity-0 -ml-1 group-hover:opacity-100 transition-opacity" />
+          </button>
+        ))}
       </div>
     </div>
   );
