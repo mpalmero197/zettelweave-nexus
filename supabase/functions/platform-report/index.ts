@@ -31,14 +31,14 @@ serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
     // Check admin role
     const adminClient = createClient(supabaseUrl, serviceKey);
@@ -50,8 +50,8 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
-        status: 403,
+      return new Response(JSON.stringify({ ok: false, error: "Admin access required" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -211,8 +211,8 @@ Also provide a JSON summary at the very end in a code block tagged \`\`\`json wi
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
+      return new Response(JSON.stringify({ ok: false, error: "LOVABLE_API_KEY not configured" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -234,21 +234,21 @@ Also provide a JSON summary at the very end in a code block tagged \`\`\`json wi
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited — please try again later." }), {
-          status: 429,
+        return new Response(JSON.stringify({ ok: false, error: "Rate limited — please try again later." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted — add funds in Settings > Workspace > Usage." }), {
-          status: 402,
+        return new Response(JSON.stringify({ ok: false, error: "AI credits exhausted — add funds in Settings > Workspace > Usage." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), {
-        status: 500,
+      return new Response(JSON.stringify({ ok: false, error: "AI analysis failed" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -269,6 +269,7 @@ Also provide a JSON summary at the very end in a code block tagged \`\`\`json wi
 
     return new Response(
       JSON.stringify({
+        ok: true,
         text: reportText,
         json: reportJson,
         telemetry,
@@ -281,8 +282,8 @@ Also provide a JSON summary at the very end in a code block tagged \`\`\`json wi
   } catch (err) {
     console.error("Platform report error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ ok: false, error: err instanceof Error ? err.message : "Unknown error" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

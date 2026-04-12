@@ -29,6 +29,7 @@ export function PlatformReport() {
     try {
       const { data, error } = await supabase.functions.invoke('platform-report');
       if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || 'Report generation failed');
       setReport(data as ReportData);
       toast({ title: 'Report generated', description: 'Platform analysis complete.' });
     } catch (err: any) {
