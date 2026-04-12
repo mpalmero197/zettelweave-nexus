@@ -1045,7 +1045,7 @@ const DOCUMENT_TEMPLATES = [
                                 <div className="flex-1 cursor-pointer" onClick={() => handleLoadFromCloud(doc)}>
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-semibold">{doc.title}</h4>
-                                    {(doc as any).is_master_document && (
+                                    {doc.is_master_document && (
                                       <Badge variant="secondary" className="text-xs">
                                         <Brain className="h-3 w-3 mr-1" />
                                         Auto
