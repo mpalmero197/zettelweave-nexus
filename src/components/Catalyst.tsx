@@ -36,7 +36,6 @@ import {
   Users,
   GraduationCap,
   Briefcase,
-  Brain,
 } from 'lucide-react';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
