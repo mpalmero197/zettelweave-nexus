@@ -3,7 +3,7 @@ import {
   Home, FileText, StickyNote, Calendar, Settings,
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
-  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus, Puzzle,
+  LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus, Puzzle, Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -23,6 +23,11 @@ interface MobileNavigationProps {
   onSignOut?: () => void;
   onAccountSettings?: () => void;
 }
+
+const PREMIUM_TABS = new Set([
+  'graph', 'canvas', 'journal', 'recorder', 'collab',
+  'learning', 'spaces', 'projects', 'knowledge-gaps', 'integrations',
+]);
 
 const SECTIONS = [
   {
@@ -48,7 +53,6 @@ const SECTIONS = [
     label: 'Planner',
     items: [
       { id: 'journal', label: 'Journal', icon: StickyNote },
-      
       { id: 'scratchpad', label: 'Scratchpad', icon: Pencil },
       { id: 'stickynotes', label: 'Sticky Notes', icon: StickyNote },
       { id: 'projects', label: 'Projects', icon: FolderKanban },
@@ -205,12 +209,13 @@ export function MobileNavigation({
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id;
+                    const isPremiumItem = PREMIUM_TABS.has(item.id) && !hasPremium;
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleNav(item.id)}
                         className={cn(
-                          'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
+                          'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px] relative',
                           isActive
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
@@ -218,6 +223,9 @@ export function MobileNavigation({
                       >
                         <Icon className="h-5 w-5" aria-hidden="true" />
                         <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
+                        {isPremiumItem && (
+                          <Crown className="h-3 w-3 text-primary absolute top-1.5 right-1.5" />
+                        )}
                       </button>
                     );
                   })}
