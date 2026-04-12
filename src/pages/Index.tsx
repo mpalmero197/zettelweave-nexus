@@ -744,29 +744,19 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Bullet Journal" hasAccess={hasPremium}>
                     <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
                       <BulletJournal
                           onCreateCard={handleCreateCard}
                           onAddHabit={(taskName) => {
-                            // Trigger habit creation via global function exposed by HabitTracker
                             if ((window as any).__addHabitFromTask) {
                               (window as any).__addHabitFromTask(taskName);
                             }
                           }}
                       />
                     </Suspense>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Bullet Journal is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
-
 
                 <TabsContent value="stickynotes" className="mt-0">
                   <StickyNotesSimple />
@@ -777,48 +767,37 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="recorder" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Recorder Studio" hasAccess={hasPremium}>
                     <RecorderStudio />
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Audio/Video Recording is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="collab" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Collaboration Studio" hasAccess={hasPremium}>
                     <CollabStudio />
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Collaboration features are available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
-
 
                 <TabsContent value="debugger" className="mt-0">
                   <DebuggerConsole />
                 </TabsContent>
 
                 <TabsContent value="projects" className="mt-0">
-                  <ProjectManager />
+                  <PremiumGate featureName="Project Manager" hasAccess={hasPremium}>
+                    <ProjectManager />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="knowledge-gaps" className="mt-0">
-                  <KnowledgeGapAnalyzer />
+                  <PremiumGate featureName="Knowledge Gap Analyzer" hasAccess={hasPremium}>
+                    <KnowledgeGapAnalyzer />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="integrations" className="mt-0">
-                  <IntegrationsHub />
+                  <PremiumGate featureName="Integrations Hub" hasAccess={hasPremium}>
+                    <IntegrationsHub />
+                  </PremiumGate>
                 </TabsContent>
 
               </div>
