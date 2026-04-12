@@ -204,7 +204,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
   if (isHidden) return null;
 
-  const emissiveIntensity = hovered ? 3.5 : isSearchMatch ? 2.5 : 1.2;
+  const emissiveIntensity = hovered ? 4.5 : isSearchMatch ? 3.5 : 2.0;
   const opacity = isDimmed ? 0.06 : 1;
 
   return (
@@ -253,7 +253,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           color="white"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.7}
+          fillOpacity={0.9}
         >
           {card.title.length > 18 ? card.title.slice(0, 16) + '…' : card.title}
         </Text>
@@ -301,7 +301,7 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
 
   if (isHidden) return null;
 
-  const baseWidth = thickness || 0.6;
+  const baseWidth = thickness || 1.0;
 
   return (
     <Line
@@ -309,7 +309,7 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
       color={isHighlighted ? color : new THREE.Color(0x888899)}
       lineWidth={isHighlighted ? baseWidth * 2.5 : baseWidth}
       transparent
-      opacity={isDimmed ? 0.02 : isHighlighted ? 0.7 : 0.15}
+      opacity={isDimmed ? 0.02 : isHighlighted ? 0.9 : 0.3}
     />
   );
 }
@@ -397,7 +397,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   // Node radius
   const getRadius = useCallback((cardId: string) => {
     const count = connectionCounts[cardId] || 0;
-    return 0.15 + (count / maxConn) * 0.95;
+    return 0.25 + (count / maxConn) * 0.95;
   }, [connectionCounts, maxConn]);
 
   // 3D Layouts
@@ -473,12 +473,12 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
   return (
     <>
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={0.4} />
       <pointLight position={[25, 20, 20]} intensity={1.2} color="#e0c0ff" />
       <pointLight position={[-20, -15, -20]} intensity={0.6} color="#00e5ff" />
       <pointLight position={[0, -25, 10]} intensity={0.4} color="#ff4081" />
       <pointLight position={[15, 0, -25]} intensity={0.3} color="#76ff03" />
-      <hemisphereLight args={['#1a0030', '#000510', 0.3]} />
+      <hemisphereLight args={['#1a0030', '#000510', 0.6]} />
 
       <Stars radius={120} depth={100} count={5000} factor={4} saturation={0.5} fade speed={0.4} />
 
