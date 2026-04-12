@@ -51,11 +51,76 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
       if (!user) return [];
       const { data, error } = await supabase
         .from('notes')
-        .select('*')
+        .select('id, title, content')
         .eq('user_id', user.id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: catalystDocs = [] } = useQuery({
+    queryKey: ['catalyst-docs-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('catalyst_documents')
+        .select('id, title, content')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data || []).map(d => ({ id: d.id, title: d.title, content: (d.content || '').substring(0, 500) }));
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendar-events-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('id, title, event_date, description')
+        .eq('user_id', user.id)
+        .order('event_date', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, notes, is_completed, due_date, priority')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: scratchpadNotes = [] } = useQuery({
+    queryKey: ['scratchpad-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('scratchpad_notes')
+        .select('id, content')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data || [];
     },
