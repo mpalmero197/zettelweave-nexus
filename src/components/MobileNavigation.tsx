@@ -73,7 +73,6 @@ const SECTIONS = [
     label: 'System',
     items: [
       { id: 'recycle', label: 'Recycle Bin', icon: Trash2 },
-      { id: 'debugger', label: 'Debugger', icon: Bug },
     ],
   },
 ];
