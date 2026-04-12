@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import pendragonLogo from "@/assets/pendragon-logo.png";
 import { SEOHead, createFAQSchema, createHowToSchema, ogImages } from "@/components/SEOHead";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { MarketingQuizFunnel } from "@/components/MarketingQuizFunnel";
 
 /* ─── Static Data ─── */
 
@@ -686,7 +687,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────────────────────── 11. FINAL CTA ────────────────────────── */}
+      {/* ────────────────────────── 11. QUIZ FUNNEL ────────────────────────── */}
+      <MarketingQuizFunnel />
+
+      {/* ────────────────────────── 12. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 hero-glow pointer-events-none" />
         <div className="floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />

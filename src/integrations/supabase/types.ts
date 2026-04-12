@@ -2026,6 +2026,39 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_funnel_leads: {
+        Row: {
+          coupon_code: string | null
+          created_at: string
+          email: string
+          id: string
+          priorities: string[] | null
+          satisfaction: string | null
+          tools_used: string[] | null
+          usage_duration: string | null
+        }
+        Insert: {
+          coupon_code?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          priorities?: string[] | null
+          satisfaction?: string | null
+          tools_used?: string[] | null
+          usage_duration?: string | null
+        }
+        Update: {
+          coupon_code?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          priorities?: string[] | null
+          satisfaction?: string | null
+          tools_used?: string[] | null
+          usage_duration?: string | null
+        }
+        Relationships: []
+      }
       reading_list: {
         Row: {
           author: string | null
