@@ -142,41 +142,62 @@ List 3-5 follow-up questions the user might want to explore.`
     const searchData = await searchResponse.json();
     const fullResult = searchData.choices?.[0]?.message?.content || "No results found.";
 
-    // Parse sources from the response
-    const sourcesMatch = fullResult.match(/## Sources\n([\s\S]*?)(?=\n## |$)/);
-    const relatedMatch = fullResult.match(/## Related Questions\n([\s\S]*?)(?=\n## |$)/);
+    // Parse structured sections from the response
+    const extractSection = (header: string) => {
+      const regex = new RegExp(`## ${header}\\n([\\s\\S]*?)(?=\\n## |$)`);
+      return fullResult.match(regex)?.[1] || '';
+    };
 
-    const citations: string[] = [];
-    if (sourcesMatch) {
-      const lines = sourcesMatch[1].split('\n').filter((l: string) => l.trim());
+    const extractUrls = (section: string): string[] => {
+      const urls: string[] = [];
+      const lines = section.split('\n').filter((l: string) => l.trim());
       for (const line of lines) {
-        const urlMatch = line.match(/https?:\/\/[^\s)]+/);
-        if (urlMatch) citations.push(urlMatch[0]);
+        const urlMatch = line.match(/https?:\/\/[^\s)>\]]+/);
+        if (urlMatch) urls.push(urlMatch[0]);
       }
-    }
+      return urls;
+    };
+
+    const extractLabeledLinks = (section: string): { title: string; url: string }[] => {
+      const links: { title: string; url: string }[] = [];
+      const lines = section.split('\n').filter((l: string) => l.trim());
+      for (const line of lines) {
+        const mdLink = line.match(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/);
+        if (mdLink) {
+          links.push({ title: mdLink[1], url: mdLink[2] });
+        } else {
+          const urlMatch = line.match(/https?:\/\/[^\s)>\]]+/);
+          if (urlMatch) links.push({ title: '', url: urlMatch[0] });
+        }
+      }
+      return links;
+    };
+
+    const citations = extractUrls(extractSection('Sources'));
+    const imageUrls = extractUrls(extractSection('Images'));
+    const videoLinks = extractLabeledLinks(extractSection('Videos'));
+    const shoppingLinks = extractLabeledLinks(extractSection('Shopping'));
 
     const relatedQuestions: string[] = [];
-    if (relatedMatch) {
-      const lines = relatedMatch[1].split('\n').filter((l: string) => l.trim());
+    const relatedSection = extractSection('Related Questions');
+    if (relatedSection) {
+      const lines = relatedSection.split('\n').filter((l: string) => l.trim());
       for (const line of lines) {
         const clean = line.replace(/^[\d\.\-\*\s]+/, '').trim();
         if (clean) relatedQuestions.push(clean);
       }
     }
 
-    // Strip the Sources/Related sections from the main result for cleaner display
+    // Strip structured sections from the main result for cleaner display
     const result = fullResult
-      .replace(/## Sources[\s\S]*?(?=\n## (?!Sources|Related)|$)/, '')
+      .replace(/## Images[\s\S]*?(?=\n## |$)/, '')
+      .replace(/## Videos[\s\S]*?(?=\n## |$)/, '')
+      .replace(/## Shopping[\s\S]*?(?=\n## |$)/, '')
+      .replace(/## Sources[\s\S]*?(?=\n## |$)/, '')
       .replace(/## Related Questions[\s\S]*$/, '')
       .trim();
 
-    // Categorise citations
-    const videoLinks = citations.filter((url: string) =>
-      url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com')
-    );
-    const shoppingLinks = citations.filter((url: string) =>
-      url.includes('amazon.com') || url.includes('ebay.com') || url.includes('shop') || url.includes('store')
-    );
+    // Categorise citation URLs for news
     const newsLinks = citations.filter((url: string) =>
       url.includes('news') || url.includes('bbc.com') || url.includes('cnn.com') || url.includes('reuters.com')
     );
