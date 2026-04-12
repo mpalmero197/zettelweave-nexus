@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -44,7 +44,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { toast } = useToast();
   const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions, lowPowerMode, setLowPowerMode } = useAnimationPreference();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'backup' | 'debug'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'backup' | 'debug'>('profile');
+  const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -70,7 +71,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Load profile data
       supabase
         .from('profiles')
-        .select('display_name, about_me, avatar_url')
+        .select('display_name, about_me, avatar_url, auto_master_docs')
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data, error }) => {
@@ -82,6 +83,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setDisplayName(data.display_name || '');
             setAboutMe(data.about_me || '');
             setAvatarUrl(data.avatar_url || '');
+            setAutoMasterDocs(data.auto_master_docs || false);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
@@ -622,6 +624,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'activity', label: 'Activity Log', icon: BookOpen },
     { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'ai', label: 'AI & Automation', icon: Brain },
     { id: 'debug', label: 'Debug Logs', icon: Bug },
     ...(user?.email === 'mpalmero197@gmail.com' ? [{ id: 'backup', label: 'Backup', icon: Download }] : []),
   ];
@@ -1093,6 +1096,67 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                         <p>• Logs include timestamps, user agent, and current URL context</p>
                       </div>
                     </div>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'ai' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Living Second Brain</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Enable AI-powered features that automatically organize and synthesize your knowledge.
+                  </p>
+
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1 flex-1 mr-4">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium">Auto Master Documents</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          When enabled, ALICE will automatically detect subject clusters across your cards, notes, and documents, then create and maintain comprehensive "Master Documents" in Catalyst for each subject. Documents are updated whenever you add new related content.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={autoMasterDocs}
+                        onCheckedChange={async (checked) => {
+                          if (!user) return;
+                          setAutoMasterDocs(checked);
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ auto_master_docs: checked })
+                            .eq('user_id', user.id);
+                          if (error) {
+                            toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
+                            setAutoMasterDocs(!checked);
+                          } else {
+                            toast({ title: checked ? 'Enabled' : 'Disabled', description: checked ? 'Auto Master Documents is now active. New content will trigger synthesis.' : 'Auto Master Documents has been disabled.' });
+                            // If just enabled, trigger an initial synthesis
+                            if (checked) {
+                              supabase.functions.invoke('synthesize-master-document', {
+                                body: { user_id: user.id }
+                              }).then(({ error }) => {
+                                if (error) console.error('Initial synthesis error:', error);
+                              });
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </Card>
+
+                  <Card className="p-6 mt-4">
+                    <h4 className="font-medium mb-2">How it works</h4>
+                    <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                      <li>ALICE scans your cards, notes, and documents for related topics</li>
+                      <li>When 3+ items share a subject, a Master Document is created in Catalyst</li>
+                      <li>Each time you add or edit content, the Master Document is updated</li>
+                      <li>Master Documents are marked with a badge in your Catalyst library</li>
+                      <li>You can edit Master Documents like any other Catalyst document</li>
+                    </ul>
                   </Card>
                 </div>
               </div>

@@ -51,11 +51,76 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
       if (!user) return [];
       const { data, error } = await supabase
         .from('notes')
-        .select('*')
+        .select('id, title, content')
         .eq('user_id', user.id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: catalystDocs = [] } = useQuery({
+    queryKey: ['catalyst-docs-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('catalyst_documents')
+        .select('id, title, content')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data || []).map(d => ({ id: d.id, title: d.title, content: (d.content || '').substring(0, 500) }));
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendar-events-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('id, title, event_date, description')
+        .eq('user_id', user.id)
+        .order('event_date', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, notes, is_completed, due_date, priority')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && open,
+  });
+
+  const { data: scratchpadNotes = [] } = useQuery({
+    queryKey: ['scratchpad-context', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('scratchpad_notes')
+        .select('id, content')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data || [];
     },
@@ -78,18 +143,16 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
     setIsLoading(true);
 
     try {
-      // Get sticky notes from localStorage
-      const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
-      const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
-
       const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
         body: { 
           messages: [...messages, userMessage],
           context: {
             cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
             notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
-            stickyNotes: stickyNotes.map((s: any) => ({ id: s.id, content: s.content })),
-            scratchPad: scratchPad.map((s: any) => ({ id: s.id, content: s.content })),
+            catalystDocs: catalystDocs,
+            calendarEvents: calendarEvents.map((e: any) => ({ id: e.id, title: e.title, event_date: e.event_date, description: e.description })),
+            tasks: tasks.map((t: any) => ({ id: t.id, title: t.title, notes: t.notes, is_completed: t.is_completed, due_date: t.due_date, priority: t.priority })),
+            scratchPad: scratchpadNotes.map((s: any) => ({ id: s.id, content: s.content })),
           }
         }
       });
@@ -219,17 +282,16 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
       // Same logic as handleSend
       (async () => {
         try {
-          const stickyNotes = JSON.parse(localStorage.getItem('sticky-notes:v1') || '[]');
-          const scratchPad = JSON.parse(localStorage.getItem('scratchpad:notes:v1') || '[]');
-
           const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
             body: { 
               messages: [...messages, userMessage],
               context: {
                 cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
                 notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
-                stickyNotes: stickyNotes.map((s: any) => ({ id: s.id, content: s.content })),
-                scratchPad: scratchPad.map((s: any) => ({ id: s.id, content: s.content })),
+                catalystDocs: catalystDocs,
+                calendarEvents: calendarEvents.map((e: any) => ({ id: e.id, title: e.title, event_date: e.event_date, description: e.description })),
+                tasks: tasks.map((t: any) => ({ id: t.id, title: t.title, notes: t.notes, is_completed: t.is_completed })),
+                scratchPad: scratchpadNotes.map((s: any) => ({ id: s.id, content: s.content })),
               }
             }
           });
@@ -336,9 +398,9 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                 <div className="space-y-2">
                   {[
                     'Summarize my recent notes',
-                    'What time is it in Paris?',
-                    'Who won the latest Nobel Prize?',
-                    'Find connections between my cards'
+                    'Find connections between my cards',
+                    'What subjects could you create master documents for?',
+                    'What are my upcoming tasks and events?'
                   ].map((suggestion, i) => (
                     <button
                       key={i}
