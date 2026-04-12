@@ -1638,6 +1638,45 @@ export type Database = {
           },
         ]
       }
+      platform_insights: {
+        Row: {
+          category: string
+          competitor_reference: string | null
+          created_at: string | null
+          description: string
+          id: string
+          metadata: Json | null
+          priority: string | null
+          reviewed_at: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          competitor_reference?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          competitor_reference?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           about_me: string | null

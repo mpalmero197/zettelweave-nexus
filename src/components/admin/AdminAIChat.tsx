@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Send, Loader2, Sparkles, Trash2, Database, Shield, Zap } from 'lucide-react';
+import { Bot, Send, Loader2, Sparkles, Trash2, Database, Shield, Zap, Search, TrendingUp, BarChart3, Eye, X, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,17 +14,49 @@ interface Message {
   content: string;
 }
 
+interface PlatformInsight {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  priority: string;
+  competitor_reference: string | null;
+  status: string;
+  created_at: string;
+}
+
 const QUICK_PROMPTS = [
+  { icon: Search, label: 'SEO audit', prompt: 'Analyze my current SEO setup (meta tags, sitemap, robots.txt, llms.txt, structured data) and suggest improvements to rank higher than Notion and Obsidian for "AI second brain" keywords.' },
+  { icon: TrendingUp, label: 'Competitive analysis', prompt: 'Compare Pendragon\'s current feature set against Notion, Obsidian, and OneNote. What key features am I missing? Where do I have an advantage?' },
+  { icon: BarChart3, label: 'Growth strategy', prompt: 'Based on current user metrics and content patterns, suggest growth strategies to increase user acquisition and retention.' },
   { icon: Database, label: 'Optimize queries', prompt: 'Analyze my database tables and suggest query optimizations, missing indexes, or schema improvements.' },
   { icon: Shield, label: 'Security audit', prompt: 'Review my RLS policies and suggest security improvements. Are there any tables that might be exposed?' },
   { icon: Zap, label: 'Fix top errors', prompt: 'Look at the most recent error reports and suggest fixes for the top issues.' },
   { icon: Sparkles, label: 'Feature ideas', prompt: 'Based on the current platform state and feature requests, suggest the most impactful improvements to build next.' },
 ];
 
+const CATEGORY_COLORS: Record<string, string> = {
+  seo: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  feature_gap: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  ux: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+  performance: 'bg-green-500/10 text-green-500 border-green-500/20',
+  competitive: 'bg-red-500/10 text-red-500 border-red-500/20',
+  growth: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+};
+
+const PRIORITY_DOTS: Record<string, string> = {
+  critical: 'bg-red-500',
+  high: 'bg-amber-500',
+  medium: 'bg-blue-500',
+  low: 'bg-muted-foreground',
+};
+
 export function AdminAIChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [insights, setInsights] = useState<PlatformInsight[]>([]);
+  const [loadingInsights, setLoadingInsights] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,6 +65,36 @@ export function AdminAIChat() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    fetchInsights();
+  }, []);
+
+  const fetchInsights = async () => {
+    setLoadingInsights(true);
+    const { data } = await supabase
+      .from('platform_insights')
+      .select('*')
+      .eq('status', 'new')
+      .order('created_at', { ascending: false })
+      .limit(12);
+    setInsights((data as PlatformInsight[]) ?? []);
+    setLoadingInsights(false);
+  };
+
+  const updateInsightStatus = async (id: string, status: string) => {
+    await supabase
+      .from('platform_insights')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+    setInsights(prev => prev.filter(i => i.id !== id));
+    toast.success(status === 'reviewed' ? 'Marked as reviewed' : 'Dismissed');
+  };
+
+  const askAboutInsight = (insight: PlatformInsight) => {
+    const prompt = `I have this platform insight:\n\n**${insight.title}**\n${insight.description}\n\nCategory: ${insight.category}, Priority: ${insight.priority}${insight.competitor_reference ? `, Competitor: ${insight.competitor_reference}` : ''}\n\nGive me a detailed action plan to implement this improvement.`;
+    sendMessage(prompt);
+  };
 
   const sendMessage = async (messageText?: string) => {
     const text = messageText || input.trim();
@@ -107,7 +169,6 @@ export function AdminAIChat() {
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to get AI response');
-      // Remove user message if no response
       if (!assistantContent) {
         setMessages(prev => prev.slice(0, -1));
       }
@@ -116,6 +177,8 @@ export function AdminAIChat() {
     }
   };
 
+  const hasNewInsights = insights.length > 0;
+
   return (
     <div className="space-y-4">
       <Card className="border-primary/20">
@@ -123,32 +186,83 @@ export function AdminAIChat() {
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
             AI Admin Assistant
+            {hasNewInsights && (
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
+              </span>
+            )}
           </CardTitle>
           <CardDescription>
-            Chat with AI to diagnose issues, optimize your platform, and get improvement suggestions
+            Chat with AI to diagnose issues, optimize SEO, analyze competitors, and get improvement suggestions
           </CardDescription>
         </CardHeader>
       </Card>
 
-      {/* Quick prompts */}
+      {/* Platform Pulse + Quick prompts when no chat */}
       {messages.length === 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {QUICK_PROMPTS.map((qp, i) => (
-            <Card
-              key={i}
-              className="cursor-pointer hover:bg-muted/50 transition-colors border-border/50"
-              onClick={() => sendMessage(qp.prompt)}
-            >
-              <CardContent className="p-4 flex items-start gap-3">
-                <qp.icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">{qp.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{qp.prompt}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          {/* Platform Pulse */}
+          {!loadingInsights && insights.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Platform Pulse</h3>
+                <Badge variant="secondary" className="text-xs">{insights.length} new</Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {insights.slice(0, 6).map((insight) => (
+                  <Card key={insight.id} className="border-border/50 group">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${CATEGORY_COLORS[insight.category] ?? ''}`}>
+                            {insight.category.replace('_', ' ')}
+                          </Badge>
+                          <span className={`h-2 w-2 rounded-full ${PRIORITY_DOTS[insight.priority] ?? PRIORITY_DOTS.medium}`} title={insight.priority} />
+                          {insight.competitor_reference && (
+                            <span className="text-[10px] text-muted-foreground capitalize">{insight.competitor_reference}</span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium leading-tight">{insight.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{insight.description}</p>
+                      <div className="flex gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => updateInsightStatus(insight.id, 'reviewed')}>
+                          <Eye className="h-3 w-3 mr-1" /> Reviewed
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => updateInsightStatus(insight.id, 'dismissed')}>
+                          <X className="h-3 w-3 mr-1" /> Dismiss
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => askAboutInsight(insight)}>
+                          <MessageSquare className="h-3 w-3 mr-1" /> Ask AI
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick prompts */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {QUICK_PROMPTS.map((qp, i) => (
+              <Card
+                key={i}
+                className="cursor-pointer hover:bg-muted/50 transition-colors border-border/50"
+                onClick={() => sendMessage(qp.prompt)}
+              >
+                <CardContent className="p-4 flex items-start gap-3">
+                  <qp.icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">{qp.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{qp.prompt}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Chat messages */}
@@ -214,7 +328,7 @@ export function AdminAIChat() {
         )}
         <Textarea
           ref={textareaRef}
-          placeholder="Ask about errors, optimizations, security, features..."
+          placeholder="Ask about SEO, competitors, errors, optimizations..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

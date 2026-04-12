@@ -62,21 +62,64 @@ serve(async (req) => {
     // Gather platform context
     let platformContext = "";
 
-    // Get table list for context
-    const { data: tables } = await supabase.rpc("get_all_users");
-    const tableCount = tables?.length ?? 0;
+    const [
+      { data: tables },
+      { data: recentErrors },
+      { data: topFeatureRequests },
+      { data: recentInsights },
+      { count: cardCount },
+      { count: noteCount },
+      { count: docCount },
+    ] = await Promise.all([
+      supabase.rpc("get_all_users"),
+      supabase
+        .from("error_reports")
+        .select("error_type, error_message, filename, line_number, occurrence_count, severity, status")
+        .order("last_seen_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("feature_requests")
+        .select("title, votes, status")
+        .order("votes", { ascending: false })
+        .limit(5),
+      supabase
+        .from("platform_insights")
+        .select("category, title, description, priority, competitor_reference, status")
+        .eq("status", "new")
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase.from("zettel_cards").select("*", { count: "exact", head: true }),
+      supabase.from("notes").select("*", { count: "exact", head: true }),
+      supabase.from("catalyst_documents").select("*", { count: "exact", head: true }),
+    ]);
 
-    // Get recent errors
-    const { data: recentErrors } = await supabase
-      .from("error_reports")
-      .select("error_type, error_message, filename, line_number, occurrence_count, severity, status")
-      .order("last_seen_at", { ascending: false })
-      .limit(10);
+    const tableCount = tables?.length ?? 0;
 
     platformContext = `
 ## Platform Context
 - Total users: ${tableCount}
+- Zettel cards: ${cardCount ?? 0}, Notes: ${noteCount ?? 0}, Catalyst docs: ${docCount ?? 0}
 - Recent errors (last 10): ${JSON.stringify(recentErrors || [], null, 2)}
+
+## Top Feature Requests (by votes)
+${JSON.stringify(topFeatureRequests || [], null, 2)}
+
+## Recent AI-Generated Platform Insights (unreviewed)
+${JSON.stringify(recentInsights || [], null, 2)}
+
+## SEO Configuration
+- Domain: pendragonx.com
+- Has sitemap.xml, robots.txt, llms.txt, llms-full.txt for AI crawlers
+- JSON-LD structured data: SoftwareApplication, FAQPage, DefinedTermSet, Speakable
+- Target keywords: "AI second brain", "3D knowledge graph", "thinking second brain"
+
+## Competitive Landscape
+- **Notion**: Databases, wikis, projects, AI, team workspaces, API, templates marketplace, Calendar, formulas, relations, rollups, synced blocks, web clipper
+- **Obsidian**: Local-first markdown, graph view, 1000+ plugins, Canvas, Sync, Publish, backlinks, templates, daily notes, Dataview
+- **OneNote**: Freeform canvas, handwriting/ink, Office 365 integration, Copilot AI, audio recording with linked notes, math equations
+
+## Pendragon Differentiators
+AI auto-linking, 3D knowledge graph, Zettelkasten system, AI agents (daily reports, knowledge gaps), Catalyst writing studio, encrypted cards, Spaces (custom databases), friends/chat, recording studio
 
 ## Database Tables Available
 agents, agent_findings, agent_runs, attachments, calendar_events, catalyst_documents, 
@@ -84,7 +127,7 @@ catalyst_chapters, catalyst_citations, catalyst_comments, catalyst_collaborators
 catalyst_snapshots, catalyst_writing_goals, chat_messages, collaboration_sessions, 
 cookie_consent_analytics, dashboard_layouts, documents, domain_restrictions, error_reports, 
 feature_requests, feature_request_votes, files, friend_requests, friendships, import_history, 
-in_app_notifications, knowledge_gaps, mind_maps, notebooks, notes, profiles, 
+in_app_notifications, knowledge_gaps, mind_maps, notebooks, notes, profiles, platform_insights,
 security_audit_log, subscriptions, tasks, user_roles, zettel_cards, 
 cache_predictions, object_types, object_sets, space_objects, spaces, relation_definitions, 
 object_relation_values
