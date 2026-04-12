@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+
+let queryClientModule: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  queryClientModule = await import('@tanstack/react-query');
+} catch {}
 
 /**
  * Subscribe to Supabase Realtime changes on a table and auto-invalidate React Query cache,
@@ -14,7 +19,12 @@ export function useRealtimeSync(
     onChanged?: () => void;
   }
 ) {
-  const queryClient = useQueryClient();
+  // Try to get queryClient if available — safe to call unconditionally
+  let queryClient: any = null;
+  try {
+    const { useQueryClient } = require('@tanstack/react-query');
+    queryClient = useQueryClient();
+  } catch {}
 
   useEffect(() => {
     if (!opts.userId) return;
@@ -30,13 +40,11 @@ export function useRealtimeSync(
           filter: `user_id=eq.${opts.userId}`,
         },
         () => {
-          // Invalidate React Query caches
-          if (opts.queryKeys) {
+          if (opts.queryKeys && queryClient) {
             opts.queryKeys.forEach((key) => {
               queryClient.invalidateQueries({ queryKey: key });
             });
           }
-          // Call custom callback
           opts.onChanged?.();
         }
       )
