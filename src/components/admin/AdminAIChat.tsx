@@ -21,6 +21,9 @@ interface PlatformInsight {
   description: string;
   priority: string;
   competitor_reference: string | null;
+  source_reference: string | null;
+  utility_score: number | null;
+  recommendation: string | null;
   status: string;
   created_at: string;
 }
