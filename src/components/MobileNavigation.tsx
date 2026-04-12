@@ -265,19 +265,33 @@ export function MobileNavigation({
                 )}
 
                 {isAdmin && (
-                  <Link
-                    to="/admin"
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
-                      activeTab === 'admin'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
-                    )}
-                  >
-                    <Bot className="h-5 w-5" aria-hidden="true" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Admin</span>
-                  </Link>
+                  <>
+                    <Link
+                      to="/admin"
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
+                        activeTab === 'admin'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
+                      )}
+                    >
+                      <Bot className="h-5 w-5" aria-hidden="true" />
+                      <span className="text-[10px] font-medium leading-tight text-center">Admin</span>
+                    </Link>
+                    <button
+                      onClick={() => handleNav('debugger')}
+                      className={cn(
+                        'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
+                        activeTab === 'debugger'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
+                      )}
+                    >
+                      <Bug className="h-5 w-5" aria-hidden="true" />
+                      <span className="text-[10px] font-medium leading-tight text-center">Debugger</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
