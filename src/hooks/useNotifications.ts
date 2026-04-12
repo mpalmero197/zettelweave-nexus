@@ -33,7 +33,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 // VAPID public key — generated for this project
-const VAPID_PUBLIC_KEY = 'BELhLZxUKQOjyJ3RL2rBJvWKmXJvs0P8xRVKNjB7UhVKI1qlKjJFKqXN7nN1Ka_hJHBRTEPVQ7XVQYQ5lfpGwQ';
+const VAPID_PUBLIC_KEY = 'BBKkcuLT9-2qSiL9bLimabuP8fUWZ2plftqkErTy8D3BgXAztxuhYnoVeRW8V38U25NpQNzo3mastd79n5ztMgQ';
 
 export function useNotifications() {
   const { user } = useAuth();
