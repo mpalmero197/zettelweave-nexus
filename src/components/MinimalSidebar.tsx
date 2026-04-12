@@ -31,7 +31,7 @@ import {
   Puzzle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useSubscription } from "@/hooks/useSubscription";
+import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 
 interface MinimalSidebarProps {
   activeTab: string;
