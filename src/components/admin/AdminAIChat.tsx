@@ -57,8 +57,20 @@ export function AdminAIChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<PlatformInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(true);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const copyToClipboard = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
