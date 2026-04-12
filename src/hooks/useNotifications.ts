@@ -126,6 +126,20 @@ export function useNotifications() {
 
       setPushEnabled(true);
       toast.success('Push notifications enabled!');
+
+      // Send an immediate confirmation push notification
+      try {
+        await registration.showNotification('Push Notifications Enabled 🔔', {
+          body: 'You will now receive reminders and alerts from PendragonX.',
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png',
+          tag: 'push-enabled-confirmation',
+          vibrate: [200, 100, 200],
+        });
+      } catch (notifErr) {
+        console.warn('Confirmation notification failed:', notifErr);
+      }
+
       return true;
     } catch (err) {
       console.error('Push setup failed:', err);
