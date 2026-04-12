@@ -903,69 +903,110 @@
 
 /* ── Document Layout Modes ── */
 
-/* Page Layout (default) — A4/Letter page with shadow */
-.catalyst-layout-page .catalyst-word-view {
-  max-width: 8.5in;
-  margin: 0 auto;
-  box-shadow: 0 1px 4px hsl(0 0% 0% / 0.08);
-}
+/* ═══ LAYOUT MODES ═══ */
 
-/* Web Layout — full-width fluid, no page constraints */
+/* Web Layout (default) — full-width edge-to-edge writing */
 .catalyst-layout-web .catalyst-word-view {
   max-width: 100%;
   box-shadow: none;
-  padding: 2rem 3rem;
+  padding: 1.5rem 2rem;
 }
 
-/* Book Layout — two-page spread with gutter */
+/* Single Page Layout — centered A4/Letter page */
+.catalyst-layout-page .catalyst-word-view {
+  max-width: 8.5in;
+  margin: 1.5rem auto;
+  padding: 1.5in 1.25in;
+  box-shadow: 0 2px 12px hsl(0 0% 0% / 0.08);
+  border: 1px solid hsl(0 0% 88%);
+  border-radius: 2px;
+  min-height: 11in;
+  background: hsl(0 0% 100%);
+}
+.dark .catalyst-layout-page .catalyst-word-view {
+  background: hsl(220, 16%, 16%);
+  border-color: hsl(0 0% 22%);
+  box-shadow: 0 2px 12px hsl(0 0% 0% / 0.3);
+}
+
+/* Two-Page Spread — side-by-side pages */
+.catalyst-layout-book {
+  overflow-x: auto;
+}
+.catalyst-layout-book .bg-background {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 1.5rem 1rem;
+  background: hsl(0 0% 94%);
+  min-height: 70vh;
+}
+.dark .catalyst-layout-book .bg-background {
+  background: hsl(220, 16%, 10%);
+}
 .catalyst-layout-book .catalyst-word-view {
   max-width: 5.5in;
-  margin: 0 auto;
-  padding: 2.5rem 2rem 2.5rem 2.5rem;
-  box-shadow: 
-    -1px 0 0 hsl(0 0% 80%),
-    2px 1px 6px hsl(0 0% 0% / 0.06);
-  border-left: 1px solid hsl(0 0% 85%);
-  min-height: 8in;
+  min-height: 8.5in;
+  padding: 1.5in 1in 1.5in 1.25in;
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.06);
+  border: 1px solid hsl(0 0% 85%);
+  background: hsl(0 0% 100%);
   font-size: 15px;
   line-height: 1.7;
+  column-count: 2;
+  column-gap: 0.6in;
+  column-rule: 1px solid hsl(0 0% 90%);
 }
-
 .dark .catalyst-layout-book .catalyst-word-view {
-  border-left-color: hsl(0 0% 25%);
-  box-shadow:
-    -1px 0 0 hsl(0 0% 25%),
-    2px 1px 6px hsl(0 0% 0% / 0.3);
+  background: hsl(220, 16%, 16%);
+  border-color: hsl(0 0% 25%);
+  column-rule-color: hsl(0 0% 25%);
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.3);
 }
 
-/* Reading Layout — narrow serif column for proofing */
+/* Reading Layout — narrow comfortable column */
 .catalyst-layout-reading .catalyst-word-view {
-  max-width: 580px;
-  margin: 0 auto;
+  max-width: 620px;
+  margin: 1.5rem auto;
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 19px;
-  line-height: 1.8;
+  line-height: 1.85;
   letter-spacing: 0.01em;
   box-shadow: none;
-  padding: 3rem 2rem;
+  padding: 2.5rem 2rem;
 }
 
-/* Manuscript Layout — double-spaced Courier for submissions */
+/* Draft Layout — distraction-free, no chrome */
+.catalyst-layout-draft .catalyst-word-view {
+  max-width: 720px;
+  margin: 0 auto;
+  box-shadow: none;
+  padding: 2rem 1.5rem;
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+/* Manuscript Layout — double-spaced Courier */
 .catalyst-layout-manuscript .catalyst-word-view {
   max-width: 8.5in;
-  margin: 0 auto;
+  margin: 1.5rem auto;
   font-family: 'Courier New', 'Courier', monospace;
   font-size: 16px;
   line-height: 2;
-  padding: 3rem 3rem;
+  padding: 1.5in 1.25in;
   box-shadow: 0 1px 4px hsl(0 0% 0% / 0.06);
+  border: 1px solid hsl(0 0% 88%);
+  min-height: 11in;
+  background: hsl(0 0% 100%);
 }
-
+.dark .catalyst-layout-manuscript .catalyst-word-view {
+  background: hsl(220, 16%, 16%);
+  border-color: hsl(0 0% 22%);
+}
 .catalyst-layout-manuscript .catalyst-word-view p {
   text-indent: 2em;
   margin-bottom: 0;
 }
-
 .catalyst-layout-manuscript .catalyst-word-view h1,
 .catalyst-layout-manuscript .catalyst-word-view h2,
 .catalyst-layout-manuscript .catalyst-word-view h3 {
@@ -975,6 +1016,30 @@
   font-size: 16px;
   font-weight: normal;
   margin: 2rem 0;
+}
+
+/* Print Layout — WYSIWYG with visual page breaks */
+.catalyst-layout-print .bg-background {
+  background: hsl(0 0% 94%);
+  padding: 1.5rem;
+}
+.dark .catalyst-layout-print .bg-background {
+  background: hsl(220, 16%, 10%);
+}
+.catalyst-layout-print .catalyst-word-view {
+  max-width: 8.5in;
+  margin: 0 auto;
+  padding: 1in 1.25in;
+  min-height: 11in;
+  box-shadow: 0 2px 16px hsl(0 0% 0% / 0.1);
+  border: 1px solid hsl(0 0% 85%);
+  background: hsl(0 0% 100%);
+  border-radius: 1px;
+}
+.dark .catalyst-layout-print .catalyst-word-view {
+  background: hsl(220, 16%, 16%);
+  border-color: hsl(0 0% 22%);
+  box-shadow: 0 2px 16px hsl(0 0% 0% / 0.35);
 }
 
 /* ── Table Styles ── */
