@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Edit3, Star, BookOpen, PanelRight, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import { NotePropertiesPanel } from './NotePropertiesPanel';
@@ -36,17 +36,32 @@ interface NoteViewerDialogProps {
   onEdit: (note: Note) => void;
 }
 
+interface BacklinkWithContext {
+  id: string;
+  title: string;
+  snippet: string;
+}
+
+function extractSnippet(content: string, noteTitle: string): string {
+  const plainText = content.replace(/<[^>]*>/g, '');
+  const escaped = noteTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(.{0,50})\\[\\[${escaped}\\]\\](.{0,50})`, 'i');
+  const match = plainText.match(regex);
+  if (match) {
+    return `…${match[1]}[[${noteTitle}]]${match[2]}…`;
+  }
+  return '';
+}
+
 // Render content with wikilinks parsed
 function WikilinkContent({ content, onWikilinkClick }: { content: string; onWikilinkClick: (title: string) => void }) {
   const hasHtml = isHtmlContent(content);
   
   if (hasHtml) {
-    // For HTML content, parse wikilinks in the sanitized HTML
     const sanitized = DOMPurify.sanitize(content, {
       ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','strong','b','em','i','u','s','strike','del','ul','ol','li','blockquote','pre','code','a','img','hr','span','div','table','thead','tbody','tr','th','td','sup','sub'],
       ALLOWED_ATTR: ['href','src','alt','style','class','target','rel'],
     });
-    // Replace [[...]] with styled spans
     const withLinks = sanitized.replace(/\[\[([^\]]+)\]\]/g, (_, title) => {
       return `<button class="wikilink-btn text-primary hover:underline font-medium" data-wikilink="${title}">[[${title}]]</button>`;
     });
@@ -68,7 +83,6 @@ function WikilinkContent({ content, onWikilinkClick }: { content: string; onWiki
     return <p className="text-muted-foreground italic">No content</p>;
   }
 
-  // For markdown, split by wikilinks and render
   const parts = content.split(/(\[\[[^\]]+\]\])/g);
   return (
     <div>
@@ -93,25 +107,33 @@ function WikilinkContent({ content, onWikilinkClick }: { content: string; onWiki
 
 export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: NoteViewerDialogProps) {
   const [showProperties, setShowProperties] = useState(false);
-  const [backlinks, setBacklinks] = useState<{ id: string; title: string }[]>([]);
+  const [backlinks, setBacklinks] = useState<BacklinkWithContext[]>([]);
 
   useEffect(() => {
     if (!note) return;
+    let cancelled = false;
     const fetchBacklinks = async () => {
       const { data } = await supabase
         .from('notes')
-        .select('id, title')
+        .select('id, title, content')
         .ilike('content', `%[[${note.title}]]%`)
         .neq('id', note.id)
         .is('deleted_at', null)
         .limit(20);
-      setBacklinks(data || []);
+      if (cancelled) return;
+      setBacklinks(
+        (data || []).map(bl => ({
+          id: bl.id,
+          title: bl.title,
+          snippet: extractSnippet(bl.content || '', note.title),
+        }))
+      );
     };
     fetchBacklinks();
+    return () => { cancelled = true; };
   }, [note?.id, note?.title]);
 
   const handleWikilinkClick = useCallback(async (title: string) => {
-    // Find note by title
     const { data } = await supabase
       .from('notes')
       .select('*')
@@ -119,7 +141,6 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
       .is('deleted_at', null)
       .limit(1);
     if (data && data.length > 0) {
-      // Navigate to that note by triggering onEdit or re-opening viewer
       onEdit(data[0] as Note);
     }
   }, [onEdit]);
@@ -127,6 +148,7 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
   if (!note) return null;
 
   const notebook = notebooks.find(nb => nb.id === note.notebook_id);
+  const tags = note.tags ?? [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -172,9 +194,9 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
             </div>
 
             {/* Tags */}
-            {note.tags && note.tags.length > 0 && (
+            {tags.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap px-6 pt-3 flex-shrink-0">
-                {note.tags.map((tag, i) => (
+                {tags.map((tag, i) => (
                   <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>
                 ))}
               </div>
@@ -193,15 +215,20 @@ export function NoteViewerDialog({ note, notebooks, isOpen, onClose, onEdit }: N
                     <Link2 className="h-3.5 w-3.5" />
                     Backlinks ({backlinks.length})
                   </h3>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {backlinks.map(bl => (
                       <button
                         key={bl.id}
                         onClick={() => handleWikilinkClick(bl.title)}
-                        className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                        className="block w-full text-left group"
                       >
-                        <Link2 className="h-3 w-3 flex-shrink-0" />
-                        {bl.title}
+                        <span className="flex items-center gap-1.5 text-sm text-primary group-hover:underline">
+                          <Link2 className="h-3 w-3 flex-shrink-0" />
+                          {bl.title}
+                        </span>
+                        {bl.snippet && (
+                          <p className="text-[11px] text-muted-foreground/70 mt-0.5 ml-[18px] line-clamp-2">{bl.snippet}</p>
+                        )}
                       </button>
                     ))}
                   </div>
