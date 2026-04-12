@@ -202,7 +202,7 @@ List 3-5 follow-up questions the user might want to explore.`
       url.includes('news') || url.includes('bbc.com') || url.includes('cnn.com') || url.includes('reuters.com')
     );
 
-    console.log(`Results - Citations: ${citations.length}, Related: ${relatedQuestions.length}`);
+    console.log(`Results - Images: ${imageUrls.length}, Videos: ${videoLinks.length}, Shopping: ${shoppingLinks.length}, Citations: ${citations.length}, Related: ${relatedQuestions.length}`);
 
     // Generate contextual insights if requested
     let contextualData = null;
