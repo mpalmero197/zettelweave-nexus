@@ -2,36 +2,44 @@
 
 # Fix Push Notifications — Actually Deliver Them
 
-## Root Cause
+## What's Wrong
+The `send-reminders` edge function fetches push subscriptions but never sends anything — it just logs "Would send push to..." No VAPID keys exist in the project secrets.
 
-The `send-reminders` edge function **never sends push notifications**. Lines 59-65 contain only a placeholder comment and a `console.log("Would send push to...")`. The VAPID private key was never configured, and no Web Push protocol implementation exists in the function.
+## Plan
 
-The client-side subscription code works (registers service worker, subscribes to push, saves endpoint to DB), but the server never sends anything to those endpoints.
+### Step 1: Generate VAPID Key Pair
+Run a script to generate an ECDSA P-256 key pair. Output the public key (URL-safe base64, 65 bytes uncompressed) and private key (URL-safe base64, 32 bytes raw). These are standard Web Push VAPID keys.
 
-## Fix
+### Step 2: Store VAPID Private Key as Secret
+Use the `add_secret` tool to store `VAPID_PRIVATE_KEY` in Supabase Edge Function secrets.
 
-### 1. Generate and Store VAPID Keys
-- Generate a proper VAPID key pair
-- Store `VAPID_PRIVATE_KEY` as a Supabase Edge Function secret
-- Update the `VAPID_PUBLIC_KEY` in `useNotifications.ts` to match the generated pair (the current one is a placeholder that may not match any private key)
+### Step 3: Update Client Public Key
+Replace the placeholder `VAPID_PUBLIC_KEY` in `src/hooks/useNotifications.ts` with the matching generated public key.
 
-### 2. Implement Web Push Delivery in `send-reminders`
-Replace the placeholder with actual Web Push protocol calls. Deno edge functions can send push notifications using raw `fetch()` with JWT signing — no npm library needed. The implementation will:
-- Sign a VAPID JWT using the private key
-- Encrypt the payload using the subscriber's `p256dh` and `auth` keys (ECDH + HKDF + AES-GCM per RFC 8291)
-- POST the encrypted payload to each subscription endpoint
-- Handle expired/invalid subscriptions (delete them on 404/410 responses)
+### Step 4: Implement Web Push in `send-reminders/index.ts`
+Rewrite the placeholder (lines 59-65) with actual Web Push delivery using Deno's native `crypto.subtle`:
 
-### 3. Ensure Cron Job Is Running
-Verify the `pg_cron` schedule for `send-reminders` is active and firing every minute.
+- **VAPID JWT signing**: Create a JWT with `aud` = push service origin, `sub` = `mailto:` contact, signed with the VAPID private key (ES256)
+- **Payload encryption** (RFC 8291): ECDH key agreement with subscriber's `p256dh` key, derive content encryption key via HKDF, encrypt with AES-128-GCM
+- **Delivery**: POST encrypted payload to each subscription endpoint with proper `Authorization`, `Crypto-Key`, `Encryption`, and `Content-Encoding` headers
+- **Cleanup**: Delete subscriptions that return 404 or 410 (expired/unsubscribed)
+
+### Step 5: Deploy and Verify
+Deploy the updated edge function and test by invoking it via `curl_edge_functions`.
 
 ## Files to Modify
 
 | File | Change |
 |---|---|
-| `supabase/functions/send-reminders/index.ts` | Replace placeholder with actual Web Push delivery using VAPID signing and payload encryption |
-| `src/hooks/useNotifications.ts` | Update `VAPID_PUBLIC_KEY` to match the generated key pair |
+| `supabase/functions/send-reminders/index.ts` | Replace placeholder with full Web Push delivery implementation |
+| `src/hooks/useNotifications.ts` | Update `VAPID_PUBLIC_KEY` constant to match generated key |
 
-## Technical Note
-Web Push payload encryption (RFC 8291) requires ECDH key agreement + HKDF + AES-128-GCM. Deno's `crypto.subtle` API supports all the needed primitives natively, so no external dependencies are required beyond the standard Web Crypto API.
+## Technical Detail
+
+All cryptographic operations use Deno's built-in Web Crypto API — no npm dependencies needed:
+- `crypto.subtle.importKey` for ECDSA P-256 and HKDF
+- `crypto.subtle.sign` for VAPID JWT (ES256)
+- `crypto.subtle.generateKey` for ephemeral ECDH key pair
+- `crypto.subtle.deriveBits` for shared secret
+- `crypto.subtle.encrypt` for AES-128-GCM payload encryption
 
