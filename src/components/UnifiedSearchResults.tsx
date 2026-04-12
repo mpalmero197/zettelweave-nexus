@@ -676,10 +676,38 @@ export function UnifiedSearchResults({
                 {/* Videos Tab */}
                 <TabsContent value="videos" className="mt-4">
                   {webResults.videos && webResults.videos.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {webResults.videos.map((videoUrl, idx) => (
-                        <LinkRow key={idx} url={videoUrl} icon={Video} type="Video" onSave={handleSaveLink} />
-                      ))}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {webResults.videos.map((videoUrl, idx) => {
+                        const detail = webResults.videoDetails?.[idx];
+                        const ytMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                        const thumbnail = ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : null;
+                        let hostname = '';
+                        try { hostname = new URL(videoUrl).hostname.replace('www.', ''); } catch { hostname = videoUrl; }
+
+                        return (
+                          <a key={idx} href={videoUrl} target="_blank" rel="noopener noreferrer"
+                            className="group flex gap-3 p-3 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-muted/10 transition-all">
+                            {thumbnail ? (
+                              <div className="shrink-0 w-32 h-20 rounded-lg overflow-hidden bg-muted relative">
+                                <img src={thumbnail} alt={detail?.title || ''} className="w-full h-full object-cover" loading="lazy" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                  <Play className="h-6 w-6 text-white drop-shadow-lg" fill="white" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Video className="h-5 w-5 text-primary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <span className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                                {detail?.title || hostname}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground mt-0.5">{hostname}</span>
+                            </div>
+                          </a>
+                        );
+                      })}
                     </div>
                   ) : <EmptyTab icon={Video} label="No videos found" />}
                 </TabsContent>
@@ -687,10 +715,32 @@ export function UnifiedSearchResults({
                 {/* Shopping Tab */}
                 <TabsContent value="shopping" className="mt-4">
                   {webResults.shopping && webResults.shopping.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {webResults.shopping.map((shopUrl, idx) => (
-                        <LinkRow key={idx} url={shopUrl} icon={ShoppingCart} type="Shopping" onSave={handleSaveLink} />
-                      ))}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {webResults.shopping.map((shopUrl, idx) => {
+                        const detail = webResults.shoppingDetails?.[idx];
+                        let hostname = '';
+                        try { hostname = new URL(shopUrl).hostname.replace('www.', ''); } catch { hostname = shopUrl; }
+                        const titleParts = detail?.title?.split(' - ') || [];
+                        const productName = titleParts[0] || hostname;
+                        const price = titleParts[1] || '';
+
+                        return (
+                          <a key={idx} href={shopUrl} target="_blank" rel="noopener noreferrer"
+                            className="group flex items-center gap-3 p-3 rounded-xl border border-border/30 hover:border-primary/20 hover:bg-muted/10 transition-all">
+                            <div className="shrink-0 w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                              <ShoppingCart className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">{productName}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {price && <span className="text-xs font-semibold text-green-600 dark:text-green-400">{price}</span>}
+                                <span className="text-[10px] text-muted-foreground">{hostname}</span>
+                              </div>
+                            </div>
+                            <ExternalLink className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                          </a>
+                        );
+                      })}
                     </div>
                   ) : <EmptyTab icon={ShoppingCart} label="No shopping results" />}
                 </TabsContent>
