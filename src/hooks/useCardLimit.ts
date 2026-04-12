@@ -1,14 +1,14 @@
-import { useSubscription } from './useSubscription';
+import { usePremiumAccess } from './usePremiumAccess';
 import { useToast } from './use-toast';
 
 const FREE_CARD_LIMIT = 50;
 
 export const useCardLimit = () => {
-  const { hasPremium } = useSubscription();
+  const { hasAccess } = usePremiumAccess();
   const { toast } = useToast();
 
   const canCreateCard = (currentCardCount: number): boolean => {
-    if (hasPremium) return true;
+    if (hasAccess) return true;
     
     if (currentCardCount >= FREE_CARD_LIMIT) {
       toast({
@@ -23,13 +23,13 @@ export const useCardLimit = () => {
   };
 
   const getRemainingCards = (currentCardCount: number): number => {
-    if (hasPremium) return Infinity;
+    if (hasAccess) return Infinity;
     return Math.max(0, FREE_CARD_LIMIT - currentCardCount);
   };
 
   return {
     canCreateCard,
     getRemainingCards,
-    cardLimit: hasPremium ? null : FREE_CARD_LIMIT,
+    cardLimit: hasAccess ? null : FREE_CARD_LIMIT,
   };
 };

@@ -36,7 +36,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { useSubscription } from "@/hooks/useSubscription";
+import { usePremiumAccess } from "@/hooks/usePremiumAccess";
+import { PremiumGate } from "@/components/PremiumGate";
 import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
@@ -85,7 +86,7 @@ const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { history, addToHistory, clearHistory, removeItem } = useSearchHistory();
-  const { hasPremium } = useSubscription();
+  const { hasAccess: hasPremium, isAdmin: premiumIsAdmin } = usePremiumAccess();
   const [currentQuery, setCurrentQuery] = useState("");
   const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
   
@@ -587,11 +588,15 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="learning" className="mt-0">
-                  <LearningHub />
+                  <PremiumGate featureName="Learning Hub" hasAccess={hasPremium}>
+                    <LearningHub />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="spaces" className="mt-0">
-                  <SpacesHub />
+                  <PremiumGate featureName="Spaces" hasAccess={hasPremium}>
+                    <SpacesHub />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
@@ -684,7 +689,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="graph" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Knowledge Graph" hasAccess={hasPremium}>
                     <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] relative">
                       {/* 2D/3D toggle */}
                       <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1">
@@ -721,19 +726,11 @@ const Index = () => {
                         />
                       )}
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Knowledge Graph is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="canvas" className="mt-0 -mx-2 md:mx-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Canvas Studio" hasAccess={hasPremium}>
                     <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100vh-10rem)] flex flex-col">
                       <Suspense fallback={<FastLoadingFallback message="Loading canvas..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <CanvasStudio 
@@ -743,41 +740,23 @@ const Index = () => {
                         />
                       </Suspense>
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Canvas Studio is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Bullet Journal" hasAccess={hasPremium}>
                     <Suspense fallback={<FastLoadingFallback message="Loading journal..." icon={<StickyNote className="h-6 w-6 animate-pulse" />} />}>
                       <BulletJournal
                           onCreateCard={handleCreateCard}
                           onAddHabit={(taskName) => {
-                            // Trigger habit creation via global function exposed by HabitTracker
                             if ((window as any).__addHabitFromTask) {
                               (window as any).__addHabitFromTask(taskName);
                             }
                           }}
                       />
                     </Suspense>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Bullet Journal is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
-
 
                 <TabsContent value="stickynotes" className="mt-0">
                   <StickyNotesSimple />
@@ -788,48 +767,37 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="recorder" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Recorder Studio" hasAccess={hasPremium}>
                     <RecorderStudio />
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Audio/Video Recording is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="collab" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Collaboration Studio" hasAccess={hasPremium}>
                     <CollabStudio />
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Collaboration features are available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
-
 
                 <TabsContent value="debugger" className="mt-0">
                   <DebuggerConsole />
                 </TabsContent>
 
                 <TabsContent value="projects" className="mt-0">
-                  <ProjectManager />
+                  <PremiumGate featureName="Project Manager" hasAccess={hasPremium}>
+                    <ProjectManager />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="knowledge-gaps" className="mt-0">
-                  <KnowledgeGapAnalyzer />
+                  <PremiumGate featureName="Knowledge Gap Analyzer" hasAccess={hasPremium}>
+                    <KnowledgeGapAnalyzer />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="integrations" className="mt-0">
-                  <IntegrationsHub />
+                  <PremiumGate featureName="Integrations Hub" hasAccess={hasPremium}>
+                    <IntegrationsHub />
+                  </PremiumGate>
                 </TabsContent>
 
               </div>

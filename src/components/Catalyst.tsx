@@ -40,7 +40,7 @@ import {
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useSubscription } from '@/hooks/useSubscription';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -123,7 +123,7 @@ export function Catalyst() {
   const { cards } = useZettelCards();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { hasPremium } = useSubscription();
+  const { hasAccess: hasPremium } = usePremiumAccess();
   const queryClient = useQueryClient();
   const localLoadRef = useRef<HTMLInputElement>(null);
   

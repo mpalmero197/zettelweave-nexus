@@ -31,7 +31,7 @@ import {
   Puzzle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useSubscription } from "@/hooks/useSubscription";
+import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 
 interface MinimalSidebarProps {
   activeTab: string;
@@ -48,17 +48,32 @@ export function MinimalSidebar({
   onAccountSettings,
   isAdmin,
 }: MinimalSidebarProps) {
-  const { hasPremium } = useSubscription();
-  const NavButton = ({ tab, icon: Icon, label }: { tab: string; icon: any; label: string }) => (
-    <Button
-      variant={activeTab === tab ? "secondary" : "ghost"}
-      onClick={() => onTabChange(tab)}
-      className="w-full justify-start h-9 px-3 text-sm"
-    >
-      <Icon className="h-4 w-4 mr-3" />
-      {label}
-    </Button>
-  );
+  const { hasAccess: hasPremium } = usePremiumAccess();
+  const NavButton = ({ tab, icon: Icon, label, premium = false }: { tab: string; icon: any; label: string; premium?: boolean }) => {
+    if (premium && !hasPremium) {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => onTabChange(tab)}
+          className="w-full justify-start h-9 px-3 text-sm text-muted-foreground"
+        >
+          <Lock className="h-4 w-4 mr-3" />
+          {label}
+          <Badge variant="outline" className="ml-auto text-[9px] px-1 py-0">PRO</Badge>
+        </Button>
+      );
+    }
+    return (
+      <Button
+        variant={activeTab === tab ? "secondary" : "ghost"}
+        onClick={() => onTabChange(tab)}
+        className="w-full justify-start h-9 px-3 text-sm"
+      >
+        <Icon className="h-4 w-4 mr-3" />
+        {label}
+      </Button>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -76,13 +91,13 @@ export function MinimalSidebar({
             Knowledge
           </div>
           <NavButton tab="cards" icon={FileText} label="Cards" />
-          <NavButton tab="graph" icon={BarChart3} label="Graph" />
+          <NavButton tab="graph" icon={BarChart3} label="Graph" premium />
           <NavButton tab="notes" icon={BookOpen} label="Notes & Notebooks" />
           <NavButton tab="files" icon={FolderOpen} label="Files" />
           
           <Separator className="my-2" />
           
-          <NavButton tab="canvas" icon={Palette} label="Canvas Studio" />
+          <NavButton tab="canvas" icon={Palette} label="Canvas Studio" premium />
           
           <Separator className="my-2" />
           
@@ -90,12 +105,12 @@ export function MinimalSidebar({
             Planner
           </div>
           <NavButton tab="calendar" icon={CalendarIcon} label="Calendar" />
-          <NavButton tab="journal" icon={StickyNote} label="Journal" />
+          <NavButton tab="journal" icon={StickyNote} label="Journal" premium />
           <NavButton tab="habits" icon={Target} label="Habits" />
           
           <NavButton tab="scratchpad" icon={FileEdit} label="Scratchpad" />
           <NavButton tab="stickynotes" icon={StickyNote} label="Sticky Notes" />
-          <NavButton tab="projects" icon={FolderKanban} label="Projects" />
+          <NavButton tab="projects" icon={FolderKanban} label="Projects" premium />
           
           <Separator className="my-2" />
           
@@ -103,8 +118,8 @@ export function MinimalSidebar({
             Collaborate
           </div>
           <NavButton tab="catalyst" icon={Lightbulb} label="Catalyst" />
-          <NavButton tab="collab" icon={Users} label="Collab" />
-          <NavButton tab="learning" icon={GraduationCap} label="Learning Hub" />
+          <NavButton tab="collab" icon={Users} label="Collab" premium />
+          <NavButton tab="learning" icon={GraduationCap} label="Learning Hub" premium />
           
           <Separator className="my-2" />
           
@@ -130,8 +145,8 @@ export function MinimalSidebar({
           
           <Separator className="my-2" />
           
-          <NavButton tab="recorder" icon={Mic} label="Recorder" />
-          <NavButton tab="integrations" icon={Puzzle} label="Integrations" />
+          <NavButton tab="recorder" icon={Mic} label="Recorder" premium />
+          <NavButton tab="integrations" icon={Puzzle} label="Integrations" premium />
           <NavButton tab="recycle" icon={Trash2} label="Recycle Bin" />
           
           <Separator className="my-2" />
