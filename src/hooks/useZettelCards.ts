@@ -7,6 +7,7 @@ import { useToast } from './use-toast';
 import { generateZettelNumber, categorizeContent } from '@/utils/deweySystem';
 import { sanitizeCardInput, validateZettelCard, createCardLimiter } from '@/utils/security';
 import { useCardLimit } from './useCardLimit';
+import { useRealtimeSync } from './useRealtimeSync';
 
 export const useZettelCards = () => {
   const { user } = useAuth();
@@ -49,7 +50,13 @@ export const useZettelCards = () => {
     enabled: !!user,
   });
 
-  // Helper function to calculate similarity between two cards
+  // Auto-refresh cards when changes happen on other devices/tabs
+  useRealtimeSync('zettel_cards', {
+    userId: user?.id,
+    queryKeys: [['zettel-cards', user?.id || '']],
+  });
+
+
   // Helper function to get parent card number from hierarchical numbering
   const getParentCardNumber = (cardNumber: string): string | null => {
     // Examples: "0.1.A.2" -> "0.1.A", "0.1.A" -> "0.1", "0.1" -> null
