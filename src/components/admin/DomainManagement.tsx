@@ -341,7 +341,7 @@ export function DomainManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {domains.map((domain) => {
+                  {filteredDomains.map((domain) => {
                     const isAutoAdded = domain.reason?.startsWith('Auto-scan:');
                     return (
                       <TableRow key={domain.id}>
