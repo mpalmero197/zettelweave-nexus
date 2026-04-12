@@ -1,45 +1,35 @@
 
 
-# Fix Push Notifications — Actually Deliver Them
+# Fix Platform Report Edge Function & Improve 3D Graph Visibility
 
-## What's Wrong
-The `send-reminders` edge function fetches push subscriptions but never sends anything — it just logs "Would send push to..." No VAPID keys exist in the project secrets.
+## Issue 1: Platform Report Returns Non-2xx Errors
 
-## Plan
+**Root cause**: Line 34 calls `supabase.auth.getClaims(token)` — this method does not exist on the Supabase JS client. It throws an error, which gets caught and returned as a 500. The client-side `supabase.functions.invoke` then discards the error body, showing a generic failure.
 
-### Step 1: Generate VAPID Key Pair
-Run a script to generate an ECDSA P-256 key pair. Output the public key (URL-safe base64, 65 bytes uncompressed) and private key (URL-safe base64, 32 bytes raw). These are standard Web Push VAPID keys.
+**Fix** in `supabase/functions/platform-report/index.ts`:
+- Replace `getClaims(token)` with `getUser(token)` and extract `user.id` instead of `claims.sub`
+- Change all error responses to return status 200 with `{ ok: false, error: "..." }` so the client can read the message
+- Update the success response to include `ok: true`
 
-### Step 2: Store VAPID Private Key as Secret
-Use the `add_secret` tool to store `VAPID_PRIVATE_KEY` in Supabase Edge Function secrets.
+**Fix** in `src/components/admin/PlatformReport.tsx`:
+- Check `data.ok === false` and surface `data.error` as the toast message
 
-### Step 3: Update Client Public Key
-Replace the placeholder `VAPID_PUBLIC_KEY` in `src/hooks/useNotifications.ts` with the matching generated public key.
+## Issue 2: 3D Graph Hard to See
 
-### Step 4: Implement Web Push in `send-reminders/index.ts`
-Rewrite the placeholder (lines 59-65) with actual Web Push delivery using Deno's native `crypto.subtle`:
+**Changes** in `src/components/Graph3D.tsx`:
+- Increase `ambientLight` intensity from 0.15 to 0.4
+- Increase `hemisphereLight` intensity from 0.3 to 0.6
+- Increase base `emissiveIntensity` from 1.2 to 2.0 (hover from 3.5 to 4.5, search match from 2.5 to 3.5)
+- Increase default edge opacity from 0.15 to 0.3, highlighted from 0.7 to 0.9
+- Increase base edge lineWidth from 0.6 to 1.0
+- Increase node label `fillOpacity` from 0.7 to 0.9
+- Increase minimum node radius from 0.15 to 0.25
 
-- **VAPID JWT signing**: Create a JWT with `aud` = push service origin, `sub` = `mailto:` contact, signed with the VAPID private key (ES256)
-- **Payload encryption** (RFC 8291): ECDH key agreement with subscriber's `p256dh` key, derive content encryption key via HKDF, encrypt with AES-128-GCM
-- **Delivery**: POST encrypted payload to each subscription endpoint with proper `Authorization`, `Crypto-Key`, `Encryption`, and `Content-Encoding` headers
-- **Cleanup**: Delete subscriptions that return 404 or 410 (expired/unsubscribed)
-
-### Step 5: Deploy and Verify
-Deploy the updated edge function and test by invoking it via `curl_edge_functions`.
-
-## Files to Modify
+## Files Modified
 
 | File | Change |
 |---|---|
-| `supabase/functions/send-reminders/index.ts` | Replace placeholder with full Web Push delivery implementation |
-| `src/hooks/useNotifications.ts` | Update `VAPID_PUBLIC_KEY` constant to match generated key |
-
-## Technical Detail
-
-All cryptographic operations use Deno's built-in Web Crypto API — no npm dependencies needed:
-- `crypto.subtle.importKey` for ECDSA P-256 and HKDF
-- `crypto.subtle.sign` for VAPID JWT (ES256)
-- `crypto.subtle.generateKey` for ephemeral ECDH key pair
-- `crypto.subtle.deriveBits` for shared secret
-- `crypto.subtle.encrypt` for AES-128-GCM payload encryption
+| `supabase/functions/platform-report/index.ts` | Fix auth (getClaims → getUser), return 200 with ok field for all responses |
+| `src/components/admin/PlatformReport.tsx` | Handle `ok: false` response |
+| `src/components/Graph3D.tsx` | Brighten lights, edges, nodes, labels |
 
