@@ -689,7 +689,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="graph" className="mt-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Knowledge Graph" hasAccess={hasPremium}>
                     <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] relative">
                       {/* 2D/3D toggle */}
                       <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1">
@@ -726,19 +726,11 @@ const Index = () => {
                         />
                       )}
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Knowledge Graph is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="canvas" className="mt-0 -mx-2 md:mx-0">
-                  {hasPremium ? (
+                  <PremiumGate featureName="Canvas Studio" hasAccess={hasPremium}>
                     <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100vh-10rem)] flex flex-col">
                       <Suspense fallback={<FastLoadingFallback message="Loading canvas..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <CanvasStudio 
