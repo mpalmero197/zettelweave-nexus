@@ -23,6 +23,12 @@ interface Notebook {
   color: string;
 }
 
+interface BacklinkWithContext {
+  id: string;
+  title: string;
+  snippet: string;
+}
+
 interface NotePropertiesPanelProps {
   note: Note;
   notebooks: Notebook[];
@@ -30,27 +36,48 @@ interface NotePropertiesPanelProps {
   onNavigateToNote: (noteTitle: string) => void;
 }
 
-export function NotePropertiesPanel({ note, notebooks, onClose, onNavigateToNote }: NotePropertiesPanelProps) {
-  const [backlinks, setBacklinks] = useState<{ id: string; title: string }[]>([]);
+function extractSnippet(content: string, noteTitle: string): string {
+  const plainText = content.replace(/<[^>]*>/g, '');
+  const escaped = noteTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(.{0,50})\\[\\[${escaped}\\]\\](.{0,50})`, 'i');
+  const match = plainText.match(regex);
+  if (match) {
+    return `…${match[1]}[[${noteTitle}]]${match[2]}…`;
+  }
+  return '';
+}
 
-  const plainText = note.content.replace(/<[^>]*>/g, '');
+export function NotePropertiesPanel({ note, notebooks, onClose, onNavigateToNote }: NotePropertiesPanelProps) {
+  const [backlinks, setBacklinks] = useState<BacklinkWithContext[]>([]);
+
+  const plainText = (note.content || '').replace(/<[^>]*>/g, '');
   const wordCount = plainText.split(/\s+/).filter(Boolean).length;
   const charCount = plainText.length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
   const notebook = notebooks.find(nb => nb.id === note.notebook_id);
+  const tags = note.tags ?? [];
 
   useEffect(() => {
+    let cancelled = false;
     const fetchBacklinks = async () => {
       const { data } = await supabase
         .from('notes')
-        .select('id, title')
+        .select('id, title, content')
         .ilike('content', `%[[${note.title}]]%`)
         .neq('id', note.id)
         .is('deleted_at', null)
         .limit(20);
-      setBacklinks(data || []);
+      if (cancelled) return;
+      setBacklinks(
+        (data || []).map(bl => ({
+          id: bl.id,
+          title: bl.title,
+          snippet: extractSnippet(bl.content || '', note.title),
+        }))
+      );
     };
     fetchBacklinks();
+    return () => { cancelled = true; };
   }, [note.id, note.title]);
 
   return (
@@ -110,11 +137,11 @@ export function NotePropertiesPanel({ note, notebooks, onClose, onNavigateToNote
           )}
 
           {/* Tags */}
-          {note.tags?.length > 0 && (
+          {tags.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Tags</h4>
               <div className="flex flex-wrap gap-1">
-                {note.tags.map((tag, i) => (
+                {tags.map((tag, i) => (
                   <Badge key={i} variant="secondary" className="text-[10px]">{tag}</Badge>
                 ))}
               </div>
@@ -127,15 +154,20 @@ export function NotePropertiesPanel({ note, notebooks, onClose, onNavigateToNote
               Backlinks ({backlinks.length})
             </h4>
             {backlinks.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {backlinks.map(bl => (
                   <button
                     key={bl.id}
                     onClick={() => onNavigateToNote(bl.title)}
-                    className="flex items-center gap-1.5 text-xs text-primary hover:underline w-full text-left"
+                    className="block w-full text-left group"
                   >
-                    <Link2 className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate">{bl.title}</span>
+                    <span className="flex items-center gap-1.5 text-xs text-primary group-hover:underline">
+                      <Link2 className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{bl.title}</span>
+                    </span>
+                    {bl.snippet && (
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 ml-[18px] line-clamp-2">{bl.snippet}</p>
+                    )}
                   </button>
                 ))}
               </div>

@@ -746,7 +746,7 @@ export function Notes({ initialView }: NotesProps = {}) {
                 {tag}
               </span>
             ))}
-            {note.tags.length > 3 && (
+            {(note.tags?.length ?? 0) > 3 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/40 text-muted-foreground/60">
                 +{note.tags.length - 3}
               </span>
