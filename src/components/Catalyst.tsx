@@ -1042,7 +1042,15 @@ const DOCUMENT_TEMPLATES = [
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 cursor-pointer" onClick={() => handleLoadFromCloud(doc)}>
-                                  <h4 className="font-semibold">{doc.title}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold">{doc.title}</h4>
+                                    {(doc as any).is_master_document && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        <Brain className="h-3 w-3 mr-1" />
+                                        Auto
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <p className="text-sm text-muted-foreground">
                                     {doc.word_count.toLocaleString()} words
                                   </p>
