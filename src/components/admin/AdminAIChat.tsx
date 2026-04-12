@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Send, Loader2, Sparkles, Trash2, Database, Shield, Zap, Search, TrendingUp, BarChart3, Eye, X, MessageSquare } from 'lucide-react';
+import { Bot, Send, Loader2, Sparkles, Trash2, Database, Shield, Zap, Search, TrendingUp, BarChart3, Eye, X, MessageSquare, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

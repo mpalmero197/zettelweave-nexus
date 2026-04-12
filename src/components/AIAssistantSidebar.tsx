@@ -451,18 +451,26 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                       )}
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
                       {message.role === 'assistant' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(message.content, index)}
-                          className="absolute -top-2 -right-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-all bg-background shadow-md rounded-lg border border-border/50"
-                        >
-                          {copiedIndex === index ? (
-                            <Check className="h-3.5 w-3.5 text-green-500" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                        <div className="flex justify-end mt-1.5 pt-1.5 border-t border-border/20">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(message.content, index)}
+                            className="h-6 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            {copiedIndex === index ? (
+                              <>
+                                <Check className="h-3 w-3 text-green-500" />
+                                <span className="text-green-500">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                Copy
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
