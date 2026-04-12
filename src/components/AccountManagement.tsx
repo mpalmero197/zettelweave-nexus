@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -85,7 +85,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setAboutMe(data.about_me || '');
             setAvatarUrl(data.avatar_url || '');
             setAutoMasterDocs(data.auto_master_docs || false);
-            setEngagementNudges(data.engagement_nudges_enabled !== false);
+            setEngagementNudges((data as any).engagement_nudges_enabled !== false);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
