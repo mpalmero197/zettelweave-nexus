@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.send-engagement-nudges]
 verify_jwt = false
+
+[functions.platform-self-improve]
+verify_jwt = false
