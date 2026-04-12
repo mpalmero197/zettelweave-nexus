@@ -628,7 +628,6 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'ai', label: 'AI & Automation', icon: Brain },
     { id: 'debug', label: 'Debug Logs', icon: Bug },
-    ...(user?.email === 'mpalmero197@gmail.com' ? [{ id: 'backup', label: 'Backup', icon: Download }] : []),
   ];
 
   return (
@@ -1199,57 +1198,6 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
               </div>
             )}
 
-            {activeTab === 'backup' && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Data Backup & Export</h3>
-                  
-                  {!isAdmin ? (
-                    <Card className="p-6">
-                      <div className="text-center py-8 space-y-4">
-                        <Lock className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-                        <div>
-                          <h4 className="font-medium text-lg mb-2">Admin Access Required</h4>
-                          <p className="text-sm text-muted-foreground">
-                            The codebase export feature is restricted to administrators only for security purposes.
-                          </p>
-                        </div>
-                      </div>
-                    </Card>
-                  ) : (
-                    <Card className="p-6 space-y-4">
-                      <div>
-                        <h4 className="font-medium text-lg mb-2">Complete Codebase Export</h4>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Export your entire ZettelWeave application as a downloadable ZIP file. 
-                          This includes all source code, configurations, and setup instructions.
-                        </p>
-                        
-                        <div className="bg-muted p-4 rounded-lg mb-4">
-                          <h5 className="font-medium mb-2">Export includes:</h5>
-                          <ul className="text-sm text-muted-foreground space-y-1">
-                            <li>• Complete React TypeScript application</li>
-                            <li>• All components and utilities</li>
-                            <li>• Configuration files (package.json, etc.)</li>
-                            <li>• Setup and deployment instructions</li>
-                            <li>• Environment variable templates</li>
-                          </ul>
-                        </div>
-
-                        <Button
-                          onClick={handleExportBackup}
-                          disabled={isLoading}
-                          className="gap-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          {isLoading ? 'Generating Backup...' : 'Export Codebase'}
-                        </Button>
-                      </div>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </Card>
