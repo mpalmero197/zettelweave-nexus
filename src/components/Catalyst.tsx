@@ -101,9 +101,10 @@ interface CatalystDocument {
   title: string;
   content: string;
   selected_source: string;
-  selected_items: string[];
+  selected_items: string[] | null;
   word_count: number;
   theme_id?: string;
+  is_master_document?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -758,8 +759,8 @@ const DOCUMENT_TEMPLATES = [
   const handleLoadFromCloud = (doc: CatalystDocument) => {
     setDocumentTitle(doc.title);
     setEditorContent(convertMarkdownToHtml(doc.content));
-    setSelectedSource(doc.selected_source as ContentSource);
-    setSelectedItems(new Set(doc.selected_items));
+    setSelectedSource((doc.selected_source || 'cards') as ContentSource);
+    setSelectedItems(new Set(doc.selected_items || []));
     setDocumentTheme(doc.theme_id || 'default');
     setCurrentDocId(doc.id);
     setShowLoadDialog(false);
@@ -1044,7 +1045,7 @@ const DOCUMENT_TEMPLATES = [
                                 <div className="flex-1 cursor-pointer" onClick={() => handleLoadFromCloud(doc)}>
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-semibold">{doc.title}</h4>
-                                    {(doc as any).is_master_document && (
+                                    {doc.is_master_document && (
                                       <Badge variant="secondary" className="text-xs">
                                         <Brain className="h-3 w-3 mr-1" />
                                         Auto
