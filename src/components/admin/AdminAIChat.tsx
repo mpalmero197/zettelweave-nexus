@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Send, Loader2, Sparkles, Trash2, Database, Shield, Zap, Search, TrendingUp, BarChart3, Eye, X, MessageSquare } from 'lucide-react';
+import { Bot, Send, Loader2, Sparkles, Trash2, Database, Shield, Zap, Search, TrendingUp, BarChart3, Eye, X, MessageSquare, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -57,8 +57,20 @@ export function AdminAIChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<PlatformInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(true);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const copyToClipboard = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -289,9 +301,31 @@ export function AdminAIChat() {
                       }`}
                     >
                       {msg.role === 'assistant' ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-background [&_pre]:border [&_pre]:border-border/50 [&_code]:text-xs">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
+                        <>
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-background [&_pre]:border [&_pre]:border-border/50 [&_code]:text-xs">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                          <div className="flex justify-end mt-2 pt-2 border-t border-border/20">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(msg.content, i)}
+                              className="h-6 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              {copiedIndex === i ? (
+                                <>
+                                  <Check className="h-3 w-3 text-green-500" />
+                                  <span className="text-green-500">Copied</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </>
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       )}
