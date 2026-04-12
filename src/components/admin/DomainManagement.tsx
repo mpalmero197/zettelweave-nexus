@@ -153,6 +153,10 @@ export function DomainManagement() {
     ? autoAddedDomains.reduce((latest, d) => new Date(d.created_at) > new Date(latest.created_at) ? d : latest)
     : null;
 
+  const filteredDomains = searchQuery.trim()
+    ? domains.filter(d => d.domain.toLowerCase().includes(searchQuery.trim().toLowerCase()) || d.reason?.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : domains;
+
   return (
     <div className="space-y-6">
       {/* Stats cards */}
