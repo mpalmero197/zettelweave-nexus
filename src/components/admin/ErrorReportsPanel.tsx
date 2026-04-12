@@ -667,7 +667,22 @@ export function ErrorReportsPanel() {
                             </ScrollArea>
                           </div>
                         )}
+                        {/* AI Diagnosis */}
                         <div className="flex items-center gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={diagnosingId === error.id}
+                            onClick={() => diagnoseError(error)}
+                          >
+                            {diagnosingId === error.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            )}
+                            {diagnosingId === error.id ? 'Diagnosing…' : 'AI Diagnose'}
+                          </Button>
                           <Select
                             value={error.status}
                             onValueChange={(value) => updateStatus(error.id, value)}
@@ -684,6 +699,31 @@ export function ErrorReportsPanel() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {/* Diagnosis result */}
+                        {diagnoses[error.id] && (
+                          <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg relative">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-1 right-1 h-6 w-6 p-0"
+                              onClick={() => setDiagnoses(prev => {
+                                const next = { ...prev };
+                                delete next[error.id];
+                                return next;
+                              })}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-xs font-semibold text-primary uppercase tracking-wider">AI Diagnosis</span>
+                            </div>
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&_pre]:bg-background [&_pre]:border [&_pre]:text-xs [&_code]:text-xs">
+                              <ReactMarkdown>{diagnoses[error.id]}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </CollapsibleContent>
                   </Card>

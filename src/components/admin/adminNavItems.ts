@@ -14,6 +14,7 @@ import {
   Activity,
   Lock,
   FileSearch,
+  Bot,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -72,6 +73,7 @@ export const adminNavItems: AdminNavItem[] = [
       { id: 'export', label: 'Export & Backup', icon: Download },
       { id: 'tools', label: 'Test Tools', icon: Wrench },
       { id: 'report', label: 'Platform Report', icon: FileSearch },
+      { id: 'ai-assistant', label: 'AI Assistant', icon: Bot },
     ],
   },
   {
