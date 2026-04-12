@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Search, Plug, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +10,15 @@ import { parseEnexFile } from "@/utils/evernoteImport";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+// Dialog imports
+import { SlackDialog } from "./dialogs/SlackDialog";
+import { ZapierDialog } from "./dialogs/ZapierDialog";
+import { TodoistDialog } from "./dialogs/TodoistDialog";
+import { GoogleCalendarDialog } from "./dialogs/GoogleCalendarDialog";
+import { NotionDialog } from "./dialogs/NotionDialog";
+import { GoogleDriveDialog } from "./dialogs/GoogleDriveDialog";
+import { OneNoteDialog } from "./dialogs/OneNoteDialog";
+
 const INTEGRATIONS: Integration[] = [
   {
     id: "google-calendar",
@@ -18,9 +26,9 @@ const INTEGRATIONS: Integration[] = [
     description: "Two-way sync: PendragonX calendar events appear in Google Calendar and vice versa.",
     icon: "📅",
     category: "productivity",
-    status: "coming-soon",
+    status: "available",
     color: "#4285F4",
-    setupType: "oauth",
+    setupType: "api-key",
   },
   {
     id: "notion",
@@ -28,9 +36,9 @@ const INTEGRATIONS: Integration[] = [
     description: "Import Notion pages and databases into your Zettelcards and notebooks.",
     icon: "📝",
     category: "productivity",
-    status: "coming-soon",
+    status: "available",
     color: "#000000",
-    setupType: "oauth",
+    setupType: "file-import",
   },
   {
     id: "obsidian",
@@ -48,9 +56,9 @@ const INTEGRATIONS: Integration[] = [
     description: "Import OneNote sections and pages into PendragonX notebooks.",
     icon: "📓",
     category: "import-export",
-    status: "coming-soon",
+    status: "available",
     color: "#7719AA",
-    setupType: "oauth",
+    setupType: "file-import",
   },
   {
     id: "google-drive",
@@ -58,9 +66,9 @@ const INTEGRATIONS: Integration[] = [
     description: "Attach and sync files directly from your Google Drive.",
     icon: "📁",
     category: "storage",
-    status: "coming-soon",
+    status: "available",
     color: "#0F9D58",
-    setupType: "oauth",
+    setupType: "api-key",
   },
   {
     id: "onedrive",
@@ -88,7 +96,7 @@ const INTEGRATIONS: Integration[] = [
     description: "Sync tasks between PendragonX Task Manager and Todoist.",
     icon: "✅",
     category: "productivity",
-    status: "coming-soon",
+    status: "available",
     color: "#E44332",
     setupType: "api-key",
   },
@@ -98,9 +106,9 @@ const INTEGRATIONS: Integration[] = [
     description: "Send notes and cards to Slack channels. Receive Slack messages as notes.",
     icon: "💬",
     category: "communication",
-    status: "coming-soon",
+    status: "available",
     color: "#4A154B",
-    setupType: "oauth",
+    setupType: "webhook",
   },
   {
     id: "webhooks",
@@ -108,7 +116,7 @@ const INTEGRATIONS: Integration[] = [
     description: "Get a webhook URL for custom automations. Send data in, create cards and notes automatically.",
     icon: "🔗",
     category: "productivity",
-    status: "coming-soon",
+    status: "available",
     color: "#FF4A00",
     setupType: "webhook",
   },
@@ -126,11 +134,26 @@ export function IntegrationsHub() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<IntegrationCategory | "all">("all");
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
+    const ids = new Set<string>();
+    if (localStorage.getItem("pendragon:slack-webhook")) ids.add("slack");
+    if (localStorage.getItem("pendragon:zapier-webhook")) ids.add("webhooks");
+    if (localStorage.getItem("pendragon:todoist-token")) ids.add("todoist");
+    if (localStorage.getItem("pendragon:gcal-api-key")) ids.add("google-calendar");
+    if (localStorage.getItem("pendragon:gdrive-client-id")) ids.add("google-drive");
+    return ids;
+  });
 
-  // Dialogs
+  // Dialog states
   const [obsidianOpen, setObsidianOpen] = useState(false);
   const [evernoteOpen, setEvernoteOpen] = useState(false);
+  const [slackOpen, setSlackOpen] = useState(false);
+  const [zapierOpen, setZapierOpen] = useState(false);
+  const [todoistOpen, setTodoistOpen] = useState(false);
+  const [gcalOpen, setGcalOpen] = useState(false);
+  const [notionOpen, setNotionOpen] = useState(false);
+  const [gdriveOpen, setGdriveOpen] = useState(false);
+  const [onenoteOpen, setOnenoteOpen] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const obsidianInputRef = useRef<HTMLInputElement>(null);
@@ -142,23 +165,44 @@ export function IntegrationsHub() {
     return true;
   });
 
+  const markConnected = useCallback((id: string) => {
+    setConnectedIds((prev) => new Set(prev).add(id));
+  }, []);
+
   const handleConnect = useCallback((id: string) => {
-    if (id === "obsidian") { setObsidianOpen(true); return; }
-    if (id === "evernote") { setEvernoteOpen(true); return; }
-    if (id === "onedrive") {
-      // Trigger existing OneDrive picker if available
-      if ((window as any).OneDrive) {
-        toast.info("Opening OneDrive picker…");
-      } else {
-        toast.error("OneDrive SDK not loaded. Please try again later.");
-      }
-      return;
+    switch (id) {
+      case "obsidian": setObsidianOpen(true); break;
+      case "evernote": setEvernoteOpen(true); break;
+      case "slack": setSlackOpen(true); break;
+      case "webhooks": setZapierOpen(true); break;
+      case "todoist": setTodoistOpen(true); break;
+      case "google-calendar": setGcalOpen(true); break;
+      case "notion": setNotionOpen(true); break;
+      case "google-drive": setGdriveOpen(true); break;
+      case "onenote": setOnenoteOpen(true); break;
+      case "onedrive":
+        if ((window as any).OneDrive) {
+          toast.info("Opening OneDrive picker…");
+        } else {
+          toast.error("OneDrive SDK not loaded. Please try again later.");
+        }
+        break;
+      default:
+        toast.info(`${INTEGRATIONS.find(i => i.id === id)?.name} integration coming soon!`);
     }
-    toast.info(`${INTEGRATIONS.find(i => i.id === id)?.name} integration coming soon!`);
   }, []);
 
   const handleDisconnect = useCallback((id: string) => {
-    setConnectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    setConnectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    // Clean up stored credentials
+    const keyMap: Record<string, string[]> = {
+      slack: ["pendragon:slack-webhook"],
+      webhooks: ["pendragon:zapier-webhook"],
+      todoist: ["pendragon:todoist-token"],
+      "google-calendar": ["pendragon:gcal-api-key", "pendragon:gcal-calendar-id"],
+      "google-drive": ["pendragon:gdrive-client-id", "pendragon:gdrive-api-key"],
+    };
+    keyMap[id]?.forEach((k) => localStorage.removeItem(k));
     toast.success("Disconnected");
   }, []);
 
@@ -177,8 +221,8 @@ export function IntegrationsHub() {
         count++;
       }
       toast.success(`Imported ${count} Obsidian note${count !== 1 ? "s" : ""}`);
-      setConnectedIds(prev => new Set(prev).add("obsidian"));
-    } catch (err) {
+      markConnected("obsidian");
+    } catch {
       toast.error("Import failed");
     } finally {
       setImporting(false);
@@ -205,7 +249,7 @@ export function IntegrationsHub() {
         count++;
       }
       toast.success(`Imported ${count} Evernote note${count !== 1 ? "s" : ""}`);
-      setConnectedIds(prev => new Set(prev).add("evernote"));
+      markConnected("evernote");
     } catch (err: any) {
       toast.error(err?.message || "Failed to parse .enex file");
     } finally {
@@ -309,6 +353,15 @@ export function IntegrationsHub() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Connector-based & API dialogs */}
+      <SlackDialog open={slackOpen} onOpenChange={setSlackOpen} onConnected={() => markConnected("slack")} />
+      <ZapierDialog open={zapierOpen} onOpenChange={setZapierOpen} onConnected={() => markConnected("webhooks")} />
+      <TodoistDialog open={todoistOpen} onOpenChange={setTodoistOpen} onConnected={() => markConnected("todoist")} />
+      <GoogleCalendarDialog open={gcalOpen} onOpenChange={setGcalOpen} onConnected={() => markConnected("google-calendar")} />
+      <NotionDialog open={notionOpen} onOpenChange={setNotionOpen} onConnected={() => markConnected("notion")} />
+      <GoogleDriveDialog open={gdriveOpen} onOpenChange={setGdriveOpen} onConnected={() => markConnected("google-drive")} />
+      <OneNoteDialog open={onenoteOpen} onOpenChange={setOnenoteOpen} onConnected={() => markConnected("onenote")} />
     </div>
   );
 }
