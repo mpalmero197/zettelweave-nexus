@@ -17,9 +17,7 @@ export const useSubscription = () => {
   const checkSubscription = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
-      
       if (error) throw error;
-      
       setStatus(data);
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -35,20 +33,17 @@ export const useSubscription = () => {
 
   useEffect(() => {
     checkSubscription();
-    
-    // Refresh every minute
     const interval = setInterval(checkSubscription, 60000);
-    
     return () => clearInterval(interval);
   }, []);
 
-  const startCheckout = async () => {
+  const startCheckout = async (plan: 'monthly' | 'yearly' = 'monthly') => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('create-checkout');
-      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+      });
       if (error) throw error;
-      
       if (data?.url) {
         window.open(data.url, '_blank');
       }
@@ -68,9 +63,7 @@ export const useSubscription = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('customer-portal');
-      
       if (error) throw error;
-      
       if (data?.url) {
         window.open(data.url, '_blank');
       }
