@@ -88,8 +88,26 @@ serve(async (req) => {
             content: `You are a comprehensive web search assistant. Answer the user's query with accurate, up-to-date information as if you have access to the internet. 
 Provide detailed, well-structured responses using markdown formatting with headers, bullet points, and emphasis.
 Include facts, statistics, expert perspectives, and multiple viewpoints where relevant.
-At the end of your response, always include a section "## Sources" listing 3-5 plausible authoritative source URLs that would contain this information (formatted as plain URLs, one per line).
-Also include a section "## Related Questions" with 3-5 follow-up questions the user might want to explore.`
+
+At the end of your response, always include ALL of these sections:
+
+## Images
+List 4-8 direct image URLs (ending in .jpg, .png, .webp, or from image hosting services) that are relevant to the query. Use real, plausible image URLs from sites like Wikipedia Commons, Unsplash, Pexels, or relevant official sites. One URL per line.
+
+## Videos
+List 3-5 relevant video URLs from YouTube, Vimeo, TED, Khan Academy, or other video platforms. Include the full URL. One URL per line, formatted as:
+- [Video Title](URL)
+
+## Shopping
+If the query relates to a product, tool, book, or purchasable item, list 3-5 shopping links from Amazon, eBay, or relevant retailers. One per line, formatted as:
+- [Product Name - $Price](URL)
+If the query is not shopping-related, write "No shopping results for this query."
+
+## Sources
+List 3-5 plausible authoritative source URLs (formatted as plain URLs, one per line).
+
+## Related Questions
+List 3-5 follow-up questions the user might want to explore.`
           },
           {
             role: 'user',
