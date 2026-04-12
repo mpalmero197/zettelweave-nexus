@@ -588,11 +588,15 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="learning" className="mt-0">
-                  <LearningHub />
+                  <PremiumGate featureName="Learning Hub" hasAccess={hasPremium}>
+                    <LearningHub />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="spaces" className="mt-0">
-                  <SpacesHub />
+                  <PremiumGate featureName="Spaces" hasAccess={hasPremium}>
+                    <SpacesHub />
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
