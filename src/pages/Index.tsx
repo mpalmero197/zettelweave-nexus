@@ -86,7 +86,7 @@ const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { history, addToHistory, clearHistory, removeItem } = useSearchHistory();
-  const { hasPremium } = useSubscription();
+  const { hasAccess: hasPremium, isAdmin: premiumIsAdmin } = usePremiumAccess();
   const [currentQuery, setCurrentQuery] = useState("");
   const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
   
