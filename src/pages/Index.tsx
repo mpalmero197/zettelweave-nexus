@@ -740,15 +740,7 @@ const Index = () => {
                         />
                       </Suspense>
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-                      <p className="text-muted-foreground mb-4 text-sm">Canvas Studio is available for premium subscribers only.</p>
-                      <Button size="sm" onClick={() => window.location.href = '/subscription'}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
+                  </PremiumGate>
                 </TabsContent>
 
                 <TabsContent value="journal" className="mt-0">
