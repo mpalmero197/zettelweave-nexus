@@ -49,7 +49,9 @@ interface SearchResultsProps {
     result: string;
     images?: string[];
     videos?: string[];
+    videoDetails?: { title: string; url: string }[];
     shopping?: string[];
+    shoppingDetails?: { title: string; url: string }[];
     news?: string[];
     citations?: string[];
     relatedQuestions?: string[];
