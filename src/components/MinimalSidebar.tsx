@@ -48,7 +48,7 @@ export function MinimalSidebar({
   onAccountSettings,
   isAdmin,
 }: MinimalSidebarProps) {
-  const { hasPremium } = useSubscription();
+  const { hasAccess: hasPremium } = usePremiumAccess();
   const NavButton = ({ tab, icon: Icon, label }: { tab: string; icon: any; label: string }) => (
     <Button
       variant={activeTab === tab ? "secondary" : "ghost"}
