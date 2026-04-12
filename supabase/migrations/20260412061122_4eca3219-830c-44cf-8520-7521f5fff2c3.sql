@@ -1,0 +1,3 @@
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS last_nudge_sent_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS engagement_nudges_enabled BOOLEAN NOT NULL DEFAULT TRUE;

@@ -1645,9 +1645,11 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          engagement_nudges_enabled: boolean
           id: string
           is_visible: boolean | null
           last_activity_at: string | null
+          last_nudge_sent_at: string | null
           updated_at: string
           user_id: string
           user_status: Database["public"]["Enums"]["user_status"] | null
@@ -1658,9 +1660,11 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          engagement_nudges_enabled?: boolean
           id?: string
           is_visible?: boolean | null
           last_activity_at?: string | null
+          last_nudge_sent_at?: string | null
           updated_at?: string
           user_id: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
@@ -1671,9 +1675,11 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          engagement_nudges_enabled?: boolean
           id?: string
           is_visible?: boolean | null
           last_activity_at?: string | null
+          last_nudge_sent_at?: string | null
           updated_at?: string
           user_id?: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
