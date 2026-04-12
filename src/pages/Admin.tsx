@@ -371,6 +371,8 @@ export default function Admin() {
         return <ToolTester />;
       case 'system-report':
         return <PlatformReport />;
+      case 'system-ai-assistant':
+        return <AdminAIChat />;
       case 'docs':
         return <DocumentationViewer />;
       default:
