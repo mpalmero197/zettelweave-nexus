@@ -7,6 +7,7 @@ import { useToast } from './use-toast';
 import { generateZettelNumber, categorizeContent } from '@/utils/deweySystem';
 import { sanitizeCardInput, validateZettelCard, createCardLimiter } from '@/utils/security';
 import { useCardLimit } from './useCardLimit';
+import { useRealtimeSync } from './useRealtimeSync';
 
 export const useZettelCards = () => {
   const { user } = useAuth();
