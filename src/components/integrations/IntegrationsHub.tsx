@@ -1,16 +1,17 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Plug, Upload, FileText } from "lucide-react";
+import { Search, Plug, Upload, FileText, Activity, RefreshCw, CheckCircle2, AlertCircle, Cable } from "lucide-react";
 import { toast } from "sonner";
 import { IntegrationCard } from "./IntegrationCard";
+import { useIntegrationStatus } from "./useIntegrationStatus";
 import type { Integration, IntegrationCategory } from "./types";
 import { parseEnexFile } from "@/utils/evernoteImport";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-// Dialog imports
 import { SlackDialog } from "./dialogs/SlackDialog";
 import { ZapierDialog } from "./dialogs/ZapierDialog";
 import { TodoistDialog } from "./dialogs/TodoistDialog";
@@ -20,191 +21,73 @@ import { GoogleDriveDialog } from "./dialogs/GoogleDriveDialog";
 import { OneNoteDialog } from "./dialogs/OneNoteDialog";
 
 const INTEGRATIONS: Integration[] = [
-  {
-    id: "google-calendar",
-    name: "Google Calendar",
-    description: "Two-way sync: PendragonX calendar events appear in Google Calendar and vice versa.",
-    icon: "📅",
-    category: "productivity",
-    status: "available",
-    color: "#4285F4",
-    setupType: "api-key",
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    description: "Import Notion pages and databases into your Zettelcards and notebooks.",
-    icon: "📝",
-    category: "productivity",
-    status: "available",
-    color: "#000000",
-    setupType: "file-import",
-  },
-  {
-    id: "obsidian",
-    name: "Obsidian",
-    description: "Import your Obsidian vault (.md files) as notes. Supports wikilinks and frontmatter.",
-    icon: "💎",
-    category: "import-export",
-    status: "available",
-    color: "#7C3AED",
-    setupType: "file-import",
-  },
-  {
-    id: "onenote",
-    name: "OneNote",
-    description: "Import OneNote sections and pages into PendragonX notebooks.",
-    icon: "📓",
-    category: "import-export",
-    status: "available",
-    color: "#7719AA",
-    setupType: "file-import",
-  },
-  {
-    id: "google-drive",
-    name: "Google Drive",
-    description: "Attach and sync files directly from your Google Drive.",
-    icon: "📁",
-    category: "storage",
-    status: "available",
-    color: "#0F9D58",
-    setupType: "api-key",
-  },
-  {
-    id: "onedrive",
-    name: "OneDrive",
-    description: "Import and attach files from your Microsoft OneDrive.",
-    icon: "☁️",
-    category: "storage",
-    status: "available",
-    color: "#0078D4",
-    setupType: "oauth",
-  },
-  {
-    id: "evernote",
-    name: "Evernote",
-    description: "Import your Evernote notebooks via .enex export files.",
-    icon: "🐘",
-    category: "import-export",
-    status: "available",
-    color: "#00A82D",
-    setupType: "file-import",
-  },
-  {
-    id: "todoist",
-    name: "Todoist",
-    description: "Sync tasks between PendragonX Task Manager and Todoist.",
-    icon: "✅",
-    category: "productivity",
-    status: "available",
-    color: "#E44332",
-    setupType: "api-key",
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    description: "Send notes and cards to Slack channels. Receive Slack messages as notes.",
-    icon: "💬",
-    category: "communication",
-    status: "available",
-    color: "#4A154B",
-    setupType: "webhook",
-  },
-  {
-    id: "webhooks",
-    name: "Zapier / Webhooks",
-    description: "Get a webhook URL for custom automations. Send data in, create cards and notes automatically.",
-    icon: "🔗",
-    category: "productivity",
-    status: "available",
-    color: "#FF4A00",
-    setupType: "webhook",
-  },
+  { id: "google-calendar", name: "Google Calendar", description: "Two-way sync: PendragonX calendar events appear in Google Calendar and vice versa.", icon: "📅", category: "productivity", status: "available", color: "#4285F4", setupType: "api-key", docsUrl: "https://console.cloud.google.com/apis/credentials" },
+  { id: "notion", name: "Notion", description: "Import Notion pages and databases into your Zettelcards and notebooks.", icon: "📝", category: "productivity", status: "available", color: "#000000", setupType: "file-import", docsUrl: "https://www.notion.so/help/export-your-content" },
+  { id: "obsidian", name: "Obsidian", description: "Import your Obsidian vault (.md files) as notes. Supports wikilinks and frontmatter.", icon: "💎", category: "import-export", status: "available", color: "#7C3AED", setupType: "file-import", docsUrl: "https://help.obsidian.md/Files+and+folders/Manage+vaults" },
+  { id: "onenote", name: "OneNote", description: "Import OneNote sections and pages into PendragonX notebooks.", icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "file-import" },
+  { id: "google-drive", name: "Google Drive", description: "Attach and sync files directly from your Google Drive.", icon: "📁", category: "storage", status: "available", color: "#0F9D58", setupType: "api-key", docsUrl: "https://console.cloud.google.com/apis/credentials" },
+  { id: "onedrive", name: "OneDrive", description: "Import and attach files from your Microsoft OneDrive.", icon: "☁️", category: "storage", status: "available", color: "#0078D4", setupType: "oauth" },
+  { id: "evernote", name: "Evernote", description: "Import your Evernote notebooks via .enex export files.", icon: "🐘", category: "import-export", status: "available", color: "#00A82D", setupType: "file-import" },
+  { id: "todoist", name: "Todoist", description: "Sync tasks between PendragonX Task Manager and Todoist.", icon: "✅", category: "productivity", status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
+  { id: "slack", name: "Slack", description: "Send notes and cards to Slack channels. Receive Slack messages as notes.", icon: "💬", category: "communication", status: "available", color: "#4A154B", setupType: "webhook", docsUrl: "https://api.slack.com/messaging/webhooks" },
+  { id: "webhooks", name: "Zapier / Webhooks", description: "Get a webhook URL for custom automations. Send data in, create cards and notes automatically.", icon: "🔗", category: "productivity", status: "available", color: "#FF4A00", setupType: "webhook", docsUrl: "https://zapier.com/app/zaps" },
 ];
 
-const CATEGORIES: { label: string; value: IntegrationCategory | "all" }[] = [
-  { label: "All", value: "all" },
-  { label: "Productivity", value: "productivity" },
-  { label: "Storage", value: "storage" },
-  { label: "Import / Export", value: "import-export" },
-  { label: "Communication", value: "communication" },
+const CATEGORIES: { label: string; value: IntegrationCategory | "all"; icon: string }[] = [
+  { label: "All", value: "all", icon: "🔌" },
+  { label: "Productivity", value: "productivity", icon: "⚡" },
+  { label: "Storage", value: "storage", icon: "💾" },
+  { label: "Import / Export", value: "import-export", icon: "📦" },
+  { label: "Communication", value: "communication", icon: "💬" },
 ];
 
 export function IntegrationsHub() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<IntegrationCategory | "all">("all");
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const ids = new Set<string>();
-    if (localStorage.getItem("pendragon:slack-webhook")) ids.add("slack");
-    if (localStorage.getItem("pendragon:zapier-webhook")) ids.add("webhooks");
-    if (localStorage.getItem("pendragon:todoist-token")) ids.add("todoist");
-    if (localStorage.getItem("pendragon:gcal-api-key")) ids.add("google-calendar");
-    if (localStorage.getItem("pendragon:gdrive-client-id")) ids.add("google-drive");
-    return ids;
-  });
+  const { connectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
 
   // Dialog states
-  const [obsidianOpen, setObsidianOpen] = useState(false);
-  const [evernoteOpen, setEvernoteOpen] = useState(false);
-  const [slackOpen, setSlackOpen] = useState(false);
-  const [zapierOpen, setZapierOpen] = useState(false);
-  const [todoistOpen, setTodoistOpen] = useState(false);
-  const [gcalOpen, setGcalOpen] = useState(false);
-  const [notionOpen, setNotionOpen] = useState(false);
-  const [gdriveOpen, setGdriveOpen] = useState(false);
-  const [onenoteOpen, setOnenoteOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
   const obsidianInputRef = useRef<HTMLInputElement>(null);
   const evernoteInputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = INTEGRATIONS.filter((i) => {
+  const filtered = useMemo(() => INTEGRATIONS.filter((i) => {
     if (category !== "all" && i.category !== category) return false;
-    if (search && !i.name.toLowerCase().includes(search.toLowerCase()) && !i.description.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return i.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
+    }
     return true;
-  });
+  }), [category, search]);
 
-  const markConnected = useCallback((id: string) => {
-    setConnectedIds((prev) => new Set(prev).add(id));
-  }, []);
+  // Stats
+  const connectedCount = connectedIds.size;
+  const healthyCount = Object.values(meta).filter((m) => m.health === "healthy").length;
+  const errorCount = Object.values(meta).filter((m) => m.health === "error").length;
+  const totalSynced = Object.values(meta).reduce((sum, m) => sum + (m.itemsSynced || 0), 0);
+
+  const openDialog = useCallback((id: string) => setDialogOpen(id), []);
+  const closeDialog = useCallback(() => setDialogOpen(null), []);
 
   const handleConnect = useCallback((id: string) => {
-    switch (id) {
-      case "obsidian": setObsidianOpen(true); break;
-      case "evernote": setEvernoteOpen(true); break;
-      case "slack": setSlackOpen(true); break;
-      case "webhooks": setZapierOpen(true); break;
-      case "todoist": setTodoistOpen(true); break;
-      case "google-calendar": setGcalOpen(true); break;
-      case "notion": setNotionOpen(true); break;
-      case "google-drive": setGdriveOpen(true); break;
-      case "onenote": setOnenoteOpen(true); break;
-      case "onedrive":
-        if ((window as any).OneDrive) {
-          toast.info("Opening OneDrive picker…");
-        } else {
-          toast.error("OneDrive SDK not loaded. Please try again later.");
-        }
-        break;
-      default:
-        toast.info(`${INTEGRATIONS.find(i => i.id === id)?.name} integration coming soon!`);
+    if (id === "onedrive") {
+      if ((window as any).OneDrive) {
+        toast.info("Opening OneDrive picker…");
+      } else {
+        toast.error("OneDrive SDK not loaded. Please try again later.");
+      }
+      return;
     }
-  }, []);
+    openDialog(id);
+  }, [openDialog]);
 
   const handleDisconnect = useCallback((id: string) => {
-    setConnectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
-    // Clean up stored credentials
-    const keyMap: Record<string, string[]> = {
-      slack: ["pendragon:slack-webhook"],
-      webhooks: ["pendragon:zapier-webhook"],
-      todoist: ["pendragon:todoist-token"],
-      "google-calendar": ["pendragon:gcal-api-key", "pendragon:gcal-calendar-id"],
-      "google-drive": ["pendragon:gdrive-client-id", "pendragon:gdrive-api-key"],
-    };
-    keyMap[id]?.forEach((k) => localStorage.removeItem(k));
-    toast.success("Disconnected");
-  }, []);
+    disconnect(id);
+    toast.success("Disconnected successfully");
+  }, [disconnect]);
 
   // ── Obsidian import ──
   const handleObsidianFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,12 +104,12 @@ export function IntegrationsHub() {
         count++;
       }
       toast.success(`Imported ${count} Obsidian note${count !== 1 ? "s" : ""}`);
-      markConnected("obsidian");
+      connect("obsidian", count);
     } catch {
-      toast.error("Import failed");
+      toast.error("Import failed — please check your files and try again");
     } finally {
       setImporting(false);
-      setObsidianOpen(false);
+      closeDialog();
     }
   };
 
@@ -249,26 +132,53 @@ export function IntegrationsHub() {
         count++;
       }
       toast.success(`Imported ${count} Evernote note${count !== 1 ? "s" : ""}`);
-      markConnected("evernote");
+      connect("evernote", count);
     } catch (err: any) {
       toast.error(err?.message || "Failed to parse .enex file");
     } finally {
       setImporting(false);
-      setEvernoteOpen(false);
+      closeDialog();
     }
   };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <Plug className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold text-foreground">Integrations</h1>
+      {/* Premium Header */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-card to-accent/20 border border-border/40 p-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.08),transparent_60%)]" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center">
+                <Cable className="h-5 w-5 text-primary" />
+              </div>
+              <h1 className="text-lg font-bold text-foreground">Integrations</h1>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Connect PendragonX with the tools you already use. Import data, sync tasks, and automate workflows.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start sm:self-center h-8 text-xs gap-1.5"
+            onClick={() => {
+              runHealthChecks();
+              toast.success("Health checks complete");
+            }}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Check Health
+          </Button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Connect PendragonX with the tools you already use. Import data, sync tasks, and automate workflows.
-        </p>
+
+        {/* Stats strip */}
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-border/30">
+          <StatPill icon={<Plug className="h-3.5 w-3.5 text-primary" />} label="Connected" value={connectedCount} />
+          <StatPill icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />} label="Healthy" value={healthyCount} />
+          <StatPill icon={<AlertCircle className="h-3.5 w-3.5 text-destructive" />} label="Errors" value={errorCount} />
+          <StatPill icon={<Activity className="h-3.5 w-3.5 text-primary" />} label="Items Synced" value={totalSynced} />
+        </div>
       </div>
 
       {/* Search + Filters */}
@@ -279,7 +189,7 @@ export function IntegrationsHub() {
             placeholder="Search integrations…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
+            className="pl-9 h-9 bg-card border-border/50"
           />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -288,36 +198,64 @@ export function IntegrationsHub() {
               key={c.value}
               variant={category === c.value ? "default" : "outline"}
               size="sm"
-              className="h-8 text-xs"
+              className={`h-8 text-xs gap-1 transition-all duration-200 ${
+                category === c.value ? "shadow-sm" : "border-border/50"
+              }`}
               onClick={() => setCategory(c.value)}
             >
+              <span className="text-xs">{c.icon}</span>
               {c.label}
             </Button>
           ))}
         </div>
       </div>
 
+      {/* Results count */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Showing {filtered.length} integration{filtered.length !== 1 ? "s" : ""}
+          {category !== "all" && ` in ${CATEGORIES.find(c => c.value === category)?.label}`}
+        </p>
+        {search && (
+          <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setSearch("")}>
+            Clear search
+          </Button>
+        )}
+      </div>
+
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((integration) => (
-          <IntegrationCard
-            key={integration.id}
-            integration={integration}
-            isConnected={connectedIds.has(integration.id)}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-          />
-        ))}
+        {/* Connected integrations first */}
+        {filtered
+          .sort((a, b) => {
+            const aConn = connectedIds.has(a.id) ? 0 : 1;
+            const bConn = connectedIds.has(b.id) ? 0 : 1;
+            return aConn - bConn;
+          })
+          .map((integration) => (
+            <IntegrationCard
+              key={integration.id}
+              integration={integration}
+              isConnected={connectedIds.has(integration.id)}
+              connectionMeta={getMeta(integration.id)}
+              onConnect={handleConnect}
+              onDisconnect={handleDisconnect}
+            />
+          ))}
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground text-sm">
-          No integrations match your search.
+        <div className="text-center py-16 space-y-3">
+          <div className="text-4xl">🔍</div>
+          <p className="text-sm text-muted-foreground">No integrations match your search.</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setCategory("all"); }}>
+            Reset filters
+          </Button>
         </div>
       )}
 
       {/* Obsidian Import Dialog */}
-      <Dialog open={obsidianOpen} onOpenChange={setObsidianOpen}>
+      <Dialog open={dialogOpen === "obsidian"} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">💎 Import Obsidian Vault</DialogTitle>
@@ -336,7 +274,7 @@ export function IntegrationsHub() {
       </Dialog>
 
       {/* Evernote Import Dialog */}
-      <Dialog open={evernoteOpen} onOpenChange={setEvernoteOpen}>
+      <Dialog open={dialogOpen === "evernote"} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">🐘 Import from Evernote</DialogTitle>
@@ -355,13 +293,25 @@ export function IntegrationsHub() {
       </Dialog>
 
       {/* Connector-based & API dialogs */}
-      <SlackDialog open={slackOpen} onOpenChange={setSlackOpen} onConnected={() => markConnected("slack")} />
-      <ZapierDialog open={zapierOpen} onOpenChange={setZapierOpen} onConnected={() => markConnected("webhooks")} />
-      <TodoistDialog open={todoistOpen} onOpenChange={setTodoistOpen} onConnected={() => markConnected("todoist")} />
-      <GoogleCalendarDialog open={gcalOpen} onOpenChange={setGcalOpen} onConnected={() => markConnected("google-calendar")} />
-      <NotionDialog open={notionOpen} onOpenChange={setNotionOpen} onConnected={() => markConnected("notion")} />
-      <GoogleDriveDialog open={gdriveOpen} onOpenChange={setGdriveOpen} onConnected={() => markConnected("google-drive")} />
-      <OneNoteDialog open={onenoteOpen} onOpenChange={setOnenoteOpen} onConnected={() => markConnected("onenote")} />
+      <SlackDialog open={dialogOpen === "slack"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("slack"); closeDialog(); }} />
+      <ZapierDialog open={dialogOpen === "webhooks"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("webhooks"); closeDialog(); }} />
+      <TodoistDialog open={dialogOpen === "todoist"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("todoist"); closeDialog(); }} />
+      <GoogleCalendarDialog open={dialogOpen === "google-calendar"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("google-calendar"); closeDialog(); }} />
+      <NotionDialog open={dialogOpen === "notion"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("notion"); closeDialog(); }} />
+      <GoogleDriveDialog open={dialogOpen === "google-drive"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("google-drive"); closeDialog(); }} />
+      <OneNoteDialog open={dialogOpen === "onenote"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("onenote"); closeDialog(); }} />
+    </div>
+  );
+}
+
+function StatPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2 bg-background/60 rounded-lg px-3 py-2 border border-border/30">
+      {icon}
+      <div>
+        <span className="text-sm font-semibold text-foreground">{value}</span>
+        <span className="text-[10px] text-muted-foreground ml-1">{label}</span>
+      </div>
     </div>
   );
 }
