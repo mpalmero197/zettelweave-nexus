@@ -149,9 +149,12 @@ export function MinimalSidebar({
           <NavButton tab="integrations" icon={Puzzle} label="Integrations" premium />
           <NavButton tab="recycle" icon={Trash2} label="Recycle Bin" />
           
-          <Separator className="my-2" />
-          
-          <NavButton tab="debugger" icon={Bug} label="Debugger Console" />
+          {isAdmin && (
+            <>
+              <Separator className="my-2" />
+              <NavButton tab="debugger" icon={Bug} label="Debugger Console" />
+            </>
+          )}
         </div>
       </ScrollArea>
 
