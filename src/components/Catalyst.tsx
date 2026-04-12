@@ -101,9 +101,10 @@ interface CatalystDocument {
   title: string;
   content: string;
   selected_source: string;
-  selected_items: string[];
+  selected_items: string[] | null;
   word_count: number;
   theme_id?: string;
+  is_master_document?: boolean;
   created_at: string;
   updated_at: string;
 }
