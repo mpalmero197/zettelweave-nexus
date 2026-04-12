@@ -211,31 +211,51 @@ serve(async (req) => {
         }
       }
 
-      if (context.stickyNotes && context.stickyNotes.length > 0) {
-        contextInfo += `\n\nUser's Sticky Notes: ${context.stickyNotes.length} items`;
+      if (context.catalystDocs && context.catalystDocs.length > 0) {
+        contextInfo += `\n\nUser's Catalyst Documents (${context.catalystDocs.length} total):\n`;
+        contextInfo += context.catalystDocs.slice(0, 10).map((d: any) => 
+          `- ${d.title}: ${(d.content || '').substring(0, 200)}...`
+        ).join('\n');
+      }
+
+      if (context.calendarEvents && context.calendarEvents.length > 0) {
+        contextInfo += `\n\nUser's Calendar Events (${context.calendarEvents.length} total):\n`;
+        contextInfo += context.calendarEvents.slice(0, 15).map((e: any) => 
+          `- [${e.event_date}] ${e.title}${e.description ? ': ' + e.description.substring(0, 100) : ''}`
+        ).join('\n');
+      }
+
+      if (context.tasks && context.tasks.length > 0) {
+        contextInfo += `\n\nUser's Tasks (${context.tasks.length} total):\n`;
+        contextInfo += context.tasks.slice(0, 15).map((t: any) => 
+          `- [${t.is_completed ? 'DONE' : 'TODO'}${t.priority ? ' ' + t.priority : ''}] ${t.title}${t.due_date ? ' (due: ' + t.due_date + ')' : ''}${t.notes ? ': ' + t.notes.substring(0, 100) : ''}`
+        ).join('\n');
       }
 
       if (context.scratchPad && context.scratchPad.length > 0) {
-        contextInfo += `\n\nUser's Scratch Pad: ${context.scratchPad.length} items`;
+        contextInfo += `\n\nUser's Scratch Pad (${context.scratchPad.length} items):\n`;
+        contextInfo += context.scratchPad.slice(0, 5).map((s: any) => 
+          `- ${(s.content || '').substring(0, 150)}`
+        ).join('\n');
       }
     }
 
-    const systemPrompt = `You are ALICE (Adaptive Learning & Intelligence Companion Engine), an intelligent assistant for a knowledge management system called Pendragon. You have access to the user's complete knowledge base including their Zettelkasten cards, notes, sticky notes, and scratch pad.${contextInfo}
+    const systemPrompt = `You are ALICE (Adaptive Learning & Intelligence Companion Engine), an intelligent assistant for a knowledge management system called Pendragon. You have access to the user's COMPLETE second brain including their Zettelkasten cards, notes, Catalyst documents, calendar events, tasks, and scratch pad.${contextInfo}
 
 Your capabilities:
-- Search and reference the user's cards and notes when answering questions
-- Find connections and patterns across their knowledge base
-- Summarize content and extract key insights
-- Provide contextual suggestions based on their existing content
+- Search and reference ALL of the user's content (cards, notes, documents, events, tasks) when answering
+- Find connections and patterns across their entire knowledge base
+- Summarize content and extract key insights from any content type
+- Cross-reference calendar events with notes and tasks
 - Help organize and structure their knowledge
-- Answer questions using their saved information
+- Suggest when related content exists across different content types
 - Search the internet for current information when needed
 
 When referencing content:
-- Cite specific cards or notes by title
+- Cite specific cards, notes, or documents by title
 - Quote relevant passages when helpful
-- Suggest related content from their knowledge base
-- Point out patterns or connections you notice
+- Point out cross-references (e.g., "Your note on X relates to your card about Y")
+- Suggest related content the user may not have connected yet
 
 Keep responses clear, concise, and actionable. Always prioritize information from the user's knowledge base when available.`;
 

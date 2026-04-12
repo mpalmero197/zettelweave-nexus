@@ -95,3 +95,6 @@ verify_jwt = true
 
 [functions.admin-ai-assistant]
 verify_jwt = false
+
+[functions.synthesize-master-document]
+verify_jwt = false
