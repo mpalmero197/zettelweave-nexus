@@ -451,7 +451,7 @@ export function UserManagement() {
                       <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openDialog('password', user)}>
                         <Key className="h-3 w-3 mr-1" /> Pass
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openDialog('ban', user)}>
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openDialog('ban', user)} disabled={user.email === 'mpalmero197@gmail.com'}>
                         <Ban className="h-3 w-3 mr-1" /> Ban
                       </Button>
                     </div>
@@ -523,7 +523,7 @@ export function UserManagement() {
                           <Button size="sm" variant="outline" onClick={() => openDialog('password', user)}>
                             <Key className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => openDialog('ban', user)}>
+                          <Button size="sm" variant="outline" onClick={() => openDialog('ban', user)} disabled={user.email === 'mpalmero197@gmail.com'}>
                             <Ban className="h-3 w-3" />
                           </Button>
                         </div>
