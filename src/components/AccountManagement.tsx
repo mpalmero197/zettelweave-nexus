@@ -46,6 +46,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'backup' | 'debug'>('profile');
   const [autoMasterDocs, setAutoMasterDocs] = useState(false);
+  const [engagementNudges, setEngagementNudges] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -84,6 +85,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setAboutMe(data.about_me || '');
             setAvatarUrl(data.avatar_url || '');
             setAutoMasterDocs(data.auto_master_docs || false);
+            setEngagementNudges(data.engagement_nudges_enabled !== false);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
@@ -1157,6 +1159,41 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       <li>Master Documents are marked with a badge in your Catalyst library</li>
                       <li>You can edit Master Documents like any other Catalyst document</li>
                     </ul>
+                   </Card>
+
+                  <Separator className="my-6" />
+
+                  <h3 className="text-lg font-medium mb-4">Notifications</h3>
+
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1 flex-1 mr-4">
+                        <div className="flex items-center gap-2">
+                          <Bell className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium">Engagement Nudges</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Receive periodic push notifications (every 4-6 hours) with updates about your longest note, most recent work, or inspirational messages to keep your habit going.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={engagementNudges}
+                        onCheckedChange={async (checked) => {
+                          if (!user) return;
+                          setEngagementNudges(checked);
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ engagement_nudges_enabled: checked })
+                            .eq('user_id', user.id);
+                          if (error) {
+                            toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
+                            setEngagementNudges(!checked);
+                          } else {
+                            toast({ title: checked ? 'Enabled' : 'Disabled', description: checked ? 'You\'ll receive periodic engagement nudges.' : 'Engagement nudges have been turned off.' });
+                          }
+                        }}
+                      />
+                    </div>
                   </Card>
                 </div>
               </div>
