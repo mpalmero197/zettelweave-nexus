@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.synthesize-master-document]
 verify_jwt = false
+
+[functions.send-engagement-nudges]
+verify_jwt = false
