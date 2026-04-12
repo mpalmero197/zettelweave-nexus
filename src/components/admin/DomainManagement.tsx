@@ -30,6 +30,7 @@ export function DomainManagement() {
   const [restrictionType, setRestrictionType] = useState<'banned' | 'allowed'>('banned');
   const [reason, setReason] = useState('');
   const [runningScan, setRunningScan] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
