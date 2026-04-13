@@ -470,11 +470,17 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   // Max connections for sizing
   const maxConn = useMemo(() => Math.max(1, ...Object.values(connectionCounts)), [connectionCounts]);
 
-  // Node radius
+  // Planet classification for visual sizing
+  const { planetIds: scenePlanets } = useMemo(() => classifyNodes(cards, connectionCounts), [cards, connectionCounts]);
+
+  // Node radius — planets are much larger
   const getRadius = useCallback((cardId: string) => {
     const count = connectionCounts[cardId] || 0;
-    return 0.25 + (count / maxConn) * 0.95;
-  }, [connectionCounts, maxConn]);
+    if (scenePlanets.has(cardId)) {
+      return 0.5 + (count / maxConn) * 1.2; // large planet
+    }
+    return 0.15 + (count / maxConn) * 0.35; // small moon
+  }, [connectionCounts, maxConn, scenePlanets]);
 
   // 3D Layouts
   const nodePositions = useMemo(() => {
