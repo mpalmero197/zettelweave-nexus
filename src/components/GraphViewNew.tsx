@@ -277,7 +277,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       });
     });
     return edges;
-  }, [filteredCards, hoveredNodeId]);
+  }, [filteredCards, hoveredNodeId, planets]);
 
   // Build nodes with custom rendering
   const graphNodes = useMemo(() => {
