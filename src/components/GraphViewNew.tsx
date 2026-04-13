@@ -519,7 +519,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     };
     // Only re-create when the actual graph structure changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [physicsEnabled, layoutType, currentEdgeHash, filteredCards.length]);
+  }, [physicsEnabled, layoutType, currentEdgeHash, filteredCards.length, planets, connectionCounts]);
 
   // Update node visuals (hover, search) without recreating simulation
   useEffect(() => {
