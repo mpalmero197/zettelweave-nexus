@@ -690,7 +690,7 @@ const Index = () => {
 
                 <TabsContent value="graph" className="mt-0">
                   <PremiumGate featureName="Knowledge Graph" hasAccess={hasPremium}>
-                    <div className="h-[calc(100vh-10rem-4rem)] md:h-[calc(100vh-10rem)] relative">
+                    <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4.5rem)] relative">
                       {/* 2D/3D toggle */}
                       <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1">
                         <Button
@@ -731,7 +731,7 @@ const Index = () => {
 
                 <TabsContent value="canvas" className="mt-0 -mx-2 md:mx-0">
                   <PremiumGate featureName="Canvas Studio" hasAccess={hasPremium}>
-                    <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100vh-10rem)] flex flex-col">
+                    <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4.5rem)] flex flex-col">
                       <Suspense fallback={<FastLoadingFallback message="Loading canvas..." icon={<Palette className="h-6 w-6 animate-pulse" />} />}>
                         <CanvasStudio 
                           cards={cards} 
