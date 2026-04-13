@@ -279,7 +279,12 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     return filteredCards.map((card): Node => {
       const hsl = getCategoryHSL(card.category);
       const conns = connectionCounts[card.id] || 0;
-      const nodeSize = Math.max(isMobile ? 14 : 20, Math.min(isMobile ? 28 : 44, (isMobile ? 14 : 20) + conns * (isMobile ? 3 : 4)));
+      const isPlanet = planets.has(card.id);
+      
+      // Planets are much larger; moons are small
+      const nodeSize = isPlanet
+        ? Math.max(isMobile ? 28 : 40, Math.min(isMobile ? 56 : 80, (isMobile ? 28 : 40) + conns * (isMobile ? 4 : 5)))
+        : Math.max(isMobile ? 10 : 14, Math.min(isMobile ? 20 : 28, (isMobile ? 10 : 14) + conns * (isMobile ? 2 : 3)));
 
       const isHovered = hoveredNodeId === card.id;
       const isConnected = hoveredNodeId ? connectedMap[hoveredNodeId]?.has(card.id) : false;
@@ -290,7 +295,9 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       );
 
       const opacity = isDimmed ? 0.15 : 1;
-      const glowSize = isHovered ? 12 : isConnected ? 6 : 0;
+      const glowSize = isPlanet
+        ? (isHovered ? 20 : 8)
+        : (isHovered ? 10 : isConnected ? 4 : 0);
 
       return {
         id: card.id,
@@ -309,32 +316,58 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 transition: 'opacity 0.25s ease',
               }}
             >
+              {/* Orbital ring for planets */}
+              {isPlanet && !isMobile && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: `${nodeSize * 3.5}px`,
+                    height: `${nodeSize * 3.5}px`,
+                    borderRadius: '50%',
+                    border: `1px solid hsl(${hsl} / ${isDimmed ? 0.03 : 0.12})`,
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    transition: 'border-color 0.3s',
+                  }}
+                />
+              )}
               <div
                 className="graph-node-circle"
                 style={{
                   width: `${nodeSize}px`,
                   height: `${nodeSize}px`,
                   borderRadius: '50%',
-                  background: `hsl(${hsl})`,
+                  background: isPlanet
+                    ? `radial-gradient(circle at 35% 35%, hsl(${hsl} / 0.9), hsl(${hsl}) 60%, hsl(${hsl} / 0.7))`
+                    : `hsl(${hsl})`,
                   boxShadow: glowSize > 0
-                    ? `0 0 ${glowSize}px ${glowSize / 2}px hsl(${hsl} / 0.5)`
-                    : `0 1px 3px hsl(0 0% 0% / 0.15)`,
+                    ? `0 0 ${glowSize}px ${glowSize / 2}px hsl(${hsl} / ${isPlanet ? 0.4 : 0.5})`
+                    : isPlanet
+                      ? `0 0 8px 3px hsl(${hsl} / 0.25), 0 2px 4px hsl(0 0% 0% / 0.2)`
+                      : `0 1px 3px hsl(0 0% 0% / 0.15)`,
                   border: isSearchMatch
                     ? '2px solid hsl(var(--primary))'
                     : isHovered
-                      ? '2px solid hsl(var(--foreground) / 0.6)'
-                      : '1.5px solid hsl(var(--background) / 0.8)',
+                      ? `2px solid hsl(var(--foreground) / 0.6)`
+                      : isPlanet
+                        ? `2px solid hsl(${hsl} / 0.6)`
+                        : '1.5px solid hsl(var(--background) / 0.8)',
                   transition: 'box-shadow 0.25s ease, border 0.2s ease, transform 0.2s ease',
-                  transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                  transform: isHovered ? 'scale(1.15)' : 'scale(1)',
                   cursor: 'pointer',
+                  position: 'relative',
+                  zIndex: isPlanet ? 10 : 1,
                 }}
               />
-              {!isMobile && (
+              {/* Label: always show for planets, hover-only for moons on desktop */}
+              {(!isMobile && (isPlanet || isHovered || isConnected)) && (
                 <div
                   style={{
-                    maxWidth: '100px',
-                    fontSize: '10px',
-                    fontWeight: 500,
+                    maxWidth: isPlanet ? '120px' : '100px',
+                    fontSize: isPlanet ? '11px' : '10px',
+                    fontWeight: isPlanet ? 600 : 500,
                     color: isDimmed ? 'hsl(var(--muted-foreground) / 0.3)' : 'hsl(var(--foreground) / 0.85)',
                     textAlign: 'center',
                     lineHeight: '1.2',
@@ -345,7 +378,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                     pointerEvents: 'none',
                   }}
                 >
-                  {card.title.length > 16 ? card.title.slice(0, 15) + '…' : card.title}
+                  {card.title.length > (isPlanet ? 20 : 16) ? card.title.slice(0, isPlanet ? 19 : 15) + '…' : card.title}
                 </div>
               )}
             </div>
@@ -361,7 +394,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         draggable: true,
       };
     });
-  }, [filteredCards, getTargetPositions, connectionCounts, hoveredNodeId, connectedMap, searchTerm, isMobile]);
+  }, [filteredCards, getTargetPositions, connectionCounts, hoveredNodeId, connectedMap, searchTerm, isMobile, planets]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(graphNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graphEdges);
