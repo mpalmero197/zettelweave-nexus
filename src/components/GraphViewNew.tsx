@@ -250,6 +250,10 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             (card.id === hoveredNodeId || linkedCardId === hoveredNodeId);
           const isHoverDimmed = hoveredNodeId && !isHoverHighlighted;
 
+          const sourceIsPlanet = planets.has(card.id);
+          const targetIsPlanet = planets.has(linkedCardId);
+          const isGravityLink = sourceIsPlanet || targetIsPlanet;
+
           edges.push({
             id: `${card.id}-${linkedCardId}`,
             source: card.id,
@@ -260,8 +264,11 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 ? `hsl(${sourceHSL})`
                 : isHoverDimmed
                   ? 'hsl(var(--foreground) / 0.05)'
-                  : `hsl(${sourceHSL} / 0.35)`,
-              strokeWidth: isHoverHighlighted ? weight + 1 : weight,
+                  : isGravityLink
+                    ? `hsl(${sourceHSL} / 0.25)`
+                    : `hsl(${sourceHSL} / 0.15)`,
+              strokeWidth: isHoverHighlighted ? weight + 1 : isGravityLink ? weight + 0.5 : weight,
+              strokeDasharray: (!sourceIsPlanet && !targetIsPlanet) ? '4 3' : undefined,
               transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
             },
             animated: false,
