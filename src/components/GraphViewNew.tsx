@@ -78,7 +78,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     );
   }, [cards, searchTerm]);
 
-  // Compute connection counts for node sizing
+  // Compute connection counts and classify nodes as planets or moons
   const connectionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredCards.forEach(card => {
@@ -90,6 +90,52 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     });
     return counts;
   }, [filteredCards]);
+
+  // Classify nodes: planets (≥ threshold connections) vs moons
+  const { planets, moonParentMap } = useMemo(() => {
+    const threshold = Math.max(2, Math.ceil(filteredCards.length * 0.05));
+    const planetIds = new Set<string>();
+    const parentMap: Record<string, string> = {}; // moonId -> planetId
+
+    // Identify planets (high-connectivity hubs)
+    filteredCards.forEach(card => {
+      if ((connectionCounts[card.id] || 0) >= threshold) {
+        planetIds.add(card.id);
+      }
+    });
+
+    // If no planets found, promote the top connected nodes
+    if (planetIds.size === 0 && filteredCards.length > 0) {
+      const sorted = [...filteredCards].sort((a, b) =>
+        (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0)
+      );
+      const topCount = Math.max(1, Math.ceil(filteredCards.length * 0.15));
+      sorted.slice(0, topCount).forEach(c => {
+        if ((connectionCounts[c.id] || 0) > 0) planetIds.add(c.id);
+      });
+    }
+
+    // Assign moons to their most-connected planet neighbor
+    filteredCards.forEach(card => {
+      if (planetIds.has(card.id)) return;
+      let bestPlanet: string | null = null;
+      let bestScore = -1;
+      card.linkedCards.forEach(linkedId => {
+        if (planetIds.has(linkedId)) {
+          const score = connectionCounts[linkedId] || 0;
+          if (score > bestScore) {
+            bestScore = score;
+            bestPlanet = linkedId;
+          }
+        }
+      });
+      if (bestPlanet) {
+        parentMap[card.id] = bestPlanet;
+      }
+    });
+
+    return { planets: planetIds, moonParentMap: parentMap };
+  }, [filteredCards, connectionCounts]);
 
   // Compute connected node IDs for hover highlight
   const connectedMap = useMemo(() => {
@@ -204,6 +250,10 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
             (card.id === hoveredNodeId || linkedCardId === hoveredNodeId);
           const isHoverDimmed = hoveredNodeId && !isHoverHighlighted;
 
+          const sourceIsPlanet = planets.has(card.id);
+          const targetIsPlanet = planets.has(linkedCardId);
+          const isGravityLink = sourceIsPlanet || targetIsPlanet;
+
           edges.push({
             id: `${card.id}-${linkedCardId}`,
             source: card.id,
@@ -214,8 +264,11 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 ? `hsl(${sourceHSL})`
                 : isHoverDimmed
                   ? 'hsl(var(--foreground) / 0.05)'
-                  : `hsl(${sourceHSL} / 0.35)`,
-              strokeWidth: isHoverHighlighted ? weight + 1 : weight,
+                  : isGravityLink
+                    ? `hsl(${sourceHSL} / 0.25)`
+                    : `hsl(${sourceHSL} / 0.15)`,
+              strokeWidth: isHoverHighlighted ? weight + 1 : isGravityLink ? weight + 0.5 : weight,
+              strokeDasharray: (!sourceIsPlanet && !targetIsPlanet) ? '4 3' : undefined,
               transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
             },
             animated: false,
@@ -224,7 +277,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       });
     });
     return edges;
-  }, [filteredCards, hoveredNodeId]);
+  }, [filteredCards, hoveredNodeId, planets]);
 
   // Build nodes with custom rendering
   const graphNodes = useMemo(() => {
@@ -233,7 +286,12 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     return filteredCards.map((card): Node => {
       const hsl = getCategoryHSL(card.category);
       const conns = connectionCounts[card.id] || 0;
-      const nodeSize = Math.max(isMobile ? 14 : 20, Math.min(isMobile ? 28 : 44, (isMobile ? 14 : 20) + conns * (isMobile ? 3 : 4)));
+      const isPlanet = planets.has(card.id);
+      
+      // Planets are much larger; moons are small
+      const nodeSize = isPlanet
+        ? Math.max(isMobile ? 28 : 40, Math.min(isMobile ? 56 : 80, (isMobile ? 28 : 40) + conns * (isMobile ? 4 : 5)))
+        : Math.max(isMobile ? 10 : 14, Math.min(isMobile ? 20 : 28, (isMobile ? 10 : 14) + conns * (isMobile ? 2 : 3)));
 
       const isHovered = hoveredNodeId === card.id;
       const isConnected = hoveredNodeId ? connectedMap[hoveredNodeId]?.has(card.id) : false;
@@ -244,7 +302,9 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       );
 
       const opacity = isDimmed ? 0.15 : 1;
-      const glowSize = isHovered ? 12 : isConnected ? 6 : 0;
+      const glowSize = isPlanet
+        ? (isHovered ? 20 : 8)
+        : (isHovered ? 10 : isConnected ? 4 : 0);
 
       return {
         id: card.id,
@@ -263,32 +323,58 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 transition: 'opacity 0.25s ease',
               }}
             >
+              {/* Orbital ring for planets */}
+              {isPlanet && !isMobile && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: `${nodeSize * 3.5}px`,
+                    height: `${nodeSize * 3.5}px`,
+                    borderRadius: '50%',
+                    border: `1px solid hsl(${hsl} / ${isDimmed ? 0.03 : 0.12})`,
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    transition: 'border-color 0.3s',
+                  }}
+                />
+              )}
               <div
                 className="graph-node-circle"
                 style={{
                   width: `${nodeSize}px`,
                   height: `${nodeSize}px`,
                   borderRadius: '50%',
-                  background: `hsl(${hsl})`,
+                  background: isPlanet
+                    ? `radial-gradient(circle at 35% 35%, hsl(${hsl} / 0.9), hsl(${hsl}) 60%, hsl(${hsl} / 0.7))`
+                    : `hsl(${hsl})`,
                   boxShadow: glowSize > 0
-                    ? `0 0 ${glowSize}px ${glowSize / 2}px hsl(${hsl} / 0.5)`
-                    : `0 1px 3px hsl(0 0% 0% / 0.15)`,
+                    ? `0 0 ${glowSize}px ${glowSize / 2}px hsl(${hsl} / ${isPlanet ? 0.4 : 0.5})`
+                    : isPlanet
+                      ? `0 0 8px 3px hsl(${hsl} / 0.25), 0 2px 4px hsl(0 0% 0% / 0.2)`
+                      : `0 1px 3px hsl(0 0% 0% / 0.15)`,
                   border: isSearchMatch
                     ? '2px solid hsl(var(--primary))'
                     : isHovered
-                      ? '2px solid hsl(var(--foreground) / 0.6)'
-                      : '1.5px solid hsl(var(--background) / 0.8)',
+                      ? `2px solid hsl(var(--foreground) / 0.6)`
+                      : isPlanet
+                        ? `2px solid hsl(${hsl} / 0.6)`
+                        : '1.5px solid hsl(var(--background) / 0.8)',
                   transition: 'box-shadow 0.25s ease, border 0.2s ease, transform 0.2s ease',
-                  transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                  transform: isHovered ? 'scale(1.15)' : 'scale(1)',
                   cursor: 'pointer',
+                  position: 'relative',
+                  zIndex: isPlanet ? 10 : 1,
                 }}
               />
-              {!isMobile && (
+              {/* Label: always show for planets, hover-only for moons on desktop */}
+              {(!isMobile && (isPlanet || isHovered || isConnected)) && (
                 <div
                   style={{
-                    maxWidth: '100px',
-                    fontSize: '10px',
-                    fontWeight: 500,
+                    maxWidth: isPlanet ? '120px' : '100px',
+                    fontSize: isPlanet ? '11px' : '10px',
+                    fontWeight: isPlanet ? 600 : 500,
                     color: isDimmed ? 'hsl(var(--muted-foreground) / 0.3)' : 'hsl(var(--foreground) / 0.85)',
                     textAlign: 'center',
                     lineHeight: '1.2',
@@ -299,7 +385,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                     pointerEvents: 'none',
                   }}
                 >
-                  {card.title.length > 16 ? card.title.slice(0, 15) + '…' : card.title}
+                  {card.title.length > (isPlanet ? 20 : 16) ? card.title.slice(0, isPlanet ? 19 : 15) + '…' : card.title}
                 </div>
               )}
             </div>
@@ -315,7 +401,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
         draggable: true,
       };
     });
-  }, [filteredCards, getTargetPositions, connectionCounts, hoveredNodeId, connectedMap, searchTerm, isMobile]);
+  }, [filteredCards, getTargetPositions, connectionCounts, hoveredNodeId, connectedMap, searchTerm, isMobile, planets]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(graphNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graphEdges);
@@ -346,12 +432,15 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     // Build simulation data
     const simNodes = filteredCards.map(card => {
       const existing = nodesDataRef.current.find(n => n.id === card.id);
+      const isPlanet = planets.has(card.id);
       return {
         id: card.id,
         x: existing?.x ?? (Math.random() - 0.5) * 600,
         y: existing?.y ?? (Math.random() - 0.5) * 600,
         vx: existing?.vx ?? 0,
         vy: existing?.vy ?? 0,
+        isPlanet,
+        mass: isPlanet ? 5 + (connectionCounts[card.id] || 0) : 1,
       };
     });
 
@@ -366,25 +455,45 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       simulationRef.current.stop();
     }
 
-    const density = Math.max(1, filteredCards.length / 10);
-    const linkDist = Math.max(80, 120 + density * 8);
+    // Orbital distances: moons orbit close to planets, planets repel each other strongly
+    const orbitRadius = isMobile ? 60 : 100;
+    const planetRepulsion = isMobile ? -2000 : -3000;
 
     const simulation = d3Force.forceSimulation(simNodes)
+      // Strong repulsion between planets, mild for moons
       .force('charge', d3Force.forceManyBody()
-        .strength(-800)
-        .distanceMax(600)
+        .strength((d: any) => d.isPlanet ? planetRepulsion : -150)
+        .distanceMax(800)
       )
+      // Links: short distance for planet-moon, longer for planet-planet
       .force('link', d3Force.forceLink(simLinks)
         .id((d: any) => d.id)
-        .distance(linkDist)
-        .strength(0.4)
+        .distance((link: any) => {
+          const s = link.source;
+          const t = link.target;
+          const sourceIsPlanet = s.isPlanet;
+          const targetIsPlanet = t.isPlanet;
+          if (sourceIsPlanet && targetIsPlanet) return orbitRadius * 4; // planets far apart
+          return orbitRadius + Math.random() * 30; // moons orbit close
+        })
+        .strength((link: any) => {
+          const s = link.source;
+          const t = link.target;
+          if (s.isPlanet && t.isPlanet) return 0.15; // loose planet-planet links
+          return 0.7; // strong gravitational pull for moons
+        })
       )
-      .force('center', d3Force.forceCenter(0, 0).strength(0.05))
-      .force('collision', d3Force.forceCollide().radius(isMobile ? 30 : 50).strength(0.8))
-      .force('x', d3Force.forceX(0).strength(0.02))
-      .force('y', d3Force.forceY(0).strength(0.02))
-      .alphaDecay(0.02)
-      .velocityDecay(0.35);
+      .force('center', d3Force.forceCenter(0, 0).strength(0.03))
+      // Collision: planets have large radii, moons small
+      .force('collision', d3Force.forceCollide()
+        .radius((d: any) => d.isPlanet ? (isMobile ? 50 : 70) : (isMobile ? 15 : 22))
+        .strength(0.9)
+      )
+      // Gentle centering gravity
+      .force('x', d3Force.forceX(0).strength((d: any) => d.isPlanet ? 0.015 : 0.005))
+      .force('y', d3Force.forceY(0).strength((d: any) => d.isPlanet ? 0.015 : 0.005))
+      .alphaDecay(0.018)
+      .velocityDecay(0.4);
 
     simulationRef.current = simulation;
 
@@ -417,7 +526,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     };
     // Only re-create when the actual graph structure changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [physicsEnabled, layoutType, currentEdgeHash, filteredCards.length]);
+  }, [physicsEnabled, layoutType, currentEdgeHash, filteredCards.length, planets, connectionCounts]);
 
   // Update node visuals (hover, search) without recreating simulation
   useEffect(() => {
