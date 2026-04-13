@@ -78,7 +78,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     );
   }, [cards, searchTerm]);
 
-  // Compute connection counts for node sizing
+  // Compute connection counts and classify nodes as planets or moons
   const connectionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredCards.forEach(card => {
@@ -90,6 +90,52 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     });
     return counts;
   }, [filteredCards]);
+
+  // Classify nodes: planets (≥ threshold connections) vs moons
+  const { planets, moonParentMap } = useMemo(() => {
+    const threshold = Math.max(2, Math.ceil(filteredCards.length * 0.05));
+    const planetIds = new Set<string>();
+    const parentMap: Record<string, string> = {}; // moonId -> planetId
+
+    // Identify planets (high-connectivity hubs)
+    filteredCards.forEach(card => {
+      if ((connectionCounts[card.id] || 0) >= threshold) {
+        planetIds.add(card.id);
+      }
+    });
+
+    // If no planets found, promote the top connected nodes
+    if (planetIds.size === 0 && filteredCards.length > 0) {
+      const sorted = [...filteredCards].sort((a, b) =>
+        (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0)
+      );
+      const topCount = Math.max(1, Math.ceil(filteredCards.length * 0.15));
+      sorted.slice(0, topCount).forEach(c => {
+        if ((connectionCounts[c.id] || 0) > 0) planetIds.add(c.id);
+      });
+    }
+
+    // Assign moons to their most-connected planet neighbor
+    filteredCards.forEach(card => {
+      if (planetIds.has(card.id)) return;
+      let bestPlanet: string | null = null;
+      let bestScore = -1;
+      card.linkedCards.forEach(linkedId => {
+        if (planetIds.has(linkedId)) {
+          const score = connectionCounts[linkedId] || 0;
+          if (score > bestScore) {
+            bestScore = score;
+            bestPlanet = linkedId;
+          }
+        }
+      });
+      if (bestPlanet) {
+        parentMap[card.id] = bestPlanet;
+      }
+    });
+
+    return { planets: planetIds, moonParentMap: parentMap };
+  }, [filteredCards, connectionCounts]);
 
   // Compute connected node IDs for hover highlight
   const connectedMap = useMemo(() => {
