@@ -36,20 +36,88 @@ interface Graph3DProps {
   className?: string;
 }
 
-// ── Force-directed layout ─────────────────────────────────────────────
-function computeForceLayout(cards: ZettelCard[]): Record<string, [number, number, number]> {
+// ── Classify planets vs moons ─────────────────────────────────────────
+function classifyNodes(cards: ZettelCard[], connectionCounts: Record<string, number>) {
+  const threshold = Math.max(2, Math.ceil(cards.length * 0.05));
+  const planetIds = new Set<string>();
+  const moonParent: Record<string, string> = {};
+
+  cards.forEach(c => {
+    if ((connectionCounts[c.id] || 0) >= threshold) planetIds.add(c.id);
+  });
+
+  // Fallback: promote top connected nodes
+  if (planetIds.size === 0 && cards.length > 0) {
+    const sorted = [...cards].sort((a, b) => (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0));
+    sorted.slice(0, Math.max(1, Math.ceil(cards.length * 0.15))).forEach(c => {
+      if ((connectionCounts[c.id] || 0) > 0) planetIds.add(c.id);
+    });
+  }
+
+  // Assign moons to nearest planet
+  cards.forEach(c => {
+    if (planetIds.has(c.id)) return;
+    let best: string | null = null;
+    let bestScore = -1;
+    c.linkedCards.forEach(lid => {
+      if (planetIds.has(lid) && (connectionCounts[lid] || 0) > bestScore) {
+        bestScore = connectionCounts[lid] || 0;
+        best = lid;
+      }
+    });
+    if (best) moonParent[c.id] = best;
+  });
+
+  return { planetIds, moonParent };
+}
+
+// ── Force-directed layout (gravity / orbital) ─────────────────────────
+function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string, number>): Record<string, [number, number, number]> {
   const n = cards.length;
   if (n === 0) return {};
+
+  const { planetIds, moonParent } = classifyNodes(cards, connectionCounts);
 
   const idToIdx: Record<string, number> = {};
   cards.forEach((c, i) => { idToIdx[c.id] = i; });
 
-  // Initialize random positions
-  const pos: [number, number, number][] = cards.map((_, i) => {
-    const phi = Math.acos(-1 + (2 * i + 1) / Math.max(n, 1));
-    const theta = Math.sqrt(n * Math.PI) * phi;
-    const r = 4 + Math.random() * 2;
-    return [r * Math.cos(theta) * Math.sin(phi), r * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi)];
+  // Initialize: place planets on a sphere, moons near their parent
+  const pos: [number, number, number][] = new Array(n);
+  const planetList = cards.filter(c => planetIds.has(c.id));
+  const planetPositions: Record<string, [number, number, number]> = {};
+
+  // Place planets on a large sphere
+  planetList.forEach((c, i) => {
+    const phi = Math.acos(-1 + (2 * i + 1) / Math.max(planetList.length, 1));
+    const theta = Math.sqrt(planetList.length * Math.PI) * phi;
+    const r = 6 + planetList.length * 0.5;
+    const p: [number, number, number] = [
+      r * Math.cos(theta) * Math.sin(phi),
+      r * Math.cos(phi),
+      r * Math.sin(theta) * Math.sin(phi),
+    ];
+    planetPositions[c.id] = p;
+    pos[idToIdx[c.id]] = p;
+  });
+
+  // Place moons near their parent planet in a small orbit
+  cards.forEach((c, i) => {
+    if (planetIds.has(c.id)) return;
+    const parentId = moonParent[c.id];
+    const parentPos = parentId ? planetPositions[parentId] : undefined;
+    if (parentPos) {
+      const angle = Math.random() * Math.PI * 2;
+      const elev = (Math.random() - 0.5) * Math.PI;
+      const orbitR = 1.5 + Math.random() * 1.5;
+      pos[i] = [
+        parentPos[0] + Math.cos(angle) * Math.cos(elev) * orbitR,
+        parentPos[1] + Math.sin(elev) * orbitR,
+        parentPos[2] + Math.sin(angle) * Math.cos(elev) * orbitR,
+      ];
+    } else {
+      // Unlinked node — random position
+      pos[i] = [(Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10];
+    }
   });
 
   const vel: [number, number, number][] = cards.map(() => [0, 0, 0]);
@@ -63,23 +131,23 @@ function computeForceLayout(cards: ZettelCard[]): Record<string, [number, number
     });
   });
 
-  const ITERATIONS = 100;
-  const REPULSION = 12;
-  const SPRING = 0.015;
-  const IDEAL_LENGTH = 4.5;
-  const DAMPING = 0.85;
+  const ITERATIONS = 120;
+  const DAMPING = 0.82;
 
   for (let iter = 0; iter < ITERATIONS; iter++) {
     const temp = 1 - iter / ITERATIONS;
 
-    // Repulsion between all pairs
+    // Repulsion: strong planet-planet, mild moon-moon
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
         const dx = pos[i][0] - pos[j][0];
         const dy = pos[i][1] - pos[j][1];
         const dz = pos[i][2] - pos[j][2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
-        const force = (REPULSION * temp) / (dist * dist);
+        const iPlanet = planetIds.has(cards[i].id);
+        const jPlanet = planetIds.has(cards[j].id);
+        const repulsion = (iPlanet && jPlanet) ? 30 : (iPlanet || jPlanet) ? 8 : 3;
+        const force = (repulsion * temp) / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         const fz = (dz / dist) * force;
@@ -90,16 +158,24 @@ function computeForceLayout(cards: ZettelCard[]): Record<string, [number, number
 
     // Spring attraction for links
     for (const [i, j] of links) {
+      const iPlanet = planetIds.has(cards[i].id);
+      const jPlanet = planetIds.has(cards[j].id);
+      const idealLen = (iPlanet && jPlanet) ? 8 : 2.5; // moons orbit close
+      const spring = (iPlanet && jPlanet) ? 0.008 : 0.04; // strong pull for moons
+
       const dx = pos[j][0] - pos[i][0];
       const dy = pos[j][1] - pos[i][1];
       const dz = pos[j][2] - pos[i][2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
-      const force = SPRING * (dist - IDEAL_LENGTH);
+      const force = spring * (dist - idealLen);
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
       const fz = (dz / dist) * force;
-      vel[i][0] += fx; vel[i][1] += fy; vel[i][2] += fz;
-      vel[j][0] -= fx; vel[j][1] -= fy; vel[j][2] -= fz;
+      // Moons move more, planets are heavier
+      const iWeight = iPlanet ? 0.15 : 1;
+      const jWeight = jPlanet ? 0.15 : 1;
+      vel[i][0] += fx * iWeight; vel[i][1] += fy * iWeight; vel[i][2] += fz * iWeight;
+      vel[j][0] -= fx * jWeight; vel[j][1] -= fy * jWeight; vel[j][2] -= fz * jWeight;
     }
 
     // Apply velocity and dampen
