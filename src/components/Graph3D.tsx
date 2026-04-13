@@ -320,16 +320,16 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
         />
       </Sphere>
 
-      {!isDimmed && radius > 0.35 && (
+      {!isDimmed && (
         <Text
           position={[0, -(radius + 0.4), 0]}
-          fontSize={Math.min(0.25, radius * 0.4)}
-          maxWidth={3}
+          fontSize={Math.min(radius > 0.4 ? 0.3 : 0.2, radius * 0.5)}
+          maxWidth={radius > 0.4 ? 4 : 3}
           textAlign="center"
           color="white"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.9}
+          fillOpacity={radius > 0.4 ? 0.95 : hovered ? 0.85 : 0}
         >
           {card.title.length > 18 ? card.title.slice(0, 16) + '…' : card.title}
         </Text>
