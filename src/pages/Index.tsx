@@ -395,7 +395,7 @@ const Index = () => {
     <>
 
       {/* Main Content - Mobile Optimized */}
-      <main id="main-content" className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-2 px-2 md:px-3 relative min-h-screen" role="main">
+      <main id="main-content" className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0 px-2 md:px-3 relative flex-1" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
           {/* Cards Menu Bar - Mobile Optimized */}
           {activeTab === "cards" && (
