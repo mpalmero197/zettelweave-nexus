@@ -425,12 +425,15 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     // Build simulation data
     const simNodes = filteredCards.map(card => {
       const existing = nodesDataRef.current.find(n => n.id === card.id);
+      const isPlanet = planets.has(card.id);
       return {
         id: card.id,
         x: existing?.x ?? (Math.random() - 0.5) * 600,
         y: existing?.y ?? (Math.random() - 0.5) * 600,
         vx: existing?.vx ?? 0,
         vy: existing?.vy ?? 0,
+        isPlanet,
+        mass: isPlanet ? 5 + (connectionCounts[card.id] || 0) : 1,
       };
     });
 
@@ -445,25 +448,45 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       simulationRef.current.stop();
     }
 
-    const density = Math.max(1, filteredCards.length / 10);
-    const linkDist = Math.max(80, 120 + density * 8);
+    // Orbital distances: moons orbit close to planets, planets repel each other strongly
+    const orbitRadius = isMobile ? 60 : 100;
+    const planetRepulsion = isMobile ? -2000 : -3000;
 
     const simulation = d3Force.forceSimulation(simNodes)
+      // Strong repulsion between planets, mild for moons
       .force('charge', d3Force.forceManyBody()
-        .strength(-800)
-        .distanceMax(600)
+        .strength((d: any) => d.isPlanet ? planetRepulsion : -150)
+        .distanceMax(800)
       )
+      // Links: short distance for planet-moon, longer for planet-planet
       .force('link', d3Force.forceLink(simLinks)
         .id((d: any) => d.id)
-        .distance(linkDist)
-        .strength(0.4)
+        .distance((link: any) => {
+          const s = link.source;
+          const t = link.target;
+          const sourceIsPlanet = s.isPlanet;
+          const targetIsPlanet = t.isPlanet;
+          if (sourceIsPlanet && targetIsPlanet) return orbitRadius * 4; // planets far apart
+          return orbitRadius + Math.random() * 30; // moons orbit close
+        })
+        .strength((link: any) => {
+          const s = link.source;
+          const t = link.target;
+          if (s.isPlanet && t.isPlanet) return 0.15; // loose planet-planet links
+          return 0.7; // strong gravitational pull for moons
+        })
       )
-      .force('center', d3Force.forceCenter(0, 0).strength(0.05))
-      .force('collision', d3Force.forceCollide().radius(isMobile ? 30 : 50).strength(0.8))
-      .force('x', d3Force.forceX(0).strength(0.02))
-      .force('y', d3Force.forceY(0).strength(0.02))
-      .alphaDecay(0.02)
-      .velocityDecay(0.35);
+      .force('center', d3Force.forceCenter(0, 0).strength(0.03))
+      // Collision: planets have large radii, moons small
+      .force('collision', d3Force.forceCollide()
+        .radius((d: any) => d.isPlanet ? (isMobile ? 50 : 70) : (isMobile ? 15 : 22))
+        .strength(0.9)
+      )
+      // Gentle centering gravity
+      .force('x', d3Force.forceX(0).strength((d: any) => d.isPlanet ? 0.015 : 0.005))
+      .force('y', d3Force.forceY(0).strength((d: any) => d.isPlanet ? 0.015 : 0.005))
+      .alphaDecay(0.018)
+      .velocityDecay(0.4);
 
     simulationRef.current = simulation;
 
