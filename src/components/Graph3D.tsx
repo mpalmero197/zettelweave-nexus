@@ -482,7 +482,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
     switch (layoutType) {
       case 'force':
-        return computeForceLayout(cards);
+        return computeForceLayout(cards, connectionCounts);
       case 'sphere': {
         const positions: Record<string, [number, number, number]> = {};
         cards.forEach((card, i) => {
@@ -522,7 +522,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
         return positions;
       }
     }
-  }, [cards, layoutType]);
+  }, [cards, layoutType, connectionCounts]);
 
   // Search
   const searchMatches = useMemo(() => {
