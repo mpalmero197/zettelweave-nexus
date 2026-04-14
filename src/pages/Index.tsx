@@ -800,6 +800,10 @@ const Index = () => {
                   </PremiumGate>
                 </TabsContent>
 
+                <TabsContent value="knowledge-chat" className="mt-0">
+                  <KnowledgeChat />
+                </TabsContent>
+
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
