@@ -1,63 +1,52 @@
 
 
-# Enhance Self-Improvement Engine: Bug & Feature Request Analysis
+## Plan: NotebookLM-Style "Chat With Your Knowledge" Experience
 
-## Overview
+### Problem
+The current ALICE assistant sidebar sends all user content as context but lacks the focused, source-grounded experience that NotebookLM provides. Responses are plain text without markdown rendering, there is no way to select specific sources to chat about, and citations to specific user content are not displayed.
 
-Update the `platform-self-improve` edge function to deeply analyze bugs and feature requests, weigh each request's utility to the Pendragon experience, and surface only the most valuable ones to the admin.
+### Changes
 
-## Changes
+**1. Add Markdown Rendering to ALICE Chat (AIAssistantSidebar.tsx)**
+- Replace the plain `<p>` whitespace-pre-wrap rendering with `<ReactMarkdown>` (already a project dependency)
+- Apply the same `prose prose-sm dark:prose-invert` classes used elsewhere in the app
 
-### 1. Expand Data Fetching (platform-self-improve/index.ts)
+**2. Add Source Selector Panel**
+- Add a collapsible "Sources" section at the top of the sidebar showing content categories (Cards, Notes, Catalyst Docs, Tasks, Calendar) with toggle switches
+- Within each category, allow the user to select/deselect specific items (e.g., individual notebooks, card categories)
+- Show a count badge: "12 cards, 5 notes selected"
+- Default: all sources selected (current behavior preserved)
 
-- Fetch **all** feature requests (not just top 10) with full details: `title`, `description`, `votes`, `status`, `created_at`
-- Fetch **all** open error reports with full context: `error_type`, `error_message`, `occurrence_count`, `severity`, `status`, `filename`, `stack_trace`, `last_seen_at`
+**3. Update Edge Function for Better Grounding (ai-assistant-chat/index.ts)**
+- Enhance the system prompt to instruct the model to cite specific source titles inline (e.g., "According to your card *Quantum Entanglement*...")
+- Accept a `selectedSources` filter parameter so only user-picked content is sent as context
+- Send more content per item (increase substring limits) when fewer sources are selected, for deeper grounding
 
-### 2. Enhanced System Prompt
+**4. Add Full-Page Chat Mode**
+- Add a "Knowledge Chat" view accessible from the main navigation (alongside Graph, Whiteboard, etc.)
+- Two-panel layout: left panel shows selected sources with checkboxes, right panel is the chat
+- Reuse the chat logic from AIAssistantSidebar via a shared hook (`useKnowledgeChat`)
+- Mobile: source panel collapses into a sheet triggered by a button
 
-Add a dedicated analysis section to the AI prompt instructing it to:
+**5. Extract Shared Chat Logic (hooks/useKnowledgeChat.ts)**
+- Move message state, send logic, context assembly, and suggested-search handling into a reusable hook
+- Both the sidebar and full-page view consume this hook
 
-- **Bugs**: Triage each error by severity x occurrence count, identify patterns (e.g., same component breaking repeatedly), and flag critical bugs that degrade user experience
-- **Feature Requests**: For each request, evaluate:
-  - **Alignment**: Does it fit Pendragon's identity as a "Thinking Second Brain"?
-  - **Utility score**: Would it benefit many users or a niche few?
-  - **Competitive edge**: Does it close a gap with Notion/Obsidian/OneNote or create a unique differentiator?
-  - **Complexity vs. value**: Is the effort justified by the impact?
-  - **Risk**: Could it dilute the product's focus or add bloat?
-- Only recommend requests that genuinely enhance the Pendragon experience; explicitly reject low-utility or off-brand requests with reasoning
+### Files to Create/Edit
 
-### 3. Expanded Tool Schema
+| File | Action |
+|------|--------|
+| `src/hooks/useKnowledgeChat.ts` | Create - shared chat state and logic |
+| `src/components/KnowledgeChat.tsx` | Create - full-page chat view |
+| `src/components/KnowledgeChatSourcePanel.tsx` | Create - source selector UI |
+| `src/components/AIAssistantSidebar.tsx` | Edit - use shared hook, add markdown rendering, add source toggles |
+| `src/pages/Index.tsx` | Edit - add Knowledge Chat as a view option |
+| `supabase/functions/ai-assistant-chat/index.ts` | Edit - accept source filters, improve citation prompting |
 
-Add new insight categories and fields:
-- New categories: `bug_triage`, `feature_evaluation`
-- New optional field `source_reference` to link insights back to specific feature request titles or error signatures
-- New optional field `utility_score` (1-10) for feature evaluations
-- New optional field `recommendation` (`implement`, `defer`, `reject`) for feature evaluations
+### Technical Details
 
-### 4. Database Migration
-
-Add columns to `platform_insights`:
-- `source_reference text` -- links to original feature request or error
-- `utility_score integer` -- AI's utility rating (1-10)
-- `recommendation text` -- implement/defer/reject
-
-### 5. Admin UI Update (AdminAIChat.tsx)
-
-- Show utility score as a colored badge (green 8-10, yellow 5-7, red 1-4)
-- Show recommendation badge (implement = green, defer = amber, reject = red)
-- Filter insights by category including new `bug_triage` and `feature_evaluation` types
-- Show `source_reference` as a subtitle on insight cards
-
-## Technical Details
-
-- The prompt will receive the full list of feature requests and errors, enabling the AI to cross-reference patterns (e.g., a heavily voted feature that would also fix a recurring bug)
-- Utility scoring uses a 1-10 scale factoring in votes, alignment, and competitive positioning
-- Only insights with `recommendation: 'implement'` or critical bugs are surfaced prominently; `defer`/`reject` items are shown in a collapsed section
-
-## Files Modified
-
-- **Migration**: Add `source_reference`, `utility_score`, `recommendation` columns to `platform_insights`
-- **Edit**: `supabase/functions/platform-self-improve/index.ts` -- expanded data fetch, enhanced prompt, updated tool schema
-- **Edit**: `src/components/admin/AdminAIChat.tsx` -- utility score badges, recommendation badges, category filters
-- **Edit**: `src/integrations/supabase/types.ts` -- auto-updated after migration
+- The source selector will filter content client-side before sending to the edge function, reducing payload size and improving response relevance
+- The system prompt will be updated to enforce inline citations: "When referencing user content, always mention the exact title in bold"
+- Full-page view uses the same `100dvh` height pattern established for Graph/Whiteboard
+- ReactMarkdown is already installed (`react-markdown@^10.1.0`)
 
