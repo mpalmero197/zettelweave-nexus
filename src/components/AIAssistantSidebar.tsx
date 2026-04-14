@@ -1,25 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2 } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useZettelCards } from '@/hooks/useZettelCards';
-import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
 import { SearchResultsDialog } from '@/components/SearchResultsDialog';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  source?: 'internet_search' | 'knowledge_base';
-  images?: string[];
-  citations?: string[];
-  relatedQuestions?: string[];
-}
+import { KnowledgeChatSourcePanel } from '@/components/KnowledgeChatSourcePanel';
+import { useKnowledgeChat, ChatMessage } from '@/hooks/useKnowledgeChat';
+import ReactMarkdown from 'react-markdown';
 
 interface AIAssistantSidebarProps {
   open: boolean;
@@ -34,159 +25,44 @@ interface AIAssistantSidebarProps {
 }
 
 export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAssistantSidebarProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCreatingCard, setIsCreatingCard] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [expandedSearchQuery, setExpandedSearchQuery] = useState('');
   const [expandedSearchResult, setExpandedSearchResult] = useState('');
   const [showSearchDialog, setShowSearchDialog] = useState(false);
-  const { cards, createCard } = useZettelCards();
-  const { user } = useAuth();
+  const [showSources, setShowSources] = useState(false);
 
-  const { data: notes = [] } = useQuery({
-    queryKey: ['notes', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from('notes')
-        .select('id, title, content')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user && open,
-  });
+  const {
+    messages,
+    input,
+    setInput,
+    isLoading,
+    sendMessage,
+    clearChat,
+    createCardFromChat,
+    scrollRef,
+    selectedSources,
+    toggleSource,
+    toggleAllSources,
+    sourceCategories,
+    enabledSourceCount,
+    totalSourceCount,
+  } = useKnowledgeChat(open);
 
-  const { data: catalystDocs = [] } = useQuery({
-    queryKey: ['catalyst-docs-context', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from('catalyst_documents')
-        .select('id, title, content')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('updated_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data || []).map(d => ({ id: d.id, title: d.title, content: (d.content || '').substring(0, 500) }));
-    },
-    enabled: !!user && open,
-  });
-
-  const { data: calendarEvents = [] } = useQuery({
-    queryKey: ['calendar-events-context', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('id, title, event_date, description')
-        .eq('user_id', user.id)
-        .order('event_date', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user && open,
-  });
-
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks-context', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, title, notes, is_completed, due_date, priority')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user && open,
-  });
-
-  const { data: scratchpadNotes = [] } = useQuery({
-    queryKey: ['scratchpad-context', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from('scratchpad_notes')
-        .select('id, content')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user && open,
-  });
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+  const [isCreatingCard, setIsCreatingCard] = useState(false);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
-        body: { 
-          messages: [...messages, userMessage],
-          context: {
-            cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
-            notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
-            catalystDocs: catalystDocs,
-            calendarEvents: calendarEvents.map((e: any) => ({ id: e.id, title: e.title, event_date: e.event_date, description: e.description })),
-            tasks: tasks.map((t: any) => ({ id: t.id, title: t.title, notes: t.notes, is_completed: t.is_completed, due_date: t.due_date, priority: t.priority })),
-            scratchPad: scratchpadNotes.map((s: any) => ({ id: s.id, content: s.content })),
-          }
-        }
+    const result = await sendMessage();
+    if (result?.data?.source === 'internet_search' && onSearchResult) {
+      onSearchResult({
+        query: result.userMessage.content,
+        result: result.data.response,
+        images: result.data.images || [],
+        citations: result.data.citations || [],
+        relatedQuestions: result.data.relatedQuestions || []
       });
-
-      if (error) throw error;
-
-      const assistantMessage: Message = { 
-        role: 'assistant', 
-        content: data.response,
-        source: data.source,
-        images: data.images || [],
-        citations: data.citations || [],
-        relatedQuestions: data.relatedQuestions || []
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Show in canvas for internet searches
-      if (data.source === 'internet_search' && onSearchResult) {
-        onSearchResult({
-          query: input,
-          result: data.response,
-          images: data.images || [],
-          citations: data.citations || [],
-          relatedQuestions: data.relatedQuestions || []
-        });
-        setExpandedSearchQuery(input);
-        setExpandedSearchResult(data.response);
-        setShowSearchDialog(false);
-      }
-    } catch (error: any) {
-      console.error('AI assistant error:', error);
-      toast.error('Failed to get response from AI assistant');
-    } finally {
-      setIsLoading(false);
+      setExpandedSearchQuery(result.userMessage.content);
+      setExpandedSearchResult(result.data.response);
+      setShowSearchDialog(false);
     }
   };
 
@@ -197,58 +73,10 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
     }
   };
 
-  const clearChat = () => {
-    setMessages([]);
-    toast.success('Chat cleared');
-  };
-
-  const createZettelCard = async () => {
-    if (messages.length === 0) {
-      toast.error('No conversation to create a card from');
-      return;
-    }
-
+  const handleCreateCard = async () => {
     setIsCreatingCard(true);
     try {
-      // Prepare conversation summary request
-      const conversationText = messages
-        .map(m => `${m.role === 'user' ? 'User' : 'ALICE'}: ${m.content}`)
-        .join('\n\n');
-
-      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
-        body: { 
-          messages: [
-            {
-              role: 'user',
-              content: `Summarize this conversation into a clear, organized zettelcard format with key points. Include a title and structured content:\n\n${conversationText}`
-            }
-          ]
-        }
-      });
-
-      if (error) throw error;
-
-      // Extract title and content from the summary
-      const summary = data.response;
-      const lines = summary.split('\n');
-      const title = lines[0].replace(/^#+\s*/, '').replace(/^title:?\s*/i, '').trim() || 'ALICE Conversation Summary';
-      const content = lines.slice(1).join('\n').trim();
-
-      // Create the card
-      await createCard({
-        title,
-        content: content || summary,
-        category: 'AI Conversations',
-        tags: ['alice', 'ai-generated'],
-        number: '',
-        linkedCards: []
-      });
-
-      toast.success('Zettelcard created from conversation');
-      clearChat();
-    } catch (error: any) {
-      console.error('Error creating zettelcard:', error);
-      toast.error('Failed to create zettelcard from conversation');
+      await createCardFromChat();
     } finally {
       setIsCreatingCard(false);
     }
@@ -260,73 +88,20 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
       setCopiedIndex(index);
       toast.success('Copied to clipboard');
       setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy to clipboard');
     }
   };
 
-  const expandSearchResult = (message: Message, userQuery: string) => {
+  const expandSearchResult = (message: ChatMessage, userQuery: string) => {
     setExpandedSearchQuery(userQuery);
     setExpandedSearchResult(message.content);
     setShowSearchDialog(true);
   };
 
-  const handleSuggestedSearch = (query: string) => {
+  const handleSuggestedSearch = async (query: string) => {
     setInput(query);
-    // Auto-send the suggested search
-    setTimeout(() => {
-      const userMessage: Message = { role: 'user', content: query };
-      setMessages(prev => [...prev, userMessage]);
-      setIsLoading(true);
-
-      // Same logic as handleSend
-      (async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
-            body: { 
-              messages: [...messages, userMessage],
-              context: {
-                cards: cards.map(c => ({ id: c.id, title: c.title, content: c.content, category: c.category, tags: c.tags })),
-                notes: notes.map(n => ({ id: n.id, title: n.title, content: n.content })),
-                catalystDocs: catalystDocs,
-                calendarEvents: calendarEvents.map((e: any) => ({ id: e.id, title: e.title, event_date: e.event_date, description: e.description })),
-                tasks: tasks.map((t: any) => ({ id: t.id, title: t.title, notes: t.notes, is_completed: t.is_completed })),
-                scratchPad: scratchpadNotes.map((s: any) => ({ id: s.id, content: s.content })),
-              }
-            }
-          });
-
-          if (error) throw error;
-
-          const assistantMessage: Message = { 
-            role: 'assistant', 
-            content: data.response,
-            source: data.source,
-            images: data.images || [],
-            citations: data.citations || [],
-            relatedQuestions: data.relatedQuestions || []
-          };
-          setMessages(prev => [...prev, assistantMessage]);
-
-          if (data.source === 'internet_search' && onSearchResult) {
-            onSearchResult({
-              query,
-              result: data.response,
-              images: data.images || [],
-              citations: data.citations || [],
-              relatedQuestions: data.relatedQuestions || []
-            });
-            setExpandedSearchQuery(query);
-            setExpandedSearchResult(data.response);
-          }
-        } catch (error: any) {
-          console.error('AI assistant error:', error);
-          toast.error('Failed to get response from AI assistant');
-        } finally {
-          setIsLoading(false);
-        }
-      })();
-    }, 100);
+    setTimeout(() => sendMessage(query), 100);
   };
 
   return (
@@ -356,7 +131,7 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={createZettelCard}
+                  onClick={handleCreateCard}
                   disabled={isCreatingCard}
                   className="h-8 text-xs"
                 >
@@ -375,6 +150,28 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
             )}
           </div>
         </SheetHeader>
+
+        {/* Collapsible Source Selector */}
+        <div className="border-b border-border/30">
+          <button
+            onClick={() => setShowSources(!showSources)}
+            className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span>{enabledSourceCount}/{totalSourceCount} sources active</span>
+            {showSources ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          </button>
+          {showSources && (
+            <KnowledgeChatSourcePanel
+              sourceCategories={sourceCategories}
+              selectedSources={selectedSources}
+              toggleSource={toggleSource}
+              toggleAllSources={toggleAllSources}
+              enabledSourceCount={enabledSourceCount}
+              totalSourceCount={totalSourceCount}
+              compact
+            />
+          )}
+        </div>
 
         <ScrollArea className="flex-1 p-5" ref={scrollRef}>
           {messages.length === 0 ? (
@@ -449,7 +246,15 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                           </Button>
                         </div>
                       )}
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      )}
+
                       {message.role === 'assistant' && (
                         <div className="flex justify-end mt-1.5 pt-1.5 border-t border-border/20">
                           <Button
@@ -470,6 +275,22 @@ export function AIAssistantSidebar({ open, onOpenChange, onSearchResult }: AIAss
                               </>
                             )}
                           </Button>
+                        </div>
+                      )}
+
+                      {/* Suggested follow-ups */}
+                      {message.role === 'assistant' && message.relatedQuestions && message.relatedQuestions.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Suggested:</p>
+                          {message.relatedQuestions.map((q, qi) => (
+                            <button
+                              key={qi}
+                              onClick={() => handleSuggestedSearch(q)}
+                              className="block w-full text-left text-xs p-1.5 rounded-lg hover:bg-primary/10 text-primary"
+                            >
+                              {q}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
