@@ -53,6 +53,7 @@ import { UnifiedSearchPage } from "@/components/UnifiedSearchPage";
 import { ProjectManager } from "@/components/ProjectManager";
 import { KnowledgeGapAnalyzer } from "@/components/KnowledgeGapAnalyzer";
 import { IntegrationsHub } from "@/components/integrations/IntegrationsHub";
+import { KnowledgeChat } from "@/components/KnowledgeChat";
 import { Footer } from "@/components/Footer";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
