@@ -4,6 +4,7 @@ import {
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
   LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus, Puzzle, Crown,
+  MessageSquareText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -44,6 +45,7 @@ const SECTIONS = [
     items: [
       { id: 'spaces', label: 'Spaces', icon: Box },
       { id: 'graph', label: 'Graph', icon: BarChart3 },
+      { id: 'knowledge-chat', label: 'Chat', icon: MessageSquareText },
       { id: 'files', label: 'Files', icon: FolderOpen },
       { id: 'learning', label: 'Learning', icon: GraduationCap },
       { id: 'knowledge-gaps', label: 'Gaps', icon: Lightbulb },
