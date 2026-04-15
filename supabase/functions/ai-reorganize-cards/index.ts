@@ -9,24 +9,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function respond(ok: boolean, payload: Record<string, unknown>): Response {
+  return new Response(JSON.stringify({ ok, ...payload }), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const isPing = await req.clone().json().then((b: any) => !!b?.ping).catch(() => false);
   if (isPing) {
-    return new Response(JSON.stringify({ ok: true, pong: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    return respond(true, { pong: true });
   }
 
   try {
-    // Validate authentication from JWT token
     const authHeader = req.headers.get('Authorization');
-    
     const token = authHeader?.replace('Bearer ', '') || '';
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -34,10 +35,7 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (!authHeader || authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return respond(false, { error: 'Authentication required' });
     }
 
     const { cards, fromMethod, toMethod } = await req.json();
@@ -46,24 +44,21 @@ serve(async (req) => {
       dewey: `Dewey Decimal Classification (000-999): Use the MOST SPECIFIC Dewey number possible (e.g., 973.4 for U.S. Constitutional Period, not just 900 or 970).
       
 Main classes:
-000-099: Computer Science, Information & General Works (e.g., 004 Data processing, 020 Library science)
-100-199: Philosophy & Psychology (e.g., 150 Psychology, 170 Ethics, 180 Ancient philosophy)
-200-299: Religion (e.g., 220 Bible, 290 Other religions)
-300-399: Social Sciences (e.g., 320 Political science, 330 Economics, 370 Education)
-400-499: Language (e.g., 420 English, 430 German, 450 Italian)
-500-599: Science (e.g., 510 Mathematics, 530 Physics, 570 Biology)
-600-699: Technology (e.g., 610 Medicine, 630 Agriculture, 650 Management)
-700-799: Arts & Recreation (e.g., 720 Architecture, 750 Painting, 780 Music)
-800-899: Literature (e.g., 810 American literature, 820 English literature)
-900-999: History & Geography (e.g., 940 European history, 970 North American history, 973.4 U.S. Constitutional Period 1789-1809)
+000-099: Computer Science, Information & General Works
+100-199: Philosophy & Psychology
+200-299: Religion
+300-399: Social Sciences
+400-499: Language
+500-599: Science
+600-699: Technology
+700-799: Arts & Recreation
+800-899: Literature
+900-999: History & Geography
 
-CRITICAL: Analyze the content deeply and assign the most precise decimal number (3+ digits). For example:
-- "The Constitutional Period of the United States" → 973.4 (NOT 900 or 970)
-- "Cognitive Psychology Research" → 153 (NOT 100 or 150)
-- "Renaissance Art in Italy" → 709.024 or 945.05 (NOT 700 or 900)`,
-      luhmann: "Luhmann System: Alphanumeric branching (1, 1a, 1a1, 1a2, 1b, 2, 2a, etc.) where each card builds on or relates to its parent, creating organic knowledge trees",
-      folgezettel: "Folgezettel System: Sequential decimal numbering (1.1, 1.2, 1.2.1, 1.2.2, 2.1, etc.) where numbers indicate hierarchical relationships and topic development",
-      thematic: "Thematic Organization: Topic-based prefixes (PHIL-001, HIST-001, SCI-001, etc.) where cards are grouped by thematic categories with sequential numbering within each theme"
+CRITICAL: Analyze the content deeply and assign the most precise decimal number (3+ digits).`,
+      luhmann: "Luhmann System: Alphanumeric branching (1, 1a, 1a1, 1a2, 1b, 2, 2a, etc.)",
+      folgezettel: "Folgezettel System: Sequential decimal numbering (1.1, 1.2, 1.2.1, 1.2.2, 2.1, etc.)",
+      thematic: "Thematic Organization: Topic-based prefixes (PHIL-001, HIST-001, SCI-001, etc.)"
     };
 
     const systemPrompt = `You are an expert knowledge organization AI that converts Zettelkasten cards between different organizational systems.
@@ -77,24 +72,21 @@ RULES:
 1. Preserve ALL original content, titles, descriptions, and tags
 2. Only change: number, category (if applicable), and linkedCards references
 3. Maintain logical relationships between cards through proper numbering
-4. For linked cards, update references to use new numbering system
-5. Group related content logically in the new system
-6. Return EXACTLY the same number of cards as input
+4. Group related content logically in the new system
+5. Return EXACTLY the same number of cards as input
 
-NUMBERING GUIDELINES:
-- Dewey: Analyze content CAREFULLY and use SPECIFIC decimal codes (e.g., 973.4, 153.42, 709.024). Go 3+ digits deep based on subject specificity. Include the category description.
-- Luhmann: Start with simple numbers (1, 2, 3) and branch (1a, 1b, 1a1) for related content
-- Folgezettel: Use decimal hierarchy (1.1, 1.2, 1.2.1) grouping related topics
-- Thematic: Use 4-letter theme codes + 3-digit sequence (PHIL-001, HIST-001)
-
-FOR DEWEY DECIMAL: Set the 'category' field to include both the number AND its meaning, like: "973.4 - U.S. History: Constitutional Period (1789-1809)" or "153 - Cognitive Psychology"
+FOR DEWEY DECIMAL: Set the 'category' field to include both the number AND its meaning.
 
 OUTPUT: JSON array of reorganized cards with updated numbers, categories, and linkedCards.`;
 
     const userPrompt = `Original cards (${fromMethod} system):
 ${JSON.stringify(cards, null, 2)}
 
-Convert these cards to ${toMethod} system. Maintain all relationships and content while applying the new organizational structure.`;
+Convert these cards to ${toMethod} system.`;
+
+    if (!lovableApiKey) {
+      return respond(false, { error: 'AI service not configured' });
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -114,73 +106,49 @@ Convert these cards to ${toMethod} system. Maintain all relationships and conten
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ 
-          error: 'AI service is temporarily busy. Please wait a moment and try again.',
-          isRateLimit: true
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return respond(false, { error: 'AI service is temporarily busy. Please wait a moment and try again.', isRateLimit: true });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ 
-          error: 'AI credits depleted. Please add funds to continue.',
-          isPaymentRequired: true
-        }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return respond(false, { error: 'AI credits depleted. Please add funds to continue.', isPaymentRequired: true });
       }
       const errorText = await response.text();
       console.error('Lovable AI gateway error:', response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      return respond(false, { error: `AI gateway error: ${response.status}` });
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    // Parse the AI response as JSON
     let reorganizedCards;
     try {
-      // Extract JSON from the response if it's wrapped in markdown
       const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/) || aiResponse.match(/\[[\s\S]*\]/);
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
       reorganizedCards = JSON.parse(jsonStr);
     } catch (parseError) {
-      throw new Error('AI returned invalid JSON format');
+      return respond(false, { error: 'AI returned invalid JSON format' });
     }
 
-    // Validate the response
     if (!Array.isArray(reorganizedCards)) {
-      throw new Error('AI response is not an array of cards');
+      return respond(false, { error: 'AI response is not an array of cards' });
     }
 
     if (reorganizedCards.length !== cards.length) {
-      throw new Error(`Expected ${cards.length} cards, got ${reorganizedCards.length}`);
+      return respond(false, { error: `Expected ${cards.length} cards, got ${reorganizedCards.length}` });
     }
 
-    // Validate required fields for each card
     const requiredFields = ['id', 'title', 'content', 'number', 'category'];
     for (const card of reorganizedCards) {
       for (const field of requiredFields) {
         if (!(field in card)) {
-          throw new Error(`Missing required field: ${field} in reorganized card`);
+          return respond(false, { error: `Missing required field: ${field} in reorganized card` });
         }
       }
     }
 
-    return new Response(JSON.stringify({ reorganizedCards }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respond(true, { reorganizedCards });
 
   } catch (error) {
     console.error('Error in ai-reorganize-cards function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to reorganize cards';
-    return new Response(JSON.stringify({ 
-      error: errorMessage
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respond(false, { error: error instanceof Error ? error.message : 'Failed to reorganize cards' });
   }
 });

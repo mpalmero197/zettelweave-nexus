@@ -290,6 +290,10 @@ const Index = () => {
         throw error;
       }
 
+      if (data?.ok === false || data?.error) {
+        throw new Error(data.error || 'Reorganization failed');
+      }
+
       if (data?.reorganizedCards) {
         console.log('Received reorganized cards:', data.reorganizedCards.length);
         

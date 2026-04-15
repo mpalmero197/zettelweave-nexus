@@ -85,14 +85,14 @@ export function OrganizationMethodDialog({
         <div className="grid gap-4 py-4">
           <div className="grid gap-4">
             {ORGANIZATION_METHODS.map((method) => (
-              <Card 
+                <Card 
                 key={method.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
                   selectedMethod === method.id 
                     ? 'ring-2 ring-primary bg-primary/5' 
                     : 'hover:bg-accent/50'
                 }`}
-                onClick={() => setSelectedMethod(method.id)}
+                onClick={(e) => { e.stopPropagation(); setSelectedMethod(method.id); }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">

@@ -335,11 +335,37 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
                       </div>
                     )}
 
-                    {/* Actions */}
+                     {/* Actions */}
                     <div className="flex gap-1 px-3 py-2 border-t border-border bg-muted/20">
                       <Button size="sm" variant="default" className="h-6 text-xs flex-1" onClick={() => applyResult(result)}>
                         <Check className="h-3 w-3 mr-1" /> Apply
                       </Button>
+                      {items.length > 1 && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 text-xs"
+                          onClick={async () => {
+                            if (!user) return;
+                            try {
+                              const { error } = await supabase.from('zettel_cards').insert({
+                                user_id: user.id,
+                                title: result.title,
+                                content: result.content,
+                                number: 'NEW',
+                                category: 'Combined',
+                                tags: [],
+                              });
+                              if (error) throw error;
+                              toast.success(`Created new card "${result.title}"`);
+                            } catch (e: any) {
+                              toast.error('Failed to create card: ' + (e.message || 'Unknown error'));
+                            }
+                          }}
+                        >
+                          <FileText className="h-3 w-3 mr-1" /> Save as Card
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"

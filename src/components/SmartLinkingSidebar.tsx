@@ -78,6 +78,10 @@ export function SmartLinkingSidebar({
 
       if (error) throw error;
 
+      if (data?.ok === false || data?.error) {
+        throw new Error(data.error || 'Failed to get suggestions');
+      }
+
       const sortedSuggestions = (data?.suggestions || []).sort(
         (a: LinkSuggestion, b: LinkSuggestion) => b.strength - a.strength
       );
