@@ -1,52 +1,73 @@
 
 
-## Plan: NotebookLM-Style "Chat With Your Knowledge" Experience
+## Plan: Fix 6 Bugs
 
-### Problem
-The current ALICE assistant sidebar sends all user content as context but lacks the focused, source-grounded experience that NotebookLM provides. Responses are plain text without markdown rendering, there is no way to select specific sources to chat about, and citations to specific user content are not displayed.
+### 1. Fix Organization Method Edge Function (non-2xx error)
 
-### Changes
+**Root cause**: The `ai-reorganize-cards` and `ai-categorize-card` edge functions return non-2xx status codes (429, 402, 500) which causes `supabase.functions.invoke()` to throw, discarding the response body. The client never sees the specific error message.
 
-**1. Add Markdown Rendering to ALICE Chat (AIAssistantSidebar.tsx)**
-- Replace the plain `<p>` whitespace-pre-wrap rendering with `<ReactMarkdown>` (already a project dependency)
-- Apply the same `prose prose-sm dark:prose-invert` classes used elsewhere in the app
+**Fix**: Update both edge functions to always return status 200 with `{ ok: false, error: "..." }` for error cases. Update the client-side `handleReorganizeCards` in `Index.tsx` to check `data.ok === false` or `data.error`.
 
-**2. Add Source Selector Panel**
-- Add a collapsible "Sources" section at the top of the sidebar showing content categories (Cards, Notes, Catalyst Docs, Tasks, Calendar) with toggle switches
-- Within each category, allow the user to select/deselect specific items (e.g., individual notebooks, card categories)
-- Show a count badge: "12 cards, 5 notes selected"
-- Default: all sources selected (current behavior preserved)
+**Files**: `supabase/functions/ai-reorganize-cards/index.ts`, `src/pages/Index.tsx`
 
-**3. Update Edge Function for Better Grounding (ai-assistant-chat/index.ts)**
-- Enhance the system prompt to instruct the model to cite specific source titles inline (e.g., "According to your card *Quantum Entanglement*...")
-- Accept a `selectedSources` filter parameter so only user-picked content is sent as context
-- Send more content per item (increase substring limits) when fewer sources are selected, for deeper grounding
+### 2. Fix Organization Method Dialog Immediately Closing
 
-**4. Add Full-Page Chat Mode**
-- Add a "Knowledge Chat" view accessible from the main navigation (alongside Graph, Whiteboard, etc.)
-- Two-panel layout: left panel shows selected sources with checkboxes, right panel is the chat
-- Reuse the chat logic from AIAssistantSidebar via a shared hook (`useKnowledgeChat`)
-- Mobile: source panel collapses into a sheet triggered by a button
+**Root cause**: The `OrganizationMethodDialog` uses a `Dialog` with `isOpen` state, but clicking on `Card` elements inside the dialog triggers click propagation that closes it. The `Card` `onClick` sets `selectedMethod` but the dialog's `onOpenChange` also fires from the same interaction.
 
-**5. Extract Shared Chat Logic (hooks/useKnowledgeChat.ts)**
-- Move message state, send logic, context assembly, and suggested-search handling into a reusable hook
-- Both the sidebar and full-page view consume this hook
+**Fix**: Add `e.stopPropagation()` to card clicks and ensure the dialog `onOpenChange` handler preserves open state during method selection.
 
-### Files to Create/Edit
+**Files**: `src/components/OrganizationMethodDialog.tsx`
 
-| File | Action |
-|------|--------|
-| `src/hooks/useKnowledgeChat.ts` | Create - shared chat state and logic |
-| `src/components/KnowledgeChat.tsx` | Create - full-page chat view |
-| `src/components/KnowledgeChatSourcePanel.tsx` | Create - source selector UI |
-| `src/components/AIAssistantSidebar.tsx` | Edit - use shared hook, add markdown rendering, add source toggles |
-| `src/pages/Index.tsx` | Edit - add Knowledge Chat as a view option |
-| `supabase/functions/ai-assistant-chat/index.ts` | Edit - accept source filters, improve citation prompting |
+### 3. Fix Smart Linking Assistant
 
-### Technical Details
+**Root cause**: The `suggest-smart-links` edge function returns non-2xx on errors, causing the same Supabase SDK issue. Also, the function uses `SUPABASE_SERVICE_ROLE_KEY` with user-passed auth header which can cause auth conflicts.
 
-- The source selector will filter content client-side before sending to the edge function, reducing payload size and improving response relevance
-- The system prompt will be updated to enforce inline citations: "When referencing user content, always mention the exact title in bold"
-- Full-page view uses the same `100dvh` height pattern established for Graph/Whiteboard
-- ReactMarkdown is already installed (`react-markdown@^10.1.0`)
+**Fix**: Update the edge function to return 200 with structured `{ ok, suggestions, error }` responses. Fix auth to use anon key + token-based `getUser()`.
+
+**Files**: `supabase/functions/suggest-smart-links/index.ts`, `src/components/SmartLinkingSidebar.tsx`
+
+### 4. Fix Knowledge Chat Button Not Working
+
+**Root cause**: `AppLayout.tsx` `handleTabChange` (lines 101-134) does not include `"knowledge-chat"` in its switch cases. It falls through to the `default` which navigates to `/app` but never dispatches the tab change event.
+
+**Fix**: Add `"knowledge-chat"` to the list of valid tabs in the switch statement.
+
+**Files**: `src/components/AppLayout.tsx`
+
+### 5. Add Search Option to Desktop Header
+
+**Root cause**: The desktop header in `AppLayout.tsx` has no Search button. There's a `search` tab in `Index.tsx` but no way to access it from the persistent desktop header.
+
+**Fix**: Add a Search icon button to the desktop header actions in `AppLayout.tsx` that dispatches the `search` tab change.
+
+**Files**: `src/components/AppLayout.tsx`
+
+### 6. Fix AI Modify Not Creating Cards When Combining Notes
+
+**Root cause**: The `AIModifySidebar` `applyResult` function (line 139-157) only updates existing items — it has no logic to create a new card when combining multiple items. When the AI returns a combined result, it tries to update the first item but doesn't create a new card.
+
+**Fix**: Add a "Save as New Card" button alongside the "Apply" action when the instruction involves combining. When a result's `changes` mentions combining or when multiple items were selected, offer a "Create Card" option that calls `supabase.from('zettel_cards').insert(...)`.
+
+**Files**: `src/components/ai-modify/AIModifySidebar.tsx`
+
+### 7. Fix FloatingChatBubble Crash (Bonus — from console logs)
+
+**Root cause**: `Cannot read properties of null (reading 'substring')` — in `loadMessageThreads`, `msg.sender_id` can be null for system messages, causing `uid` to be null and `uid.substring(0,6)` to crash.
+
+**Fix**: Add null guard for sender_id in the message thread loop.
+
+**Files**: `src/components/FloatingChatBubble.tsx`
+
+### Summary of Files to Edit
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/ai-reorganize-cards/index.ts` | Return 200 for all responses |
+| `supabase/functions/suggest-smart-links/index.ts` | Return 200 for all responses, fix auth |
+| `src/pages/Index.tsx` | Handle `data.error` from reorganize |
+| `src/components/OrganizationMethodDialog.tsx` | Fix dialog closing on card click |
+| `src/components/SmartLinkingSidebar.tsx` | Handle structured error responses |
+| `src/components/AppLayout.tsx` | Add `knowledge-chat` to tab switch, add Search button |
+| `src/components/ai-modify/AIModifySidebar.tsx` | Add "Create Card" option for combined results |
+| `src/components/FloatingChatBubble.tsx` | Null guard for sender_id |
 
