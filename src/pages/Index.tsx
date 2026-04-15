@@ -494,9 +494,9 @@ const Index = () => {
                       <Sparkles className="mr-2 h-3.5 w-3.5" />Smart Linking
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
-                      <OrganizationMethodDialog currentMethod={organizationMethod} onMethodChange={setOrganizationMethod} onReorganizeCards={handleReorganizeCards} cardCount={cards.length} />
-                    </div></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowOrganizationMethodDialog(true)}>
+                      <Settings className="mr-2 h-3.5 w-3.5" />Organization Method
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
                       <DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} />
