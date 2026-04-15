@@ -68,6 +68,7 @@ import {
   Sparkles,
   Filter,
   Search,
+  Settings,
   LayoutGrid,
   List,
   ArrowUpDown,
@@ -894,6 +895,16 @@ const Index = () => {
         onImportCards={handleImportCards}
         externalOpen={showImportStudio}
         onExternalOpenChange={setShowImportStudio}
+      />
+
+      <OrganizationMethodDialog
+        currentMethod={organizationMethod}
+        onMethodChange={setOrganizationMethod}
+        onReorganizeCards={handleReorganizeCards}
+        cardCount={cards.length}
+        open={showOrganizationMethodDialog}
+        onOpenChange={setShowOrganizationMethodDialog}
+        hideTrigger
       />
       
       <div className="hidden md:block">
