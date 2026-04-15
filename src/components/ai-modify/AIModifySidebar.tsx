@@ -352,7 +352,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
                                 user_id: user.id,
                                 title: result.title,
                                 content: result.content,
-                                card_number: 'NEW',
+                                number: 'NEW',
                                 category: 'Combined',
                                 tags: [],
                               });
