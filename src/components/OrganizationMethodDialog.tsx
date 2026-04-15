@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Bot } from "lucide-react";
 import { OrganizationMethod, ORGANIZATION_METHODS } from "@/types/zettel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
 import { toast } from "sonner";
 
 interface OrganizationMethodDialogProps {
@@ -14,17 +13,39 @@ interface OrganizationMethodDialogProps {
   onMethodChange: (method: OrganizationMethod) => void;
   onReorganizeCards?: (fromMethod: OrganizationMethod, toMethod: OrganizationMethod) => Promise<void>;
   cardCount?: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function OrganizationMethodDialog({ 
-  currentMethod, 
-  onMethodChange, 
+export function OrganizationMethodDialog({
+  currentMethod,
+  onMethodChange,
   onReorganizeCards,
-  cardCount = 0 
+  cardCount = 0,
+  open,
+  onOpenChange,
+  hideTrigger = false,
 }: OrganizationMethodDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<OrganizationMethod>(currentMethod);
   const [isReorganizing, setIsReorganizing] = useState(false);
+
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+
+  const setIsOpen = (nextOpen: boolean) => {
+    if (!isControlled) {
+      setInternalOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedMethod(currentMethod);
+    }
+  }, [currentMethod, isOpen]);
 
   const handleSave = async () => {
     if (selectedMethod === currentMethod) {
@@ -34,23 +55,24 @@ export function OrganizationMethodDialog({
 
     try {
       setIsReorganizing(true);
-      
-      // Automatically reorganize if we have cards
+
       if (cardCount > 0 && onReorganizeCards) {
         await onReorganizeCards(currentMethod, selectedMethod);
+        onMethodChange(selectedMethod);
       } else {
-        // If no cards, just update the method
         onMethodChange(selectedMethod);
         toast.success(`Organization method changed to ${ORGANIZATION_METHODS.find(m => m.id === selectedMethod)?.name}`);
       }
-      
+
       setIsOpen(false);
     } catch (error: any) {
       console.error('Error changing organization method:', error);
       const isRateLimit = error?.message?.includes('rate') || error?.message?.includes('busy');
-      toast.error(isRateLimit 
-        ? 'AI service is temporarily busy. Please wait a moment and try again.'
-        : `Failed to change organization method: ${error.message}`);
+      toast.error(
+        isRateLimit
+          ? 'AI service is temporarily busy. Please wait a moment and try again.'
+          : `Failed to change organization method: ${error.message}`
+      );
     } finally {
       setIsReorganizing(false);
     }
@@ -63,13 +85,15 @@ export function OrganizationMethodDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="bg-accent/10 hover:bg-accent/20 border-accent/20">
-          <Settings className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Organization Method</span>
-          <span className="sm:hidden">Method</span>
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="bg-accent/10 hover:bg-accent/20 border-accent/20">
+            <Settings className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Organization Method</span>
+            <span className="sm:hidden">Method</span>
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -85,25 +109,22 @@ export function OrganizationMethodDialog({
         <div className="grid gap-4 py-4">
           <div className="grid gap-4">
             {ORGANIZATION_METHODS.map((method) => (
-                <Card 
+              <Card
                 key={method.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedMethod === method.id 
-                    ? 'ring-2 ring-primary bg-primary/5' 
-                    : 'hover:bg-accent/50'
+                  selectedMethod === method.id ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-accent/50'
                 }`}
-                onClick={(e) => { e.stopPropagation(); setSelectedMethod(method.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedMethod(method.id);
+                }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{method.name}</CardTitle>
-                    {selectedMethod === method.id && (
-                      <Badge variant="default">Selected</Badge>
-                    )}
+                    {selectedMethod === method.id && <Badge variant="default">Selected</Badge>}
                   </div>
-                  <CardDescription className="text-sm">
-                    {method.description}
-                  </CardDescription>
+                  <CardDescription className="text-sm">{method.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -113,9 +134,7 @@ export function OrganizationMethodDialog({
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Example:</p>
-                      <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
-                        {method.example}
-                      </p>
+                      <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">{method.example}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -123,7 +142,6 @@ export function OrganizationMethodDialog({
             ))}
           </div>
 
-          {/* Reorganization notice */}
           {cardCount > 0 && selectedMethod !== currentMethod && (
             <Alert>
               <Bot className="h-4 w-4" />

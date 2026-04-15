@@ -68,6 +68,7 @@ import {
   Sparkles,
   Filter,
   Search,
+  Settings,
   LayoutGrid,
   List,
   ArrowUpDown,
@@ -123,6 +124,7 @@ const Index = () => {
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null); // kept for FloatingChatBubble
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
+  const [showOrganizationMethodDialog, setShowOrganizationMethodDialog] = useState(false);
   const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
   const [showImportStudio, setShowImportStudio] = useState(false);
   const [graphMode, setGraphMode] = useState<'2d' | '3d'>('2d');
@@ -493,9 +495,9 @@ const Index = () => {
                       <Sparkles className="mr-2 h-3.5 w-3.5" />Smart Linking
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
-                      <OrganizationMethodDialog currentMethod={organizationMethod} onMethodChange={setOrganizationMethod} onReorganizeCards={handleReorganizeCards} cardCount={cards.length} />
-                    </div></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowOrganizationMethodDialog(true)}>
+                      <Settings className="mr-2 h-3.5 w-3.5" />Organization Method
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
                       <DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} />
@@ -893,6 +895,16 @@ const Index = () => {
         onImportCards={handleImportCards}
         externalOpen={showImportStudio}
         onExternalOpenChange={setShowImportStudio}
+      />
+
+      <OrganizationMethodDialog
+        currentMethod={organizationMethod}
+        onMethodChange={setOrganizationMethod}
+        onReorganizeCards={handleReorganizeCards}
+        cardCount={cards.length}
+        open={showOrganizationMethodDialog}
+        onOpenChange={setShowOrganizationMethodDialog}
+        hideTrigger
       />
       
       <div className="hidden md:block">
