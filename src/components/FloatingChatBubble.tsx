@@ -138,7 +138,8 @@ export function FloatingChatBubble() {
       const otherUserIds: string[] = [];
 
       for (const msg of messages) {
-        const otherUserId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+        const otherUserId = msg.sender_id === user.id ? msg.receiver_id : (msg.sender_id || null);
+        if (!otherUserId) continue;
         if (!threadMap.has(otherUserId)) {
           threadMap.set(otherUserId, { message: msg.message, created_at: msg.created_at });
           otherUserIds.push(otherUserId);

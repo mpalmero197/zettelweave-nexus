@@ -16,7 +16,7 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Focus, Wand2 } from "lucide-react";
+import { Bot, Focus, Wand2, Search } from "lucide-react";
 import { FocusSidebar } from "./focus-sidebar/FocusSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { AIModifySidebar } from "./ai-modify/AIModifySidebar";
@@ -123,6 +123,7 @@ export function AppLayout() {
       case "integrations":
       case "knowledge-gaps":
       case "notebooks":
+      case "knowledge-chat":
         // These are all tabs within /app
         navigate("/app");
         // We dispatch a custom event so Index.tsx can pick up the tab
@@ -184,6 +185,15 @@ export function AppLayout() {
 
               {/* Right: Actions */}
               <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  onClick={() => handleTabChange("search")}
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function respond(ok: boolean, payload: Record<string, unknown>): Response {
+  return new Response(JSON.stringify({ ok, ...payload }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -13,62 +20,41 @@ serve(async (req) => {
 
   const isPing = await req.clone().json().then((b: any) => !!b?.ping).catch(() => false);
   if (isPing) {
-    return new Response(JSON.stringify({ ok: true, pong: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return respond(true, { pong: true });
   }
 
   try {
     const { cardId, allCards } = await req.json();
 
     if (!cardId || !allCards || !Array.isArray(allCards)) {
-      return new Response(
-        JSON.stringify({ error: "cardId and allCards array are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return respond(false, { error: "cardId and allCards array are required", suggestions: [] });
     }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(false, { error: "No authorization header", suggestions: [] });
     }
 
+    const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
-      console.error("Auth error:", userError);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(false, { error: "Unauthorized", suggestions: [] });
     }
 
     const currentCard = allCards.find((c: any) => c.id === cardId);
     if (!currentCard) {
-      return new Response(JSON.stringify({ error: "Card not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(false, { error: "Card not found", suggestions: [] });
     }
 
     const otherCards = allCards.filter((c: any) => c.id !== cardId);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI service not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(false, { error: "AI service not configured", suggestions: [] });
     }
 
     const systemPrompt = `You are an expert knowledge management assistant analyzing a Zettelkasten card system.
@@ -154,10 +140,7 @@ Suggest up to 5 cards to link with the current card. Return a JSON array of sugg
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI API error:", aiResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "AI service error", details: errorText }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return respond(false, { error: "AI service error", suggestions: [] });
     }
 
     const aiData = await aiResponse.json();
@@ -165,24 +148,15 @@ Suggest up to 5 cards to link with the current card. Return a JSON array of sugg
 
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      return new Response(
-        JSON.stringify({ suggestions: [] }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return respond(true, { suggestions: [] });
     }
 
     const suggestions = JSON.parse(toolCall.function.arguments).suggestions || [];
 
-    return new Response(
-      JSON.stringify({ suggestions }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return respond(true, { suggestions });
 
   } catch (error) {
     console.error("Error in suggest-smart-links:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return respond(false, { error: error instanceof Error ? error.message : "Unknown error", suggestions: [] });
   }
 });
