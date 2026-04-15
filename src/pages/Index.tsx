@@ -123,6 +123,7 @@ const Index = () => {
   const [activeChatFriend, setActiveChatFriend] = useState<{ id: string; name: string } | null>(null); // kept for FloatingChatBubble
   const [showSmartLinking, setShowSmartLinking] = useState(false);
   const [smartLinkingCardId, setSmartLinkingCardId] = useState<string | null>(null);
+  const [showOrganizationMethodDialog, setShowOrganizationMethodDialog] = useState(false);
   const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
   const [showImportStudio, setShowImportStudio] = useState(false);
   const [graphMode, setGraphMode] = useState<'2d' | '3d'>('2d');
