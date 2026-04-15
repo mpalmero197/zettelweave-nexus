@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_error_review_state: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          last_notified_at: string
+          last_notified_error_signature: string | null
+          last_notified_new_count: number
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          last_notified_at?: string
+          last_notified_error_signature?: string | null
+          last_notified_new_count?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          last_notified_at?: string
+          last_notified_error_signature?: string | null
+          last_notified_new_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_licenses: {
         Row: {
           expires_at: string | null
@@ -760,7 +790,8 @@ export type Database = {
           message: string
           read_at: string | null
           receiver_id: string
-          sender_id: string
+          sender_id: string | null
+          sender_type: string
         }
         Insert: {
           created_at?: string
@@ -768,7 +799,8 @@ export type Database = {
           message: string
           read_at?: string | null
           receiver_id: string
-          sender_id: string
+          sender_id?: string | null
+          sender_type?: string
         }
         Update: {
           created_at?: string
@@ -776,7 +808,8 @@ export type Database = {
           message?: string
           read_at?: string | null
           receiver_id?: string
-          sender_id?: string
+          sender_id?: string | null
+          sender_type?: string
         }
         Relationships: []
       }
