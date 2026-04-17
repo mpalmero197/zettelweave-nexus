@@ -183,6 +183,9 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
           currentItem={{ id: card.id, title: card.title, content: card.content, created_at: card.created, type: 'zettel_card' }}
           similarItems={similarItems} onMerge={handleMerge}
         />
+        {showShareDialog && (
+          <ShareDialog open={showShareDialog} onOpenChange={setShowShareDialog} itemType="zettel_card" itemId={card.id} itemTitle={card.title} />
+        )}
       </>
     );
   }
@@ -344,6 +347,9 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
         currentItem={{ id: card.id, title: card.title, content: card.content, created_at: card.created, type: 'zettel_card' }}
         similarItems={similarItems} onMerge={handleMerge}
       />
+      {showShareDialog && (
+        <ShareDialog open={showShareDialog} onOpenChange={setShowShareDialog} itemType="zettel_card" itemId={card.id} itemTitle={card.title} />
+      )}
     </>
   );
 }
