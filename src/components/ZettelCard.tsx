@@ -66,6 +66,7 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
   const categoryInfo = getCategoryInfo(card.category);
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [showSimilarDialog, setShowSimilarDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const { loading: similarLoading, similarItems, findSimilar, mergeContent } = useSimilarContent();
 
   const isNew = () => {
