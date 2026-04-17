@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Settings, CreditCard, Download, Shield, LogOut } from "lucide-react";
+import { Settings, CreditCard, Download, Shield, LogOut, Inbox } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UserMenuProps {
@@ -25,6 +25,11 @@ export function UserMenu({ isAdmin, onSignOut }: UserMenuProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[160px]">
+        <DropdownMenuItem onClick={() => navigate("/shared")} className="gap-2 cursor-pointer">
+          <Inbox className="h-4 w-4" />
+          Shared with Me
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
           <Settings className="h-4 w-4" />
           Settings
