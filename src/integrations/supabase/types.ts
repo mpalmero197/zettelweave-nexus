@@ -1262,6 +1262,33 @@ export type Database = {
         }
         Relationships: []
       }
+      item_presence: {
+        Row: {
+          id: string
+          is_editing: boolean
+          item_id: string
+          item_type: Database["public"]["Enums"]["shared_item_type"]
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_editing?: boolean
+          item_id: string
+          item_type: Database["public"]["Enums"]["shared_item_type"]
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_editing?: boolean
+          item_id?: string
+          item_type?: Database["public"]["Enums"]["shared_item_type"]
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       knowledge_gaps: {
         Row: {
           created_at: string
@@ -2409,6 +2436,54 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_items: {
+        Row: {
+          cloned_item_id: string | null
+          created_at: string
+          id: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["shared_item_type"]
+          last_viewed_at: string | null
+          message: string | null
+          owner_id: string
+          permission: Database["public"]["Enums"]["share_permission"]
+          recipient_id: string
+          share_mode: Database["public"]["Enums"]["share_mode"]
+          status: Database["public"]["Enums"]["share_status"]
+          updated_at: string
+        }
+        Insert: {
+          cloned_item_id?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["shared_item_type"]
+          last_viewed_at?: string | null
+          message?: string | null
+          owner_id: string
+          permission?: Database["public"]["Enums"]["share_permission"]
+          recipient_id: string
+          share_mode?: Database["public"]["Enums"]["share_mode"]
+          status?: Database["public"]["Enums"]["share_status"]
+          updated_at?: string
+        }
+        Update: {
+          cloned_item_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: Database["public"]["Enums"]["shared_item_type"]
+          last_viewed_at?: string | null
+          message?: string | null
+          owner_id?: string
+          permission?: Database["public"]["Enums"]["share_permission"]
+          recipient_id?: string
+          share_mode?: Database["public"]["Enums"]["share_mode"]
+          status?: Database["public"]["Enums"]["share_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       space_objects: {
         Row: {
           content: string | null
@@ -3215,6 +3290,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_share_access: {
+        Args: {
+          _item_id: string
+          _item_type: Database["public"]["Enums"]["shared_item_type"]
+          _required?: Database["public"]["Enums"]["share_permission"]
+        }
+        Returns: boolean
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_domain_banned: { Args: { email_address: string }; Returns: boolean }
       log_security_event: {
@@ -3271,12 +3354,23 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       friend_request_status: "pending" | "accepted" | "declined"
+      share_mode: "copy" | "collaborate"
+      share_permission: "view" | "edit"
+      share_status: "pending" | "accepted" | "declined"
       shareable_content_type:
         | "card"
         | "note"
         | "scratchpad"
         | "stickynote"
         | "notebook"
+      shared_item_type:
+        | "zettel_card"
+        | "note"
+        | "file"
+        | "mind_map"
+        | "catalyst_document"
+        | "sticky_note"
+        | "scratchpad"
       sharing_permission: "view" | "edit"
       user_status: "online" | "busy" | "away" | "dnd" | "offline"
       workflow_status: "active" | "paused" | "completed" | "failed"
@@ -3410,12 +3504,24 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       friend_request_status: ["pending", "accepted", "declined"],
+      share_mode: ["copy", "collaborate"],
+      share_permission: ["view", "edit"],
+      share_status: ["pending", "accepted", "declined"],
       shareable_content_type: [
         "card",
         "note",
         "scratchpad",
         "stickynote",
         "notebook",
+      ],
+      shared_item_type: [
+        "zettel_card",
+        "note",
+        "file",
+        "mind_map",
+        "catalyst_document",
+        "sticky_note",
+        "scratchpad",
       ],
       sharing_permission: ["view", "edit"],
       user_status: ["online", "busy", "away", "dnd", "offline"],
