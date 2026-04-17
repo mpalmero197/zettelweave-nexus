@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star, Trash2, Download, Share2, Printer, Bot, Copy } from "lucide-react";
+import { Calendar, Edit3, Link2, Tag, MoreHorizontal, Palette, Star, Trash2, Download, Share2, Printer, Bot, Copy, Users } from "lucide-react";
+import { ShareDialog } from "./sharing/ShareDialog";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
@@ -65,6 +66,7 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
   const categoryInfo = getCategoryInfo(card.category);
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [showSimilarDialog, setShowSimilarDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const { loading: similarLoading, similarItems, findSimilar, mergeContent } = useSimilarContent();
 
   const isNew = () => {
@@ -164,6 +166,7 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
                 <Star className="mr-2 h-3.5 w-3.5" />{card.is_favorite ? "Unfavorite" : "Favorite"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onLink?.(card)}><Link2 className="mr-2 h-3.5 w-3.5" />Link</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowShareDialog(true)}><Users className="mr-2 h-3.5 w-3.5" />Share with Friend</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onDelete?.(card)} className="text-destructive focus:text-destructive">
                 <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
@@ -180,6 +183,9 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
           currentItem={{ id: card.id, title: card.title, content: card.content, created_at: card.created, type: 'zettel_card' }}
           similarItems={similarItems} onMerge={handleMerge}
         />
+        {showShareDialog && (
+          <ShareDialog open={showShareDialog} onOpenChange={setShowShareDialog} itemType="zettel_card" itemId={card.id} itemTitle={card.title} />
+        )}
       </>
     );
   }
@@ -238,6 +244,9 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onLink?.(card)}>
                   <Link2 className="mr-2 h-3.5 w-3.5" />Link Cards
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+                  <Users className="mr-2 h-3.5 w-3.5" />Share with Friend
                 </DropdownMenuItem>
 
                 {/* Color submenu */}
@@ -338,6 +347,9 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
         currentItem={{ id: card.id, title: card.title, content: card.content, created_at: card.created, type: 'zettel_card' }}
         similarItems={similarItems} onMerge={handleMerge}
       />
+      {showShareDialog && (
+        <ShareDialog open={showShareDialog} onOpenChange={setShowShareDialog} itemType="zettel_card" itemId={card.id} itemTitle={card.title} />
+      )}
     </>
   );
 }
