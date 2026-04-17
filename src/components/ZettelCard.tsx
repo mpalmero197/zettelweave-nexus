@@ -166,6 +166,7 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
                 <Star className="mr-2 h-3.5 w-3.5" />{card.is_favorite ? "Unfavorite" : "Favorite"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onLink?.(card)}><Link2 className="mr-2 h-3.5 w-3.5" />Link</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowShareDialog(true)}><Users className="mr-2 h-3.5 w-3.5" />Share with Friend</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onDelete?.(card)} className="text-destructive focus:text-destructive">
                 <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
@@ -240,6 +241,9 @@ export function ZettelCard({ card, onEdit, onLink, onDelete, onUpdate, variant =
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onLink?.(card)}>
                   <Link2 className="mr-2 h-3.5 w-3.5" />Link Cards
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+                  <Users className="mr-2 h-3.5 w-3.5" />Share with Friend
                 </DropdownMenuItem>
 
                 {/* Color submenu */}
