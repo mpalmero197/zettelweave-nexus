@@ -6,8 +6,10 @@ import { exportCardAsImage, shareToSocial, printCards } from '@/utils/exportUtil
 import { MoreHorizontal, Download, Share2, Printer, Bot, Trash2, Edit3, Copy } from 'lucide-react';
 import { AIEditDialog } from './AIEditDialog';
 import { SimilarContentDialog } from './SimilarContentDialog';
+import { ShareDialog } from './sharing/ShareDialog';
 import { useSimilarContent } from '@/hooks/useSimilarContent';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CardActionsMenuProps {
@@ -21,6 +23,7 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
   const isMobile = useIsMobile();
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [showSimilarDialog, setShowSimilarDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const { loading, similarItems, findSimilar, mergeContent } = useSimilarContent();
 
   const handleExportImage = async () => {
@@ -69,6 +72,11 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
           <DropdownMenuItem onClick={handleFindSimilar} disabled={loading}>
             <Copy className="mr-2 h-4 w-4" />
             {loading ? 'Searching...' : 'Find Similar'}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            Share with Friend
           </DropdownMenuItem>
           
           <DropdownMenuSeparator />
@@ -136,6 +144,16 @@ export function CardActionsMenu({ card, onEdit, onDelete, onUpdate }: CardAction
         similarItems={similarItems}
         onMerge={handleMerge}
       />
+
+      {showShareDialog && (
+        <ShareDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          itemType="zettel_card"
+          itemId={card.id}
+          itemTitle={card.title}
+        />
+      )}
     </>
   );
 }

@@ -82,6 +82,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
+const SharedWithMe = lazy(() => import("./pages/SharedWithMe"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -158,6 +159,11 @@ const App = () => (
                   <Route path="/install" element={
                     <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
                       <Install />
+                    </Suspense>
+                  } />
+                  <Route path="/shared" element={
+                    <Suspense fallback={<LoadingFallback message="Loading shared items..." />}>
+                      <SharedWithMe />
                     </Suspense>
                   } />
                 </Route>
