@@ -427,6 +427,16 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {sharingNoteId && (
+        <ShareDialog
+          open={!!sharingNoteId}
+          onOpenChange={(o) => !o && setSharingNoteId(null)}
+          itemType="scratchpad"
+          itemId={sharingNoteId}
+          itemTitle="Scratchpad note"
+        />
+      )}
     </div>
   );
 };
