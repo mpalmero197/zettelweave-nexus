@@ -121,8 +121,13 @@ const PRIORITIES = [
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
-export function MarketingQuizFunnel() {
-  const [step, setStep] = useState<Step>(0);
+interface MarketingQuizFunnelProps {
+  variant?: "section" | "popup";
+  onComplete?: () => void;
+}
+
+export function MarketingQuizFunnel({ variant = "section", onComplete }: MarketingQuizFunnelProps = {}) {
+  const [step, setStep] = useState<Step>(variant === "popup" ? 1 : 0);
   const [tools, setTools] = useState<string[]>([]);
   const [duration, setDuration] = useState("");
   const [satisfaction, setSatisfaction] = useState("");
