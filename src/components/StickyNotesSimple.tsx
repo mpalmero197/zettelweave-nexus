@@ -317,6 +317,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   note, viewMode, onUpdateContent, onUpdateColor, onTogglePin, onDelete, relativeTime, words
 }) => {
   const [showColors, setShowColors] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const isGrid = viewMode === 'grid';
 
   return (

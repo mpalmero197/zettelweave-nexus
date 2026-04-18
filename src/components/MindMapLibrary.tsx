@@ -32,6 +32,7 @@ export function MindMapLibrary({ open, onOpenChange, onLoad }: MindMapLibraryPro
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sharingMap, setSharingMap] = useState<SavedMap | null>(null);
 
   useEffect(() => {
     if (open && user) fetchMaps();

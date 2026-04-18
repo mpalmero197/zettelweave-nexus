@@ -60,6 +60,7 @@ export function FileManager() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingFile, setViewingFile] = useState<FileRecord | null>(null);
+  const [sharingFile, setSharingFile] = useState<FileRecord | null>(null);
 
   useEffect(() => {
     if (user) {
