@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import pendragonLogo from "@/assets/pendragon-logo.png";
 import { SEOHead, createFAQSchema, createHowToSchema, ogImages } from "@/components/SEOHead";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { MarketingQuizFunnel } from "@/components/MarketingQuizFunnel";
+import { MarketingQuizFunnel, MarketingQuizPopup } from "@/components/MarketingQuizFunnel";
 
 /* ─── Static Data ─── */
 
