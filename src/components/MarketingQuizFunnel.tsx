@@ -169,6 +169,7 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
       if (error) throw error;
       setDone(true);
       setStep(5);
+      onComplete?.();
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
