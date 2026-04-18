@@ -343,6 +343,16 @@ export function FileManager() {
           onClose={() => setViewingFile(null)}
         />
       )}
+
+      {sharingFile && (
+        <ShareDialog
+          open={!!sharingFile}
+          onOpenChange={(o) => !o && setSharingFile(null)}
+          itemType="file"
+          itemId={sharingFile.id}
+          itemTitle={sharingFile.file_name}
+        />
+      )}
     </div>
   );
 }
