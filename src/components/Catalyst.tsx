@@ -138,6 +138,7 @@ export function Catalyst() {
   const [wordCount, setWordCount] = useState(0);
   const [documentTitle, setDocumentTitle] = useState('Untitled Document');
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -1236,6 +1237,17 @@ const DOCUMENT_TEMPLATES = [
           )}
 
           <div className="h-6 w-px bg-border mx-2" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowShareDialog(true)}
+            disabled={!currentDocId}
+            title={currentDocId ? "Share with friend" : "Save document first to share"}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Share
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
