@@ -185,38 +185,52 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
   const progress = step === 0 ? 0 : Math.min((step / 5) * 100, 100);
 
   const StepIndicator = () => (
-    <div className="w-full h-1.5 rounded-full bg-muted mb-6 overflow-hidden">
-      <div
-        className="h-full rounded-full bg-primary transition-all duration-500"
-        style={{ width: `${progress}%` }}
-      />
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+        <span>Step {Math.min(step, 5)} of 5</span>
+        <span className="text-primary">{Math.round(progress)}%</span>
+      </div>
+      <div className="w-full h-1.5 rounded-full bg-muted/60 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-primary via-primary to-accent transition-all duration-500 shadow-[0_0_12px_hsl(var(--primary)/0.5)]"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </div>
   );
+
+  const optionBase = "group relative flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]";
+  const optionIdle = "border-border/60 bg-card/40 hover:border-primary/50 hover:bg-primary/5";
+  const optionActive = "border-primary bg-gradient-to-r from-primary/10 to-accent/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]";
 
   if (done) {
     return (
       <section ref={animation.ref} className={cn(variant === "popup" ? "" : "py-20 md:py-28")}>
         <div className={cn(
-          "max-w-xl mx-auto px-4 transition-all duration-700",
+          "max-w-xl mx-auto transition-all duration-700",
+          variant === "popup" ? "" : "px-4",
           animation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         )}>
-          <Card className="p-8 md:p-10 text-center border-primary/30 bg-primary/5">
-            <div className="inline-flex p-4 rounded-full bg-primary/10 mb-5">
-              <Gift className="h-10 w-10 text-primary" />
+          <div className="relative overflow-hidden rounded-2xl p-8 md:p-10 text-center border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.15),transparent_60%)] pointer-events-none" />
+            <div className="relative">
+              <div className="inline-flex p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 mb-5 ring-1 ring-primary/30">
+                <Gift className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold mb-3 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Your discount is ready! 🎉
+              </h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Use the code below at checkout to get <span className="font-bold text-primary">50% off</span> your first 3 months of PendragonX Premium.
+              </p>
+              <div className="inline-block bg-background/80 backdrop-blur border-2 border-dashed border-primary rounded-xl px-8 py-4 mb-6 shadow-lg shadow-primary/10">
+                <span className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{COUPON_CODE}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                That's just <span className="font-semibold text-foreground">$2.50/month</span> instead of $4.99 — for 3 full months.
+              </p>
             </div>
-            <h3 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">
-              Your discount is ready! 🎉
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Use the code below at checkout to get <span className="font-bold text-primary">50% off</span> your first 3 months of PendragonX Premium.
-            </p>
-            <div className="inline-block bg-background border-2 border-dashed border-primary rounded-xl px-8 py-4 mb-6">
-              <span className="text-2xl font-mono font-bold tracking-widest text-primary">{COUPON_CODE}</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              That's just <span className="font-semibold">$2.50/month</span> instead of $4.99 — for 3 full months.
-            </p>
-          </Card>
+          </div>
         </div>
       </section>
     );
@@ -225,12 +239,13 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
   return (
     <section ref={animation.ref} id="quiz" className={cn(variant === "popup" ? "" : "py-20 md:py-28")}>
       <div className={cn(
-        "max-w-xl mx-auto px-4 transition-all duration-700",
+        "max-w-xl mx-auto transition-all duration-700",
+        variant === "popup" ? "" : "px-4",
         animation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}>
         {step === 0 ? (
           <div className="text-center space-y-5">
-            <div className="inline-flex p-3 rounded-2xl bg-primary/10 mb-2">
+            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 ring-1 ring-primary/30 mb-2">
               <Sparkles className="h-8 w-8 text-primary" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -239,35 +254,34 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
             <p className="text-muted-foreground max-w-md mx-auto">
               Take a 30-second quiz and unlock <span className="font-semibold text-primary">50% off</span> your first 3 months of Premium.
             </p>
-            <Button size="lg" className="mt-2 group" onClick={() => setStep(1)}>
+            <Button size="lg" className="mt-2 group bg-gradient-to-r from-primary to-accent hover:opacity-90" onClick={() => setStep(1)}>
               Start Quiz
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         ) : (
-          <Card className="p-6 md:p-8">
+          <div className={cn(variant === "popup" ? "" : "rounded-2xl border border-border bg-card p-6 md:p-8")}>
+            {variant === "popup" && (
+              <div className="flex items-center gap-2 mb-5">
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 ring-1 ring-primary/30">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">PendragonX Quiz</span>
+              </div>
+            )}
             <StepIndicator />
 
             {step === 1 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">Which note-taking tools do you use?</h3>
-                <p className="text-sm text-muted-foreground">Select all that apply.</p>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground tracking-tight">Which note-taking tools do you use?</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Select all that apply.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
                   {TOOLS.map((t) => (
-                    <label
-                      key={t}
-                      className={cn(
-                        "flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors",
-                        tools.includes(t)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40"
-                      )}
-                    >
-                      <Checkbox
-                        checked={tools.includes(t)}
-                        onCheckedChange={() => toggleTool(t)}
-                      />
-                      <span className="text-sm">{t}</span>
+                    <label key={t} className={cn(optionBase, tools.includes(t) ? optionActive : optionIdle)}>
+                      <Checkbox checked={tools.includes(t)} onCheckedChange={() => toggleTool(t)} />
+                      <span className="text-sm font-medium">{t}</span>
                     </label>
                   ))}
                 </div>
@@ -275,19 +289,13 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
             )}
 
             {step === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">How long have you used tools like these?</h3>
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                <h3 className="text-xl font-bold text-foreground tracking-tight">How long have you used tools like these?</h3>
                 <RadioGroup value={duration} onValueChange={setDuration} className="space-y-2">
                   {DURATIONS.map((d) => (
-                    <label
-                      key={d}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                        duration === d ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-                      )}
-                    >
+                    <label key={d} className={cn(optionBase, duration === d ? optionActive : optionIdle)}>
                       <RadioGroupItem value={d} />
-                      <span className="text-sm">{d}</span>
+                      <span className="text-sm font-medium">{d}</span>
                     </label>
                   ))}
                 </RadioGroup>
@@ -295,19 +303,13 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
             )}
 
             {step === 3 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">How do you feel about your current tool?</h3>
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                <h3 className="text-xl font-bold text-foreground tracking-tight">How do you feel about your current tool?</h3>
                 <RadioGroup value={satisfaction} onValueChange={setSatisfaction} className="space-y-2">
                   {SATISFACTION.map((s) => (
-                    <label
-                      key={s.value}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                        satisfaction === s.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-                      )}
-                    >
+                    <label key={s.value} className={cn(optionBase, satisfaction === s.value ? optionActive : optionIdle)}>
                       <RadioGroupItem value={s.value} />
-                      <span className="text-sm">{s.label}</span>
+                      <span className="text-sm font-medium">{s.label}</span>
                     </label>
                   ))}
                 </RadioGroup>
@@ -315,25 +317,16 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
             )}
 
             {step === 4 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">What matters most to you?</h3>
-                <p className="text-sm text-muted-foreground">Select all that apply.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground tracking-tight">What matters most to you?</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Select all that apply.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {PRIORITIES.map((p) => (
-                    <label
-                      key={p}
-                      className={cn(
-                        "flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors",
-                        priorities.includes(p)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40"
-                      )}
-                    >
-                      <Checkbox
-                        checked={priorities.includes(p)}
-                        onCheckedChange={() => togglePriority(p)}
-                      />
-                      <span className="text-sm">{p}</span>
+                    <label key={p} className={cn(optionBase, priorities.includes(p) ? optionActive : optionIdle)}>
+                      <Checkbox checked={priorities.includes(p)} onCheckedChange={() => togglePriority(p)} />
+                      <span className="text-sm font-medium">{p}</span>
                     </label>
                   ))}
                 </div>
@@ -341,12 +334,12 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
             )}
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/60">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setStep((s) => Math.max(1, s - 1) as Step)}
-                className="gap-1"
+                className="gap-1 text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
@@ -356,7 +349,7 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
                   size="sm"
                   disabled={!canNext()}
                   onClick={() => setStep((s) => (s + 1) as Step)}
-                  className="gap-1"
+                  className="gap-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                 >
                   Next <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -365,27 +358,27 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
                   size="sm"
                   disabled={!canNext()}
                   onClick={() => setStep(5 as Step)}
-                  className="gap-1"
+                  className="gap-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                 >
                   Almost done <ArrowRight className="h-4 w-4" />
                 </Button>
               )}
             </div>
-          </Card>
+          </div>
         )}
 
-        {/* Email step (step 5 but before submission) */}
+        {/* Email step */}
         {step === 5 && !done && (
-          <Card className="p-6 md:p-8 mt-0">
+          <div className={cn(variant === "popup" ? "" : "rounded-2xl border border-border bg-card p-6 md:p-8")}>
             <StepIndicator />
-            <div className="space-y-4 text-center">
-              <div className="inline-flex p-3 rounded-full bg-primary/10 mb-1">
+            <div className="space-y-4 text-center animate-in fade-in zoom-in-95 duration-300">
+              <div className="inline-flex p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 ring-1 ring-primary/30">
                 <Gift className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-2xl font-bold text-foreground tracking-tight">
                 Unlock your 50% discount
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 Enter your email and we'll send your exclusive code for <span className="font-semibold text-primary">50% off the first 3 months</span>.
               </p>
               <Input
@@ -393,13 +386,14 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="max-w-sm mx-auto"
+                className="max-w-sm mx-auto h-11 text-center bg-background/50 border-border/60 focus-visible:ring-primary"
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               />
               <Button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="gap-2"
+                size="lg"
+                className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg shadow-primary/30"
               >
                 {submitting ? "Submitting…" : (
                   <>
@@ -410,12 +404,12 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
               </Button>
               <p className="text-xs text-muted-foreground">No spam. Unsubscribe anytime.</p>
             </div>
-            <div className="flex items-center mt-4 pt-4 border-t border-border">
-              <Button variant="ghost" size="sm" onClick={() => setStep(4)} className="gap-1">
+            <div className="flex items-center mt-4 pt-4 border-t border-border/60">
+              <Button variant="ghost" size="sm" onClick={() => setStep(4)} className="gap-1 text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
             </div>
-          </Card>
+          </div>
         )}
       </div>
     </section>
