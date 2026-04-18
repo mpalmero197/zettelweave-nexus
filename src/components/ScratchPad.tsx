@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud, Loader2 } from "lucide-react";
+import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud, Loader2, Users } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ShareDialog } from "./sharing/ShareDialog";
 
 interface ScratchPadProps {
   onCreateCard: (card: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => void;
@@ -23,6 +24,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const [content, setContent] = useState("");
   const [savedNotes, setSavedNotes] = useState<ScratchNote[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [sharingNoteId, setSharingNoteId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const { user } = useAuth();
 
@@ -349,6 +351,17 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
                         <Plus className="h-3 w-3 mr-1" />
                         Card
                       </Button>
+                      {note.synced && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSharingNoteId(note.id)}
+                          title="Share with friend"
+                          className="h-7 w-7 p-0"
+                        >
+                          <Users className="h-3 w-3" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
