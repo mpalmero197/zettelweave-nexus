@@ -17,9 +17,11 @@ import {
   FileSpreadsheet,
   FileImage,
   FileCode,
-  Eye
+  Eye,
+  Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ShareDialog } from './sharing/ShareDialog';
 import { format } from 'date-fns';
 
 interface FileRecord {
@@ -280,6 +282,14 @@ export function FileManager() {
                       aria-label="Download file"
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSharingFile(file)}
+                      aria-label="Share file"
+                    >
+                      <Users className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
