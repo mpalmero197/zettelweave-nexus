@@ -1354,6 +1354,16 @@ export function Notes({ initialView }: NotesProps = {}) {
         />
       )}
 
+      {sharingNote && (
+        <ShareDialog
+          open={!!sharingNote}
+          onOpenChange={(o) => !o && setSharingNote(null)}
+          itemType="note"
+          itemId={sharingNote.id}
+          itemTitle={sharingNote.title}
+        />
+      )}
+
       {/* Edit Notebook Dialog */}
       {editingNotebook && (
         <Dialog open={!!editingNotebook} onOpenChange={(open) => !open && setEditingNotebook(null)}>
