@@ -714,8 +714,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────────────────────── 11. QUIZ FUNNEL ────────────────────────── */}
-      <MarketingQuizFunnel />
+      {/* Quiz funnel now triggered as popup after delay/exit-intent */}
+      <MarketingQuizPopup />
 
       {/* ────────────────────────── 12. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
