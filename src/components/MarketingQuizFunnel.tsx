@@ -218,7 +218,7 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
   }
 
   return (
-    <section ref={animation.ref} id="quiz" className="py-20 md:py-28">
+    <section ref={animation.ref} id="quiz" className={cn(variant === "popup" ? "" : "py-20 md:py-28")}>
       <div className={cn(
         "max-w-xl mx-auto px-4 transition-all duration-700",
         animation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
