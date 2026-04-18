@@ -77,9 +77,14 @@ export function MarketingQuizPopup() {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden border-primary/30">
-        <div className="max-h-[85vh] overflow-y-auto p-6 md:p-8">
-          <MarketingQuizFunnel variant="popup" onComplete={handleComplete} />
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-gradient-to-br from-background via-background to-primary/5 shadow-2xl shadow-primary/20">
+          {/* Decorative glow */}
+          <div className="absolute -top-24 -right-24 w-56 h-56 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-56 h-56 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
+          <div className="relative max-h-[85vh] overflow-y-auto p-6 md:p-8">
+            <MarketingQuizFunnel variant="popup" onComplete={handleComplete} />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
