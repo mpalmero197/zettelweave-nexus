@@ -83,6 +83,7 @@ export function Notes({ initialView }: NotesProps = {}) {
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [sharingNote, setSharingNote] = useState<Note | null>(null);
   const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotebook, setSelectedNotebook] = useState<string>('all');
