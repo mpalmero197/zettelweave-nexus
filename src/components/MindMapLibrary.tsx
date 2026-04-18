@@ -3,11 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Trash2, Star, Loader2 } from 'lucide-react';
+import { Search, Trash2, Star, Loader2, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { ShareDialog } from './sharing/ShareDialog';
 
 interface SavedMap {
   id: string;
@@ -31,6 +32,7 @@ export function MindMapLibrary({ open, onOpenChange, onLoad }: MindMapLibraryPro
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sharingMap, setSharingMap] = useState<SavedMap | null>(null);
 
   useEffect(() => {
     if (open && user) fetchMaps();
@@ -132,6 +134,13 @@ export function MindMapLibrary({ open, onOpenChange, onLoad }: MindMapLibraryPro
                 <Star className={`h-3.5 w-3.5 ${map.is_favorite ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'}`} />
               </button>
               <button
+                className="h-7 w-7 rounded flex items-center justify-center hover:bg-accent opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={e => { e.stopPropagation(); setSharingMap(map); }}
+                title="Share with friend"
+              >
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+              <button
                 className="h-7 w-7 rounded flex items-center justify-center hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={e => { e.stopPropagation(); handleDelete(map.id); }}
                 disabled={deletingId === map.id}
@@ -141,6 +150,15 @@ export function MindMapLibrary({ open, onOpenChange, onLoad }: MindMapLibraryPro
             </div>
           ))}
         </div>
+        {sharingMap && (
+          <ShareDialog
+            open={!!sharingMap}
+            onOpenChange={(o) => !o && setSharingMap(null)}
+            itemType="mind_map"
+            itemId={sharingMap.id}
+            itemTitle={sharingMap.title}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

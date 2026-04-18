@@ -28,6 +28,8 @@ import { readEnexFile } from '@/utils/evernoteImport';
 import DOMPurify from 'dompurify';
 import { smartCategorize, CATEGORIES } from '@/utils/categoryUtils';
 import { NotesBoard } from './NotesBoard';
+import { ShareDialog } from './sharing/ShareDialog';
+import { Users } from 'lucide-react';
 import { NotesSplitView } from './NotesSplitView';
 import { format } from 'date-fns';
 
@@ -81,6 +83,7 @@ export function Notes({ initialView }: NotesProps = {}) {
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [sharingNote, setSharingNote] = useState<Note | null>(null);
   const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotebook, setSelectedNotebook] = useState<string>('all');
@@ -790,6 +793,9 @@ export function Notes({ initialView }: NotesProps = {}) {
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFindSimilarNote(note); }} disabled={similarLoading}>
                 <Copy className="mr-2 h-3.5 w-3.5" />Find Similar
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSharingNote(note); }}>
+                <Users className="mr-2 h-3.5 w-3.5" />Share with Friend
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }} className="text-destructive focus:text-destructive">
                 <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
@@ -838,6 +844,9 @@ export function Notes({ initialView }: NotesProps = {}) {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFindSimilarNote(note); }} disabled={similarLoading}>
               <Copy className="mr-2 h-3.5 w-3.5" />Find Similar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSharingNote(note); }}>
+              <Users className="mr-2 h-3.5 w-3.5" />Share with Friend
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }} className="text-destructive focus:text-destructive">
@@ -1342,6 +1351,16 @@ export function Notes({ initialView }: NotesProps = {}) {
           isOpen={!!editingNote}
           onClose={() => setEditingNote(null)}
           onSave={updateNote}
+        />
+      )}
+
+      {sharingNote && (
+        <ShareDialog
+          open={!!sharingNote}
+          onOpenChange={(o) => !o && setSharingNote(null)}
+          itemType="note"
+          itemId={sharingNote.id}
+          itemTitle={sharingNote.title}
         />
       )}
 

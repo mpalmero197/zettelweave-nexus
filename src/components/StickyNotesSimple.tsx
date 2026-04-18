@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Pin, PinOff, MoreHorizontal, Trash2, StickyNote, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Pin, PinOff, MoreHorizontal, Trash2, StickyNote, LayoutGrid, List, ArrowUpDown, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { ShareDialog } from './sharing/ShareDialog';
 
 interface StickyNote {
   id: string;
@@ -316,6 +317,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   note, viewMode, onUpdateContent, onUpdateColor, onTogglePin, onDelete, relativeTime, words
 }) => {
   const [showColors, setShowColors] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const isGrid = viewMode === 'grid';
 
   return (
@@ -389,10 +391,13 @@ const NoteCard: React.FC<NoteCardProps> = ({
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem onClick={() => onTogglePin(note.id)}>
               {note.alwaysOnTop ? <PinOff className="h-3.5 w-3.5 mr-2" /> : <Pin className="h-3.5 w-3.5 mr-2" />}
               {note.alwaysOnTop ? 'Unpin' : 'Pin to top'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSharing(true)}>
+              <Users className="h-3.5 w-3.5 mr-2" />Share with Friend
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onDelete(note.id)} className="text-destructive focus:text-destructive">
               <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -401,6 +406,15 @@ const NoteCard: React.FC<NoteCardProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {sharing && (
+        <ShareDialog
+          open={sharing}
+          onOpenChange={setSharing}
+          itemType="sticky_note"
+          itemId={note.id}
+          itemTitle={note.content.slice(0, 40)}
+        />
+      )}
     </div>
   );
 };

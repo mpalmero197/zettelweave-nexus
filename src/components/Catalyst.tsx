@@ -67,6 +67,7 @@ import { CatalystComments } from '@/components/catalyst/CatalystComments';
 import { CatalystAgentsPanel } from '@/components/catalyst/CatalystAgentsPanel';
 import { CatalystCollaborators } from '@/components/catalyst/CatalystCollaborators';
 import { CatalystPresenceBar } from '@/components/catalyst/CatalystPresenceBar';
+import { ShareDialog } from '@/components/sharing/ShareDialog';
 import { ResumeOptimizer } from '@/components/ResumeOptimizer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -138,6 +139,7 @@ export function Catalyst() {
   const [wordCount, setWordCount] = useState(0);
   const [documentTitle, setDocumentTitle] = useState('Untitled Document');
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -1237,6 +1239,17 @@ const DOCUMENT_TEMPLATES = [
 
           <div className="h-6 w-px bg-border mx-2" />
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowShareDialog(true)}
+            disabled={!currentDocId}
+            title={currentDocId ? "Share with friend" : "Save document first to share"}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Share
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -1840,6 +1853,15 @@ const DOCUMENT_TEMPLATES = [
         open={showCollabDialog}
         onOpenChange={setShowCollabDialog}
       />
+      {showShareDialog && currentDocId && (
+        <ShareDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          itemType="catalyst_document"
+          itemId={currentDocId}
+          itemTitle={documentTitle}
+        />
+      )}
     </div>
   );
 }

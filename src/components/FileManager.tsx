@@ -17,9 +17,11 @@ import {
   FileSpreadsheet,
   FileImage,
   FileCode,
-  Eye
+  Eye,
+  Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ShareDialog } from './sharing/ShareDialog';
 import { format } from 'date-fns';
 
 interface FileRecord {
@@ -58,6 +60,7 @@ export function FileManager() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingFile, setViewingFile] = useState<FileRecord | null>(null);
+  const [sharingFile, setSharingFile] = useState<FileRecord | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -284,6 +287,14 @@ export function FileManager() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => setSharingFile(file)}
+                      aria-label="Share file"
+                    >
+                      <Users className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDelete(file)}
                       className="text-destructive hover:text-destructive"
                       aria-label="Delete file"
@@ -330,6 +341,16 @@ export function FileManager() {
         <FileViewer
           file={viewingFile}
           onClose={() => setViewingFile(null)}
+        />
+      )}
+
+      {sharingFile && (
+        <ShareDialog
+          open={!!sharingFile}
+          onOpenChange={(o) => !o && setSharingFile(null)}
+          itemType="file"
+          itemId={sharingFile.id}
+          itemTitle={sharingFile.file_name}
         />
       )}
     </div>
