@@ -67,6 +67,7 @@ import { CatalystComments } from '@/components/catalyst/CatalystComments';
 import { CatalystAgentsPanel } from '@/components/catalyst/CatalystAgentsPanel';
 import { CatalystCollaborators } from '@/components/catalyst/CatalystCollaborators';
 import { CatalystPresenceBar } from '@/components/catalyst/CatalystPresenceBar';
+import { ShareDialog } from '@/components/sharing/ShareDialog';
 import { ResumeOptimizer } from '@/components/ResumeOptimizer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -1852,6 +1853,15 @@ const DOCUMENT_TEMPLATES = [
         open={showCollabDialog}
         onOpenChange={setShowCollabDialog}
       />
+      {showShareDialog && currentDocId && (
+        <ShareDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          itemType="catalyst_document"
+          itemId={currentDocId}
+          itemTitle={documentTitle}
+        />
+      )}
     </div>
   );
 }
