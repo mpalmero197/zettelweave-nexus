@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Pin, PinOff, MoreHorizontal, Trash2, StickyNote, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Pin, PinOff, MoreHorizontal, Trash2, StickyNote, LayoutGrid, List, ArrowUpDown, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { ShareDialog } from './sharing/ShareDialog';
 
 interface StickyNote {
   id: string;
