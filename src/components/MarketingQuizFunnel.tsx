@@ -1,15 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowLeft, Gift, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Gift, CheckCircle2, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+
+const POPUP_STORAGE_KEY = "pendragon-quiz-popup-state";
+const POPUP_DELAY_MS = 5000;
+const POPUP_DISMISS_HOURS = 24;
+
+export function MarketingQuizPopup() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    // Don't show if already converted or dismissed recently
+    try {
+      const raw = localStorage.getItem(POPUP_STORAGE_KEY);
+      if (raw) {
+        const { dismissedAt, completed } = JSON.parse(raw);
+        if (completed) return;
+        if (dismissedAt && Date.now() - dismissedAt < POPUP_DISMISS_HOURS * 3600 * 1000) return;
+      }
+    } catch {}
+
+    let triggered = false;
+    const trigger = () => {
+      if (triggered) return;
+      triggered = true;
+      setOpen(true);
+    };
+
+    // Time-based trigger (5s)
+    const timer = setTimeout(trigger, POPUP_DELAY_MS);
+
+    // Exit-intent trigger (desktop only)
+    const onMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) trigger();
+    };
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      document.addEventListener("mouseleave", onMouseLeave);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, []);
+
+  const handleClose = (val: boolean) => {
+    setOpen(val);
+    if (!val) {
+      try {
+        localStorage.setItem(
+          POPUP_STORAGE_KEY,
+          JSON.stringify({ dismissedAt: Date.now(), completed: false })
+        );
+      } catch {}
+    }
+  };
+
+  const handleComplete = () => {
+    try {
+      localStorage.setItem(
+        POPUP_STORAGE_KEY,
+        JSON.stringify({ dismissedAt: Date.now(), completed: true })
+      );
+    } catch {}
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden border-primary/30">
+        <div className="max-h-[85vh] overflow-y-auto p-6 md:p-8">
+          <MarketingQuizFunnel variant="popup" onComplete={handleComplete} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const COUPON_CODE = "PENDRAGON50";
 
@@ -46,8 +121,13 @@ const PRIORITIES = [
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
-export function MarketingQuizFunnel() {
-  const [step, setStep] = useState<Step>(0);
+interface MarketingQuizFunnelProps {
+  variant?: "section" | "popup";
+  onComplete?: () => void;
+}
+
+export function MarketingQuizFunnel({ variant = "section", onComplete }: MarketingQuizFunnelProps = {}) {
+  const [step, setStep] = useState<Step>(variant === "popup" ? 1 : 0);
   const [tools, setTools] = useState<string[]>([]);
   const [duration, setDuration] = useState("");
   const [satisfaction, setSatisfaction] = useState("");
@@ -89,6 +169,7 @@ export function MarketingQuizFunnel() {
       if (error) throw error;
       setDone(true);
       setStep(5);
+      onComplete?.();
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -109,7 +190,7 @@ export function MarketingQuizFunnel() {
 
   if (done) {
     return (
-      <section ref={animation.ref} className="py-20 md:py-28">
+      <section ref={animation.ref} className={cn(variant === "popup" ? "" : "py-20 md:py-28")}>
         <div className={cn(
           "max-w-xl mx-auto px-4 transition-all duration-700",
           animation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -137,7 +218,7 @@ export function MarketingQuizFunnel() {
   }
 
   return (
-    <section ref={animation.ref} id="quiz" className="py-20 md:py-28">
+    <section ref={animation.ref} id="quiz" className={cn(variant === "popup" ? "" : "py-20 md:py-28")}>
       <div className={cn(
         "max-w-xl mx-auto px-4 transition-all duration-700",
         animation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"

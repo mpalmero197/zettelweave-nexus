@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import pendragonLogo from "@/assets/pendragon-logo.png";
 import { SEOHead, createFAQSchema, createHowToSchema, ogImages } from "@/components/SEOHead";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { MarketingQuizFunnel } from "@/components/MarketingQuizFunnel";
+import { MarketingQuizFunnel, MarketingQuizPopup } from "@/components/MarketingQuizFunnel";
 
 /* ─── Static Data ─── */
 
@@ -714,8 +714,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────────────────────── 11. QUIZ FUNNEL ────────────────────────── */}
-      <MarketingQuizFunnel />
+      {/* Quiz funnel now triggered as popup after delay/exit-intent */}
+      <MarketingQuizPopup />
 
       {/* ────────────────────────── 12. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
