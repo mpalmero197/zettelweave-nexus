@@ -2218,6 +2218,7 @@ export type Database = {
       relation_definitions: {
         Row: {
           created_at: string
+          formula_expression: string | null
           id: string
           is_builtin: boolean | null
           name: string
@@ -2228,6 +2229,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          formula_expression?: string | null
           id?: string
           is_builtin?: boolean | null
           name: string
@@ -2238,6 +2240,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          formula_expression?: string | null
           id?: string
           is_builtin?: boolean | null
           name?: string
@@ -2483,6 +2486,155 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      space_collaborators: {
+        Row: {
+          accepted_at: string | null
+          collaborator_id: string
+          created_at: string
+          id: string
+          invited_at: string
+          owner_id: string
+          permission: string
+          space_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          collaborator_id: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          owner_id: string
+          permission?: string
+          space_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          collaborator_id?: string
+          created_at?: string
+          id?: string
+          invited_at?: string
+          owner_id?: string
+          permission?: string
+          space_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      space_linked_items: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["shared_item_type"]
+          notes: string | null
+          position: number
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["shared_item_type"]
+          notes?: string | null
+          position?: number
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: Database["public"]["Enums"]["shared_item_type"]
+          notes?: string | null
+          position?: number
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      space_object_activity: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          object_id: string
+          space_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          object_id: string
+          space_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          object_id?: string
+          space_id?: string
+        }
+        Relationships: []
+      }
+      space_object_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          object_id: string
+          parent_id: string | null
+          resolved: boolean
+          space_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          object_id: string
+          parent_id?: string | null
+          resolved?: boolean
+          space_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          object_id?: string
+          parent_id?: string | null
+          resolved?: boolean
+          space_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_object_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "space_object_comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       space_objects: {
         Row: {
@@ -3298,6 +3450,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_space_access: {
+        Args: { _required?: string; _space_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_domain_banned: { Args: { email_address: string }; Returns: boolean }
       log_security_event: {
@@ -3371,6 +3527,8 @@ export type Database = {
         | "catalyst_document"
         | "sticky_note"
         | "scratchpad"
+        | "space"
+        | "space_object"
       sharing_permission: "view" | "edit"
       user_status: "online" | "busy" | "away" | "dnd" | "offline"
       workflow_status: "active" | "paused" | "completed" | "failed"
@@ -3522,6 +3680,8 @@ export const Constants = {
         "catalyst_document",
         "sticky_note",
         "scratchpad",
+        "space",
+        "space_object",
       ],
       sharing_permission: ["view", "edit"],
       user_status: ["online", "busy", "away", "dnd", "offline"],
