@@ -36,45 +36,51 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     
-    --popover: 40 25% 99%;
-    --popover-foreground: 30 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 8%;
     
-    --sidebar-background: 35 15% 95%;
-    --sidebar-foreground: 30 10% 12%;
-    --sidebar-primary: 265 85% 60%;
+    --sidebar-background: 220 20% 98%;
+    --sidebar-foreground: 222 25% 10%;
+    --sidebar-primary: 248 85% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 35 12% 91%;
-    --sidebar-accent-foreground: 30 10% 12%;
-    --sidebar-border: 35 12% 88%;
-    --sidebar-ring: 265 85% 60%;
+    --sidebar-accent: 220 15% 95%;
+    --sidebar-accent-foreground: 222 25% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 248 85% 62%;
     
-    /* Category colors — Warm tones */
-    --category-000: 30 10% 60%;
-    --category-100: 200 25% 40%;
-    --category-200: 150 25% 40%;
-    --category-300: 30 35% 45%;
-    --category-400: 350 25% 45%;
-    --category-500: 260 25% 45%;
-    --category-600: 180 25% 40%;
-    --category-700: 30 10% 50%;
-    --category-800: 45 35% 45%;
-    --category-900: 30 10% 55%;
+    /* Category colors — Cool refined tones */
+    --category-000: 220 9% 55%;
+    --category-100: 210 60% 50%;
+    --category-200: 160 50% 42%;
+    --category-300: 25 85% 55%;
+    --category-400: 350 70% 55%;
+    --category-500: 265 65% 58%;
+    --category-600: 190 60% 45%;
+    --category-700: 220 9% 50%;
+    --category-800: 45 80% 50%;
+    --category-900: 220 9% 55%;
     
-    /* Shadows — Warm amber */
-    --shadow-card: 0 1px 3px hsl(30 20% 0% / 0.05);
-    --shadow-hover: 0 4px 16px hsl(265 85% 60% / 0.1);
-    --shadow-active: 0 1px 2px hsl(30 20% 0% / 0.04);
-    --shadow-glow: 0 0 20px hsl(265 85% 60% / 0.08);
-    --shadow-glow-accent: 0 0 30px hsl(265 85% 60% / 0.12);
+    /* Shadows — Apple-soft, cool tinted */
+    --shadow-card: 0 1px 2px hsl(222 30% 12% / 0.04), 0 1px 3px hsl(222 30% 12% / 0.03);
+    --shadow-hover: 0 8px 24px hsl(222 30% 12% / 0.08), 0 2px 6px hsl(222 30% 12% / 0.04);
+    --shadow-active: 0 1px 2px hsl(222 30% 12% / 0.05);
+    --shadow-glow: 0 0 24px hsl(248 85% 62% / 0.12);
+    --shadow-glow-accent: 0 0 40px hsl(248 85% 62% / 0.18);
     
-    --shadow-material-1: 0 1px 2px hsl(30 20% 0% / 0.04);
-    --shadow-material-2: 0 2px 4px hsl(30 20% 0% / 0.06);
-    --shadow-material-3: 0 4px 8px hsl(30 20% 0% / 0.08);
-    --shadow-material-4: 0 6px 12px hsl(30 20% 0% / 0.1);
-    --shadow-material-5: 0 8px 16px hsl(30 20% 0% / 0.12);
+    --shadow-material-1: 0 1px 2px hsl(222 30% 12% / 0.04);
+    --shadow-material-2: 0 2px 6px hsl(222 30% 12% / 0.06), 0 1px 2px hsl(222 30% 12% / 0.04);
+    --shadow-material-3: 0 6px 16px hsl(222 30% 12% / 0.08), 0 2px 4px hsl(222 30% 12% / 0.04);
+    --shadow-material-4: 0 12px 28px hsl(222 30% 12% / 0.10), 0 4px 8px hsl(222 30% 12% / 0.05);
+    --shadow-material-5: 0 24px 48px hsl(222 30% 12% / 0.14), 0 8px 16px hsl(222 30% 12% / 0.06);
     
-    --radius: 0.625rem;
-    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Gradients — Apple-refined */
+    --gradient-primary: linear-gradient(135deg, hsl(248 85% 62%), hsl(268 85% 65%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 20% 99%), hsl(220 15% 96%));
+    --gradient-mesh: radial-gradient(at 20% 20%, hsl(248 85% 62% / 0.08) 0px, transparent 50%), radial-gradient(at 80% 80%, hsl(268 80% 65% / 0.06) 0px, transparent 50%);
+    
+    --radius: 0.875rem;
+    --transition-smooth: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .dark {
