@@ -259,7 +259,7 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
-        ) : (
+        ) : step >= 1 && step <= 4 ? (
           <div className={cn(variant === "popup" ? "" : "rounded-2xl border border-border bg-card p-6 md:p-8")}>
             {variant === "popup" && (
               <div className="flex items-center gap-2 mb-5">
@@ -365,7 +365,7 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
               )}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Email step */}
         {step === 5 && !done && (
