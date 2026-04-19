@@ -365,7 +365,7 @@ export function MarketingQuizFunnel({ variant = "section", onComplete }: Marketi
               )}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Email step */}
         {step === 5 && !done && (
