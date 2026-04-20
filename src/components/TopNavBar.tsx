@@ -36,13 +36,12 @@ interface TopNavBarProps {
 const navGroups = [
   {
     label: "Knowledge",
-    tabs: ["dashboard", "cards", "graph", "notes", "files", "learning", "knowledge-gaps", "knowledge-chat"],
+    tabs: ["dashboard", "cards", "graph", "notes", "files", "learning", "knowledge-gaps"],
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { id: "cards", label: "Cards", icon: FileText },
       { id: "graph", label: "Graph", icon: BarChart3 },
       { id: "notes", label: "Notes", icon: BookOpen },
-      { id: "knowledge-chat", label: "Knowledge Chat", icon: MessageSquareText },
       { id: "files", label: "Files", icon: FolderOpen },
       { id: "learning", label: "Learning Hub", icon: GraduationCap },
       { id: "knowledge-gaps", label: "Knowledge Gaps", icon: Lightbulb },

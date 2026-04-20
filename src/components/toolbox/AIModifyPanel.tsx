@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  X, Wand2, Loader2, Check, Copy, ChevronDown, ChevronUp,
+  Wand2, Loader2, Check, Copy, ChevronDown, ChevronUp,
   FileText, StickyNote, NotebookPen, PenLine, Trash2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,11 +36,6 @@ interface PendingApplyState {
   targetItemId: string;
 }
 
-interface AIModifySidebarProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
 const TYPE_ICONS = {
   note: NotebookPen,
   card: FileText,
@@ -55,7 +50,7 @@ const TYPE_LABELS = {
   stickynote: 'Sticky Note',
 };
 
-export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
+export function AIModifyPanel() {
   const { user } = useAuth();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [availableItems, setAvailableItems] = useState<ContentItem[]>([]);
@@ -69,33 +64,21 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingApply, setPendingApply] = useState<PendingApplyState | null>(null);
 
-  // Fetch available content when sidebar opens
-  useEffect(() => {
-    if (open && user) fetchAvailableItems();
-  }, [open, user]);
-
   const fetchAvailableItems = useCallback(async () => {
     if (!user) return;
     setIsFetchingItems(true);
     try {
-      const [notesRes, cardsRes, stickiesRes] = await Promise.all([
+      const [notesRes, cardsRes] = await Promise.all([
         supabase.from('notes').select('id, title, content').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(50),
         supabase.from('zettel_cards').select('id, title, content').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(50),
-        supabase.from('notes').select('id, title, content').eq('user_id', user.id).is('deleted_at', null).not('position_x', 'is', null).order('updated_at', { ascending: false }).limit(50),
       ]);
-
       const all: ContentItem[] = [];
       notesRes.data?.forEach(n => all.push({ id: n.id, type: 'note', title: n.title, content: n.content || '' }));
       cardsRes.data?.forEach(c => all.push({ id: c.id, type: 'card', title: c.title, content: c.content || '' }));
-
-      // Scratchpad from localStorage
       try {
         const sp = localStorage.getItem('scratchpad-content');
-        if (sp && sp.trim()) {
-          all.push({ id: 'scratchpad-local', type: 'scratchpad', title: 'Scratchpad', content: sp });
-        }
+        if (sp && sp.trim()) all.push({ id: 'scratchpad-local', type: 'scratchpad', title: 'Scratchpad', content: sp });
       } catch {}
-
       setAvailableItems(all);
     } catch (e) {
       console.error('Failed to fetch items:', e);
@@ -103,6 +86,8 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
       setIsFetchingItems(false);
     }
   }, [user]);
+
+  useEffect(() => { if (user) fetchAvailableItems(); }, [user, fetchAvailableItems]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -119,9 +104,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
     setShowPicker(false);
   };
 
-  const removeItem = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-  };
+  const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id));
 
   const handleModify = async () => {
     if (!instruction.trim() || items.length === 0) {
@@ -148,22 +131,16 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
 
   const deleteItem = async (item: ContentItem) => {
     if (!user) return;
-    try {
-      if (item.type === 'card') {
-        const { error } = await supabase.from('zettel_cards').delete().eq('id', item.id).eq('user_id', user.id);
-        if (error) throw error;
-      } else if (item.type === 'note' || item.type === 'stickynote') {
-        const { error } = await supabase.from('notes').delete().eq('id', item.id).eq('user_id', user.id);
-        if (error) throw error;
-      } else if (item.type === 'scratchpad') {
-        try { localStorage.removeItem('scratchpad-content'); } catch {}
-      }
-      // Notify the rest of the app to refresh lists
-      window.dispatchEvent(new CustomEvent('content-deleted', { detail: { id: item.id, type: item.type } }));
-    } catch (e) {
-      console.error('Failed to delete item', item.id, e);
-      throw e;
+    if (item.type === 'card') {
+      const { error } = await supabase.from('zettel_cards').delete().eq('id', item.id).eq('user_id', user.id);
+      if (error) throw error;
+    } else if (item.type === 'note' || item.type === 'stickynote') {
+      const { error } = await supabase.from('notes').delete().eq('id', item.id).eq('user_id', user.id);
+      if (error) throw error;
+    } else if (item.type === 'scratchpad') {
+      try { localStorage.removeItem('scratchpad-content'); } catch {}
     }
+    window.dispatchEvent(new CustomEvent('content-deleted', { detail: { id: item.id, type: item.type } }));
   };
 
   const applyResult = async (result: ModifyResult, deleteOthers = false, targetItemId?: string) => {
@@ -173,7 +150,6 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
       toast.error('Original item not found in selection');
       return;
     }
-
     try {
       if (original.type === 'card') {
         const { error } = await supabase.from('zettel_cards').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
@@ -184,16 +160,12 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
       } else if (original.type === 'scratchpad') {
         localStorage.setItem('scratchpad-content', result.content);
       }
-
       const others = items.filter(i => i.id !== original.id);
       if (deleteOthers && others.length > 0) {
         const settled = await Promise.allSettled(others.map(deleteItem));
         const failed = settled.filter(s => s.status === 'rejected').length;
-        if (failed > 0) {
-          toast.error(`Combined into "${result.title}", but failed to delete ${failed} of ${others.length} originals`);
-        } else {
-          toast.success(`Combined into "${result.title}" and permanently deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
-        }
+        if (failed > 0) toast.error(`Combined into "${result.title}", but failed to delete ${failed} of ${others.length} originals`);
+        else toast.success(`Combined into "${result.title}" and permanently deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
         setItems([{ ...original, title: result.title, content: result.content }]);
         fetchAvailableItems();
       } else {
@@ -228,37 +200,23 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
     return true;
   });
 
-  if (!open) return null;
-
   return (
-    <div className="fixed right-0 top-0 h-full w-[380px] z-[60] bg-card border-l border-border shadow-xl flex flex-col animate-in slide-in-from-right-full duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Wand2 className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-sm">AI Modify</h2>
-        </div>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onOpenChange(false)}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
+    <>
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          {/* Selected Items */}
+        <div className="p-3 space-y-3 text-foreground">
           {items.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Selected Items ({items.length})</h3>
+              <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Selected ({items.length})</h3>
               {items.map(item => {
                 const Icon = TYPE_ICONS[item.type];
                 return (
-                  <div key={item.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/50 border border-border">
-                    <Icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div key={item.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border border-border/50">
+                    <Icon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{item.content.substring(0, 100)}</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-2">{item.content.substring(0, 100)}</p>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => removeItem(item.id)}>
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0" onClick={() => removeItem(item.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -267,59 +225,39 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
             </div>
           )}
 
-          {/* Item Picker */}
           <div>
-            <Button variant="outline" size="sm" className="w-full justify-between text-xs" onClick={() => setShowPicker(!showPicker)}>
+            <Button variant="outline" size="sm" className="w-full justify-between text-xs h-7" onClick={() => setShowPicker(!showPicker)}>
               Add Content Items
               {showPicker ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
 
             {showPicker && (
               <div className="mt-2 space-y-2">
-                {/* Filters */}
                 <div className="flex gap-1 flex-wrap">
                   {['all', 'note', 'card', 'scratchpad'].map(t => (
-                    <Badge
-                      key={t}
-                      variant={filterType === t ? 'default' : 'outline'}
-                      className="cursor-pointer text-xs"
-                      onClick={() => setFilterType(t)}
-                    >
+                    <Badge key={t} variant={filterType === t ? 'default' : 'outline'} className="cursor-pointer text-[10px]" onClick={() => setFilterType(t)}>
                       {t === 'all' ? 'All' : TYPE_LABELS[t as keyof typeof TYPE_LABELS]}
                     </Badge>
                   ))}
                 </div>
-
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                <input type="text" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   className="w-full h-7 px-2 text-xs rounded-md border border-input bg-background"
                 />
-
                 {isFetchingItems ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
                 ) : (
-                  <div className="max-h-[200px] overflow-y-auto space-y-1">
+                  <div className="max-h-[180px] overflow-y-auto space-y-1">
                     {filteredAvailable.map(item => {
                       const Icon = TYPE_ICONS[item.type];
                       const alreadyAdded = items.find(i => i.id === item.id);
                       return (
-                        <label
-                          key={item.id}
-                          className={cn(
-                            "flex items-center gap-2 p-1.5 rounded-md cursor-pointer hover:bg-accent/50 text-xs",
-                            alreadyAdded && "opacity-50 pointer-events-none"
-                          )}
+                        <label key={item.id}
+                          className={cn("flex items-center gap-2 p-1.5 rounded-md cursor-pointer hover:bg-accent/50 text-xs",
+                            alreadyAdded && "opacity-50 pointer-events-none")}
                         >
-                          <Checkbox
-                            checked={selectedIds.has(item.id) || !!alreadyAdded}
-                            onCheckedChange={() => !alreadyAdded && toggleSelect(item.id)}
-                            disabled={!!alreadyAdded}
-                          />
+                          <Checkbox checked={selectedIds.has(item.id) || !!alreadyAdded} onCheckedChange={() => !alreadyAdded && toggleSelect(item.id)} disabled={!!alreadyAdded} />
                           <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                           <span className="truncate">{item.title}</span>
                         </label>
@@ -330,7 +268,6 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
                     )}
                   </div>
                 )}
-
                 {selectedIds.size > 0 && (
                   <Button size="sm" className="w-full text-xs h-7" onClick={addSelected}>
                     Add {selectedIds.size} item{selectedIds.size > 1 ? 's' : ''}
@@ -340,103 +277,49 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
             )}
           </div>
 
-          {/* Instruction */}
           <div className="space-y-1.5">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Instruction</h3>
+            <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Instruction</h3>
             <Textarea
-              placeholder="e.g., 'Combine these notes into one summary', 'Rewrite in a more professional tone', 'Add bullet points'..."
+              placeholder="e.g., 'Combine into one summary', 'Rewrite professionally'..."
               value={instruction}
               onChange={e => setInstruction(e.target.value)}
-              className="min-h-[80px] text-xs resize-none"
+              className="min-h-[70px] text-xs resize-none"
             />
           </div>
 
-          {/* Run Button */}
-          <Button
-            className="w-full"
-            onClick={handleModify}
-            disabled={isLoading || items.length === 0 || !instruction.trim()}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Modifying...
-              </>
-            ) : (
-              <>
-                <Wand2 className="mr-2 h-4 w-4" />
-                Modify with AI
-              </>
-            )}
+          <Button className="w-full" size="sm" onClick={handleModify} disabled={isLoading || items.length === 0 || !instruction.trim()}>
+            {isLoading ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Modifying...</> : <><Wand2 className="mr-2 h-3.5 w-3.5" />Modify with AI</>}
           </Button>
 
-          {/* Results */}
           {results && results.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Results</h3>
+              <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Results</h3>
               {results.map((result, idx) => {
                 const original = items.find(i => i.id === result.id);
                 return (
                   <div key={idx} className="rounded-lg border border-border overflow-hidden">
-                    {/* Changes summary */}
                     <div className="px-3 py-2 bg-muted/30 border-b border-border">
                       <p className="text-xs font-medium">{result.title}</p>
-                      <p className="text-xs ai-modify-highlight mt-0.5">{result.changes}</p>
+                      <p className="text-[10px] ai-modify-highlight mt-0.5">{result.changes}</p>
                     </div>
-
-                    {/* Original vs Modified */}
                     {original && (
                       <div className="p-3 space-y-2">
                         <div>
-                          <span className="text-[10px] font-medium text-muted-foreground uppercase">Original</span>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-4">{original.content.substring(0, 300)}</p>
+                          <span className="text-[9px] font-medium text-muted-foreground uppercase">Original</span>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-4">{original.content.substring(0, 300)}</p>
                         </div>
                         <div>
-                          <span className="text-[10px] font-medium uppercase ai-modify-highlight">Modified</span>
-                          <p className="text-xs mt-0.5 ai-modify-highlight whitespace-pre-wrap">{result.content.substring(0, 500)}</p>
+                          <span className="text-[9px] font-medium uppercase ai-modify-highlight">Modified</span>
+                          <p className="text-[10px] mt-0.5 ai-modify-highlight whitespace-pre-wrap">{result.content.substring(0, 500)}</p>
                         </div>
                       </div>
                     )}
-
-                     {/* Actions */}
                     <div className="flex gap-1 px-3 py-2 border-t border-border bg-muted/20">
                       <Button size="sm" variant="default" className="h-6 text-xs flex-1" onClick={() => handleApplyClick(result)}>
                         <Check className="h-3 w-3 mr-1" /> Apply
                       </Button>
-                      {items.length > 1 && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-6 text-xs"
-                          onClick={async () => {
-                            if (!user) return;
-                            try {
-                              const { error } = await supabase.from('zettel_cards').insert({
-                                user_id: user.id,
-                                title: result.title,
-                                content: result.content,
-                                number: 'NEW',
-                                category: 'Combined',
-                                tags: [],
-                              });
-                              if (error) throw error;
-                              toast.success(`Created new card "${result.title}"`);
-                            } catch (e: any) {
-                              toast.error('Failed to create card: ' + (e.message || 'Unknown error'));
-                            }
-                          }}
-                        >
-                          <FileText className="h-3 w-3 mr-1" /> Save as Card
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-xs"
-                        onClick={() => {
-                          navigator.clipboard.writeText(result.content);
-                          toast.success('Copied to clipboard');
-                        }}
+                      <Button size="sm" variant="outline" className="h-6 text-xs"
+                        onClick={() => { navigator.clipboard.writeText(result.content); toast.success('Copied to clipboard'); }}
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -454,31 +337,24 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Keep the original items?</AlertDialogTitle>
             <AlertDialogDescription>
-              You're combining {items.length} items into "{pendingApply?.result.title}". Do you want to keep the {items.length - 1} original item{items.length - 1 > 1 ? 's' : ''}, or delete them now that they've been merged?
+              You're combining {items.length} items into "{pendingApply?.result.title}". Do you want to keep the {items.length - 1} original item{items.length - 1 > 1 ? 's' : ''}, or permanently delete them now that they've been merged?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingApply(null)}>Cancel</AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (pendingApply) applyResult(pendingApply.result, false, pendingApply.targetItemId);
-                setPendingApply(null);
-              }}
+            <Button variant="outline"
+              onClick={() => { if (pendingApply) applyResult(pendingApply.result, false, pendingApply.targetItemId); setPendingApply(null); }}
             >
               Keep originals
             </Button>
             <AlertDialogAction
-              onClick={() => {
-                if (pendingApply) applyResult(pendingApply.result, true, pendingApply.targetItemId);
-                setPendingApply(null);
-              }}
+              onClick={() => { if (pendingApply) applyResult(pendingApply.result, true, pendingApply.targetItemId); setPendingApply(null); }}
             >
               Delete originals
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

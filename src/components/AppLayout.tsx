@@ -16,10 +16,9 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Focus, Wand2, Search } from "lucide-react";
-import { FocusSidebar } from "./focus-sidebar/FocusSidebar";
+import { Bot, Wrench, Search } from "lucide-react";
+import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
-import { AIModifySidebar } from "./ai-modify/AIModifySidebar";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -33,8 +32,7 @@ export function AppLayout() {
   const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
-  const [focusOpen, setFocusOpen] = useState(false);
-  const [aiModifyOpen, setAiModifyOpen] = useState(false);
+  const [toolboxOpen, setToolboxOpen] = useState(false);
 
   const isOnline = hookOnline && browserOnline;
 
@@ -198,19 +196,11 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
-                  onClick={() => setFocusOpen(!focusOpen)}
-                  aria-label="Focus Sidebar"
+                  onClick={() => setToolboxOpen(!toolboxOpen)}
+                  aria-label="Toolbox"
+                  title="Toolbox (Focus, Tasks, AI Modify, Knowledge Chat)"
                 >
-                  <Focus className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
-                  onClick={() => setAiModifyOpen(!aiModifyOpen)}
-                  aria-label="AI Modify"
-                >
-                  <Wand2 className="h-4 w-4" />
+                  <Wrench className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -252,9 +242,8 @@ export function AppLayout() {
       <PWAInstallPrompt />
       <PushNotificationPrompt />
       <FloatingChatBubble />
-      <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
+      <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
-      <AIModifySidebar open={aiModifyOpen} onOpenChange={setAiModifyOpen} />
     </>
   );
 }
