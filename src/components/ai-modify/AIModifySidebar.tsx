@@ -425,6 +425,37 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
           )}
         </div>
       </ScrollArea>
+
+      <AlertDialog open={!!pendingApply} onOpenChange={(o) => !o && setPendingApply(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keep the original items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You're combining {items.length} items into "{pendingApply?.title}". Do you want to keep the {items.length - 1} original item{items.length - 1 > 1 ? 's' : ''}, or delete them now that they've been merged?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingApply(null)}>Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingApply) applyResult(pendingApply, false);
+                setPendingApply(null);
+              }}
+            >
+              Keep originals
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingApply) applyResult(pendingApply, true);
+                setPendingApply(null);
+              }}
+            >
+              Delete originals
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
