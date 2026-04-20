@@ -187,9 +187,15 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
 
       const others = items.filter(i => i.id !== original.id);
       if (deleteOthers && others.length > 0) {
-        await Promise.all(others.map(deleteItem));
-        toast.success(`Combined into "${result.title}" and deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
+        const settled = await Promise.allSettled(others.map(deleteItem));
+        const failed = settled.filter(s => s.status === 'rejected').length;
+        if (failed > 0) {
+          toast.error(`Combined into "${result.title}", but failed to delete ${failed} of ${others.length} originals`);
+        } else {
+          toast.success(`Combined into "${result.title}" and permanently deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
+        }
         setItems([{ ...original, title: result.title, content: result.content }]);
+        fetchAvailableItems();
       } else {
         toast.success(deleteOthers ? `Applied changes to "${result.title}"` : `Combined into "${result.title}" — originals kept`);
         setItems(prev => prev.map(i => i.id === original.id ? { ...i, title: result.title, content: result.content } : i));
