@@ -147,16 +147,22 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
   };
 
   const deleteItem = async (item: ContentItem) => {
+    if (!user) return;
     try {
       if (item.type === 'card') {
-        await supabase.from('zettel_cards').update({ deleted_at: new Date().toISOString() }).eq('id', item.id);
+        const { error } = await supabase.from('zettel_cards').delete().eq('id', item.id).eq('user_id', user.id);
+        if (error) throw error;
       } else if (item.type === 'note' || item.type === 'stickynote') {
-        await supabase.from('notes').update({ deleted_at: new Date().toISOString() }).eq('id', item.id);
+        const { error } = await supabase.from('notes').delete().eq('id', item.id).eq('user_id', user.id);
+        if (error) throw error;
       } else if (item.type === 'scratchpad') {
         try { localStorage.removeItem('scratchpad-content'); } catch {}
       }
+      // Notify the rest of the app to refresh lists
+      window.dispatchEvent(new CustomEvent('content-deleted', { detail: { id: item.id, type: item.type } }));
     } catch (e) {
       console.error('Failed to delete item', item.id, e);
+      throw e;
     }
   };
 
