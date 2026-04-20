@@ -442,7 +442,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Keep the original items?</AlertDialogTitle>
             <AlertDialogDescription>
-              You're combining {items.length} items into "{pendingApply?.title}". Do you want to keep the {items.length - 1} original item{items.length - 1 > 1 ? 's' : ''}, or delete them now that they've been merged?
+              You're combining {items.length} items into "{pendingApply?.result.title}". Do you want to keep the {items.length - 1} original item{items.length - 1 > 1 ? 's' : ''}, or delete them now that they've been merged?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -450,7 +450,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
             <Button
               variant="outline"
               onClick={() => {
-                if (pendingApply) applyResult(pendingApply, false);
+                if (pendingApply) applyResult(pendingApply.result, false, pendingApply.targetItemId);
                 setPendingApply(null);
               }}
             >
@@ -458,7 +458,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
             </Button>
             <AlertDialogAction
               onClick={() => {
-                if (pendingApply) applyResult(pendingApply, true);
+                if (pendingApply) applyResult(pendingApply.result, true, pendingApply.targetItemId);
                 setPendingApply(null);
               }}
             >
