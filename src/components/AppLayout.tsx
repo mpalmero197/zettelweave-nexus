@@ -242,9 +242,8 @@ export function AppLayout() {
       <PWAInstallPrompt />
       <PushNotificationPrompt />
       <FloatingChatBubble />
-      <FocusSidebar open={focusOpen} onOpenChange={setFocusOpen} />
+      <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
-      <AIModifySidebar open={aiModifyOpen} onOpenChange={setAiModifyOpen} />
     </>
   );
 }
