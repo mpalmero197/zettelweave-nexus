@@ -32,8 +32,7 @@ export function AppLayout() {
   const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
-  const [focusOpen, setFocusOpen] = useState(false);
-  const [aiModifyOpen, setAiModifyOpen] = useState(false);
+  const [toolboxOpen, setToolboxOpen] = useState(false);
 
   const isOnline = hookOnline && browserOnline;
 
@@ -197,19 +196,11 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
-                  onClick={() => setFocusOpen(!focusOpen)}
-                  aria-label="Focus Sidebar"
+                  onClick={() => setToolboxOpen(!toolboxOpen)}
+                  aria-label="Toolbox"
+                  title="Toolbox (Focus, Tasks, AI Modify, Knowledge Chat)"
                 >
-                  <Focus className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
-                  onClick={() => setAiModifyOpen(!aiModifyOpen)}
-                  aria-label="AI Modify"
-                >
-                  <Wand2 className="h-4 w-4" />
+                  <Wrench className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
