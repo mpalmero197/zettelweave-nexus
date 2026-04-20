@@ -141,23 +141,58 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
     }
   };
 
-  const applyResult = async (result: ModifyResult) => {
+  const deleteItem = async (item: ContentItem) => {
+    try {
+      if (item.type === 'card') {
+        await supabase.from('zettel_cards').update({ deleted_at: new Date().toISOString() }).eq('id', item.id);
+      } else if (item.type === 'note' || item.type === 'stickynote') {
+        await supabase.from('notes').update({ deleted_at: new Date().toISOString() }).eq('id', item.id);
+      } else if (item.type === 'scratchpad') {
+        try { localStorage.removeItem('scratchpad-content'); } catch {}
+      }
+    } catch (e) {
+      console.error('Failed to delete item', item.id, e);
+    }
+  };
+
+  const applyResult = async (result: ModifyResult, deleteOthers = false) => {
     const original = items.find(i => i.id === result.id);
-    if (!original) return;
+    if (!original) {
+      toast.error('Original item not found in selection');
+      return;
+    }
 
     try {
       if (original.type === 'card') {
-        await supabase.from('zettel_cards').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        const { error } = await supabase.from('zettel_cards').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        if (error) throw error;
       } else if (original.type === 'note' || original.type === 'stickynote') {
-        await supabase.from('notes').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        const { error } = await supabase.from('notes').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        if (error) throw error;
       } else if (original.type === 'scratchpad') {
         localStorage.setItem('scratchpad-content', result.content);
       }
-      toast.success(`Applied changes to "${result.title}"`);
-      // Update item in our list
-      setItems(prev => prev.map(i => i.id === result.id ? { ...i, title: result.title, content: result.content } : i));
+
+      const others = items.filter(i => i.id !== result.id);
+      if (deleteOthers && others.length > 0) {
+        await Promise.all(others.map(deleteItem));
+        toast.success(`Combined into "${result.title}" and deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
+        setItems([{ ...original, title: result.title, content: result.content }]);
+      } else {
+        toast.success(deleteOthers ? `Applied changes to "${result.title}"` : `Combined into "${result.title}" — originals kept`);
+        setItems(prev => prev.map(i => i.id === result.id ? { ...i, title: result.title, content: result.content } : i));
+      }
     } catch (e: any) {
       toast.error('Failed to apply: ' + (e.message || 'Unknown error'));
+    }
+  };
+
+  const handleApplyClick = (result: ModifyResult) => {
+    const isCombine = items.length > 1 && results?.length === 1;
+    if (isCombine) {
+      setPendingApply(result);
+    } else {
+      applyResult(result, false);
     }
   };
 
