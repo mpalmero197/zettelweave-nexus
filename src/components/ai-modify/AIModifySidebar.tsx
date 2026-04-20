@@ -31,6 +31,11 @@ interface ModifyResult {
   changes: string;
 }
 
+interface PendingApplyState {
+  result: ModifyResult;
+  targetItemId: string;
+}
+
 interface AIModifySidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,7 +67,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
   const [showPicker, setShowPicker] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [pendingApply, setPendingApply] = useState<ModifyResult | null>(null);
+  const [pendingApply, setPendingApply] = useState<PendingApplyState | null>(null);
 
   // Fetch available content when sidebar opens
   useEffect(() => {
@@ -155,8 +160,9 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
     }
   };
 
-  const applyResult = async (result: ModifyResult, deleteOthers = false) => {
-    const original = items.find(i => i.id === result.id);
+  const applyResult = async (result: ModifyResult, deleteOthers = false, targetItemId?: string) => {
+    const resolvedTargetId = targetItemId || result.id || items[0]?.id;
+    const original = items.find(i => i.id === resolvedTargetId) || items[0];
     if (!original) {
       toast.error('Original item not found in selection');
       return;
@@ -173,14 +179,14 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
         localStorage.setItem('scratchpad-content', result.content);
       }
 
-      const others = items.filter(i => i.id !== result.id);
+      const others = items.filter(i => i.id !== original.id);
       if (deleteOthers && others.length > 0) {
         await Promise.all(others.map(deleteItem));
         toast.success(`Combined into "${result.title}" and deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
         setItems([{ ...original, title: result.title, content: result.content }]);
       } else {
         toast.success(deleteOthers ? `Applied changes to "${result.title}"` : `Combined into "${result.title}" — originals kept`);
-        setItems(prev => prev.map(i => i.id === result.id ? { ...i, title: result.title, content: result.content } : i));
+        setItems(prev => prev.map(i => i.id === original.id ? { ...i, title: result.title, content: result.content } : i));
       }
     } catch (e: any) {
       toast.error('Failed to apply: ' + (e.message || 'Unknown error'));
@@ -190,7 +196,12 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
   const handleApplyClick = (result: ModifyResult) => {
     const isCombine = items.length > 1 && results?.length === 1;
     if (isCombine) {
-      setPendingApply(result);
+      const targetItem = items.find(i => i.id === result.id) || items[0];
+      if (!targetItem) {
+        toast.error('Original item not found in selection');
+        return;
+      }
+      setPendingApply({ result, targetItemId: targetItem.id });
     } else {
       applyResult(result, false);
     }
