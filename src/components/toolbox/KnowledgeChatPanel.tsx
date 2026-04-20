@@ -76,7 +76,6 @@ export function KnowledgeChatPanel() {
             </div>
             {msg.role === 'assistant' && (
               <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-                {msg.usedWebSearch && <span className="flex items-center gap-0.5"><Globe className="h-2.5 w-2.5" /> Web</span>}
                 <button onClick={() => copy(msg.content, idx)} className="hover:text-foreground flex items-center gap-0.5">
                   {copiedIndex === idx ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
                   Copy
