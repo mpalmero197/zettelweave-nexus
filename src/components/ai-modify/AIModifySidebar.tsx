@@ -12,6 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ContentItem {
   id: string;
@@ -58,6 +62,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
   const [showPicker, setShowPicker] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingApply, setPendingApply] = useState<ModifyResult | null>(null);
 
   // Fetch available content when sidebar opens
   useEffect(() => {
@@ -136,23 +141,58 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
     }
   };
 
-  const applyResult = async (result: ModifyResult) => {
+  const deleteItem = async (item: ContentItem) => {
+    try {
+      if (item.type === 'card') {
+        await supabase.from('zettel_cards').update({ deleted_at: new Date().toISOString() }).eq('id', item.id);
+      } else if (item.type === 'note' || item.type === 'stickynote') {
+        await supabase.from('notes').update({ deleted_at: new Date().toISOString() }).eq('id', item.id);
+      } else if (item.type === 'scratchpad') {
+        try { localStorage.removeItem('scratchpad-content'); } catch {}
+      }
+    } catch (e) {
+      console.error('Failed to delete item', item.id, e);
+    }
+  };
+
+  const applyResult = async (result: ModifyResult, deleteOthers = false) => {
     const original = items.find(i => i.id === result.id);
-    if (!original) return;
+    if (!original) {
+      toast.error('Original item not found in selection');
+      return;
+    }
 
     try {
       if (original.type === 'card') {
-        await supabase.from('zettel_cards').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        const { error } = await supabase.from('zettel_cards').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        if (error) throw error;
       } else if (original.type === 'note' || original.type === 'stickynote') {
-        await supabase.from('notes').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        const { error } = await supabase.from('notes').update({ title: result.title, content: result.content, updated_at: new Date().toISOString() }).eq('id', original.id);
+        if (error) throw error;
       } else if (original.type === 'scratchpad') {
         localStorage.setItem('scratchpad-content', result.content);
       }
-      toast.success(`Applied changes to "${result.title}"`);
-      // Update item in our list
-      setItems(prev => prev.map(i => i.id === result.id ? { ...i, title: result.title, content: result.content } : i));
+
+      const others = items.filter(i => i.id !== result.id);
+      if (deleteOthers && others.length > 0) {
+        await Promise.all(others.map(deleteItem));
+        toast.success(`Combined into "${result.title}" and deleted ${others.length} original${others.length > 1 ? 's' : ''}`);
+        setItems([{ ...original, title: result.title, content: result.content }]);
+      } else {
+        toast.success(deleteOthers ? `Applied changes to "${result.title}"` : `Combined into "${result.title}" — originals kept`);
+        setItems(prev => prev.map(i => i.id === result.id ? { ...i, title: result.title, content: result.content } : i));
+      }
     } catch (e: any) {
       toast.error('Failed to apply: ' + (e.message || 'Unknown error'));
+    }
+  };
+
+  const handleApplyClick = (result: ModifyResult) => {
+    const isCombine = items.length > 1 && results?.length === 1;
+    if (isCombine) {
+      setPendingApply(result);
+    } else {
+      applyResult(result, false);
     }
   };
 
@@ -337,7 +377,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
 
                      {/* Actions */}
                     <div className="flex gap-1 px-3 py-2 border-t border-border bg-muted/20">
-                      <Button size="sm" variant="default" className="h-6 text-xs flex-1" onClick={() => applyResult(result)}>
+                      <Button size="sm" variant="default" className="h-6 text-xs flex-1" onClick={() => handleApplyClick(result)}>
                         <Check className="h-3 w-3 mr-1" /> Apply
                       </Button>
                       {items.length > 1 && (
@@ -385,6 +425,37 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
           )}
         </div>
       </ScrollArea>
+
+      <AlertDialog open={!!pendingApply} onOpenChange={(o) => !o && setPendingApply(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keep the original items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You're combining {items.length} items into "{pendingApply?.title}". Do you want to keep the {items.length - 1} original item{items.length - 1 > 1 ? 's' : ''}, or delete them now that they've been merged?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingApply(null)}>Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingApply) applyResult(pendingApply, false);
+                setPendingApply(null);
+              }}
+            >
+              Keep originals
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingApply) applyResult(pendingApply, true);
+                setPendingApply(null);
+              }}
+            >
+              Delete originals
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
