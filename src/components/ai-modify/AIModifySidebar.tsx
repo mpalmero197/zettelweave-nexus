@@ -377,7 +377,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
 
                      {/* Actions */}
                     <div className="flex gap-1 px-3 py-2 border-t border-border bg-muted/20">
-                      <Button size="sm" variant="default" className="h-6 text-xs flex-1" onClick={() => applyResult(result)}>
+                      <Button size="sm" variant="default" className="h-6 text-xs flex-1" onClick={() => handleApplyClick(result)}>
                         <Check className="h-3 w-3 mr-1" /> Apply
                       </Button>
                       {items.length > 1 && (
