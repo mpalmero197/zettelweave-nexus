@@ -62,6 +62,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
   const [showPicker, setShowPicker] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingApply, setPendingApply] = useState<ModifyResult | null>(null);
 
   // Fetch available content when sidebar opens
   useEffect(() => {
