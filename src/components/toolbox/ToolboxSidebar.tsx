@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2, Sparkles } from 'lucide-react';
 import { useFocusState } from '@/components/focus-sidebar/useFocusState';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -26,8 +27,56 @@ const TABS: { id: ToolboxTab; label: string; icon: React.ComponentType<{ classNa
 
 export function ToolboxSidebar({ open, onOpenChange, initialTab = 'focus' }: ToolboxSidebarProps) {
   const isMobile = useIsMobile();
-  if (isMobile) return null;
+  if (isMobile) return <ToolboxMobileSheet open={open} onOpenChange={onOpenChange} initialTab={initialTab} />;
   return <ToolboxSidebarInner open={open} onOpenChange={onOpenChange} initialTab={initialTab} />;
+}
+
+function ToolboxMobileSheet({ open, onOpenChange, initialTab }: ToolboxSidebarProps) {
+  const [activeTab, setActiveTab] = useState<ToolboxTab>(initialTab || 'focus');
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail as ToolboxTab;
+      if (tab) {
+        setActiveTab(tab);
+        onOpenChange(true);
+      }
+    };
+    window.addEventListener('toolbox-open', handler);
+    return () => window.removeEventListener('toolbox-open', handler);
+  }, [onOpenChange]);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="p-0 w-full sm:max-w-md flex flex-row gap-0">
+        <div className="flex flex-col items-center py-3 gap-1 bg-muted/30 border-r border-border/50 shrink-0 w-12">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <Button
+              key={id}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-10 w-10 p-0 rounded-lg",
+                activeTab === id
+                  ? "bg-primary/15 text-primary hover:bg-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+              onClick={() => setActiveTab(id)}
+              aria-label={label}
+            >
+              <Icon className="h-4 w-4" />
+            </Button>
+          ))}
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden pt-10">
+          {activeTab === 'focus' && <FocusPanel />}
+          {activeTab === 'tasks' && <TasksPanel />}
+          {activeTab === 'ai-modify' && <AIModifyPanel />}
+          {activeTab === 'chat' && <KnowledgeChatPanel />}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
 }
 
 function ToolboxSidebarInner({ open, onOpenChange, initialTab }: ToolboxSidebarProps) {
