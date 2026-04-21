@@ -32,15 +32,6 @@ function validateChatInput(messages: any, context: any): { valid: boolean; error
     }
   }
   
-  if (context) {
-    if (context.cards && (!Array.isArray(context.cards) || context.cards.length > 100)) {
-      return { valid: false, error: 'Context cards must be an array with max 100 items' };
-    }
-    if (context.notes && (!Array.isArray(context.notes) || context.notes.length > 100)) {
-      return { valid: false, error: 'Context notes must be an array with max 100 items' };
-    }
-  }
-  
   return { valid: true };
 }
 
@@ -49,23 +40,52 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const isPing = await req.clone().json().then((b: any) => !!b?.ping).catch(() => false);
-  if (isPing) {
-    return new Response(JSON.stringify({ ok: true, pong: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  }
-
   try {
-    const { messages, context, useInternet, selectedSources } = await req.json();
-    
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (parseErr) {
+      console.error("JSON parse error:", parseErr);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (body?.ping) {
+      return new Response(JSON.stringify({ ok: true, pong: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const { messages, context, useInternet, selectedSources } = body;
+
+    // Trim oversized context arrays instead of rejecting
+    if (context && typeof context === 'object') {
+      for (const key of ['cards', 'notes', 'catalystDocs', 'calendarEvents', 'tasks', 'scratchPad']) {
+        if (Array.isArray(context[key]) && context[key].length > 100) {
+          context[key] = context[key].slice(0, 100);
+        }
+      }
+    }
+
+    // Trim oversized messages instead of rejecting
+    if (Array.isArray(messages)) {
+      for (const m of messages) {
+        if (m && typeof m.content === 'string' && m.content.length > 4000) {
+          m.content = m.content.substring(0, 4000);
+        }
+      }
+    }
+
     // Validate input
     const validation = validateChatInput(messages, context);
     if (!validation.valid) {
+      console.error("Validation failed:", validation.error);
       return new Response(
         JSON.stringify({ error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -276,19 +296,24 @@ Keep responses clear, concise, and actionable. Format with markdown: headers, li
     });
 
     if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      console.error("AI gateway error:", response.status, errText);
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your Lovable AI workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "AI credits exhausted. Please add credits in Lovable Cloud settings." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      throw new Error("AI gateway error");
+      return new Response(
+        JSON.stringify({ error: `AI gateway error (${response.status}): ${errText.substring(0, 200)}` }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
@@ -302,9 +327,10 @@ Keep responses clear, concise, and actionable. Format with markdown: headers, li
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("Unhandled error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
