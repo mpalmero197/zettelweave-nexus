@@ -211,14 +211,17 @@ export function useKnowledgeChat(isActive: boolean = true) {
       });
 
       if (error) {
-        console.error('Edge function error:', error, 'data:', data);
-        const msg = (data && (data as any).error) || error.message || 'Unknown error';
+        console.error('Edge function transport error:', error, 'data:', data);
+        const msg = (data && (data as any).error) || error.message || 'Network error reaching AI assistant';
         throw new Error(msg);
       }
 
+      if (data && (data as any).error) {
+        throw new Error((data as any).error);
+      }
+
       if (!data || !data.response) {
-        const msg = (data && (data as any).error) || 'Empty response from AI assistant';
-        throw new Error(msg);
+        throw new Error('Empty response from AI assistant');
       }
 
       const assistantMessage: ChatMessage = {
