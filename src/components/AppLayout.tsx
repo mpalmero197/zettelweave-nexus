@@ -195,7 +195,7 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  className="h-9 w-9 md:h-8 md:w-8 p-0 rounded-lg hover:bg-accent"
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
                   title="Toolbox (Focus, Tasks, AI Modify, Knowledge Chat)"
