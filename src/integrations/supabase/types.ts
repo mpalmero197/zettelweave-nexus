@@ -790,6 +790,7 @@ export type Database = {
           message: string
           read_at: string | null
           receiver_id: string
+          sender_display_name: string | null
           sender_id: string | null
           sender_type: string
         }
@@ -799,6 +800,7 @@ export type Database = {
           message: string
           read_at?: string | null
           receiver_id: string
+          sender_display_name?: string | null
           sender_id?: string | null
           sender_type?: string
         }
@@ -808,6 +810,7 @@ export type Database = {
           message?: string
           read_at?: string | null
           receiver_id?: string
+          sender_display_name?: string | null
           sender_id?: string | null
           sender_type?: string
         }

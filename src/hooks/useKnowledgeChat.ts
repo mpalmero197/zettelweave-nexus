@@ -200,15 +200,26 @@ export function useKnowledgeChat(isActive: boolean = true) {
     setIsLoading(true);
 
     try {
+      // Trim history to last 8 messages to avoid validation limits
+      const trimmedHistory = [...messages, userMessage].slice(-8);
       const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
         body: {
-          messages: [...messages, userMessage],
+          messages: trimmedHistory,
           context: buildContext(),
           selectedSources,
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error, 'data:', data);
+        const msg = (data && (data as any).error) || error.message || 'Unknown error';
+        throw new Error(msg);
+      }
+
+      if (!data || !data.response) {
+        const msg = (data && (data as any).error) || 'Empty response from AI assistant';
+        throw new Error(msg);
+      }
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -222,7 +233,7 @@ export function useKnowledgeChat(isActive: boolean = true) {
       return { data, userMessage };
     } catch (error: any) {
       console.error('AI assistant error:', error);
-      toast.error('Failed to get response from AI assistant');
+      toast.error(`AI assistant: ${error?.message || 'Failed to get response'}`);
     } finally {
       setIsLoading(false);
     }

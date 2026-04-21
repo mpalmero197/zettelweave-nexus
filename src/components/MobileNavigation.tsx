@@ -58,7 +58,6 @@ const SECTIONS = [
       { id: 'scratchpad', label: 'Scratchpad', icon: Pencil },
       { id: 'stickynotes', label: 'Sticky Notes', icon: StickyNote },
       { id: 'projects', label: 'Projects', icon: FolderKanban },
-      { id: 'focus', label: 'Focus', icon: Focus },
     ],
   },
   {
@@ -130,11 +129,6 @@ export function MobileNavigation({
   if (!isMobile) return null;
 
   const handleNav = (id: string) => {
-    if (id === 'focus') {
-      setOpen(false);
-      setFocusSheetOpen(true);
-      return;
-    }
     setOpen(false);
     onTabChange?.(id);
   };
