@@ -32,15 +32,6 @@ function validateChatInput(messages: any, context: any): { valid: boolean; error
     }
   }
   
-  if (context) {
-    if (context.cards && (!Array.isArray(context.cards) || context.cards.length > 100)) {
-      return { valid: false, error: 'Context cards must be an array with max 100 items' };
-    }
-    if (context.notes && (!Array.isArray(context.notes) || context.notes.length > 100)) {
-      return { valid: false, error: 'Context notes must be an array with max 100 items' };
-    }
-  }
-  
   return { valid: true };
 }
 
@@ -49,23 +40,52 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const isPing = await req.clone().json().then((b: any) => !!b?.ping).catch(() => false);
-  if (isPing) {
-    return new Response(JSON.stringify({ ok: true, pong: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  }
-
   try {
-    const { messages, context, useInternet, selectedSources } = await req.json();
-    
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (parseErr) {
+      console.error("JSON parse error:", parseErr);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (body?.ping) {
+      return new Response(JSON.stringify({ ok: true, pong: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const { messages, context, useInternet, selectedSources } = body;
+
+    // Trim oversized context arrays instead of rejecting
+    if (context && typeof context === 'object') {
+      for (const key of ['cards', 'notes', 'catalystDocs', 'calendarEvents', 'tasks', 'scratchPad']) {
+        if (Array.isArray(context[key]) && context[key].length > 100) {
+          context[key] = context[key].slice(0, 100);
+        }
+      }
+    }
+
+    // Trim oversized messages instead of rejecting
+    if (Array.isArray(messages)) {
+      for (const m of messages) {
+        if (m && typeof m.content === 'string' && m.content.length > 4000) {
+          m.content = m.content.substring(0, 4000);
+        }
+      }
+    }
+
     // Validate input
     const validation = validateChatInput(messages, context);
     if (!validation.valid) {
+      console.error("Validation failed:", validation.error);
       return new Response(
         JSON.stringify({ error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
