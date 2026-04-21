@@ -1,73 +1,44 @@
 
 
-## Plan: Fix 6 Bugs
+## Plan: 4 Fixes
 
-### 1. Fix Organization Method Edge Function (non-2xx error)
+### 1. Mobile header — replace Focus with Toolbox button
+**File:** `src/components/MobileNavigation.tsx`
+- Remove the in-FAB-grid "Focus" item.
+- Open the unified Toolbox sheet on mobile instead of the focus-only sheet.
 
-**Root cause**: The `ai-reorganize-cards` and `ai-categorize-card` edge functions return non-2xx status codes (429, 402, 500) which causes `supabase.functions.invoke()` to throw, discarding the response body. The client never sees the specific error message.
+**File:** `src/components/AppLayout.tsx`
+- Add a Toolbox (Wrench) button to the mobile-visible header next to the existing right-side actions (where settings/user menu sits).
+- Currently the toolbox button is `hidden md:flex` — change to always visible, sized for touch (44px min on mobile).
 
-**Fix**: Update both edge functions to always return status 200 with `{ ok: false, error: "..." }` for error cases. Update the client-side `handleReorganizeCards` in `Index.tsx` to check `data.ok === false` or `data.error`.
+**File:** `src/components/toolbox/ToolboxSidebar.tsx`
+- Currently returns `null` on mobile. Add a mobile branch that renders the same icon-rail + active-panel UI inside a full-height `Sheet` (slide from right) so all four tools are accessible on phones.
 
-**Files**: `supabase/functions/ai-reorganize-cards/index.ts`, `src/pages/Index.tsx`
+### 2. Knowledge Chat "couldn't fetch the AI assistant" error
+**File:** `src/hooks/useKnowledgeChat.ts`
+- Surface the real error message from `supabase.functions.invoke` instead of a generic toast. Read `error.message` and any `data?.error` and include in the toast + console.
+- Guard against empty `data.response`: if the edge function returns 400/500, currently we throw but the user sees only the generic message. Show `data?.error || error?.message`.
+- Also trim the chat payload: only include the last 8 messages (the function caps at 50 but very long histories risk 4000-char per-message validation failures since we currently send entire conversation context joined).
 
-### 2. Fix Organization Method Dialog Immediately Closing
+**File:** `supabase/functions/ai-assistant-chat/index.ts` (verification only — likely fine; LOVABLE_API_KEY missing would throw 500). If the surfaced error reveals a missing key, prompt the user to add it.
 
-**Root cause**: The `OrganizationMethodDialog` uses a `Dialog` with `isOpen` state, but clicking on `Card` elements inside the dialog triggers click propagation that closes it. The `Card` `onClick` sets `selectedMethod` but the dialog's `onOpenChange` also fires from the same interaction.
+### 3. Loading-screen logo too large (only partial visible)
+**File:** `index.html`
+- Reduce `#app-loading-icon` from `36px` to `28px` and ensure it uses `display: block` with proper centering.
+- Add `max-width: 100%` and a defined `aspect-ratio: 1` to the icon.
+- Currently `#app-loading-title` uses `display: flex` with `gap: 8px` — verify icon and "PendragonX" text fit on small viewports (add `flex-wrap: wrap` and shrink the H1 to `24px` on mobile via a `@media (max-width: 480px)` rule).
 
-**Fix**: Add `e.stopPropagation()` to card clicks and ensure the dialog `onOpenChange` handler preserves open state during method selection.
+### 4. Amber color on loading screen
+**File:** `index.html`
+- The loading spinner border-top and the "PendragonX" gradient currently use `hsl(36 72% 48%)` — that's the amber/gold accent.
+- Replace with the Halcyon brand palette:
+  - Light mode gradient: navy `hsl(220 40% 25%)` → charcoal `hsl(220 20% 35%)`
+  - Dark mode gradient: ivory `hsl(40 20% 92%)` → soft purple accent `hsl(265 50% 70%)`
+  - Spinner top-color: matching primary in each scheme.
+- This aligns with the Halcyon aesthetic memory (navy/charcoal dark, ivory light, purple accent — no amber).
 
-**Files**: `src/components/OrganizationMethodDialog.tsx`
-
-### 3. Fix Smart Linking Assistant
-
-**Root cause**: The `suggest-smart-links` edge function returns non-2xx on errors, causing the same Supabase SDK issue. Also, the function uses `SUPABASE_SERVICE_ROLE_KEY` with user-passed auth header which can cause auth conflicts.
-
-**Fix**: Update the edge function to return 200 with structured `{ ok, suggestions, error }` responses. Fix auth to use anon key + token-based `getUser()`.
-
-**Files**: `supabase/functions/suggest-smart-links/index.ts`, `src/components/SmartLinkingSidebar.tsx`
-
-### 4. Fix Knowledge Chat Button Not Working
-
-**Root cause**: `AppLayout.tsx` `handleTabChange` (lines 101-134) does not include `"knowledge-chat"` in its switch cases. It falls through to the `default` which navigates to `/app` but never dispatches the tab change event.
-
-**Fix**: Add `"knowledge-chat"` to the list of valid tabs in the switch statement.
-
-**Files**: `src/components/AppLayout.tsx`
-
-### 5. Add Search Option to Desktop Header
-
-**Root cause**: The desktop header in `AppLayout.tsx` has no Search button. There's a `search` tab in `Index.tsx` but no way to access it from the persistent desktop header.
-
-**Fix**: Add a Search icon button to the desktop header actions in `AppLayout.tsx` that dispatches the `search` tab change.
-
-**Files**: `src/components/AppLayout.tsx`
-
-### 6. Fix AI Modify Not Creating Cards When Combining Notes
-
-**Root cause**: The `AIModifySidebar` `applyResult` function (line 139-157) only updates existing items — it has no logic to create a new card when combining multiple items. When the AI returns a combined result, it tries to update the first item but doesn't create a new card.
-
-**Fix**: Add a "Save as New Card" button alongside the "Apply" action when the instruction involves combining. When a result's `changes` mentions combining or when multiple items were selected, offer a "Create Card" option that calls `supabase.from('zettel_cards').insert(...)`.
-
-**Files**: `src/components/ai-modify/AIModifySidebar.tsx`
-
-### 7. Fix FloatingChatBubble Crash (Bonus — from console logs)
-
-**Root cause**: `Cannot read properties of null (reading 'substring')` — in `loadMessageThreads`, `msg.sender_id` can be null for system messages, causing `uid` to be null and `uid.substring(0,6)` to crash.
-
-**Fix**: Add null guard for sender_id in the message thread loop.
-
-**Files**: `src/components/FloatingChatBubble.tsx`
-
-### Summary of Files to Edit
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/ai-reorganize-cards/index.ts` | Return 200 for all responses |
-| `supabase/functions/suggest-smart-links/index.ts` | Return 200 for all responses, fix auth |
-| `src/pages/Index.tsx` | Handle `data.error` from reorganize |
-| `src/components/OrganizationMethodDialog.tsx` | Fix dialog closing on card click |
-| `src/components/SmartLinkingSidebar.tsx` | Handle structured error responses |
-| `src/components/AppLayout.tsx` | Add `knowledge-chat` to tab switch, add Search button |
-| `src/components/ai-modify/AIModifySidebar.tsx` | Add "Create Card" option for combined results |
-| `src/components/FloatingChatBubble.tsx` | Null guard for sender_id |
+### Out of scope
+- No schema changes.
+- No new edge functions.
+- No changes to the desktop toolbox layout (already correct).
 
