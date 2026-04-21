@@ -1,7 +1,7 @@
 project_id = "sckglgjydlbztxjupbsk"
 
 [functions.ai-assistant-chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-edit-card]
 verify_jwt = true
