@@ -286,6 +286,74 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_code_patches: {
+        Row: {
+          ai_model: string | null
+          applied_at: string | null
+          applied_by: string | null
+          apply_error: string | null
+          branch_name: string | null
+          commit_sha: string | null
+          created_at: string
+          created_by: string | null
+          error_report_id: string | null
+          explanation: string
+          file_path: string
+          id: string
+          new_content: string
+          original_content: string | null
+          original_sha: string | null
+          pr_url: string | null
+          status: string
+        }
+        Insert: {
+          ai_model?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          apply_error?: string | null
+          branch_name?: string | null
+          commit_sha?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_report_id?: string | null
+          explanation: string
+          file_path: string
+          id?: string
+          new_content: string
+          original_content?: string | null
+          original_sha?: string | null
+          pr_url?: string | null
+          status?: string
+        }
+        Update: {
+          ai_model?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          apply_error?: string | null
+          branch_name?: string | null
+          commit_sha?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_report_id?: string | null
+          explanation?: string
+          file_path?: string
+          id?: string
+          new_content?: string
+          original_content?: string | null
+          original_sha?: string | null
+          pr_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_code_patches_error_report_id_fkey"
+            columns: ["error_report_id"]
+            isOneToOne: false
+            referencedRelation: "error_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           created_at: string
