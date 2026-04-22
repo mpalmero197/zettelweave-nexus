@@ -587,6 +587,49 @@
     outline: none;
     box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary) / 0.5);
   }
+
+  /* === Global glassmorphic surfaces ===
+     Apple-like frosted glass applied app-wide to floating/raised surfaces. */
+  [data-radix-popper-content-wrapper] > *,
+  [data-radix-popover-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-menu-content],
+  [data-radix-select-content],
+  [data-radix-hover-card-content],
+  [data-radix-context-menu-content],
+  [data-radix-navigation-menu-viewport],
+  [data-sonner-toaster] [data-sonner-toast],
+  [data-sidebar="sidebar"],
+  .glass-surface {
+    background-color: hsl(var(--popover) / 0.72) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-color: hsl(var(--border) / 0.6) !important;
+  }
+
+  /* Dialogs / sheets — slightly stronger glass for body legibility */
+  [role="dialog"][data-state] {
+    background-color: hsl(var(--background) / 0.82) !important;
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+  }
+
+  /* Soft mesh tint behind everything so the glass has something to refract */
+  body {
+    background-image: var(--gradient-mesh);
+    background-attachment: fixed;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    [data-radix-popper-content-wrapper] > *,
+    [role="dialog"][data-state],
+    [data-sidebar="sidebar"],
+    .glass-surface {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background-color: hsl(var(--popover)) !important;
+    }
+  }
 }
 
 @layer utilities {
