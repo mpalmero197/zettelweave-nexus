@@ -18,6 +18,7 @@ import { CookieAnalytics } from '@/components/admin/CookieAnalytics';
 import { ToolTester } from '@/components/admin/ToolTester';
 import { PlatformReport } from '@/components/admin/PlatformReport';
 import { AdminAIChat } from '@/components/admin/AdminAIChat';
+import { AIFixesPanel } from '@/components/admin/AIFixesPanel';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -373,6 +374,8 @@ export default function Admin() {
         return <PlatformReport />;
       case 'system-ai-assistant':
         return <AdminAIChat />;
+      case 'system-ai-fixer':
+        return <AIFixesPanel />;
       case 'docs':
         return <DocumentationViewer />;
       default:

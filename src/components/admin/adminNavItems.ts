@@ -74,6 +74,7 @@ export const adminNavItems: AdminNavItem[] = [
       { id: 'tools', label: 'Test Tools', icon: Wrench },
       { id: 'report', label: 'Platform Report', icon: FileSearch },
       { id: 'ai-assistant', label: 'AI Assistant', icon: Bot },
+      { id: 'ai-fixer', label: 'AI Frontend Fixer', icon: Wrench },
     ],
   },
   {
