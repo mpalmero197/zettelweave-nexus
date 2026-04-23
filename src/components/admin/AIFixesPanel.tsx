@@ -43,6 +43,7 @@ export function AIFixesPanel() {
   const [proposingFor, setProposingFor] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [hintMap, setHintMap] = useState<Record<string, string>>({});
+  const [pathMap, setPathMap] = useState<Record<string, string>>({});
   const [activePatch, setActivePatch] = useState<Patch | null>(null);
 
   const load = async () => {
@@ -93,6 +94,7 @@ export function AIFixesPanel() {
       await callFixerFunction<{ ok: true; patch: Patch }>("propose-code-fix", {
         error_report_id: errorId,
         hint: hintMap[errorId] || undefined,
+        file_path_override: pathMap[errorId]?.trim() || undefined,
       });
       toast.success("Patch proposed — review below");
       await load();
@@ -182,6 +184,13 @@ export function AIFixesPanel() {
                     onChange={ev => setHintMap(m => ({ ...m, [e.id]: ev.target.value }))}
                     className="text-xs"
                     rows={2}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Optional file path override (e.g. src/components/Foo.tsx) — use when GitHub returns 404"
+                    value={pathMap[e.id] || ""}
+                    onChange={ev => setPathMap(m => ({ ...m, [e.id]: ev.target.value }))}
+                    className="w-full text-xs font-mono px-3 py-2 rounded-md border border-input bg-background"
                   />
                   <Button
                     size="sm"
