@@ -7,6 +7,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify({ ok: status < 400, ...body }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -139,13 +145,6 @@ ${originalContent}
   } catch (e) {
     console.error("propose-code-fix error:", e);
     return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
-  }
-
-  function json(body: unknown, status = 200) {
-    return new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   }
 });
 
