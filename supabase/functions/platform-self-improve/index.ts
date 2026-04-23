@@ -19,7 +19,7 @@ serve(async (req) => {
 
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -220,7 +220,7 @@ For feature evaluations, ONLY surface requests you recommend implementing (utili
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI gateway error", status: response.status }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -231,7 +231,7 @@ For feature evaluations, ONLY surface requests you recommend implementing (utili
     if (!toolCall?.function?.arguments) {
       console.error("No tool call in response:", JSON.stringify(aiResult));
       return new Response(JSON.stringify({ error: "No structured response from AI" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -240,7 +240,7 @@ For feature evaluations, ONLY surface requests you recommend implementing (utili
 
     if (!Array.isArray(insights) || insights.length === 0) {
       return new Response(JSON.stringify({ error: "Empty insights array" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -275,7 +275,7 @@ For feature evaluations, ONLY surface requests you recommend implementing (utili
       if (insertError) {
         console.error("Insert error:", insertError);
         return new Response(JSON.stringify({ error: "Failed to save insights" }), {
-          status: 500,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -293,7 +293,7 @@ For feature evaluations, ONLY surface requests you recommend implementing (utili
   } catch (e) {
     console.error("platform-self-improve error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

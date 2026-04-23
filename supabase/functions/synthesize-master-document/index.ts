@@ -15,7 +15,7 @@ serve(async (req) => {
     const { user_id, subject_hint } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id required" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -109,7 +109,7 @@ serve(async (req) => {
     } catch {
       console.error("Failed to parse clusters:", clusterText);
       return new Response(JSON.stringify({ error: "Failed to parse subject clusters" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -277,7 +277,7 @@ serve(async (req) => {
     console.error("Synthesis error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

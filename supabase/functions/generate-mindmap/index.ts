@@ -18,7 +18,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -32,14 +32,14 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const { subject } = await req.json();
     if (!subject || typeof subject !== "string" || subject.trim().length < 2) {
       return new Response(JSON.stringify({ error: "A subject is required" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -48,7 +48,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       console.error("Missing LOVABLE_API_KEY");
       return new Response(JSON.stringify({ error: "Server configuration error" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -138,18 +138,18 @@ serve(async (req) => {
       console.error("AI Gateway error:", status);
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds to continue." }), {
-          status: 402,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -159,7 +159,7 @@ serve(async (req) => {
     if (!toolCall || toolCall.function.name !== "create_mind_map") {
       console.error("Unexpected AI response:", JSON.stringify(data));
       return new Response(JSON.stringify({ error: "Failed to structure mind map" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -170,7 +170,7 @@ serve(async (req) => {
     } catch (e) {
       console.error("Failed to parse tool call arguments:", e);
       return new Response(JSON.stringify({ error: "Failed to parse mind map structure" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -184,7 +184,7 @@ serve(async (req) => {
     console.error("generate-mindmap error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -226,19 +226,19 @@ serve(async (req) => {
 
     if (e.message?.includes("429")) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
-        status: 429,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     if (e.message?.includes("402")) {
       return new Response(JSON.stringify({ error: "Payment required." }), {
-        status: 402,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

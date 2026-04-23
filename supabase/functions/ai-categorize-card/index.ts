@@ -38,7 +38,7 @@ serve(async (req) => {
     if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
       return new Response(
         JSON.stringify({ error: 'Request too large' }),
-        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -56,7 +56,7 @@ serve(async (req) => {
     if (!authHeader || authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -66,7 +66,7 @@ serve(async (req) => {
     if (!validation.success) {
       return new Response(
         JSON.stringify({ error: 'Invalid request data', details: validation.error.issues }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -131,14 +131,14 @@ Analyze and categorize this content using the ${method} system.`;
 
     if (response.status === 429) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-        status: 429,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (response.status === 402) {
       return new Response(JSON.stringify({ error: 'AI usage limit reached. Please add credits to continue.' }), {
-        status: 402,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -169,7 +169,7 @@ Analyze and categorize this content using the ${method} system.`;
     return new Response(JSON.stringify({ 
       error: 'Failed to categorize card'
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

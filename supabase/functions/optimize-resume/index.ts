@@ -193,7 +193,7 @@ ${customInstructions ? `Additional instructions from the user:\n${customInstruct
   } catch (e) {
     console.error("optimize-resume error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

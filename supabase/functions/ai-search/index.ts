@@ -34,7 +34,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -48,7 +48,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -61,7 +61,7 @@ serve(async (req) => {
     if (!validationResult.success) {
       return new Response(
         JSON.stringify({ error: 'Invalid search parameters' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -211,13 +211,13 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-          status: 402,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -263,15 +263,15 @@ Be flexible with spelling, synonyms, and descriptions. For example, if they sear
     );
 
   } catch (error) {
-    let status = 500;
+    let status = 200;
     let errorMessage = 'Failed to process search request';
     
     if (error instanceof Error) {
       if (error.message.includes('rate limit')) {
-        status = 429;
+        status = 200;
         errorMessage = 'Rate limit exceeded. Please try again later.';
       } else if (error.message.includes('payment')) {
-        status = 402;
+        status = 200;
         errorMessage = 'Service temporarily unavailable. Please contact support.';
       }
     }

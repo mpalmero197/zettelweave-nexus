@@ -180,7 +180,7 @@ Keep it concise, actionable, and personalized to their actual content.`;
   } catch (error) {
     console.error('Daily report error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
