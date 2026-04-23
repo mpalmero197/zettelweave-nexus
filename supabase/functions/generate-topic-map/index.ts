@@ -126,12 +126,12 @@ serve(async (req) => {
       console.error("AI gateway error:", status, text);
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (status === 402) {
         return new Response(JSON.stringify({ error: "Payment required." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error(`AI gateway error: ${status}`);
@@ -148,7 +148,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("generate-topic-map error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

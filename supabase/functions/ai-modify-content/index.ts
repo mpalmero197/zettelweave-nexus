@@ -29,7 +29,7 @@ serve(async (req) => {
     const parsed = modifySchema.safeParse(body);
     if (!parsed.success) {
       return new Response(JSON.stringify({ error: 'Invalid input' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -73,12 +73,12 @@ Preserve the original meaning and important details unless the user explicitly a
 
     if (response.status === 429) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     if (response.status === 402) {
       return new Response(JSON.stringify({ error: 'AI usage limit reached. Please add credits.' }), {
-        status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     if (!response.ok) {
@@ -103,7 +103,7 @@ Preserve the original meaning and important details unless the user explicitly a
   } catch (error) {
     console.error('Error in ai-modify-content:', error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

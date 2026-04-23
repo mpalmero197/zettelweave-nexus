@@ -144,6 +144,14 @@ export function AdminAIChat() {
         }
       );
 
+      const contentType = resp.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const payload = await resp.json().catch(() => ({ error: 'Unknown error' }));
+        if (payload?.error || payload?.ok === false) {
+          throw new Error(payload.error || 'Failed to get AI response');
+        }
+      }
+
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(err.error || `HTTP ${resp.status}`);

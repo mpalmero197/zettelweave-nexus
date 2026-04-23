@@ -42,7 +42,7 @@ serve(async (req) => {
       console.error('Validation error:', validationResult.error);
       return new Response(
         JSON.stringify({ error: 'Invalid input data' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -92,14 +92,14 @@ Please improve this card according to the user's request and return the result a
 
     if (response.status === 429) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-        status: 429,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (response.status === 402) {
       return new Response(JSON.stringify({ error: 'AI usage limit reached. Please add credits to continue.' }), {
-        status: 402,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -136,7 +136,7 @@ Please improve this card according to the user's request and return the result a
     console.error('Error in ai-edit-card function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to process AI edit request';
     return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
