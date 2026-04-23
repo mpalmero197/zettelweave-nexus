@@ -58,16 +58,42 @@ export function AIFixesPanel() {
 
   useEffect(() => { load(); }, []);
 
+  const callFixerFunction = async <T,>(functionName: "propose-code-fix" | "apply-code-fix", body: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const payload = contentType.includes("application/json")
+      ? await response.json().catch(() => ({ ok: false, error: "Unknown error" }))
+      : null;
+
+    if (payload?.ok === false || payload?.error) {
+      throw new Error(payload.error || "Edge function failed");
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return (payload ?? {}) as T;
+  };
+
   const propose = async (errorId: string) => {
     setProposingFor(errorId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-      const { data, error } = await supabase.functions.invoke("propose-code-fix", {
-        body: { error_report_id: errorId, hint: hintMap[errorId] || undefined },
+      await callFixerFunction<{ ok: true; patch: Patch }>("propose-code-fix", {
+        error_report_id: errorId,
+        hint: hintMap[errorId] || undefined,
       });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
       toast.success("Patch proposed — review below");
       await load();
     } catch (e: any) {
@@ -81,11 +107,10 @@ export function AIFixesPanel() {
     if (mode === "direct" && !confirm("Commit directly to main? This bypasses review.")) return;
     setApplying(patchId);
     try {
-      const { data, error } = await supabase.functions.invoke("apply-code-fix", {
-        body: { patch_id: patchId, mode },
+      const data = await callFixerFunction<{ ok: true; pr_url?: string | null }>("apply-code-fix", {
+        patch_id: patchId,
+        mode,
       });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
       toast.success(mode === "pr" ? `PR opened${data?.pr_url ? "" : " (check repo)"}` : "Committed to main");
       await load();
     } catch (e: any) {
