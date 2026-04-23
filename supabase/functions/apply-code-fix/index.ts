@@ -8,8 +8,8 @@ const corsHeaders = {
 };
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
+  new Response(JSON.stringify({ ok: status < 400, ...(typeof body === "object" && body !== null ? body as Record<string, unknown> : { data: body }) }), {
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
