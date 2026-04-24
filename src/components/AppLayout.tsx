@@ -144,7 +144,8 @@ export function AppLayout() {
           >
           <SecurityNotice />
 
-          {/* Persistent Header — Halcyon style */}
+          {/* Persistent Header — hidden in pop-out windows for a focused single-feature view */}
+          {!isPopout && (
           <header
             className="h-12 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50"
             role="banner"
@@ -191,6 +192,16 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  onClick={() => handlePopOut()}
+                  aria-label="Open this feature in a new window"
+                  title="Pop out to a new window"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-9 w-9 md:h-8 md:w-8 p-0 rounded-lg hover:bg-accent"
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
@@ -214,23 +225,26 @@ export function AppLayout() {
               </div>
             </div>
           </header>
+          )}
 
           {/* Page Content */}
           <main id="main-content" className="flex-1">
-            <Outlet context={{ isAdmin, activeTab, handleTabChange, pendingSearchQuery, setPendingSearchQuery }} />
+            <Outlet context={{ isAdmin, activeTab, handleTabChange, pendingSearchQuery, setPendingSearchQuery, isPopout }} />
           </main>
 
-          <MobileNavigation
-            isAdmin={isAdmin}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            onSearchWithQuery={(query) => {
-              setPendingSearchQuery(query);
-              handleTabChange("search");
-            }}
-            onSignOut={handleSignOut}
-            onAccountSettings={() => navigate("/settings")}
-          />
+          {!isPopout && (
+            <MobileNavigation
+              isAdmin={isAdmin}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              onSearchWithQuery={(query) => {
+                setPendingSearchQuery(query);
+                handleTabChange("search");
+              }}
+              onSignOut={handleSignOut}
+              onAccountSettings={() => navigate("/settings")}
+            />
+          )}
           </div>
         </MobileOptimizedLayout>
       </MobileDetector>
