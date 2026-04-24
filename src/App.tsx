@@ -136,6 +136,11 @@ const App = () => (
                       <Index />
                     </Suspense>
                   } />
+                  <Route path="/app/:tab" element={
+                    <Suspense fallback={<LoadingFallback message="Loading workspace..." />}>
+                      <Index />
+                    </Suspense>
+                  } />
                   <Route path="/admin" element={
                     <Suspense fallback={<LoadingFallback message="Loading admin panel..." />}>
                       <Admin />

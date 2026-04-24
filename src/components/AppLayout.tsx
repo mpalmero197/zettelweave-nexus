@@ -16,13 +16,15 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Wrench, Search } from "lucide-react";
+import { Bot, Wrench, Search, ExternalLink } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
 import { toast } from "sonner";
+import { usePopoutMode } from "@/hooks/usePopoutMode";
+import { useWindowSync } from "@/hooks/useWindowSync";
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
@@ -33,6 +35,11 @@ export function AppLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
   const [toolboxOpen, setToolboxOpen] = useState(false);
+  const isPopout = usePopoutMode();
+
+  // Live cross-window sync (BroadcastChannel) — invalidates queries when
+  // another window mutates data.
+  useWindowSync();
 
   const isOnline = hookOnline && browserOnline;
 
@@ -41,7 +48,7 @@ export function AppLayout() {
   // Derive active tab from the current route for non-app pages
   const activeTab = (() => {
     const path = location.pathname;
-    if (path === "/app") return realActiveTab;
+    if (path === "/app" || path.startsWith("/app/")) return realActiveTab;
     if (path === "/agents") return "agents";
     if (path === "/admin") return "admin";
     if (path === "/subscription") return "subscription";
@@ -96,41 +103,30 @@ export function AppLayout() {
     }
   };
 
+  const APP_TABS = new Set([
+    "dashboard","cards","graph","notes","files","canvas","calendar","journal",
+    "habits","scratchpad","stickynotes","catalyst","collab","recorder","recycle",
+    "search","debugger","learning","projects","spaces","integrations",
+    "knowledge-gaps","notebooks","knowledge-chat",
+  ]);
+
   const handleTabChange = (tab: string) => {
-    switch (tab) {
-      case "dashboard":
-      case "cards":
-      case "graph":
-      case "notes":
-      case "files":
-      case "canvas":
-      case "calendar":
-      case "journal":
-      case "habits":
-      case "scratchpad":
-      case "stickynotes":
-      case "catalyst":
-      case "collab":
-      case "recorder":
-      case "recycle":
-      case "search":
-      case "debugger":
-      case "learning":
-      case "projects":
-      case "spaces":
-      case "integrations":
-      case "knowledge-gaps":
-      case "notebooks":
-      case "knowledge-chat":
-        // These are all tabs within /app
-        navigate("/app");
-        // We dispatch a custom event so Index.tsx can pick up the tab
-        window.dispatchEvent(new CustomEvent("app-tab-change", { detail: tab }));
-        break;
-      default:
-        navigate("/app");
-        break;
+    if (APP_TABS.has(tab)) {
+      // Preserve ?popout=1 if present so the popout window stays a popout
+      const search = location.search;
+      navigate(`/app/${tab}${search}`);
+      window.dispatchEvent(new CustomEvent("app-tab-change", { detail: tab }));
+    } else {
+      navigate("/app");
     }
+  };
+
+  /** Open the current (or given) feature in a new focused window. */
+  const handlePopOut = (tab?: string) => {
+    const target = tab && APP_TABS.has(tab) ? tab : (APP_TABS.has(activeTab) ? activeTab : "dashboard");
+    const url = `${window.location.origin}/app/${target}?popout=1`;
+    const features = "noopener=yes,popup=yes,width=1200,height=800";
+    window.open(url, `pendragonx-${target}`, features);
   };
 
   return (
@@ -148,7 +144,8 @@ export function AppLayout() {
           >
           <SecurityNotice />
 
-          {/* Persistent Header — Halcyon style */}
+          {/* Persistent Header — hidden in pop-out windows for a focused single-feature view */}
+          {!isPopout && (
           <header
             className="h-12 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50"
             role="banner"
@@ -195,6 +192,16 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  onClick={() => handlePopOut()}
+                  aria-label="Open this feature in a new window"
+                  title="Pop out to a new window"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-9 w-9 md:h-8 md:w-8 p-0 rounded-lg hover:bg-accent"
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
@@ -218,23 +225,26 @@ export function AppLayout() {
               </div>
             </div>
           </header>
+          )}
 
           {/* Page Content */}
           <main id="main-content" className="flex-1">
-            <Outlet context={{ isAdmin, activeTab, handleTabChange, pendingSearchQuery, setPendingSearchQuery }} />
+            <Outlet context={{ isAdmin, activeTab, handleTabChange, pendingSearchQuery, setPendingSearchQuery, isPopout }} />
           </main>
 
-          <MobileNavigation
-            isAdmin={isAdmin}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            onSearchWithQuery={(query) => {
-              setPendingSearchQuery(query);
-              handleTabChange("search");
-            }}
-            onSignOut={handleSignOut}
-            onAccountSettings={() => navigate("/settings")}
-          />
+          {!isPopout && (
+            <MobileNavigation
+              isAdmin={isAdmin}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              onSearchWithQuery={(query) => {
+                setPendingSearchQuery(query);
+                handleTabChange("search");
+              }}
+              onSignOut={handleSignOut}
+              onAccountSettings={() => navigate("/settings")}
+            />
+          )}
           </div>
         </MobileOptimizedLayout>
       </MobileDetector>

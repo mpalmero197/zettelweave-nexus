@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from "react";
-import { Navigate, useOutletContext } from "react-router-dom";
+import { Navigate, useOutletContext, useParams, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -107,7 +107,10 @@ const Index = () => {
     resultCount?: number;
   } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const { tab: tabParam } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(tabParam || "dashboard");
   const [cardSearch, setCardSearch] = useState("");
   const [cardSort, setCardSort] = useState<"recent" | "created" | "alpha" | "category">("recent");
   const [cardView, setCardView] = useState<"grid" | "list">("grid");
@@ -361,15 +364,27 @@ const Index = () => {
     }
   };
 
-  // Listen for tab change events from AppLayout
+  // URL → state: when route param changes, update active tab
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  // Listen for tab change events from AppLayout (legacy event-based path)
   useEffect(() => {
     const handler = (e: Event) => {
       const tab = (e as CustomEvent).detail;
-      if (tab) setActiveTab(tab);
+      if (tab) {
+        setActiveTab(tab);
+        // Keep the URL in sync so the tab is deep-linkable / pop-out-able
+        const search = location.search; // preserve ?popout=1 etc.
+        navigate(`/app/${tab}${search}`, { replace: true });
+      }
     };
     window.addEventListener("app-tab-change", handler);
     return () => window.removeEventListener("app-tab-change", handler);
-  }, []);
+  }, [navigate, location.search]);
 
   // Sync active tab back to AppLayout for header highlight
   useEffect(() => {
