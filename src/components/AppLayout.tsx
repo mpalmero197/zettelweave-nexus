@@ -35,6 +35,11 @@ export function AppLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingSearchQuery, setPendingSearchQuery] = useState("");
   const [toolboxOpen, setToolboxOpen] = useState(false);
+  const isPopout = usePopoutMode();
+
+  // Live cross-window sync (BroadcastChannel) — invalidates queries when
+  // another window mutates data.
+  useWindowSync();
 
   const isOnline = hookOnline && browserOnline;
 
