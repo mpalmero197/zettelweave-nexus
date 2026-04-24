@@ -58,7 +58,9 @@ export function broadcastInvalidate(keys: (string | readonly unknown[])[]) {
 
 /**
  * Mount once near the app root. Listens for messages from other windows and
- * invalidates the relevant React Query caches.
+ * invalidates the relevant React Query caches. Also auto-broadcasts whenever
+ * a mutation succeeds in *this* window, so other windows refresh without any
+ * per-hook changes.
  */
 export function useWindowSync() {
   const qc = useQueryClient();
@@ -69,8 +71,8 @@ export function useWindowSync() {
     mounted.current = true;
 
     const ch = getChannel();
-    if (!ch) return;
 
+    // 1) Receive: invalidate caches when other windows mutate
     const onMessage = (e: MessageEvent) => {
       const data = e.data as (WindowSyncMessage & { _from?: string }) | null;
       if (!data || data._from === WINDOW_ID) return;
@@ -82,10 +84,22 @@ export function useWindowSync() {
         }
       }
     };
+    ch?.addEventListener("message", onMessage);
 
-    ch.addEventListener("message", onMessage);
+    // 2) Send: when a query is invalidated locally (typical post-mutation
+    // pattern across our hooks), tell other windows to invalidate too.
+    const queryUnsub = qc.getQueryCache().subscribe((event) => {
+      if (event.type === "updated" && event.action?.type === "invalidate") {
+        const key = event.query.queryKey;
+        if (Array.isArray(key) && key.length > 0) {
+          broadcast({ type: "invalidate", keys: [key] });
+        }
+      }
+    });
+
     return () => {
-      ch.removeEventListener("message", onMessage);
+      ch?.removeEventListener("message", onMessage);
+      queryUnsub();
     };
   }, [qc]);
 }
