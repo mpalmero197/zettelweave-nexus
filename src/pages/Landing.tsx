@@ -755,6 +755,7 @@ export default function Landing() {
             <button onClick={() => navigate("/terms")} className="hover:text-foreground transition-colors">Terms</button>
             <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">Privacy</button>
             <button onClick={() => navigate("/changelog")} className="hover:text-foreground transition-colors">Changelog</button>
+            <button onClick={() => navigate("/sitemap")} className="hover:text-foreground transition-colors">Sitemap</button>
             <button onClick={() => window.dispatchEvent(new CustomEvent("openCookieSettings"))} className="hover:text-foreground transition-colors">Cookies</button>
           </nav>
         </div>

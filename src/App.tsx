@@ -83,6 +83,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
 const SharedWithMe = lazy(() => import("./pages/SharedWithMe"));
+const Sitemap = lazy(() => import("./pages/Sitemap"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -190,6 +191,11 @@ const App = () => (
                 <Route path="/changelog" element={
                   <Suspense fallback={<LoadingFallback />}>
                     <Changelog />
+                  </Suspense>
+                } />
+                <Route path="/sitemap" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Sitemap />
                   </Suspense>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
