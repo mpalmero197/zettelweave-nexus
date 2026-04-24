@@ -16,13 +16,15 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Wrench, Search } from "lucide-react";
+import { Bot, Wrench, Search, ExternalLink } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
 import { toast } from "sonner";
+import { usePopoutMode } from "@/hooks/usePopoutMode";
+import { useWindowSync } from "@/hooks/useWindowSync";
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
