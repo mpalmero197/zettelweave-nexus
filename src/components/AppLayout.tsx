@@ -103,41 +103,30 @@ export function AppLayout() {
     }
   };
 
+  const APP_TABS = new Set([
+    "dashboard","cards","graph","notes","files","canvas","calendar","journal",
+    "habits","scratchpad","stickynotes","catalyst","collab","recorder","recycle",
+    "search","debugger","learning","projects","spaces","integrations",
+    "knowledge-gaps","notebooks","knowledge-chat",
+  ]);
+
   const handleTabChange = (tab: string) => {
-    switch (tab) {
-      case "dashboard":
-      case "cards":
-      case "graph":
-      case "notes":
-      case "files":
-      case "canvas":
-      case "calendar":
-      case "journal":
-      case "habits":
-      case "scratchpad":
-      case "stickynotes":
-      case "catalyst":
-      case "collab":
-      case "recorder":
-      case "recycle":
-      case "search":
-      case "debugger":
-      case "learning":
-      case "projects":
-      case "spaces":
-      case "integrations":
-      case "knowledge-gaps":
-      case "notebooks":
-      case "knowledge-chat":
-        // These are all tabs within /app
-        navigate("/app");
-        // We dispatch a custom event so Index.tsx can pick up the tab
-        window.dispatchEvent(new CustomEvent("app-tab-change", { detail: tab }));
-        break;
-      default:
-        navigate("/app");
-        break;
+    if (APP_TABS.has(tab)) {
+      // Preserve ?popout=1 if present so the popout window stays a popout
+      const search = location.search;
+      navigate(`/app/${tab}${search}`);
+      window.dispatchEvent(new CustomEvent("app-tab-change", { detail: tab }));
+    } else {
+      navigate("/app");
     }
+  };
+
+  /** Open the current (or given) feature in a new focused window. */
+  const handlePopOut = (tab?: string) => {
+    const target = tab && APP_TABS.has(tab) ? tab : (APP_TABS.has(activeTab) ? activeTab : "dashboard");
+    const url = `${window.location.origin}/app/${target}?popout=1`;
+    const features = "noopener=yes,popup=yes,width=1200,height=800";
+    window.open(url, `pendragonx-${target}`, features);
   };
 
   return (
