@@ -107,7 +107,10 @@ const Index = () => {
     resultCount?: number;
   } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{ word: string; position: { x: number; y: number } } | null>(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const { tab: tabParam } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(tabParam || "dashboard");
   const [cardSearch, setCardSearch] = useState("");
   const [cardSort, setCardSort] = useState<"recent" | "created" | "alpha" | "category">("recent");
   const [cardView, setCardView] = useState<"grid" | "list">("grid");
