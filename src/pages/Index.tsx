@@ -364,15 +364,27 @@ const Index = () => {
     }
   };
 
-  // Listen for tab change events from AppLayout
+  // URL → state: when route param changes, update active tab
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  // Listen for tab change events from AppLayout (legacy event-based path)
   useEffect(() => {
     const handler = (e: Event) => {
       const tab = (e as CustomEvent).detail;
-      if (tab) setActiveTab(tab);
+      if (tab) {
+        setActiveTab(tab);
+        // Keep the URL in sync so the tab is deep-linkable / pop-out-able
+        const search = location.search; // preserve ?popout=1 etc.
+        navigate(`/app/${tab}${search}`, { replace: true });
+      }
     };
     window.addEventListener("app-tab-change", handler);
     return () => window.removeEventListener("app-tab-change", handler);
-  }, []);
+  }, [navigate, location.search]);
 
   // Sync active tab back to AppLayout for header highlight
   useEffect(() => {
