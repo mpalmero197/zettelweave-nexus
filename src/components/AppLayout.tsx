@@ -48,7 +48,7 @@ export function AppLayout() {
   // Derive active tab from the current route for non-app pages
   const activeTab = (() => {
     const path = location.pathname;
-    if (path === "/app") return realActiveTab;
+    if (path === "/app" || path.startsWith("/app/")) return realActiveTab;
     if (path === "/agents") return "agents";
     if (path === "/admin") return "admin";
     if (path === "/subscription") return "subscription";
