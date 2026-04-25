@@ -25,6 +25,8 @@ serve(async (req) => {
   try {
     const { plan = "monthly" } = await req.json().catch(() => ({}));
     const priceId = PRICES[plan] || PRICES.monthly;
+    // Promo: 1 month free on monthly, 3 months free on yearly. Auto-renews after trial.
+    const trialDays = plan === "yearly" ? 90 : 30;
 
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
@@ -51,7 +53,7 @@ serve(async (req) => {
       mode: "subscription",
       allow_promotion_codes: true,
       subscription_data: {
-        trial_period_days: 7,
+        trial_period_days: trialDays,
       },
       success_url: `${req.headers.get("origin")}/?subscription=success`,
       cancel_url: `${req.headers.get("origin")}/?subscription=canceled`,
