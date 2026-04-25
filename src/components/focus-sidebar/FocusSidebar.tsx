@@ -39,6 +39,7 @@ export function FocusSidebar({ open, onOpenChange }: FocusSidebarProps) {
 }
 
 function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
+  const isMobile = useIsMobile();
   const {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle, dndActive,
@@ -224,7 +225,7 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
           onClick={() => { setCollapsed(true); onOpenChange(false); }}
           className="h-6 w-6 p-0 text-white/30 hover:text-white/60"
         >
-          {snappedSide === 'right' ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          {snappedSide === 'right' ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" death />}
         </Button>
       </div>
 
