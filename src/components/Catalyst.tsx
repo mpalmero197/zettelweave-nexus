@@ -1755,7 +1755,7 @@ const DOCUMENT_TEMPLATES = [
                           const section = gap.metadata?.section;
                           if (section) {
                             // Look for a heading that matches the section
-                            const sectionRegex = new RegExp(`(<h[1-6][^>]*>[^<]*${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^<]*</h[1-6]>)`, 'i');
+                            const sectionRegex = new RegExp(`(<h[1-6][^>]*>[^<]*${section.replace(/[.*+?^${}()|[\\\]]/g, '\\$&')}[^<]*</h[1-6]>)`, 'i');
                             const match = editorContent.match(sectionRegex);
                             if (match && match.index !== undefined) {
                               const insertPos = match.index + match[0].length;
