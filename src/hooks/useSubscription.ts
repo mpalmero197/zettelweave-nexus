@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,28 +13,40 @@ export const useSubscription = () => {
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const isMounted = useRef(true);
 
   const checkSubscription = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) throw error;
-      setStatus(data);
+      if (isMounted.current) {
+        setStatus(data);
+      }
     } catch (error) {
       console.error('Error checking subscription:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to check subscription status',
-        variant: 'destructive',
-      });
+      if (isMounted.current) {
+        toast({
+          title: 'Error',
+          description: 'Failed to check subscription status',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
+    isMounted.current = true;
     checkSubscription();
     const interval = setInterval(checkSubscription, 60000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      isMounted.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const startCheckout = async (plan: 'monthly' | 'yearly' = 'monthly') => {
@@ -49,13 +61,17 @@ export const useSubscription = () => {
       }
     } catch (error) {
       console.error('Error starting checkout:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to start checkout process',
-        variant: 'destructive',
-      });
+      if (isMounted.current) {
+        toast({
+          title: 'Error',
+          description: 'Failed to start checkout process',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -69,13 +85,17 @@ export const useSubscription = () => {
       }
     } catch (error) {
       console.error('Error opening billing portal:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to open billing management',
-        variant: 'destructive',
-      });
+      if (isMounted.current) {
+        toast({
+          title: 'Error',
+          description: 'Failed to open billing management',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   };
 
