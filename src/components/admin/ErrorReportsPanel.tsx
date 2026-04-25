@@ -454,6 +454,24 @@ export function ErrorReportsPanel() {
         </div>
       </div>
 
+      {(autoFixing || autoFixProgress.log.length > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-primary" />
+              Auto-Fix Progress ({autoFixProgress.current}/{autoFixProgress.total})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-48 rounded border bg-muted/30 p-3">
+              <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed">
+                {autoFixProgress.log.join('\n') || 'Starting…'}
+              </pre>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
