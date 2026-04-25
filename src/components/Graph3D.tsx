@@ -36,7 +36,7 @@ interface Graph3DProps {
   className?: string;
 }
 
-// ── Classify planets vs moons ─────────────────────────────────────────
+// ── Classify planets vs moons ────────────────────────────────────────────
 function classifyNodes(cards: ZettelCard[], connectionCounts: Record<string, number>) {
   const threshold = Math.max(2, Math.ceil(cards.length * 0.05));
   const planetIds = new Set<string>();
@@ -60,8 +60,9 @@ function classifyNodes(cards: ZettelCard[], connectionCounts: Record<string, num
     let best: string | null = null;
     let bestScore = -1;
     c.linkedCards.forEach(lid => {
-      if (planetIds.has(lid) && (connectionCounts[lid] || 0) > bestScore) {
-        bestScore = connectionCounts[lid] || 0;
+      // Check if lid exists in connectionCounts to avoid runtime TypeError
+      if (planetIds.has(lid) && connectionCounts[lid] !== undefined && connectionCounts[lid] > bestScore) {
+        bestScore = connectionCounts[lid];
         best = lid;
       }
     });
@@ -194,7 +195,7 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
   return result;
 }
 
-// ── Connection count helper ───────────────────────────────────────────
+// ── Connection count helper ────────────────────────────────────────────
 function getConnectionCounts(cards: ZettelCard[]): Record<string, number> {
   const counts: Record<string, number> = {};
   cards.forEach(c => { counts[c.id] = (counts[c.id] || 0) + c.linkedCards.length; });
@@ -366,7 +367,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
   );
 }
 
-// ── Edge ──────────────────────────────────────────────────────────────
+// ── Edge ───────────────────────────────────────────────────────────────
 function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, thickness }: {
   start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean; isHighlighted?: boolean; isHidden?: boolean; thickness?: number;
 }) {
@@ -390,7 +391,7 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
   );
 }
 
-// ── Camera controller ─────────────────────────────────────────────────
+// ── Camera controller ───────────────────────────────────────────────
 function CameraController({ target, autoRotate, onReset }: {
   target: THREE.Vector3 | null;
   autoRotate: boolean;
@@ -642,7 +643,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────
+// ── Main export ─────────────────────────────────────────────────────
 export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'sphere' | 'cube' | 'force' | 'layers'>('force');
@@ -744,8 +745,8 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
           <SelectContent>
             <SelectItem value="force">🌐 Force-Directed</SelectItem>
             <SelectItem value="sphere">🔮 Sphere</SelectItem>
-            <SelectItem value="cube">🧊 Cube</SelectItem>
-            <SelectItem value="layers">📚 Category Layers</SelectItem>
+            <SelectItem value="cube">🧺 Cube</SelectItem>
+            <SelectItem value="layers">📒 Category Layers</SelectItem>
           </SelectContent>
         </Select>
 
