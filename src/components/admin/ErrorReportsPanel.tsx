@@ -154,6 +154,81 @@ export function ErrorReportsPanel() {
     }
   };
 
+  const autoFixAll = async () => {
+    const targets = errors.filter(
+      e => e.status !== 'resolved' && e.status !== 'ignored' && e.filename,
+    );
+    if (targets.length === 0) {
+      toast.info('No unresolved errors with a filename to fix.');
+      return;
+    }
+    const modeLabel = fixMode === 'pr' ? 'open a PR' : 'commit directly to main';
+    if (!confirm(`Auto-fix ${targets.length} error(s)? AI will ${modeLabel} for each.`)) return;
+
+    setAutoFixing(true);
+    setAutoFixProgress({ current: 0, total: targets.length, log: [] });
+
+    let fixed = 0;
+    let failed = 0;
+    const append = (line: string) =>
+      setAutoFixProgress(p => ({ ...p, log: [...p.log, line] }));
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      for (let i = 0; i < targets.length; i++) {
+        const err = targets[i];
+        setAutoFixProgress(p => ({ ...p, current: i + 1 }));
+        const label = `${err.error_type}: ${err.error_message.slice(0, 60)}`;
+        append(`▶ [${i + 1}/${targets.length}] ${label}`);
+
+        try {
+          const propRes = await supabase.functions.invoke('propose-code-fix', {
+            body: { error_report_id: err.id },
+          });
+          if (propRes.error || propRes.data?.ok === false) {
+            const msg = propRes.data?.error || propRes.error?.message || 'propose failed';
+            append(`  ✗ propose: ${msg}`);
+            failed++;
+            continue;
+          }
+          const patchId = propRes.data?.patch?.id;
+          if (!patchId) {
+            append(`  ✗ no patch returned`);
+            failed++;
+            continue;
+          }
+          append(`  • proposed patch ${patchId.slice(0, 8)} → ${propRes.data.patch.file_path}`);
+
+          const applyRes = await supabase.functions.invoke('apply-code-fix', {
+            body: { patch_id: patchId, mode: fixMode },
+          });
+          if (applyRes.error || applyRes.data?.ok === false) {
+            const msg = applyRes.data?.error || applyRes.error?.message || 'apply failed';
+            append(`  ✗ apply: ${msg}`);
+            failed++;
+            continue;
+          }
+          const result = fixMode === 'pr'
+            ? `PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`
+            : `committed to main (${applyRes.data?.commit_sha?.slice(0, 7) || 'ok'})`;
+          append(`  ✓ ${result}`);
+          fixed++;
+        } catch (e: any) {
+          append(`  ✗ ${e.message || 'unknown error'}`);
+          failed++;
+        }
+      }
+      toast.success(`Auto-fix complete: ${fixed} fixed, ${failed} failed`);
+      fetchErrors();
+    } catch (e: any) {
+      toast.error(e.message || 'Auto-fix aborted');
+    } finally {
+      setAutoFixing(false);
+    }
+  };
+
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case "error":
