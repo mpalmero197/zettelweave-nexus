@@ -37,7 +37,7 @@ export function AppLayout() {
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const isPopout = usePopoutMode();
 
-  // Live cross-window sync (BroadcastChannel) — invalidates queries when
+  // Live cross-window sync (BroadcastChannel) â invalidates queries when
   // another window mutates data.
   useWindowSync();
 
@@ -144,7 +144,7 @@ export function AppLayout() {
           >
           <SecurityNotice />
 
-          {/* Persistent Header — hidden in pop-out windows for a focused single-feature view */}
+          {/* Persistent Header â hidden in pop-out windows for a focused single-feature view */}
           {!isPopout && (
           <header
             className="h-12 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50"
@@ -250,7 +250,7 @@ export function AppLayout() {
       </MobileDetector>
 
       <PWAInstallPrompt />
-      <PushNotificationPrompt />
+      {typeof PushNotificationPrompt !== 'undefined' && <PushNotificationPrompt />}
       <FloatingChatBubble />
       <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
