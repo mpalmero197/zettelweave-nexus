@@ -36,30 +36,30 @@ interface Graph3DProps {
   className?: string;
 }
 
-// ── Classify planets vs moons ─────────────────────────────────────────
-function classifyNodes(cards: ZettelCard[], connectionCounts: Record<string, number>) {
+// ── Classify planets vs moons ───────────────────────────────────────────
+function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}) {
   const threshold = Math.max(2, Math.ceil(cards.length * 0.05));
   const planetIds = new Set<string>();
   const moonParent: Record<string, string> = {};
 
   cards.forEach(c => {
-    if ((connectionCounts[c.id] || 0) >= threshold) planetIds.add(c.id);
+    if (c && c.id && (connectionCounts[c.id] || 0) >= threshold) planetIds.add(c.id);
   });
 
   // Fallback: promote top connected nodes
   if (planetIds.size === 0 && cards.length > 0) {
     const sorted = [...cards].sort((a, b) => (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0));
     sorted.slice(0, Math.max(1, Math.ceil(cards.length * 0.15))).forEach(c => {
-      if ((connectionCounts[c.id] || 0) > 0) planetIds.add(c.id);
+      if (c && c.id && (connectionCounts[c.id] || 0) > 0) planetIds.add(c.id);
     });
   }
 
   // Assign moons to nearest planet
   cards.forEach(c => {
-    if (planetIds.has(c.id)) return;
+    if (!c || !c.id || planetIds.has(c.id)) return;
     let best: string | null = null;
     let bestScore = -1;
-    c.linkedCards.forEach(lid => {
+    c.linkedCards?.forEach(lid => {
       if (planetIds.has(lid) && (connectionCounts[lid] || 0) > bestScore) {
         bestScore = connectionCounts[lid] || 0;
         best = lid;
@@ -72,18 +72,18 @@ function classifyNodes(cards: ZettelCard[], connectionCounts: Record<string, num
 }
 
 // ── Force-directed layout (gravity / orbital) ─────────────────────────
-function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string, number>): Record<string, [number, number, number]> {
+function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}): Record<string, [number, number, number]> {
   const n = cards.length;
   if (n === 0) return {};
 
   const { planetIds, moonParent } = classifyNodes(cards, connectionCounts);
 
   const idToIdx: Record<string, number> = {};
-  cards.forEach((c, i) => { idToIdx[c.id] = i; });
+  cards.forEach((c, i) => { if(c && c.id) idToIdx[c.id] = i; });
 
   // Initialize: place planets on a sphere, moons near their parent
   const pos: [number, number, number][] = new Array(n);
-  const planetList = cards.filter(c => planetIds.has(c.id));
+  const planetList = cards.filter(c => c && c.id && planetIds.has(c.id));
   const planetPositions: Record<string, [number, number, number]> = {};
 
   // Place planets on a large sphere
@@ -102,7 +102,7 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
 
   // Place moons near their parent planet in a small orbit
   cards.forEach((c, i) => {
-    if (planetIds.has(c.id)) return;
+    if (!c || !c.id || planetIds.has(c.id)) return;
     const parentId = moonParent[c.id];
     const parentPos = parentId ? planetPositions[parentId] : undefined;
     if (parentPos) {
@@ -125,6 +125,7 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
   // Build link list
   const links: [number, number][] = [];
   cards.forEach((c, i) => {
+    if (!c || !c.linkedCards) return;
     c.linkedCards.forEach(lid => {
       const j = idToIdx[lid];
       if (j !== undefined && i < j) links.push([i, j]);
@@ -140,12 +141,13 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
     // Repulsion: strong planet-planet, mild moon-moon
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
+        if (!pos[i] || !pos[j]) continue;
         const dx = pos[i][0] - pos[j][0];
         const dy = pos[i][1] - pos[j][1];
         const dz = pos[i][2] - pos[j][2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
-        const iPlanet = planetIds.has(cards[i].id);
-        const jPlanet = planetIds.has(cards[j].id);
+        const iPlanet = cards[i] && planetIds.has(cards[i].id);
+        const jPlanet = cards[j] && planetIds.has(cards[j].id);
         const repulsion = (iPlanet && jPlanet) ? 30 : (iPlanet || jPlanet) ? 8 : 3;
         const force = (repulsion * temp) / (dist * dist);
         const fx = (dx / dist) * force;
@@ -158,8 +160,9 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
 
     // Spring attraction for links
     for (const [i, j] of links) {
-      const iPlanet = planetIds.has(cards[i].id);
-      const jPlanet = planetIds.has(cards[j].id);
+      if (!pos[i] || !pos[j]) continue;
+      const iPlanet = cards[i] && planetIds.has(cards[i].id);
+      const jPlanet = cards[j] && planetIds.has(cards[j].id);
       const idealLen = (iPlanet && jPlanet) ? 8 : 2.5; // moons orbit close
       const spring = (iPlanet && jPlanet) ? 0.008 : 0.04; // strong pull for moons
 
@@ -180,6 +183,7 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
 
     // Apply velocity and dampen
     for (let i = 0; i < n; i++) {
+      if (!pos[i]) continue;
       pos[i][0] += vel[i][0];
       pos[i][1] += vel[i][1];
       pos[i][2] += vel[i][2];
@@ -190,15 +194,15 @@ function computeForceLayout(cards: ZettelCard[], connectionCounts: Record<string
   }
 
   const result: Record<string, [number, number, number]> = {};
-  cards.forEach((c, i) => { result[c.id] = pos[i]; });
+  cards.forEach((c, i) => { if(c && c.id) result[c.id] = pos[i]; });
   return result;
 }
 
 // ── Connection count helper ───────────────────────────────────────────
 function getConnectionCounts(cards: ZettelCard[]): Record<string, number> {
   const counts: Record<string, number> = {};
-  cards.forEach(c => { counts[c.id] = (counts[c.id] || 0) + c.linkedCards.length; });
-  cards.forEach(c => { c.linkedCards.forEach(lid => { counts[lid] = (counts[lid] || 0) + 1; }); });
+  cards.forEach(c => { if(c && c.id) counts[c.id] = (counts[c.id] || 0) + (c.linkedCards?.length || 0); });
+  cards.forEach(c => { if(c && c.linkedCards) c.linkedCards.forEach(lid => { counts[lid] = (counts[lid] || 0) + 1; }); });
   return counts;
 }
 
@@ -206,8 +210,9 @@ function getConnectionCounts(cards: ZettelCard[]): Record<string, number> {
 function getReachable(startId: string, cards: ZettelCard[], depth: number): Set<string> {
   const adj: Record<string, string[]> = {};
   cards.forEach(c => {
+    if (!c || !c.id) return;
     if (!adj[c.id]) adj[c.id] = [];
-    c.linkedCards.forEach(lid => {
+    c.linkedCards?.forEach(lid => {
       adj[c.id].push(lid);
       if (!adj[lid]) adj[lid] = [];
       adj[lid].push(c.id);
@@ -230,11 +235,11 @@ function getReachable(startId: string, cards: ZettelCard[], depth: number): Set<
 
 // ── Shared tag count ──────────────────────────────────────────────────
 function sharedTagCount(a: ZettelCard, b: ZettelCard): number {
-  const setB = new Set(b.tags);
-  return a.tags.filter(t => setB.has(t)).length;
+  const setB = new Set(b.tags || []);
+  return (a.tags || []).filter(t => setB.has(t)).length;
 }
 
-// ── Glow ring around nodes ────────────────────────────────────────────
+// ── Glow ring around nodes ──────────────────────────────────────────────
 function GlowRing({ color, active, radius }: { color: THREE.Color; active: boolean; radius: number }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((state) => {
@@ -252,7 +257,7 @@ function GlowRing({ color, active, radius }: { color: THREE.Color; active: boole
   );
 }
 
-// ── Node ──────────────────────────────────────────────────────────────
+// ── Node ────────────────────────────────────────────────────────────────
 function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDimmed, isHidden, onHoverStart, onHoverEnd, radius }: {
   position: [number, number, number];
   card: ZettelCard;
@@ -349,14 +354,14 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
                 {card.content.replace(/<[^>]*>/g, '').slice(0, 120)}
               </p>
             )}
-            {card.tags.length > 0 && (
+            {card.tags && card.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {card.tags.slice(0, 4).map(tag => (
                   <span key={tag} className="text-[9px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium">{tag}</span>
                 ))}
               </div>
             )}
-            {card.linkedCards.length > 0 && (
+            {card.linkedCards && card.linkedCards.length > 0 && (
               <p className="text-[9px] text-muted-foreground/60 mt-1.5">{card.linkedCards.length} connection{card.linkedCards.length !== 1 ? 's' : ''}</p>
             )}
           </div>
@@ -366,7 +371,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
   );
 }
 
-// ── Edge ──────────────────────────────────────────────────────────────
+// ── Edge ────────────────────────────────────────────────────────────────
 function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, thickness }: {
   start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean; isHighlighted?: boolean; isHidden?: boolean; thickness?: number;
 }) {
@@ -390,7 +395,7 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
   );
 }
 
-// ── Camera controller ─────────────────────────────────────────────────
+// ── Camera controller ───────────────────────────────────────────────────
 function CameraController({ target, autoRotate, onReset }: {
   target: THREE.Vector3 | null;
   autoRotate: boolean;
@@ -433,7 +438,7 @@ function CameraController({ target, autoRotate, onReset }: {
   );
 }
 
-// ── Scene ─────────────────────────────────────────────────────────────
+// ── Scene ───────────────────────────────────────────────────────────────
 function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges, autoRotate, focusTarget, setFocusTarget, resetCount, focusedCardId, setFocusedCardId, hopDepth, connectionCounts, cardMap }: {
   cards: ZettelCard[];
   onCardSelect?: (card: ZettelCard) => void;
@@ -456,8 +461,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   const neighborSet = useMemo(() => {
     if (!hoveredCard) return null;
     const s = new Set<string>([hoveredCard.id]);
-    hoveredCard.linkedCards.forEach(id => s.add(id));
-    cards.forEach(c => { if (c.linkedCards.includes(hoveredCard.id)) s.add(c.id); });
+    hoveredCard.linkedCards?.forEach(id => s.add(id));
+    cards.forEach(c => {
+      if (c && c.linkedCards?.includes(hoveredCard.id)) s.add(c.id);
+    });
     return s;
   }, [hoveredCard, cards]);
 
@@ -468,7 +475,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   }, [focusedCardId, cards, hopDepth]);
 
   // Max connections for sizing
-  const maxConn = useMemo(() => Math.max(1, ...Object.values(connectionCounts)), [connectionCounts]);
+  const maxConn = useMemo(() => {
+    const values = Object.values(connectionCounts);
+    return values.length > 0 ? Math.max(1, ...values) : 1;
+  }, [connectionCounts]);
 
   // Planet classification for visual sizing
   const { planetIds: scenePlanets } = useMemo(() => classifyNodes(cards, connectionCounts), [cards, connectionCounts]);
@@ -492,6 +502,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       case 'sphere': {
         const positions: Record<string, [number, number, number]> = {};
         cards.forEach((card, i) => {
+          if (!card) return;
           const phi = Math.acos(-1 + (2 * i + 1) / n);
           const theta = Math.sqrt(n * Math.PI) * phi;
           const r = 8;
@@ -502,7 +513,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       case 'layers': {
         const positions: Record<string, [number, number, number]> = {};
         const groups: Record<string, ZettelCard[]> = {};
-        cards.forEach(c => { const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c); });
+        cards.forEach(c => {
+          if (!c) return;
+          const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c);
+        });
         const keys = Object.keys(groups);
         keys.forEach((cat, li) => {
           const g = groups[cat];
@@ -519,6 +533,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
         const positions: Record<string, [number, number, number]> = {};
         const sz = Math.max(2, Math.ceil(Math.cbrt(n)));
         cards.forEach((card, i) => {
+          if (!card) return;
           positions[card.id] = [
             (i % sz - sz / 2) * 3,
             (Math.floor(i / sz) % sz - sz / 2) * 3,
@@ -536,9 +551,11 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
     const term = searchTerm.toLowerCase();
     return new Set(
       cards.filter(c =>
-        c.title.toLowerCase().includes(term) ||
-        c.content.toLowerCase().includes(term) ||
-        c.tags.some(t => t.toLowerCase().includes(term))
+        c && (
+          c.title.toLowerCase().includes(term) ||
+          c.content.toLowerCase().includes(term) ||
+          c.tags?.some(t => t.toLowerCase().includes(term))
+        )
       ).map(c => c.id)
     );
   }, [cards, searchTerm]);
@@ -565,6 +582,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       <Stars radius={120} depth={100} count={5000} factor={4} saturation={0.5} fade speed={0.4} />
 
       {cards.map(card => {
+        if (!card) return null;
         const pos = nodePositions[card.id] || [0, 0, 0];
         const isDimmedByHover = neighborSet !== null && !neighborSet.has(card.id);
         const isHiddenByHop = hopReachable !== null && !hopReachable.has(card.id);
@@ -587,6 +605,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       })}
 
       {cards.flatMap(card => {
+        if (!card || !card.id || !card.linkedCards) return [];
         const startPos = nodePositions[card.id];
         if (!startPos) return [];
         return card.linkedCards.map(linkedId => {
@@ -615,7 +634,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
       {showCategoryEdges && (() => {
         const groups: Record<string, ZettelCard[]> = {};
-        cards.forEach(c => { const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c); });
+        cards.forEach(c => {
+            if (!c) return;
+            const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c);
+        });
         return Object.values(groups).flatMap(arr =>
           arr.slice(0, -1).map((card, i) => {
             const next = arr[i + 1];
@@ -643,7 +665,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 }
 
 // ── Main export ───────────────────────────────────────────────────────
-export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
+export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'sphere' | 'cube' | 'force' | 'layers'>('force');
   const [showCategoryEdges, setShowCategoryEdges] = useState(true);
@@ -659,7 +681,7 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
   // All unique tags
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
-    cards.forEach(c => c.tags.forEach(t => tagSet.add(t)));
+    cards.forEach(c => c && c.tags?.forEach(t => tagSet.add(t)));
     return Array.from(tagSet).sort();
   }, [cards]);
 
@@ -668,18 +690,18 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
     if (selectedTags.size === 0) return cards;
     const taggedIds = new Set<string>();
     cards.forEach(c => {
-      if (c.tags.some(t => selectedTags.has(t))) {
+      if (c && c.tags?.some(t => selectedTags.has(t))) {
         taggedIds.add(c.id);
-        c.linkedCards.forEach(lid => taggedIds.add(lid));
+        c.linkedCards?.forEach(lid => taggedIds.add(lid));
       }
     });
-    return cards.filter(c => taggedIds.has(c.id));
+    return cards.filter(c => c && taggedIds.has(c.id));
   }, [cards, selectedTags]);
 
   const connectionCounts = useMemo(() => getConnectionCounts(filteredCards), [filteredCards]);
   const cardMap = useMemo(() => {
     const m: Record<string, ZettelCard> = {};
-    filteredCards.forEach(c => { m[c.id] = c; });
+    filteredCards.forEach(c => { if(c && c.id) m[c.id] = c; });
     return m;
   }, [filteredCards]);
 
@@ -688,15 +710,6 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
     setFocusedCardId(null);
     setResetCount(c => c + 1);
     setHopDepth(3);
-  }, []);
-
-  const handleFocus = useCallback((target: THREE.Vector3 | null) => {
-    setFocusTarget(target);
-  }, []);
-
-  // Track focused card via onCardSelect wrapper
-  const handleNodeFocus = useCallback((target: THREE.Vector3 | null) => {
-    setFocusTarget(target);
   }, []);
 
   const toggleTag = useCallback((tag: string) => {
@@ -715,12 +728,6 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
     a.href = url;
     a.download = 'knowledge-graph-3d.png';
     a.click();
-  }, []);
-
-  // Wrap setFocusTarget to also set focusedCardId
-  const setFocusTargetWithCard = useCallback((v: THREE.Vector3 | null) => {
-    setFocusTarget(v);
-    // Find the card at this position — handled via Scene onClick
   }, []);
 
   return (
@@ -745,7 +752,7 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
             <SelectItem value="force">🌐 Force-Directed</SelectItem>
             <SelectItem value="sphere">🔮 Sphere</SelectItem>
             <SelectItem value="cube">🧊 Cube</SelectItem>
-            <SelectItem value="layers">📚 Category Layers</SelectItem>
+            <SelectItem value="layers">📖 Category Layers</SelectItem>
           </SelectContent>
         </Select>
 
@@ -816,7 +823,7 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
               className="flex items-center justify-between w-full text-[10px] text-muted-foreground font-medium hover:text-foreground transition-colors"
             >
               <span>Tags ({selectedTags.size > 0 ? `${selectedTags.size} active` : allTags.length})</span>
-              {showTags ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {showTags ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" metallic />}
             </button>
             {showTags && (
               <div className="mt-1.5 space-y-1.5">
@@ -854,7 +861,7 @@ export function Graph3D({ cards, onCardSelect, className }: Graph3DProps) {
           </p>
           {searchTerm && (
             <p className="text-[10px] text-primary font-medium">
-              {filteredCards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).length} match{filteredCards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).length !== 1 ? 'es' : ''}
+              {filteredCards.filter(c => c && c.title.toLowerCase().includes(searchTerm.toLowerCase())).length} match{filteredCards.filter(c => c && c.title.toLowerCase().includes(searchTerm.toLowerCase())).length !== 1 ? 'es' : ''}
             </p>
           )}
         </div>
