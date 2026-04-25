@@ -400,6 +400,38 @@ export function ErrorReportsPanel() {
           <h3 className="text-lg font-semibold">Error Analytics</h3>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={fixMode} onValueChange={(v) => setFixMode(v as 'pr' | 'direct')} disabled={autoFixing}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pr">
+                <span className="flex items-center gap-2"><GitPullRequest className="h-3.5 w-3.5" /> Open PR</span>
+              </SelectItem>
+              <SelectItem value="direct">
+                <span className="flex items-center gap-2"><GitCommit className="h-3.5 w-3.5" /> Commit to main</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={autoFixAll}
+            disabled={autoFixing}
+            className="gap-2"
+          >
+            {autoFixing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Fixing {autoFixProgress.current}/{autoFixProgress.total}
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4" />
+                Auto-Fix All
+              </>
+            )}
+          </Button>
           <Button
             variant="outline"
             size="sm"
