@@ -396,6 +396,25 @@ export function ErrorReportsPanel() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variant="default"
+            size="sm"
+            onClick={autoFixAll}
+            disabled={autoFixing}
+            className="gap-2"
+          >
+            {autoFixing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Fixing {autoFixProgress.current}/{autoFixProgress.total}
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4" />
+                Auto-Fix All
+              </>
+            )}
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={handleCopyToClipboard}
