@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Search, Eye, EyeOff, RotateCw, Crosshair, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
 
-// ── Category color map ────────────────────────────────────────────────
+// ── Category color map ────────────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, THREE.Color> = {
   '0': new THREE.Color(0x00e5ff),
   '1': new THREE.Color(0xd500f9),
@@ -29,14 +29,14 @@ function getCategoryColor(category: string): THREE.Color {
   return CATEGORY_COLORS[key] || CATEGORY_COLORS['0'];
 }
 
-// ── Interfaces ────────────────────────────────────────────────────────
+// ── Interfaces ───────────────────────────────────────────────────────────────
 interface Graph3DProps {
   cards: ZettelCard[];
   onCardSelect?: (card: ZettelCard) => void;
   className?: string;
 }
 
-// ── Classify planets vs moons ───────────────────────────────────────────
+// ── Classify planets vs moons ────────────────────────────────────────────────
 function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}) {
   const threshold = Math.max(2, Math.ceil(cards.length * 0.05));
   const planetIds = new Set<string>();
@@ -48,7 +48,7 @@ function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string
 
   // Fallback: promote top connected nodes
   if (planetIds.size === 0 && cards.length > 0) {
-    const sorted = [...cards].sort((a, b) => (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0));
+    const sorted = [...cards].filter(Boolean).sort((a, b) => (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0));
     sorted.slice(0, Math.max(1, Math.ceil(cards.length * 0.15))).forEach(c => {
       if (c && c.id && (connectionCounts[c.id] || 0) > 0) planetIds.add(c.id);
     });
@@ -60,7 +60,7 @@ function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string
     let best: string | null = null;
     let bestScore = -1;
     c.linkedCards?.forEach(lid => {
-      if (planetIds.has(lid) && (connectionCounts[lid] || 0) > bestScore) {
+      if (lid && planetIds.has(lid) && (connectionCounts[lid] || 0) > bestScore) {
         bestScore = connectionCounts[lid] || 0;
         best = lid;
       }
@@ -71,23 +71,25 @@ function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string
   return { planetIds, moonParent };
 }
 
-// ── Force-directed layout (gravity / orbital) ─────────────────────────
+// ── Force-directed layout (gravity / orbital) ───────────────────────────────
 function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}): Record<string, [number, number, number]> {
-  const n = cards.length;
+  const validCards = cards.filter(Boolean);
+  const n = validCards.length;
   if (n === 0) return {};
 
-  const { planetIds, moonParent } = classifyNodes(cards, connectionCounts);
+  const { planetIds, moonParent } = classifyNodes(validCards, connectionCounts);
 
   const idToIdx: Record<string, number> = {};
-  cards.forEach((c, i) => { if(c && c.id) idToIdx[c.id] = i; });
+  validCards.forEach((c, i) => { if(c && c.id) idToIdx[c.id] = i; });
 
   // Initialize: place planets on a sphere, moons near their parent
   const pos: [number, number, number][] = new Array(n);
-  const planetList = cards.filter(c => c && c.id && planetIds.has(c.id));
+  const planetList = validCards.filter(c => c && c.id && planetIds.has(c.id));
   const planetPositions: Record<string, [number, number, number]> = {};
 
   // Place planets on a large sphere
   planetList.forEach((c, i) => {
+    if (!c || !c.id) return;
     const phi = Math.acos(-1 + (2 * i + 1) / Math.max(planetList.length, 1));
     const theta = Math.sqrt(planetList.length * Math.PI) * phi;
     const r = 6 + planetList.length * 0.5;
@@ -97,11 +99,12 @@ function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<s
       r * Math.sin(theta) * Math.sin(phi),
     ];
     planetPositions[c.id] = p;
-    pos[idToIdx[c.id]] = p;
+    const idx = idToIdx[c.id];
+    if (idx !== undefined) pos[idx] = p;
   });
 
   // Place moons near their parent planet in a small orbit
-  cards.forEach((c, i) => {
+  validCards.forEach((c, i) => {
     if (!c || !c.id || planetIds.has(c.id)) return;
     const parentId = moonParent[c.id];
     const parentPos = parentId ? planetPositions[parentId] : undefined;
@@ -120,11 +123,11 @@ function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<s
     }
   });
 
-  const vel: [number, number, number][] = cards.map(() => [0, 0, 0]);
+  const vel: [number, number, number][] = validCards.map(() => [0, 0, 0]);
 
   // Build link list
   const links: [number, number][] = [];
-  cards.forEach((c, i) => {
+  validCards.forEach((c, i) => {
     if (!c || !c.linkedCards) return;
     c.linkedCards.forEach(lid => {
       const j = idToIdx[lid];
@@ -146,8 +149,8 @@ function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<s
         const dy = pos[i][1] - pos[j][1];
         const dz = pos[i][2] - pos[j][2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
-        const iPlanet = cards[i] && planetIds.has(cards[i].id);
-        const jPlanet = cards[j] && planetIds.has(cards[j].id);
+        const iPlanet = validCards[i] && planetIds.has(validCards[i].id);
+        const jPlanet = validCards[j] && planetIds.has(validCards[j].id);
         const repulsion = (iPlanet && jPlanet) ? 30 : (iPlanet || jPlanet) ? 8 : 3;
         const force = (repulsion * temp) / (dist * dist);
         const fx = (dx / dist) * force;
@@ -161,8 +164,8 @@ function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<s
     // Spring attraction for links
     for (const [i, j] of links) {
       if (!pos[i] || !pos[j]) continue;
-      const iPlanet = cards[i] && planetIds.has(cards[i].id);
-      const jPlanet = cards[j] && planetIds.has(cards[j].id);
+      const iPlanet = validCards[i] && planetIds.has(validCards[i].id);
+      const jPlanet = validCards[j] && planetIds.has(validCards[j].id);
       const idealLen = (iPlanet && jPlanet) ? 8 : 2.5; // moons orbit close
       const spring = (iPlanet && jPlanet) ? 0.008 : 0.04; // strong pull for moons
 
@@ -194,25 +197,30 @@ function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<s
   }
 
   const result: Record<string, [number, number, number]> = {};
-  cards.forEach((c, i) => { if(c && c.id) result[c.id] = pos[i]; });
+  validCards.forEach((c, i) => { if(c && c.id && pos[i]) result[c.id] = pos[i]; });
   return result;
 }
 
-// ── Connection count helper ───────────────────────────────────────────
+// ── Connection count helper ──────────────────────────────────────────────────
 function getConnectionCounts(cards: ZettelCard[]): Record<string, number> {
   const counts: Record<string, number> = {};
   cards.forEach(c => { if(c && c.id) counts[c.id] = (counts[c.id] || 0) + (c.linkedCards?.length || 0); });
-  cards.forEach(c => { if(c && c.linkedCards) c.linkedCards.forEach(lid => { counts[lid] = (counts[lid] || 0) + 1; }); });
+  cards.forEach(c => {
+    if(c && c.linkedCards) {
+       c.linkedCards.forEach(lid => { if(lid) counts[lid] = (counts[lid] || 0) + 1; });
+    } 
+  });
   return counts;
 }
 
-// ── BFS hop reachability ──────────────────────────────────────────────
+// ── BFS hop reachability ─────────────────────────────────────────────────────
 function getReachable(startId: string, cards: ZettelCard[], depth: number): Set<string> {
   const adj: Record<string, string[]> = {};
   cards.forEach(c => {
     if (!c || !c.id) return;
     if (!adj[c.id]) adj[c.id] = [];
     c.linkedCards?.forEach(lid => {
+      if (!lid) return;
       adj[c.id].push(lid);
       if (!adj[lid]) adj[lid] = [];
       adj[lid].push(c.id);
@@ -233,13 +241,13 @@ function getReachable(startId: string, cards: ZettelCard[], depth: number): Set<
   return visited;
 }
 
-// ── Shared tag count ──────────────────────────────────────────────────
+// ── Shared tag count ─────────────────────────────────────────────────────────
 function sharedTagCount(a: ZettelCard, b: ZettelCard): number {
   const setB = new Set(b.tags || []);
   return (a.tags || []).filter(t => setB.has(t)).length;
 }
 
-// ── Glow ring around nodes ──────────────────────────────────────────────
+// ── Glow ring around nodes ───────────────────────────────────────────────────
 function GlowRing({ color, active, radius }: { color: THREE.Color; active: boolean; radius: number }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((state) => {
@@ -257,7 +265,7 @@ function GlowRing({ color, active, radius }: { color: THREE.Color; active: boole
   );
 }
 
-// ── Node ────────────────────────────────────────────────────────────────
+// ── Node ────────────────────────────────────────────────────────────────────
 function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDimmed, isHidden, onHoverStart, onHoverEnd, radius }: {
   position: [number, number, number];
   card: ZettelCard;
@@ -371,7 +379,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
   );
 }
 
-// ── Edge ────────────────────────────────────────────────────────────────
+// ── Edge ────────────────────────────────────────────────────────────────────
 function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, thickness }: {
   start: [number, number, number]; end: [number, number, number]; color: THREE.Color; isDimmed: boolean; isHighlighted?: boolean; isHidden?: boolean; thickness?: number;
 }) {
@@ -395,7 +403,7 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
   );
 }
 
-// ── Camera controller ───────────────────────────────────────────────────
+// ── Camera controller ───────────────────────────────────────────────────────
 function CameraController({ target, autoRotate, onReset }: {
   target: THREE.Vector3 | null;
   autoRotate: boolean;
@@ -438,7 +446,7 @@ function CameraController({ target, autoRotate, onReset }: {
   );
 }
 
-// ── Scene ───────────────────────────────────────────────────────────────
+// ── Scene ───────────────────────────────────────────────────────────────────
 function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges, autoRotate, focusTarget, setFocusTarget, resetCount, focusedCardId, setFocusedCardId, hopDepth, connectionCounts, cardMap }: {
   cards: ZettelCard[];
   onCardSelect?: (card: ZettelCard) => void;
@@ -459,11 +467,11 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
   // Neighborhood set (hover)
   const neighborSet = useMemo(() => {
-    if (!hoveredCard) return null;
+    if (!hoveredCard || !hoveredCard.id) return null;
     const s = new Set<string>([hoveredCard.id]);
-    hoveredCard.linkedCards?.forEach(id => s.add(id));
+    hoveredCard.linkedCards?.forEach(id => { if(id) s.add(id); });
     cards.forEach(c => {
-      if (c && c.linkedCards?.includes(hoveredCard.id)) s.add(c.id);
+      if (c && c.id && c.linkedCards?.includes(hoveredCard.id)) s.add(c.id);
     });
     return s;
   }, [hoveredCard, cards]);
@@ -494,15 +502,16 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
   // 3D Layouts
   const nodePositions = useMemo(() => {
-    const n = cards.length || 1;
+    const validCards = cards.filter(Boolean);
+    const n = validCards.length || 1;
 
     switch (layoutType) {
       case 'force':
-        return computeForceLayout(cards, connectionCounts);
+        return computeForceLayout(validCards, connectionCounts);
       case 'sphere': {
         const positions: Record<string, [number, number, number]> = {};
-        cards.forEach((card, i) => {
-          if (!card) return;
+        validCards.forEach((card, i) => {
+          if (!card || !card.id) return;
           const phi = Math.acos(-1 + (2 * i + 1) / n);
           const theta = Math.sqrt(n * Math.PI) * phi;
           const r = 8;
@@ -513,8 +522,8 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       case 'layers': {
         const positions: Record<string, [number, number, number]> = {};
         const groups: Record<string, ZettelCard[]> = {};
-        cards.forEach(c => {
-          if (!c) return;
+        validCards.forEach(c => {
+          if (!c || !c.category) return;
           const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c);
         });
         const keys = Object.keys(groups);
@@ -522,6 +531,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
           const g = groups[cat];
           const y = li * 5 - (keys.length - 1) * 2.5;
           g.forEach((card, ci) => {
+            if(!card || !card.id) return;
             const a = (ci / g.length) * 2 * Math.PI;
             const r = Math.max(3, Math.min(8, g.length * 0.9));
             positions[card.id] = [r * Math.cos(a), y, r * Math.sin(a)];
@@ -532,8 +542,8 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       default: {
         const positions: Record<string, [number, number, number]> = {};
         const sz = Math.max(2, Math.ceil(Math.cbrt(n)));
-        cards.forEach((card, i) => {
-          if (!card) return;
+        validCards.forEach((card, i) => {
+          if (!card || !card.id) return;
           positions[card.id] = [
             (i % sz - sz / 2) * 3,
             (Math.floor(i / sz) % sz - sz / 2) * 3,
@@ -582,7 +592,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       <Stars radius={120} depth={100} count={5000} factor={4} saturation={0.5} fade speed={0.4} />
 
       {cards.map(card => {
-        if (!card) return null;
+        if (!card || !card.id) return null;
         const pos = nodePositions[card.id] || [0, 0, 0];
         const isDimmedByHover = neighborSet !== null && !neighborSet.has(card.id);
         const isHiddenByHop = hopReachable !== null && !hopReachable.has(card.id);
@@ -609,6 +619,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
         const startPos = nodePositions[card.id];
         if (!startPos) return [];
         return card.linkedCards.map(linkedId => {
+          if (!linkedId) return null;
           const endPos = nodePositions[linkedId];
           if (!endPos) return null;
           const linkedCard = cardMap[linkedId];
@@ -635,12 +646,13 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
       {showCategoryEdges && (() => {
         const groups: Record<string, ZettelCard[]> = {};
         cards.forEach(c => {
-            if (!c) return;
+            if (!c || !c.category) return;
             const k = c.category.substring(0, 1) + '00'; (groups[k] ||= []).push(c);
         });
         return Object.values(groups).flatMap(arr =>
           arr.slice(0, -1).map((card, i) => {
             const next = arr[i + 1];
+            if (!card.id || !next?.id) return null;
             const s = nodePositions[card.id];
             const e = nodePositions[next.id];
             if (!s || !e) return null;
@@ -664,7 +676,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────
+// ── Main export ──────────────────────────────────────────────────────────────
 export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'sphere' | 'cube' | 'force' | 'layers'>('force');
@@ -681,21 +693,21 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
   // All unique tags
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
-    cards.forEach(c => c && c.tags?.forEach(t => tagSet.add(t)));
+    cards.forEach(c => c && c.tags?.forEach(t => { if(t) tagSet.add(t); }));
     return Array.from(tagSet).sort();
   }, [cards]);
 
   // Filter cards by selected tags
   const filteredCards = useMemo(() => {
-    if (selectedTags.size === 0) return cards;
+    if (selectedTags.size === 0) return cards.filter(Boolean);
     const taggedIds = new Set<string>();
     cards.forEach(c => {
-      if (c && c.tags?.some(t => selectedTags.has(t))) {
+      if (c && c.id && c.tags?.some(t => selectedTags.has(t))) {
         taggedIds.add(c.id);
-        c.linkedCards?.forEach(lid => taggedIds.add(lid));
+        c.linkedCards?.forEach(lid => { if(lid) taggedIds.add(lid); });
       }
     });
-    return cards.filter(c => c && taggedIds.has(c.id));
+    return cards.filter(c => c && c.id && taggedIds.has(c.id));
   }, [cards, selectedTags]);
 
   const connectionCounts = useMemo(() => getConnectionCounts(filteredCards), [filteredCards]);
@@ -823,7 +835,7 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
               className="flex items-center justify-between w-full text-[10px] text-muted-foreground font-medium hover:text-foreground transition-colors"
             >
               <span>Tags ({selectedTags.size > 0 ? `${selectedTags.size} active` : allTags.length})</span>
-              {showTags ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" metallic />}
+              {showTags ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
             {showTags && (
               <div className="mt-1.5 space-y-1.5">
