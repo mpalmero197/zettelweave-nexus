@@ -217,24 +217,6 @@ export function useFocusState() {
     localStorage.setItem(GOAL_KEY, String(dailyGoal));
   }, [dailyGoal]);
 
-  // Timer tick
-  useEffect(() => {
-    if (isRunning && seconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setSeconds(prev => {
-          if (prev <= 1) {
-            completeSession();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning]);
-
   const addSessionToHistory = useCallback((sessionMode: 'work' | 'short-break' | 'long-break', duration: number) => {
     const session: FocusSession = {
       id: crypto.randomUUID(),
@@ -271,7 +253,8 @@ export function useFocusState() {
       setPendingNote(true); // prompt for session note
       const nextCycle = cycle + 1;
       setCycle(nextCycle);
-      if (cycle % 4 === 0) {
+      if (nextCycle % 4 === 1 && nextCycle > 1) {
+        // This logic slightly adjusted to use nextCycle to decide
         setMode('long-break');
         setSeconds(PRESETS['long-break']);
         setTotalSeconds(PRESETS['long-break']);
@@ -294,19 +277,39 @@ export function useFocusState() {
     }
   }, [mode, activeTaskId, cycle, totalSeconds, autoStart, addSessionToHistory]);
 
+  // Timer tick
+  useEffect(() => {
+    if (isRunning && seconds > 0) {
+      intervalRef.current = setInterval(() => {
+        setSeconds(prev => {
+          if (prev <= 1) {
+            completeSession();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, seconds, completeSession]);
+
   // Auto-start countdown
   useEffect(() => {
     if (autoStartCountdown === null) return;
     if (autoStartCountdown <= 0) {
       setAutoStartCountdown(null);
-      start();
+      // Note: we can't call internal 'start' here easily if not memoized, but we handle it manually
+      setIsRunning(true);
+      if (mode === 'work') setDndActive(true);
       return;
     }
     const t = setTimeout(() => setAutoStartCountdown(prev => prev !== null ? prev - 1 : null), 1000);
     return () => clearTimeout(t);
-  }, [autoStartCountdown]);
+  }, [autoStartCountdown, mode]);
 
-  const cancelAutoStart = () => setAutoStartCountdown(null);
+  const cancelAutoStart = useCallback(() => setAutoStartCountdown(null), []);
 
   const addNoteToLastSession = useCallback((note: string) => {
     setSessionHistory(prev => {
@@ -319,41 +322,44 @@ export function useFocusState() {
     setPendingNote(false);
   }, []);
 
-  const dismissNote = () => setPendingNote(false);
+  const dismissNote = useCallback(() => setPendingNote(false), []);
 
-  const start = () => {
+  const start = useCallback(() => {
     setAutoStartCountdown(null);
     setIsRunning(true);
     if (mode === 'work') setDndActive(true);
-  };
-  const pause = () => setIsRunning(false);
-  const reset = () => {
+  }, [mode]);
+
+  const pause = useCallback(() => setIsRunning(false), []);
+
+  const reset = useCallback(() => {
     setIsRunning(false);
     setAutoStartCountdown(null);
     setSeconds(PRESETS[mode]);
     setTotalSeconds(PRESETS[mode]);
     setDndActive(false);
-  };
-  const changeMode = (m: 'work' | 'short-break' | 'long-break') => {
+  }, [mode]);
+
+  const changeMode = useCallback((m: 'work' | 'short-break' | 'long-break') => {
     setIsRunning(false);
     setAutoStartCountdown(null);
     setMode(m);
     setSeconds(PRESETS[m]);
     setTotalSeconds(PRESETS[m]);
     setDndActive(false);
-  };
-  const setCustomDuration = (minutes: number) => {
+  }, []);
+
+  const setCustomDuration = useCallback((minutes: number) => {
     setIsRunning(false);
     const s = minutes * 60;
     setSeconds(s);
     setTotalSeconds(s);
-  };
+  }, []);
 
   return {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle, dndActive,
     start, pause, reset, changeMode, setCustomDuration,
-    // New
     autoStart, setAutoStart,
     autoStartCountdown, cancelAutoStart,
     ambientSound, setAmbientSound,
