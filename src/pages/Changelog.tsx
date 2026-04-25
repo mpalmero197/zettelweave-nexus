@@ -62,6 +62,8 @@ const changelogData = [
   { date: "Apr 4, 2026", title: "Push Notification Confirmation", description: "Instant confirmation notification sent to phone when push notifications are enabled" },
   { date: "Apr 8, 2026", title: "Zettelkasten Naming Consistency", description: "Unified all UI references to use correct 'Zettelkasten' spelling across the platform" },
   { date: "Apr 12, 2026", title: "Catalyst View Modes", description: "Word-like document views — web, single page, two-page spread, manuscript, reading, print, and draft modes with edge-to-edge writing" },
+  { date: "Apr 25, 2026", title: "Multi-Window Support", description: "Deep-linkable /app/:tab routes, one-click pop-out buttons, and live cross-window sync via BroadcastChannel — work across multiple monitors with instant updates" },
+  { date: "Apr 25, 2026", title: "Interactive Sitemap", description: "Visual breakdown of every feature with cross-tool connection map (e.g. Scratchpad → Cards, Knowledge Gaps → Learning Hub) — accessible from the footer" },
 ];
 
 function TimelineEntry({ entry, index }: { entry: typeof changelogData[0]; index: number }) {
