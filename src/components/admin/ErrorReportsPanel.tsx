@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2 } from "lucide-react";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -37,6 +37,7 @@ export function ErrorReportsPanel() {
   const [diagnoses, setDiagnoses] = useState<Record<string, string>>({});
   const [autoFixing, setAutoFixing] = useState(false);
   const [autoFixProgress, setAutoFixProgress] = useState<{ current: number; total: number; log: string[] }>({ current: 0, total: 0, log: [] });
+  const [fixMode, setFixMode] = useState<'pr' | 'direct'>('pr');
 
   useEffect(() => {
     fetchErrors();
@@ -161,7 +162,8 @@ export function ErrorReportsPanel() {
       toast.info('No unresolved errors with a filename to fix.');
       return;
     }
-    if (!confirm(`Auto-fix ${targets.length} error(s)? AI will open a PR for each.`)) return;
+    const modeLabel = fixMode === 'pr' ? 'open a PR' : 'commit directly to main';
+    if (!confirm(`Auto-fix ${targets.length} error(s)? AI will ${modeLabel} for each.`)) return;
 
     setAutoFixing(true);
     setAutoFixProgress({ current: 0, total: targets.length, log: [] });
@@ -200,7 +202,7 @@ export function ErrorReportsPanel() {
           append(`  • proposed patch ${patchId.slice(0, 8)} → ${propRes.data.patch.file_path}`);
 
           const applyRes = await supabase.functions.invoke('apply-code-fix', {
-            body: { patch_id: patchId, mode: 'pr' },
+            body: { patch_id: patchId, mode: fixMode },
           });
           if (applyRes.error || applyRes.data?.ok === false) {
             const msg = applyRes.data?.error || applyRes.error?.message || 'apply failed';
@@ -208,7 +210,10 @@ export function ErrorReportsPanel() {
             failed++;
             continue;
           }
-          append(`  ✓ PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`);
+          const result = fixMode === 'pr'
+            ? `PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`
+            : `committed to main (${applyRes.data?.commit_sha?.slice(0, 7) || 'ok'})`;
+          append(`  ✓ ${result}`);
           fixed++;
         } catch (e: any) {
           append(`  ✗ ${e.message || 'unknown error'}`);
@@ -395,6 +400,19 @@ export function ErrorReportsPanel() {
           <h3 className="text-lg font-semibold">Error Analytics</h3>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={fixMode} onValueChange={(v) => setFixMode(v as 'pr' | 'direct')} disabled={autoFixing}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pr">
+                <span className="flex items-center gap-2"><GitPullRequest className="h-3.5 w-3.5" /> Open PR</span>
+              </SelectItem>
+              <SelectItem value="direct">
+                <span className="flex items-center gap-2"><GitCommit className="h-3.5 w-3.5" /> Commit to main</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="default"
             size="sm"
@@ -459,7 +477,7 @@ export function ErrorReportsPanel() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-primary" />
-              Auto-Fix Progress ({autoFixProgress.current}/{autoFixProgress.total})
+              Auto-Fix Progress ({autoFixProgress.current}/{autoFixProgress.total}) — {fixMode === 'pr' ? 'PR mode' : 'Direct commit to main'}
             </CardTitle>
           </CardHeader>
           <CardContent>
