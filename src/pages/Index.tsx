@@ -220,7 +220,7 @@ const Index = () => {
       }
 
       try {
-        const { data, error } = await supabase.rpc('has_role', { 
+        const { data, error } = await supabase.rpc('has_role', {
           _user_id: user.id, 
           _role: 'admin' 
         });
@@ -364,7 +364,7 @@ const Index = () => {
     }
   };
 
-  // URL → state: when route param changes, update active tab
+  // URL -> state: when route param changes, update active tab
   useEffect(() => {
     if (tabParam && tabParam !== activeTab) {
       setActiveTab(tabParam);
