@@ -35,6 +35,8 @@ export function ErrorReportsPanel() {
   const [copied, setCopied] = useState(false);
   const [diagnosingId, setDiagnosingId] = useState<string | null>(null);
   const [diagnoses, setDiagnoses] = useState<Record<string, string>>({});
+  const [autoFixing, setAutoFixing] = useState(false);
+  const [autoFixProgress, setAutoFixProgress] = useState<{ current: number; total: number; log: string[] }>({ current: 0, total: 0, log: [] });
 
   useEffect(() => {
     fetchErrors();
