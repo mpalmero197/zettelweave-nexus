@@ -244,6 +244,7 @@ export default function Subscription() {
               <CardDescription className="mt-2">
                 Full access, billed monthly
               </CardDescription>
+              <Badge variant="secondary" className="mt-2 mx-auto w-fit">🎁 1 month free, then auto-renews</Badge>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {[
