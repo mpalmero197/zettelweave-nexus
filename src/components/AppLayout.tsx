@@ -135,13 +135,7 @@ export function AppLayout() {
       <OfflineDataManager />
       <MobileDetector>
         <MobileOptimizedLayout>
-          <div
-            className="flex flex-col min-h-screen transition-all duration-300"
-            style={{
-              marginLeft: 'var(--focus-sidebar-ml, 0px)',
-              marginRight: 'var(--focus-sidebar-mr, 0px)',
-            }}
-          >
+          <div className="flex flex-col min-h-screen transition-all duration-300">
           <SecurityNotice />
 
           {/* Persistent Header — hidden in pop-out windows for a focused single-feature view */}
