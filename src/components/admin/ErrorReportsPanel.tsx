@@ -557,10 +557,85 @@ export function ErrorReportsPanel() {
               Approve each fix
             </Label>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={autoFixAll}
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" disabled={autoFixing} className="gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+                {(() => {
+                  const matched = getAutoFixTargets().length;
+                  return <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{matched}</Badge>;
+                })()}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold mb-1">Auto-Fix target filters</p>
+                  <p className="text-xs text-muted-foreground">Limit which unresolved errors get auto-fixed.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="fix-type" className="text-xs">Error type contains</Label>
+                  <Input
+                    id="fix-type"
+                    placeholder="e.g. TypeError, RUNTIME_ERROR"
+                    value={fixTypeFilter}
+                    onChange={(e) => setFixTypeFilter(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Severity</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['critical', 'error', 'warning', 'info'] as const).map(sev => (
+                      <label key={sev} className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox
+                          checked={!!fixSeverity[sev]}
+                          onCheckedChange={(v) => setFixSeverity(s => ({ ...s, [sev]: !!v }))}
+                        />
+                        <span className="capitalize">{sev}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="fix-file" className="text-xs">
+                    Filename pattern <span className="text-muted-foreground">(substring or /regex/i)</span>
+                  </Label>
+                  <Input
+                    id="fix-file"
+                    placeholder="e.g. components/admin or /\.tsx$/i"
+                    value={fixFilenamePattern}
+                    onChange={(e) => setFixFilenamePattern(e.target.value)}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setFixTypeFilter('');
+                      setFixFilenamePattern('');
+                      setFixSeverity({ critical: true, error: true, warning: true, info: false });
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {getAutoFixTargets().length} match{getAutoFixTargets().length === 1 ? '' : 'es'}
+                  </span>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
             disabled={autoFixing}
             className="gap-2"
           >
