@@ -253,24 +253,28 @@ export function ErrorReportsPanel() {
         append(`▶ [${i + 1}/${targets.length}] ${label}`);
 
         try {
+          setErrorStatus(err.id, 'proposing');
           const propRes = await supabase.functions.invoke('propose-code-fix', {
             body: { error_report_id: err.id },
           });
           if (propRes.error || propRes.data?.ok === false) {
             const msg = propRes.data?.error || propRes.error?.message || 'propose failed';
             append(`  ✗ propose: ${msg}`);
+            setErrorStatus(err.id, 'failed', { message: msg });
             failed++;
             continue;
           }
           const patchId = propRes.data?.patch?.id;
           if (!patchId) {
             append(`  ✗ no patch returned`);
+            setErrorStatus(err.id, 'failed', { message: 'no patch returned' });
             failed++;
             continue;
           }
           append(`  • proposed patch ${patchId.slice(0, 8)} → ${propRes.data.patch.file_path}`);
 
           if (requireApproval) {
+            setErrorStatus(err.id, 'awaiting-approval');
             const decision = await requestApproval({
               patch: propRes.data.patch,
               errorLabel: label,
@@ -279,22 +283,26 @@ export function ErrorReportsPanel() {
             });
             if (decision === 'skip') {
               append(`  ⊘ skipped by admin`);
+              setErrorStatus(err.id, 'skipped', { message: 'skipped by admin' });
               await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
               continue;
             }
             if (decision === 'abort') {
               append(`  ■ aborted by admin`);
+              setErrorStatus(err.id, 'skipped', { message: 'aborted by admin' });
               await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
               break;
             }
           }
 
+          setErrorStatus(err.id, 'applying');
           const applyRes = await supabase.functions.invoke('apply-code-fix', {
             body: { patch_id: patchId, mode: fixMode },
           });
           if (applyRes.error || applyRes.data?.ok === false) {
             const msg = applyRes.data?.error || applyRes.error?.message || 'apply failed';
             append(`  ✗ apply: ${msg}`);
+            setErrorStatus(err.id, 'failed', { message: msg });
             failed++;
             continue;
           }
@@ -302,6 +310,10 @@ export function ErrorReportsPanel() {
             ? `PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`
             : `committed to main (${applyRes.data?.commit_sha?.slice(0, 7) || 'ok'})`;
           append(`  ✓ ${result}`);
+          setErrorStatus(err.id, 'succeeded', {
+            pr_url: applyRes.data?.pr_url ?? null,
+            commit_sha: applyRes.data?.commit_sha ?? null,
+          });
           setAppliedPatches(prev => ({
             ...prev,
             [err.id]: {
@@ -314,6 +326,7 @@ export function ErrorReportsPanel() {
           fixed++;
         } catch (e: any) {
           append(`  ✗ ${e.message || 'unknown error'}`);
+          setErrorStatus(err.id, 'failed', { message: e.message || 'unknown error' });
           failed++;
         }
       }
