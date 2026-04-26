@@ -144,6 +144,8 @@ export function MobileNavigation({
 
   const isKeyboardUp = searchFocused && keyboardOffset > 50;
 
+  if (!isMobile) return null;
+
   return (
     <>
       {/* FAB — with focus progress ring */}
