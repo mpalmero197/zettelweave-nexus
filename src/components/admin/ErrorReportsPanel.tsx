@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2, FileCode, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -41,6 +44,27 @@ export function ErrorReportsPanel() {
   // Track applied patches per error to enable undo
   const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
   const [undoingId, setUndoingId] = useState<string | null>(null);
+  // Per-patch approval prompt
+  const [requireApproval, setRequireApproval] = useState(true);
+  const [pendingPatch, setPendingPatch] = useState<null | {
+    patch: { id: string; file_path: string; explanation: string; original_content: string | null; new_content: string };
+    errorLabel: string;
+    index: number;
+    total: number;
+  }>(null);
+  const approvalResolverRef = useRef<((decision: 'approve' | 'skip' | 'abort') => void) | null>(null);
+
+  const requestApproval = (info: NonNullable<typeof pendingPatch>) =>
+    new Promise<'approve' | 'skip' | 'abort'>((resolve) => {
+      approvalResolverRef.current = resolve;
+      setPendingPatch(info);
+    });
+
+  const resolveApproval = (decision: 'approve' | 'skip' | 'abort') => {
+    approvalResolverRef.current?.(decision);
+    approvalResolverRef.current = null;
+    setPendingPatch(null);
+  };
 
   useEffect(() => {
     fetchErrors();
@@ -203,6 +227,25 @@ export function ErrorReportsPanel() {
             continue;
           }
           append(`  • proposed patch ${patchId.slice(0, 8)} → ${propRes.data.patch.file_path}`);
+
+          if (requireApproval) {
+            const decision = await requestApproval({
+              patch: propRes.data.patch,
+              errorLabel: label,
+              index: i + 1,
+              total: targets.length,
+            });
+            if (decision === 'skip') {
+              append(`  ⊘ skipped by admin`);
+              await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
+              continue;
+            }
+            if (decision === 'abort') {
+              append(`  ■ aborted by admin`);
+              await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
+              break;
+            }
+          }
 
           const applyRes = await supabase.functions.invoke('apply-code-fix', {
             body: { patch_id: patchId, mode: fixMode },
@@ -472,6 +515,17 @@ export function ErrorReportsPanel() {
               </SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border bg-background">
+            <Switch
+              id="require-approval"
+              checked={requireApproval}
+              onCheckedChange={setRequireApproval}
+              disabled={autoFixing}
+            />
+            <Label htmlFor="require-approval" className="text-xs cursor-pointer whitespace-nowrap">
+              Approve each fix
+            </Label>
+          </div>
           <Button
             variant="default"
             size="sm"
@@ -944,6 +998,83 @@ export function ErrorReportsPanel() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!pendingPatch}
+        onOpenChange={(open) => { if (!open) resolveApproval('skip'); }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileCode className="h-4 w-4 text-primary" />
+              Approve AI fix {pendingPatch ? `(${pendingPatch.index}/${pendingPatch.total})` : ''}
+            </DialogTitle>
+            <DialogDescription className="line-clamp-2">
+              {pendingPatch?.errorLabel}
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendingPatch && (() => {
+            const { patch } = pendingPatch;
+            const oldLines = (patch.original_content ?? '').split('\n').length;
+            const newLines = patch.new_content.split('\n').length;
+            const delta = newLines - oldLines;
+            return (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <Badge variant="outline" className="font-mono">{patch.file_path}</Badge>
+                  <Badge variant="outline">{oldLines} → {newLines} lines</Badge>
+                  <Badge
+                    variant="outline"
+                    className={delta > 0 ? 'text-emerald-500 border-emerald-500/30' : delta < 0 ? 'text-red-500 border-red-500/30' : ''}
+                  >
+                    {delta > 0 ? `+${delta}` : delta} net
+                  </Badge>
+                  <Badge variant="outline">
+                    Will {fixMode === 'pr' ? 'open PR' : 'commit to main'}
+                  </Badge>
+                </div>
+
+                <div className="rounded-md border bg-muted/30 p-3 max-h-32 overflow-auto">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Explanation</p>
+                  <p className="text-xs whitespace-pre-wrap">{patch.explanation}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 max-h-[300px]">
+                  <ScrollArea className="border rounded-md">
+                    <div className="p-2">
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-1 uppercase">Original</p>
+                      <pre className="text-[10px] leading-relaxed whitespace-pre-wrap font-mono">
+                        {patch.original_content || '(no original snapshot)'}
+                      </pre>
+                    </div>
+                  </ScrollArea>
+                  <ScrollArea className="border rounded-md border-emerald-500/30">
+                    <div className="p-2">
+                      <p className="text-[10px] font-semibold text-emerald-500 mb-1 uppercase">Proposed</p>
+                      <pre className="text-[10px] leading-relaxed whitespace-pre-wrap font-mono">
+                        {patch.new_content}
+                      </pre>
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+            );
+          })()}
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => resolveApproval('abort')}>
+              Abort all
+            </Button>
+            <Button variant="outline" onClick={() => resolveApproval('skip')} className="gap-1.5">
+              <SkipForward className="h-3.5 w-3.5" /> Skip
+            </Button>
+            <Button onClick={() => resolveApproval('approve')} className="gap-1.5">
+              <Check className="h-3.5 w-3.5" /> Approve & apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
