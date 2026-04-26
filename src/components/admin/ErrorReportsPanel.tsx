@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit } from "lucide-react";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -38,6 +38,9 @@ export function ErrorReportsPanel() {
   const [autoFixing, setAutoFixing] = useState(false);
   const [autoFixProgress, setAutoFixProgress] = useState<{ current: number; total: number; log: string[] }>({ current: 0, total: 0, log: [] });
   const [fixMode, setFixMode] = useState<'pr' | 'direct'>('pr');
+  // Track applied patches per error to enable undo
+  const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
+  const [undoingId, setUndoingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchErrors();
@@ -214,6 +217,15 @@ export function ErrorReportsPanel() {
             ? `PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`
             : `committed to main (${applyRes.data?.commit_sha?.slice(0, 7) || 'ok'})`;
           append(`  ✓ ${result}`);
+          setAppliedPatches(prev => ({
+            ...prev,
+            [err.id]: {
+              patch_id: patchId,
+              pr_url: applyRes.data?.pr_url ?? null,
+              commit_sha: applyRes.data?.commit_sha ?? null,
+              mode: fixMode,
+            },
+          }));
           fixed++;
         } catch (e: any) {
           append(`  ✗ ${e.message || 'unknown error'}`);
@@ -226,6 +238,53 @@ export function ErrorReportsPanel() {
       toast.error(e.message || 'Auto-fix aborted');
     } finally {
       setAutoFixing(false);
+    }
+  };
+
+  /**
+   * Undo a previously applied AI fix.
+   * - PR mode: closes the PR and deletes the feature branch.
+   * - Direct mode: writes a revert commit on main restoring original_content.
+   * If we don't have an in-memory record of the patch, we look up the most
+   * recent applied patch for this error_report_id.
+   */
+  const undoFix = async (errorId: string) => {
+    setUndoingId(errorId);
+    try {
+      let patchId = appliedPatches[errorId]?.patch_id;
+      if (!patchId) {
+        const { data, error } = await supabase
+          .from('ai_code_patches')
+          .select('id')
+          .eq('error_report_id', errorId)
+          .eq('status', 'applied')
+          .order('applied_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        patchId = data?.id;
+      }
+      if (!patchId) {
+        toast.error('No applied AI fix found for this error.');
+        return;
+      }
+      if (!confirm('Undo this AI fix? This will close the PR/delete branch (PR mode) or commit a revert to main (direct mode).')) return;
+
+      const res = await supabase.functions.invoke('undo-code-fix', { body: { patch_id: patchId } });
+      if (res.error || res.data?.ok === false) {
+        throw new Error(res.data?.error || res.error?.message || 'Undo failed');
+      }
+      toast.success(res.data?.summary || 'Fix undone');
+      setAppliedPatches(prev => {
+        const next = { ...prev };
+        delete next[errorId];
+        return next;
+      });
+      fetchErrors();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to undo fix');
+    } finally {
+      setUndoingId(null);
     }
   };
 
@@ -818,6 +877,23 @@ export function ErrorReportsPanel() {
                             )}
                             {diagnosingId === error.id ? 'Diagnosing…' : 'AI Diagnose'}
                           </Button>
+                          {(appliedPatches[error.id] || error.status === 'resolved') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5"
+                              disabled={undoingId === error.id}
+                              onClick={() => undoFix(error.id)}
+                              title="Undo the most recent AI fix for this error"
+                            >
+                              {undoingId === error.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Undo2 className="h-3.5 w-3.5" />
+                              )}
+                              {undoingId === error.id ? 'Undoing…' : 'Undo AI Fix'}
+                            </Button>
+                          )}
                           <Select
                             value={error.status}
                             onValueChange={(value) => updateStatus(error.id, value)}
