@@ -228,6 +228,25 @@ export function ErrorReportsPanel() {
           }
           append(`  • proposed patch ${patchId.slice(0, 8)} → ${propRes.data.patch.file_path}`);
 
+          if (requireApproval) {
+            const decision = await requestApproval({
+              patch: propRes.data.patch,
+              errorLabel: label,
+              index: i + 1,
+              total: targets.length,
+            });
+            if (decision === 'skip') {
+              append(`  ⊘ skipped by admin`);
+              await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
+              continue;
+            }
+            if (decision === 'abort') {
+              append(`  ■ aborted by admin`);
+              await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
+              break;
+            }
+          }
+
           const applyRes = await supabase.functions.invoke('apply-code-fix', {
             body: { patch_id: patchId, mode: fixMode },
           });
