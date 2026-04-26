@@ -217,6 +217,15 @@ export function ErrorReportsPanel() {
             ? `PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`
             : `committed to main (${applyRes.data?.commit_sha?.slice(0, 7) || 'ok'})`;
           append(`  ✓ ${result}`);
+          setAppliedPatches(prev => ({
+            ...prev,
+            [err.id]: {
+              patch_id: patchId,
+              pr_url: applyRes.data?.pr_url ?? null,
+              commit_sha: applyRes.data?.commit_sha ?? null,
+              mode: fixMode,
+            },
+          }));
           fixed++;
         } catch (e: any) {
           append(`  ✗ ${e.message || 'unknown error'}`);
