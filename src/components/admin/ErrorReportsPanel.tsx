@@ -450,6 +450,7 @@ export function ErrorReportsPanel() {
   };
 
 
+  const handleCopyToClipboard = async () => {
     try {
       const exportData = {
         exported_at: new Date().toISOString(),
