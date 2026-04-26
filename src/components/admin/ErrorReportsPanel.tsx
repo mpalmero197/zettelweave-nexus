@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2, FileCode, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -41,6 +44,27 @@ export function ErrorReportsPanel() {
   // Track applied patches per error to enable undo
   const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
   const [undoingId, setUndoingId] = useState<string | null>(null);
+  // Per-patch approval prompt
+  const [requireApproval, setRequireApproval] = useState(true);
+  const [pendingPatch, setPendingPatch] = useState<null | {
+    patch: { id: string; file_path: string; explanation: string; original_content: string | null; new_content: string };
+    errorLabel: string;
+    index: number;
+    total: number;
+  }>(null);
+  const approvalResolverRef = useRef<((decision: 'approve' | 'skip' | 'abort') => void) | null>(null);
+
+  const requestApproval = (info: NonNullable<typeof pendingPatch>) =>
+    new Promise<'approve' | 'skip' | 'abort'>((resolve) => {
+      approvalResolverRef.current = resolve;
+      setPendingPatch(info);
+    });
+
+  const resolveApproval = (decision: 'approve' | 'skip' | 'abort') => {
+    approvalResolverRef.current?.(decision);
+    approvalResolverRef.current = null;
+    setPendingPatch(null);
+  };
 
   useEffect(() => {
     fetchErrors();
