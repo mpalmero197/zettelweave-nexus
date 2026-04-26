@@ -38,6 +38,9 @@ export function ErrorReportsPanel() {
   const [autoFixing, setAutoFixing] = useState(false);
   const [autoFixProgress, setAutoFixProgress] = useState<{ current: number; total: number; log: string[] }>({ current: 0, total: 0, log: [] });
   const [fixMode, setFixMode] = useState<'pr' | 'direct'>('pr');
+  // Track applied patches per error to enable undo
+  const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
+  const [undoingId, setUndoingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchErrors();
