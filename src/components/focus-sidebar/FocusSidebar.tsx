@@ -225,7 +225,7 @@ function FocusSidebarInner({ open, onOpenChange }: FocusSidebarProps) {
           onClick={() => { setCollapsed(true); onOpenChange(false); }}
           className="h-6 w-6 p-0 text-white/30 hover:text-white/60"
         >
-          {snappedSide === 'right' ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" death />}
+          {snappedSide === 'right' ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </Button>
       </div>
 
