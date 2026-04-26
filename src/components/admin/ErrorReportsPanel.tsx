@@ -515,6 +515,17 @@ export function ErrorReportsPanel() {
               </SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border bg-background">
+            <Switch
+              id="require-approval"
+              checked={requireApproval}
+              onCheckedChange={setRequireApproval}
+              disabled={autoFixing}
+            />
+            <Label htmlFor="require-approval" className="text-xs cursor-pointer whitespace-nowrap">
+              Approve each fix
+            </Label>
+          </div>
           <Button
             variant="default"
             size="sm"
