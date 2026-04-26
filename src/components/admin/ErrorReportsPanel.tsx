@@ -230,6 +230,12 @@ export function ErrorReportsPanel() {
 
     setAutoFixing(true);
     setAutoFixProgress({ current: 0, total: targets.length, log: [] });
+    // Seed every target with 'waiting' so the UI shows queued state
+    setFixStatuses(prev => {
+      const next = { ...prev };
+      for (const t of targets) next[t.id] = { status: 'waiting' };
+      return next;
+    });
 
     let fixed = 0;
     let failed = 0;
