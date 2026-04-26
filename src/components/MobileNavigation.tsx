@@ -87,10 +87,6 @@ export function MobileNavigation({
   onAccountSettings,
 }: MobileNavigationProps) {
   const isMobile = useIsMobile();
-  
-  // Move early returns for device types to the very top to avoid hook order issues if rendered dynamically
-  if (!isMobile) return null;
-
   const [open, setOpen] = useState(false);
   const { hasAccess: hasPremium } = usePremiumAccess();
   const { isRunning: focusRunning, seconds: focusSeconds, totalSeconds: focusTotalSeconds, mode: focusMode } = useFocusState();
