@@ -215,11 +215,9 @@ export function ErrorReportsPanel() {
   };
 
   const autoFixAll = async () => {
-    const targets = errors.filter(
-      e => e.status !== 'resolved' && e.status !== 'ignored' && e.filename,
-    );
+    const targets = getAutoFixTargets();
     if (targets.length === 0) {
-      toast.info('No unresolved errors with a filename to fix.');
+      toast.info('No errors match the current Auto-Fix filters.');
       return;
     }
     const modeLabel = fixMode === 'pr' ? 'open a PR' : 'commit directly to main';
