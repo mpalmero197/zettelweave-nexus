@@ -1043,9 +1043,10 @@ export function ErrorReportsPanel() {
                         <div className="flex items-start gap-3 flex-1">
                           {getSeverityIcon(error.severity)}
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <CardTitle className="text-base">{error.error_type}</CardTitle>
                               {getSeverityBadge(error.severity)}
+                              {renderFixStatusBadge(error.id)}
                             </div>
                             <CardDescription className="line-clamp-2">
                               {error.error_message}
