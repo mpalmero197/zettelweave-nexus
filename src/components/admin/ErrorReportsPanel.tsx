@@ -47,6 +47,36 @@ export function ErrorReportsPanel() {
   // Track applied patches per error to enable undo
   const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
   const [undoingId, setUndoingId] = useState<string | null>(null);
+
+  // Auto-Fix target filters
+  const [fixTypeFilter, setFixTypeFilter] = useState<string>('');
+  const [fixSeverity, setFixSeverity] = useState<Record<string, boolean>>({
+    critical: true, error: true, warning: true, info: false,
+  });
+  const [fixFilenamePattern, setFixFilenamePattern] = useState<string>('');
+
+  const getAutoFixTargets = () => {
+    const typeQ = fixTypeFilter.trim().toLowerCase();
+    const fileQ = fixFilenamePattern.trim().toLowerCase();
+    let fileRegex: RegExp | null = null;
+    if (fileQ.startsWith('/') && fileQ.lastIndexOf('/') > 0) {
+      try {
+        const last = fileQ.lastIndexOf('/');
+        fileRegex = new RegExp(fileQ.slice(1, last), fileQ.slice(last + 1) || 'i');
+      } catch { fileRegex = null; }
+    }
+    return errors.filter(e => {
+      if (e.status === 'resolved' || e.status === 'ignored') return false;
+      if (!e.filename) return false;
+      if (!fixSeverity[e.severity?.toLowerCase()]) return false;
+      if (typeQ && !e.error_type.toLowerCase().includes(typeQ)) return false;
+      if (fileQ) {
+        const fn = e.filename.toLowerCase();
+        if (fileRegex ? !fileRegex.test(fn) : !fn.includes(fileQ)) return false;
+      }
+      return true;
+    });
+  };
   // Per-patch approval prompt
   const [requireApproval, setRequireApproval] = useState(true);
   const [pendingPatch, setPendingPatch] = useState<null | {
