@@ -241,6 +241,53 @@ export function ErrorReportsPanel() {
     }
   };
 
+  /**
+   * Undo a previously applied AI fix.
+   * - PR mode: closes the PR and deletes the feature branch.
+   * - Direct mode: writes a revert commit on main restoring original_content.
+   * If we don't have an in-memory record of the patch, we look up the most
+   * recent applied patch for this error_report_id.
+   */
+  const undoFix = async (errorId: string) => {
+    setUndoingId(errorId);
+    try {
+      let patchId = appliedPatches[errorId]?.patch_id;
+      if (!patchId) {
+        const { data, error } = await supabase
+          .from('ai_code_patches')
+          .select('id')
+          .eq('error_report_id', errorId)
+          .eq('status', 'applied')
+          .order('applied_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        patchId = data?.id;
+      }
+      if (!patchId) {
+        toast.error('No applied AI fix found for this error.');
+        return;
+      }
+      if (!confirm('Undo this AI fix? This will close the PR/delete branch (PR mode) or commit a revert to main (direct mode).')) return;
+
+      const res = await supabase.functions.invoke('undo-code-fix', { body: { patch_id: patchId } });
+      if (res.error || res.data?.ok === false) {
+        throw new Error(res.data?.error || res.error?.message || 'Undo failed');
+      }
+      toast.success(res.data?.summary || 'Fix undone');
+      setAppliedPatches(prev => {
+        const next = { ...prev };
+        delete next[errorId];
+        return next;
+      });
+      fetchErrors();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to undo fix');
+    } finally {
+      setUndoingId(null);
+    }
+  };
+
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case "error":
