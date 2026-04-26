@@ -636,6 +636,10 @@ export function ErrorReportsPanel() {
             </PopoverContent>
           </Popover>
 
+          <Button
+            variant="default"
+            size="sm"
+            onClick={autoFixAll}
             disabled={autoFixing}
             className="gap-2"
           >
