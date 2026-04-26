@@ -47,6 +47,11 @@ export function ErrorReportsPanel() {
   // Track applied patches per error to enable undo
   const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
   const [undoingId, setUndoingId] = useState<string | null>(null);
+  // Per-error live status during Auto-Fix All
+  type FixStatus = 'waiting' | 'proposing' | 'awaiting-approval' | 'applying' | 'succeeded' | 'failed' | 'skipped';
+  const [fixStatuses, setFixStatuses] = useState<Record<string, { status: FixStatus; message?: string; pr_url?: string | null; commit_sha?: string | null }>>({});
+  const setErrorStatus = (id: string, status: FixStatus, extra?: { message?: string; pr_url?: string | null; commit_sha?: string | null }) =>
+    setFixStatuses(prev => ({ ...prev, [id]: { status, ...extra } }));
 
   // Auto-Fix target filters
   const [fixTypeFilter, setFixTypeFilter] = useState<string>('');
