@@ -27,8 +27,9 @@ const TABS: { id: ToolboxTab; label: string; icon: React.ComponentType<{ classNa
 
 export function ToolboxSidebar({ open, onOpenChange, initialTab = 'focus' }: ToolboxSidebarProps) {
   const isMobile = useIsMobile();
-  if (isMobile) return <ToolboxMobileSheet open={open} onOpenChange={onOpenChange} initialTab={initialTab} />;
-  return <ToolboxSidebarInner open={open} onOpenChange={onOpenChange} initialTab={initialTab} />;
+  return isMobile
+    ? <ToolboxMobileSheet open={open} onOpenChange={onOpenChange} initialTab={initialTab} />
+    : <ToolboxSidebarInner open={open} onOpenChange={onOpenChange} initialTab={initialTab} />;
 }
 
 function ToolboxMobileSheet({ open, onOpenChange, initialTab }: ToolboxSidebarProps) {
