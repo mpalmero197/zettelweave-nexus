@@ -877,6 +877,23 @@ export function ErrorReportsPanel() {
                             )}
                             {diagnosingId === error.id ? 'Diagnosing…' : 'AI Diagnose'}
                           </Button>
+                          {(appliedPatches[error.id] || error.status === 'resolved') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5"
+                              disabled={undoingId === error.id}
+                              onClick={() => undoFix(error.id)}
+                              title="Undo the most recent AI fix for this error"
+                            >
+                              {undoingId === error.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Undo2 className="h-3.5 w-3.5" />
+                              )}
+                              {undoingId === error.id ? 'Undoing…' : 'Undo AI Fix'}
+                            </Button>
+                          )}
                           <Select
                             value={error.status}
                             onValueChange={(value) => updateStatus(error.id, value)}
