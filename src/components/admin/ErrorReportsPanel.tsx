@@ -7,7 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2, FileCode, SkipForward } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertTriangle, Bug, AlertCircle, Clock, TrendingUp, Download, Copy, Check, Sparkles, Loader2, X, Wand2, GitPullRequest, GitCommit, Undo2, FileCode, SkipForward, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,6 +47,36 @@ export function ErrorReportsPanel() {
   // Track applied patches per error to enable undo
   const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
   const [undoingId, setUndoingId] = useState<string | null>(null);
+
+  // Auto-Fix target filters
+  const [fixTypeFilter, setFixTypeFilter] = useState<string>('');
+  const [fixSeverity, setFixSeverity] = useState<Record<string, boolean>>({
+    critical: true, error: true, warning: true, info: false,
+  });
+  const [fixFilenamePattern, setFixFilenamePattern] = useState<string>('');
+
+  const getAutoFixTargets = () => {
+    const typeQ = fixTypeFilter.trim().toLowerCase();
+    const fileQ = fixFilenamePattern.trim().toLowerCase();
+    let fileRegex: RegExp | null = null;
+    if (fileQ.startsWith('/') && fileQ.lastIndexOf('/') > 0) {
+      try {
+        const last = fileQ.lastIndexOf('/');
+        fileRegex = new RegExp(fileQ.slice(1, last), fileQ.slice(last + 1) || 'i');
+      } catch { fileRegex = null; }
+    }
+    return errors.filter(e => {
+      if (e.status === 'resolved' || e.status === 'ignored') return false;
+      if (!e.filename) return false;
+      if (!fixSeverity[e.severity?.toLowerCase()]) return false;
+      if (typeQ && !e.error_type.toLowerCase().includes(typeQ)) return false;
+      if (fileQ) {
+        const fn = e.filename.toLowerCase();
+        if (fileRegex ? !fileRegex.test(fn) : !fn.includes(fileQ)) return false;
+      }
+      return true;
+    });
+  };
   // Per-patch approval prompt
   const [requireApproval, setRequireApproval] = useState(true);
   const [pendingPatch, setPendingPatch] = useState<null | {
@@ -182,11 +215,9 @@ export function ErrorReportsPanel() {
   };
 
   const autoFixAll = async () => {
-    const targets = errors.filter(
-      e => e.status !== 'resolved' && e.status !== 'ignored' && e.filename,
-    );
+    const targets = getAutoFixTargets();
     if (targets.length === 0) {
-      toast.info('No unresolved errors with a filename to fix.');
+      toast.info('No errors match the current Auto-Fix filters.');
       return;
     }
     const modeLabel = fixMode === 'pr' ? 'open a PR' : 'commit directly to main';
@@ -526,6 +557,85 @@ export function ErrorReportsPanel() {
               Approve each fix
             </Label>
           </div>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" disabled={autoFixing} className="gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+                {(() => {
+                  const matched = getAutoFixTargets().length;
+                  return <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{matched}</Badge>;
+                })()}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold mb-1">Auto-Fix target filters</p>
+                  <p className="text-xs text-muted-foreground">Limit which unresolved errors get auto-fixed.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="fix-type" className="text-xs">Error type contains</Label>
+                  <Input
+                    id="fix-type"
+                    placeholder="e.g. TypeError, RUNTIME_ERROR"
+                    value={fixTypeFilter}
+                    onChange={(e) => setFixTypeFilter(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Severity</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['critical', 'error', 'warning', 'info'] as const).map(sev => (
+                      <label key={sev} className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox
+                          checked={!!fixSeverity[sev]}
+                          onCheckedChange={(v) => setFixSeverity(s => ({ ...s, [sev]: !!v }))}
+                        />
+                        <span className="capitalize">{sev}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="fix-file" className="text-xs">
+                    Filename pattern <span className="text-muted-foreground">(substring or /regex/i)</span>
+                  </Label>
+                  <Input
+                    id="fix-file"
+                    placeholder="e.g. components/admin or /\.tsx$/i"
+                    value={fixFilenamePattern}
+                    onChange={(e) => setFixFilenamePattern(e.target.value)}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setFixTypeFilter('');
+                      setFixFilenamePattern('');
+                      setFixSeverity({ critical: true, error: true, warning: true, info: false });
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {getAutoFixTargets().length} match{getAutoFixTargets().length === 1 ? '' : 'es'}
+                  </span>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button
             variant="default"
             size="sm"
