@@ -406,7 +406,50 @@ export function ErrorReportsPanel() {
     return <Badge variant={variants[severity] || "default"}>{severity}</Badge>;
   };
 
-  const handleCopyToClipboard = async () => {
+  const renderFixStatusBadge = (errorId: string) => {
+    const s = fixStatuses[errorId];
+    if (!s) return null;
+    const map: Record<FixStatus, { label: string; className: string; spinner?: boolean }> = {
+      'waiting': { label: 'Waiting', className: 'bg-muted text-muted-foreground border-muted-foreground/20' },
+      'proposing': { label: 'Proposing fix', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20', spinner: true },
+      'awaiting-approval': { label: 'Awaiting approval', className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+      'applying': { label: fixMode === 'pr' ? 'Opening PR' : 'Committing', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20', spinner: true },
+      'succeeded': { label: 'Fixed', className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+      'failed': { label: 'Failed', className: 'bg-red-500/10 text-red-500 border-red-500/20' },
+      'skipped': { label: 'Skipped', className: 'bg-muted text-muted-foreground border-muted-foreground/20' },
+    };
+    const cfg = map[s.status];
+    return (
+      <div className="flex items-center gap-1.5">
+        <Badge
+          variant="outline"
+          className={`${cfg.className} gap-1 text-[10px] px-1.5 py-0`}
+          title={s.message || cfg.label}
+        >
+          {cfg.spinner && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+          {cfg.label}
+        </Badge>
+        {s.status === 'succeeded' && s.pr_url && (
+          <a
+            href={s.pr_url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GitPullRequest className="h-2.5 w-2.5" /> View PR
+          </a>
+        )}
+        {s.status === 'succeeded' && !s.pr_url && s.commit_sha && (
+          <span className="text-[10px] text-muted-foreground font-mono inline-flex items-center gap-0.5">
+            <GitCommit className="h-2.5 w-2.5" /> {s.commit_sha.slice(0, 7)}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+
     try {
       const exportData = {
         exported_at: new Date().toISOString(),
