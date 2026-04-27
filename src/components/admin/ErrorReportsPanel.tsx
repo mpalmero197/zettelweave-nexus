@@ -350,6 +350,75 @@ export function ErrorReportsPanel() {
   };
 
   /**
+   * Export the most recent Auto-Fix run as a downloadable JSON or CSV report.
+   * Combines the in-memory progress log with applied-patch metadata.
+   */
+  const exportFixLog = (format: 'json' | 'csv') => {
+    if (autoFixProgress.log.length === 0) {
+      toast.info('No Auto-Fix log to export yet.');
+      return;
+    }
+    const errById = new Map(errors.map(e => [e.id, e]));
+    const rows = Object.entries(appliedPatches).map(([errorId, p]) => {
+      const e = errById.get(errorId);
+      return {
+        error_id: errorId,
+        error_type: e?.error_type ?? '',
+        error_message: e?.error_message ?? '',
+        filename: e?.filename ?? '',
+        line_number: e?.line_number ?? '',
+        severity: e?.severity ?? '',
+        patch_id: p.patch_id,
+        mode: p.mode,
+        pr_url: p.pr_url ?? '',
+        commit_sha: p.commit_sha ?? '',
+      };
+    });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const triggerDownload = (blob: Blob, name: string) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    if (format === 'json') {
+      const payload = {
+        exported_at: new Date().toISOString(),
+        mode: fixMode,
+        progress: autoFixProgress,
+        applied_patches: rows,
+      };
+      triggerDownload(
+        new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
+        `auto-fix-log-${ts}.json`,
+      );
+    } else {
+      const headers = [
+        'error_id', 'error_type', 'error_message', 'filename', 'line_number',
+        'severity', 'patch_id', 'mode', 'pr_url', 'commit_sha',
+      ];
+      const escape = (v: unknown) => {
+        const s = String(v ?? '');
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const lines = [headers.join(',')];
+      for (const r of rows) lines.push(headers.map(h => escape((r as any)[h])).join(','));
+      lines.push('', '# --- Auto-Fix progress log ---');
+      for (const line of autoFixProgress.log) lines.push(`# ${line.replace(/\r?\n/g, ' ')}`);
+      triggerDownload(
+        new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }),
+        `auto-fix-log-${ts}.csv`,
+      );
+    }
+    toast.success(`Exported ${rows.length} fix(es) as ${format.toUpperCase()}`);
+  };
+
+  /**
    * Undo a previously applied AI fix.
    * - PR mode: closes the PR and deletes the feature branch.
    * - Direct mode: writes a revert commit on main restoring original_content.
@@ -731,11 +800,31 @@ export function ErrorReportsPanel() {
 
       {(autoFixing || autoFixProgress.log.length > 0) && (
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-primary" />
               Auto-Fix Progress ({autoFixProgress.current}/{autoFixProgress.total}) — {fixMode === 'pr' ? 'PR mode' : 'Direct commit to main'}
             </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={autoFixProgress.log.length === 0}
+                onClick={() => exportFixLog('json')}
+                className="gap-1.5"
+              >
+                <Download className="h-3 w-3" /> JSON
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={autoFixProgress.log.length === 0}
+                onClick={() => exportFixLog('csv')}
+                className="gap-1.5"
+              >
+                <Download className="h-3 w-3" /> CSV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-48 rounded border bg-muted/30 p-3">
