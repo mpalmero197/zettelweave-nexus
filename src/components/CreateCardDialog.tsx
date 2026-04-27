@@ -231,6 +231,7 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
               placeholder="Write your content here..."
               rows={6}
               className="text-base leading-relaxed"
+              data-writing-suggest="zettelcard"
             />
           </div>
 

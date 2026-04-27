@@ -25,8 +25,10 @@ import pendragonLogo from "@/assets/pendragon-logo.png";
 import { toast } from "sonner";
 import { usePopoutMode } from "@/hooks/usePopoutMode";
 import { useWindowSync } from "@/hooks/useWindowSync";
+import { useWritingContextDetector } from "@/hooks/useWritingContextDetector";
 
 export function AppLayout() {
+  useWritingContextDetector();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

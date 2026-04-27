@@ -254,7 +254,7 @@ export function CatalystEditor({
     'catalyst-layout-web';
 
   return (
-    <div className={`border rounded-lg overflow-hidden relative ${layoutClass}`} ref={editorRef} role="region" aria-label="Document editor">
+    <div className={`border rounded-lg overflow-hidden relative ${layoutClass}`} ref={editorRef} role="region" aria-label="Document editor" data-writing-suggest="catalyst">
       {/* ── Row 1: Main formatting toolbar ── */}
       <div
         ref={toolbarRef}

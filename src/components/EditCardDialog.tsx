@@ -260,6 +260,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Enter the main content of your card"
                 className="min-h-[200px] font-mono"
+                data-writing-suggest="zettelcard"
               />
             </div>
           </div>
