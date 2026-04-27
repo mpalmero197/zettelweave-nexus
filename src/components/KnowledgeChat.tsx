@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -52,6 +52,21 @@ export function KnowledgeChat() {
     setInput(query);
     setTimeout(() => sendMessage(query), 100);
   };
+
+  // Listen for external requests (e.g. writing-context smart suggestion) to
+  // open the assistant with a pre-filled query and run it immediately.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const query = detail?.query;
+      if (typeof query === 'string' && query.trim()) {
+        setInput(query);
+        setTimeout(() => sendMessage(query), 150);
+      }
+    };
+    window.addEventListener('open-knowledge-chat-with-query', handler);
+    return () => window.removeEventListener('open-knowledge-chat-with-query', handler);
+  }, [sendMessage, setInput]);
 
   return (
     <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4.5rem)] flex">
