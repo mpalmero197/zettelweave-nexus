@@ -731,11 +731,31 @@ export function ErrorReportsPanel() {
 
       {(autoFixing || autoFixProgress.log.length > 0) && (
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-primary" />
               Auto-Fix Progress ({autoFixProgress.current}/{autoFixProgress.total}) — {fixMode === 'pr' ? 'PR mode' : 'Direct commit to main'}
             </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={autoFixProgress.log.length === 0}
+                onClick={() => exportFixLog('json')}
+                className="gap-1.5"
+              >
+                <Download className="h-3 w-3" /> JSON
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={autoFixProgress.log.length === 0}
+                onClick={() => exportFixLog('csv')}
+                className="gap-1.5"
+              >
+                <Download className="h-3 w-3" /> CSV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-48 rounded border bg-muted/30 p-3">
