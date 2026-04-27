@@ -1222,6 +1222,7 @@ export function Notes({ initialView }: NotesProps = {}) {
                   value={newNote.content}
                   onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
                   rows={8}
+                  data-writing-suggest="note"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

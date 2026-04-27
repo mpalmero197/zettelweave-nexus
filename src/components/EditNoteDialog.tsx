@@ -406,6 +406,7 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
                   onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                   placeholder="Write your note content here... (Markdown supported)"
                   className="min-h-[400px] border-0 focus-visible:ring-0 font-mono resize-none"
+                  data-writing-suggest="note"
                 />
               </ScrollArea>
               {validationErrors.content && (
