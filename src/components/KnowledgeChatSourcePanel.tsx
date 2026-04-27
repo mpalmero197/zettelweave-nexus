@@ -2,8 +2,9 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, StickyNote, BookOpen, Calendar, CheckSquare, PenTool } from 'lucide-react';
+import { FileText, StickyNote, BookOpen, Calendar, CheckSquare, PenTool, Quote } from 'lucide-react';
 import { SourceCategory, SelectedSources } from '@/hooks/useKnowledgeChat';
+import { useResearchPromptPrefs } from '@/hooks/useResearchPromptPrefs';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -37,6 +38,7 @@ export function KnowledgeChatSourcePanel({
   compact = false,
 }: KnowledgeChatSourcePanelProps) {
   const allEnabled = enabledSourceCount === totalSourceCount;
+  const { includeCitations, toggle: toggleCitations } = useResearchPromptPrefs();
 
   return (
     <div className={cn("flex flex-col", className)}>
