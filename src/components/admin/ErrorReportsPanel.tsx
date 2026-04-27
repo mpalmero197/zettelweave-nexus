@@ -231,6 +231,40 @@ export function ErrorReportsPanel() {
     const append = (line: string) =>
       setAutoFixProgress(p => ({ ...p, log: [...p.log, line] }));
 
+    // Retry transient failures (rate limits, 5xx, network) with exponential backoff.
+    // Returns the successful invoke result, or throws the last error.
+    const TRANSIENT_PATTERNS = [
+      /rate.?limit/i, /\b429\b/, /\b5\d{2}\b/, /timeout/i, /timed out/i,
+      /network/i, /fetch failed/i, /ECONNRESET/i, /ETIMEDOUT/i,
+      /temporarily/i, /try again/i, /unavailable/i, /abuse detection/i,
+    ];
+    const isTransient = (msg: string | undefined) =>
+      !!msg && TRANSIENT_PATTERNS.some(p => p.test(msg));
+
+    const invokeWithRetry = async (
+      fn: 'propose-code-fix' | 'apply-code-fix',
+      body: Record<string, unknown>,
+      maxAttempts = 4,
+    ) => {
+      let lastErr = '';
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const res = await supabase.functions.invoke(fn, { body });
+        const errMsg = res.data?.ok === false
+          ? (res.data?.error as string | undefined)
+          : res.error?.message;
+        if (!res.error && res.data?.ok !== false) return res;
+        lastErr = errMsg || `${fn} failed`;
+        if (attempt === maxAttempts || !isTransient(lastErr)) {
+          return res; // non-retryable or out of attempts — let caller handle
+        }
+        // Exponential backoff with jitter: 1s, 2s, 4s (+ up to 500ms)
+        const delay = Math.min(8000, 1000 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 500);
+        append(`  ↻ ${fn} transient error (${lastErr.slice(0, 80)}) — retry ${attempt}/${maxAttempts - 1} in ${Math.round(delay / 100) / 10}s`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+      throw new Error(lastErr);
+    };
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -242,8 +276,8 @@ export function ErrorReportsPanel() {
         append(`▶ [${i + 1}/${targets.length}] ${label}`);
 
         try {
-          const propRes = await supabase.functions.invoke('propose-code-fix', {
-            body: { error_report_id: err.id },
+          const propRes = await invokeWithRetry('propose-code-fix', {
+            error_report_id: err.id,
           });
           if (propRes.error || propRes.data?.ok === false) {
             const msg = propRes.data?.error || propRes.error?.message || 'propose failed';
