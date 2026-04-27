@@ -2,8 +2,9 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, StickyNote, BookOpen, Calendar, CheckSquare, PenTool } from 'lucide-react';
+import { FileText, StickyNote, BookOpen, Calendar, CheckSquare, PenTool, Quote } from 'lucide-react';
 import { SourceCategory, SelectedSources } from '@/hooks/useKnowledgeChat';
+import { useResearchPromptPrefs } from '@/hooks/useResearchPromptPrefs';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -37,6 +38,7 @@ export function KnowledgeChatSourcePanel({
   compact = false,
 }: KnowledgeChatSourcePanelProps) {
   const allEnabled = enabledSourceCount === totalSourceCount;
+  const { includeCitations, toggle: toggleCitations } = useResearchPromptPrefs();
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -95,6 +97,28 @@ export function KnowledgeChatSourcePanel({
           ))}
         </div>
       </ScrollArea>
+
+      <div className="border-t border-border/50 p-3">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "p-1.5 rounded-md mt-0.5",
+            includeCitations ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+          )}>
+            <Quote className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-foreground">Include citations</span>
+              <Switch checked={includeCitations} onCheckedChange={toggleCitations} className="scale-75" />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+              {includeCitations
+                ? "Research replies include source links inline."
+                : "Research replies use web results only — no citations."}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

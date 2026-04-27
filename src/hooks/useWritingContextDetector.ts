@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { readIncludeCitationsPref } from "@/hooks/useResearchPromptPrefs";
 
 /**
  * Listens globally for typing inside elements marked with [data-writing-suggest].
@@ -65,11 +66,16 @@ export function useWritingContextDetector() {
             action: {
               label: "Yes, research it",
               onClick: () => {
+                const includeCitations = readIncludeCitationsPref();
+                const query = includeCitations
+                  ? `Find detailed information about: ${topic}. Include citations and source links inline.`
+                  : `Find detailed information about: ${topic}. Use web search results only — do not include citations or source links.`;
                 window.dispatchEvent(
                   new CustomEvent("open-knowledge-chat-with-query", {
                     detail: {
-                      query: `Find detailed information about: ${topic}`,
+                      query,
                       source: "writing-context",
+                      includeCitations,
                     },
                   })
                 );
