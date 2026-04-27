@@ -47,11 +47,6 @@ export function ErrorReportsPanel() {
   // Track applied patches per error to enable undo
   const [appliedPatches, setAppliedPatches] = useState<Record<string, { patch_id: string; pr_url?: string | null; commit_sha?: string | null; mode: 'pr' | 'direct' }>>({});
   const [undoingId, setUndoingId] = useState<string | null>(null);
-  // Per-error live status during Auto-Fix All
-  type FixStatus = 'waiting' | 'proposing' | 'awaiting-approval' | 'applying' | 'succeeded' | 'failed' | 'skipped';
-  const [fixStatuses, setFixStatuses] = useState<Record<string, { status: FixStatus; message?: string; pr_url?: string | null; commit_sha?: string | null }>>({});
-  const setErrorStatus = (id: string, status: FixStatus, extra?: { message?: string; pr_url?: string | null; commit_sha?: string | null }) =>
-    setFixStatuses(prev => ({ ...prev, [id]: { status, ...extra } }));
 
   // Auto-Fix target filters
   const [fixTypeFilter, setFixTypeFilter] = useState<string>('');
@@ -230,17 +225,45 @@ export function ErrorReportsPanel() {
 
     setAutoFixing(true);
     setAutoFixProgress({ current: 0, total: targets.length, log: [] });
-    // Seed every target with 'waiting' so the UI shows queued state
-    setFixStatuses(prev => {
-      const next = { ...prev };
-      for (const t of targets) next[t.id] = { status: 'waiting' };
-      return next;
-    });
 
     let fixed = 0;
     let failed = 0;
     const append = (line: string) =>
       setAutoFixProgress(p => ({ ...p, log: [...p.log, line] }));
+
+    // Retry transient failures (rate limits, 5xx, network) with exponential backoff.
+    // Returns the successful invoke result, or throws the last error.
+    const TRANSIENT_PATTERNS = [
+      /rate.?limit/i, /\b429\b/, /\b5\d{2}\b/, /timeout/i, /timed out/i,
+      /network/i, /fetch failed/i, /ECONNRESET/i, /ETIMEDOUT/i,
+      /temporarily/i, /try again/i, /unavailable/i, /abuse detection/i,
+    ];
+    const isTransient = (msg: string | undefined) =>
+      !!msg && TRANSIENT_PATTERNS.some(p => p.test(msg));
+
+    const invokeWithRetry = async (
+      fn: 'propose-code-fix' | 'apply-code-fix',
+      body: Record<string, unknown>,
+      maxAttempts = 4,
+    ) => {
+      let lastErr = '';
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const res = await supabase.functions.invoke(fn, { body });
+        const errMsg = res.data?.ok === false
+          ? (res.data?.error as string | undefined)
+          : res.error?.message;
+        if (!res.error && res.data?.ok !== false) return res;
+        lastErr = errMsg || `${fn} failed`;
+        if (attempt === maxAttempts || !isTransient(lastErr)) {
+          return res; // non-retryable or out of attempts — let caller handle
+        }
+        // Exponential backoff with jitter: 1s, 2s, 4s (+ up to 500ms)
+        const delay = Math.min(8000, 1000 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 500);
+        append(`  ↻ ${fn} transient error (${lastErr.slice(0, 80)}) — retry ${attempt}/${maxAttempts - 1} in ${Math.round(delay / 100) / 10}s`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+      throw new Error(lastErr);
+    };
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -253,28 +276,24 @@ export function ErrorReportsPanel() {
         append(`▶ [${i + 1}/${targets.length}] ${label}`);
 
         try {
-          setErrorStatus(err.id, 'proposing');
-          const propRes = await supabase.functions.invoke('propose-code-fix', {
-            body: { error_report_id: err.id },
+          const propRes = await invokeWithRetry('propose-code-fix', {
+            error_report_id: err.id,
           });
           if (propRes.error || propRes.data?.ok === false) {
             const msg = propRes.data?.error || propRes.error?.message || 'propose failed';
             append(`  ✗ propose: ${msg}`);
-            setErrorStatus(err.id, 'failed', { message: msg });
             failed++;
             continue;
           }
           const patchId = propRes.data?.patch?.id;
           if (!patchId) {
             append(`  ✗ no patch returned`);
-            setErrorStatus(err.id, 'failed', { message: 'no patch returned' });
             failed++;
             continue;
           }
           append(`  • proposed patch ${patchId.slice(0, 8)} → ${propRes.data.patch.file_path}`);
 
           if (requireApproval) {
-            setErrorStatus(err.id, 'awaiting-approval');
             const decision = await requestApproval({
               patch: propRes.data.patch,
               errorLabel: label,
@@ -283,26 +302,22 @@ export function ErrorReportsPanel() {
             });
             if (decision === 'skip') {
               append(`  ⊘ skipped by admin`);
-              setErrorStatus(err.id, 'skipped', { message: 'skipped by admin' });
               await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
               continue;
             }
             if (decision === 'abort') {
               append(`  ■ aborted by admin`);
-              setErrorStatus(err.id, 'skipped', { message: 'aborted by admin' });
               await supabase.from('ai_code_patches').update({ status: 'rejected' }).eq('id', patchId);
               break;
             }
           }
 
-          setErrorStatus(err.id, 'applying');
-          const applyRes = await supabase.functions.invoke('apply-code-fix', {
-            body: { patch_id: patchId, mode: fixMode },
+          const applyRes = await invokeWithRetry('apply-code-fix', {
+            patch_id: patchId, mode: fixMode,
           });
           if (applyRes.error || applyRes.data?.ok === false) {
             const msg = applyRes.data?.error || applyRes.error?.message || 'apply failed';
             append(`  ✗ apply: ${msg}`);
-            setErrorStatus(err.id, 'failed', { message: msg });
             failed++;
             continue;
           }
@@ -310,10 +325,6 @@ export function ErrorReportsPanel() {
             ? `PR: ${applyRes.data?.pr_url || applyRes.data?.branch || 'opened'}`
             : `committed to main (${applyRes.data?.commit_sha?.slice(0, 7) || 'ok'})`;
           append(`  ✓ ${result}`);
-          setErrorStatus(err.id, 'succeeded', {
-            pr_url: applyRes.data?.pr_url ?? null,
-            commit_sha: applyRes.data?.commit_sha ?? null,
-          });
           setAppliedPatches(prev => ({
             ...prev,
             [err.id]: {
@@ -326,7 +337,6 @@ export function ErrorReportsPanel() {
           fixed++;
         } catch (e: any) {
           append(`  ✗ ${e.message || 'unknown error'}`);
-          setErrorStatus(err.id, 'failed', { message: e.message || 'unknown error' });
           failed++;
         }
       }
@@ -405,50 +415,6 @@ export function ErrorReportsPanel() {
     };
     return <Badge variant={variants[severity] || "default"}>{severity}</Badge>;
   };
-
-  const renderFixStatusBadge = (errorId: string) => {
-    const s = fixStatuses[errorId];
-    if (!s) return null;
-    const map: Record<FixStatus, { label: string; className: string; spinner?: boolean }> = {
-      'waiting': { label: 'Waiting', className: 'bg-muted text-muted-foreground border-muted-foreground/20' },
-      'proposing': { label: 'Proposing fix', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20', spinner: true },
-      'awaiting-approval': { label: 'Awaiting approval', className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-      'applying': { label: fixMode === 'pr' ? 'Opening PR' : 'Committing', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20', spinner: true },
-      'succeeded': { label: 'Fixed', className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-      'failed': { label: 'Failed', className: 'bg-red-500/10 text-red-500 border-red-500/20' },
-      'skipped': { label: 'Skipped', className: 'bg-muted text-muted-foreground border-muted-foreground/20' },
-    };
-    const cfg = map[s.status];
-    return (
-      <div className="flex items-center gap-1.5">
-        <Badge
-          variant="outline"
-          className={`${cfg.className} gap-1 text-[10px] px-1.5 py-0`}
-          title={s.message || cfg.label}
-        >
-          {cfg.spinner && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
-          {cfg.label}
-        </Badge>
-        {s.status === 'succeeded' && s.pr_url && (
-          <a
-            href={s.pr_url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GitPullRequest className="h-2.5 w-2.5" /> View PR
-          </a>
-        )}
-        {s.status === 'succeeded' && !s.pr_url && s.commit_sha && (
-          <span className="text-[10px] text-muted-foreground font-mono inline-flex items-center gap-0.5">
-            <GitCommit className="h-2.5 w-2.5" /> {s.commit_sha.slice(0, 7)}
-          </span>
-        )}
-      </div>
-    );
-  };
-
 
   const handleCopyToClipboard = async () => {
     try {
@@ -1043,10 +1009,9 @@ export function ErrorReportsPanel() {
                         <div className="flex items-start gap-3 flex-1">
                           {getSeverityIcon(error.severity)}
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <div className="flex items-center gap-2 mb-1">
                               <CardTitle className="text-base">{error.error_type}</CardTitle>
                               {getSeverityBadge(error.severity)}
-                              {renderFixStatusBadge(error.id)}
                             </div>
                             <CardDescription className="line-clamp-2">
                               {error.error_message}
