@@ -312,8 +312,8 @@ export function ErrorReportsPanel() {
             }
           }
 
-          const applyRes = await supabase.functions.invoke('apply-code-fix', {
-            body: { patch_id: patchId, mode: fixMode },
+          const applyRes = await invokeWithRetry('apply-code-fix', {
+            patch_id: patchId, mode: fixMode,
           });
           if (applyRes.error || applyRes.data?.ok === false) {
             const msg = applyRes.data?.error || applyRes.error?.message || 'apply failed';
