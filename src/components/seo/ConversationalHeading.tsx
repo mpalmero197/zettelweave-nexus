@@ -23,7 +23,7 @@ export function ConversationalHeading({
   id,
   className,
 }: ConversationalHeadingProps) {
-  const Tag = (`h${level}` as unknown) as keyof JSX.IntrinsicElements;
+  const Tag = `h${level}` as "h2" | "h3";
   const slug =
     id ??
     (typeof children === "string"
