@@ -107,3 +107,9 @@ verify_jwt = false
 
 [functions.update-blocklist]
 verify_jwt = false
+
+[functions.seo-aeo-self-improve]
+verify_jwt = false
+
+[functions.serve-llms-txt]
+verify_jwt = false
