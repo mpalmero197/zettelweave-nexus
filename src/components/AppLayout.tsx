@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { usePopoutMode } from "@/hooks/usePopoutMode";
 import { useWindowSync } from "@/hooks/useWindowSync";
 import { useWritingContextDetector } from "@/hooks/useWritingContextDetector";
+import { AutoSEOOverrides } from "./seo/AutoSEOOverrides";
 
 export function AppLayout() {
   useWritingContextDetector();
@@ -251,6 +252,7 @@ export function AppLayout() {
         </MobileOptimizedLayout>
       </MobileDetector>
 
+      <AutoSEOOverrides />
       <PWAInstallPrompt />
       {typeof PushNotificationPrompt !== 'undefined' && <PushNotificationPrompt />}
       <FloatingChatBubble />

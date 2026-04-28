@@ -19,6 +19,7 @@ import { ToolTester } from '@/components/admin/ToolTester';
 import { PlatformReport } from '@/components/admin/PlatformReport';
 import { AdminAIChat } from '@/components/admin/AdminAIChat';
 import { AIFixesPanel } from '@/components/admin/AIFixesPanel';
+import { SeoEnginePanel } from '@/components/admin/SeoEnginePanel';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -376,6 +377,8 @@ export default function Admin() {
         return <AdminAIChat />;
       case 'system-ai-fixer':
         return <AIFixesPanel />;
+      case 'system-seo-engine':
+        return <SeoEnginePanel />;
       case 'docs':
         return <DocumentationViewer />;
       default:

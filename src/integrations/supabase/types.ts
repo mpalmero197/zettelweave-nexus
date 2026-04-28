@@ -2477,6 +2477,333 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_applied_techniques: {
+        Row: {
+          action_type: string
+          applied_at: string
+          category: string
+          classification: string
+          confidence: number | null
+          description: string
+          id: string
+          run_id: string | null
+          source_url: string | null
+          technique_signature: string
+          title: string
+        }
+        Insert: {
+          action_type: string
+          applied_at?: string
+          category: string
+          classification: string
+          confidence?: number | null
+          description: string
+          id?: string
+          run_id?: string | null
+          source_url?: string | null
+          technique_signature: string
+          title: string
+        }
+        Update: {
+          action_type?: string
+          applied_at?: string
+          category?: string
+          classification?: string
+          confidence?: number | null
+          description?: string
+          id?: string
+          run_id?: string | null
+          source_url?: string | null
+          technique_signature?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_applied_techniques_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "seo_improvement_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_change_log: {
+        Row: {
+          after_data: Json | null
+          applied_technique_id: string | null
+          before_data: Json | null
+          created_at: string
+          id: string
+          reverted_at: string | null
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          after_data?: Json | null
+          applied_technique_id?: string | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          reverted_at?: string | null
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          after_data?: Json | null
+          applied_technique_id?: string | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          reverted_at?: string | null
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_change_log_applied_technique_id_fkey"
+            columns: ["applied_technique_id"]
+            isOneToOne: false
+            referencedRelation: "seo_applied_techniques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_engine_settings: {
+        Row: {
+          categories: Json
+          created_at: string
+          enabled: boolean
+          id: number
+          last_run_at: string | null
+          max_auto_per_run: number
+          max_queued_per_run: number
+          next_scheduled_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          categories?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: number
+          last_run_at?: string | null
+          max_auto_per_run?: number
+          max_queued_per_run?: number
+          next_scheduled_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categories?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: number
+          last_run_at?: string | null
+          max_auto_per_run?: number
+          max_queued_per_run?: number
+          next_scheduled_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_faq_entries: {
+        Row: {
+          active: boolean
+          answer: string
+          created_at: string
+          id: string
+          question: string
+          route_pattern: string
+          sort_order: number
+          source_technique_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          answer: string
+          created_at?: string
+          id?: string
+          question: string
+          route_pattern: string
+          sort_order?: number
+          source_technique_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          answer?: string
+          created_at?: string
+          id?: string
+          question?: string
+          route_pattern?: string
+          sort_order?: number
+          source_technique_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_faq_entries_source_technique_id_fkey"
+            columns: ["source_technique_id"]
+            isOneToOne: false
+            referencedRelation: "seo_applied_techniques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_improvement_runs: {
+        Row: {
+          applied_count: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          queued_count: number
+          raw_research: Json | null
+          skipped_count: number
+          started_at: string
+          status: string
+          techniques_found: number
+          triggered_by: string
+        }
+        Insert: {
+          applied_count?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          queued_count?: number
+          raw_research?: Json | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          techniques_found?: number
+          triggered_by?: string
+        }
+        Update: {
+          applied_count?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          queued_count?: number
+          raw_research?: Json | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          techniques_found?: number
+          triggered_by?: string
+        }
+        Relationships: []
+      }
+      seo_jsonld: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          route_pattern: string
+          schema_json: Json
+          schema_type: string
+          source_technique_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          route_pattern: string
+          schema_json: Json
+          schema_type: string
+          source_technique_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          route_pattern?: string
+          schema_json?: Json
+          schema_type?: string
+          source_technique_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_jsonld_source_technique_id_fkey"
+            columns: ["source_technique_id"]
+            isOneToOne: false
+            referencedRelation: "seo_applied_techniques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_llms_content: {
+        Row: {
+          id: number
+          llms_full_txt: string
+          llms_txt: string
+          source_technique_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          llms_full_txt?: string
+          llms_txt?: string
+          source_technique_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          llms_full_txt?: string
+          llms_txt?: string
+          source_technique_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_llms_content_source_technique_id_fkey"
+            columns: ["source_technique_id"]
+            isOneToOne: false
+            referencedRelation: "seo_applied_techniques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_overrides: {
+        Row: {
+          active: boolean
+          created_at: string
+          field: string
+          id: string
+          route_pattern: string
+          source_technique_id: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          field: string
+          id?: string
+          route_pattern: string
+          source_technique_id?: string | null
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          field?: string
+          id?: string
+          route_pattern?: string
+          source_technique_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_overrides_source_technique_id_fkey"
+            columns: ["source_technique_id"]
+            isOneToOne: false
+            referencedRelation: "seo_applied_techniques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_content: {
         Row: {
           content_id: string
