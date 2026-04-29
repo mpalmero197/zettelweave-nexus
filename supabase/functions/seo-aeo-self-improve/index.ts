@@ -35,11 +35,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!PERPLEXITY_API_KEY) return json({ error: "PERPLEXITY_API_KEY missing" });
-    if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY missing" });
+    if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY missing" }, 500);
 
     // Settings + bail if disabled
     const { data: settings } = await supabase.from("seo_engine_settings").select("*").eq("id", 1).single();
@@ -60,41 +58,55 @@ serve(async (req) => {
       .single();
     const runId = run!.id;
 
-    // 1) Perplexity research
-    const perpRes = await fetch("https://api.perplexity.ai/chat/completions", {
+    // 1) Research via Lovable AI with Google Search grounding
+    const researchRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "sonar-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
             content:
-              "You are an SEO and AEO (Answer Engine Optimization) research analyst. Return concrete, actionable techniques published in the last 14 days that a website can implement to improve ranking in Google, Bing, and citation in LLMs (ChatGPT, Perplexity, Gemini, Claude). Focus on concrete additions: schema.org types, llms.txt patterns, meta tag conventions, FAQ structures. Skip vague advice.",
+              "You are an SEO and AEO (Answer Engine Optimization) research analyst. Use Google Search to find concrete, actionable techniques published recently (prefer the last 30 days) that a website can implement to improve ranking in Google/Bing and citation in LLMs (ChatGPT, Perplexity, Gemini, Claude). Focus on concrete additions: schema.org types, llms.txt patterns, meta tag conventions, FAQ structures. Skip vague advice. Always cite source URLs.",
           },
           {
             role: "user",
             content:
-              "List 6-10 newly recommended SEO/AEO techniques from the last 14 days. For each, give: a 1-line title, a 2-3 sentence actionable description, and the source URL. Format as a numbered list.",
+              "Search the web and list 6-10 newly recommended SEO/AEO techniques from the last 30 days. For each, give: a 1-line title, a 2-3 sentence actionable description, and the source URL. Format as a numbered list.",
           },
         ],
-        search_recency_filter: "month",
+        tools: [{ type: "google_search" }],
         max_tokens: 2000,
       }),
     });
 
-    if (!perpRes.ok) {
-      const t = await perpRes.text();
+    if (!researchRes.ok) {
+      const t = await researchRes.text();
+      const friendly =
+        researchRes.status === 429
+          ? "Lovable AI rate limit hit; try again shortly."
+          : researchRes.status === 402
+          ? "Lovable AI credits exhausted; add credits in Workspace → Usage."
+          : `Lovable AI research failed (${researchRes.status})`;
       await supabase
         .from("seo_improvement_runs")
-        .update({ status: "failed", error: `perplexity ${perpRes.status}: ${t}`, finished_at: new Date().toISOString() })
+        .update({ status: "failed", error: `${friendly}: ${t.slice(0, 500)}`, finished_at: new Date().toISOString() })
         .eq("id", runId);
-      return json({ error: "perplexity failed", status: perpRes.status });
+      return json({ error: friendly, status: researchRes.status, detail: t.slice(0, 500) }, researchRes.status === 402 ? 402 : 502);
     }
 
-    const perpData = await perpRes.json();
-    const research = perpData.choices?.[0]?.message?.content ?? "";
-    const citations: string[] = perpData.citations ?? [];
+    const researchData = await researchRes.json();
+    const research = researchData.choices?.[0]?.message?.content ?? "";
+    // Extract citations from grounding metadata if available
+    const grounding = researchData.choices?.[0]?.message?.grounding_metadata
+      ?? researchData.choices?.[0]?.grounding_metadata;
+    const citations: string[] = (() => {
+      const fromChunks = grounding?.grounding_chunks?.map((c: any) => c?.web?.uri).filter(Boolean) ?? [];
+      const fromSupports = grounding?.search_entry_point?.rendered_content ? [] : [];
+      const urlMatches = research.match(/https?:\/\/[^\s)\]]+/g) ?? [];
+      return Array.from(new Set([...fromChunks, ...fromSupports, ...urlMatches])).slice(0, 30);
+    })();
 
     // 2) Classify with Lovable AI
     const classifyRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
