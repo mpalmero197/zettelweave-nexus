@@ -124,7 +124,14 @@ export function SeoEnginePanel() {
       const { data, error } = await supabase.functions.invoke("seo-aeo-self-improve", {
         headers: { "x-triggered-by": "manual" },
       });
-      if (error) throw error;
+      if (error) {
+        // Try to surface upstream details from the function response body
+        const detail = (data as any)?.error || (data as any)?.detail || error.message;
+        throw new Error(detail);
+      }
+      if ((data as any)?.error) {
+        throw new Error((data as any).error + ((data as any).detail ? ` — ${(data as any).detail}` : ""));
+      }
       toast.success(
         `Run complete — found ${data?.techniques_found ?? 0}, applied ${data?.applied ?? 0}, queued ${data?.queued ?? 0}`,
       );
