@@ -219,8 +219,8 @@ export function SeoEnginePanel() {
               </div>
             </div>
             <div className="rounded-lg border border-border bg-card/50 p-3">
-              <div className="text-xs text-muted-foreground">Queued for review</div>
-              <div className="font-medium text-amber-500">
+              <div className="text-xs text-muted-foreground">Code notes (logged)</div>
+              <div className="font-medium text-muted-foreground">
                 {techniques.filter((t) => t.classification === "code_change").length}
               </div>
             </div>
