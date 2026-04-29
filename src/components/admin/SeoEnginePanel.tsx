@@ -188,8 +188,8 @@ export function SeoEnginePanel() {
               <div>
                 <CardTitle>Autonomous SEO/AEO Engine</CardTitle>
                 <CardDescription className="mt-1">
-                  Researches the latest SEO/AEO techniques every 24 hours and auto-applies safe data-only
-                  improvements. Code changes are queued for your review.
+                  Researches the latest SEO/AEO techniques every 24 hours and automatically applies every
+                  safe data change. Code-level techniques are silently logged — no review required.
                 </CardDescription>
               </div>
             </div>
