@@ -221,28 +221,22 @@ Be conservative. When in doubt, mark as "code_change" so a human reviews it. Nev
       if (!techRow) continue;
       const techId = techRow.id;
 
-      // SKIP
-      if (tech.classification === "skip" || tech.confidence < 0.8) {
+      // SKIP only if model says skip; ignore confidence gate (user opted to auto-apply everything)
+      if (tech.classification === "skip") {
         skippedCount++;
         continue;
       }
 
-      // CODE_CHANGE → queue as platform_insight
+      // CODE_CHANGE → silently log (no review queue). User opted out of reviewing.
       if (tech.classification === "code_change") {
-        if (queuedCount >= maxQueued) {
-          skippedCount++;
-          continue;
-        }
-        await supabase.from("platform_insights").insert({
-          category: "feature_gap",
-          title: `[AEO] ${tech.title}`.slice(0, 200),
-          description: `${tech.description}\n\n**Source:** ${tech.source_url ?? "n/a"}\n**Reasoning:** ${tech.reasoning}\n**Auto-discovered by SEO/AEO engine** (technique_id: ${techId})`,
-          priority: tech.confidence >= 0.9 ? "high" : "medium",
-          source_reference: sig,
-          status: "new",
-          metadata: { aeo_proposal: true, technique_id: techId, source_url: tech.source_url },
+        await supabase.from("seo_change_log").insert({
+          applied_technique_id: techId,
+          table_name: "code_change_noted",
+          row_id: null,
+          before_data: null,
+          after_data: { title: tech.title, description: tech.description, source_url: tech.source_url, reasoning: tech.reasoning },
         });
-        queuedCount++;
+        skippedCount++;
         continue;
       }
 
