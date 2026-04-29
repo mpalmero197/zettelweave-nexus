@@ -237,7 +237,7 @@ export function SeoEnginePanel() {
         <CardHeader>
           <CardTitle className="text-base">What can be auto-applied</CardTitle>
           <CardDescription>
-            Disable any category to require manual review for that type of change.
+            Disable any category to stop the engine from auto-applying that type of change.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-3">
