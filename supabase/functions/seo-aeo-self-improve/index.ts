@@ -47,8 +47,9 @@ serve(async (req) => {
     }
 
     const cats = (settings?.categories ?? {}) as Record<string, boolean>;
-    const maxAuto = settings?.max_auto_per_run ?? 5;
-    const maxQueued = settings?.max_queued_per_run ?? 10;
+    // Auto-apply mode: no review queue, no per-run caps. User opted out of reviewing changes.
+    const maxAuto = Number.MAX_SAFE_INTEGER;
+    const maxQueued = 0;
 
     // Start run
     const { data: run } = await supabase
