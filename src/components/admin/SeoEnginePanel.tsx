@@ -188,8 +188,8 @@ export function SeoEnginePanel() {
               <div>
                 <CardTitle>Autonomous SEO/AEO Engine</CardTitle>
                 <CardDescription className="mt-1">
-                  Researches the latest SEO/AEO techniques every 24 hours and auto-applies safe data-only
-                  improvements. Code changes are queued for your review.
+                  Researches the latest SEO/AEO techniques every 24 hours and automatically applies every
+                  safe data change. Code-level techniques are silently logged — no review required.
                 </CardDescription>
               </div>
             </div>
@@ -219,8 +219,8 @@ export function SeoEnginePanel() {
               </div>
             </div>
             <div className="rounded-lg border border-border bg-card/50 p-3">
-              <div className="text-xs text-muted-foreground">Queued for review</div>
-              <div className="font-medium text-amber-500">
+              <div className="text-xs text-muted-foreground">Code notes (logged)</div>
+              <div className="font-medium text-muted-foreground">
                 {techniques.filter((t) => t.classification === "code_change").length}
               </div>
             </div>
@@ -237,7 +237,7 @@ export function SeoEnginePanel() {
         <CardHeader>
           <CardTitle className="text-base">What can be auto-applied</CardTitle>
           <CardDescription>
-            Disable any category to require manual review for that type of change.
+            Disable any category to stop the engine from auto-applying that type of change.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-3">
