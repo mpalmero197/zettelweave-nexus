@@ -36,7 +36,7 @@ export function Footer() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0066FF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
-          Verified by Halcyon Ranker · 79/100
+          Verified by Halcyon Ranker · 80/100
         </a>
       </div>
     </footer>
