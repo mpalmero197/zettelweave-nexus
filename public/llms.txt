@@ -48,7 +48,7 @@ Roam pioneered bi-directional linking but is expensive and text-only. PendragonX
 
 ## Company
 
-Built by Mills Tech Industry.
+Built by Halcyon Systems Group.
 
 ## Documentation
 

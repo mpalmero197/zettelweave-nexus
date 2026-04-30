@@ -26,14 +26,14 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Mills Tech Industry ("Company," "we," "us," or "our") operates PendragonX (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. By using the Service, you consent to the data practices described in this Privacy Policy.
+              Halcyon Systems Group ("Company," "we," "us," or "our") operates PendragonX (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. By using the Service, you consent to the data practices described in this Privacy Policy.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-primary">2. We Do Not Sell, Buy, or Trade Your Information</h2>
             <p className="text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Mills Tech Industry does not sell, buy, trade, rent, or otherwise transfer your personal information to third parties for commercial purposes.</strong> Your data is your data. We are committed to protecting your privacy and will never monetize your personal information by selling it to advertisers, data brokers, or any other third parties.
+              <strong className="text-foreground">Halcyon Systems Group does not sell, buy, trade, rent, or otherwise transfer your personal information to third parties for commercial purposes.</strong> Your data is your data. We are committed to protecting your privacy and will never monetize your personal information by selling it to advertisers, data brokers, or any other third parties.
             </p>
             <p className="text-muted-foreground leading-relaxed mt-4">
               We will never:
@@ -114,7 +114,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Third-Party Services</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Our Service may contain links to third-party websites or services that are not owned or controlled by Mills Tech Industry. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party websites or services. We encourage you to review the privacy policies of any third-party services you access.
+              Our Service may contain links to third-party websites or services that are not owned or controlled by Halcyon Systems Group. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party websites or services. We encourage you to review the privacy policies of any third-party services you access.
             </p>
             <p className="text-muted-foreground leading-relaxed mt-4">
               We may use third-party service providers to help us operate our Service (such as hosting providers and payment processors). These providers are bound by contractual obligations to keep personal information confidential and use it only for the purposes for which we disclose it to them.
@@ -170,7 +170,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">13. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
-              If you have any questions about this Privacy Policy or our data practices, please contact Mills Tech Industry at the contact information provided on our website.
+              If you have any questions about this Privacy Policy or our data practices, please contact Halcyon Systems Group at the contact information provided on our website.
             </p>
           </section>
         </div>
