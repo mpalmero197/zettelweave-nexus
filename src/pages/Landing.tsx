@@ -259,7 +259,7 @@ export default function Landing() {
       >
         <div className="max-w-6xl mx-auto flex h-14 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2.5">
-            <img src={pendragonLogo} alt="" className="h-7 w-7 object-contain" aria-hidden="true" />
+            <img src={pendragonLogo} alt="PendragonX logo" className="h-7 w-7 object-contain" aria-hidden="true" />
             <span
               className="hidden sm:inline text-base font-bold tracking-tight"
               style={{ fontFamily: "'Cinzel Decorative', serif" }}
