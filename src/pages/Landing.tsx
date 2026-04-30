@@ -310,7 +310,7 @@ export default function Landing() {
             </Badge>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
-              The Fastest Way to Turn Notes into Insights
+              The Fastest Way to Turn Notes into Insights{" "}
               <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">with AI That Thinks With You</span>
             </h1>
 
