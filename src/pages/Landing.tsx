@@ -745,7 +745,7 @@ export default function Landing() {
         <div className="gradient-divider absolute top-0 left-0 right-0" />
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
-            <img src={pendragonLogo} alt="" className="h-5 w-5 object-contain" aria-hidden="true" />
+            <img src={pendragonLogo} alt="PendragonX logo" className="h-5 w-5 object-contain" aria-hidden="true" />
             <span className="font-medium" style={{ fontFamily: "'Cinzel Decorative', serif" }}>PendragonX</span>
             <span className="text-muted-foreground">© {currentYear}</span>
           </div>
