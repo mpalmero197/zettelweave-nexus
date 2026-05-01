@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6LTQWC9H5W"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-6LTQWC9H5W', { anonymize_ip: true });
-    </script>
-
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content" />
     
@@ -23,8 +14,7 @@
     <meta name="googlebot" content="index, follow" />
     <link rel="canonical" href="https://pendragonx.com/" />
     <link rel="alternate" hreflang="en" href="https://pendragonx.com/" />
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet"></noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
     <link rel="manifest" href="/manifest.webmanifest">
     
     <!-- Mobile Web App Capable -->
@@ -49,13 +39,9 @@
     <!-- Preconnect for critical domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://www.googletagmanager.com">
-    <link rel="preconnect" href="https://www.google-analytics.com">
-
+    
     <!-- DNS Prefetch for performance -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
-    <link rel="dns-prefetch" href="https://www.google-analytics.com">
     
     <!-- Load Google Fonts non-blocking -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -358,33 +344,23 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Remove loading screen when React mounts (with safety fallback) -->
+    <!-- Remove loading screen when React mounts -->
     <script>
-      (function () {
-        function removeLoader() {
-          var loading = document.getElementById('app-loading');
-          if (!loading) return;
-          loading.style.opacity = '0';
-          loading.style.transition = 'opacity 0.3s ease-out';
-          setTimeout(function () { loading && loading.remove(); }, 300);
-        }
-        function watchRoot() {
-          var root = document.getElementById('root');
-          if (!root) { setTimeout(watchRoot, 50); return; }
-          // If React already mounted before this script ran, remove immediately.
-          if (root.children.length > 0) { removeLoader(); return; }
-          var obs = new MutationObserver(function () {
-            if (root.children.length > 0) {
-              removeLoader();
-              obs.disconnect();
+      window.addEventListener('DOMContentLoaded', function() {
+        const rootObserver = new MutationObserver(function() {
+          const root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            const loading = document.getElementById('app-loading');
+            if (loading) {
+              loading.style.opacity = '0';
+              loading.style.transition = 'opacity 0.3s ease-out';
+              setTimeout(function() { loading.remove(); }, 300);
             }
-          });
-          obs.observe(root, { childList: true });
-        }
-        watchRoot();
-        // Safety net: never leave the loader up longer than 12s.
-        setTimeout(removeLoader, 12000);
-      })();
+            rootObserver.disconnect();
+          }
+        });
+        rootObserver.observe(document.getElementById('root'), { childList: true });
+      });
     </script>
   </body>
 </html>

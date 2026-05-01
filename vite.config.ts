@@ -21,24 +21,13 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: true,
-    target: 'es2020',
-    minify: 'esbuild',
-    cssCodeSplit: true,
-    reportCompressedSize: false,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          // Keep React + scheduler + react-dom + react-router together to avoid
-          // cross-chunk initialization order issues (createContext undefined).
-          if (
-            /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)
-          ) {
-            return 'react-vendor';
-          }
-          if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('@radix-ui')) return 'radix';
-          if (id.includes('@supabase')) return 'supabase-vendor';
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'toast-vendor': ['sonner', '@radix-ui/react-toast'],
         },
       },
     },
