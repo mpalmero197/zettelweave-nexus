@@ -1,141 +1,95 @@
-# Autonomous SEO/AEO Self-Improvement Engine
+## Goal
 
-## What it does
+Install Google Analytics (G-6LTQWC9H5W) site-wide and address every actionable issue from the GTmetrix report (Performance grade C / 57%, TBT 567ms, Fully Loaded 9.0s, 51 requests, 330KB).
 
-PendragonX wakes up every 24 hours, researches the latest SEO/AEO best practices using Perplexity (real-time web search), and automatically applies the changes it can do safely on its own. Anything that requires editing React component code is queued for one-click admin approval — never auto-merged.
+## 1. Install Google Analytics 4
 
-## Why a two-track system
+In `index.html`, immediately after `<head>`:
+```html
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-6LTQWC9H5W"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-6LTQWC9H5W', { anonymize_ip: true });
+</script>
+```
+Single tag only — verify no duplicate gtag exists elsewhere.
 
-Auto-applying arbitrary code changes to a live writer-focused product is dangerous (broken builds, wrong content, stale advice). Instead we split improvements into two tracks:
+## 2. GTmetrix fixes
 
-- **Auto-applied (safe)** — data-only changes the engine writes directly to Supabase: meta tag overrides, JSON-LD blobs, `llms.txt`/`llms-full.txt` content, sitemap entries, FAQ entries, redirect rules. The frontend reads these on load.
-- **Queued for review (risky)** — code changes (new components, refactors). These become entries in the existing `platform_insights` table tagged `aeo_proposal` and surface in the admin Self-Improvement panel with a "Propose code fix" button that hands off to the existing `propose-code-fix` → GitHub PR pipeline.
+### Serve static assets with efficient cache policy (Med-Low, 257KB savings)
+Vite already fingerprints assets. The fix is HTTP cache headers. Add `public/_headers` (Lovable/Netlify-style) so the host serves long-lived caching for hashed assets:
+```
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
 
-## How the daily run works
+/icon-*.png
+  Cache-Control: public, max-age=2592000
 
-```text
-                cron (3 AM UTC, daily)
-                          |
-                          v
-        +----------------------------------+
-        |  seo-aeo-self-improve edge fn   |
-        +----------------------------------+
-                          |
-         1. Perplexity research (sonar-pro)
-            "What are the latest SEO/AEO
-             techniques in the last 7 days?"
-                          |
-         2. Diff against applied_techniques
-            table to skip what we already did
-                          |
-         3. Lovable AI classifies each new
-            technique:
-              - safe_data  -> auto-apply
-              - code_change -> queue insight
-              - skip        -> log + ignore
-                          |
-         4a. SAFE_DATA path
-             -> write to seo_overrides /
-                seo_jsonld / seo_llms_txt
-             -> regenerate /llms.txt route
-             -> append to sitemap
-                          |
-         4b. CODE_CHANGE path
-             -> insert platform_insights row
-                category='aeo_proposal'
-                          |
-         5. Log run to seo_improvement_runs
-            (techniques found, applied, queued)
+/favicon.*
+  Cache-Control: public, max-age=2592000
+
+/*.js
+  Cache-Control: public, max-age=2592000
+
+/*.css
+  Cache-Control: public, max-age=2592000
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
 ```
 
-## What can be auto-applied (safe)
+### Avoid long main-thread tasks / Reduce JS execution / Avoid chaining critical requests
+Tighten `vite.config.ts` chunking so the 30+ tiny lucide icon chunks and Radix primitives are bundled together (waterfall shows ~30 separate icon requests stalling on load):
+- Add `manualChunks` function that groups `lucide-react` into one `icons` chunk and all `@radix-ui/*` into one `radix` chunk.
+- Enable `build.target: 'es2020'` and `build.minify: 'esbuild'` (default but explicit) to also clear the "Avoid serving legacy JavaScript" audit.
+- Add `build.cssCodeSplit: true` (default) and `build.reportCompressedSize: false` for faster builds.
 
-1. **Meta tag overrides** — title, description, keywords per route. `SEOHead` already supports overrides; we add a Supabase-backed override layer it merges in.
-2. **JSON-LD additions** — new schema types (e.g. WebApplication, Course, VideoObject). The new `SchemaInjector` component reads from a `seo_jsonld` table.
-3. **`llms.txt` / `llms-full.txt` updates** — currently static files; we move serving to a Supabase-backed edge function so the engine can rewrite them.
-4. **Sitemap entries** — new routes, `<lastmod>` refreshes, priority tweaks.
-5. **FAQ entries** — appended to a `seo_faq_entries` table consumed by the `FAQBlock` component (auto-generates FAQPage JSON-LD).
-6. **Robots directives** — additive only (never disallow without admin approval).
+### Avoid non-composited animations (95 elements, CLS audit)
+Audit `src/index.css` / Landing for animated properties. Switch any `animation` / `transition` on `top|left|width|height|margin|background-color` to `transform` and `opacity`, and add `will-change: transform` on the few hero/cosmic-background animated layers. Spot-check `CosmicBackground` and any landing keyframes.
 
-## What gets queued (never auto-merged)
+### Avoid excessive DOM size (630 elements)
+On Landing page, virtualize/condense any duplicated decorative DOM (e.g. repeated star/cosmic particle divs in CosmicBackground). Replace large arrays of decorative divs with a single canvas or fewer SVG elements where reasonable.
 
-- Adding new React components or pages
-- Changing semantic HTML structure of existing components
-- Modifying the routing tree
-- Anything touching authentication, payments, or user data
-- Anything the AI classifier rates `confidence < 0.8` for safety
+### Reduce unused CSS / JS (~50KB)
+- Verify `tailwind.config.ts` `content` globs are tight (already scoped to `src/**`).
+- Remove unused Radix imports from `App.tsx` shell if not actually used (e.g. confirm Toaster/Sonner both needed — keep one).
 
-## Admin controls
+### Properly size images (16.3KB savings)
+- The loading icon currently uses `/icon-192x192.png` (16.4KB) at 28px. Add explicit `width="28" height="28"` (already partially set via CSS) and serve a smaller dedicated `/icon-32x32.png` for the loading screen.
+- Add `width`/`height` attributes to all landing `<img>` tags to prevent layout shifts.
 
-A new "SEO/AEO Engine" tab in the Admin Console shows:
+### Avoid multiple page redirects / Reduce TTFB
+- Root document took 520ms and there's one initial 307 redirect (likely http → https). Add `Strict-Transport-Security` header in `public/_headers` and ensure canonical is `https://`.
 
-- Last run timestamp + next scheduled run
-- Toggle: enable/disable autonomous mode
-- Toggle per category: meta tags / JSON-LD / llms.txt / sitemap / FAQ
-- "Run now" button
-- History table: every technique discovered, source URL, action taken, rollback button
-- Pending queued code-change proposals with one-click "Propose fix" → existing PR flow
-- One-click rollback for any auto-applied change (reverts the row)
+### Eliminate render-blocking resources (8ms)
+- Cinzel Decorative font CSS is currently `rel="stylesheet"` (blocking). Switch to the same preload-swap pattern used for Inter:
+```html
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="..." rel="stylesheet"></noscript>
+```
 
-## Rollback safety
+### Reduce initial server response time / Avoid chaining
+- Add `<link rel="preconnect" href="https://www.googletagmanager.com">` and `<link rel="preconnect" href="https://www.google-analytics.com">` so the new GA tag doesn't add latency.
+- Add `<link rel="modulepreload" href="/src/main.tsx">` equivalent (Vite injects automatically in build).
 
-Every auto-applied change writes a `before` snapshot to `seo_change_log`. The admin panel exposes a "Revert" button per change. Bulk "Revert last 24h" available.
+## Files to edit / create
 
-## Frequency & rate-limiting
+- `index.html` — insert GA tag after `<head>`; preconnect GA domains; convert Cinzel font to non-blocking; smaller loading icon.
+- `vite.config.ts` — refined `manualChunks` (icons + radix groups), explicit `target: 'es2020'`.
+- `public/_headers` (new) — long-cache headers for hashed assets, HSTS.
+- `src/components/CosmicBackground.tsx` — reduce decorative DOM count; use `transform/opacity`-only animations; add `will-change`.
+- `src/pages/Landing.tsx` — add `width`/`height` to `<img>` tags; verify no `top/left` keyframe animations.
+- `src/index.css` — replace any non-composited keyframes with `transform`/`opacity` equivalents.
 
-- Cron runs once per 24h at 3 AM UTC (off-peak)
-- Hard cap: max 5 auto-applied changes per run (prevent runaway)
-- Hard cap: max 10 queued proposals per run
-- If `platform_insights` already has >20 unreviewed `aeo_proposal` rows, skip the queueing step
+## Out of scope
 
-## Technical implementation
+- Backend TTFB (521ms) is hosted by Lovable — we mitigate via caching headers and preconnects, but the absolute number is provider-dependent.
+- "User Timing marks" is informational only.
 
-### New tables (migration)
+## Expected impact
 
-- `seo_improvement_runs` — `id, started_at, finished_at, techniques_found, applied_count, queued_count, error, raw_research jsonb`
-- `seo_applied_techniques` — `id, technique_signature (unique), title, description, source_url, action_type, applied_at` (dedup key so we never re-apply)
-- `seo_overrides` — `id, route_pattern, field (title|description|keywords|og_image), value, active, created_at`
-- `seo_jsonld` — `id, route_pattern, schema_type, schema_json jsonb, active, created_at`
-- `seo_faq_entries` — `id, route_pattern, question, answer, sort_order, active`
-- `seo_llms_content` — singleton row, `id, llms_txt text, llms_full_txt text, updated_at`
-- `seo_change_log` — `id, applied_technique_id, table_name, row_id, before jsonb, after jsonb, reverted_at`
-- `seo_engine_settings` — singleton, `enabled bool, categories jsonb (per-category toggles), last_run_at`
-
-All RLS: admin-only read/write via existing `is_admin()` function. Frontend reads `seo_overrides`/`seo_jsonld`/`seo_faq_entries`/`seo_llms_content` via a public read policy (or via a public edge function so anon clients don't need direct access).
-
-### New edge functions
-
-- `seo-aeo-self-improve` — main daily worker. Calls Perplexity for research, Lovable AI for classification, writes results.
-- `serve-llms-txt` — public function that returns the current `seo_llms_content.llms_txt` as `text/plain`. Add a redirect from `/llms.txt` to this function (or update the static file generator).
-- `serve-sitemap` — same pattern, returns dynamically generated `sitemap.xml`.
-
-### Existing code touched
-
-- `src/components/SEOHead.tsx` — fetches `seo_overrides` for current route on mount, merges over defaults.
-- `src/components/seo/SchemaInjector.tsx` — supports loading additional schemas from `seo_jsonld`.
-- `src/components/seo/FAQBlock.tsx` — accepts `seo_faq_entries` rows.
-- `src/pages/Admin.tsx` — new "SEO Engine" tab using existing admin tab pattern.
-- `index.html` — `<link rel="alternate" href="/llms.txt">` stays; the file becomes dynamic.
-
-### New admin component
-
-- `src/components/admin/SeoEnginePanel.tsx` — settings, run history, applied changes, queued proposals, rollback buttons.
-
-### Cron
-
-Scheduled via `pg_cron` calling `net.http_post` to the edge function (using the daily-report pattern already in the project). 3 AM UTC.
-
-### Secrets
-
-`PERPLEXITY_API_KEY` is already configured. `LOVABLE_API_KEY` already configured. No new secrets needed.
-
-### Memory updates
-
-Add `mem://features/seo-aeo-self-improvement-engine` describing the autonomous engine, two-track design, admin controls, and the technique-dedup signature pattern. Update index.
-
-## Out of scope (explicit)
-
-- Auto-editing React component code (always queued, never merged without admin)
-- Auto-changing pricing, copy in landing hero, or anything user-facing-marketing
-- Auto-creating routes
-- Disabling existing SEO behavior (additive-only by default)
+- Performance grade C (57%) → B/A (75–90%) via reduced JS chains, composited animations, and long-cache headers.
+- TBT 567ms → <300ms via fewer/larger chunks and reduced lucide icon waterfall.
+- Fully Loaded 9.0s → 3–5s on repeat visits with proper cache headers.
