@@ -21,13 +21,20 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: true,
+    target: 'es2020',
+    minify: 'esbuild',
+    cssCodeSplit: true,
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'toast-vendor': ['sonner', '@radix-ui/react-toast'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('lucide-react')) return 'icons';
+          if (id.includes('@radix-ui')) return 'radix';
+          if (id.includes('react-router')) return 'react-vendor';
+          if (id.includes('react-dom') || /[\\/]node_modules[\\/]react[\\/]/.test(id)) return 'react-vendor';
+          if (id.includes('@supabase')) return 'supabase-vendor';
+          if (id.includes('sonner') || id.includes('@radix-ui/react-toast')) return 'toast-vendor';
         },
       },
     },
