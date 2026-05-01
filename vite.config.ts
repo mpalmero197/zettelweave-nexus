@@ -29,12 +29,16 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
+          // Keep React + scheduler + react-dom + react-router together to avoid
+          // cross-chunk initialization order issues (createContext undefined).
+          if (
+            /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)
+          ) {
+            return 'react-vendor';
+          }
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('@radix-ui')) return 'radix';
-          if (id.includes('react-router')) return 'react-vendor';
-          if (id.includes('react-dom') || /[\\/]node_modules[\\/]react[\\/]/.test(id)) return 'react-vendor';
           if (id.includes('@supabase')) return 'supabase-vendor';
-          if (id.includes('sonner') || id.includes('@radix-ui/react-toast')) return 'toast-vendor';
         },
       },
     },
