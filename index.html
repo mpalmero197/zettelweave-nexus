@@ -358,23 +358,33 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Remove loading screen when React mounts -->
+    <!-- Remove loading screen when React mounts (with safety fallback) -->
     <script>
-      window.addEventListener('DOMContentLoaded', function() {
-        const rootObserver = new MutationObserver(function() {
-          const root = document.getElementById('root');
-          if (root && root.children.length > 0) {
-            const loading = document.getElementById('app-loading');
-            if (loading) {
-              loading.style.opacity = '0';
-              loading.style.transition = 'opacity 0.3s ease-out';
-              setTimeout(function() { loading.remove(); }, 300);
+      (function () {
+        function removeLoader() {
+          var loading = document.getElementById('app-loading');
+          if (!loading) return;
+          loading.style.opacity = '0';
+          loading.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(function () { loading && loading.remove(); }, 300);
+        }
+        function watchRoot() {
+          var root = document.getElementById('root');
+          if (!root) { setTimeout(watchRoot, 50); return; }
+          // If React already mounted before this script ran, remove immediately.
+          if (root.children.length > 0) { removeLoader(); return; }
+          var obs = new MutationObserver(function () {
+            if (root.children.length > 0) {
+              removeLoader();
+              obs.disconnect();
             }
-            rootObserver.disconnect();
-          }
-        });
-        rootObserver.observe(document.getElementById('root'), { childList: true });
-      });
+          });
+          obs.observe(root, { childList: true });
+        }
+        watchRoot();
+        // Safety net: never leave the loader up longer than 12s.
+        setTimeout(removeLoader, 12000);
+      })();
     </script>
   </body>
 </html>
