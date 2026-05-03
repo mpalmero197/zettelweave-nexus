@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderColorPicker();
   setupPomodoro();
   setupHabits();
+  setupAIChat();
 });
 
 // Clean up polling when popup closes
@@ -540,21 +541,23 @@ async function deleteNoteFromCloud(noteId) {
 
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab');
-  const scratchTab = document.getElementById('scratch-tab');
-  const stickyTab = document.getElementById('sticky-tab');
-  const pomodoroTab = document.getElementById('pomodoro-tab');
-  const habitsTab = document.getElementById('habits-tab');
+  const panels = {
+    ai: document.getElementById('ai-tab'),
+    scratch: document.getElementById('scratch-tab'),
+    sticky: document.getElementById('sticky-tab'),
+    pomodoro: document.getElementById('pomodoro-tab'),
+    habits: document.getElementById('habits-tab'),
+  };
+  const displayMap = { ai: 'flex', scratch: 'flex', sticky: 'block', pomodoro: 'block', habits: 'block' };
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-
       const tabName = tab.dataset.tab;
-      if (scratchTab) scratchTab.style.display = tabName === 'scratch' ? 'flex' : 'none';
-      if (stickyTab) stickyTab.style.display = tabName === 'sticky' ? 'block' : 'none';
-      if (pomodoroTab) pomodoroTab.style.display = tabName === 'pomodoro' ? 'block' : 'none';
-      if (habitsTab) habitsTab.style.display = tabName === 'habits' ? 'block' : 'none';
+      Object.entries(panels).forEach(([k, el]) => {
+        if (el) el.style.display = k === tabName ? displayMap[k] : 'none';
+      });
     });
   });
 }
