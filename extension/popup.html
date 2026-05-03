@@ -557,7 +557,32 @@
     </div>
 
     <div class="content">
-      <div id="scratch-tab" class="scratch-area">
+      <div id="ai-tab" class="ai-container">
+        <div id="ai-messages" class="ai-messages">
+          <div class="ai-empty" id="ai-empty">
+            <strong>Ask ALICE about your knowledge base</strong>
+            Search across your cards, notes, documents, tasks, calendar &amp; scratch pad.
+            <div class="ai-suggestions">
+              <button class="ai-suggestion" data-q="Summarize my recent notes">Summarize my recent notes</button>
+              <button class="ai-suggestion" data-q="What are my upcoming tasks?">What are my upcoming tasks?</button>
+              <button class="ai-suggestion" data-q="Find connections between my cards">Find connections between my cards</button>
+            </div>
+          </div>
+        </div>
+        <div class="ai-toolbar">
+          <span class="ai-source-toggle">
+            <input type="checkbox" id="ai-use-internet" />
+            <label for="ai-use-internet">Search the web</label>
+          </span>
+          <button class="ai-clear" id="ai-clear">Clear</button>
+        </div>
+        <div class="ai-input-row">
+          <textarea id="ai-input" rows="1" placeholder="Ask anything about your knowledge base..."></textarea>
+          <button class="btn btn-primary" id="ai-send">Send</button>
+        </div>
+      </div>
+
+      <div id="scratch-tab" class="scratch-area" style="display: none;">
         <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes..." rows="3"></textarea>
         <div class="actions">
           <button class="btn btn-primary" id="save-scratch">Save Note</button>
