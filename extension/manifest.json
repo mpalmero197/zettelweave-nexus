@@ -1,16 +1,22 @@
 {
   "manifest_version": 3,
   "name": "PendragonX Quick Notes",
-  "version": "1.0.0",
-  "description": "Quickly capture notes and ideas from any webpage. Sync with your PendragonX account.",
-  "permissions": ["storage", "activeTab"],
+  "version": "1.2.0",
+  "description": "Capture notes, run focus sessions, and chat with your PendragonX AI assistant — right inside Chrome's side panel.",
+  "permissions": ["storage", "activeTab", "sidePanel"],
   "action": {
-    "default_popup": "popup.html",
+    "default_title": "Open PendragonX",
     "default_icon": {
       "16": "icon-16.png",
       "48": "icon-48.png",
       "128": "icon-128.png"
     }
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "icons": {
     "16": "icon-16.png",
