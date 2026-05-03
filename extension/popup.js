@@ -892,3 +892,149 @@ function formatDate(isoString) {
   const date = new Date(isoString);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+// ── AI Assistant ──
+
+let aiMessages = [];   // { role, content }
+let aiLoading = false;
+let aiContextCache = null;
+let aiContextFetchedAt = 0;
+const AI_CONTEXT_TTL = 60 * 1000; // 1 minute
+
+function setupAIChat() {
+  const sendBtn = document.getElementById('ai-send');
+  const input = document.getElementById('ai-input');
+  const clearBtn = document.getElementById('ai-clear');
+
+  sendBtn?.addEventListener('click', () => sendAIMessage());
+  clearBtn?.addEventListener('click', () => {
+    aiMessages = [];
+    renderAIMessages();
+  });
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendAIMessage();
+    }
+  });
+  input?.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  });
+
+  document.querySelectorAll('.ai-suggestion').forEach(btn => {
+    btn.addEventListener('click', () => sendAIMessage(btn.dataset.q));
+  });
+}
+
+async function fetchAIContext() {
+  if (!authToken) return {};
+  const now = Date.now();
+  if (aiContextCache && (now - aiContextFetchedAt) < AI_CONTEXT_TTL) return aiContextCache;
+
+  const headers = { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY };
+  const tryFetch = async (path) => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers });
+      if (!res.ok) return [];
+      return await res.json();
+    } catch { return []; }
+  };
+
+  const [cards, notes, catalystDocs, calendarEvents, tasks, scratchPad] = await Promise.all([
+    tryFetch('zettel_cards?select=id,title,content,category,tags&deleted_at=is.null&order=created_at.desc&limit=50'),
+    tryFetch('notes?select=id,title,content&deleted_at=is.null&order=created_at.desc&limit=50'),
+    tryFetch('catalyst_documents?select=id,title,content&deleted_at=is.null&order=updated_at.desc&limit=25'),
+    tryFetch('calendar_events?select=id,title,event_date,description&order=event_date.desc&limit=30'),
+    tryFetch('tasks?select=id,title,notes,is_completed,due_date,priority&order=created_at.desc&limit=30'),
+    tryFetch('scratchpad_notes?select=id,content&order=updated_at.desc&limit=20'),
+  ]);
+
+  aiContextCache = {
+    cards: (cards || []).map(c => ({ ...c, content: (c.content || '').substring(0, 400) })),
+    notes: (notes || []).map(n => ({ ...n, content: (n.content || '').substring(0, 400) })),
+    catalystDocs: (catalystDocs || []).map(d => ({ ...d, content: (d.content || '').substring(0, 400) })),
+    calendarEvents: calendarEvents || [],
+    tasks: tasks || [],
+    scratchPad: scratchPad || [],
+  };
+  aiContextFetchedAt = now;
+  return aiContextCache;
+}
+
+function renderAIMessages() {
+  const container = document.getElementById('ai-messages');
+  const empty = document.getElementById('ai-empty');
+  if (!container) return;
+
+  if (aiMessages.length === 0 && !aiLoading) {
+    if (empty) {
+      container.innerHTML = '';
+      container.appendChild(empty);
+      empty.style.display = 'block';
+    }
+    return;
+  }
+
+  container.innerHTML = '';
+  aiMessages.forEach(m => {
+    const div = document.createElement('div');
+    div.className = `ai-msg ${m.role}`;
+    div.textContent = m.content;
+    container.appendChild(div);
+  });
+
+  if (aiLoading) {
+    const typing = document.createElement('div');
+    typing.className = 'ai-msg assistant';
+    typing.innerHTML = '<span class="ai-typing"><span></span><span></span><span></span></span>';
+    container.appendChild(typing);
+  }
+
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendAIMessage(prefilled) {
+  const input = document.getElementById('ai-input');
+  const text = (prefilled || input?.value || '').trim();
+  if (!text || aiLoading) return;
+
+  if (!authToken) {
+    aiMessages.push({ role: 'assistant', content: 'Please sign in to chat with your knowledge base.' });
+    renderAIMessages();
+    return;
+  }
+
+  aiMessages.push({ role: 'user', content: text });
+  if (input) { input.value = ''; input.style.height = 'auto'; }
+  aiLoading = true;
+  renderAIMessages();
+
+  try {
+    const useInternet = document.getElementById('ai-use-internet')?.checked || false;
+    const context = await fetchAIContext();
+    const trimmed = aiMessages.slice(-8);
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ messages: trimmed, context, useInternet }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) {
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+
+    aiMessages.push({ role: 'assistant', content: data.response || 'No response.' });
+  } catch (e) {
+    aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach AI assistant.'}` });
+  } finally {
+    aiLoading = false;
+    renderAIMessages();
+  }
+}
