@@ -150,19 +150,19 @@ export function AppLayout() {
           {/* Persistent Header â hidden in pop-out windows for a focused single-feature view */}
           {!isPopout && (
           <header
-            className="h-12 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50"
+            className="h-12 border-b border-border bg-background/90 backdrop-blur-md sticky top-0 z-50"
             role="banner"
           >
             <div className="h-full px-3 md:px-5 flex items-center justify-between gap-3">
               {/* Left: Logo + Nav */}
               <div className="flex items-center gap-2.5">
-                <Link to="/app" className="flex items-center gap-2">
+                <Link to="/app" className="flex items-center gap-2 rounded-full hover:bg-accent px-2 py-1 transition-colors">
                   <img
                     src={pendragonLogo}
                     alt="PendragonX"
                     className="h-6 w-6 object-contain"
                   />
-                  <span className="text-sm font-bold tracking-tight text-foreground">
+                  <span className="text-[15px] font-medium tracking-tight text-foreground" style={{ fontFamily: "'Google Sans','Roboto Flex',Roboto,sans-serif" }}>
                     PendragonX
                   </span>
                   <div className="relative ml-0.5">
@@ -186,7 +186,7 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
                   onClick={() => handleTabChange("search")}
                   aria-label="Search"
                 >
@@ -195,7 +195,7 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
                   onClick={() => handlePopOut()}
                   aria-label="Open this feature in a new window"
                   title="Pop out to a new window"
@@ -205,7 +205,7 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-9 w-9 md:h-8 md:w-8 p-0 rounded-lg hover:bg-accent"
+                  className="h-9 w-9 md:h-9 md:w-9 p-0 rounded-full hover:bg-accent"
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
                   title="Toolbox (Focus, Tasks, AI Modify, Knowledge Chat)"
@@ -215,7 +215,7 @@ export function AppLayout() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 hidden md:flex rounded-lg hover:bg-accent"
+                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
                   asChild
                 >
                   <Link to="/agents" aria-label="Agents">

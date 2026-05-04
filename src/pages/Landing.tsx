@@ -249,11 +249,13 @@ export default function Landing() {
         Skip to main content
       </a>
 
-      {/* ────────────────────────── HEADER ────────────────────────── */}
+      {/* ────────────────────────── HEADER (Chrome-tab style) ────────────────────────── */}
       <header
         className={cn(
-          "fixed top-0 z-50 w-full backdrop-blur-xl border-b transition-all duration-300",
-          headerScrolled ? "bg-card/90 border-border shadow-lg shadow-background/20" : "bg-transparent border-transparent shadow-none"
+          "fixed top-0 z-50 w-full transition-all duration-300",
+          headerScrolled
+            ? "bg-background/85 backdrop-blur-xl border-b border-border"
+            : "bg-transparent border-b border-transparent"
         )}
         role="banner"
       >
@@ -261,78 +263,118 @@ export default function Landing() {
           <div className="flex items-center gap-2.5">
             <img src={pendragonLogo} alt="PendragonX logo" className="h-7 w-7 object-contain" aria-hidden="true" />
             <span
-              className="hidden sm:inline text-base font-bold tracking-tight"
-              style={{ fontFamily: "'Cinzel Decorative', serif" }}
+              className="hidden sm:inline text-[17px] tracking-tight"
+              style={{ fontFamily: "'Google Sans','Roboto Flex',Roboto,sans-serif", fontWeight: 500 }}
             >
               PendragonX
             </span>
           </div>
 
-          <nav className="hidden md:flex gap-8" aria-label="Main navigation">
+          <nav className="hidden md:flex gap-1" aria-label="Main navigation">
             {[
-              { label: "How It Works", id: "how-it-works" },
+              { label: "How it works", id: "how-it-works" },
               { label: "Features", id: "features" },
               { label: "Pricing", id: "pricing" },
               { label: "FAQ", id: "faq" },
             ].map((item) => (
-              <button key={item.id} onClick={() => scrollToSection(item.id)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-foreground after:scale-x-0 after:origin-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-left">
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className="text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-full px-3.5 py-1.5 transition-colors"
+              >
                 {item.label}
               </button>
             ))}
           </nav>
 
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="rounded-lg" onClick={goAuth}>Sign In</Button>
-            <Button size="sm" className="rounded-lg" onClick={goAuth}>
-              Try It Free <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          <div className="flex gap-2 items-center">
+            <Button variant="ghost" size="sm" onClick={goAuth}>Sign in</Button>
+            <Button size="sm" onClick={goAuth} className="shadow-material-1">
+              Try it free
             </Button>
           </div>
         </div>
       </header>
 
-      {/* ────────────────────────── 1. HERO ────────────────────────── */}
-      <section id="main-hero" ref={heroAnimation.ref} className="min-h-[92vh] flex items-center justify-center pt-14 relative" aria-labelledby="hero-heading">
-        <div className="hero-glow absolute inset-0 pointer-events-none" />
-        {/* Floating orbs */}
-        <div className="floating-orb w-[500px] h-[500px] bg-primary top-[10%] left-[-10%]" style={{ animationDelay: '0s' }} />
-        <div className="floating-orb w-[400px] h-[400px] bg-primary top-[30%] right-[-5%]" style={{ animationDelay: '-7s' }} />
-        <div className="floating-orb w-[300px] h-[300px] bg-primary/60 bottom-[10%] left-[20%]" style={{ animationDelay: '-13s' }} />
-        
-        <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
-          <div className={cn(
-            "space-y-7 transition-all duration-700",
-            heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          )}>
-            <Badge variant="outline" className="mx-auto text-xs px-4 py-1.5 gap-1.5 border-primary/30 bg-primary/5 backdrop-blur-sm">
-              <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
-              AI-Powered Knowledge System
-            </Badge>
+      {/* ────────────────────────── 1. HERO — Chrome New Tab feel ────────────────────────── */}
+      <section
+        id="main-hero"
+        ref={heroAnimation.ref}
+        className="min-h-[92vh] flex items-center justify-center pt-14 relative"
+        aria-labelledby="hero-heading"
+      >
+        {/* Soft Material You ambient gradient */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% 0%, hsl(217 89% 51% / 0.10), transparent 60%), radial-gradient(ellipse 60% 40% at 80% 30%, hsl(142 71% 38% / 0.06), transparent 60%), radial-gradient(ellipse 60% 40% at 20% 40%, hsl(4 90% 47% / 0.05), transparent 60%)",
+          }}
+        />
 
-            <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-balance">
-              The Fastest Way to Turn Notes into Insights{" "}
-              <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">with AI That Thinks With You</span>
+        <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
+          <div
+            className={cn(
+              "space-y-8 transition-all duration-700",
+              heroAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+            )}
+          >
+            {/* Centered logo, NTP-style */}
+            <div className="flex flex-col items-center gap-5">
+              <img
+                src={pendragonLogo}
+                alt=""
+                aria-hidden="true"
+                className="h-20 w-20 object-contain drop-shadow-sm"
+              />
+              {/* Google-product color underline */}
+              <div className="flex gap-1.5" aria-hidden="true">
+                <span className="h-1 w-8 rounded-full bg-[#4285f4]" />
+                <span className="h-1 w-8 rounded-full bg-[#ea4335]" />
+                <span className="h-1 w-8 rounded-full bg-[#fbbc04]" />
+                <span className="h-1 w-8 rounded-full bg-[#34a853]" />
+              </div>
+            </div>
+
+            <h1
+              id="hero-heading"
+              className="text-[44px] sm:text-6xl md:text-7xl tracking-tight leading-[1.05] text-balance"
+              style={{ fontFamily: "'Google Sans','Roboto Flex',Roboto,sans-serif", fontWeight: 500 }}
+            >
+              Your second brain,
+              <span className="block text-primary">designed for thinking.</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
               Automatically links every idea, surfaces hidden patterns, and powers a private AI that
-              knows everything you've ever written. The smarter alternative to Notion, Obsidian, and OneNote.
+              knows everything you've ever written.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button size="lg" className="h-12 px-10 text-base cta-glow group" onClick={goAuth}>
-                Start Free — No Credit Card
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base backdrop-blur-sm bg-background/50" onClick={() => scrollToSection("how-it-works")}>
-                See How It Works
-              </Button>
+            {/* Chrome omnibox-styled CTA */}
+            <div className="max-w-xl mx-auto pt-2">
+              <button
+                onClick={goAuth}
+                className="group w-full flex items-center gap-3 h-14 pl-5 pr-2 rounded-full bg-card border border-border shadow-material-2 hover:shadow-material-3 transition-all text-left"
+                aria-label="Try PendragonX free"
+              >
+                <Search className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                <span className="flex-1 text-[15px] text-muted-foreground truncate">
+                  Ask anything across your notes…
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium group-hover:bg-primary-hover transition-colors">
+                  Try it free
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+                <span className="sm:hidden inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </button>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {["Free forever plan", "No credit card", "Import from Obsidian & Notion", "End-to-end encrypted"].map((t) => (
+            <div className="pt-1 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              {["Free forever", "No credit card", "Imports from Notion & Obsidian", "End-to-end encrypted"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />{t}
+                  <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />{t}
                 </span>
               ))}
             </div>
