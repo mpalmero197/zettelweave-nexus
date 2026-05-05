@@ -743,7 +743,7 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
   return (
     <div className={`h-full w-full relative ${className}`}>
       {/* Controls */}
-      <div className="absolute top-3 left-3 z-10 space-y-2 p-3 bg-card/85 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl max-w-[220px] max-h-[80vh] overflow-y-auto">
+      <div className="absolute top-3 left-3 z-10 space-y-2.5 p-4 bg-[#FEF7FF]/95 dark:bg-[#1D1B20]/95 backdrop-blur-xl border border-[#E7E0EC] dark:border-[#49454F] rounded-3xl shadow-[0_4px_8px_3px_rgba(0,0,0,0.08),0_1px_3px_0_rgba(0,0,0,0.06)] max-w-[240px] max-h-[80vh] overflow-y-auto">
         <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-2">
           <Search className="h-3 w-3 text-muted-foreground shrink-0" />
           <Input
