@@ -883,8 +883,8 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
       <Canvas
         ref={canvasRef as any}
         camera={{ position: [0, 2, 20], fov: 55 }}
-        style={{ background: '#030008' }}
-        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        style={{ background: 'radial-gradient(ellipse at center, #FEF7FF 0%, #F3EDF7 60%, #E7E0EC 100%)' }}
+        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         dpr={[1, 2]}
       >
         <Scene
