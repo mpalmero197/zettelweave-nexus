@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Text, Sphere, Line, Stars, Html, Ring } from '@react-three/drei';
+import { OrbitControls, Text, Sphere, Line, Html, Ring } from '@react-three/drei';
 import * as THREE from 'three';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
@@ -10,18 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Search, Eye, EyeOff, RotateCw, Crosshair, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
 
-// ── Category color map ────────────────────────────────────────────────────────
+// ── Category color map (Material 3 tonal palette — no Google brand colors) ──
 const CATEGORY_COLORS: Record<string, THREE.Color> = {
-  '0': new THREE.Color(0x00e5ff),
-  '1': new THREE.Color(0xd500f9),
-  '2': new THREE.Color(0xffea00),
-  '3': new THREE.Color(0xff1744),
-  '4': new THREE.Color(0x00e676),
-  '5': new THREE.Color(0x651fff),
-  '6': new THREE.Color(0x2979ff),
-  '7': new THREE.Color(0xff4081),
-  '8': new THREE.Color(0xff9100),
-  '9': new THREE.Color(0x76ff03),
+  '0': new THREE.Color(0x6750A4), // primary purple
+  '1': new THREE.Color(0x7D5260), // mauve
+  '2': new THREE.Color(0xB58392), // dusty rose
+  '3': new THREE.Color(0x984061), // berry
+  '4': new THREE.Color(0x4A6363), // teal slate
+  '5': new THREE.Color(0x4F6D7A), // ocean
+  '6': new THREE.Color(0x6B5B95), // periwinkle
+  '7': new THREE.Color(0x8C7B6B), // taupe
+  '8': new THREE.Color(0x586F50), // sage
+  '9': new THREE.Color(0xB48C5E), // amber bronze
 };
 
 function getCategoryColor(category: string): THREE.Color {
@@ -256,11 +256,11 @@ function GlowRing({ color, active, radius }: { color: THREE.Color; active: boole
     const s = active ? 1.1 + Math.sin(state.clock.elapsedTime * 3) * 0.08 : 1;
     ref.current.scale.set(s, s, s);
   });
-  const inner = radius * 1.3;
-  const outer = inner + 0.1;
+  const inner = radius * 1.35;
+  const outer = inner + 0.06;
   return (
-    <Ring ref={ref} args={[inner, outer, 32]}>
-      <meshBasicMaterial color={color} transparent opacity={active ? 0.6 : 0.15} side={THREE.DoubleSide} />
+    <Ring ref={ref} args={[inner, outer, 64]}>
+      <meshBasicMaterial color={color} transparent opacity={active ? 0.45 : 0.12} side={THREE.DoubleSide} />
     </Ring>
   );
 }
@@ -293,8 +293,8 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
   if (isHidden) return null;
 
-  const emissiveIntensity = hovered ? 4.5 : isSearchMatch ? 3.5 : 2.0;
-  const opacity = isDimmed ? 0.06 : 1;
+  const emissiveIntensity = hovered ? 0.85 : isSearchMatch ? 0.6 : 0.25;
+  const opacity = isDimmed ? 0.08 : 1;
 
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
@@ -302,7 +302,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
       <Sphere
         ref={meshRef}
-        args={[radius, 32, 32]}
+        args={[radius, 48, 48]}
         onClick={(e) => { e.stopPropagation(); onClick(); }}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
         onPointerOver={(e) => {
@@ -322,14 +322,13 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           color={categoryColor}
           emissive={categoryColor}
           emissiveIntensity={emissiveIntensity}
-          roughness={0.05}
-          metalness={0.3}
-          clearcoat={1}
-          clearcoatRoughness={0.03}
+          roughness={0.35}
+          metalness={0.0}
+          clearcoat={0.6}
+          clearcoatRoughness={0.25}
           transparent
           opacity={opacity}
-          toneMapped={false}
-          envMapIntensity={1.5}
+          envMapIntensity={0.7}
         />
       </Sphere>
 
@@ -339,10 +338,13 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           fontSize={Math.min(radius > 0.4 ? 0.3 : 0.2, radius * 0.5)}
           maxWidth={radius > 0.4 ? 4 : 3}
           textAlign="center"
-          color="white"
+          color="#1F1F1F"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={radius > 0.4 ? 0.95 : hovered ? 0.85 : 0}
+          fillOpacity={radius > 0.4 ? 0.92 : hovered ? 0.85 : 0}
+          outlineWidth={0.012}
+          outlineColor="#FFFFFF"
+          outlineOpacity={0.85}
         >
           {card.title.length > 18 ? card.title.slice(0, 16) + '…' : card.title}
         </Text>
@@ -395,10 +397,10 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
   return (
     <Line
       points={points}
-      color={isHighlighted ? color : new THREE.Color(0x888899)}
-      lineWidth={isHighlighted ? baseWidth * 2.5 : baseWidth}
+      color={isHighlighted ? color : new THREE.Color(0xC4C7C5)}
+      lineWidth={isHighlighted ? baseWidth * 2.2 : baseWidth}
       transparent
-      opacity={isDimmed ? 0.02 : isHighlighted ? 0.9 : 0.3}
+      opacity={isDimmed ? 0.04 : isHighlighted ? 0.85 : 0.22}
     />
   );
 }
@@ -582,14 +584,10 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <pointLight position={[25, 20, 20]} intensity={1.2} color="#e0c0ff" />
-      <pointLight position={[-20, -15, -20]} intensity={0.6} color="#00e5ff" />
-      <pointLight position={[0, -25, 10]} intensity={0.4} color="#ff4081" />
-      <pointLight position={[15, 0, -25]} intensity={0.3} color="#76ff03" />
-      <hemisphereLight args={['#1a0030', '#000510', 0.6]} />
-
-      <Stars radius={120} depth={100} count={5000} factor={4} saturation={0.5} fade speed={0.4} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[15, 25, 15]} intensity={1.1} color="#ffffff" castShadow={false} />
+      <directionalLight position={[-15, -10, -10]} intensity={0.45} color="#E8DEF8" />
+      <hemisphereLight args={['#FFFFFF', '#E7E0EC', 0.55]} />
 
       {cards.map(card => {
         if (!card || !card.id) return null;
@@ -663,7 +661,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
                 key={`cat-${card.id}-${next.id}`}
                 start={s}
                 end={e}
-                color={new THREE.Color(0x10b981)}
+                color={new THREE.Color(0x6750A4)}
                 isDimmed={isDimmedByHover || isHiddenByHop}
               />
             );
@@ -745,14 +743,14 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
   return (
     <div className={`h-full w-full relative ${className}`}>
       {/* Controls */}
-      <div className="absolute top-3 left-3 z-10 space-y-2 p-3 bg-card/85 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl max-w-[220px] max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-2">
-          <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+      <div className="absolute top-3 left-3 z-10 space-y-2.5 p-4 bg-[#FEF7FF]/95 dark:bg-[#1D1B20]/95 backdrop-blur-xl border border-[#E7E0EC] dark:border-[#49454F] rounded-3xl shadow-[0_4px_8px_3px_rgba(0,0,0,0.08),0_1px_3px_0_rgba(0,0,0,0.06)] max-w-[240px] max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center gap-2 bg-[#E7E0EC]/60 dark:bg-[#36343B] rounded-full px-3 py-0.5">
+          <Search className="h-3.5 w-3.5 text-[#49454F] dark:text-[#CAC4D0] shrink-0" />
           <Input
             placeholder="Search…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-7 text-xs border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
+            className="h-8 text-xs border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
           />
         </div>
 
@@ -885,8 +883,8 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
       <Canvas
         ref={canvasRef as any}
         camera={{ position: [0, 2, 20], fov: 55 }}
-        style={{ background: '#030008' }}
-        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        style={{ background: 'radial-gradient(ellipse at center, #FEF7FF 0%, #F3EDF7 60%, #E7E0EC 100%)' }}
+        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         dpr={[1, 2]}
       >
         <Scene
