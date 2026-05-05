@@ -744,13 +744,13 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
     <div className={`h-full w-full relative ${className}`}>
       {/* Controls */}
       <div className="absolute top-3 left-3 z-10 space-y-2.5 p-4 bg-[#FEF7FF]/95 dark:bg-[#1D1B20]/95 backdrop-blur-xl border border-[#E7E0EC] dark:border-[#49454F] rounded-3xl shadow-[0_4px_8px_3px_rgba(0,0,0,0.08),0_1px_3px_0_rgba(0,0,0,0.06)] max-w-[240px] max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-2">
-          <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+        <div className="flex items-center gap-2 bg-[#E7E0EC]/60 dark:bg-[#36343B] rounded-full px-3 py-0.5">
+          <Search className="h-3.5 w-3.5 text-[#49454F] dark:text-[#CAC4D0] shrink-0" />
           <Input
             placeholder="Search…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-7 text-xs border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
+            className="h-8 text-xs border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
           />
         </div>
 
