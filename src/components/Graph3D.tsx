@@ -256,11 +256,11 @@ function GlowRing({ color, active, radius }: { color: THREE.Color; active: boole
     const s = active ? 1.1 + Math.sin(state.clock.elapsedTime * 3) * 0.08 : 1;
     ref.current.scale.set(s, s, s);
   });
-  const inner = radius * 1.3;
-  const outer = inner + 0.1;
+  const inner = radius * 1.35;
+  const outer = inner + 0.06;
   return (
-    <Ring ref={ref} args={[inner, outer, 32]}>
-      <meshBasicMaterial color={color} transparent opacity={active ? 0.6 : 0.15} side={THREE.DoubleSide} />
+    <Ring ref={ref} args={[inner, outer, 64]}>
+      <meshBasicMaterial color={color} transparent opacity={active ? 0.45 : 0.12} side={THREE.DoubleSide} />
     </Ring>
   );
 }
