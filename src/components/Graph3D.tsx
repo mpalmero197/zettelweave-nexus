@@ -661,7 +661,7 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
                 key={`cat-${card.id}-${next.id}`}
                 start={s}
                 end={e}
-                color={new THREE.Color(0x10b981)}
+                color={new THREE.Color(0x6750A4)}
                 isDimmed={isDimmedByHover || isHiddenByHop}
               />
             );
