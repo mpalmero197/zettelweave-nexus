@@ -327,13 +327,6 @@ export default function Landing() {
                 aria-hidden="true"
                 className="h-20 w-20 object-contain drop-shadow-sm"
               />
-              {/* Google-product color underline */}
-              <div className="flex gap-1.5" aria-hidden="true">
-                <span className="h-1 w-8 rounded-full bg-[#4285f4]" />
-                <span className="h-1 w-8 rounded-full bg-[#ea4335]" />
-                <span className="h-1 w-8 rounded-full bg-[#fbbc04]" />
-                <span className="h-1 w-8 rounded-full bg-[#34a853]" />
-              </div>
             </div>
 
             <h1
