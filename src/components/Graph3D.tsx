@@ -293,8 +293,8 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
   if (isHidden) return null;
 
-  const emissiveIntensity = hovered ? 4.5 : isSearchMatch ? 3.5 : 2.0;
-  const opacity = isDimmed ? 0.06 : 1;
+  const emissiveIntensity = hovered ? 0.85 : isSearchMatch ? 0.6 : 0.25;
+  const opacity = isDimmed ? 0.08 : 1;
 
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
@@ -302,7 +302,7 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
 
       <Sphere
         ref={meshRef}
-        args={[radius, 32, 32]}
+        args={[radius, 48, 48]}
         onClick={(e) => { e.stopPropagation(); onClick(); }}
         onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
         onPointerOver={(e) => {
@@ -322,14 +322,13 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           color={categoryColor}
           emissive={categoryColor}
           emissiveIntensity={emissiveIntensity}
-          roughness={0.05}
-          metalness={0.3}
-          clearcoat={1}
-          clearcoatRoughness={0.03}
+          roughness={0.35}
+          metalness={0.0}
+          clearcoat={0.6}
+          clearcoatRoughness={0.25}
           transparent
           opacity={opacity}
-          toneMapped={false}
-          envMapIntensity={1.5}
+          envMapIntensity={0.7}
         />
       </Sphere>
 
