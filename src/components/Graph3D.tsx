@@ -10,18 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Search, Eye, EyeOff, RotateCw, Crosshair, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
 
-// ── Category color map ────────────────────────────────────────────────────────
+// ── Category color map (Material 3 tonal palette — no Google brand colors) ──
 const CATEGORY_COLORS: Record<string, THREE.Color> = {
-  '0': new THREE.Color(0x00e5ff),
-  '1': new THREE.Color(0xd500f9),
-  '2': new THREE.Color(0xffea00),
-  '3': new THREE.Color(0xff1744),
-  '4': new THREE.Color(0x00e676),
-  '5': new THREE.Color(0x651fff),
-  '6': new THREE.Color(0x2979ff),
-  '7': new THREE.Color(0xff4081),
-  '8': new THREE.Color(0xff9100),
-  '9': new THREE.Color(0x76ff03),
+  '0': new THREE.Color(0x6750A4), // primary purple
+  '1': new THREE.Color(0x7D5260), // mauve
+  '2': new THREE.Color(0xB58392), // dusty rose
+  '3': new THREE.Color(0x984061), // berry
+  '4': new THREE.Color(0x4A6363), // teal slate
+  '5': new THREE.Color(0x4F6D7A), // ocean
+  '6': new THREE.Color(0x6B5B95), // periwinkle
+  '7': new THREE.Color(0x8C7B6B), // taupe
+  '8': new THREE.Color(0x586F50), // sage
+  '9': new THREE.Color(0xB48C5E), // amber bronze
 };
 
 function getCategoryColor(category: string): THREE.Color {
