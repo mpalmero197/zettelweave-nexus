@@ -394,10 +394,10 @@ function AnimatedEdge({ start, end, color, isDimmed, isHighlighted, isHidden, th
   return (
     <Line
       points={points}
-      color={isHighlighted ? color : new THREE.Color(0x888899)}
-      lineWidth={isHighlighted ? baseWidth * 2.5 : baseWidth}
+      color={isHighlighted ? color : new THREE.Color(0xC4C7C5)}
+      lineWidth={isHighlighted ? baseWidth * 2.2 : baseWidth}
       transparent
-      opacity={isDimmed ? 0.02 : isHighlighted ? 0.9 : 0.3}
+      opacity={isDimmed ? 0.04 : isHighlighted ? 0.85 : 0.22}
     />
   );
 }
