@@ -338,10 +338,13 @@ function NodeMesh({ position, card, onClick, onDoubleClick, isSearchMatch, isDim
           fontSize={Math.min(radius > 0.4 ? 0.3 : 0.2, radius * 0.5)}
           maxWidth={radius > 0.4 ? 4 : 3}
           textAlign="center"
-          color="white"
+          color="#1F1F1F"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={radius > 0.4 ? 0.95 : hovered ? 0.85 : 0}
+          fillOpacity={radius > 0.4 ? 0.92 : hovered ? 0.85 : 0}
+          outlineWidth={0.012}
+          outlineColor="#FFFFFF"
+          outlineOpacity={0.85}
         >
           {card.title.length > 18 ? card.title.slice(0, 16) + '…' : card.title}
         </Text>
