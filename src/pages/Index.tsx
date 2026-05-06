@@ -526,6 +526,8 @@ const Index = () => {
           <div className="w-full pt-2 sm:pt-0">
             <div className="w-full space-y-2 sm:space-y-3">
               <div className="w-full">
+                <Suspense fallback={<FastLoadingFallback message="Loading..." />}>
+
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
