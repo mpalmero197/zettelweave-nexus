@@ -866,7 +866,7 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="force">🌐 Force-Directed</SelectItem>
+            <SelectItem value="force">☀️ Solar System</SelectItem>
             <SelectItem value="sphere">🔮 Sphere</SelectItem>
             <SelectItem value="cube">🧊 Cube</SelectItem>
             <SelectItem value="layers">📖 Category Layers</SelectItem>
