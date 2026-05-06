@@ -829,6 +829,7 @@ const Index = () => {
                   <KnowledgeChat />
                 </TabsContent>
 
+                </Suspense>
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
