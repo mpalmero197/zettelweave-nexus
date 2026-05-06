@@ -71,14 +71,14 @@ function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string
   return { planetIds, moonParent };
 }
 
-// ── Solar system layout: sun → planets → moons ──────────────────────────────
+// ── Solar system layout: BFS from sun, each node orbits its parent ──────────
 function computeSolarLayout(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}): Record<string, [number, number, number]> {
   const valid = cards.filter(c => c && c.id);
   const n = valid.length;
   const positions: Record<string, [number, number, number]> = {};
   if (n === 0) return positions;
 
-  // Build adjacency from linkedCards (bidirectional)
+  // Bidirectional adjacency from linkedCards
   const adj: Record<string, Set<string>> = {};
   valid.forEach(c => { adj[c.id] = new Set(); });
   valid.forEach(c => {
@@ -90,87 +90,107 @@ function computeSolarLayout(cards: ZettelCard[] = [], connectionCounts: Record<s
     });
   });
 
-  // Sort by connection count descending
+  // Sun = most-connected card
   const sorted = [...valid].sort((a, b) => (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0));
-
-  // Sun = most connected card
   const sun = sorted[0];
-  positions[sun.id] = [0, 0, 0];
-  const used = new Set<string>([sun.id]);
 
-  // Planets: next top-connected cards (up to ~8% of nodes, min 3, max 12)
-  const planetCount = Math.min(12, Math.max(3, Math.ceil(n * 0.08)));
-  const planets: ZettelCard[] = [];
-  for (const c of sorted) {
-    if (planets.length >= planetCount) break;
-    if (c.id === sun.id) continue;
-    planets.push(c);
-    used.add(c.id);
+  // BFS from the sun. Each visited node remembers its parent — that defines the
+  // hierarchy: sun → planets (direct links) → moons (links of planets) → ...
+  const parent: Record<string, string | null> = { [sun.id]: null };
+  const depth: Record<string, number> = { [sun.id]: 0 };
+  const children: Record<string, string[]> = { [sun.id]: [] };
+  const queue: string[] = [sun.id];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    // Order neighbours by connection count so most-important children come first
+    const neighbours = [...adj[cur]].sort(
+      (a, b) => (connectionCounts[b] || 0) - (connectionCounts[a] || 0)
+    );
+    for (const nb of neighbours) {
+      if (parent[nb] !== undefined) continue;
+      parent[nb] = cur;
+      depth[nb] = depth[cur] + 1;
+      children[nb] = [];
+      children[cur].push(nb);
+      queue.push(nb);
+    }
   }
 
-  // Place planets on tilted concentric orbits around sun
-  const planetMoons: Record<string, ZettelCard[]> = {};
-  planets.forEach(p => { planetMoons[p.id] = []; });
-
-  // Assign each remaining card to its nearest planet (most-shared link), else round-robin
-  const remaining = valid.filter(c => !used.has(c.id));
-  remaining.forEach(c => {
-    let bestPlanet: string | null = null;
-    let bestScore = 0;
-    planets.forEach(p => {
-      let score = 0;
-      if (adj[c.id].has(p.id)) score += 10;
-      // shared neighbors
-      adj[c.id].forEach(nb => { if (adj[p.id].has(nb)) score += 1; });
-      if (score > bestScore) { bestScore = score; bestPlanet = p.id; }
-    });
-    if (!bestPlanet && planets.length > 0) {
-      // assign to the least-loaded planet
-      bestPlanet = planets.reduce((a, b) =>
-        planetMoons[a.id].length <= planetMoons[b.id].length ? a : b
-      ).id;
+  // Orphans (not connected to the sun's component) — give each its own mini-system
+  // by attaching to the sun as extra "planets" so they still orbit something.
+  valid.forEach(c => {
+    if (parent[c.id] === undefined) {
+      parent[c.id] = sun.id;
+      depth[c.id] = 1;
+      children[c.id] = [];
+      children[sun.id].push(c.id);
     }
-    if (bestPlanet) planetMoons[bestPlanet].push(c);
   });
 
-  // Place planets evenly on golden-angle spiral, distance based on rank
-  const GOLDEN = Math.PI * (3 - Math.sqrt(5));
-  planets.forEach((p, i) => {
-    const moonCount = planetMoons[p.id].length;
-    // Orbit radius scales with planet index AND its moon count to avoid overlaps
-    const orbitR = 6 + i * 2.2 + Math.sqrt(moonCount) * 0.6;
-    const angle = i * GOLDEN;
-    // Slight tilt per planet for 3D depth
-    const tilt = ((i % 5) - 2) * 0.25;
-    const x = orbitR * Math.cos(angle);
-    const z = orbitR * Math.sin(angle);
-    const y = orbitR * Math.sin(tilt) * 0.3;
-    positions[p.id] = [x, y, z];
+  // Subtree size — used to allocate orbit radius so densely-populated planets
+  // get more room than sparse ones.
+  const subtreeSize: Record<string, number> = {};
+  const computeSize = (id: string): number => {
+    if (subtreeSize[id] !== undefined) return subtreeSize[id];
+    let s = 1;
+    for (const ch of children[id]) s += computeSize(ch);
+    subtreeSize[id] = s;
+    return s;
+  };
+  computeSize(sun.id);
 
-    // Place moons in a small orbit around the planet
-    const moons = planetMoons[p.id];
-    const moonOrbitBase = 1.2 + Math.min(2.5, moonCount * 0.08);
-    moons.forEach((m, j) => {
-      const ma = (j / Math.max(moons.length, 1)) * Math.PI * 2 + i;
-      // Stagger across a few shells if many moons
-      const shell = Math.floor(j / 8);
-      const mr = moonOrbitBase + shell * 0.9;
-      const mTilt = ((j % 3) - 1) * 0.4;
-      const mx = x + Math.cos(ma) * mr;
-      const mz = z + Math.sin(ma) * mr;
-      const my = y + Math.sin(mTilt) * mr * 0.4;
-      positions[m.id] = [mx, my, mz];
+  // Place sun at origin
+  positions[sun.id] = [0, 0, 0];
+
+  // Recursively place children of `nodeId` on an orbit around its position.
+  // Each shell tilts slightly to reveal depth; planets sit on the ecliptic
+  // (depth 1, low tilt), moons get progressively higher inclinations.
+  const place = (nodeId: string, parentPos: [number, number, number], parentRadius: number) => {
+    const kids = children[nodeId];
+    if (!kids.length) return;
+
+    // Allocate angular slices proportional to subtree size so crowded branches
+    // don't collide with sparse ones.
+    const totalWeight = kids.reduce((s, k) => s + Math.sqrt(subtreeSize[k]), 0) || 1;
+
+    // Orbit radius scales with parent's radius, total kids, and depth-step
+    const d = depth[nodeId];
+    const orbitR = parentRadius + 2.2 + Math.sqrt(kids.length) * (d === 0 ? 1.4 : 0.7);
+
+    // Shells: planets nearly on the same plane (small tilt), deeper levels
+    // get larger inclinations to fan out into 3D
+    const tiltAmp = d === 0 ? 0.12 : 0.55;
+
+    let angleCursor = nodeId === sun.id ? 0 : Math.atan2(parentPos[2], parentPos[0]) - Math.PI / 2;
+
+    kids.forEach((kid, idx) => {
+      const weight = Math.sqrt(subtreeSize[kid]) / totalWeight;
+      // Center this kid in the middle of its slice
+      const sliceWidth = weight * Math.PI * 2;
+      const angle = angleCursor + sliceWidth / 2;
+      angleCursor += sliceWidth;
+
+      // Tilt alternates so children fan above/below parent's plane
+      const tilt = ((idx % 5) - 2) * (tiltAmp / 2);
+
+      const x = parentPos[0] + orbitR * Math.cos(angle);
+      const z = parentPos[2] + orbitR * Math.sin(angle);
+      const y = parentPos[1] + orbitR * Math.sin(tilt);
+
+      positions[kid] = [x, y, z];
+
+      // Recurse — child's own orbit radius depends on its subtree
+      const kidR = 0.6 + Math.sqrt(subtreeSize[kid]) * 0.35;
+      place(kid, [x, y, z], kidR);
     });
-  });
+  };
 
-  // Any orphan (no planets case) — scatter near origin
+  place(sun.id, [0, 0, 0], 1.5);
+
+  // Final safety net for anything still unplaced
   valid.forEach(c => {
     if (!positions[c.id]) {
-      positions[c.id] = [
-        (Math.random() - 0.5) * 4,
-        (Math.random() - 0.5) * 4,
-        (Math.random() - 0.5) * 4,
-      ];
+      positions[c.id] = [(Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4];
     }
   });
 
