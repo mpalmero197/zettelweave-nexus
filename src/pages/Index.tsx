@@ -425,7 +425,9 @@ const Index = () => {
             <div className="sticky top-10 md:top-14 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
               <div className="flex items-center gap-2 max-w-7xl mx-auto">
                 {/* Create button */}
-                <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                <Suspense fallback={<Button size="sm" variant="outline" disabled><Plus className="h-3.5 w-3.5" /></Button>}>
+                  <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                </Suspense>
 
                 {/* Inline search */}
                 <div className="flex-1 relative max-w-xs">
