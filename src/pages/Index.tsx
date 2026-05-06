@@ -6,30 +6,12 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { ZettelCard } from "@/components/ZettelCard";
-import { CreateCardDialog } from "@/components/CreateCardDialog";
-import { ImportStudio } from "@/components/ImportStudio";
-import { GraphView } from "@/components/GraphViewNew";
-import { Graph3D } from "@/components/Graph3D";
-import { CardViewer } from "@/components/CardViewer";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
 import { RecommendationSidebar } from "@/components/RecommendationSidebar";
 import { SmartLinkingSidebar } from "@/components/SmartLinkingSidebar";
 import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
-import { Notes } from "@/components/Notes";
-import { RecorderStudio } from "@/components/RecorderStudio";
-import { AudioManager } from "@/components/AudioManager";
-import { ScratchPad } from "@/components/ScratchPad";
-import { Catalyst } from "@/components/Catalyst";
-
-import { DebuggerConsole } from "@/components/DebuggerConsole";
-import { StickyNotesSimple } from "@/components/StickyNotesSimple";
-// Notebooks is now integrated into Notes component
-import { Calendar } from "@/components/Calendar";
-import { FileManager } from "@/components/FileManager";
-import { RecycleBin } from "@/components/RecycleBin";
-import { WorkflowManager } from "@/components/WorkflowManager";
 import { OfflineModeIndicator } from "@/components/OfflineModeIndicator";
 import { IntelligentCacheIndicator } from "@/components/IntelligentCacheIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,23 +20,42 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 import { PremiumGate } from "@/components/PremiumGate";
-import { AccountManagement } from "@/components/AccountManagement";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { ZettelCard as ZettelCardType, OrganizationMethod } from "@/types/zettel";
 import { DEWEY_CATEGORIES, ORGANIZATION_METHODS } from "@/types/zettel";
-import { DeleteAllCardsDialog } from "@/components/DeleteAllCardsDialog";
-import { OrganizationMethodDialog } from "@/components/OrganizationMethodDialog";
-import { EditCardDialog } from "@/components/EditCardDialog";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
-import { CollabStudio } from "@/components/friends/CollabStudio";
-import { LearningHub } from "@/components/LearningHub";
-import { SpacesHub } from "@/components/spaces/SpacesHub";
-import { UnifiedSearchPage } from "@/components/UnifiedSearchPage";
-import { ProjectManager } from "@/components/ProjectManager";
-import { KnowledgeGapAnalyzer } from "@/components/KnowledgeGapAnalyzer";
-import { IntegrationsHub } from "@/components/integrations/IntegrationsHub";
-import { KnowledgeChat } from "@/components/KnowledgeChat";
 import { Footer } from "@/components/Footer";
+
+// Lazy-load every heavy feature component — each is only mounted when its tab/dialog activates
+const CreateCardDialog = lazy(() => import("@/components/CreateCardDialog").then(m => ({ default: m.CreateCardDialog })));
+const ImportStudio = lazy(() => import("@/components/ImportStudio").then(m => ({ default: m.ImportStudio })));
+const GraphView = lazy(() => import("@/components/GraphViewNew").then(m => ({ default: m.GraphView })));
+const Graph3D = lazy(() => import("@/components/Graph3D").then(m => ({ default: m.Graph3D })));
+const CardViewer = lazy(() => import("@/components/CardViewer").then(m => ({ default: m.CardViewer })));
+const Notes = lazy(() => import("@/components/Notes").then(m => ({ default: m.Notes })));
+const RecorderStudio = lazy(() => import("@/components/RecorderStudio").then(m => ({ default: m.RecorderStudio })));
+const AudioManager = lazy(() => import("@/components/AudioManager").then(m => ({ default: m.AudioManager })));
+const ScratchPad = lazy(() => import("@/components/ScratchPad").then(m => ({ default: m.ScratchPad })));
+const Catalyst = lazy(() => import("@/components/Catalyst").then(m => ({ default: m.Catalyst })));
+const DebuggerConsole = lazy(() => import("@/components/DebuggerConsole").then(m => ({ default: m.DebuggerConsole })));
+const StickyNotesSimple = lazy(() => import("@/components/StickyNotesSimple").then(m => ({ default: m.StickyNotesSimple })));
+const Calendar = lazy(() => import("@/components/Calendar").then(m => ({ default: m.Calendar })));
+const FileManager = lazy(() => import("@/components/FileManager").then(m => ({ default: m.FileManager })));
+const RecycleBin = lazy(() => import("@/components/RecycleBin").then(m => ({ default: m.RecycleBin })));
+const WorkflowManager = lazy(() => import("@/components/WorkflowManager").then(m => ({ default: m.WorkflowManager })));
+const AccountManagement = lazy(() => import("@/components/AccountManagement").then(m => ({ default: m.AccountManagement })));
+const DeleteAllCardsDialog = lazy(() => import("@/components/DeleteAllCardsDialog").then(m => ({ default: m.DeleteAllCardsDialog })));
+const OrganizationMethodDialog = lazy(() => import("@/components/OrganizationMethodDialog").then(m => ({ default: m.OrganizationMethodDialog })));
+const EditCardDialog = lazy(() => import("@/components/EditCardDialog").then(m => ({ default: m.EditCardDialog })));
+const CollabStudio = lazy(() => import("@/components/friends/CollabStudio").then(m => ({ default: m.CollabStudio })));
+const LearningHub = lazy(() => import("@/components/LearningHub").then(m => ({ default: m.LearningHub })));
+const SpacesHub = lazy(() => import("@/components/spaces/SpacesHub").then(m => ({ default: m.SpacesHub })));
+const UnifiedSearchPage = lazy(() => import("@/components/UnifiedSearchPage").then(m => ({ default: m.UnifiedSearchPage })));
+const ProjectManager = lazy(() => import("@/components/ProjectManager").then(m => ({ default: m.ProjectManager })));
+const KnowledgeGapAnalyzer = lazy(() => import("@/components/KnowledgeGapAnalyzer").then(m => ({ default: m.KnowledgeGapAnalyzer })));
+const IntegrationsHub = lazy(() => import("@/components/integrations/IntegrationsHub").then(m => ({ default: m.IntegrationsHub })));
+const KnowledgeChat = lazy(() => import("@/components/KnowledgeChat").then(m => ({ default: m.KnowledgeChat })));
+
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { 
@@ -424,7 +425,9 @@ const Index = () => {
             <div className="sticky top-10 md:top-14 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
               <div className="flex items-center gap-2 max-w-7xl mx-auto">
                 {/* Create button */}
-                <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                <Suspense fallback={<Button size="sm" variant="outline" disabled><Plus className="h-3.5 w-3.5" /></Button>}>
+                  <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
+                </Suspense>
 
                 {/* Inline search */}
                 <div className="flex-1 relative max-w-xs">
@@ -515,7 +518,7 @@ const Index = () => {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
-                      <DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} />
+                      <Suspense fallback={null}><DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} /></Suspense>
                     </div></DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -525,6 +528,8 @@ const Index = () => {
           <div className="w-full pt-2 sm:pt-0">
             <div className="w-full space-y-2 sm:space-y-3">
               <div className="w-full">
+                <Suspense fallback={<FastLoadingFallback message="Loading..." />}>
+
                 <TabsContent value="dashboard" className="mt-0">
                   <CustomizableDashboard 
                     onCreateCard={handleCreateCard} 
@@ -826,6 +831,7 @@ const Index = () => {
                   <KnowledgeChat />
                 </TabsContent>
 
+                </Suspense>
               </div>
 
               {/* Right Sidebar - Only show on cards tab and larger screens */}
@@ -851,66 +857,79 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Dialogs and Popovers */}
-      {showAccountManagement && (
-        <AccountManagement onClose={() => setShowAccountManagement(false)} />
-      )}
+      {/* Dialogs and Popovers (all lazy-loaded — wrap in Suspense) */}
+      <Suspense fallback={null}>
+        {showAccountManagement && (
+          <AccountManagement onClose={() => setShowAccountManagement(false)} />
+        )}
 
-      <CardViewer
-        card={viewingCard}
-        isOpen={!!viewingCard}
-        onClose={() => setViewingCard(null)}
-        onEdit={setEditingCard}
-        onUpdate={handleUpdateCard}
-        onDelete={handleDeleteCard}
-        onNavigateToCard={handleNavigateToCard}
-      />
-
-      {editingCard && (
-        <EditCardDialog
-          card={editingCard}
-          isOpen={!!editingCard}
-          onSave={handleUpdateCard}
-          onClose={() => setEditingCard(null)}
+        <CardViewer
+          card={viewingCard}
+          isOpen={!!viewingCard}
+          onClose={() => setViewingCard(null)}
+          onEdit={setEditingCard}
+          onUpdate={handleUpdateCard}
+          onDelete={handleDeleteCard}
+          onNavigateToCard={handleNavigateToCard}
         />
-      )}
 
-      {selectedWord && (
-        <WordDefinitionPopover
-          word={selectedWord.word}
-          position={selectedWord.position}
-          onClose={() => setSelectedWord(null)}
-          onCreateCard={(word, definition) => {
-            handleCreateCard({
-              number: "000.1",
-              title: word,
-              content: definition.definition || `Definition of ${word}`,
-              category: "000",
-              tags: [word],
-              linkedCards: []
-            });
-          }}
-          cards={cards}
+        {editingCard && (
+          <EditCardDialog
+            card={editingCard}
+            isOpen={!!editingCard}
+            onSave={handleUpdateCard}
+            onClose={() => setEditingCard(null)}
+          />
+        )}
+
+        {selectedWord && (
+          <WordDefinitionPopover
+            word={selectedWord.word}
+            position={selectedWord.position}
+            onClose={() => setSelectedWord(null)}
+            onCreateCard={(word, definition) => {
+              handleCreateCard({
+                number: "000.1",
+                title: word,
+                content: definition.definition || `Definition of ${word}`,
+                category: "000",
+                tags: [word],
+                linkedCards: []
+              });
+            }}
+            cards={cards}
+          />
+        )}
+
+        <SmartLinkingSidebar
+          open={showSmartLinking}
+          onOpenChange={setShowSmartLinking}
+          currentCardId={smartLinkingCardId}
+          allCards={cards}
+          onLinkAccepted={handleAcceptLink}
         />
-      )}
 
-      {/* Chat is now inline in CollabStudio */}
-      
+        {showImportStudio && (
+          <ImportStudio
+            existingCards={cards}
+            onImportCards={handleImportCards}
+            externalOpen={showImportStudio}
+            onExternalOpenChange={setShowImportStudio}
+          />
+        )}
 
-      <SmartLinkingSidebar
-        open={showSmartLinking}
-        onOpenChange={setShowSmartLinking}
-        currentCardId={smartLinkingCardId}
-        allCards={cards}
-        onLinkAccepted={handleAcceptLink}
-      />
-      
-      <ImportStudio
-        existingCards={cards}
-        onImportCards={handleImportCards}
-        externalOpen={showImportStudio}
-        onExternalOpenChange={setShowImportStudio}
-      />
+        {showOrganizationMethodDialog && (
+          <OrganizationMethodDialog
+            currentMethod={organizationMethod}
+            onMethodChange={setOrganizationMethod}
+            onReorganizeCards={handleReorganizeCards}
+            cardCount={cards.length}
+            open={showOrganizationMethodDialog}
+            onOpenChange={setShowOrganizationMethodDialog}
+            hideTrigger
+          />
+        )}
+      </Suspense>
 
       <OrganizationMethodDialog
         currentMethod={organizationMethod}
