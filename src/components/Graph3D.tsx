@@ -71,6 +71,112 @@ function classifyNodes(cards: ZettelCard[] = [], connectionCounts: Record<string
   return { planetIds, moonParent };
 }
 
+// ── Solar system layout: sun → planets → moons ──────────────────────────────
+function computeSolarLayout(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}): Record<string, [number, number, number]> {
+  const valid = cards.filter(c => c && c.id);
+  const n = valid.length;
+  const positions: Record<string, [number, number, number]> = {};
+  if (n === 0) return positions;
+
+  // Build adjacency from linkedCards (bidirectional)
+  const adj: Record<string, Set<string>> = {};
+  valid.forEach(c => { adj[c.id] = new Set(); });
+  valid.forEach(c => {
+    c.linkedCards?.forEach(lid => {
+      if (adj[lid] !== undefined) {
+        adj[c.id].add(lid);
+        adj[lid].add(c.id);
+      }
+    });
+  });
+
+  // Sort by connection count descending
+  const sorted = [...valid].sort((a, b) => (connectionCounts[b.id] || 0) - (connectionCounts[a.id] || 0));
+
+  // Sun = most connected card
+  const sun = sorted[0];
+  positions[sun.id] = [0, 0, 0];
+  const used = new Set<string>([sun.id]);
+
+  // Planets: next top-connected cards (up to ~8% of nodes, min 3, max 12)
+  const planetCount = Math.min(12, Math.max(3, Math.ceil(n * 0.08)));
+  const planets: ZettelCard[] = [];
+  for (const c of sorted) {
+    if (planets.length >= planetCount) break;
+    if (c.id === sun.id) continue;
+    planets.push(c);
+    used.add(c.id);
+  }
+
+  // Place planets on tilted concentric orbits around sun
+  const planetMoons: Record<string, ZettelCard[]> = {};
+  planets.forEach(p => { planetMoons[p.id] = []; });
+
+  // Assign each remaining card to its nearest planet (most-shared link), else round-robin
+  const remaining = valid.filter(c => !used.has(c.id));
+  remaining.forEach(c => {
+    let bestPlanet: string | null = null;
+    let bestScore = 0;
+    planets.forEach(p => {
+      let score = 0;
+      if (adj[c.id].has(p.id)) score += 10;
+      // shared neighbors
+      adj[c.id].forEach(nb => { if (adj[p.id].has(nb)) score += 1; });
+      if (score > bestScore) { bestScore = score; bestPlanet = p.id; }
+    });
+    if (!bestPlanet && planets.length > 0) {
+      // assign to the least-loaded planet
+      bestPlanet = planets.reduce((a, b) =>
+        planetMoons[a.id].length <= planetMoons[b.id].length ? a : b
+      ).id;
+    }
+    if (bestPlanet) planetMoons[bestPlanet].push(c);
+  });
+
+  // Place planets evenly on golden-angle spiral, distance based on rank
+  const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+  planets.forEach((p, i) => {
+    const moonCount = planetMoons[p.id].length;
+    // Orbit radius scales with planet index AND its moon count to avoid overlaps
+    const orbitR = 6 + i * 2.2 + Math.sqrt(moonCount) * 0.6;
+    const angle = i * GOLDEN;
+    // Slight tilt per planet for 3D depth
+    const tilt = ((i % 5) - 2) * 0.25;
+    const x = orbitR * Math.cos(angle);
+    const z = orbitR * Math.sin(angle);
+    const y = orbitR * Math.sin(tilt) * 0.3;
+    positions[p.id] = [x, y, z];
+
+    // Place moons in a small orbit around the planet
+    const moons = planetMoons[p.id];
+    const moonOrbitBase = 1.2 + Math.min(2.5, moonCount * 0.08);
+    moons.forEach((m, j) => {
+      const ma = (j / Math.max(moons.length, 1)) * Math.PI * 2 + i;
+      // Stagger across a few shells if many moons
+      const shell = Math.floor(j / 8);
+      const mr = moonOrbitBase + shell * 0.9;
+      const mTilt = ((j % 3) - 1) * 0.4;
+      const mx = x + Math.cos(ma) * mr;
+      const mz = z + Math.sin(ma) * mr;
+      const my = y + Math.sin(mTilt) * mr * 0.4;
+      positions[m.id] = [mx, my, mz];
+    });
+  });
+
+  // Any orphan (no planets case) — scatter near origin
+  valid.forEach(c => {
+    if (!positions[c.id]) {
+      positions[c.id] = [
+        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * 4,
+      ];
+    }
+  });
+
+  return positions;
+}
+
 // ── Force-directed layout (gravity / orbital) ───────────────────────────────
 function computeForceLayout(cards: ZettelCard[] = [], connectionCounts: Record<string, number> = {}): Record<string, [number, number, number]> {
   const validCards = cards.filter(Boolean);
@@ -509,7 +615,8 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
     switch (layoutType) {
       case 'force':
-        return computeForceLayout(validCards, connectionCounts);
+      case 'solar':
+        return computeSolarLayout(validCards, connectionCounts);
       case 'sphere': {
         const positions: Record<string, [number, number, number]> = {};
         validCards.forEach((card, i) => {
@@ -759,7 +866,7 @@ export function Graph3D({ cards = [], onCardSelect, className }: Graph3DProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="force">🌐 Force-Directed</SelectItem>
+            <SelectItem value="force">☀️ Solar System</SelectItem>
             <SelectItem value="sphere">🔮 Sphere</SelectItem>
             <SelectItem value="cube">🧊 Cube</SelectItem>
             <SelectItem value="layers">📖 Category Layers</SelectItem>
