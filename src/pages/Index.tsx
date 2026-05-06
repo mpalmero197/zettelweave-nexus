@@ -855,66 +855,79 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Dialogs and Popovers */}
-      {showAccountManagement && (
-        <AccountManagement onClose={() => setShowAccountManagement(false)} />
-      )}
+      {/* Dialogs and Popovers (all lazy-loaded — wrap in Suspense) */}
+      <Suspense fallback={null}>
+        {showAccountManagement && (
+          <AccountManagement onClose={() => setShowAccountManagement(false)} />
+        )}
 
-      <CardViewer
-        card={viewingCard}
-        isOpen={!!viewingCard}
-        onClose={() => setViewingCard(null)}
-        onEdit={setEditingCard}
-        onUpdate={handleUpdateCard}
-        onDelete={handleDeleteCard}
-        onNavigateToCard={handleNavigateToCard}
-      />
-
-      {editingCard && (
-        <EditCardDialog
-          card={editingCard}
-          isOpen={!!editingCard}
-          onSave={handleUpdateCard}
-          onClose={() => setEditingCard(null)}
+        <CardViewer
+          card={viewingCard}
+          isOpen={!!viewingCard}
+          onClose={() => setViewingCard(null)}
+          onEdit={setEditingCard}
+          onUpdate={handleUpdateCard}
+          onDelete={handleDeleteCard}
+          onNavigateToCard={handleNavigateToCard}
         />
-      )}
 
-      {selectedWord && (
-        <WordDefinitionPopover
-          word={selectedWord.word}
-          position={selectedWord.position}
-          onClose={() => setSelectedWord(null)}
-          onCreateCard={(word, definition) => {
-            handleCreateCard({
-              number: "000.1",
-              title: word,
-              content: definition.definition || `Definition of ${word}`,
-              category: "000",
-              tags: [word],
-              linkedCards: []
-            });
-          }}
-          cards={cards}
+        {editingCard && (
+          <EditCardDialog
+            card={editingCard}
+            isOpen={!!editingCard}
+            onSave={handleUpdateCard}
+            onClose={() => setEditingCard(null)}
+          />
+        )}
+
+        {selectedWord && (
+          <WordDefinitionPopover
+            word={selectedWord.word}
+            position={selectedWord.position}
+            onClose={() => setSelectedWord(null)}
+            onCreateCard={(word, definition) => {
+              handleCreateCard({
+                number: "000.1",
+                title: word,
+                content: definition.definition || `Definition of ${word}`,
+                category: "000",
+                tags: [word],
+                linkedCards: []
+              });
+            }}
+            cards={cards}
+          />
+        )}
+
+        <SmartLinkingSidebar
+          open={showSmartLinking}
+          onOpenChange={setShowSmartLinking}
+          currentCardId={smartLinkingCardId}
+          allCards={cards}
+          onLinkAccepted={handleAcceptLink}
         />
-      )}
 
-      {/* Chat is now inline in CollabStudio */}
-      
+        {showImportStudio && (
+          <ImportStudio
+            existingCards={cards}
+            onImportCards={handleImportCards}
+            externalOpen={showImportStudio}
+            onExternalOpenChange={setShowImportStudio}
+          />
+        )}
 
-      <SmartLinkingSidebar
-        open={showSmartLinking}
-        onOpenChange={setShowSmartLinking}
-        currentCardId={smartLinkingCardId}
-        allCards={cards}
-        onLinkAccepted={handleAcceptLink}
-      />
-      
-      <ImportStudio
-        existingCards={cards}
-        onImportCards={handleImportCards}
-        externalOpen={showImportStudio}
-        onExternalOpenChange={setShowImportStudio}
-      />
+        {showOrganizationMethodDialog && (
+          <OrganizationMethodDialog
+            currentMethod={organizationMethod}
+            onMethodChange={setOrganizationMethod}
+            onReorganizeCards={handleReorganizeCards}
+            cardCount={cards.length}
+            open={showOrganizationMethodDialog}
+            onOpenChange={setShowOrganizationMethodDialog}
+            hideTrigger
+          />
+        )}
+      </Suspense>
 
       <OrganizationMethodDialog
         currentMethod={organizationMethod}
