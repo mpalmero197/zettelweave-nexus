@@ -518,7 +518,7 @@ const Index = () => {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild><div onClick={(e) => e.stopPropagation()}>
-                      <DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} />
+                      <Suspense fallback={null}><DeleteAllCardsDialog onDeleteAll={deleteAllCards} isDeleting={isDeletingAll} cardCount={cards.length} /></Suspense>
                     </div></DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
