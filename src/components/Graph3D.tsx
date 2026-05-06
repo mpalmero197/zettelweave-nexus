@@ -615,7 +615,8 @@ function Scene({ cards, onCardSelect, searchTerm, layoutType, showCategoryEdges,
 
     switch (layoutType) {
       case 'force':
-        return computeForceLayout(validCards, connectionCounts);
+      case 'solar':
+        return computeSolarLayout(validCards, connectionCounts);
       case 'sphere': {
         const positions: Record<string, [number, number, number]> = {};
         validCards.forEach((card, i) => {
