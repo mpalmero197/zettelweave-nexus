@@ -87,6 +87,7 @@ const Sitemap = lazy(() => import("./pages/Sitemap"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -214,6 +215,11 @@ const App = () => (
                 <Route path="/editorial-policy" element={
                   <Suspense fallback={<LoadingFallback />}>
                     <EditorialPolicy />
+                  </Suspense>
+                } />
+                <Route path="/unsubscribe" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Unsubscribe />
                   </Suspense>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
