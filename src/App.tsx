@@ -201,6 +201,21 @@ const App = () => (
                     <Sitemap />
                   </Suspense>
                 } />
+                <Route path="/about" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <About />
+                  </Suspense>
+                } />
+                <Route path="/contact" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Contact />
+                  </Suspense>
+                } />
+                <Route path="/editorial-policy" element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <EditorialPolicy />
+                  </Suspense>
+                } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={
