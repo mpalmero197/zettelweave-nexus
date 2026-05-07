@@ -84,6 +84,9 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
 const SharedWithMe = lazy(() => import("./pages/SharedWithMe"));
 const Sitemap = lazy(() => import("./pages/Sitemap"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
