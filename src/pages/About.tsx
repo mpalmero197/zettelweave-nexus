@@ -18,21 +18,55 @@ const useSEO = (title: string, description: string, canonical: string) => {
 
 const About = () => {
   useSEO(
-    "About PendragonX — Team, Mission & Trust",
-    "About PendragonX: who we are, our mission to give writers and thinkers an AI second brain, and how we operate. Editorial standards and verifiable trust signals.",
+    "About PendragonX",
+    "PendragonX is an AI-powered second brain for writers, researchers, and lifelong learners. Learn what we build and why.",
     "https://pendragonx.com/about"
   );
   return (
     <main className="min-h-screen bg-background text-foreground px-6 py-16 max-w-3xl mx-auto">
       <h1 className="text-4xl font-serif mb-6">About PendragonX</h1>
-      <p className="mb-4">PendragonX is an AI-powered second brain built by Halcyon Systems Group for writers, researchers, and lifelong learners. We believe knowledge tools should think <em>with</em> you — automatically connecting every idea in a living 3D graph instead of leaving you to manage folders and tags.</p>
-      <p className="mb-4">The platform was founded in 2025 and is operated by a small, independent team. We are bootstrapped, take no venture capital, and never sell user data.</p>
-      <h2 className="text-2xl font-semibold mt-10 mb-3">Mission</h2>
-      <p className="mb-4">Make personal knowledge management effortless by combining Zettelkasten principles, end-to-end encryption, and modern AI — so your notes work as hard as you do.</p>
-      <h2 className="text-2xl font-semibold mt-10 mb-3">Editorial standards</h2>
-      <p className="mb-4">All product pages and articles follow our <Link className="underline" to="/editorial-policy">editorial policy</Link>. Material changes are reviewed by a named human editor before publication.</p>
-      <h2 className="text-2xl font-semibold mt-10 mb-3">Contact</h2>
-      <p>See our <Link className="underline" to="/contact">contact page</Link> for support, press, and security disclosures.</p>
+
+      <p className="mb-4 text-lg">
+        PendragonX is your AI-powered second brain — a single place to capture every
+        idea, note, and source you care about, and watch them connect themselves into
+        a living 3D knowledge graph.
+      </p>
+
+      <p className="mb-4">
+        We built PendragonX because the tools most of us use to think — folders,
+        tabs, scattered docs — don't actually help us think. They just store stuff.
+        PendragonX is designed to do the opposite: surface the connections you'd
+        miss, resurface the notes you forgot, and let you talk to your own knowledge
+        like a collaborator.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-3">Who it's for</h2>
+      <p className="mb-4">
+        Writers drafting their next book. Researchers untangling a hard problem.
+        Students preparing for exams. Founders keeping a hundred threads alive at
+        once. If you've ever felt like your best ideas are trapped in a folder you
+        can't find, PendragonX is for you.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-3">What we believe</h2>
+      <ul className="list-disc pl-6 space-y-2 mb-4">
+        <li>Your notes should belong to you. We use end-to-end encryption and never sell your data.</li>
+        <li>Software should work offline. Your thinking shouldn't depend on a connection.</li>
+        <li>AI should help you think, not think for you.</li>
+        <li>Pricing should be honest. There's a real free tier and a simple paid plan.</li>
+      </ul>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-3">Who's behind it</h2>
+      <p className="mb-4">
+        PendragonX is built by Halcyon Systems Group — a small, independent,
+        bootstrapped team. No venture capital, no ads, no data brokers.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-3">Get in touch</h2>
+      <p>
+        Questions, feedback, or just want to say hi? Visit our{" "}
+        <Link className="underline" to="/contact">contact page</Link>.
+      </p>
     </main>
   );
 };
