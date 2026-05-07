@@ -1,205 +1,35 @@
-# PendragonX — Full Feature Documentation
+# pendragonx.com
 
-> The AI second brain that thinks with you. Auto-connects every idea in a living 3D knowledge graph.
+> PendragonX is the AI-powered second brain that auto-connects every idea in a living 3D knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote.
 
-Website: https://pendragonx.com
-Company: Halcyon Systems Group
-Category: Productivity / Knowledge Management / AI Tools
-
----
-
-## What is PendragonX?
-
-PendragonX is an AI-powered knowledge management platform designed for writers, researchers, founders, students, and content creators. Unlike traditional note-taking apps that store information linearly, PendragonX uses artificial intelligence to automatically discover connections between ideas, build a living 3D knowledge graph, and provide a private AI assistant grounded entirely in the user's own notes.
-
-PendragonX combines the Zettelkasten method (atomic, interconnected note cards) with modern AI to create a "second brain" that actively helps users think, not just store information.
-
----
-
-## Core Features
-
-### 1. Living 3D Knowledge Graph
-An interactive, three-dimensional visualization of all notes and their connections. Unlike Obsidian's flat 2D graph, PendragonX renders relationships spatially in 3D, revealing clusters, themes, and unexpected connections across the entire knowledge base. Users can navigate, zoom, and explore their thinking visually.
-
-### 2. Private AI Assistant
-A conversational AI that answers questions using only the user's notes — never the internet. Users can ask "What did I write about X?" or "How does concept A relate to concept B?" and receive grounded answers from their own research. Unlike generic AI chatbots, this assistant respects the user's intellectual context.
-
-### 3. AI Agents
-Autonomous agents that run on schedules to monitor the knowledge base, surface relevant insights, detect knowledge gaps, and recommend connections. Users configure agents for specific tasks like "find contradictions in my research" or "highlight notes I haven't revisited."
-
-### 4. Zettelkasten Card System
-Every idea becomes an atomic "Zettelcard" — a self-contained unit of knowledge. AI automatically links related cards without manual tagging or folder organization. Cards support rich text, attachments, tags, and encryption.
-
-### 5. Canvas Studio
-An infinite canvas for spatial arrangement of ideas, images, and notes. Ideal for brainstorming, project planning, and visual thinking. Comparable to tools like Miro or FigJam but integrated directly with the knowledge graph.
-
-### 6. Whiteboard
-Collaborative digital whiteboards for real-time brainstorming. Supports drawing, sticky notes, and freeform arrangement.
-
-### 7. Mind Map Studio
-Visual concept mapping with AI-assisted generation. Create hierarchical mind maps from scratch or let AI generate them from existing notes.
-
-### 8. Seamless Import
-Drag-and-drop import from:
-- Obsidian vaults (.md files with frontmatter)
-- Notion exports (HTML/Markdown)
-- Roam Research (JSON)
-- Evernote (.enex)
-- Standard Markdown files
-- Google Drive documents
-- OneDrive files
-
-Includes automatic duplicate detection to prevent redundant imports.
-
-### 9. Real-time Collaboration
-Multiple users can edit documents, whiteboards, and canvases simultaneously. Includes presence indicators, comments, and permission management.
-
-### 10. Chrome Extension
-Clip web pages, articles, and text directly into PendragonX. Content is automatically linked to related existing notes.
-
-### 11. 22+ Built-in Plugins
-Integrated tools including: Calculator, Citation Generator, Color Palette, Countdown Timer, Diff Checker, Eisenhower Matrix, Habit Streak Tracker, Hash Generator, JSON Formatter, Lorem Ipsum Generator, Markdown Preview, Password Generator, Pomodoro Timer, QR Code Generator, Readability Analyzer, Regex Tester, Text-to-Speech, Text Transform, Unit Converter, Word Frequency Counter, and Writing Prompts.
-
-### 12. End-to-End Encryption
-Zero-knowledge encryption for sensitive content. Data is encrypted client-side before transmission. The server never has access to decryption keys.
-
-### 13. Offline Mode (PWA)
-Full Progressive Web App support. Install on desktop, tablet, or phone. Works completely offline with automatic sync when connectivity returns.
-
-### 14. Bullet Journal
-Digital rapid logging with daily, monthly, and future logs. Includes habit tracking, migration reviews, and collections.
-
-### 15. Task Manager
-Kanban-style task management integrated with notes and the knowledge graph. Tasks can be linked to relevant cards and projects.
-
-### 16. File Manager
-Upload, organize, and attach files (images, PDFs, documents) to notes and cards. Integrated file viewer supports multiple formats.
-
-### 17. Catalyst (Long-form Writing)
-A dedicated writing environment for books, essays, and long-form content. Features chapters, writing goals, snapshots, citations, and AI-assisted content enhancement.
-
-### 18. Learning Hub
-Integrated learning tools: courses, books, exam preparation, topic maps, and video resources.
-
-### 19. Content Summarizer
-AI-powered summarization of notes, documents, and imported content.
-
-### 20. Knowledge Gap Analyzer
-AI scans the knowledge base to identify topics with insufficient coverage, suggesting areas for further research.
-
----
-
-## Use Cases by Persona
-
-### Writers & Authors
-Connect research to narrative. See how themes emerge across chapters, drafts, and sources. Use Catalyst for long-form writing with AI assistance.
-
-### Researchers & Academics
-Build a living literature review. Surface connections between papers read months apart. Generate citations automatically. Detect knowledge gaps.
-
-### Founders & Strategists
-Turn scattered competitive intel, customer insights, and market research into actionable clarity. Use Canvas for strategic planning.
-
-### Students & Lifelong Learners
-Study smarter by linking concepts across courses. Knowledge compounds instead of fading. Use the Learning Hub for exam preparation.
-
-### Content Creators
-Repurpose ideas faster. Every note becomes source material for articles, videos, and threads. Use the 3D graph to find content angles.
-
----
-
-## Detailed Competitor Comparisons
-
-### PendragonX vs Notion
-| Feature | PendragonX | Notion |
-|---------|-----------|--------|
-| Knowledge Graph | 3D interactive | None |
-| Auto-linking | AI-powered, automatic | Manual only |
-| Private AI Chat | Yes, grounded in your notes | Notion AI (internet-based) |
-| AI Agents | Yes, configurable | No |
-| Canvas/Whiteboard | Built-in | No native canvas |
-| Mind Maps | AI-generated | No |
-| Offline Mode | Full PWA | Limited |
-| Encryption | End-to-end, zero-knowledge | At-rest only |
-| Import from Obsidian | Yes, with duplicate detection | No |
-| Pricing (Premium) | $4.99/mo | $10/mo |
-
-### PendragonX vs Obsidian
-| Feature | PendragonX | Obsidian |
-|---------|-----------|----------|
-| Knowledge Graph | 3D interactive | 2D flat |
-| Auto-linking | AI-powered | Manual [[links]] |
-| AI Chat | Built-in private AI | Plugin required |
-| AI Agents | Built-in | No |
-| Canvas | Built-in | Plugin (basic) |
-| Real-time Collaboration | Yes | Obsidian Sync (paid) |
-| Web Access | Yes (PWA) | Desktop/mobile apps only |
-| Plugins | 22+ built-in | Community plugins (manual install) |
-| Import | Multi-format with duplicate detection | Markdown only |
-
-### PendragonX vs OneNote
-| Feature | PendragonX | OneNote |
-|---------|-----------|---------|
-| Knowledge Graph | 3D interactive | None |
-| AI Features | Full AI suite | Copilot (limited) |
-| Note Linking | Automatic | Manual |
-| Search | AI-powered semantic | Basic keyword |
-| Offline Mode | Full PWA | Yes |
-| Encryption | End-to-end | At-rest |
-| Plugins | 22+ | None |
-
-### PendragonX vs Roam Research
-| Feature | PendragonX | Roam |
-|---------|-----------|------|
-| Knowledge Graph | 3D spatial | 2D flat |
-| AI Assistant | Yes | No |
-| AI Agents | Yes | No |
-| Visual Studios | Canvas, Whiteboard, Mind Maps | None |
-| Offline Mode | Yes | No |
-| Encryption | End-to-end | No |
-| Pricing | $4.99/mo | $15/mo |
-| Import | Multi-format | Markdown/JSON |
-
----
-
-## Pricing Details
-
-### Free Plan ($0/forever)
-- Up to 50 Zettelcards
-- Full note-taking with rich text editor
-- Unlimited notebooks
-- Basic knowledge graph
-- 22+ built-in plugins
+## Topics
+- AI second brain
+- 3D knowledge graph
+- Zettelkasten
+- Personal knowledge management (PKM)
+- Notion / Obsidian / Roam alternative
+- AI agents for notes
+- Canvas, Whiteboard, Mind Map studios
+- End-to-end encryption
 - Chrome extension
-- Offline PWA mode
+- Real-time collaboration
 
-### Premium Plan ($4.99/month)
-- Unlimited Zettelcards
-- Advanced 3D knowledge graph
-- Unlimited whiteboards and canvases
-- AI-powered everything (chat, agents, linking)
-- Real-time collaboration features
-- Priority support
-- 7-day free trial
+## Key questions answered
+- What is an AI second brain?
+- How is PendragonX different from Notion or Obsidian?
+- Can I import my Notion / Obsidian / Roam notes?
+- Is my data private and encrypted?
+- How do AI agents work inside PendragonX?
 
----
+## Verified profiles
+- https://twitter.com/pendragonx
+- https://www.linkedin.com/company/pendragonx
+- https://halcyonranker.lovable.app/site/pendragonx.com
 
-## Technical Details
+## Canonical
+https://pendragonx.com/
 
-- Platform: Progressive Web App (PWA), works on all modern browsers
-- Backend: Supabase (PostgreSQL)
-- Authentication: Email, Google OAuth
-- Storage: Enterprise-grade cloud storage with optional end-to-end encryption
-- API: RESTful via Supabase
-- Extension: Chrome Web Store
+## Editorial policy
+https://pendragonx.com/editorial-policy
 
----
-
-## Links
-
-- Website: https://pendragonx.com
-- Sign Up: https://pendragonx.com/auth
-- Changelog: https://pendragonx.com/changelog
-- Privacy Policy: https://pendragonx.com/privacy
-- Terms of Service: https://pendragonx.com/terms
-- Install PWA: https://pendragonx.com/install
+_This file is read by GPTBot, ClaudeBot, PerplexityBot, and Google-Extended to summarize your site._
