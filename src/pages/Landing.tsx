@@ -371,6 +371,22 @@ export default function Landing() {
                 </span>
               ))}
             </div>
+
+            {/* Product Hunt Featured Badge */}
+            <div className="flex justify-center pt-2">
+              <a
+                href="https://www.producthunt.com/products/pendragonx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-pendragonx"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  alt="PendragonX - Your second brain that actually communicates back to you. | Product Hunt"
+                  width="250"
+                  height="54"
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1141673&theme=dark&t=1778248257082"
+                />
+              </a>
+            </div>
           </div>
         </div>
 
