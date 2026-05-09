@@ -150,7 +150,7 @@ export function AppLayout() {
           {/* Persistent Header â hidden in pop-out windows for a focused single-feature view */}
           {!isPopout && (
           <header
-            className="h-12 border-b border-border bg-background/90 backdrop-blur-md sticky top-0 z-50"
+            className="h-12 border-b border-border bg-background sticky top-0 z-50"
             role="banner"
           >
             <div className="h-full px-3 md:px-5 flex items-center justify-between gap-3">
@@ -162,7 +162,7 @@ export function AppLayout() {
                     alt="PendragonX"
                     className="h-6 w-6 object-contain"
                   />
-                  <span className="text-[15px] font-medium tracking-tight text-foreground" style={{ fontFamily: "'Google Sans','Roboto Flex',Roboto,sans-serif" }}>
+                  <span className="text-[15px] font-medium tracking-tight text-foreground" style={{ fontFamily: "'Inter',sans-serif" }}>
                     PendragonX
                   </span>
                   <div className="relative ml-0.5">

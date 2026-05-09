@@ -264,7 +264,7 @@ export default function Landing() {
             <img src={pendragonLogo} alt="PendragonX logo" className="h-7 w-7 object-contain" aria-hidden="true" />
             <span
               className="hidden sm:inline text-[17px] tracking-tight"
-              style={{ fontFamily: "'Google Sans','Roboto Flex',Roboto,sans-serif", fontWeight: 500 }}
+              style={{ fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 500 }}
             >
               PendragonX
             </span>
@@ -332,7 +332,7 @@ export default function Landing() {
             <h1
               id="hero-heading"
               className="text-[44px] sm:text-6xl md:text-7xl tracking-tight leading-[1.05] text-balance"
-              style={{ fontFamily: "'Google Sans','Roboto Flex',Roboto,sans-serif", fontWeight: 500 }}
+              style={{ fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 500 }}
             >
               Your second brain,
               <span className="block text-primary">designed for thinking.</span>
@@ -797,7 +797,7 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
             <img src={pendragonLogo} alt="PendragonX logo" className="h-5 w-5 object-contain" aria-hidden="true" />
-            <span className="font-medium" style={{ fontFamily: "'Cinzel Decorative', serif" }}>PendragonX</span>
+            <span className="font-medium" style={{ fontFamily: "'Inter',system-ui,sans-serif" }}>PendragonX</span>
             <span className="text-muted-foreground">© {currentYear}</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground" aria-label="Footer navigation">
