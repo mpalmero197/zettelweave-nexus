@@ -168,16 +168,25 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Google Sans Text', 'Roboto Flex', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    letter-spacing: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03", "cv02", "calt";
+    letter-spacing: -0.005em;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Google Sans', 'Roboto Flex', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    letter-spacing: -0.015em;
-    font-weight: 500;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    color: hsl(var(--foreground));
   }
+  h1 { font-size: 2rem; line-height: 1.2; }
+  h2 { font-size: 1.5rem; line-height: 1.25; }
+  h3 { font-size: 1.25rem; line-height: 1.3; }
+  h4 { font-size: 1.0625rem; line-height: 1.35; }
+  h5 { font-size: 0.9375rem; line-height: 1.4; }
+  h6 { font-size: 0.8125rem; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.04em; color: hsl(var(--muted-foreground)); }
 }
 
 @layer components {
