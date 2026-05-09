@@ -2,21 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Chrome / Material You inspired Design System
- * Google Blue #1a73e8 (light) / #8ab4f8 (dark)
- * Surfaces: #ffffff / #202124, neutrals from Material 3
- * Typography: Google Sans / Roboto Flex
+/* Flat-Material Design System — Notion / Obsidian inspired
+ * Monochromatic neutrals + single muted primary (graphite blue)
+ * Flat surfaces, 1px borders, no heavy shadows
+ * Typography: Inter (UI/body), system-ui fallback
+ * Spacing: 4/8px grid
  */
 
 @layer base {
   :root {
-    /* Light Mode — Chrome neutral surfaces */
+    /* Light Mode — flat neutral surfaces */
     --background: 0 0% 100%;
-    --foreground: 210 11% 15%;
+    --foreground: 220 13% 13%;
 
-    --primary: 217 89% 51%;
+    --primary: 220 13% 18%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 89% 45%;
+    --primary-hover: 220 13% 26%;
 
     --secondary: 210 17% 95%;
     --secondary-foreground: 210 11% 15%;
