@@ -162,11 +162,7 @@ const App = () => (
                       <Settings />
                     </Suspense>
                   } />
-                  <Route path="/agents" element={
-                    <Suspense fallback={<LoadingFallback message="Loading agents..." />}>
-                      <Agents />
-                    </Suspense>
-                  } />
+                  <Route path="/agents" element={<Navigate to="/alice" replace />} />
                   <Route path="/alice" element={
                     <Suspense fallback={<LoadingFallback message="Waking ALICE..." />}>
                       <Jarvis />
