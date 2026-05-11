@@ -84,7 +84,7 @@ const SECTIONS: Section[] = [
     accent: "primary",
     features: [
       { tab: "search", label: "Unified Search", desc: "Search cards, notes, files and the web with grounded AI answers.", icon: Search },
-      { to: "/agents", label: "Agents", desc: "Autonomous research, synthesis and notification agents that work in the background.", icon: Bot },
+      { tab: "catalyst", label: "Agents (in Catalyst)", desc: "Autonomous research, synthesis and writing agents — now embedded directly in the Catalyst writing studio.", icon: Bot },
       { tab: "learning", label: "Learning Hub", desc: "Courses, videos, books and AI-generated mock exams for any subject.", icon: GraduationCap },
     ],
   },
