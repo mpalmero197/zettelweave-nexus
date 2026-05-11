@@ -373,6 +373,26 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "run_agent",
+      description: "Activate a specialist PendragonX agent on the user's behalf. Use this when the user asks ALICE to do something an agent specializes in — most importantly, when they ask you to write/draft/synthesize a long document in Catalyst from their notes (use agent_type='author'), or for citation analysis, research, writing feedback, content summarization, smart linking, knowledge gaps, or task extraction. ALICE will find or create the matching agent, update it with the user's topic, kick off a run, and surface the result. Always tell the user which agent you triggered and roughly how long it will take.",
+      parameters: {
+        type: "object",
+        properties: {
+          agent_type: {
+            type: "string",
+            enum: ["author","research","citation","writing_coach","content_summarizer","smart_linking","knowledge_gap","task_extraction","habit_reminder"],
+            description: "'author' = the long-form Author / Card Synthesizer agent that drafts a 4–6k word Catalyst document from the user's existing notes/cards. Use this whenever the user asks for a 'large document', 'long document', 'big writeup', 'master document', or 'synthesize my notes into a paper'.",
+          },
+          topic: { type: "string", description: "Optional. Specific topic/title for the agent to focus on. For the author agent this becomes the document title and core subject." },
+          instructions: { type: "string", description: "Optional extra guidance, tone, focus, or constraints for the agent." },
+        },
+        required: ["agent_type"],
+      },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
