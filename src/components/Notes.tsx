@@ -32,6 +32,7 @@ import { ShareDialog } from './sharing/ShareDialog';
 import { Users } from 'lucide-react';
 import { NotesSplitView } from './NotesSplitView';
 import { format } from 'date-fns';
+import { notifyContentCreated } from '@/lib/aliceFollowups';
 
 const isHtmlContent = (content: string) => /<[a-z][\s\S]*>/i.test(content);
 
@@ -275,6 +276,7 @@ export function Notes({ initialView }: NotesProps = {}) {
         .single();
       if (error) throw error;
       if (data) generateEmbedding(data.id, 'note', quickTitle.trim());
+      if (data) notifyContentCreated({ contentType: 'note', id: data.id, title: data.title || quickTitle.trim(), content: data.content || '' });
       setQuickTitle('');
       fetchNotes();
       toast.success('Note created');
@@ -300,6 +302,7 @@ export function Notes({ initialView }: NotesProps = {}) {
         .single();
       if (error) throw error;
       if (data) generateEmbedding(data.id, 'note', `${newNote.title} ${newNote.content}`);
+      if (data) notifyContentCreated({ contentType: 'note', id: data.id, title: data.title || newNote.title, content: data.content || newNote.content });
       setNewNote({ title: '', content: '', notebook_id: '', tags: [] });
       setShowCreateDialog(false);
       fetchNotes();
