@@ -1045,7 +1045,7 @@ async function executeTool(
           user_id: userId, content,
         }).select("id").single();
         if (error) return { error: error.message };
-        return { ok: true, id: data.id, navigate_to: "/app/scratchpad" };
+        return { ok: true, id: data.id, note: "Saved to scratchpad." };
       }
       case "update_quick_capture": {
         const content = String(args.content || "");
