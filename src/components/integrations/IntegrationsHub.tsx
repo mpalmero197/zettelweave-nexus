@@ -236,20 +236,28 @@ export function IntegrationsHub() {
         {/* Connected integrations first */}
         {filtered
           .sort((a, b) => {
-            const aConn = connectedIds.has(a.id) ? 0 : 1;
-            const bConn = connectedIds.has(b.id) ? 0 : 1;
+            const aConn = isConnected(a.id) ? 0 : 1;
+            const bConn = isConnected(b.id) ? 0 : 1;
             return aConn - bConn;
           })
-          .map((integration) => (
-            <IntegrationCard
-              key={integration.id}
-              integration={integration}
-              isConnected={connectedIds.has(integration.id)}
-              connectionMeta={getMeta(integration.id)}
-              onConnect={handleConnect}
-              onDisconnect={handleDisconnect}
-            />
-          ))}
+          .map((integration) => {
+            const oauthMap = OAUTH_PROVIDERS[integration.id];
+            const oauthConn = oauthMap ? oauth.getConnection(oauthMap.provider) : undefined;
+            return (
+              <IntegrationCard
+                key={integration.id}
+                integration={integration}
+                isConnected={isConnected(integration.id)}
+                connectionMeta={
+                  oauthConn
+                    ? { connectedAt: new Date(oauthConn.created_at).getTime(), lastSyncAt: oauthConn.last_synced_at ? new Date(oauthConn.last_synced_at).getTime() : undefined, health: "healthy" as const }
+                    : getMeta(integration.id)
+                }
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+              />
+            );
+          })}
       </div>
 
       {filtered.length === 0 && (
