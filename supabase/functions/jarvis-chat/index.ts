@@ -162,6 +162,36 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "open_note",
+      description: "Open the Notes tab focused on a specific note. Use this — never navigate to '/notes/<id>'. Notes do NOT live at /notes/:id; they live inside /app/notes.",
+      parameters: {
+        type: "object",
+        properties: {
+          note_id: { type: "string", description: "UUID of the notes row." },
+          highlight: { type: "string", description: "Optional phrase to filter/find inside the note." },
+        },
+        required: ["note_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "open_card",
+      description: "Open the Cards (Zettelkasten) tab focused on a specific card. Use this — never navigate to '/cards/<id>'.",
+      parameters: {
+        type: "object",
+        properties: {
+          card_id: { type: "string", description: "UUID of the zettel_cards row." },
+          highlight: { type: "string", description: "Optional phrase to filter/find inside the card." },
+        },
+        required: ["card_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_note",
       description: "Create a new note in the user's knowledge base.",
       parameters: {
