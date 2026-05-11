@@ -87,7 +87,8 @@ export function useJarvis(initialThreadId?: string | null) {
       .select("id,role,parts,created_at")
       .eq("thread_id", threadId)
       .order("created_at", { ascending: true });
-    setMessages((data as any) || []);
+    const list = ((data as any) || []).map((m: any) => ({ ...m, parts: extractPlans(m.parts || []) }));
+    setMessages(list);
   }, []);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
