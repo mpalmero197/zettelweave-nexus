@@ -257,6 +257,26 @@ async function executeTool(
 ) {
   try {
     switch (name) {
+      case "get_current_datetime": {
+        const tz = String(args.time_zone || "UTC");
+        const now = new Date();
+        let humanLocal = "";
+        try {
+          humanLocal = new Intl.DateTimeFormat("en-US", {
+            timeZone: tz, weekday: "long", year: "numeric", month: "long",
+            day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+          }).format(now);
+        } catch {
+          humanLocal = `Invalid time zone "${tz}" — falling back to UTC: ${now.toUTCString()}`;
+        }
+        return {
+          iso_utc: now.toISOString(),
+          unix_seconds: Math.floor(now.getTime() / 1000),
+          time_zone_requested: tz,
+          human_local: humanLocal,
+          human_utc: now.toUTCString(),
+        };
+      }
       case "navigate": {
         let path = String(args.path || "").trim();
         const tab = String(args.tab || "").trim();
