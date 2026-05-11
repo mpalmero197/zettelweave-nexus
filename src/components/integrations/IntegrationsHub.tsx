@@ -1,16 +1,11 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Plug, Upload, FileText, Activity, RefreshCw, CheckCircle2, AlertCircle, Cable } from "lucide-react";
+import { Search, Plug, Activity, RefreshCw, CheckCircle2, AlertCircle, Cable } from "lucide-react";
 import { toast } from "sonner";
 import { IntegrationCard } from "./IntegrationCard";
 import { useIntegrationStatus } from "./useIntegrationStatus";
 import type { Integration, IntegrationCategory } from "./types";
-import { parseEnexFile } from "@/utils/evernoteImport";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
 import { SlackDialog } from "./dialogs/SlackDialog";
 import { ZapierDialog } from "./dialogs/ZapierDialog";
