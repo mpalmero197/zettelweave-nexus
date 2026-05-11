@@ -443,9 +443,184 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "reset_pomodoro_timer",
-      description: "Stop and reset the Focus Pomodoro timer back to its preset. Use for 'cancel my timer', 'stop focusing', 'reset the pomodoro'.",
+      name: "open_focus_sidebar",
+      description: "Open the Focus / Pomodoro sidebar so the user sees the timer UI without starting a new countdown.",
       parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_scratchpad_note",
+      description: "Append a new line/entry to the user's Scratchpad (quick brain-dump area). Use for 'jot this in my scratchpad', 'scratch note: ...'.",
+      parameters: {
+        type: "object",
+        properties: { content: { type: "string" } },
+        required: ["content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_quick_capture",
+      description: "Replace (or, with append=true, append to) the user's persistent Quick Capture pad — a single always-on scratch line shown across the app.",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string" },
+          append: { type: "boolean", description: "If true, append to existing capture text on a new line instead of replacing." },
+        },
+        required: ["content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_notebook",
+      description: "Create a new notebook to organize notes.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          description: { type: "string" },
+          color: { type: "string", description: "Hex color, e.g. #3b82f6" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "assign_note_to_notebook",
+      description: "Move/file an existing note into a notebook. Both must already exist and belong to the user.",
+      parameters: {
+        type: "object",
+        properties: {
+          note_id: { type: "string" },
+          notebook_id: { type: "string" },
+        },
+        required: ["note_id", "notebook_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_project",
+      description: "Create a new Project workspace (for multi-task initiatives).",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          description: { type: "string" },
+          due_date: { type: "string", description: "YYYY-MM-DD" },
+          priority: { type: "string", enum: ["low","medium","high"] },
+          color: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_project_task",
+      description: "Create a task inside a project (or standalone if no project_id). Distinct from generic create_task; use this when the user is working in Projects.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          project_id: { type: "string" },
+          due_date: { type: "string", description: "YYYY-MM-DD (required by schema, defaults to today if omitted)" },
+          priority: { type: "string", enum: ["low","medium","high"] },
+          status: { type: "string", enum: ["todo","in_progress","done"] },
+          notes: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_mind_map",
+      description: "Create a new Mind Map. Provide a hierarchical JSON tree under map_data: { root: { id, label, children: [...] } }. Keep depth ≤ 3.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          map_data: { type: "object", description: "Hierarchical tree. Example: { root: { id: 'r', label: 'Topic', children: [{id:'a', label:'Idea A', children:[]}] } }" },
+        },
+        required: ["title", "map_data"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_reminder",
+      description: "Create a standalone time-anchored reminder ping. Use when user wants a notification at a specific moment without a full calendar event.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "What to remind them about." },
+          remind_at: { type: "string", description: "ISO 8601 timestamp (UTC) when to ping. Compute from user's local time + their tz." },
+        },
+        required: ["title", "remind_at"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_to_reading_list",
+      description: "Save a book (from find_book results) to the user's Learning Hub reading list.",
+      parameters: {
+        type: "object",
+        properties: {
+          book_key: { type: "string", description: "Open Library 'key' field, e.g. /works/OL12345W" },
+          title: { type: "string" },
+          author: { type: "string" },
+          year: { type: "number" },
+          cover_id: { type: "number" },
+          status: { type: "string", enum: ["want_to_read","reading","read"] },
+        },
+        required: ["book_key", "title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_chat_message",
+      description: "Send a direct chat message to a friend (must already be an accepted friend). Get receiver_id from the user explicitly or from prior context — do NOT guess.",
+      parameters: {
+        type: "object",
+        properties: {
+          receiver_id: { type: "string", description: "UUID of the friend to message." },
+          message: { type: "string" },
+        },
+        required: ["receiver_id", "message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "start_recording",
+      description: "Open the Recorder Studio and arm a recording session of the requested type. Does NOT auto-start capture (user grants mic/screen permission in the UI).",
+      parameters: {
+        type: "object",
+        properties: {
+          recording_type: { type: "string", enum: ["audio","video","screen"], description: "What to record." },
+          title: { type: "string", description: "Optional default title." },
+        },
+        required: ["recording_type"],
+      },
     },
   },
 ];
