@@ -275,6 +275,7 @@ export default function Landing() {
             {[
               { label: "How it works", id: "how-it-works" },
               { label: "Features", id: "features" },
+              { label: "Meet ALICE", id: "alice" },
               { label: "Pricing", id: "pricing" },
               { label: "FAQ", id: "faq" },
             ].map((item) => (
