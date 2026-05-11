@@ -1,0 +1,185 @@
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe } from "lucide-react";
+import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { cn } from "@/lib/utils";
+
+const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
+  search_knowledge: { icon: Search, label: "Searched your knowledge" },
+  create_note: { icon: FileText, label: "Created a note" },
+  create_card: { icon: StickyNote, label: "Created a card" },
+  create_task: { icon: CheckSquare, label: "Created a task" },
+  create_event: { icon: Calendar, label: "Scheduled an event" },
+  web_search: { icon: Globe, label: "Searched the web" },
+};
+
+function ToolPart({ part }: { part: Extract<JarvisPart, { type: "tool" }> }) {
+  const [open, setOpen] = useState(false);
+  const meta = TOOL_META[part.name] || { icon: Sparkles, label: part.name };
+  const Icon = meta.icon;
+  const isError = part.result?.error;
+  return (
+    <div className="my-2 rounded-md border border-border bg-muted/40 text-xs">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted/60"
+      >
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <Icon className={cn("h-3.5 w-3.5", isError ? "text-destructive" : "text-primary")} />
+        <span className="font-medium">{meta.label}</span>
+        {part.args?.title && <span className="text-muted-foreground truncate">— {part.args.title}</span>}
+        {part.args?.query && <span className="text-muted-foreground truncate">— "{part.args.query}"</span>}
+        {isError && <span className="ml-auto text-destructive">error</span>}
+      </button>
+      {open && (
+        <div className="border-t border-border p-3 space-y-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Input</div>
+            <pre className="text-[11px] overflow-x-auto bg-background/60 p-2 rounded">{JSON.stringify(part.args, null, 2)}</pre>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Result</div>
+            <pre className="text-[11px] overflow-x-auto bg-background/60 p-2 rounded">{JSON.stringify(part.result, null, 2)}</pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface Props {
+  /** Optional: render in compact mode (popover/floating panel) */
+  compact?: boolean;
+}
+
+export function JarvisChat({ compact = false }: Props) {
+  const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
+  const [input, setInput] = useState("");
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { taRef.current?.focus(); }, [activeThreadId]);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, sending]);
+
+  const submit = async () => {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    await sendMessage(text);
+    taRef.current?.focus();
+  };
+
+  return (
+    <div className={cn("flex h-full bg-background", compact && "rounded-lg border border-border overflow-hidden")}>
+      {/* Thread sidebar */}
+      {!compact && (
+        <aside className="w-64 border-r border-border flex flex-col">
+          <div className="p-3 border-b border-border">
+            <Button onClick={newThread} variant="outline" size="sm" className="w-full justify-start gap-2">
+              <Plus className="h-4 w-4" /> New conversation
+            </Button>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-0.5">
+              {threads.map((t) => (
+                <div key={t.id} className={cn(
+                  "group flex items-center rounded-md hover:bg-accent transition-colors",
+                  activeThreadId === t.id && "bg-accent",
+                )}>
+                  <button
+                    onClick={() => selectThread(t.id)}
+                    className="flex-1 text-left text-sm px-2 py-1.5 truncate"
+                  >
+                    {t.title}
+                  </button>
+                  <button
+                    onClick={() => deleteThread(t.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:text-destructive"
+                    aria-label="Delete thread"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              {threads.length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 py-4 text-center">No conversations yet.</p>
+              )}
+            </div>
+          </ScrollArea>
+        </aside>
+      )}
+
+      {/* Chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+            {messages.length === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold">At your service.</h2>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Ask me to find anything in your knowledge base, create notes or cards, schedule tasks, or look something up online.
+                </p>
+              </div>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} className={cn("flex flex-col gap-1", m.role === "user" ? "items-end" : "items-start")}>
+                {m.role === "user" ? (
+                  <div className="max-w-[85%] rounded-2xl bg-primary text-primary-foreground px-4 py-2 text-sm whitespace-pre-wrap">
+                    {m.parts.map((p, i) => p.type === "text" ? <span key={i}>{p.text}</span> : null)}
+                  </div>
+                ) : (
+                  <div className="max-w-full w-full text-sm text-foreground">
+                    {m.parts.map((p, i) => {
+                      if (p.type === "tool") return <ToolPart key={i} part={p} />;
+                      return (
+                        <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{p.text}</ReactMarkdown>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+            {sending && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+                <span>Thinking…</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Composer */}
+        <div className="border-t border-border p-3">
+          <div className="max-w-3xl mx-auto flex gap-2 items-end">
+            <Textarea
+              ref={taRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+              }}
+              placeholder="Ask Jarvis anything…"
+              rows={1}
+              className="min-h-[40px] max-h-40 resize-none"
+              disabled={sending}
+            />
+            <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className="shrink-0">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
