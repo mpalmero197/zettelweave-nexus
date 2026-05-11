@@ -104,17 +104,13 @@ export function AppLayout() {
       const path = (e as CustomEvent).detail as string;
       if (!path || typeof path !== "string") return;
       if (path.startsWith("/admin")) return; // ALICE is barred from admin
+      navigate(path);
       const m = path.match(/^\/app\/([\w-]+)/);
-      if (m && APP_TABS.has(m[1])) {
-        handleTabChange(m[1]);
-      } else {
-        navigate(path);
-      }
+      if (m) window.dispatchEvent(new CustomEvent("app-tab-change", { detail: m[1] }));
     };
     window.addEventListener("alice-navigate", handler);
     return () => window.removeEventListener("alice-navigate", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [navigate]);
 
   const handleSignOut = async () => {
     try {
