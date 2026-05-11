@@ -144,6 +144,15 @@ export function useJarvis(initialThreadId?: string | null) {
       if (data?.navigate_to && typeof data.navigate_to === "string") {
         window.dispatchEvent(new CustomEvent("alice-navigate", { detail: data.navigate_to }));
       }
+      // ALICE may request the client to perform UI-only actions (start a
+      // pomodoro timer, etc.) — fan out as global events.
+      if (Array.isArray(data?.client_actions)) {
+        for (const action of data.client_actions) {
+          if (action && typeof action === "object" && action.type) {
+            window.dispatchEvent(new CustomEvent(`alice:${action.type}`, { detail: action.payload || {} }));
+          }
+        }
+      }
       loadThreads();
     } catch (e: any) {
       toast.error(e?.message || "ALICE is offline");
