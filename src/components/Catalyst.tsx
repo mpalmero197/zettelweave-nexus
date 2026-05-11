@@ -42,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { useScreenRegion } from '@/hooks/useScreenContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { exportCatalystToPDF, exportCatalystToDOCX, exportCatalystToEPUB, exportCatalystToKPF } from '@/utils/catalystExportUtils';
