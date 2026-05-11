@@ -40,51 +40,9 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
   const [encryptionPassword, setEncryptionPassword] = useState("");
   const [setupMode, setSetupMode] = useState(false);
 
-  const handleAutoGenerate = async () => {
-    if (!title && !content) return;
-    
-    setIsGenerating(true);
-    try {
-      // Use AI to categorize based on current organization method
-      const { data, error } = await supabase.functions.invoke('ai-categorize-card', {
-        body: {
-          title,
-          content,
-          method: organizationMethod,
-          existingNumbers: existingCards.map(c => c.number)
-        }
-      });
+  // Auto-generation now happens transparently inside handleSubmit() so users
+  // are not confused by a separate "Auto-Generate" button.
 
-      if (error) throw error;
-
-      if (data?.number && data?.category) {
-        setNumber(data.number);
-        setCategory(data.category);
-        toast.success(`Categorized using ${organizationMethod} system`);
-      }
-
-      // Generate keywords and description
-      const keywords = extractKeywords(title + " " + content);
-      setTags(keywords);
-      
-      if (!description) {
-        const firstSentence = content.split('.')[0] + '.';
-        setDescription(firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence);
-      }
-    } catch (error) {
-      toast.error('Failed to categorize card. Please try again.');
-      
-      // Fallback to old method for Dewey
-      if (organizationMethod === 'dewey') {
-        const detectedCategory = categorizeContent(content, title);
-        const generatedNumber = generateZettelNumber(detectedCategory, existingCards.map(c => c.number));
-        setCategory(detectedCategory);
-        setNumber(generatedNumber);
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const addTag = (tag: string) => {
     if (tag.trim() && !tags.includes(tag.trim())) {
@@ -136,15 +94,47 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     const sanitizedTitle = sanitizeUserInput(title);
     const sanitizedContent = sanitizeUserInput(content);
     const sanitizedDescription = sanitizeUserInput(description);
-    const sanitizedTags = tags.map(tag => sanitizeUserInput(tag));
+    let sanitizedTags = tags.map(tag => sanitizeUserInput(tag));
 
-    const finalCategory = category || categorizeContent(sanitizedContent, sanitizedTitle);
-    const finalNumber = number || generateZettelNumber(finalCategory, existingCards.map(c => c.number));
+    // If category/number/tags/description are missing, transparently auto-generate
+    // them as part of Create — no separate button required.
+    let finalCategory = category;
+    let finalNumber = number;
+    let finalDescription = sanitizedDescription;
+
+    if (!finalCategory || !finalNumber || sanitizedTags.length === 0 || !finalDescription) {
+      setIsGenerating(true);
+      try {
+        const { data } = await supabase.functions.invoke('ai-categorize-card', {
+          body: {
+            title: sanitizedTitle,
+            content: sanitizedContent,
+            method: organizationMethod,
+            existingNumbers: existingCards.map(c => c.number),
+          },
+        });
+        if (data?.number && !finalNumber) finalNumber = data.number;
+        if (data?.category && !finalCategory) finalCategory = data.category;
+      } catch {
+        /* fall through to deterministic fallback below */
+      }
+      if (sanitizedTags.length === 0) {
+        sanitizedTags = extractKeywords(sanitizedTitle + ' ' + sanitizedContent).map(t => sanitizeUserInput(t));
+      }
+      if (!finalDescription) {
+        const firstSentence = sanitizedContent.split('.')[0] + '.';
+        finalDescription = firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence;
+      }
+      setIsGenerating(false);
+    }
+
+    finalCategory = finalCategory || categorizeContent(sanitizedContent, sanitizedTitle);
+    finalNumber = finalNumber || generateZettelNumber(finalCategory, existingCards.map(c => c.number));
 
     const cardData: any = {
       title: sanitizedTitle,
       content: sanitizedContent,
-      description: sanitizedDescription,
+      description: finalDescription,
       tags: sanitizedTags,
       category: finalCategory,
       number: finalNumber,
@@ -328,26 +318,17 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
             existingVideoUrl={videoUrl}
           />
 
-          <div className="flex justify-between pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAutoGenerate}
-              disabled={isGenerating || (!title && !content)}
-              className="bg-gradient-accent hover:bg-accent-hover"
-            >
-              <Wand2 className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Generating...' : 'Auto-Generate'}
+          <div className="flex justify-end gap-2 pt-4">
+            <p className="mr-auto text-xs text-muted-foreground self-center">
+              <Wand2 className="inline h-3 w-3 mr-1" />
+              Category, number, tags & description are filled in automatically when you create.
+            </p>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
             </Button>
-            
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={!title || !content}>
-                Create
-              </Button>
-            </div>
+            <Button onClick={handleSubmit} disabled={!title || !content || isGenerating}>
+              {isGenerating ? 'Creating…' : 'Create'}
+            </Button>
           </div>
         </div>
       </DialogContent>

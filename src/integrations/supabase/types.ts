@@ -2005,6 +2005,7 @@ export type Database = {
           is_visible: boolean | null
           last_activity_at: string | null
           last_nudge_sent_at: string | null
+          onboarding_completed: boolean
           updated_at: string
           user_id: string
           user_status: Database["public"]["Enums"]["user_status"] | null
@@ -2020,6 +2021,7 @@ export type Database = {
           is_visible?: boolean | null
           last_activity_at?: string | null
           last_nudge_sent_at?: string | null
+          onboarding_completed?: boolean
           updated_at?: string
           user_id: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
@@ -2035,6 +2037,7 @@ export type Database = {
           is_visible?: boolean | null
           last_activity_at?: string | null
           last_nudge_sent_at?: string | null
+          onboarding_completed?: boolean
           updated_at?: string
           user_id?: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
