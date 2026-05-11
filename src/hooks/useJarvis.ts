@@ -128,8 +128,9 @@ export function useJarvis(initialThreadId?: string | null) {
         timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
         locale = navigator.language || "en-US";
       } catch { /* ignore */ }
+      const screen = getScreenContext();
       const { data, error } = await supabase.functions.invoke("jarvis-chat", {
-        body: { message: text, threadId: activeThreadId, timeZone, locale },
+        body: { message: text, threadId: activeThreadId, timeZone, locale, screen },
       });
       if (error) throw error;
       const newThreadId = data.threadId as string;
