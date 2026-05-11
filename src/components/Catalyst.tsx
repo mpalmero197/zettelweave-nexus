@@ -461,15 +461,68 @@ const DOCUMENT_TEMPLATES = [
     setSelectedItems(newSelected);
   };
 
+  // Convert plain text or partial HTML into well-structured HTML so imported
+  // notes/cards render as readable paragraphs, lists, and headings instead of
+  // a single wall of text.
+  const formatImportedContent = (raw: string): string => {
+    if (!raw) return '<p></p>';
+    const trimmed = raw.trim();
+    // If content already looks like HTML, keep it as-is.
+    const looksLikeHtml = /<\/?(p|div|h[1-6]|ul|ol|li|blockquote|pre|br|table|img|figure)\b/i.test(trimmed);
+    if (looksLikeHtml) return trimmed;
+
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Split on blank lines to form paragraphs / blocks.
+    const blocks = trimmed.split(/\n\s*\n+/);
+    const html = blocks.map(block => {
+      const lines = block.split(/\n/).map(l => l.trimEnd());
+
+      // Markdown heading (e.g. "# Title")
+      const headingMatch = lines.length === 1 && /^#{1,6}\s+/.test(lines[0])
+        ? lines[0].match(/^(#{1,6})\s+(.*)$/)
+        : null;
+      if (headingMatch) {
+        const level = Math.min(headingMatch[1].length, 6);
+        return `<h${level}>${escapeHtml(headingMatch[2])}</h${level}>`;
+      }
+
+      // Bulleted list
+      if (lines.every(l => /^\s*[-*+]\s+/.test(l))) {
+        const items = lines.map(l => `<li>${escapeHtml(l.replace(/^\s*[-*+]\s+/, ''))}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      }
+
+      // Numbered list
+      if (lines.every(l => /^\s*\d+[.)]\s+/.test(l))) {
+        const items = lines.map(l => `<li>${escapeHtml(l.replace(/^\s*\d+[.)]\s+/, ''))}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      }
+
+      // Default paragraph; keep single newlines as line breaks.
+      return `<p>${lines.map(escapeHtml).join('<br/>')}</p>`;
+    }).join('');
+
+    return html;
+  };
+
+  const buildImportedBlock = (title: string, raw: string): string => {
+    const safeTitle = title
+      ? title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      : 'Untitled';
+    const body = formatImportedContent(raw);
+    return `<h2>${safeTitle}</h2>${body}<p></p>`;
+  };
+
   const insertReference = (item: ContentItem) => {
-    const reference = `<blockquote><strong>Reference: ${item.title}</strong><br/>${item.content}</blockquote><p></p>`;
-    setEditorContent(prev => prev + reference);
+    setEditorContent(prev => prev + buildImportedBlock(item.title, item.content));
   };
 
   const insertRecommendation = (rec: { id: string; type: string; title: string; content: string }) => {
     // Fetch full content based on type
     let fullContent = rec.content;
-    
+
     if (rec.type === 'card') {
       const card = cards.find(c => c.id === rec.id);
       if (card) fullContent = card.content;
@@ -486,9 +539,8 @@ const DOCUMENT_TEMPLATES = [
       if (scratch) fullContent = scratch.content;
     }
 
-    const reference = `<blockquote><strong>Reference: ${rec.title}</strong><br/>${fullContent}</blockquote><p></p>`;
-    setEditorContent(prev => prev + reference);
-    
+    setEditorContent(prev => prev + buildImportedBlock(rec.title, fullContent));
+
     toast({
       title: 'Content inserted',
       description: `Added ${rec.type} to your document.`,
@@ -508,10 +560,9 @@ const DOCUMENT_TEMPLATES = [
 
     let combinedContent = editorContent;
     itemsToInsert.forEach(item => {
-      const reference = `<blockquote><strong>Reference: ${item.title}</strong><br/>${item.content}</blockquote><p></p>`;
-      combinedContent += reference;
+      combinedContent += buildImportedBlock(item.title, item.content);
     });
-    
+
     setEditorContent(combinedContent);
     toast({
       title: 'Items inserted',
