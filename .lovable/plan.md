@@ -1,141 +1,91 @@
-# Autonomous SEO/AEO Self-Improvement Engine
 
-## What it does
+# ALICE Upgrade Plan
 
-PendragonX wakes up every 24 hours, researches the latest SEO/AEO best practices using Perplexity (real-time web search), and automatically applies the changes it can do safely on its own. Anything that requires editing React component code is queued for one-click admin approval — never auto-merged.
+A staged build to give ALICE persistent memory, proactive briefings, multi-step actions with confirm/undo, file/image/audio attachments, and an auto Deep Think mode — and to make every AI tool in PendragonX run on a single shared ALICE Core.
 
-## Why a two-track system
+## Stage 1 — ALICE Core (shared engine)
 
-Auto-applying arbitrary code changes to a live writer-focused product is dangerous (broken builds, wrong content, stale advice). Instead we split improvements into two tracks:
+Create one edge function, `alice-core`, that becomes the single brain for every AI feature.
 
-- **Auto-applied (safe)** — data-only changes the engine writes directly to Supabase: meta tag overrides, JSON-LD blobs, `llms.txt`/`llms-full.txt` content, sitemap entries, FAQ entries, redirect rules. The frontend reads these on load.
-- **Queued for review (risky)** — code changes (new components, refactors). These become entries in the existing `platform_insights` table tagged `aeo_proposal` and surface in the admin Self-Improvement panel with a "Propose code fix" button that hands off to the existing `propose-code-fix` → GitHub PR pipeline.
+- Accepts a `mode` parameter: `chat`, `summarize`, `study-guide`, `mind-map`, `resume`, `exam`, `daily-report`, `search-rerank`, `modify`, `knowledge-chat`, `catalyst-agent`.
+- Shared toolset (every mode inherits): `deep_search`, `open_note`, `open_card`, `open_in_catalyst`, `navigate`, `web_search`, `create_task`, `schedule_event`, `create_note`, `create_card`, `write_document`, `recall_memory`, `save_memory`.
+- Shared persona/directive: existing `[Inference]/[Unverified]` rules, timezone/location handling, refusal of admin write actions.
+- Auto model routing:
+  - Default → `google/gemini-3-flash-preview`
+  - Auto Deep Think → `google/gemini-2.5-pro` when prompt contains reasoning triggers (multi-step questions, "compare", "analyze", "plan", >400 chars, or attachments present) OR caller passes `forceDeepThink: true`.
+- Migrate existing functions (`jarvis-chat`, `knowledge-chat`, `content-summarizer`, `mind-map-generator`, `study-guide-generator`, etc.) to thin wrappers that call `alice-core` with the right mode.
 
-## How the daily run works
+## Stage 2 — Persistent Long-Term Memory
 
-```text
-                cron (3 AM UTC, daily)
-                          |
-                          v
-        +----------------------------------+
-        |  seo-aeo-self-improve edge fn   |
-        +----------------------------------+
-                          |
-         1. Perplexity research (sonar-pro)
-            "What are the latest SEO/AEO
-             techniques in the last 7 days?"
-                          |
-         2. Diff against applied_techniques
-            table to skip what we already did
-                          |
-         3. Lovable AI classifies each new
-            technique:
-              - safe_data  -> auto-apply
-              - code_change -> queue insight
-              - skip        -> log + ignore
-                          |
-         4a. SAFE_DATA path
-             -> write to seo_overrides /
-                seo_jsonld / seo_llms_txt
-             -> regenerate /llms.txt route
-             -> append to sitemap
-                          |
-         4b. CODE_CHANGE path
-             -> insert platform_insights row
-                category='aeo_proposal'
-                          |
-         5. Log run to seo_improvement_runs
-            (techniques found, applied, queued)
-```
+New table `alice_memories`:
+- `id`, `user_id`, `kind` (preference | fact | project | person | rule), `key`, `value`, `weight`, `source` (auto | manual), `created_at`, `last_used_at`.
+- RLS: user-scoped.
+- New tool `save_memory({kind, key, value})` and `recall_memory({query?})`. ALICE auto-saves when she detects stable preferences ("I always write in 1st person", "Sarah is my editor").
+- On every request, top N relevant memories are retrieved by embedding similarity and injected into the system prompt.
+- Settings page: "ALICE Memory" — list, edit, delete, export.
 
-## What can be auto-applied (safe)
+## Stage 3 — Proactive Briefings & Nudges
 
-1. **Meta tag overrides** — title, description, keywords per route. `SEOHead` already supports overrides; we add a Supabase-backed override layer it merges in.
-2. **JSON-LD additions** — new schema types (e.g. WebApplication, Course, VideoObject). The new `SchemaInjector` component reads from a `seo_jsonld` table.
-3. **`llms.txt` / `llms-full.txt` updates** — currently static files; we move serving to a Supabase-backed edge function so the engine can rewrite them.
-4. **Sitemap entries** — new routes, `<lastmod>` refreshes, priority tweaks.
-5. **FAQ entries** — appended to a `seo_faq_entries` table consumed by the `FAQBlock` component (auto-generates FAQPage JSON-LD).
-6. **Robots directives** — additive only (never disallow without admin approval).
+- New table `alice_briefings`: `id`, `user_id`, `for_date`, `summary_md`, `highlights_jsonb`, `delivered_at`.
+- Scheduled edge function `alice-briefing` (pg_cron at 7 AM user-local) builds a personalized morning briefing: overdue tasks, today's calendar, writing streak, idle projects, suggested next action. Saves a row and pushes a web-push notification.
+- In-app "Today" panel on the dashboard displays the latest briefing; clicking any item deep-links to the source.
+- Idle-project nudges (separate cron) check for projects with no activity in 5+ days and queue a soft notification.
 
-## What gets queued (never auto-merged)
+## Stage 4 — Multi-Step Action Plans with Confirm/Undo
 
-- Adding new React components or pages
-- Changing semantic HTML structure of existing components
-- Modifying the routing tree
-- Anything touching authentication, payments, or user data
-- Anything the AI classifier rates `confidence < 0.8` for safety
+- New table `alice_actions`: `id`, `user_id`, `conversation_id`, `plan_jsonb` (ordered steps), `status` (pending_confirm | running | done | failed | undone), `executed_steps_jsonb`, `undo_payload_jsonb`, `created_at`.
+- When ALICE produces a plan with mutations (create event, write doc, schedule task, send message), she returns a structured plan instead of executing. UI renders a confirmation card: "I'll do these 3 things — Approve / Modify / Cancel."
+- On approve, server executes steps sequentially, capturing inverse operations into `undo_payload_jsonb`.
+- An "Undo last action" toast appears for 60 s after completion, calling an `alice-undo` endpoint.
+- Read-only operations (search, lookup, summarize) never require confirmation.
 
-## Admin controls
+## Stage 5 — Attachments (Images, PDFs, Audio)
 
-A new "SEO/AEO Engine" tab in the Admin Console shows:
+- Reuse the existing `documents` and `audio-snippets` storage buckets; create `alice-attachments` for images.
+- Chat input gains a paperclip with multi-file picker (image/png, image/jpeg, image/webp, application/pdf, audio/*).
+- Server pipeline:
+  - Images → passed inline to `gemini-2.5-pro` (vision).
+  - PDFs → text extracted server-side; if >8k tokens, chunked + summarized first.
+  - Audio → transcribed (Whisper via existing pipeline), transcript injected.
+- Attachment metadata stored on the message row; renders as a chip with type + name + size in the chat bubble.
 
-- Last run timestamp + next scheduled run
-- Toggle: enable/disable autonomous mode
-- Toggle per category: meta tags / JSON-LD / llms.txt / sitemap / FAQ
-- "Run now" button
-- History table: every technique discovered, source URL, action taken, rollback button
-- Pending queued code-change proposals with one-click "Propose fix" → existing PR flow
-- One-click rollback for any auto-applied change (reverts the row)
+## Stage 6 — "Ask ALICE" everywhere
 
-## Rollback safety
+- New `<AskAliceButton context={…}/>` component placed in headers of: Notes, Cards, Calendar, Catalyst, Whiteboard, Learning Hub, Knowledge Graph, Tasks, Projects.
+- Clicking opens the ALICE drawer pre-loaded with that module's context (current selection, doc id, filters).
+- Knowledge Chat module is replaced by ALICE drawer with `mode: 'knowledge-chat'`.
 
-Every auto-applied change writes a `before` snapshot to `seo_change_log`. The admin panel exposes a "Revert" button per change. Bulk "Revert last 24h" available.
+## Database changes
 
-## Frequency & rate-limiting
+- `alice_memories` — long-term memory
+- `alice_briefings` — daily briefings
+- `alice_actions` — pending/executed action plans
+- All with RLS scoped to `auth.uid() = user_id`.
+- pg_cron jobs for `alice-briefing` (daily) and `alice-idle-nudge` (daily).
 
-- Cron runs once per 24h at 3 AM UTC (off-peak)
-- Hard cap: max 5 auto-applied changes per run (prevent runaway)
-- Hard cap: max 10 queued proposals per run
-- If `platform_insights` already has >20 unreviewed `aeo_proposal` rows, skip the queueing step
+## Edge functions
 
-## Technical implementation
+- `alice-core` — unified brain (new)
+- `alice-briefing` — scheduled briefing builder (new)
+- `alice-undo` — reverse executed plans (new)
+- `alice-attachment-process` — extract/transcribe uploads (new)
+- Existing AI functions migrated to thin wrappers
 
-### New tables (migration)
+## Frontend
 
-- `seo_improvement_runs` — `id, started_at, finished_at, techniques_found, applied_count, queued_count, error, raw_research jsonb`
-- `seo_applied_techniques` — `id, technique_signature (unique), title, description, source_url, action_type, applied_at` (dedup key so we never re-apply)
-- `seo_overrides` — `id, route_pattern, field (title|description|keywords|og_image), value, active, created_at`
-- `seo_jsonld` — `id, route_pattern, schema_type, schema_json jsonb, active, created_at`
-- `seo_faq_entries` — `id, route_pattern, question, answer, sort_order, active`
-- `seo_llms_content` — singleton row, `id, llms_txt text, llms_full_txt text, updated_at`
-- `seo_change_log` — `id, applied_technique_id, table_name, row_id, before jsonb, after jsonb, reverted_at`
-- `seo_engine_settings` — singleton, `enabled bool, categories jsonb (per-category toggles), last_run_at`
+- New components: `AskAliceButton`, `AliceMemoryPanel` (settings), `AliceBriefingCard` (dashboard), `AliceActionPlanCard` (chat), `AliceAttachmentChip`, `AliceUndoToast`.
+- Update `useJarvis` → `useAlice`, point to `alice-core`.
 
-All RLS: admin-only read/write via existing `is_admin()` function. Frontend reads `seo_overrides`/`seo_jsonld`/`seo_faq_entries`/`seo_llms_content` via a public read policy (or via a public edge function so anon clients don't need direct access).
+## Rollout order
 
-### New edge functions
+1. Stage 1 (Core engine) — foundation everything else builds on
+2. Stage 2 (Memory) — immediately improves every response
+3. Stage 4 (Action plans) — biggest "doer" upgrade, needs Core
+4. Stage 5 (Attachments) — high user-perceived value
+5. Stage 3 (Briefings) — needs cron + push wiring
+6. Stage 6 (Ask ALICE buttons) — surface area expansion last
 
-- `seo-aeo-self-improve` — main daily worker. Calls Perplexity for research, Lovable AI for classification, writes results.
-- `serve-llms-txt` — public function that returns the current `seo_llms_content.llms_txt` as `text/plain`. Add a redirect from `/llms.txt` to this function (or update the static file generator).
-- `serve-sitemap` — same pattern, returns dynamically generated `sitemap.xml`.
+## Out of scope (for now)
 
-### Existing code touched
-
-- `src/components/SEOHead.tsx` — fetches `seo_overrides` for current route on mount, merges over defaults.
-- `src/components/seo/SchemaInjector.tsx` — supports loading additional schemas from `seo_jsonld`.
-- `src/components/seo/FAQBlock.tsx` — accepts `seo_faq_entries` rows.
-- `src/pages/Admin.tsx` — new "SEO Engine" tab using existing admin tab pattern.
-- `index.html` — `<link rel="alternate" href="/llms.txt">` stays; the file becomes dynamic.
-
-### New admin component
-
-- `src/components/admin/SeoEnginePanel.tsx` — settings, run history, applied changes, queued proposals, rollback buttons.
-
-### Cron
-
-Scheduled via `pg_cron` calling `net.http_post` to the edge function (using the daily-report pattern already in the project). 3 AM UTC.
-
-### Secrets
-
-`PERPLEXITY_API_KEY` is already configured. `LOVABLE_API_KEY` already configured. No new secrets needed.
-
-### Memory updates
-
-Add `mem://features/seo-aeo-self-improvement-engine` describing the autonomous engine, two-track design, admin controls, and the technique-dedup signature pattern. Update index.
-
-## Out of scope (explicit)
-
-- Auto-editing React component code (always queued, never merged without admin)
-- Auto-changing pricing, copy in landing hero, or anything user-facing-marketing
-- Auto-creating routes
-- Disabling existing SEO behavior (additive-only by default)
+- Voice input/TTS — deferred (you didn't pick it; easy to add later)
+- Admin write tools — explicitly forbidden per existing directive
