@@ -627,6 +627,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     { id: 'activity', label: 'Activity Log', icon: BookOpen },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'ai', label: 'AI & Automation', icon: Brain },
+    { id: 'memory', label: 'ALICE Memory', icon: Brain },
     { id: 'debug', label: 'Debug Logs', icon: Bug },
   ];
 
