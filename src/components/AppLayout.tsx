@@ -114,11 +114,26 @@ export function AppLayout() {
           const docId = url.searchParams.get("docId");
           const highlight = url.searchParams.get("highlight") || "";
           if (docId) {
-            // Defer so Catalyst has mounted and subscribed.
             setTimeout(() => {
               window.dispatchEvent(new CustomEvent("catalyst-open-document", {
                 detail: { documentId: docId, highlight },
               }));
+            }, 250);
+          }
+        } else if (url.pathname === "/app/notes") {
+          const focus = url.searchParams.get("alice_focus");
+          const q = url.searchParams.get("q") || "";
+          if (focus) {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent("notes-focus", { detail: { noteId: focus, q } }));
+            }, 250);
+          }
+        } else if (url.pathname === "/app/cards") {
+          const focus = url.searchParams.get("alice_focus");
+          const q = url.searchParams.get("q") || "";
+          if (focus) {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent("cards-focus", { detail: { cardId: focus, q } }));
             }, 250);
           }
         }
