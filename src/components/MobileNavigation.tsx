@@ -45,7 +45,7 @@ const SECTIONS = [
     items: [
       { id: 'spaces', label: 'Spaces', icon: Box },
       { id: 'graph', label: 'Graph', icon: BarChart3 },
-      { id: 'knowledge-chat', label: 'Chat', icon: MessageSquareText },
+      { id: 'files', label: 'Files', icon: FolderOpen },
       { id: 'files', label: 'Files', icon: FolderOpen },
       { id: 'learning', label: 'Learning', icon: GraduationCap },
       { id: 'knowledge-gaps', label: 'Gaps', icon: Lightbulb },
