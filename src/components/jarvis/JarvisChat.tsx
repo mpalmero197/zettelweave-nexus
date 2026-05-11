@@ -154,7 +154,12 @@ export function JarvisChat({ compact = false }: Props) {
                     "max-w-[85%] rounded-2xl bg-primary text-primary-foreground whitespace-pre-wrap",
                     compact ? "px-3 py-1.5 text-[13px]" : "px-4 py-2 text-sm",
                   )}>
-                    {m.parts.map((p, i) => p.type === "text" ? <span key={i}>{p.text}</span> : null)}
+                    {m.parts.map((p, i) => {
+                      if (p.type !== "text") return null;
+                      // Hide the internal plan-execute directive from the bubble UI.
+                      const cleaned = p.text.replace(/\[\[ALICE_PLAN_EXECUTE\]\][\s\S]*?\[\[\/ALICE_PLAN_EXECUTE\]\]/g, "").trim();
+                      return cleaned ? <span key={i}>{cleaned}</span> : null;
+                    })}
                   </div>
                 ) : (
                   <div className={cn("max-w-full w-full text-foreground", compact ? "text-[13px]" : "text-sm")}>
