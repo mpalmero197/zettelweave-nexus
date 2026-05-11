@@ -26,6 +26,7 @@ import {
   Bug,
   Brain,
   MessageSquareText,
+  Puzzle,
 } from "lucide-react";
 
 interface TopNavBarProps {
