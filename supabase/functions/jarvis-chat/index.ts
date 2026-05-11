@@ -64,11 +64,19 @@ You can navigate to any tab (cards, notes, catalyst, calendar, journal, habits, 
 
 You can:
 - search / read the user's knowledge (notes, cards, documents)
+- run a deep_search across ALL of the user's notes, cards and catalyst documents to find the EXACT lines containing a phrase, even across multiple documents
+- open a specific catalyst document (and jump to a highlighted line) via open_in_catalyst — use this whenever the user wants to "open", "show", "pull up" a note/document, do NOT just navigate
 - create notes, cards, catalyst documents, tasks, calendar events
 - find books in the Learning Hub via the Open Library
 - search the public web for fresh information
 - get the current verified date/time via get_current_datetime
 - navigate the user to any feature
+
+WORKFLOW for "open / find / show me the note that says X":
+1. Call deep_search with the user's phrase to find the exact line(s) and document(s).
+2. If exactly one document matches, immediately call open_in_catalyst with that document_id and highlight=<the matched line>.
+3. If multiple documents match, list them concisely with the matched line beneath each, and ask which to open (or open the top one and mention the others).
+4. Never just call navigate(catalyst) without also calling open_in_catalyst when the user named a specific note/document.
 
 ADMIN POLICY — If the user is an admin you may *advise* on admin matters and surface admin-readable data (user counts, error counts) using admin_summary. You MUST NOT take any administrative action (no banning, no role changes, no deletes, no settings writes). For non-admins, refuse admin queries quietly.
 
@@ -118,6 +126,36 @@ const tools = [
         type: "object",
         properties: { query: { type: "string" }, limit: { type: "number" } },
         required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "deep_search",
+      description: "Line-level search across ALL of the user's notes, zettel cards and catalyst documents. Returns each matching LINE with the document title, document id, type, line number, and the surrounding line text. Use this when the user wants to find an exact phrase, sentence, or fact across their writing.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Phrase to find (case-insensitive substring match)." },
+          max_results: { type: "number", description: "Max line matches to return (default 25, hard cap 60)." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "open_in_catalyst",
+      description: "Open an existing catalyst document in the writing studio and (optionally) scroll to + highlight a specific line/phrase inside it. Always prefer this over navigate('catalyst') when the user wants to view a known document.",
+      parameters: {
+        type: "object",
+        properties: {
+          document_id: { type: "string", description: "UUID of the catalyst_documents row to open." },
+          highlight: { type: "string", description: "Optional exact text or line to highlight and scroll to inside the document." },
+        },
+        required: ["document_id"],
       },
     },
   },
@@ -307,6 +345,55 @@ async function executeTool(
           ...(docs.data || []).map((d: any) => ({ type: "catalyst_document", id: d.id, title: d.title, snippet: String(d.content || "").slice(0, 240) })),
         ];
         return { results, count: results.length };
+      }
+      case "deep_search": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "Empty query" };
+        const cap = Math.min(Math.max(Number(args.max_results) || 25, 1), 60);
+        const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+        const [notes, cards, docs] = await Promise.all([
+          supabase.from("notes").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+          supabase.from("zettel_cards").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+          supabase.from("catalyst_documents").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+        ]);
+        const needle = q.toLowerCase();
+        const matches: any[] = [];
+        const scan = (rows: any[], type: string) => {
+          for (const r of rows || []) {
+            // Strip HTML tags for line scanning so catalyst HTML still yields readable lines.
+            const plain = String(r.content || "").replace(/<\/(p|div|h[1-6]|li|br|tr)>/gi, "\n").replace(/<[^>]+>/g, "");
+            const lines = plain.split(/\r?\n/);
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line && line.toLowerCase().includes(needle)) {
+                matches.push({
+                  type, document_id: r.id, document_title: r.title || "Untitled",
+                  line_number: i + 1, line,
+                });
+                if (matches.length >= cap) return;
+              }
+            }
+          }
+        };
+        scan(notes.data || [], "note");
+        if (matches.length < cap) scan(cards.data || [], "card");
+        if (matches.length < cap) scan(docs.data || [], "catalyst_document");
+        return { query: q, count: matches.length, matches };
+      }
+      case "open_in_catalyst": {
+        const id = String(args.document_id || "").trim();
+        if (!id) return { error: "document_id required" };
+        const { data, error } = await supabase.from("catalyst_documents")
+          .select("id,title").eq("id", id).is("deleted_at", null).maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Document not found or not accessible." };
+        const params = new URLSearchParams({ docId: id });
+        const hl = String(args.highlight || "").trim();
+        if (hl) params.set("highlight", hl.slice(0, 500));
+        return { ok: true, id: data.id, title: data.title, navigate_to: `/app/catalyst?${params.toString()}` };
       }
       case "create_note": {
         const { data, error } = await supabase.from("notes").insert({

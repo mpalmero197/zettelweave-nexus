@@ -106,6 +106,23 @@ export function AppLayout() {
       navigate(path);
       const m = path.match(/^\/app\/([\w-]+)/);
       if (m) window.dispatchEvent(new CustomEvent("app-tab-change", { detail: m[1] }));
+
+      // Deep-link: /app/catalyst?docId=...&highlight=... → tell Catalyst to open it.
+      try {
+        const url = new URL(path, window.location.origin);
+        if (url.pathname === "/app/catalyst") {
+          const docId = url.searchParams.get("docId");
+          const highlight = url.searchParams.get("highlight") || "";
+          if (docId) {
+            // Defer so Catalyst has mounted and subscribed.
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent("catalyst-open-document", {
+                detail: { documentId: docId, highlight },
+              }));
+            }, 250);
+          }
+        }
+      } catch { /* ignore */ }
     };
     window.addEventListener("alice-navigate", handler);
     return () => window.removeEventListener("alice-navigate", handler);
