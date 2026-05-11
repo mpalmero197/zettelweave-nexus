@@ -78,14 +78,12 @@ const CATEGORIES: { label: string; value: IntegrationCategory | "all"; icon: str
 ];
 
 export function IntegrationsHub() {
-  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<IntegrationCategory | "all">("all");
   const { connectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
 
   const filtered = useMemo(() => INTEGRATIONS.filter((i) => {
     if (category !== "all" && i.category !== category) return false;
@@ -113,58 +111,6 @@ export function IntegrationsHub() {
     disconnect(id);
     toast.success("Disconnected successfully");
   }, [disconnect]);
-
-  // ── Obsidian import ──
-  const handleObsidianFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length || !user) return;
-    setImporting(true);
-    let count = 0;
-    try {
-      for (const file of Array.from(files)) {
-        if (!file.name.endsWith(".md")) continue;
-        const text = await file.text();
-        const title = file.name.replace(/\.md$/, "");
-        await supabase.from("notes").insert({ user_id: user.id, title, content: text });
-        count++;
-      }
-      toast.success(`Imported ${count} Obsidian note${count !== 1 ? "s" : ""}`);
-      connect("obsidian", count);
-    } catch {
-      toast.error("Import failed — please check your files and try again");
-    } finally {
-      setImporting(false);
-      closeDialog();
-    }
-  };
-
-  // ── Evernote import ──
-  const handleEvernoteFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const notes = parseEnexFile(text);
-      let count = 0;
-      for (const note of notes) {
-        await supabase.from("notes").insert({
-          user_id: user.id,
-          title: note.title,
-          content: note.content,
-          tags: note.tags,
-        });
-        count++;
-      }
-      toast.success(`Imported ${count} Evernote note${count !== 1 ? "s" : ""}`);
-      connect("evernote", count);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to parse .enex file");
-    } finally {
-      setImporting(false);
-      closeDialog();
-    }
-  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
