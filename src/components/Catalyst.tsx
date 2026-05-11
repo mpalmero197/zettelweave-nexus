@@ -891,6 +891,49 @@ const DOCUMENT_TEMPLATES = [
     return () => clearTimeout(timer);
   }, [editorContent, currentDocId, user]);
 
+  // ALICE deep-link: open a specific document and highlight a line.
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { documentId?: string; highlight?: string };
+      if (!detail?.documentId) return;
+      try {
+        const { data, error } = await supabase
+          .from('catalyst_documents')
+          .select('*')
+          .eq('id', detail.documentId)
+          .maybeSingle();
+        if (error || !data) {
+          toast({ title: 'Could not open document', description: error?.message || 'Not found', variant: 'destructive' });
+          return;
+        }
+        let html = convertMarkdownToHtml(data.content || '');
+        const hl = (detail.highlight || '').trim();
+        if (hl) {
+          const safe = hl.replace(/<[^>]+>/g, '');
+          const re = new RegExp(`(${safe.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i');
+          html = html.replace(re, `<mark id="alice-highlight" style="background:hsl(48 95% 60%);color:hsl(0 0% 10%);padding:1px 3px;border-radius:2px">$1</mark>`);
+        }
+        setDocumentTitle(data.title);
+        setEditorContent(html);
+        setSelectedSource((data.selected_source || 'cards') as ContentSource);
+        setSelectedItems(new Set(data.selected_items || []));
+        setDocumentTheme(data.theme_id || 'default');
+        setCurrentDocId(data.id);
+        toast({ title: 'Opened by ALICE', description: data.title });
+        if (hl) {
+          setTimeout(() => {
+            const el = document.getElementById('alice-highlight');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 600);
+        }
+      } catch (err: any) {
+        toast({ title: 'Open failed', description: err?.message || String(err), variant: 'destructive' });
+      }
+    };
+    window.addEventListener('catalyst-open-document', handler as EventListener);
+    return () => window.removeEventListener('catalyst-open-document', handler as EventListener);
+  }, [toast]);
+
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1800px]">
