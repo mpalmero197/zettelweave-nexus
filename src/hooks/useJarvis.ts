@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { getScreenContext } from "@/hooks/useScreenContext";
 
 import type { AlicePlan } from "@/components/alice/AliceActionPlan";
 
