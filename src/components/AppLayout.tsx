@@ -125,7 +125,7 @@ export function AppLayout() {
     "dashboard","cards","graph","notes","files","canvas","calendar","journal",
     "habits","scratchpad","stickynotes","catalyst","collab","recorder","recycle",
     "search","debugger","learning","projects","spaces","integrations",
-    "knowledge-gaps","notebooks","knowledge-chat",
+    "knowledge-gaps","notebooks",
   ]);
 
   const handleTabChange = (tab: string) => {
