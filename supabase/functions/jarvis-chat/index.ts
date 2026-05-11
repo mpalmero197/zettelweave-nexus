@@ -1031,6 +1031,143 @@ async function executeTool(
       case "reset_pomodoro_timer": {
         return { ok: true, client_action: { type: "reset_pomodoro" }, note: "Timer reset." };
       }
+      case "open_focus_sidebar": {
+        return { ok: true, client_action: { type: "open_focus_sidebar" }, note: "Focus sidebar opened." };
+      }
+      case "create_scratchpad_note": {
+        const content = String(args.content || "").trim();
+        if (!content) return { error: "content required" };
+        const { data, error } = await supabase.from("scratchpad_notes").insert({
+          user_id: userId, content,
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, navigate_to: "/app/scratchpad" };
+      }
+      case "update_quick_capture": {
+        const content = String(args.content || "");
+        if (!content.trim()) return { error: "content required" };
+        const { data: existing } = await supabase.from("quick_captures")
+          .select("id,content").eq("user_id", userId).maybeSingle();
+        if (existing?.id) {
+          const next = args.append ? `${existing.content || ""}\n${content}`.slice(0, 20000) : content;
+          const { error } = await supabase.from("quick_captures")
+            .update({ content: next, updated_at: new Date().toISOString() }).eq("id", existing.id);
+          if (error) return { error: error.message };
+          return { ok: true, id: existing.id, appended: !!args.append };
+        }
+        const { data, error } = await supabase.from("quick_captures")
+          .insert({ user_id: userId, content }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, appended: false };
+      }
+      case "create_notebook": {
+        const { data, error } = await supabase.from("notebooks").insert({
+          user_id: userId,
+          name: String(args.name).slice(0, 120),
+          description: args.description ? String(args.description).slice(0, 500) : null,
+          color: args.color || "#3b82f6",
+        }).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, navigate_to: "/app/notebooks" };
+      }
+      case "assign_note_to_notebook": {
+        const noteId = String(args.note_id || "").trim();
+        const nbId = String(args.notebook_id || "").trim();
+        if (!noteId || !nbId) return { error: "note_id and notebook_id required" };
+        const { error } = await supabase.from("notes")
+          .update({ notebook_id: nbId }).eq("id", noteId);
+        if (error) return { error: error.message };
+        return { ok: true };
+      }
+      case "create_project": {
+        const { data, error } = await supabase.from("projects").insert({
+          user_id: userId,
+          name: String(args.name).slice(0, 200),
+          description: args.description || null,
+          due_date: args.due_date || null,
+          priority: args.priority || "medium",
+          color: args.color || "#3b82f6",
+        }).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, navigate_to: "/app/projects" };
+      }
+      case "create_project_task": {
+        const due = args.due_date || new Date().toISOString().slice(0, 10);
+        const { data, error } = await supabase.from("project_tasks").insert({
+          user_id: userId,
+          name: String(args.name).slice(0, 200),
+          project_id: args.project_id || null,
+          due_date: due,
+          priority: args.priority || "medium",
+          status: args.status || "todo",
+          notes: args.notes || null,
+        }).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, navigate_to: "/app/projects" };
+      }
+      case "create_mind_map": {
+        const map_data = args.map_data && typeof args.map_data === "object" ? args.map_data : {};
+        const { data, error } = await supabase.from("mind_maps").insert({
+          user_id: userId,
+          title: String(args.title).slice(0, 200),
+          description: args.description || null,
+          map_data,
+        }).select("id,title").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, title: data.title, navigate_to: "/app/canvas" };
+      }
+      case "create_reminder": {
+        const title = String(args.title || "").trim();
+        const remindAt = String(args.remind_at || "").trim();
+        if (!title || !remindAt) return { error: "title and remind_at required" };
+        const when = new Date(remindAt);
+        if (Number.isNaN(when.getTime())) return { error: "remind_at must be a valid ISO timestamp" };
+        const { data, error } = await supabase.from("reminders").insert({
+          user_id: userId,
+          item_type: "alice",
+          item_id: crypto.randomUUID(),
+          item_title: title.slice(0, 200),
+          remind_at: when.toISOString(),
+          offset_minutes: 0,
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, remind_at: when.toISOString() };
+      }
+      case "add_to_reading_list": {
+        const { data, error } = await supabase.from("reading_list").insert({
+          user_id: userId,
+          book_key: String(args.book_key),
+          title: String(args.title).slice(0, 300),
+          author: args.author || null,
+          year: args.year || null,
+          cover_id: args.cover_id || null,
+          status: args.status || "want_to_read",
+        }).select("id,title").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, title: data.title, navigate_to: "/app/learning" };
+      }
+      case "send_chat_message": {
+        const receiver = String(args.receiver_id || "").trim();
+        const msg = String(args.message || "").trim();
+        if (!receiver || !msg) return { error: "receiver_id and message required" };
+        const { data: friendCheck } = await supabase.rpc("are_friends", { _user_id_1: userId, _user_id_2: receiver });
+        if (friendCheck !== true) return { error: "Not friends with that user — cannot send message." };
+        const { data, error } = await supabase.from("chat_messages").insert({
+          sender_id: userId, receiver_id: receiver, message: msg.slice(0, 4000), sender_type: "user",
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id };
+      }
+      case "start_recording": {
+        const recording_type = ["audio","video","screen"].includes(args.recording_type) ? args.recording_type : "audio";
+        const title = args.title ? String(args.title).slice(0, 200) : null;
+        return {
+          ok: true,
+          client_action: { type: "start_recording", payload: { recording_type, title } },
+          navigate_to: "/app/recorder",
+          note: `Recorder armed for ${recording_type}.`,
+        };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
