@@ -40,51 +40,9 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
   const [encryptionPassword, setEncryptionPassword] = useState("");
   const [setupMode, setSetupMode] = useState(false);
 
-  const handleAutoGenerate = async () => {
-    if (!title && !content) return;
-    
-    setIsGenerating(true);
-    try {
-      // Use AI to categorize based on current organization method
-      const { data, error } = await supabase.functions.invoke('ai-categorize-card', {
-        body: {
-          title,
-          content,
-          method: organizationMethod,
-          existingNumbers: existingCards.map(c => c.number)
-        }
-      });
+  // Auto-generation now happens transparently inside handleSubmit() so users
+  // are not confused by a separate "Auto-Generate" button.
 
-      if (error) throw error;
-
-      if (data?.number && data?.category) {
-        setNumber(data.number);
-        setCategory(data.category);
-        toast.success(`Categorized using ${organizationMethod} system`);
-      }
-
-      // Generate keywords and description
-      const keywords = extractKeywords(title + " " + content);
-      setTags(keywords);
-      
-      if (!description) {
-        const firstSentence = content.split('.')[0] + '.';
-        setDescription(firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence);
-      }
-    } catch (error) {
-      toast.error('Failed to categorize card. Please try again.');
-      
-      // Fallback to old method for Dewey
-      if (organizationMethod === 'dewey') {
-        const detectedCategory = categorizeContent(content, title);
-        const generatedNumber = generateZettelNumber(detectedCategory, existingCards.map(c => c.number));
-        setCategory(detectedCategory);
-        setNumber(generatedNumber);
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const addTag = (tag: string) => {
     if (tag.trim() && !tags.includes(tag.trim())) {
