@@ -15,8 +15,8 @@ export function JarvisFAB() {
       {!open && (
         <Button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 h-12 w-12 rounded-full shadow-lg p-0"
-          aria-label="Open Jarvis"
+          className="fixed bottom-24 right-6 md:bottom-6 z-40 h-12 w-12 rounded-full shadow-lg p-0"
+          aria-label="Open ALICE"
         >
           <Sparkles className="h-5 w-5" />
         </Button>
