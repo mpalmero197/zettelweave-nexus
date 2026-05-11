@@ -298,6 +298,7 @@ export function AppLayout() {
       <FocusMiniPill />
       {!isPopout && <JarvisFAB />}
       {!isPopout && <OnboardingTutorial />}
+      {!isPopout && <AliceUndoBanner />}
     </>
   );
 }
