@@ -67,7 +67,7 @@ const SECTIONS = [
       { id: 'collab', label: 'Collab', icon: Users },
       { id: 'recorder', label: 'Recorder', icon: Mic },
       { id: 'canvas', label: 'Canvas', icon: Palette },
-      { id: 'integrations', label: 'Integrations', icon: Puzzle },
+      { id: 'integrations', label: 'Connectors', icon: Puzzle },
     ],
   },
   {
