@@ -169,7 +169,7 @@ export function JarvisChat({ compact = false }: Props) {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
-              placeholder="Ask Jarvis anything…"
+              placeholder="Ask ALICE anything…"
               rows={1}
               className="min-h-[40px] max-h-40 resize-none"
               disabled={sending}
