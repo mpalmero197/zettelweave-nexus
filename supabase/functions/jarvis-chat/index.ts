@@ -132,6 +132,36 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "deep_search",
+      description: "Line-level search across ALL of the user's notes, zettel cards and catalyst documents. Returns each matching LINE with the document title, document id, type, line number, and the surrounding line text. Use this when the user wants to find an exact phrase, sentence, or fact across their writing.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Phrase to find (case-insensitive substring match)." },
+          max_results: { type: "number", description: "Max line matches to return (default 25, hard cap 60)." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "open_in_catalyst",
+      description: "Open an existing catalyst document in the writing studio and (optionally) scroll to + highlight a specific line/phrase inside it. Always prefer this over navigate('catalyst') when the user wants to view a known document.",
+      parameters: {
+        type: "object",
+        properties: {
+          document_id: { type: "string", description: "UUID of the catalyst_documents row to open." },
+          highlight: { type: "string", description: "Optional exact text or line to highlight and scroll to inside the document." },
+        },
+        required: ["document_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_note",
       description: "Create a new note in the user's knowledge base.",
       parameters: {
