@@ -711,6 +711,8 @@ Deno.serve(async (req) => {
     const userTimeZone: string = String(body.timeZone || "").trim();
     const userLocale: string = String(body.locale || "en-US").trim();
     const forceDeepThink: boolean = body.deepThink === true;
+    const screen: { route?: string; regions?: Array<{ id: string; label: string; data: any }> } =
+      (body.screen && typeof body.screen === "object") ? body.screen : {};
     let threadId: string | null = body.threadId || null;
     if (!userMessage) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -771,9 +773,26 @@ Deno.serve(async (req) => {
     }
     const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-2.5-pro)" : "Fast (gemini-3-flash-preview)"} for this turn.`;
 
+    // Real-time snapshot of what's on the user's screen right now. Use this
+    // to ground answers to questions like "what document do I have open?"
+    // or "summarize what's on my screen". Treat it as ground truth for the
+    // current turn — do NOT guess if a region is missing.
+    let screenBlock = "";
+    if (screen.regions && screen.regions.length > 0) {
+      const lines = screen.regions.map((r) => {
+        const data = (() => {
+          try { return JSON.stringify(r.data); } catch { return "{}"; }
+        })();
+        return `- [${r.id}] ${r.label}: ${data}`;
+      }).join("\n");
+      screenBlock = `\n\n═══ WHAT IS CURRENTLY ON THE USER'S SCREEN ═══\nRoute: ${screen.route || "(unknown)"}\nVisible regions:\n${lines}\nWhen the user refers to "the document I have open", "this note", "what's on my screen", or any deictic ("this", "that", "here"), resolve it against these regions. If they ask about Catalyst's document window, look at the catalyst.document region and answer using documentTitle / contentPreview. Never claim you can't see the screen if a relevant region is listed above.`;
+    } else {
+      screenBlock = `\n\n═══ WHAT IS CURRENTLY ON THE USER'S SCREEN ═══\nRoute: ${screen.route || "(unknown)"}\n(No instrumented regions reported for this turn. If the user asks about something on their screen, ask which app/page they mean.)`;
+    }
+
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + memoryBlock + modeBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + memoryBlock + modeBlock + screenBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");

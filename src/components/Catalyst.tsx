@@ -42,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { useScreenRegion } from '@/hooks/useScreenContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { exportCatalystToPDF, exportCatalystToDOCX, exportCatalystToEPUB, exportCatalystToKPF } from '@/utils/catalystExportUtils';
@@ -155,6 +156,23 @@ export function Catalyst() {
   const [catalystMode, setCatalystMode] = useState<'writer' | 'resume'>('writer');
   const [documentTheme, setDocumentTheme] = useState('default');
   const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
+
+  // Tell ALICE which Catalyst document is currently on screen so she can
+  // answer questions like "what's in the document I have open?".
+  useScreenRegion(
+    "catalyst.document",
+    "Catalyst document window (the writing editor in Catalyst)",
+    {
+      app: "Catalyst",
+      mode: catalystMode,
+      documentId: currentDocId,
+      documentTitle,
+      isUnsaved: !currentDocId,
+      wordCount,
+      theme: documentTheme,
+      contentPreview: editorContent ? editorContent.slice(0, 600) : "",
+    },
+  );
 
 const DOCUMENT_TEMPLATES = [
   { id: 'blank', title: 'Blank Document', description: 'Start from scratch', icon: <FileText className="h-4 w-4" />, content: '' },
