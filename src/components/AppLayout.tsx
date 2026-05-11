@@ -261,7 +261,7 @@ export function AppLayout() {
                 >
                   <Wrench className="h-4 w-4" />
                 </Button>
-                <span data-onboarding="theme-switcher" className="contents">
+                <span data-onboarding="theme-switcher" className="inline-flex">
                   <ThemeVariantSelector />
                 </span>
                 <UserMenu isAdmin={isAdmin} onSignOut={handleSignOut} />
