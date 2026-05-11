@@ -16,7 +16,7 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Wrench, Search, ExternalLink } from "lucide-react";
+import { Wrench, Search, ExternalLink } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { JarvisFAB } from "./jarvis/JarvisFAB";
