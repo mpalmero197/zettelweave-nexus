@@ -1069,6 +1069,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
               </div>
             )}
 
+            {activeTab === 'memory' && <AliceMemoryPanel />}
+
             {activeTab === 'debug' && (
               <div className="space-y-6">
                 <div>
