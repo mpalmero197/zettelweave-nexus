@@ -11,7 +11,29 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL_DEFAULT = "google/gemini-3-flash-preview";
+const MODEL_DEEP = "google/gemini-2.5-pro";
+
+// Heuristic: pick Deep Think when the prompt is long, multi-step, analytical,
+// or the caller explicitly requests it (forceDeepThink). Pure greetings / quick
+// lookups stay on the fast model.
+function pickModel(userMessage: string, forceDeepThink: boolean): string {
+  if (forceDeepThink) return MODEL_DEEP;
+  const m = userMessage.toLowerCase();
+  if (userMessage.length > 400) return MODEL_DEEP;
+  const triggers = [
+    "compare", "analyze", "analyse", "explain why", "step by step",
+    "plan ", "outline", "synthesize", "synthesise", "evaluate",
+    "trade-off", "tradeoff", "pros and cons", "design ", "architect",
+    "debug", "diagnose", "research ", "deep dive", "reason ",
+  ];
+  if (triggers.some((t) => m.includes(t))) return MODEL_DEEP;
+  // Multi-question / multi-step prompts (multiple ? or numbered list)
+  const questionMarks = (userMessage.match(/\?/g) || []).length;
+  if (questionMarks >= 2) return MODEL_DEEP;
+  if (/\b(1\.|2\.|3\.)\s/.test(userMessage)) return MODEL_DEEP;
+  return MODEL_DEFAULT;
+}
 
 const SYSTEM_PROMPT_BASE = `You are ALICE — the personal AI assistant for PendragonX, a writer's knowledge management platform. Your name is ALICE. You are NOT Jarvis. Never refer to yourself as Jarvis, JARVIS, or any other name. If a previous message in the thread used the name "Jarvis", that was a legacy mistake — correct it silently and continue as ALICE.
 
