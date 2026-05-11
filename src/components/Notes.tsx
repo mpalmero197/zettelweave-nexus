@@ -142,6 +142,29 @@ export function Notes({ initialView }: NotesProps = {}) {
     return () => window.removeEventListener('open-notebook', handler);
   }, []);
 
+  // ALICE deep-link: focus a specific note (and optionally pre-fill search).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { noteId?: string; q?: string };
+      if (!detail) return;
+      setSelectedNotebook('all');
+      if (detail.q) setSearchTerm(detail.q);
+      if (detail.noteId) {
+        setTimeout(() => {
+          const el = document.querySelector(`[data-note-id="${detail.noteId}"]`) as HTMLElement | null;
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.transition = 'box-shadow 0.6s';
+            el.style.boxShadow = '0 0 0 2px hsl(48 95% 55%)';
+            setTimeout(() => { el.style.boxShadow = ''; }, 2400);
+          }
+        }, 400);
+      }
+    };
+    window.addEventListener('notes-focus', handler);
+    return () => window.removeEventListener('notes-focus', handler);
+  }, []);
+
   // Apply pending notebook selection after notebooks load
   useEffect(() => {
     if (pendingNotebookId && notebooks.length > 0) {
