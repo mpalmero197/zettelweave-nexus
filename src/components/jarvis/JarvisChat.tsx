@@ -250,6 +250,17 @@ export function JarvisChat({ compact = false }: Props) {
               className={cn("resize-none", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[40px] max-h-40")}
               disabled={sending}
             />
+            <Button
+              type="button"
+              onClick={toggleDictation}
+              size="icon"
+              variant={listening ? "destructive" : "outline"}
+              className={cn("shrink-0", compact && "h-9 w-9")}
+              aria-label={listening ? "Stop dictation" : "Dictate to ALICE"}
+              title={listening ? "Stop dictation" : "Dictate to ALICE"}
+            >
+              {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
               <Send className="h-4 w-4" />
             </Button>
