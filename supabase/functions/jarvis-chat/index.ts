@@ -830,6 +830,25 @@ async function executeTool(
           note: `Agent triggered. It runs in the background and will post a notification (and, for the Author Agent, drop the finished document into Catalyst) when done.`,
         };
       }
+      case "start_pomodoro_timer": {
+        const minutes = Math.min(Math.max(Number(args.minutes) || 25, 1), 180);
+        const mode = ["work", "short-break", "long-break"].includes(args.mode) ? args.mode : "work";
+        const taskTitle = args.task_title ? String(args.task_title).slice(0, 200) : null;
+        return {
+          ok: true,
+          minutes,
+          mode,
+          task_title: taskTitle,
+          client_action: { type: "start_pomodoro", payload: { minutes, mode, taskTitle } },
+          note: `Pomodoro started for ${minutes} minute${minutes === 1 ? "" : "s"}${taskTitle ? ` on "${taskTitle}"` : ""}.`,
+        };
+      }
+      case "pause_pomodoro_timer": {
+        return { ok: true, client_action: { type: "pause_pomodoro" }, note: "Timer paused." };
+      }
+      case "reset_pomodoro_timer": {
+        return { ok: true, client_action: { type: "reset_pomodoro" }, note: "Timer reset." };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
