@@ -125,3 +125,9 @@ verify_jwt = false
 
 [functions.handle-email-suppression]
 verify_jwt = false
+
+[functions.export-user-data]
+verify_jwt = true
+
+[functions.export-supabase-meta]
+verify_jwt = true
