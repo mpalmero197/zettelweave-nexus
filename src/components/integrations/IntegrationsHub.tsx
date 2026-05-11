@@ -13,6 +13,22 @@ import { TodoistDialog } from "./dialogs/TodoistDialog";
 import { GoogleCalendarDialog } from "./dialogs/GoogleCalendarDialog";
 import { GoogleDriveDialog } from "./dialogs/GoogleDriveDialog";
 import { GenericImportDialog, type GenericImportConfig } from "./dialogs/GenericImportDialog";
+import { useUserConnections } from "@/hooks/useUserConnections";
+
+// Providers that support real per-user OAuth ("Sign in with…") via our edge functions.
+// Clicking Connect on these opens a popup → user grants access → tokens saved.
+const OAUTH_PROVIDERS: Record<string, { provider: string; label: string }> = {
+  microsoft:        { provider: "microsoft", label: "Microsoft 365" },
+  outlook:          { provider: "microsoft", label: "Microsoft 365" },
+  "outlook-cal":    { provider: "microsoft", label: "Microsoft 365" },
+  onedrive:         { provider: "microsoft", label: "Microsoft 365" },
+  onenote:          { provider: "microsoft", label: "Microsoft 365" },
+  google:           { provider: "google",    label: "Google" },
+  "google-drive":   { provider: "google",    label: "Google" },
+  "google-calendar":{ provider: "google",    label: "Google" },
+  "google-keep":    { provider: "google",    label: "Google" },
+  notion:           { provider: "notion",    label: "Notion" },
+};
 
 // File-based connectors share a unified import dialog so adding new ones is trivial.
 const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
