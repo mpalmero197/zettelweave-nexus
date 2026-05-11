@@ -92,32 +92,56 @@ export function FloatingChatBubble() {
   };
 
   const loadData = async () => {
+    // Load friends FIRST so message threads / requests can resolve names from them
+    const friendsList = await loadFriends();
     await Promise.all([
-      loadFriends(),
-      loadMessageThreads(),
-      loadFriendRequests()
+      loadMessageThreads(friendsList),
+      loadFriendRequests(friendsList),
     ]);
   };
 
-  const loadFriends = async () => {
+  /** Build a friendly name: display_name → friend email → profile display → "Unknown user" */
+  const resolveName = (
+    uid: string,
+    profile: { display_name: string | null; avatar_url: string | null } | undefined,
+    friendsList: Friend[],
+  ): string => {
+    const friend = friendsList.find((f) => f.user_id === uid);
+    const candidates = [
+      friend?.display_name,
+      profile?.display_name,
+      friend?.email,
+    ];
+    for (const c of candidates) {
+      const v = (c || '').trim();
+      if (v && !/^user\b/i.test(v)) return v;
+    }
+    // Last resort — never expose raw UUID fragments
+    return 'Unknown user';
+  };
+
+  const loadFriends = async (): Promise<Friend[]> => {
     try {
       const { data } = await supabase.rpc('get_my_friends');
       if (data) {
-        setFriends((data as any[]).map((f: any) => ({
+        const list: Friend[] = (data as any[]).map((f: any) => ({
           id: f.friend_user_id,
           user_id: f.friend_user_id,
-          display_name: f.friend_display_name || f.friend_email || 'User',
-          email: f.friend_email,
+          display_name: (f.friend_display_name || f.friend_email || 'Unknown user').trim(),
+          email: f.friend_email || undefined,
           avatar_url: f.friend_avatar_url,
           user_status: f.user_status,
-        })));
+        }));
+        setFriends(list);
+        return list;
       }
     } catch (error) {
       console.error('Error loading friends:', error);
     }
+    return [];
   };
 
-  const loadMessageThreads = async () => {
+  const loadMessageThreads = async (friendsList: Friend[]) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -157,12 +181,9 @@ export function FloatingChatBubble() {
         .select('user_id, display_name, avatar_url')
         .in('user_id', otherUserIds);
 
-      const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
+      const profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
       for (const p of (profiles || [])) {
-        // Use display_name, fall back to matching friend's email, then user_id prefix
-        const friendMatch = friends.find(f => f.user_id === p.user_id);
-        const name = p.display_name || friendMatch?.email || `User ${p.user_id.substring(0, 6)}`;
-        profileMap.set(p.user_id, { display_name: name, avatar_url: p.avatar_url });
+        profileMap.set(p.user_id, { display_name: p.display_name, avatar_url: p.avatar_url });
       }
 
       const { data: unreadMessages } = await supabase
@@ -183,11 +204,12 @@ export function FloatingChatBubble() {
       const threads: MessagePreview[] = otherUserIds.map(uid => {
         const thread = threadMap.get(uid)!;
         const profile = profileMap.get(uid);
+        const friend = friendsList.find((f) => f.user_id === uid);
         return {
           id: uid,
           sender_id: uid,
-          sender_name: profile?.display_name || `User ${uid.substring(0, 6)}`,
-          sender_avatar: profile?.avatar_url ?? undefined,
+          sender_name: resolveName(uid, profile, friendsList),
+          sender_avatar: profile?.avatar_url ?? friend?.avatar_url ?? undefined,
           message: thread.message,
           created_at: thread.created_at,
           unread_count: unreadMap.get(uid) || 0,
@@ -201,7 +223,7 @@ export function FloatingChatBubble() {
     }
   };
 
-  const loadFriendRequests = async () => {
+  const loadFriendRequests = async (friendsList: Friend[]) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -223,9 +245,9 @@ export function FloatingChatBubble() {
         .select('user_id, display_name, avatar_url')
         .in('user_id', senderIds);
 
-      const profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
+      const profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
       for (const p of (profiles || [])) {
-        profileMap.set(p.user_id, { display_name: p.display_name || friends.find(f => f.user_id === p.user_id)?.email || `User ${p.user_id.substring(0, 6)}`, avatar_url: p.avatar_url });
+        profileMap.set(p.user_id, { display_name: p.display_name, avatar_url: p.avatar_url });
       }
 
       const requestsWithProfiles = requests.map(req => {
@@ -233,7 +255,7 @@ export function FloatingChatBubble() {
         return {
           id: req.id,
           sender_id: req.sender_id,
-          sender_name: profile?.display_name || `User ${req.sender_id.substring(0, 6)}`,
+          sender_name: resolveName(req.sender_id, profile, friendsList),
           sender_avatar: profile?.avatar_url ?? undefined,
           created_at: req.created_at,
         };
