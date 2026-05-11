@@ -214,6 +214,7 @@ export default function Landing() {
   const solutionAnimation = useScrollAnimation(0.1);
   const howToAnimation = useScrollAnimation(0.1);
   const featuresAnimation = useScrollAnimation(0.1);
+  const aliceAnimation = useScrollAnimation(0.1);
   const socialProofAnimation = useScrollAnimation(0.1);
   const audienceAnimation = useScrollAnimation(0.1);
   const pricingAnimation = useScrollAnimation(0.1);
