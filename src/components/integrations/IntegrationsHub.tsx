@@ -92,9 +92,6 @@ export function IntegrationsHub() {
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const obsidianInputRef = useRef<HTMLInputElement>(null);
-  const evernoteInputRef = useRef<HTMLInputElement>(null);
-
   const filtered = useMemo(() => INTEGRATIONS.filter((i) => {
     if (category !== "all" && i.category !== category) return false;
     if (search) {
@@ -114,14 +111,6 @@ export function IntegrationsHub() {
   const closeDialog = useCallback(() => setDialogOpen(null), []);
 
   const handleConnect = useCallback((id: string) => {
-    if (id === "onedrive") {
-      if ((window as any).OneDrive) {
-        toast.info("Opening OneDrive picker…");
-      } else {
-        toast.error("OneDrive SDK not loaded. Please try again later.");
-      }
-      return;
-    }
     openDialog(id);
   }, [openDialog]);
 
