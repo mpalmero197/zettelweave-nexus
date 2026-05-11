@@ -284,52 +284,23 @@ export function IntegrationsHub() {
         </div>
       )}
 
-      {/* Obsidian Import Dialog */}
-      <Dialog open={dialogOpen === "obsidian"} onOpenChange={(o) => !o && closeDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">💎 Import Obsidian Vault</DialogTitle>
-            <DialogDescription>
-              Select <code>.md</code> files from your Obsidian vault to import as notes.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <input ref={obsidianInputRef} type="file" accept=".md" multiple onChange={handleObsidianFiles} className="hidden" />
-            <Button className="w-full" disabled={importing} onClick={() => obsidianInputRef.current?.click()}>
-              <Upload className="h-4 w-4 mr-2" />
-              {importing ? "Importing…" : "Select .md Files"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Evernote Import Dialog */}
-      <Dialog open={dialogOpen === "evernote"} onOpenChange={(o) => !o && closeDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">🐘 Import from Evernote</DialogTitle>
-            <DialogDescription>
-              Export your Evernote notebook as an <code>.enex</code> file, then select it here.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <input ref={evernoteInputRef} type="file" accept=".enex" onChange={handleEvernoteFile} className="hidden" />
-            <Button className="w-full" disabled={importing} onClick={() => evernoteInputRef.current?.click()}>
-              <FileText className="h-4 w-4 mr-2" />
-              {importing ? "Importing…" : "Select .enex File"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Connector-based & API dialogs */}
       <SlackDialog open={dialogOpen === "slack"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("slack"); closeDialog(); }} />
       <ZapierDialog open={dialogOpen === "webhooks"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("webhooks"); closeDialog(); }} />
       <TodoistDialog open={dialogOpen === "todoist"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("todoist"); closeDialog(); }} />
       <GoogleCalendarDialog open={dialogOpen === "google-calendar"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("google-calendar"); closeDialog(); }} />
-      <NotionDialog open={dialogOpen === "notion"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("notion"); closeDialog(); }} />
       <GoogleDriveDialog open={dialogOpen === "google-drive"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("google-drive"); closeDialog(); }} />
-      <OneNoteDialog open={dialogOpen === "onenote"} onOpenChange={(o) => !o && closeDialog()} onConnected={() => { connect("onenote"); closeDialog(); }} />
+
+      {/* Unified file-import dialog handles every file-based connector */}
+      <GenericImportDialog
+        open={!!dialogOpen && !!FILE_IMPORT_CONFIGS[dialogOpen]}
+        onOpenChange={(o) => !o && closeDialog()}
+        onConnected={(count) => {
+          if (dialogOpen) connect(dialogOpen, count);
+          closeDialog();
+        }}
+        config={dialogOpen ? FILE_IMPORT_CONFIGS[dialogOpen] ?? null : null}
+      />
     </div>
   );
 }
