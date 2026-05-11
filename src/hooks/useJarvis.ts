@@ -91,7 +91,7 @@ export function useJarvis(initialThreadId?: string | null) {
       }]);
       loadThreads();
     } catch (e: any) {
-      toast.error(e?.message || "Jarvis is offline");
+      toast.error(e?.message || "ALICE is offline");
       setMessages((m) => m.filter((x) => x.id !== optimistic.id));
     } finally {
       setSending(false);
