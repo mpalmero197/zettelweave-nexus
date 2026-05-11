@@ -296,6 +296,7 @@ export function AppLayout() {
       <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
       {!isPopout && <JarvisFAB />}
+      {!isPopout && <OnboardingTutorial />}
     </>
   );
 }
