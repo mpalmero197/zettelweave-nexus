@@ -53,7 +53,6 @@ export function AppLayout() {
   const activeTab = (() => {
     const path = location.pathname;
     if (path === "/app" || path.startsWith("/app/")) return realActiveTab;
-    if (path === "/agents") return "agents";
     if (path === "/admin") return "admin";
     if (path === "/subscription") return "subscription";
     if (path === "/settings") return "settings";
