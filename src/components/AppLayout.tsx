@@ -98,6 +98,24 @@ export function AppLayout() {
     checkAdminStatus();
   }, [user]);
 
+  // ALICE-driven navigation: edge function returns a `navigate_to` path.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const path = (e as CustomEvent).detail as string;
+      if (!path || typeof path !== "string") return;
+      if (path.startsWith("/admin")) return; // ALICE is barred from admin
+      const m = path.match(/^\/app\/([\w-]+)/);
+      if (m && APP_TABS.has(m[1])) {
+        handleTabChange(m[1]);
+      } else {
+        navigate(path);
+      }
+    };
+    window.addEventListener("alice-navigate", handler);
+    return () => window.removeEventListener("alice-navigate", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSignOut = async () => {
     try {
       await signOut();
