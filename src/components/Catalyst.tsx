@@ -916,7 +916,7 @@ const DOCUMENT_TEMPLATES = [
         setDocumentTitle(data.title);
         setEditorContent(html);
         setSelectedSource((data.selected_source || 'cards') as ContentSource);
-        setSelectedItems(new Set(data.selected_items || []));
+        setSelectedItems(new Set((data.selected_items as any[] || []).map((x: any) => String(x))));
         setDocumentTheme(data.theme_id || 'default');
         setCurrentDocId(data.id);
         toast({ title: 'Opened by ALICE', description: data.title });
