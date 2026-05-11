@@ -31,7 +31,8 @@ export type WidgetType =
   | 'task-manager'
   | 'documents'
   | 'database'
-  | 'tool-health';
+  | 'tool-health'
+  | 'daily-briefing';
 
 export interface DashboardLayout {
   id: string;
