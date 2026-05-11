@@ -30,6 +30,7 @@ import { useWritingContextDetector } from "@/hooks/useWritingContextDetector";
 import { AutoSEOOverrides } from "./seo/AutoSEOOverrides";
 import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
 import { AliceUndoBanner } from "./alice/AliceUndoBanner";
+import { AliceFollowupPrompt } from "./alice/AliceFollowupPrompt";
 
 export function AppLayout() {
   useWritingContextDetector();
@@ -302,6 +303,7 @@ export function AppLayout() {
       {!isPopout && <JarvisFAB />}
       {!isPopout && <OnboardingTutorial />}
       {!isPopout && <AliceUndoBanner />}
+      {!isPopout && <AliceFollowupPrompt />}
     </>
   );
 }
