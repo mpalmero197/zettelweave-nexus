@@ -16,7 +16,7 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Bot, Wrench, Search, ExternalLink } from "lucide-react";
+import { Wrench, Search, ExternalLink } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { JarvisFAB } from "./jarvis/JarvisFAB";
@@ -53,7 +53,6 @@ export function AppLayout() {
   const activeTab = (() => {
     const path = location.pathname;
     if (path === "/app" || path.startsWith("/app/")) return realActiveTab;
-    if (path === "/agents") return "agents";
     if (path === "/admin") return "admin";
     if (path === "/subscription") return "subscription";
     if (path === "/settings") return "settings";
@@ -98,6 +97,20 @@ export function AppLayout() {
     checkAdminStatus();
   }, [user]);
 
+  // ALICE-driven navigation: edge function returns a `navigate_to` path.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const path = (e as CustomEvent).detail as string;
+      if (!path || typeof path !== "string") return;
+      if (path.startsWith("/admin")) return; // ALICE is barred from admin
+      navigate(path);
+      const m = path.match(/^\/app\/([\w-]+)/);
+      if (m) window.dispatchEvent(new CustomEvent("app-tab-change", { detail: m[1] }));
+    };
+    window.addEventListener("alice-navigate", handler);
+    return () => window.removeEventListener("alice-navigate", handler);
+  }, [navigate]);
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -111,7 +124,7 @@ export function AppLayout() {
     "dashboard","cards","graph","notes","files","canvas","calendar","journal",
     "habits","scratchpad","stickynotes","catalyst","collab","recorder","recycle",
     "search","debugger","learning","projects","spaces","integrations",
-    "knowledge-gaps","notebooks","knowledge-chat",
+    "knowledge-gaps","notebooks",
   ]);
 
   const handleTabChange = (tab: string) => {
@@ -209,19 +222,9 @@ export function AppLayout() {
                   className="h-9 w-9 md:h-9 md:w-9 p-0 rounded-full hover:bg-accent"
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
-                  title="Toolbox (Focus, Tasks, AI Modify, Knowledge Chat)"
+                  title="Toolbox (Focus, Tasks, AI Modify)"
                 >
                   <Wrench className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
-                  asChild
-                >
-                  <Link to="/agents" aria-label="Agents">
-                    <Bot className="h-4 w-4" />
-                  </Link>
                 </Button>
                 <ThemeVariantSelector />
                 <UserMenu isAdmin={isAdmin} onSignOut={handleSignOut} />

@@ -54,7 +54,7 @@ const UnifiedSearchPage = lazy(() => import("@/components/UnifiedSearchPage").th
 const ProjectManager = lazy(() => import("@/components/ProjectManager").then(m => ({ default: m.ProjectManager })));
 const KnowledgeGapAnalyzer = lazy(() => import("@/components/KnowledgeGapAnalyzer").then(m => ({ default: m.KnowledgeGapAnalyzer })));
 const IntegrationsHub = lazy(() => import("@/components/integrations/IntegrationsHub").then(m => ({ default: m.IntegrationsHub })));
-const KnowledgeChat = lazy(() => import("@/components/KnowledgeChat").then(m => ({ default: m.KnowledgeChat })));
+
 
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -825,10 +825,6 @@ const Index = () => {
                   <PremiumGate featureName="Integrations Hub" hasAccess={hasPremium}>
                     <IntegrationsHub />
                   </PremiumGate>
-                </TabsContent>
-
-                <TabsContent value="knowledge-chat" className="mt-0">
-                  <KnowledgeChat />
                 </TabsContent>
 
                 </Suspense>

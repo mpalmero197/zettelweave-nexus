@@ -1,4 +1,4 @@
-// Jarvis — PendragonX's unified AI assistant.
+// ALICE — PendragonX's autonomous personal assistant.
 // Multi-step tool-calling loop using Lovable AI Gateway (OpenAI-compatible).
 // Persists threads + messages to Supabase. Tools execute server-side with the
 // caller's auth so RLS is enforced.
@@ -13,31 +13,55 @@ const corsHeaders = {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
 
-const SYSTEM_PROMPT = `You are Jarvis, the personal AI assistant for PendragonX — a writer's knowledge management platform.
+const SYSTEM_PROMPT = `You are ALICE — the personal AI assistant for PendragonX, a writer's knowledge management platform.
 
-You are conversational, sharp, witty, and capable. Like Tony Stark's Jarvis: dry humor, calm confidence, never servile.
+Persona: calm, sharp, capable. Like Tony Stark's JARVIS — dry confidence, never servile, brief by default. Address the user with familiarity.
 
-You have tools to:
-- search the user's knowledge base (notes & cards)
-- create notes, cards, tasks, and calendar events on their behalf
-- search the web for fresh information
+OPERATING PRINCIPLE — You are an *operator*, not just a chatter. When the user asks for something that can be done in PendragonX, do it. Don't describe what they could do; do it and report back.
+
+You can navigate to any tab (cards, notes, catalyst, calendar, journal, habits, scratchpad, stickynotes, collab, recorder, canvas, learning, projects, spaces, integrations, knowledge-gaps, notebooks, files, graph, search, recycle, dashboard) using the navigate tool — this physically moves the user's app to that tab. Use it whenever the action lives there or when the user asks to "go to" / "open" / "show" something.
+
+You can:
+- search / read the user's knowledge (notes, cards, documents)
+- create notes, cards, catalyst documents, tasks, calendar events
+- find books in the Learning Hub via the Open Library
+- search the public web for fresh information
+- navigate the user to any feature
+
+ADMIN POLICY — If the user is an admin you may *advise* on admin matters and surface admin-readable data (user counts, error counts) using admin_summary. You MUST NOT take any administrative action (no banning, no role changes, no deletes, no settings writes). For non-admins, refuse admin queries quietly.
 
 Rules:
-- Always use search_knowledge before answering questions about the user's own data.
-- When the user asks you to remember, capture, save, or jot down something, use create_note or create_card.
-- When asked to schedule, remind, or block time, use create_task or create_event.
-- After tool calls, give a concise natural-language summary of what you did or found. Cite note/card titles when referencing them.
-- Use markdown. Keep responses tight unless asked for depth.`;
+- Search before answering questions about the user's own data.
+- When asked to "remember", "save", "note", "jot down" — actually create the note/card.
+- When asked to "schedule", "remind", "block time" — actually create the task/event.
+- When asked to "draft", "write", "compose a document/chapter/article" — create a catalyst_document and navigate to /app/catalyst.
+- When asked to "find a book" — call find_book and offer to open the Learning Hub.
+- After tool calls, give a tight natural-language summary of what you did. Cite titles. Use markdown sparingly.
+- Never invent IDs, URLs, or facts. If a tool errors, say so plainly.`;
 
 const tools = [
   {
     type: "function",
     function: {
-      name: "search_knowledge",
-      description: "Search the user's notes and zettel cards by keyword. Returns up to 8 matches with titles + snippets.",
+      name: "navigate",
+      description: "Navigate the user's PendragonX app to a tab or route. Tabs: dashboard, cards, graph, notes, files, canvas, calendar, journal, habits, scratchpad, stickynotes, catalyst, collab, recorder, recycle, search, learning, projects, spaces, integrations, knowledge-gaps, notebooks. Or pass a full path like '/settings' or '/subscription'. Never navigate to /admin.",
       parameters: {
         type: "object",
-        properties: { query: { type: "string", description: "Search query" } },
+        properties: {
+          tab: { type: "string", description: "App tab id" },
+          path: { type: "string", description: "Full route, alternative to tab" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_knowledge",
+      description: "Search the user's notes, zettel cards, and catalyst documents by keyword. Returns up to 15 matches with titles + snippets.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" }, limit: { type: "number" } },
         required: ["query"],
       },
     },
@@ -51,7 +75,7 @@ const tools = [
         type: "object",
         properties: {
           title: { type: "string" },
-          content: { type: "string", description: "Markdown or HTML content" },
+          content: { type: "string" },
           tags: { type: "array", items: { type: "string" } },
         },
         required: ["title", "content"],
@@ -68,10 +92,25 @@ const tools = [
         properties: {
           title: { type: "string" },
           content: { type: "string" },
-          category: { type: "string", description: "Category label, e.g. 'Idea', 'Quote', 'Reference'" },
+          category: { type: "string" },
           tags: { type: "array", items: { type: "string" } },
         },
         required: ["title", "content", "category"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_catalyst_document",
+      description: "Draft and save a long-form document in Catalyst (the writing studio). Provide a fully-written draft as content (markdown OK).",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string", description: "Full draft body" },
+        },
+        required: ["title", "content"],
       },
     },
   },
@@ -84,7 +123,7 @@ const tools = [
         type: "object",
         properties: {
           title: { type: "string" },
-          due_date: { type: "string", description: "ISO date (YYYY-MM-DD) or full ISO timestamp" },
+          due_date: { type: "string" },
           priority: { type: "string", enum: ["low", "medium", "high"] },
           notes: { type: "string" },
         },
@@ -96,13 +135,13 @@ const tools = [
     type: "function",
     function: {
       name: "create_event",
-      description: "Create a calendar event.",
+      description: "Create a calendar event (meeting, reminder, time block).",
       parameters: {
         type: "object",
         properties: {
           title: { type: "string" },
           event_date: { type: "string", description: "YYYY-MM-DD" },
-          event_time: { type: "string", description: "HH:MM (24-hour) — omit for all-day" },
+          event_time: { type: "string", description: "HH:MM 24h" },
           duration_minutes: { type: "number" },
           description: { type: "string" },
           location: { type: "string" },
@@ -114,8 +153,20 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "find_book",
+      description: "Find books in the Open Library catalog (the source for the Learning Hub).",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" }, limit: { type: "number" } },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "web_search",
-      description: "Search the public web for fresh information. Use only when user explicitly asks or info is clearly outside their knowledge base.",
+      description: "Search the public web for fresh information.",
       parameters: {
         type: "object",
         properties: { query: { type: "string" } },
@@ -123,24 +174,62 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "admin_summary",
+      description: "ADMIN ONLY (read-only). Returns top-level platform stats: user count, recent error count, pending feature requests. Use to advise the admin — never to take action.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
-async function executeTool(name: string, args: any, supabase: any, userId: string, authHeader: string) {
+const VALID_TABS = new Set([
+  "dashboard","cards","graph","notes","files","canvas","calendar","journal",
+  "habits","scratchpad","stickynotes","catalyst","collab","recorder","recycle",
+  "search","learning","projects","spaces","integrations",
+  "knowledge-gaps","notebooks",
+]);
+
+async function executeTool(
+  name: string,
+  args: any,
+  supabase: any,
+  serviceClient: any,
+  userId: string,
+  isAdmin: boolean,
+  authHeader: string,
+) {
   try {
     switch (name) {
+      case "navigate": {
+        let path = String(args.path || "").trim();
+        const tab = String(args.tab || "").trim();
+        if (!path && tab) {
+          if (!VALID_TABS.has(tab)) return { error: `Unknown tab "${tab}"` };
+          path = `/app/${tab}`;
+        }
+        if (!path) return { error: "Provide tab or path" };
+        if (path.startsWith("/admin")) return { error: "ALICE cannot navigate to admin" };
+        return { ok: true, navigate_to: path };
+      }
       case "search_knowledge": {
         const q = String(args.query || "").trim();
         if (!q) return { error: "Empty query" };
+        const lim = Math.min(Math.max(Number(args.limit) || 8, 1), 15);
         const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
-        const [notes, cards] = await Promise.all([
+        const [notes, cards, docs] = await Promise.all([
           supabase.from("notes").select("id,title,content,tags").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(5),
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(lim),
           supabase.from("zettel_cards").select("id,title,content,category,tags").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(5),
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(lim),
+          supabase.from("catalyst_documents").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(lim),
         ]);
         const results = [
           ...(notes.data || []).map((n: any) => ({ type: "note", id: n.id, title: n.title, snippet: String(n.content || "").slice(0, 240), tags: n.tags })),
           ...(cards.data || []).map((c: any) => ({ type: "card", id: c.id, title: c.title, category: c.category, snippet: String(c.content || "").slice(0, 240), tags: c.tags })),
+          ...(docs.data || []).map((d: any) => ({ type: "catalyst_document", id: d.id, title: d.title, snippet: String(d.content || "").slice(0, 240) })),
         ];
         return { results, count: results.length };
       }
@@ -155,7 +244,7 @@ async function executeTool(name: string, args: any, supabase: any, userId: strin
         return { ok: true, id: data.id, title: data.title };
       }
       case "create_card": {
-        const number = `J${Date.now().toString(36).toUpperCase()}`;
+        const number = `A${Date.now().toString(36).toUpperCase()}`;
         const { data, error } = await supabase.from("zettel_cards").insert({
           user_id: userId,
           title: String(args.title).slice(0, 200),
@@ -166,6 +255,19 @@ async function executeTool(name: string, args: any, supabase: any, userId: strin
         }).select("id,title,number").single();
         if (error) return { error: error.message };
         return { ok: true, id: data.id, number: data.number, title: data.title };
+      }
+      case "create_catalyst_document": {
+        const content = String(args.content || "");
+        const wc = content.trim() ? content.trim().split(/\s+/).length : 0;
+        const { data, error } = await supabase.from("catalyst_documents").insert({
+          user_id: userId,
+          title: String(args.title).slice(0, 200),
+          content,
+          selected_source: "alice",
+          word_count: wc,
+        }).select("id,title").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, title: data.title, navigate_to: "/app/catalyst" };
       }
       case "create_task": {
         const { data, error } = await supabase.from("tasks").insert({
@@ -187,11 +289,28 @@ async function executeTool(name: string, args: any, supabase: any, userId: strin
           duration_minutes: args.duration_minutes || 60,
           description: args.description || null,
           location: args.location || null,
-          source_type: "jarvis",
+          source_type: "alice",
           source_id: crypto.randomUUID(),
         }).select("id,title,event_date").single();
         if (error) return { error: error.message };
         return { ok: true, id: data.id, title: data.title, when: data.event_date };
+      }
+      case "find_book": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "Empty query" };
+        const lim = Math.min(Math.max(Number(args.limit) || 8, 1), 20);
+        const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=${lim}&fields=key,title,author_name,first_publish_year,cover_i,ebook_access`;
+        const r = await fetch(url);
+        if (!r.ok) return { error: `Open Library ${r.status}` };
+        const j = await r.json();
+        const books = (j.docs || []).map((d: any) => ({
+          key: d.key, title: d.title,
+          author: d.author_name?.[0] || "Unknown",
+          year: d.first_publish_year,
+          cover: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+          ebook_access: d.ebook_access || "no_ebook",
+        }));
+        return { results: books, count: books.length, navigate_to: "/app/learning" };
       }
       case "web_search": {
         const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/web-search`, {
@@ -200,7 +319,23 @@ async function executeTool(name: string, args: any, supabase: any, userId: strin
           body: JSON.stringify({ query: String(args.query || "") }),
         });
         const j = await r.json().catch(() => ({}));
-        return j?.results ? { results: (j.results || []).slice(0, 5) } : (j?.summary ? { summary: j.summary } : { results: [] });
+        return j?.results
+          ? { results: (j.results || []).slice(0, 8) }
+          : (j?.summary ? { summary: j.summary } : { results: [] });
+      }
+      case "admin_summary": {
+        if (!isAdmin) return { error: "Not authorized — admin only." };
+        const [users, errors, features] = await Promise.all([
+          serviceClient.from("profiles").select("user_id", { count: "exact", head: true }),
+          serviceClient.from("error_reports").select("id", { count: "exact", head: true }).gte("last_seen_at", new Date(Date.now() - 7 * 86400_000).toISOString()),
+          serviceClient.from("feature_requests").select("id,title,votes,status").order("votes", { ascending: false }).limit(5),
+        ]);
+        return {
+          users_total: users.count ?? null,
+          errors_last_7d: errors.count ?? null,
+          top_feature_requests: features.data || [],
+          note: "Read-only summary. ALICE cannot take admin actions; advise the admin.",
+        };
       }
       default:
         return { error: `Unknown tool ${name}` };
@@ -223,10 +358,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const { data: roleData } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    const isAdmin = roleData === true;
 
     const body = await req.json();
     const userMessage: string = String(body.message || "").trim();
@@ -240,7 +381,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Ensure thread
     if (!threadId) {
       const title = userMessage.slice(0, 60);
       const { data: t, error } = await supabase.from("jarvis_threads").insert({ user_id: user.id, title }).select("id").single();
@@ -250,7 +390,6 @@ Deno.serve(async (req) => {
       await supabase.from("jarvis_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId).eq("user_id", user.id);
     }
 
-    // Load history (last 20 messages)
     const { data: history } = await supabase
       .from("jarvis_messages")
       .select("role,parts")
@@ -258,24 +397,26 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(40);
 
-    // Build OpenAI-compatible messages
-    const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    const messages: any[] = [{
+      role: "system",
+      content: SYSTEM_PROMPT + (isAdmin ? "\n\nNOTE: Current user IS an admin. admin_summary is available." : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries."),
+    }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
       if (text) messages.push({ role: m.role, content: text });
     }
     messages.push({ role: "user", content: userMessage });
 
-    // Persist user message
     await supabase.from("jarvis_messages").insert({
       thread_id: threadId, user_id: user.id, role: "user",
       parts: [{ type: "text", text: userMessage }],
     });
 
-    // Tool-calling loop
     const assistantParts: any[] = [];
     let finalText = "";
-    for (let step = 0; step < 6; step++) {
+    let navigateTo: string | null = null;
+
+    for (let step = 0; step < 8; step++) {
       const res = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
@@ -283,19 +424,22 @@ Deno.serve(async (req) => {
       });
       if (!res.ok) {
         const t = await res.text();
-        return new Response(JSON.stringify({ error: `AI gateway ${res.status}: ${t}` }), { status: res.status === 429 || res.status === 402 ? res.status : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: `AI gateway ${res.status}: ${t}` }), {
+          status: res.status === 429 || res.status === 402 ? res.status : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const data = await res.json();
       const choice = data.choices?.[0]?.message;
       if (!choice) break;
 
       if (choice.tool_calls?.length) {
-        // Execute tools, append results
         messages.push({ role: "assistant", content: choice.content || "", tool_calls: choice.tool_calls });
         for (const tc of choice.tool_calls) {
           let parsed: any = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await executeTool(tc.function.name, parsed, supabase, user.id, authHeader);
+          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader);
+          if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
@@ -308,16 +452,17 @@ Deno.serve(async (req) => {
 
     if (finalText) assistantParts.push({ type: "text", text: finalText });
 
-    // Persist assistant message
     await supabase.from("jarvis_messages").insert({
       thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
     });
 
-    return new Response(JSON.stringify({ threadId, parts: assistantParts }), {
+    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
-    console.error("jarvis-chat error", e);
-    return new Response(JSON.stringify({ error: e?.message || String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("alice-chat error", e);
+    return new Response(JSON.stringify({ error: e?.message || String(e) }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
