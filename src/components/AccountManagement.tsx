@@ -44,7 +44,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { toast } = useToast();
   const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions, lowPowerMode, setLowPowerMode } = useAnimationPreference();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'debug'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'memory' | 'debug'>('profile');
   const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [engagementNudges, setEngagementNudges] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
