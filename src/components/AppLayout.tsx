@@ -305,6 +305,7 @@ export function AppLayout() {
       {!isPopout && <OnboardingTutorial />}
       {!isPopout && <AliceUndoBanner />}
       {!isPopout && <AliceFollowupPrompt />}
+      <AliceRecordingOverlay />
     </>
   );
 }
