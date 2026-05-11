@@ -15,6 +15,7 @@ import { AISearchBar } from "@/components/AISearchBar";
 import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { SearchHistorySidebar } from "@/components/SearchHistorySidebar";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { JarvisChat } from "@/components/jarvis/JarvisChat";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 
 /* ── Video types & constants ── */
