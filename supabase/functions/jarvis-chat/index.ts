@@ -436,7 +436,31 @@ async function executeTool(
         if (hl) params.set("highlight", hl.slice(0, 500));
         return { ok: true, id: data.id, title: data.title, navigate_to: `/app/catalyst?${params.toString()}` };
       }
-      case "create_note": {
+      case "open_note": {
+        const id = String(args.note_id || "").trim();
+        if (!id) return { error: "note_id required" };
+        const { data, error } = await supabase.from("notes")
+          .select("id,title").eq("id", id).is("deleted_at", null).maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Note not found or not accessible." };
+        const params = new URLSearchParams({ alice_focus: id });
+        const hl = String(args.highlight || "").trim();
+        if (hl) params.set("q", hl.slice(0, 200));
+        return { ok: true, id: data.id, title: data.title, navigate_to: `/app/notes?${params.toString()}` };
+      }
+      case "open_card": {
+        const id = String(args.card_id || "").trim();
+        if (!id) return { error: "card_id required" };
+        const { data, error } = await supabase.from("zettel_cards")
+          .select("id,title").eq("id", id).is("deleted_at", null).maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Card not found or not accessible." };
+        const params = new URLSearchParams({ alice_focus: id });
+        const hl = String(args.highlight || "").trim();
+        if (hl) params.set("q", hl.slice(0, 200));
+        return { ok: true, id: data.id, title: data.title, navigate_to: `/app/cards?${params.toString()}` };
+      }
+
         const { data, error } = await supabase.from("notes").insert({
           user_id: userId,
           title: String(args.title).slice(0, 200),
