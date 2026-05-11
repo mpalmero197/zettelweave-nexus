@@ -59,6 +59,15 @@ interface Props {
 
 export function JarvisChat({ compact = false }: Props) {
   const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
+
+  const runPlan = async (plan: AlicePlan) => {
+    // Ship the structured plan back to ALICE for execution. The edge
+    // function recognizes the `executePlan` flag and runs each step.
+    await sendMessage(
+      `Execute the approved plan "${plan.goal}".\n\n[[ALICE_PLAN_EXECUTE]]${JSON.stringify(plan)}[[/ALICE_PLAN_EXECUTE]]`,
+    );
+  };
+
   const [input, setInput] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
