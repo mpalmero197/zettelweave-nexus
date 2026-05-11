@@ -71,7 +71,6 @@ function ToolboxMobileSheet({ open, onOpenChange, initialTab }: ToolboxSidebarPr
           {activeTab === 'focus' && <FocusPanel />}
           {activeTab === 'tasks' && <TasksPanel />}
           {activeTab === 'ai-modify' && <AIModifyPanel />}
-          {activeTab === 'chat' && <KnowledgeChatPanel />}
         </div>
       </SheetContent>
     </Sheet>
@@ -260,7 +259,6 @@ function ToolboxSidebarInner({ open, onOpenChange, initialTab }: ToolboxSidebarP
         {activeTab === 'focus' && <FocusPanel />}
         {activeTab === 'tasks' && <TasksPanel />}
         {activeTab === 'ai-modify' && <AIModifyPanel />}
-        {activeTab === 'chat' && <KnowledgeChatPanel />}
       </div>
     </div>
   );
