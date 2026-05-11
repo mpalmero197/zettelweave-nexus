@@ -45,15 +45,15 @@ const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
 };
 
 const INTEGRATIONS: Integration[] = [
-  // True OAuth providers — user clicks Connect, signs in to their own account, grants access.
-  { id: "notion",          name: "Notion",           description: "Sign in with Notion to read your pages and databases live — no exports needed.", icon: "📝", category: "productivity",  status: "available", color: "#000000", setupType: "oauth" },
-  { id: "google-drive",    name: "Google Drive",     description: "Sign in with Google to browse and import your Drive files.",                       icon: "📁", category: "storage",       status: "available", color: "#0F9D58", setupType: "oauth" },
-  { id: "google-calendar", name: "Google Calendar",  description: "Sign in with Google to sync your calendar two-way.",                               icon: "📅", category: "productivity",  status: "available", color: "#4285F4", setupType: "oauth" },
-  { id: "google-keep",     name: "Google Keep",      description: "Sign in with Google to import your Keep notes.",                                   icon: "🟡", category: "productivity",  status: "available", color: "#FBBC04", setupType: "oauth" },
-  { id: "outlook",         name: "Outlook",          description: "Sign in with Microsoft to read and send mail from PendragonX.",                    icon: "📧", category: "communication", status: "available", color: "#0072C6", setupType: "oauth" },
-  { id: "outlook-cal",     name: "Outlook Calendar", description: "Sign in with Microsoft to sync your Outlook calendar.",                            icon: "🗓️", category: "productivity",  status: "available", color: "#0072C6", setupType: "oauth" },
-  { id: "onedrive",        name: "OneDrive",         description: "Sign in with Microsoft to browse and import your OneDrive files.",                 icon: "☁️", category: "storage",       status: "available", color: "#0078D4", setupType: "oauth" },
-  { id: "onenote",         name: "OneNote",          description: "Sign in with Microsoft to read your OneNote notebooks.",                           icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "oauth" },
+  // File-import connectors (OAuth backbone exists but is currently disabled in UI).
+  { id: "notion",          name: "Notion",           description: "Import Notion exports (Markdown & CSV) into your knowledge base.",         icon: "📝", category: "productivity",  status: "available", color: "#000000", setupType: "file-import" },
+  { id: "google-drive",    name: "Google Drive",     description: "Import files downloaded from Google Drive.",                                icon: "📁", category: "storage",       status: "available", color: "#0F9D58", setupType: "file-import" },
+  { id: "google-calendar", name: "Google Calendar",  description: "Import a Google Calendar .ics export — each event becomes a tagged note.", icon: "📅", category: "productivity",  status: "available", color: "#4285F4", setupType: "file-import" },
+  { id: "google-keep",     name: "Google Keep",      description: "Import Google Keep notes via Google Takeout export.",                       icon: "🟡", category: "productivity",  status: "available", color: "#FBBC04", setupType: "file-import" },
+  { id: "outlook",         name: "Outlook",          description: "Import Outlook messages (.eml / .msg) as notes.",                           icon: "📧", category: "communication", status: "available", color: "#0072C6", setupType: "file-import" },
+  { id: "outlook-cal",     name: "Outlook Calendar", description: "Import an Outlook calendar .ics export — each event becomes a note.",      icon: "🗓️", category: "productivity",  status: "available", color: "#0072C6", setupType: "file-import" },
+  { id: "onedrive",        name: "OneDrive",         description: "Import files downloaded from OneDrive.",                                    icon: "☁️", category: "storage",       status: "available", color: "#0078D4", setupType: "file-import" },
+  { id: "onenote",         name: "OneNote",          description: "Import OneNote sections exported as HTML.",                                 icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "file-import" },
 
   // Connector-based / API key (legacy paths kept)
   { id: "todoist",  name: "Todoist",           description: "Sync tasks between PendragonX Task Manager and Todoist.",                                 icon: "✅", category: "productivity",  status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
