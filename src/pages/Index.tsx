@@ -651,7 +651,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="p-2">
+                  <div className="p-4 sm:p-6">
                     {isLoading ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                         {[...Array(8)].map((_, i) => (
