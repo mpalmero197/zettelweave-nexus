@@ -13,6 +13,14 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
     position: { x: 0, y: 0, w: 12, h: 2 },
     isVisible: true
   },
+  // Daily briefing — Today panel
+  {
+    id: 'daily-briefing',
+    type: 'daily-briefing',
+    title: 'Today',
+    position: { x: 0, y: 2, w: 12, h: 3 },
+    isVisible: true
+  },
   // Row 2: Quick Capture + Stats
   {
     id: 'quick-capture',
