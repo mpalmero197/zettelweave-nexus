@@ -410,6 +410,37 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "start_pomodoro_timer",
+      description: "Start the user's Focus Pomodoro timer for a custom duration. Use this whenever the user says 'set a timer', 'start a pomodoro', 'focus for N minutes', 'deep work block', 'study session', 'time-box me for X'. Do NOT use create_task for timer requests. Opens the Focus sidebar/sheet so the user sees the countdown.",
+      parameters: {
+        type: "object",
+        properties: {
+          minutes: { type: "number", description: "Duration in minutes (1-180). Defaults to 25 (classic Pomodoro)." },
+          mode: { type: "string", enum: ["work", "short-break", "long-break"], description: "Timer mode. Defaults to 'work'." },
+          task_title: { type: "string", description: "Optional label for what the user is focusing on (shown in the timer UI)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "pause_pomodoro_timer",
+      description: "Pause the running Focus Pomodoro timer. Use when the user says 'pause my timer', 'hold on', 'stop the pomodoro for a sec'.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reset_pomodoro_timer",
+      description: "Stop and reset the Focus Pomodoro timer back to its preset. Use for 'cancel my timer', 'stop focusing', 'reset the pomodoro'.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
