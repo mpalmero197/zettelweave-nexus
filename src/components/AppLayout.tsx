@@ -28,6 +28,7 @@ import { usePopoutMode } from "@/hooks/usePopoutMode";
 import { useWindowSync } from "@/hooks/useWindowSync";
 import { useWritingContextDetector } from "@/hooks/useWritingContextDetector";
 import { AutoSEOOverrides } from "./seo/AutoSEOOverrides";
+import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
 
 export function AppLayout() {
   useWritingContextDetector();
