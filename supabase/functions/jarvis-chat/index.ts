@@ -331,6 +331,48 @@ const tools = [
       parameters: { type: "object", properties: {} },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "save_memory",
+      description: "Permanently remember something stable about the user (their preferences, recurring people/projects, style rules, working hours, etc.) so future conversations feel personal. Only save things that are clearly stable — not one-off facts. Examples: 'User writes in first-person', 'User's editor is Sarah', 'User prefers concise replies'. Do NOT save passwords, secrets, or anything sensitive.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["preference","fact","project","person","rule"], description: "Category of memory." },
+          key: { type: "string", description: "Short identifier, e.g. 'writing_style', 'editor_name'." },
+          value: { type: "string", description: "The thing to remember in one short sentence." },
+        },
+        required: ["kind","key","value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recall_memory",
+      description: "Retrieve relevant memories about the user. Top memories are already auto-injected into your context — only call this if you need to look up something specific the user just referenced (e.g. 'who is my editor again?').",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Optional keyword to filter memories." },
+          kind: { type: "string", enum: ["preference","fact","project","person","rule"] },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "forget_memory",
+      description: "Delete a saved memory by id. Use only when the user explicitly asks to forget something.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
