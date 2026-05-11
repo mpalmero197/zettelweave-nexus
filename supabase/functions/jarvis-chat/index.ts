@@ -794,7 +794,7 @@ Deno.serve(async (req) => {
       const res = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-        body: JSON.stringify({ model: MODEL, messages, tools, tool_choice: "auto" }),
+        body: JSON.stringify({ model, messages, tools, tool_choice: "auto" }),
       });
       if (!res.ok) {
         const t = await res.text();
