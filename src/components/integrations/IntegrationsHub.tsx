@@ -55,21 +55,23 @@ const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
 };
 
 const INTEGRATIONS: Integration[] = [
-  // Connector-based (OAuth / API key) — kept as-is
-  { id: "google-calendar", name: "Google Calendar", description: "Two-way sync: PendragonX calendar events appear in Google Calendar and vice versa.", icon: "📅", category: "productivity", status: "available", color: "#4285F4", setupType: "api-key", docsUrl: "https://console.cloud.google.com/apis/credentials" },
-  { id: "google-drive", name: "Google Drive", description: "Attach and sync files directly from your Google Drive.", icon: "📁", category: "storage", status: "available", color: "#0F9D58", setupType: "api-key", docsUrl: "https://console.cloud.google.com/apis/credentials" },
-  { id: "todoist", name: "Todoist", description: "Sync tasks between PendragonX Task Manager and Todoist.", icon: "✅", category: "productivity", status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
-  { id: "slack", name: "Slack", description: "Send notes and cards to Slack channels via webhook.", icon: "💬", category: "communication", status: "available", color: "#4A154B", setupType: "webhook", docsUrl: "https://api.slack.com/messaging/webhooks" },
-  { id: "webhooks", name: "Zapier / Webhooks", description: "Generic webhook URL — connect 5,000+ apps via Zapier, Make, n8n.", icon: "🔗", category: "productivity", status: "available", color: "#FF4A00", setupType: "webhook", docsUrl: "https://zapier.com/app/zaps" },
+  // True OAuth providers — user clicks Connect, signs in to their own account, grants access.
+  { id: "notion",          name: "Notion",           description: "Sign in with Notion to read your pages and databases live — no exports needed.", icon: "📝", category: "productivity",  status: "available", color: "#000000", setupType: "oauth" },
+  { id: "google-drive",    name: "Google Drive",     description: "Sign in with Google to browse and import your Drive files.",                       icon: "📁", category: "storage",       status: "available", color: "#0F9D58", setupType: "oauth" },
+  { id: "google-calendar", name: "Google Calendar",  description: "Sign in with Google to sync your calendar two-way.",                               icon: "📅", category: "productivity",  status: "available", color: "#4285F4", setupType: "oauth" },
+  { id: "google-keep",     name: "Google Keep",      description: "Sign in with Google to import your Keep notes.",                                   icon: "🟡", category: "productivity",  status: "available", color: "#FBBC04", setupType: "oauth" },
+  { id: "outlook",         name: "Outlook",          description: "Sign in with Microsoft to read and send mail from PendragonX.",                    icon: "📧", category: "communication", status: "available", color: "#0072C6", setupType: "oauth" },
+  { id: "outlook-cal",     name: "Outlook Calendar", description: "Sign in with Microsoft to sync your Outlook calendar.",                            icon: "🗓️", category: "productivity",  status: "available", color: "#0072C6", setupType: "oauth" },
+  { id: "onedrive",        name: "OneDrive",         description: "Sign in with Microsoft to browse and import your OneDrive files.",                 icon: "☁️", category: "storage",       status: "available", color: "#0078D4", setupType: "oauth" },
+  { id: "onenote",         name: "OneNote",          description: "Sign in with Microsoft to read your OneNote notebooks.",                           icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "oauth" },
 
-  // File-import connectors (one-click via unified dialog)
-  { id: "notion",        name: "Notion",           description: "Import Notion pages, databases, and CSVs into your notes.",                  icon: "📝", category: "productivity",   status: "available", color: "#000000", setupType: "file-import" },
+  // Connector-based / API key (legacy paths kept)
+  { id: "todoist",  name: "Todoist",           description: "Sync tasks between PendragonX Task Manager and Todoist.",                                 icon: "✅", category: "productivity",  status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
+  { id: "slack",    name: "Slack",             description: "Send notes and cards to Slack channels via webhook.",                                     icon: "💬", category: "communication", status: "available", color: "#4A154B", setupType: "webhook", docsUrl: "https://api.slack.com/messaging/webhooks" },
+  { id: "webhooks", name: "Zapier / Webhooks", description: "Generic webhook URL — connect 5,000+ apps via Zapier, Make, n8n.",                        icon: "🔗", category: "productivity",  status: "available", color: "#FF4A00", setupType: "webhook", docsUrl: "https://zapier.com/app/zaps" },
+
+  // File-import only
   { id: "obsidian",      name: "Obsidian",         description: "Import your Obsidian vault (.md). Wikilinks and frontmatter preserved.",       icon: "💎", category: "import-export",  status: "available", color: "#7C3AED", setupType: "file-import" },
-  { id: "onenote",       name: "OneNote",          description: "Import OneNote sections exported as HTML or Markdown.",                        icon: "📓", category: "import-export",  status: "available", color: "#7719AA", setupType: "file-import" },
-  { id: "outlook",       name: "Outlook",          description: "Import Outlook emails (.eml / .msg) as searchable notes.",                     icon: "📧", category: "communication",  status: "available", color: "#0072C6", setupType: "file-import" },
-  { id: "outlook-cal",   name: "Outlook Calendar", description: "Import Outlook calendar events from .ics exports.",                            icon: "🗓️", category: "productivity",   status: "available", color: "#0072C6", setupType: "file-import" },
-  { id: "onedrive",      name: "OneDrive",         description: "Import documents and notes from your Microsoft OneDrive.",                     icon: "☁️", category: "storage",        status: "available", color: "#0078D4", setupType: "file-import" },
-  { id: "google-keep",   name: "Google Keep",      description: "Import Google Keep notes via Google Takeout export.",                          icon: "🟡", category: "productivity",   status: "available", color: "#FBBC04", setupType: "file-import" },
   { id: "trello",        name: "Trello",           description: "Import Trello cards and boards from JSON exports.",                            icon: "📋", category: "productivity",   status: "available", color: "#0079BF", setupType: "file-import" },
   { id: "roam",          name: "Roam Research",    description: "Import your Roam graph (JSON or Markdown).",                                   icon: "🧠", category: "import-export",  status: "available", color: "#1A1A1A", setupType: "file-import" },
   { id: "logseq",        name: "Logseq",           description: "Import Logseq pages (.md) into your knowledge base.",                          icon: "🪵", category: "import-export",  status: "available", color: "#002B36", setupType: "file-import" },
