@@ -560,6 +560,88 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ────────────────────────── 6.5 MEET ALICE ────────────────────────── */}
+      <section id="alice" ref={aliceAnimation.ref} className={cn(
+        "py-20 md:py-28 transition-all duration-700",
+        aliceAnimation.isVisible ? "opacity-100" : "opacity-0"
+      )}>
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3 inline-flex items-center gap-2 justify-center">
+              <Sparkles className="h-3 w-3" /> Meet ALICE
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">
+              Your AI co-pilot for everything inside PendragonX
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto leading-relaxed">
+              ALICE is the assistant living inside PendragonX. Ask her in plain English to find a buried note,
+              remind you of a deadline, or finish a task — and she actually does it. Notion has a chatbot.
+              Obsidian has plugins. PendragonX has a teammate.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-10">
+            {[
+              {
+                icon: Search,
+                title: "Finds anything in seconds",
+                body: "“ALICE, find my notes on Q3 retention.” She searches every card, note, document, and recording across your knowledge base — and opens the right one. No folders, no filters, no hunting.",
+              },
+              {
+                icon: MessageSquare,
+                title: "Reminds you at the right moment",
+                body: "Tell ALICE what matters. She tracks deadlines, follow-ups, and recurring habits, then nudges you exactly when you need it — across desktop and mobile, even when the app is closed.",
+              },
+              {
+                icon: Zap,
+                title: "Actually completes tasks",
+                body: "Create cards, schedule events, draft outlines, summarize a notebook, kick off a study guide — ALICE doesn’t just answer, she ships the work and shows you what she did.",
+              },
+            ].map((f, i) => (
+              <div key={i} className={cn(
+                "p-6 rounded-xl border border-border bg-card card-hover-lift transition-all duration-500",
+                aliceAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              )} style={{ transitionDelay: `${i * 90}ms` }}>
+                <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center mb-4">
+                  <f.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+                </div>
+                <h3 className="text-sm font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className={cn(
+            "rounded-xl border border-border bg-card/80 p-6 md:p-8 transition-all duration-700",
+            aliceAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          )} style={{ transitionDelay: "320ms" }}>
+            <h3 className="text-base md:text-lg font-semibold mb-4 text-center">
+              Why ALICE makes PendragonX simpler than the competition
+            </h3>
+            <div className="grid md:grid-cols-2 gap-x-8 gap-y-3 max-w-3xl mx-auto">
+              {[
+                "Notion AI summarizes — ALICE searches, schedules, and creates.",
+                "Obsidian needs plugins for AI — ALICE is built in and grounded in your notes.",
+                "Evernote & OneNote forget — ALICE has long-term memory of your preferences.",
+                "Roam has no assistant — ALICE turns your graph into action.",
+                "Auto Deep Think routes complex requests to a stronger model — silently.",
+                "One assistant across Notes, Cards, Calendar, Catalyst, Whiteboard & Learning Hub.",
+              ].map((line, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                  <span className="text-muted-foreground leading-relaxed">{line}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-center mt-7">
+              <Button onClick={goAuth} size="lg" className="shadow-material-1">
+                Try ALICE free <ArrowRight className="h-4 w-4 ml-1.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ────────────────────────── 7. SOCIAL PROOF ────────────────────────── */}
       <section ref={socialProofAnimation.ref} className={cn(
         "py-20 md:py-28 transition-all duration-700",
