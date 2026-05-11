@@ -4,8 +4,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Switch } from "@/components/ui/switch";
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 import { WidgetDefinition } from "@/types/dashboard";
-import { 
-  Settings2, Brain, BarChart3, FileText, NotebookPen, Calendar, Activity, Heart, 
+import {
+  Settings2, Brain, BarChart3, FileText, NotebookPen, Calendar, Activity, Heart,
   CheckSquare, Sun, Quote, StickyNote, Plus, File, Database, HeartPulse
 } from "lucide-react";
 import { toast } from "sonner";
