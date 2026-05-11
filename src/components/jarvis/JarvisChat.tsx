@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { cn } from "@/lib/utils";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
@@ -58,6 +59,15 @@ interface Props {
 
 export function JarvisChat({ compact = false }: Props) {
   const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
+
+  const runPlan = async (plan: AlicePlan) => {
+    // Ship the structured plan back to ALICE for execution. The edge
+    // function recognizes the `executePlan` flag and runs each step.
+    await sendMessage(
+      `Execute the approved plan "${plan.goal}".\n\n[[ALICE_PLAN_EXECUTE]]${JSON.stringify(plan)}[[/ALICE_PLAN_EXECUTE]]`,
+    );
+  };
+
   const [input, setInput] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -144,12 +154,20 @@ export function JarvisChat({ compact = false }: Props) {
                     "max-w-[85%] rounded-2xl bg-primary text-primary-foreground whitespace-pre-wrap",
                     compact ? "px-3 py-1.5 text-[13px]" : "px-4 py-2 text-sm",
                   )}>
-                    {m.parts.map((p, i) => p.type === "text" ? <span key={i}>{p.text}</span> : null)}
+                    {m.parts.map((p, i) => {
+                      if (p.type !== "text") return null;
+                      // Hide the internal plan-execute directive from the bubble UI.
+                      const cleaned = p.text.replace(/\[\[ALICE_PLAN_EXECUTE\]\][\s\S]*?\[\[\/ALICE_PLAN_EXECUTE\]\]/g, "").trim();
+                      return cleaned ? <span key={i}>{cleaned}</span> : null;
+                    })}
                   </div>
                 ) : (
                   <div className={cn("max-w-full w-full text-foreground", compact ? "text-[13px]" : "text-sm")}>
                     {m.parts.map((p, i) => {
                       if (p.type === "tool") return <ToolPart key={i} part={p} />;
+                      if (p.type === "plan") return (
+                        <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
+                      );
                       return (
                         <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown>{p.text}</ReactMarkdown>

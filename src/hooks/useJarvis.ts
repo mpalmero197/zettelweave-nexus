@@ -3,9 +3,51 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+import type { AlicePlan } from "@/components/alice/AliceActionPlan";
+
 export type JarvisPart =
   | { type: "text"; text: string }
-  | { type: "tool"; name: string; args: any; result: any };
+  | { type: "tool"; name: string; args: any; result: any }
+  | { type: "plan"; plan: AlicePlan };
+
+/**
+ * ALICE may embed a structured action plan in its assistant text using a
+ * fenced block:
+ *
+ *   [[ALICE_PLAN]]
+ *   { "id": "...", "goal": "...", "steps": [ ... ] }
+ *   [[/ALICE_PLAN]]
+ *
+ * Extract any such blocks into proper plan parts so the UI can render
+ * Approve/Modify/Cancel controls instead of dumping JSON to the user.
+ */
+function extractPlans(parts: JarvisPart[]): JarvisPart[] {
+  const out: JarvisPart[] = [];
+  const RX = /\[\[ALICE_PLAN\]\]([\s\S]*?)\[\[\/ALICE_PLAN\]\]/g;
+  for (const p of parts) {
+    if (p.type !== "text") { out.push(p); continue; }
+    let last = 0;
+    let m: RegExpExecArray | null;
+    const text = p.text;
+    while ((m = RX.exec(text)) !== null) {
+      const before = text.slice(last, m.index).trim();
+      if (before) out.push({ type: "text", text: before });
+      try {
+        const plan = JSON.parse(m[1]) as AlicePlan;
+        if (!plan.id) plan.id = crypto.randomUUID();
+        plan.steps = (plan.steps || []).map((s, i) => ({ ...s, id: s.id || `s${i}` }));
+        out.push({ type: "plan", plan });
+      } catch {
+        out.push({ type: "text", text: m[0] });
+      }
+      last = m.index + m[0].length;
+    }
+    const tail = text.slice(last).trim();
+    if (tail) out.push({ type: "text", text: tail });
+    if (last === 0 && out[out.length - 1]?.type !== "text") out.push(p);
+  }
+  return out;
+}
 
 export type JarvisMessage = {
   id: string;
@@ -45,7 +87,8 @@ export function useJarvis(initialThreadId?: string | null) {
       .select("id,role,parts,created_at")
       .eq("thread_id", threadId)
       .order("created_at", { ascending: true });
-    setMessages((data as any) || []);
+    const list = ((data as any) || []).map((m: any) => ({ ...m, parts: extractPlans(m.parts || []) }));
+    setMessages(list);
   }, []);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
@@ -93,7 +136,7 @@ export function useJarvis(initialThreadId?: string | null) {
       // Append assistant message
       setMessages((m) => [...m, {
         id: `tmp-asst-${Date.now()}`, role: "assistant",
-        parts: data.parts || [], created_at: new Date().toISOString(),
+        parts: extractPlans(data.parts || []), created_at: new Date().toISOString(),
       }]);
       // ALICE may request navigation as part of acting on the user's behalf
       if (data?.navigate_to && typeof data.navigate_to === "string") {

@@ -29,6 +29,7 @@ import { useWindowSync } from "@/hooks/useWindowSync";
 import { useWritingContextDetector } from "@/hooks/useWritingContextDetector";
 import { AutoSEOOverrides } from "./seo/AutoSEOOverrides";
 import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
+import { AliceUndoBanner } from "./alice/AliceUndoBanner";
 
 export function AppLayout() {
   useWritingContextDetector();
@@ -297,6 +298,7 @@ export function AppLayout() {
       <FocusMiniPill />
       {!isPopout && <JarvisFAB />}
       {!isPopout && <OnboardingTutorial />}
+      {!isPopout && <AliceUndoBanner />}
     </>
   );
 }
