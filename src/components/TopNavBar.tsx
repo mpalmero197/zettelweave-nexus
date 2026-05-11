@@ -70,9 +70,10 @@ const navGroups = [
   },
   {
     label: "Tools",
-    tabs: ["recorder", "recycle", "debugger"],
+    tabs: ["recorder", "integrations", "recycle", "debugger"],
     items: [
       { id: "recorder", label: "Recorder", icon: Mic },
+      { id: "integrations", label: "Connectors", icon: Puzzle },
       { id: "recycle", label: "Recycle Bin", icon: Trash2 },
       { id: "debugger", label: "Debugger", icon: Bug },
     ],
