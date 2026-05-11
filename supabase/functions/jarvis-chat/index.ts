@@ -85,6 +85,19 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "get_current_datetime",
+      description: "Returns the authoritative current date and time (ISO + human formats, plus IANA time zone). ALWAYS call this before stating today's date, day of week, current time, or doing any time-sensitive reasoning. Never rely on training data for the current date.",
+      parameters: {
+        type: "object",
+        properties: {
+          time_zone: { type: "string", description: "IANA time zone, e.g. 'America/Chicago'. Defaults to UTC." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "navigate",
       description: "Navigate the user's PendragonX app to a tab or route. Tabs: dashboard, cards, graph, notes, files, canvas, calendar, journal, habits, scratchpad, stickynotes, catalyst, collab, recorder, recycle, search, learning, projects, spaces, integrations, knowledge-gaps, notebooks. Or pass a full path like '/settings' or '/subscription'. Never navigate to /admin.",
       parameters: {
