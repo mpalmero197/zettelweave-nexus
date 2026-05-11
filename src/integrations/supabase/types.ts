@@ -354,6 +354,123 @@ export type Database = {
           },
         ]
       }
+      alice_actions: {
+        Row: {
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          executed_steps_jsonb: Json
+          id: string
+          plan_jsonb: Json
+          status: string
+          summary: string
+          undo_payload_jsonb: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          executed_steps_jsonb?: Json
+          id?: string
+          plan_jsonb: Json
+          status?: string
+          summary: string
+          undo_payload_jsonb?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          executed_steps_jsonb?: Json
+          id?: string
+          plan_jsonb?: Json
+          status?: string
+          summary?: string
+          undo_payload_jsonb?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      alice_briefings: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          for_date: string
+          highlights_jsonb: Json
+          id: string
+          read_at: string | null
+          summary_md: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          for_date: string
+          highlights_jsonb?: Json
+          id?: string
+          read_at?: string | null
+          summary_md: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          for_date?: string
+          highlights_jsonb?: Json
+          id?: string
+          read_at?: string | null
+          summary_md?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      alice_memories: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          kind: string
+          last_used_at: string | null
+          source: string
+          updated_at: string
+          user_id: string
+          value: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          kind: string
+          last_used_at?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+          value: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          kind?: string
+          last_used_at?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+          value?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string

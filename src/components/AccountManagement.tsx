@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain, Bell } from 'lucide-react';
+import { AliceMemoryPanel } from '@/components/alice/AliceMemoryPanel';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -44,7 +45,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const { toast } = useToast();
   const { animationsEnabled, setAnimationsEnabled, respectOSPreference, setRespectOSPreference, osReducedMotion, effectiveAnimationsEnabled, reducedBlur, setReducedBlur, simplifiedTransitions, setSimplifiedTransitions, lowPowerMode, setLowPowerMode } = useAnimationPreference();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'debug'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'memory' | 'debug'>('profile');
   const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [engagementNudges, setEngagementNudges] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -627,6 +628,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
     { id: 'activity', label: 'Activity Log', icon: BookOpen },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'ai', label: 'AI & Automation', icon: Brain },
+    { id: 'memory', label: 'ALICE Memory', icon: Brain },
     { id: 'debug', label: 'Debug Logs', icon: Bug },
   ];
 
@@ -1066,6 +1068,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                 </div>
               </div>
             )}
+
+            {activeTab === 'memory' && <AliceMemoryPanel />}
 
             {activeTab === 'debug' && (
               <div className="space-y-6">

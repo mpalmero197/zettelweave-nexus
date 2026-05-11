@@ -11,7 +11,29 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL_DEFAULT = "google/gemini-3-flash-preview";
+const MODEL_DEEP = "google/gemini-2.5-pro";
+
+// Heuristic: pick Deep Think when the prompt is long, multi-step, analytical,
+// or the caller explicitly requests it (forceDeepThink). Pure greetings / quick
+// lookups stay on the fast model.
+function pickModel(userMessage: string, forceDeepThink: boolean): string {
+  if (forceDeepThink) return MODEL_DEEP;
+  const m = userMessage.toLowerCase();
+  if (userMessage.length > 400) return MODEL_DEEP;
+  const triggers = [
+    "compare", "analyze", "analyse", "explain why", "step by step",
+    "plan ", "outline", "synthesize", "synthesise", "evaluate",
+    "trade-off", "tradeoff", "pros and cons", "design ", "architect",
+    "debug", "diagnose", "research ", "deep dive", "reason ",
+  ];
+  if (triggers.some((t) => m.includes(t))) return MODEL_DEEP;
+  // Multi-question / multi-step prompts (multiple ? or numbered list)
+  const questionMarks = (userMessage.match(/\?/g) || []).length;
+  if (questionMarks >= 2) return MODEL_DEEP;
+  if (/\b(1\.|2\.|3\.)\s/.test(userMessage)) return MODEL_DEEP;
+  return MODEL_DEFAULT;
+}
 
 const SYSTEM_PROMPT_BASE = `You are ALICE — the personal AI assistant for PendragonX, a writer's knowledge management platform. Your name is ALICE. You are NOT Jarvis. Never refer to yourself as Jarvis, JARVIS, or any other name. If a previous message in the thread used the name "Jarvis", that was a legacy mistake — correct it silently and continue as ALICE.
 
@@ -309,6 +331,48 @@ const tools = [
       parameters: { type: "object", properties: {} },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "save_memory",
+      description: "Permanently remember something stable about the user (their preferences, recurring people/projects, style rules, working hours, etc.) so future conversations feel personal. Only save things that are clearly stable — not one-off facts. Examples: 'User writes in first-person', 'User's editor is Sarah', 'User prefers concise replies'. Do NOT save passwords, secrets, or anything sensitive.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["preference","fact","project","person","rule"], description: "Category of memory." },
+          key: { type: "string", description: "Short identifier, e.g. 'writing_style', 'editor_name'." },
+          value: { type: "string", description: "The thing to remember in one short sentence." },
+        },
+        required: ["kind","key","value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recall_memory",
+      description: "Retrieve relevant memories about the user. Top memories are already auto-injected into your context — only call this if you need to look up something specific the user just referenced (e.g. 'who is my editor again?').",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Optional keyword to filter memories." },
+          kind: { type: "string", enum: ["preference","fact","project","person","rule"] },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "forget_memory",
+      description: "Delete a saved memory by id. Use only when the user explicitly asks to forget something.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
@@ -568,6 +632,48 @@ async function executeTool(
           note: "Read-only summary. ALICE cannot take admin actions; advise the admin.",
         };
       }
+      case "save_memory": {
+        const kind = String(args.kind || "").trim();
+        const key = String(args.key || "").trim().slice(0, 80);
+        const value = String(args.value || "").trim().slice(0, 500);
+        if (!kind || !key || !value) return { error: "kind, key, value required" };
+        if (!["preference","fact","project","person","rule"].includes(kind)) return { error: "invalid kind" };
+        // Upsert by (user_id, kind, key)
+        const { data: existing } = await supabase.from("alice_memories")
+          .select("id").eq("user_id", userId).eq("kind", kind).eq("key", key).maybeSingle();
+        if (existing?.id) {
+          const { error } = await supabase.from("alice_memories")
+            .update({ value, source: "auto", last_used_at: new Date().toISOString() })
+            .eq("id", existing.id);
+          if (error) return { error: error.message };
+          return { ok: true, id: existing.id, updated: true };
+        }
+        const { data, error } = await supabase.from("alice_memories").insert({
+          user_id: userId, kind, key, value, source: "auto",
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, updated: false };
+      }
+      case "recall_memory": {
+        const q = String(args.query || "").trim();
+        const kind = String(args.kind || "").trim();
+        let query = supabase.from("alice_memories").select("id,kind,key,value,weight").eq("user_id", userId);
+        if (kind) query = query.eq("kind", kind);
+        if (q) {
+          const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+          query = query.or(`key.ilike.${like},value.ilike.${like}`);
+        }
+        const { data, error } = await query.order("weight", { ascending: false }).limit(20);
+        if (error) return { error: error.message };
+        return { memories: data || [] };
+      }
+      case "forget_memory": {
+        const id = String(args.id || "").trim();
+        if (!id) return { error: "id required" };
+        const { error } = await supabase.from("alice_memories").delete().eq("id", id).eq("user_id", userId);
+        if (error) return { error: error.message };
+        return { ok: true };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
@@ -604,10 +710,12 @@ Deno.serve(async (req) => {
     const userMessage: string = String(body.message || "").trim();
     const userTimeZone: string = String(body.timeZone || "").trim();
     const userLocale: string = String(body.locale || "en-US").trim();
+    const forceDeepThink: boolean = body.deepThink === true;
     let threadId: string | null = body.threadId || null;
     if (!userMessage) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const model = pickModel(userMessage, forceDeepThink);
 
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) {
@@ -646,9 +754,26 @@ Deno.serve(async (req) => {
     const adminBlock = isAdmin
       ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
       : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
+
+    // Inject top long-term memories so ALICE has stable context every turn.
+    const { data: topMemories } = await supabase
+      .from("alice_memories")
+      .select("kind,key,value")
+      .order("weight", { ascending: false })
+      .order("last_used_at", { ascending: false, nullsFirst: false })
+      .limit(25);
+    let memoryBlock = "";
+    if (topMemories && topMemories.length > 0) {
+      const lines = topMemories.map((m: any) => `- (${m.kind}) ${m.key}: ${m.value}`).join("\n");
+      memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n${lines}\nUse these to personalize your replies. If the user states a new stable preference, person, project, or rule, call save_memory to remember it. Do not save one-off facts or sensitive data.`;
+    } else {
+      memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n(No memories yet. As you learn stable preferences, people, projects, or rules, call save_memory to remember them.)`;
+    }
+    const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-2.5-pro)" : "Fast (gemini-3-flash-preview)"} for this turn.`;
+
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + memoryBlock + modeBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
@@ -669,7 +794,7 @@ Deno.serve(async (req) => {
       const res = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-        body: JSON.stringify({ model: MODEL, messages, tools, tool_choice: "auto" }),
+        body: JSON.stringify({ model, messages, tools, tool_choice: "auto" }),
       });
       if (!res.ok) {
         const t = await res.text();
@@ -705,7 +830,7 @@ Deno.serve(async (req) => {
       thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
     });
 
-    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo }), {
+    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, model_used: model, deep_think: model === MODEL_DEEP }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
