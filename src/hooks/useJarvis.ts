@@ -89,6 +89,10 @@ export function useJarvis(initialThreadId?: string | null) {
         id: `tmp-asst-${Date.now()}`, role: "assistant",
         parts: data.parts || [], created_at: new Date().toISOString(),
       }]);
+      // ALICE may request navigation as part of acting on the user's behalf
+      if (data?.navigate_to && typeof data.navigate_to === "string") {
+        window.dispatchEvent(new CustomEvent("alice-navigate", { detail: data.navigate_to }));
+      }
       loadThreads();
     } catch (e: any) {
       toast.error(e?.message || "ALICE is offline");
