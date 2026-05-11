@@ -118,26 +118,36 @@ export function JarvisChat({ compact = false }: Props) {
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+          <div className={cn("max-w-3xl mx-auto space-y-4", compact ? "px-3 py-3" : "px-4 py-6 space-y-6")}>
             {messages.length === 0 && (
-              <div className="text-center py-12 space-y-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <Sparkles className="h-6 w-6 text-primary" />
+              <div className={cn("text-center space-y-2", compact ? "py-6" : "py-12 space-y-3")}>
+                <div className={cn("inline-flex items-center justify-center rounded-full bg-primary/10", compact ? "h-9 w-9" : "h-12 w-12")}>
+                  <Sparkles className={cn("text-primary", compact ? "h-4 w-4" : "h-6 w-6")} />
                 </div>
-                <h2 className="text-lg font-semibold">At your service.</h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Ask me to find anything in your knowledge base, create notes or cards, schedule tasks, or look something up online.
-                </p>
+                <h2 className={cn("font-semibold", compact ? "text-sm" : "text-lg")}>At your service.</h2>
+                {!compact && (
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    Ask me to find anything in your knowledge base, create notes or cards, schedule tasks, or look something up online.
+                  </p>
+                )}
+                {compact && (
+                  <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                    Find, create, schedule, search.
+                  </p>
+                )}
               </div>
             )}
             {messages.map((m) => (
               <div key={m.id} className={cn("flex flex-col gap-1", m.role === "user" ? "items-end" : "items-start")}>
                 {m.role === "user" ? (
-                  <div className="max-w-[85%] rounded-2xl bg-primary text-primary-foreground px-4 py-2 text-sm whitespace-pre-wrap">
+                  <div className={cn(
+                    "max-w-[85%] rounded-2xl bg-primary text-primary-foreground whitespace-pre-wrap",
+                    compact ? "px-3 py-1.5 text-[13px]" : "px-4 py-2 text-sm",
+                  )}>
                     {m.parts.map((p, i) => p.type === "text" ? <span key={i}>{p.text}</span> : null)}
                   </div>
                 ) : (
-                  <div className="max-w-full w-full text-sm text-foreground">
+                  <div className={cn("max-w-full w-full text-foreground", compact ? "text-[13px]" : "text-sm")}>
                     {m.parts.map((p, i) => {
                       if (p.type === "tool") return <ToolPart key={i} part={p} />;
                       return (
@@ -151,7 +161,7 @@ export function JarvisChat({ compact = false }: Props) {
               </div>
             ))}
             {sending && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 animate-pulse" />
                 <span>Thinking…</span>
               </div>
@@ -160,7 +170,7 @@ export function JarvisChat({ compact = false }: Props) {
         </div>
 
         {/* Composer */}
-        <div className="border-t border-border p-3">
+        <div className={cn("border-t border-border", compact ? "p-2" : "p-3")}>
           <div className="max-w-3xl mx-auto flex gap-2 items-end">
             <Textarea
               ref={taRef}
@@ -171,10 +181,10 @@ export function JarvisChat({ compact = false }: Props) {
               }}
               placeholder="Ask ALICE anything…"
               rows={1}
-              className="min-h-[40px] max-h-40 resize-none"
+              className={cn("resize-none", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[40px] max-h-40")}
               disabled={sending}
             />
-            <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className="shrink-0">
+            <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
