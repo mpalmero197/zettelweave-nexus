@@ -9,6 +9,7 @@ import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { notifyContentCreated } from "@/lib/aliceFollowups";
 
 interface StickyNoteData {
   id: string;
@@ -82,6 +83,16 @@ export const StickyNotes = ({ onCreateCard }: StickyNotesProps) => {
   const updateNote = async (id: string, content: string) => {
     setNotes(prev => prev.map(note => note.id === id ? { ...note, content } : note));
     await stickyTable().update({ content, updated_at: new Date().toISOString() } as any).eq('id', id);
+    // Once a sticky has real content (>20 chars), let ALICE consider follow-ups.
+    // We fire only once per sticky per session via a window-level set.
+    try {
+      const w = window as any;
+      w.__pendragonStickyFired = w.__pendragonStickyFired || new Set<string>();
+      if (content.trim().length > 20 && !w.__pendragonStickyFired.has(id)) {
+        w.__pendragonStickyFired.add(id);
+        notifyContentCreated({ contentType: 'sticky_note', id, title: content.trim().slice(0, 60), content });
+      }
+    } catch { /* ignore */ }
   };
 
   const deleteNote = async (id: string) => {

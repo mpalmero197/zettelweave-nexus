@@ -8,6 +8,7 @@ import { generateZettelNumber, categorizeContent } from '@/utils/deweySystem';
 import { sanitizeCardInput, validateZettelCard, createCardLimiter } from '@/utils/security';
 import { useCardLimit } from './useCardLimit';
 import { useRealtimeSync } from './useRealtimeSync';
+import { notifyContentCreated } from '@/lib/aliceFollowups';
 
 export const useZettelCards = () => {
   const { user } = useAuth();
@@ -163,6 +164,12 @@ export const useZettelCards = () => {
         toast({ title: 'Duplicate detected and merged!', description: `Card was automatically merged with "${result.originalTitle}"` });
       } else {
         toast({ title: 'Card created successfully!' });
+        notifyContentCreated({
+          contentType: 'zettel_card',
+          id: result?.data?.id,
+          title: result?.data?.title || '',
+          content: result?.data?.content || '',
+        });
       }
     },
     onError: (error: any) => {
