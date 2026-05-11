@@ -78,6 +78,7 @@ const Install = lazy(() => import("./pages/Install"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Agents = lazy(() => import("./pages/Agents"));
+const Jarvis = lazy(() => import("./pages/Jarvis"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -164,6 +165,11 @@ const App = () => (
                   <Route path="/agents" element={
                     <Suspense fallback={<LoadingFallback message="Loading agents..." />}>
                       <Agents />
+                    </Suspense>
+                  } />
+                  <Route path="/jarvis" element={
+                    <Suspense fallback={<LoadingFallback message="Waking Jarvis..." />}>
+                      <Jarvis />
                     </Suspense>
                   } />
                   <Route path="/install" element={

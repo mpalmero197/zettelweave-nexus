@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, Wrench, Search, ExternalLink } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
+import { JarvisFAB } from "./jarvis/JarvisFAB";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -258,6 +259,7 @@ export function AppLayout() {
       <FloatingChatBubble />
       <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
+      {!isPopout && <JarvisFAB />}
     </>
   );
 }
