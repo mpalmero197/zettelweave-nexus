@@ -157,6 +157,23 @@ export function Catalyst() {
   const [documentTheme, setDocumentTheme] = useState('default');
   const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
 
+  // Tell ALICE which Catalyst document is currently on screen so she can
+  // answer questions like "what's in the document I have open?".
+  useScreenRegion(
+    "catalyst.document",
+    "Catalyst document window (the writing editor in Catalyst)",
+    {
+      app: "Catalyst",
+      mode: catalystMode,
+      documentId: currentDocId,
+      documentTitle,
+      isUnsaved: !currentDocId,
+      wordCount,
+      theme: documentTheme,
+      contentPreview: editorContent ? editorContent.slice(0, 600) : "",
+    },
+  );
+
 const DOCUMENT_TEMPLATES = [
   { id: 'blank', title: 'Blank Document', description: 'Start from scratch', icon: <FileText className="h-4 w-4" />, content: '' },
   { id: 'essay', title: 'Essay', description: 'Academic formatting with intro and conclusion', icon: <BookOpen className="h-4 w-4" />, content: '<h1>Essay Title</h1>\n<h2>Introduction</h2>\n<p>Begin your essay here. State your thesis clearly and outline your main arguments.</p>\n<h2>Body Paragraph 1</h2>\n<p>First main point supporting your thesis, with evidence and analysis.</p>\n<h2>Conclusion</h2>\n<p>Summarize your findings and restate your thesis in a new way.</p>' },
