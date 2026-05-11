@@ -160,6 +160,9 @@ export function JarvisChat({ compact = false }: Props) {
                   <div className={cn("max-w-full w-full text-foreground", compact ? "text-[13px]" : "text-sm")}>
                     {m.parts.map((p, i) => {
                       if (p.type === "tool") return <ToolPart key={i} part={p} />;
+                      if (p.type === "plan") return (
+                        <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
+                      );
                       return (
                         <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown>{p.text}</ReactMarkdown>
