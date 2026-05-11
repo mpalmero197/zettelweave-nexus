@@ -233,31 +233,14 @@ export function MobileNavigation({
                 Automation
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {hasPremium ? (activeTab !== undefined ? (
-                  <Link
-                    to="/agents"
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      'flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px]',
-                      activeTab === 'agents'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-foreground active:scale-95 active:bg-accent'
-                    )}
-                  >
-                    <Bot className="h-5 w-5" aria-hidden="true" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
-                  </Link>
-                ) : null) : (
-                  <Link
-                    to="/subscription"
-                    onClick={() => setOpen(false)}
-                    className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px] bg-muted/50 text-muted-foreground active:scale-95"
-                  >
-                    <Lock className="h-5 w-5" aria-hidden="true" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
-                    <Badge variant="outline" className="text-[8px] px-1 py-0 leading-none">PRO</Badge>
-                  </Link>
-                )}
+                <button
+                  onClick={() => { setOpen(false); handleNav('catalyst'); }}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all touch-manipulation min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent"
+                >
+                  <Bot className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Agents</span>
+                </button>
+
 
                 {isAdmin && (
                   <>
