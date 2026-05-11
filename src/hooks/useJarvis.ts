@@ -78,8 +78,14 @@ export function useJarvis(initialThreadId?: string | null) {
     setMessages((m) => [...m, optimistic]);
 
     try {
+      let timeZone = "";
+      let locale = "en-US";
+      try {
+        timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        locale = navigator.language || "en-US";
+      } catch { /* ignore */ }
       const { data, error } = await supabase.functions.invoke("jarvis-chat", {
-        body: { message: text, threadId: activeThreadId },
+        body: { message: text, threadId: activeThreadId, timeZone, locale },
       });
       if (error) throw error;
       const newThreadId = data.threadId as string;

@@ -72,11 +72,15 @@ You can:
 - get the current verified date/time via get_current_datetime
 - navigate the user to any feature
 
-WORKFLOW for "open / find / show me the note that says X":
-1. Call deep_search with the user's phrase to find the exact line(s) and document(s).
-2. If exactly one document matches, immediately call open_in_catalyst with that document_id and highlight=<the matched line>.
-3. If multiple documents match, list them concisely with the matched line beneath each, and ask which to open (or open the top one and mention the others).
-4. Never just call navigate(catalyst) without also calling open_in_catalyst when the user named a specific note/document.
+WORKFLOW for "open / find / show me the [note|card|document] that says X":
+1. Call deep_search with the user's phrase to find the exact line(s) and matching item(s).
+2. Pick the right opener BY TYPE returned in the match:
+   - type="note"               → call open_note(note_id, highlight)
+   - type="card"               → call open_card(card_id, highlight)
+   - type="catalyst_document"  → call open_in_catalyst(document_id, highlight)
+3. If multiple items match, list them concisely (title + matched line), then either open the top match or ask which one.
+4. NEVER invent a URL like "/notes/<id>", "/cards/<id>", "/documents/<id>". Those routes do not exist and will 404. The only ways to open an individual item are open_note / open_card / open_in_catalyst.
+5. Use plain `navigate` only for whole tabs (e.g. user says "open Catalyst" with no specific document).
 
 ADMIN POLICY — If the user is an admin you may *advise* on admin matters and surface admin-readable data (user counts, error counts) using admin_summary. You MUST NOT take any administrative action (no banning, no role changes, no deletes, no settings writes). For non-admins, refuse admin queries quietly.
 
@@ -156,6 +160,36 @@ const tools = [
           highlight: { type: "string", description: "Optional exact text or line to highlight and scroll to inside the document." },
         },
         required: ["document_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "open_note",
+      description: "Open the Notes tab focused on a specific note. Use this — never navigate to '/notes/<id>'. Notes do NOT live at /notes/:id; they live inside /app/notes.",
+      parameters: {
+        type: "object",
+        properties: {
+          note_id: { type: "string", description: "UUID of the notes row." },
+          highlight: { type: "string", description: "Optional phrase to filter/find inside the note." },
+        },
+        required: ["note_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "open_card",
+      description: "Open the Cards (Zettelkasten) tab focused on a specific card. Use this — never navigate to '/cards/<id>'.",
+      parameters: {
+        type: "object",
+        properties: {
+          card_id: { type: "string", description: "UUID of the zettel_cards row." },
+          highlight: { type: "string", description: "Optional phrase to filter/find inside the card." },
+        },
+        required: ["card_id"],
       },
     },
   },
@@ -324,6 +358,17 @@ async function executeTool(
         }
         if (!path) return { error: "Provide tab or path" };
         if (path.startsWith("/admin")) return { error: "ALICE cannot navigate to admin" };
+        // Validate: only allow known top-level routes. Reject invented per-item routes
+        // like "/notes/<id>" or "/cards/<id>" that would 404 — use open_note/open_card instead.
+        const ALLOWED = /^\/(app(\/[\w-]+)?(\?.*)?|settings|subscription|install|search)(\/.*)?$/;
+        if (!ALLOWED.test(path)) {
+          return { error: `Invalid path "${path}". Use a tab id, or call open_note / open_card / open_in_catalyst for individual items.` };
+        }
+        // Extra safety: /app/<tab> must be a valid tab
+        const tabMatch = path.match(/^\/app\/([\w-]+)/);
+        if (tabMatch && !VALID_TABS.has(tabMatch[1])) {
+          return { error: `Unknown tab "${tabMatch[1]}"` };
+        }
         return { ok: true, navigate_to: path };
       }
       case "search_knowledge": {
@@ -394,6 +439,30 @@ async function executeTool(
         const hl = String(args.highlight || "").trim();
         if (hl) params.set("highlight", hl.slice(0, 500));
         return { ok: true, id: data.id, title: data.title, navigate_to: `/app/catalyst?${params.toString()}` };
+      }
+      case "open_note": {
+        const id = String(args.note_id || "").trim();
+        if (!id) return { error: "note_id required" };
+        const { data, error } = await supabase.from("notes")
+          .select("id,title").eq("id", id).is("deleted_at", null).maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Note not found or not accessible." };
+        const params = new URLSearchParams({ alice_focus: id });
+        const hl = String(args.highlight || "").trim();
+        if (hl) params.set("q", hl.slice(0, 200));
+        return { ok: true, id: data.id, title: data.title, navigate_to: `/app/notes?${params.toString()}` };
+      }
+      case "open_card": {
+        const id = String(args.card_id || "").trim();
+        if (!id) return { error: "card_id required" };
+        const { data, error } = await supabase.from("zettel_cards")
+          .select("id,title").eq("id", id).is("deleted_at", null).maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Card not found or not accessible." };
+        const params = new URLSearchParams({ alice_focus: id });
+        const hl = String(args.highlight || "").trim();
+        if (hl) params.set("q", hl.slice(0, 200));
+        return { ok: true, id: data.id, title: data.title, navigate_to: `/app/cards?${params.toString()}` };
       }
       case "create_note": {
         const { data, error } = await supabase.from("notes").insert({
@@ -533,6 +602,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const userMessage: string = String(body.message || "").trim();
+    const userTimeZone: string = String(body.timeZone || "").trim();
+    const userLocale: string = String(body.locale || "en-US").trim();
     let threadId: string | null = body.threadId || null;
     if (!userMessage) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -560,7 +631,18 @@ Deno.serve(async (req) => {
       .limit(40);
 
     const nowIso = new Date().toISOString();
-    const dateBlock = `\n\nCURRENT SERVER TIME (authoritative reference): ${nowIso} UTC. For anything time-sensitive in the user's locale, still call get_current_datetime with their time zone.`;
+    let localStr = "";
+    if (userTimeZone) {
+      try {
+        localStr = new Intl.DateTimeFormat(userLocale, {
+          timeZone: userTimeZone, weekday: "long", year: "numeric", month: "long",
+          day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+        }).format(new Date());
+      } catch { /* invalid tz, ignore */ }
+    }
+    const dateBlock = userTimeZone
+      ? `\n\nCURRENT TIME — User's local time zone is ${userTimeZone} (auto-detected from their browser). It is currently ${localStr || nowIso} for them. UTC reference: ${nowIso}. Use this for any date/time question by default; only call get_current_datetime if you need a different time zone.`
+      : `\n\nCURRENT TIME — UTC: ${nowIso}. The user has NOT shared a time zone. If they ask for the current date/time and don't specify a city/region, ASK them where they are (city is enough), then call get_current_datetime with the resolved IANA time zone before answering. Do NOT answer with UTC for a personal question.`;
     const adminBlock = isAdmin
       ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
       : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
