@@ -223,19 +223,9 @@ export function AppLayout() {
                   className="h-9 w-9 md:h-9 md:w-9 p-0 rounded-full hover:bg-accent"
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
-                  title="Toolbox (Focus, Tasks, AI Modify, Knowledge Chat)"
+                  title="Toolbox (Focus, Tasks, AI Modify)"
                 >
                   <Wrench className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
-                  asChild
-                >
-                  <Link to="/agents" aria-label="Agents">
-                    <Bot className="h-4 w-4" />
-                  </Link>
                 </Button>
                 <ThemeVariantSelector />
                 <UserMenu isAdmin={isAdmin} onSignOut={handleSignOut} />
