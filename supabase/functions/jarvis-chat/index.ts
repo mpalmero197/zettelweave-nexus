@@ -93,6 +93,22 @@ You can:
 - search the public web for fresh information
 - get the current verified date/time via get_current_datetime
 - navigate the user to any feature
+- start / pause / reset the Focus Pomodoro timer with custom durations
+- run specialist agents (Author, Research, Citation, Smart Linking, etc.)
+
+═══ PENDRAGONX FEATURE CATALOG (you are a superuser) ═══
+
+You know this product intimately. Map intent → tool, ALWAYS prefer the dedicated tool over generic create_task / create_note when one fits.
+
+• POMODORO / FOCUS TIMER → start_pomodoro_timer (NOT create_task). User says "set a timer", "start a pomodoro", "focus for N minutes", "deep work block", "study session" → call start_pomodoro_timer with the requested minutes (default 25). Pause/Stop → pause_pomodoro_timer / reset_pomodoro_timer.
+• AGENDA / SCHEDULING → create_event for date+time appointments, create_task for to-dos with optional due date. "Remind me to X tomorrow at 3pm" → create_event (it has reminders) NOT a pomodoro.
+• WRITING — short capture → create_note. Numbered/atomic idea → create_card. Long-form draft, chapter, paper, article → create_catalyst_document (or run_agent with agent_type='author' to draft from existing notes).
+• KNOWLEDGE LOOKUPS → search_knowledge for fuzzy semantic matches; deep_search when the user wants the exact line/quote.
+• OPEN ITEMS → open_note / open_card / open_in_catalyst (NEVER fabricate /notes/<id> URLs).
+• LEARNING HUB → find_book.
+• WEB → web_search for fresh info.
+• MEMORY → save_memory for stable facts about the user, recall_memory before asking them to repeat themselves, forget_memory if they ask you to drop something.
+• ADMIN — admin_summary only if user is admin (read-only).
 
 WORKFLOW for "open / find / show me the [note|card|document] that says X":
 1. Call deep_search with the user's phrase to find the exact line(s) and matching item(s).
@@ -110,6 +126,7 @@ Rules:
 - Search before answering questions about the user's own data.
 - When asked to "remember", "save", "note", "jot down" — actually create the note/card.
 - When asked to "schedule", "remind", "block time" — actually create the task/event.
+- When asked to "set a timer / start a pomodoro / focus for N minutes" — call start_pomodoro_timer. Do NOT create a task.
 - When asked to "draft", "write", "compose a document/chapter/article" — create a catalyst_document and navigate to /app/catalyst.
 - When asked to "find a book" — call find_book and offer to open the Learning Hub.
 - After tool calls, give a tight natural-language summary of what you did. Cite titles. Use markdown sparingly.
@@ -391,6 +408,37 @@ const tools = [
         },
         required: ["agent_type"],
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "start_pomodoro_timer",
+      description: "Start the user's Focus Pomodoro timer for a custom duration. Use this whenever the user says 'set a timer', 'start a pomodoro', 'focus for N minutes', 'deep work block', 'study session', 'time-box me for X'. Do NOT use create_task for timer requests. Opens the Focus sidebar/sheet so the user sees the countdown.",
+      parameters: {
+        type: "object",
+        properties: {
+          minutes: { type: "number", description: "Duration in minutes (1-180). Defaults to 25 (classic Pomodoro)." },
+          mode: { type: "string", enum: ["work", "short-break", "long-break"], description: "Timer mode. Defaults to 'work'." },
+          task_title: { type: "string", description: "Optional label for what the user is focusing on (shown in the timer UI)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "pause_pomodoro_timer",
+      description: "Pause the running Focus Pomodoro timer. Use when the user says 'pause my timer', 'hold on', 'stop the pomodoro for a sec'.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reset_pomodoro_timer",
+      description: "Stop and reset the Focus Pomodoro timer back to its preset. Use for 'cancel my timer', 'stop focusing', 'reset the pomodoro'.",
+      parameters: { type: "object", properties: {} },
     },
   },
 ];
@@ -782,6 +830,25 @@ async function executeTool(
           note: `Agent triggered. It runs in the background and will post a notification (and, for the Author Agent, drop the finished document into Catalyst) when done.`,
         };
       }
+      case "start_pomodoro_timer": {
+        const minutes = Math.min(Math.max(Number(args.minutes) || 25, 1), 180);
+        const mode = ["work", "short-break", "long-break"].includes(args.mode) ? args.mode : "work";
+        const taskTitle = args.task_title ? String(args.task_title).slice(0, 200) : null;
+        return {
+          ok: true,
+          minutes,
+          mode,
+          task_title: taskTitle,
+          client_action: { type: "start_pomodoro", payload: { minutes, mode, taskTitle } },
+          note: `Pomodoro started for ${minutes} minute${minutes === 1 ? "" : "s"}${taskTitle ? ` on "${taskTitle}"` : ""}.`,
+        };
+      }
+      case "pause_pomodoro_timer": {
+        return { ok: true, client_action: { type: "pause_pomodoro" }, note: "Timer paused." };
+      }
+      case "reset_pomodoro_timer": {
+        return { ok: true, client_action: { type: "reset_pomodoro" }, note: "Timer reset." };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
@@ -916,6 +983,7 @@ Deno.serve(async (req) => {
     const assistantParts: any[] = [];
     let finalText = "";
     let navigateTo: string | null = null;
+    const clientActions: any[] = [];
 
     for (let step = 0; step < 12; step++) {
       const res = await fetch(GATEWAY_URL, {
@@ -941,6 +1009,7 @@ Deno.serve(async (req) => {
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
           const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader);
           if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
+          if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
@@ -957,7 +1026,7 @@ Deno.serve(async (req) => {
       thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
     });
 
-    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, model_used: model, deep_think: model === MODEL_DEEP }), {
+    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

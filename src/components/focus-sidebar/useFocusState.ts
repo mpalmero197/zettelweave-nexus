@@ -356,6 +356,58 @@ export function useFocusState() {
     setTotalSeconds(s);
   }, []);
 
+  // ── ALICE remote control ─────────────────────────────────────────────
+  // ALICE dispatches `alice:start_pomodoro` / `pause_pomodoro` / `reset_pomodoro`
+  // when the user asks her to drive the timer.
+  useEffect(() => {
+    const onStart = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const minutes = Math.min(Math.max(Number(detail.minutes) || 25, 1), 180);
+      const newMode = ['work', 'short-break', 'long-break'].includes(detail.mode) ? detail.mode : 'work';
+      const taskTitle = typeof detail.taskTitle === 'string' ? detail.taskTitle.trim() : '';
+
+      if (taskTitle) {
+        const taskId = `alice-${Date.now()}`;
+        setTasks(prev => [
+          { id: taskId, title: taskTitle, priority: 'medium', completed: false, linkedCardIds: [], linkedNoteIds: [], pomodoroMinutes: 0 },
+          ...prev,
+        ]);
+        setActiveTaskId(taskId);
+      }
+
+      setMode(newMode as 'work' | 'short-break' | 'long-break');
+      const secs = minutes * 60;
+      setSeconds(secs);
+      setTotalSeconds(secs);
+      setIsRunning(true);
+      if (newMode === 'work') setDndActive(true);
+
+      window.dispatchEvent(new CustomEvent('alice:open-focus-sidebar'));
+      toast.success(`Pomodoro started — ${minutes} minute${minutes === 1 ? '' : 's'}`, {
+        description: taskTitle ? `Focusing on: ${taskTitle}` : undefined,
+      });
+    };
+    const onPause = () => { setIsRunning(false); toast.info('Timer paused'); };
+    const onReset = () => {
+      setIsRunning(false);
+      setAutoStartCountdown(null);
+      const presetSecs = PRESETS[mode];
+      setSeconds(presetSecs);
+      setTotalSeconds(presetSecs);
+      setDndActive(false);
+      toast.info('Timer reset');
+    };
+
+    window.addEventListener('alice:start_pomodoro', onStart);
+    window.addEventListener('alice:pause_pomodoro', onPause);
+    window.addEventListener('alice:reset_pomodoro', onReset);
+    return () => {
+      window.removeEventListener('alice:start_pomodoro', onStart);
+      window.removeEventListener('alice:pause_pomodoro', onPause);
+      window.removeEventListener('alice:reset_pomodoro', onReset);
+    };
+  }, [mode]);
+
   return {
     tasks, setTasks, activeTaskId, setActiveTaskId,
     mode, seconds, totalSeconds, isRunning, cycle, dndActive,
