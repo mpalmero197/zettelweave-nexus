@@ -1009,6 +1009,7 @@ Deno.serve(async (req) => {
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
           const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader);
           if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
+          if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
