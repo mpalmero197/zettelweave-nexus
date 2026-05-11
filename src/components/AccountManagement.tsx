@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain, Bell } from 'lucide-react';
+import { AliceMemoryPanel } from '@/components/alice/AliceMemoryPanel';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
