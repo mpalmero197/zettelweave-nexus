@@ -627,7 +627,18 @@ Deno.serve(async (req) => {
       .limit(40);
 
     const nowIso = new Date().toISOString();
-    const dateBlock = `\n\nCURRENT SERVER TIME (authoritative reference): ${nowIso} UTC. For anything time-sensitive in the user's locale, still call get_current_datetime with their time zone.`;
+    let localStr = "";
+    if (userTimeZone) {
+      try {
+        localStr = new Intl.DateTimeFormat(userLocale, {
+          timeZone: userTimeZone, weekday: "long", year: "numeric", month: "long",
+          day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+        }).format(new Date());
+      } catch { /* invalid tz, ignore */ }
+    }
+    const dateBlock = userTimeZone
+      ? `\n\nCURRENT TIME — User's local time zone is ${userTimeZone} (auto-detected from their browser). It is currently ${localStr || nowIso} for them. UTC reference: ${nowIso}. Use this for any date/time question by default; only call get_current_datetime if you need a different time zone.`
+      : `\n\nCURRENT TIME — UTC: ${nowIso}. The user has NOT shared a time zone. If they ask for the current date/time and don't specify a city/region, ASK them where they are (city is enough), then call get_current_datetime with the resolved IANA time zone before answering. Do NOT answer with UTC for a personal question.`;
     const adminBlock = isAdmin
       ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
       : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
