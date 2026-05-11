@@ -136,7 +136,7 @@ export function useJarvis(initialThreadId?: string | null) {
       // Append assistant message
       setMessages((m) => [...m, {
         id: `tmp-asst-${Date.now()}`, role: "assistant",
-        parts: data.parts || [], created_at: new Date().toISOString(),
+        parts: extractPlans(data.parts || []), created_at: new Date().toISOString(),
       }]);
       // ALICE may request navigation as part of acting on the user's behalf
       if (data?.navigate_to && typeof data.navigate_to === "string") {
