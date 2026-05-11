@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { cn } from "@/lib/utils";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
