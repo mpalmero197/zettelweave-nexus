@@ -1156,11 +1156,21 @@ async function executeTool(
         if (!receiver || !msg) return { error: "receiver_id and message required" };
         const { data: friendCheck } = await supabase.rpc("are_friends", { _user_id_1: userId, _user_id_2: receiver });
         if (friendCheck !== true) return { error: "Not friends with that user — cannot send message." };
+        if (args.confirmed !== true) {
+          return {
+            ok: true,
+            preview: true,
+            requires_confirmation: true,
+            receiver_id: receiver,
+            message: msg.slice(0, 4000),
+            note: "PREVIEW ONLY — message NOT sent. Read the message back to the user verbatim and ask them to confirm before calling again with confirmed=true.",
+          };
+        }
         const { data, error } = await supabase.from("chat_messages").insert({
           sender_id: userId, receiver_id: receiver, message: msg.slice(0, 4000), sender_type: "user",
         }).select("id").single();
         if (error) return { error: error.message };
-        return { ok: true, id: data.id };
+        return { ok: true, sent: true, id: data.id, note: "Message delivered." };
       }
       case "start_recording": {
         const recording_type = ["audio","video","screen"].includes(args.recording_type) ? args.recording_type : "audio";
@@ -1168,8 +1178,7 @@ async function executeTool(
         return {
           ok: true,
           client_action: { type: "start_recording", payload: { recording_type, title } },
-          navigate_to: "/app/recorder",
-          note: `Recorder armed for ${recording_type}.`,
+          note: `Recording will start after a 3-second countdown.`,
         };
       }
       default:
