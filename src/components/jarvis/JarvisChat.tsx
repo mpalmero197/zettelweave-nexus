@@ -3,8 +3,9 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe } from "lucide-react";
+import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +85,53 @@ export function JarvisChat({ compact = false }: Props) {
     await sendMessage(text);
     taRef.current?.focus();
   };
+
+  // Speech-to-text (Web Speech API). Tap mic to dictate; tap again to stop and send.
+  const recognitionRef = useRef<any>(null);
+  const [listening, setListening] = useState(false);
+  const baseInputRef = useRef("");
+
+  const toggleDictation = () => {
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast.error("Voice input isn't supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    if (listening) {
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+    baseInputRef.current = input ? input + " " : "";
+    rec.onresult = (e: any) => {
+      let interim = "";
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) final += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      if (final) baseInputRef.current += final + " ";
+      setInput((baseInputRef.current + interim).trimStart());
+    };
+    rec.onerror = (e: any) => {
+      if (e?.error && e.error !== "no-speech" && e.error !== "aborted") {
+        toast.error(`Voice input error: ${e.error}`);
+      }
+    };
+    rec.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = rec;
+    setListening(true);
+    try { rec.start(); } catch { setListening(false); }
+  };
+
+  useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* ignore */ } }, []);
 
   return (
     <div className={cn("flex h-full bg-background", compact && "rounded-lg border border-border overflow-hidden")}>
@@ -202,6 +250,17 @@ export function JarvisChat({ compact = false }: Props) {
               className={cn("resize-none", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[40px] max-h-40")}
               disabled={sending}
             />
+            <Button
+              type="button"
+              onClick={toggleDictation}
+              size="icon"
+              variant={listening ? "destructive" : "outline"}
+              className={cn("shrink-0", compact && "h-9 w-9")}
+              aria-label={listening ? "Stop dictation" : "Dictate to ALICE"}
+              title={listening ? "Stop dictation" : "Dictate to ALICE"}
+            >
+              {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
               <Send className="h-4 w-4" />
             </Button>
