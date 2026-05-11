@@ -711,6 +711,8 @@ Deno.serve(async (req) => {
     const userTimeZone: string = String(body.timeZone || "").trim();
     const userLocale: string = String(body.locale || "en-US").trim();
     const forceDeepThink: boolean = body.deepThink === true;
+    const screen: { route?: string; regions?: Array<{ id: string; label: string; data: any }> } =
+      (body.screen && typeof body.screen === "object") ? body.screen : {};
     let threadId: string | null = body.threadId || null;
     if (!userMessage) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
