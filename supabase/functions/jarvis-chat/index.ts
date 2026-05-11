@@ -598,6 +598,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const userMessage: string = String(body.message || "").trim();
+    const userTimeZone: string = String(body.timeZone || "").trim();
+    const userLocale: string = String(body.locale || "en-US").trim();
     let threadId: string | null = body.threadId || null;
     if (!userMessage) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
