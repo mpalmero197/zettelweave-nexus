@@ -354,6 +354,17 @@ async function executeTool(
         }
         if (!path) return { error: "Provide tab or path" };
         if (path.startsWith("/admin")) return { error: "ALICE cannot navigate to admin" };
+        // Validate: only allow known top-level routes. Reject invented per-item routes
+        // like "/notes/<id>" or "/cards/<id>" that would 404 — use open_note/open_card instead.
+        const ALLOWED = /^\/(app(\/[\w-]+)?(\?.*)?|settings|subscription|install|search)(\/.*)?$/;
+        if (!ALLOWED.test(path)) {
+          return { error: `Invalid path "${path}". Use a tab id, or call open_note / open_card / open_in_catalyst for individual items.` };
+        }
+        // Extra safety: /app/<tab> must be a valid tab
+        const tabMatch = path.match(/^\/app\/([\w-]+)/);
+        if (tabMatch && !VALID_TABS.has(tabMatch[1])) {
+          return { error: `Unknown tab "${tabMatch[1]}"` };
+        }
         return { ok: true, navigate_to: path };
       }
       case "search_knowledge": {
