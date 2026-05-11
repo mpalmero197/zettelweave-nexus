@@ -15,20 +15,8 @@ import { GoogleDriveDialog } from "./dialogs/GoogleDriveDialog";
 import { GenericImportDialog, type GenericImportConfig } from "./dialogs/GenericImportDialog";
 import { useUserConnections } from "@/hooks/useUserConnections";
 
-// Providers that support real per-user OAuth ("Sign in with…") via our edge functions.
-// Clicking Connect on these opens a popup → user grants access → tokens saved.
-const OAUTH_PROVIDERS: Record<string, { provider: string; label: string }> = {
-  microsoft:        { provider: "microsoft", label: "Microsoft 365" },
-  outlook:          { provider: "microsoft", label: "Microsoft 365" },
-  "outlook-cal":    { provider: "microsoft", label: "Microsoft 365" },
-  onedrive:         { provider: "microsoft", label: "Microsoft 365" },
-  onenote:          { provider: "microsoft", label: "Microsoft 365" },
-  google:           { provider: "google",    label: "Google" },
-  "google-drive":   { provider: "google",    label: "Google" },
-  "google-calendar":{ provider: "google",    label: "Google" },
-  "google-keep":    { provider: "google",    label: "Google" },
-  notion:           { provider: "notion",    label: "Notion" },
-};
+// OAuth backbone exists but is temporarily disabled — all connectors use file import for now.
+const OAUTH_PROVIDERS: Record<string, { provider: string; label: string }> = {};
 
 // File-based connectors share a unified import dialog so adding new ones is trivial.
 const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
@@ -39,6 +27,8 @@ const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
   "outlook-cal": { id: "outlook-cal",   name: "Outlook Calendar",icon: "🗓️", accept: ".ics,.ical",           instructions: "In Outlook → File → Save Calendar (.ics). Each event becomes a tagged note." },
   onedrive:      { id: "onedrive",      name: "OneDrive",        icon: "☁️", accept: ".md,.txt,.html,.csv,.json,.docx", instructions: "Download files from OneDrive (web or desktop) and drop them here. Most text formats supported." },
   "google-keep": { id: "google-keep",   name: "Google Keep",     icon: "🟡", accept: ".json,.html,.txt",     instructions: "In Google Takeout, request a Keep export. Drop the resulting JSON/HTML files here.", docsUrl: "https://takeout.google.com/" },
+  "google-drive":    { id: "google-drive",    name: "Google Drive",    icon: "📁", accept: ".md,.txt,.html,.csv,.json,.docx", instructions: "Download files from Google Drive (File → Download) and drop them here.", docsUrl: "https://support.google.com/drive/answer/2423534" },
+  "google-calendar": { id: "google-calendar", name: "Google Calendar", icon: "📅", accept: ".ics,.ical",                       instructions: "In Google Calendar → Settings → Import & export → Export. Drop the .ics file here.", docsUrl: "https://support.google.com/calendar/answer/37111" },
   trello:        { id: "trello",        name: "Trello",          icon: "📋", accept: ".json",                instructions: "In Trello → Show menu → ⋯ More → Print and Export → Export JSON. Each card becomes a note." },
   roam:          { id: "roam",          name: "Roam Research",   icon: "🧠", accept: ".json,.md",            instructions: "In Roam → ⋯ → Export All → JSON or Markdown. Drop the export here." },
   logseq:        { id: "logseq",        name: "Logseq",          icon: "🪵", accept: ".md,.json",            instructions: "Select pages from your Logseq graph (the markdown files in /pages)." },
@@ -55,15 +45,15 @@ const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
 };
 
 const INTEGRATIONS: Integration[] = [
-  // True OAuth providers — user clicks Connect, signs in to their own account, grants access.
-  { id: "notion",          name: "Notion",           description: "Sign in with Notion to read your pages and databases live — no exports needed.", icon: "📝", category: "productivity",  status: "available", color: "#000000", setupType: "oauth" },
-  { id: "google-drive",    name: "Google Drive",     description: "Sign in with Google to browse and import your Drive files.",                       icon: "📁", category: "storage",       status: "available", color: "#0F9D58", setupType: "oauth" },
-  { id: "google-calendar", name: "Google Calendar",  description: "Sign in with Google to sync your calendar two-way.",                               icon: "📅", category: "productivity",  status: "available", color: "#4285F4", setupType: "oauth" },
-  { id: "google-keep",     name: "Google Keep",      description: "Sign in with Google to import your Keep notes.",                                   icon: "🟡", category: "productivity",  status: "available", color: "#FBBC04", setupType: "oauth" },
-  { id: "outlook",         name: "Outlook",          description: "Sign in with Microsoft to read and send mail from PendragonX.",                    icon: "📧", category: "communication", status: "available", color: "#0072C6", setupType: "oauth" },
-  { id: "outlook-cal",     name: "Outlook Calendar", description: "Sign in with Microsoft to sync your Outlook calendar.",                            icon: "🗓️", category: "productivity",  status: "available", color: "#0072C6", setupType: "oauth" },
-  { id: "onedrive",        name: "OneDrive",         description: "Sign in with Microsoft to browse and import your OneDrive files.",                 icon: "☁️", category: "storage",       status: "available", color: "#0078D4", setupType: "oauth" },
-  { id: "onenote",         name: "OneNote",          description: "Sign in with Microsoft to read your OneNote notebooks.",                           icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "oauth" },
+  // File-import connectors (OAuth backbone exists but is currently disabled in UI).
+  { id: "notion",          name: "Notion",           description: "Import Notion exports (Markdown & CSV) into your knowledge base.",         icon: "📝", category: "productivity",  status: "available", color: "#000000", setupType: "file-import" },
+  { id: "google-drive",    name: "Google Drive",     description: "Import files downloaded from Google Drive.",                                icon: "📁", category: "storage",       status: "available", color: "#0F9D58", setupType: "file-import" },
+  { id: "google-calendar", name: "Google Calendar",  description: "Import a Google Calendar .ics export — each event becomes a tagged note.", icon: "📅", category: "productivity",  status: "available", color: "#4285F4", setupType: "file-import" },
+  { id: "google-keep",     name: "Google Keep",      description: "Import Google Keep notes via Google Takeout export.",                       icon: "🟡", category: "productivity",  status: "available", color: "#FBBC04", setupType: "file-import" },
+  { id: "outlook",         name: "Outlook",          description: "Import Outlook messages (.eml / .msg) as notes.",                           icon: "📧", category: "communication", status: "available", color: "#0072C6", setupType: "file-import" },
+  { id: "outlook-cal",     name: "Outlook Calendar", description: "Import an Outlook calendar .ics export — each event becomes a note.",      icon: "🗓️", category: "productivity",  status: "available", color: "#0072C6", setupType: "file-import" },
+  { id: "onedrive",        name: "OneDrive",         description: "Import files downloaded from OneDrive.",                                    icon: "☁️", category: "storage",       status: "available", color: "#0078D4", setupType: "file-import" },
+  { id: "onenote",         name: "OneNote",          description: "Import OneNote sections exported as HTML.",                                 icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "file-import" },
 
   // Connector-based / API key (legacy paths kept)
   { id: "todoist",  name: "Todoist",           description: "Sync tasks between PendragonX Task Manager and Todoist.",                                 icon: "✅", category: "productivity",  status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
