@@ -827,10 +827,6 @@ const Index = () => {
                   </PremiumGate>
                 </TabsContent>
 
-                <TabsContent value="knowledge-chat" className="mt-0">
-                  <KnowledgeChat />
-                </TabsContent>
-
                 </Suspense>
               </div>
 
