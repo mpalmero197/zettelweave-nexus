@@ -360,26 +360,17 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
             existingVideoUrl={videoUrl}
           />
 
-          <div className="flex justify-between pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAutoGenerate}
-              disabled={isGenerating || (!title && !content)}
-              className="bg-gradient-accent hover:bg-accent-hover"
-            >
-              <Wand2 className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Generating...' : 'Auto-Generate'}
+          <div className="flex justify-end gap-2 pt-4">
+            <p className="mr-auto text-xs text-muted-foreground self-center">
+              <Wand2 className="inline h-3 w-3 mr-1" />
+              Category, number, tags & description are filled in automatically when you create.
+            </p>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
             </Button>
-            
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={!title || !content}>
-                Create
-              </Button>
-            </div>
+            <Button onClick={handleSubmit} disabled={!title || !content || isGenerating}>
+              {isGenerating ? 'Creating…' : 'Create'}
+            </Button>
           </div>
         </div>
       </DialogContent>
