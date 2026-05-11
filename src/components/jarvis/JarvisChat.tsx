@@ -3,8 +3,9 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe } from "lucide-react";
+import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { cn } from "@/lib/utils";
 
