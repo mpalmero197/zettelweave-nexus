@@ -167,11 +167,12 @@ const App = () => (
                       <Agents />
                     </Suspense>
                   } />
-                  <Route path="/jarvis" element={
-                    <Suspense fallback={<LoadingFallback message="Waking Jarvis..." />}>
+                  <Route path="/alice" element={
+                    <Suspense fallback={<LoadingFallback message="Waking ALICE..." />}>
                       <Jarvis />
                     </Suspense>
                   } />
+                  <Route path="/jarvis" element={<Navigate to="/alice" replace />} />
                   <Route path="/install" element={
                     <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
                       <Install />
