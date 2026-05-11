@@ -16,6 +16,7 @@ export function JarvisFAB() {
       {!open && (
         <Button
           onClick={() => setOpen(true)}
+          data-onboarding="alice-fab"
           className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-lg p-0"
           aria-label="Open ALICE"
         >
