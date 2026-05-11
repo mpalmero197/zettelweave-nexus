@@ -991,30 +991,32 @@ const DOCUMENT_TEMPLATES = [
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="p-3 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl shrink-0">
               <Lightbulb className="h-8 w-8 text-primary" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Catalyst</h1>
-              <p className="text-sm text-muted-foreground">Professional Writing Suite for Books, Theses & Research</p>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold truncate">Catalyst</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                Professional Writing Suite for Books, Theses &amp; Research
+              </p>
             </div>
           </div>
-          
+
           {catalystMode === 'writer' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
               <Input
                 value={documentTitle}
                 onChange={(e) => setDocumentTitle(e.target.value)}
-                className="w-64"
+                className="w-full sm:w-64 min-w-0"
                 placeholder="Document title..."
                 aria-label="Document title"
               />
-              <Badge variant="outline" className="px-3 py-1">
+              <Badge variant="outline" className="px-3 py-1 whitespace-nowrap shrink-0">
                 {wordCount.toLocaleString()} words
               </Badge>
               <span
-                className="text-xs text-muted-foreground"
+                className="text-xs text-muted-foreground whitespace-nowrap shrink-0"
                 aria-live="assertive"
               >
                 {saveDocumentMutation.isPending ? (

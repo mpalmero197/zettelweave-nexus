@@ -83,11 +83,11 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-t text-xs text-muted-foreground flex-wrap" role="status" aria-live="polite" aria-label="Document statistics">
+      <div className="flex items-center gap-x-3 gap-y-1.5 px-4 py-2 bg-muted/30 border-t text-xs text-muted-foreground flex-wrap" role="status" aria-live="polite" aria-label="Document statistics">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5">
-              <FileText className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <FileText className="h-3 w-3 shrink-0" />
               <span>{wordCount.toLocaleString()} words</span>
             </div>
           </TooltipTrigger>
@@ -101,8 +101,8 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Clock className="h-3 w-3 shrink-0" />
               <span>{readingTimeMinutes} min read</span>
             </div>
           </TooltipTrigger>
@@ -116,8 +116,8 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={`flex items-center gap-1.5 ${readabilityColor}`}>
-              <BarChart3 className="h-3 w-3" />
+            <div className={`flex items-center gap-1.5 whitespace-nowrap ${readabilityColor}`}>
+              <BarChart3 className="h-3 w-3 shrink-0" />
               <span>{readability.label} ({readability.score})</span>
             </div>
           </TooltipTrigger>
@@ -132,8 +132,8 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5">
-              <Zap className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Zap className="h-3 w-3 shrink-0" />
               <span>+{Math.max(0, sessionWords)} this session</span>
             </div>
           </TooltipTrigger>
