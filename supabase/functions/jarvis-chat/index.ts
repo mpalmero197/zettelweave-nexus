@@ -100,15 +100,22 @@ You can:
 
 You know this product intimately. Map intent → tool, ALWAYS prefer the dedicated tool over generic create_task / create_note when one fits.
 
-• POMODORO / FOCUS TIMER → start_pomodoro_timer (NOT create_task). User says "set a timer", "start a pomodoro", "focus for N minutes", "deep work block", "study session" → call start_pomodoro_timer with the requested minutes (default 25). Pause/Stop → pause_pomodoro_timer / reset_pomodoro_timer.
-• AGENDA / SCHEDULING → create_event for date+time appointments, create_task for to-dos with optional due date. "Remind me to X tomorrow at 3pm" → create_event (it has reminders) NOT a pomodoro.
-• WRITING — short capture → create_note. Numbered/atomic idea → create_card. Long-form draft, chapter, paper, article → create_catalyst_document (or run_agent with agent_type='author' to draft from existing notes).
+• POMODORO / FOCUS TIMER → start_pomodoro_timer (NOT create_task). User says "set a timer", "start a pomodoro", "focus for N minutes", "deep work block", "study session" → call start_pomodoro_timer with the requested minutes (default 25). Pause/Stop → pause_pomodoro_timer / reset_pomodoro_timer. Open the Focus sidebar → open_focus_sidebar.
+• AGENDA / SCHEDULING → create_event for date+time appointments, create_task for to-dos with optional due date. Standalone time-anchored ping ("remind me at 3pm to call mom") → create_reminder. "Remind me to X tomorrow at 3pm" with no other event semantics → create_reminder; if it's a real meeting/appointment use create_event.
+• WRITING — short capture → create_note. Numbered/atomic idea → create_card. Long-form draft, chapter, paper, article → create_catalyst_document (or run_agent with agent_type='author' to draft from existing notes). Quick scratch / brain-dump line → create_scratchpad_note. Persistent floating one-liner pad ("put it on my quick capture") → update_quick_capture.
+• ORGANIZATION → create_notebook to make a new notebook; assign_note_to_notebook to file an existing note inside one.
+• PROJECTS → create_project for a new project workspace; create_project_task for to-dos under a project (or standalone if no project).
+• MIND MAPS / CANVAS → create_mind_map (provide a hierarchical JSON tree in map_data).
+• RECORDER STUDIO → start_recording (audio | video | screen) opens the studio and arms it.
 • KNOWLEDGE LOOKUPS → search_knowledge for fuzzy semantic matches; deep_search when the user wants the exact line/quote.
 • OPEN ITEMS → open_note / open_card / open_in_catalyst (NEVER fabricate /notes/<id> URLs).
-• LEARNING HUB → find_book.
+• LEARNING HUB → find_book to search; add_to_reading_list to save a found book to the user's library.
+• MESSENGER → send_chat_message to send a direct message to a friend (you must already know their user_id — use search_knowledge or ask).
 • WEB → web_search for fresh info.
 • MEMORY → save_memory for stable facts about the user, recall_memory before asking them to repeat themselves, forget_memory if they ask you to drop something.
 • ADMIN — admin_summary only if user is admin (read-only).
+
+You are a *superuser* of PendragonX. If a user asks for ANY action this product supports, prefer the dedicated tool. Never describe the steps and stop — execute, then summarize.
 
 WORKFLOW for "open / find / show me the [note|card|document] that says X":
 1. Call deep_search with the user's phrase to find the exact line(s) and matching item(s).
@@ -436,9 +443,184 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "reset_pomodoro_timer",
-      description: "Stop and reset the Focus Pomodoro timer back to its preset. Use for 'cancel my timer', 'stop focusing', 'reset the pomodoro'.",
+      name: "open_focus_sidebar",
+      description: "Open the Focus / Pomodoro sidebar so the user sees the timer UI without starting a new countdown.",
       parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_scratchpad_note",
+      description: "Append a new line/entry to the user's Scratchpad (quick brain-dump area). Use for 'jot this in my scratchpad', 'scratch note: ...'.",
+      parameters: {
+        type: "object",
+        properties: { content: { type: "string" } },
+        required: ["content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_quick_capture",
+      description: "Replace (or, with append=true, append to) the user's persistent Quick Capture pad — a single always-on scratch line shown across the app.",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string" },
+          append: { type: "boolean", description: "If true, append to existing capture text on a new line instead of replacing." },
+        },
+        required: ["content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_notebook",
+      description: "Create a new notebook to organize notes.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          description: { type: "string" },
+          color: { type: "string", description: "Hex color, e.g. #3b82f6" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "assign_note_to_notebook",
+      description: "Move/file an existing note into a notebook. Both must already exist and belong to the user.",
+      parameters: {
+        type: "object",
+        properties: {
+          note_id: { type: "string" },
+          notebook_id: { type: "string" },
+        },
+        required: ["note_id", "notebook_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_project",
+      description: "Create a new Project workspace (for multi-task initiatives).",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          description: { type: "string" },
+          due_date: { type: "string", description: "YYYY-MM-DD" },
+          priority: { type: "string", enum: ["low","medium","high"] },
+          color: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_project_task",
+      description: "Create a task inside a project (or standalone if no project_id). Distinct from generic create_task; use this when the user is working in Projects.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          project_id: { type: "string" },
+          due_date: { type: "string", description: "YYYY-MM-DD (required by schema, defaults to today if omitted)" },
+          priority: { type: "string", enum: ["low","medium","high"] },
+          status: { type: "string", enum: ["todo","in_progress","done"] },
+          notes: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_mind_map",
+      description: "Create a new Mind Map. Provide a hierarchical JSON tree under map_data: { root: { id, label, children: [...] } }. Keep depth ≤ 3.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          map_data: { type: "object", description: "Hierarchical tree. Example: { root: { id: 'r', label: 'Topic', children: [{id:'a', label:'Idea A', children:[]}] } }" },
+        },
+        required: ["title", "map_data"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_reminder",
+      description: "Create a standalone time-anchored reminder ping. Use when user wants a notification at a specific moment without a full calendar event.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "What to remind them about." },
+          remind_at: { type: "string", description: "ISO 8601 timestamp (UTC) when to ping. Compute from user's local time + their tz." },
+        },
+        required: ["title", "remind_at"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_to_reading_list",
+      description: "Save a book (from find_book results) to the user's Learning Hub reading list.",
+      parameters: {
+        type: "object",
+        properties: {
+          book_key: { type: "string", description: "Open Library 'key' field, e.g. /works/OL12345W" },
+          title: { type: "string" },
+          author: { type: "string" },
+          year: { type: "number" },
+          cover_id: { type: "number" },
+          status: { type: "string", enum: ["want_to_read","reading","read"] },
+        },
+        required: ["book_key", "title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_chat_message",
+      description: "Send a direct chat message to a friend (must already be an accepted friend). Get receiver_id from the user explicitly or from prior context — do NOT guess.",
+      parameters: {
+        type: "object",
+        properties: {
+          receiver_id: { type: "string", description: "UUID of the friend to message." },
+          message: { type: "string" },
+        },
+        required: ["receiver_id", "message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "start_recording",
+      description: "Open the Recorder Studio and arm a recording session of the requested type. Does NOT auto-start capture (user grants mic/screen permission in the UI).",
+      parameters: {
+        type: "object",
+        properties: {
+          recording_type: { type: "string", enum: ["audio","video","screen"], description: "What to record." },
+          title: { type: "string", description: "Optional default title." },
+        },
+        required: ["recording_type"],
+      },
     },
   },
 ];
@@ -848,6 +1030,143 @@ async function executeTool(
       }
       case "reset_pomodoro_timer": {
         return { ok: true, client_action: { type: "reset_pomodoro" }, note: "Timer reset." };
+      }
+      case "open_focus_sidebar": {
+        return { ok: true, client_action: { type: "open_focus_sidebar" }, note: "Focus sidebar opened." };
+      }
+      case "create_scratchpad_note": {
+        const content = String(args.content || "").trim();
+        if (!content) return { error: "content required" };
+        const { data, error } = await supabase.from("scratchpad_notes").insert({
+          user_id: userId, content,
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, navigate_to: "/app/scratchpad" };
+      }
+      case "update_quick_capture": {
+        const content = String(args.content || "");
+        if (!content.trim()) return { error: "content required" };
+        const { data: existing } = await supabase.from("quick_captures")
+          .select("id,content").eq("user_id", userId).maybeSingle();
+        if (existing?.id) {
+          const next = args.append ? `${existing.content || ""}\n${content}`.slice(0, 20000) : content;
+          const { error } = await supabase.from("quick_captures")
+            .update({ content: next, updated_at: new Date().toISOString() }).eq("id", existing.id);
+          if (error) return { error: error.message };
+          return { ok: true, id: existing.id, appended: !!args.append };
+        }
+        const { data, error } = await supabase.from("quick_captures")
+          .insert({ user_id: userId, content }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, appended: false };
+      }
+      case "create_notebook": {
+        const { data, error } = await supabase.from("notebooks").insert({
+          user_id: userId,
+          name: String(args.name).slice(0, 120),
+          description: args.description ? String(args.description).slice(0, 500) : null,
+          color: args.color || "#3b82f6",
+        }).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, navigate_to: "/app/notebooks" };
+      }
+      case "assign_note_to_notebook": {
+        const noteId = String(args.note_id || "").trim();
+        const nbId = String(args.notebook_id || "").trim();
+        if (!noteId || !nbId) return { error: "note_id and notebook_id required" };
+        const { error } = await supabase.from("notes")
+          .update({ notebook_id: nbId }).eq("id", noteId);
+        if (error) return { error: error.message };
+        return { ok: true };
+      }
+      case "create_project": {
+        const { data, error } = await supabase.from("projects").insert({
+          user_id: userId,
+          name: String(args.name).slice(0, 200),
+          description: args.description || null,
+          due_date: args.due_date || null,
+          priority: args.priority || "medium",
+          color: args.color || "#3b82f6",
+        }).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, navigate_to: "/app/projects" };
+      }
+      case "create_project_task": {
+        const due = args.due_date || new Date().toISOString().slice(0, 10);
+        const { data, error } = await supabase.from("project_tasks").insert({
+          user_id: userId,
+          name: String(args.name).slice(0, 200),
+          project_id: args.project_id || null,
+          due_date: due,
+          priority: args.priority || "medium",
+          status: args.status || "todo",
+          notes: args.notes || null,
+        }).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, navigate_to: "/app/projects" };
+      }
+      case "create_mind_map": {
+        const map_data = args.map_data && typeof args.map_data === "object" ? args.map_data : {};
+        const { data, error } = await supabase.from("mind_maps").insert({
+          user_id: userId,
+          title: String(args.title).slice(0, 200),
+          description: args.description || null,
+          map_data,
+        }).select("id,title").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, title: data.title, navigate_to: "/app/canvas" };
+      }
+      case "create_reminder": {
+        const title = String(args.title || "").trim();
+        const remindAt = String(args.remind_at || "").trim();
+        if (!title || !remindAt) return { error: "title and remind_at required" };
+        const when = new Date(remindAt);
+        if (Number.isNaN(when.getTime())) return { error: "remind_at must be a valid ISO timestamp" };
+        const { data, error } = await supabase.from("reminders").insert({
+          user_id: userId,
+          item_type: "alice",
+          item_id: crypto.randomUUID(),
+          item_title: title.slice(0, 200),
+          remind_at: when.toISOString(),
+          offset_minutes: 0,
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, remind_at: when.toISOString() };
+      }
+      case "add_to_reading_list": {
+        const { data, error } = await supabase.from("reading_list").insert({
+          user_id: userId,
+          book_key: String(args.book_key),
+          title: String(args.title).slice(0, 300),
+          author: args.author || null,
+          year: args.year || null,
+          cover_id: args.cover_id || null,
+          status: args.status || "want_to_read",
+        }).select("id,title").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, title: data.title, navigate_to: "/app/learning" };
+      }
+      case "send_chat_message": {
+        const receiver = String(args.receiver_id || "").trim();
+        const msg = String(args.message || "").trim();
+        if (!receiver || !msg) return { error: "receiver_id and message required" };
+        const { data: friendCheck } = await supabase.rpc("are_friends", { _user_id_1: userId, _user_id_2: receiver });
+        if (friendCheck !== true) return { error: "Not friends with that user — cannot send message." };
+        const { data, error } = await supabase.from("chat_messages").insert({
+          sender_id: userId, receiver_id: receiver, message: msg.slice(0, 4000), sender_type: "user",
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id };
+      }
+      case "start_recording": {
+        const recording_type = ["audio","video","screen"].includes(args.recording_type) ? args.recording_type : "audio";
+        const title = args.title ? String(args.title).slice(0, 200) : null;
+        return {
+          ok: true,
+          client_action: { type: "start_recording", payload: { recording_type, title } },
+          navigate_to: "/app/recorder",
+          note: `Recorder armed for ${recording_type}.`,
+        };
       }
       default:
         return { error: `Unknown tool ${name}` };
