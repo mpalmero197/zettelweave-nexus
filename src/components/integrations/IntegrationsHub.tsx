@@ -13,6 +13,22 @@ import { TodoistDialog } from "./dialogs/TodoistDialog";
 import { GoogleCalendarDialog } from "./dialogs/GoogleCalendarDialog";
 import { GoogleDriveDialog } from "./dialogs/GoogleDriveDialog";
 import { GenericImportDialog, type GenericImportConfig } from "./dialogs/GenericImportDialog";
+import { useUserConnections } from "@/hooks/useUserConnections";
+
+// Providers that support real per-user OAuth ("Sign in with…") via our edge functions.
+// Clicking Connect on these opens a popup → user grants access → tokens saved.
+const OAUTH_PROVIDERS: Record<string, { provider: string; label: string }> = {
+  microsoft:        { provider: "microsoft", label: "Microsoft 365" },
+  outlook:          { provider: "microsoft", label: "Microsoft 365" },
+  "outlook-cal":    { provider: "microsoft", label: "Microsoft 365" },
+  onedrive:         { provider: "microsoft", label: "Microsoft 365" },
+  onenote:          { provider: "microsoft", label: "Microsoft 365" },
+  google:           { provider: "google",    label: "Google" },
+  "google-drive":   { provider: "google",    label: "Google" },
+  "google-calendar":{ provider: "google",    label: "Google" },
+  "google-keep":    { provider: "google",    label: "Google" },
+  notion:           { provider: "notion",    label: "Notion" },
+};
 
 // File-based connectors share a unified import dialog so adding new ones is trivial.
 const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
@@ -39,21 +55,23 @@ const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
 };
 
 const INTEGRATIONS: Integration[] = [
-  // Connector-based (OAuth / API key) — kept as-is
-  { id: "google-calendar", name: "Google Calendar", description: "Two-way sync: PendragonX calendar events appear in Google Calendar and vice versa.", icon: "📅", category: "productivity", status: "available", color: "#4285F4", setupType: "api-key", docsUrl: "https://console.cloud.google.com/apis/credentials" },
-  { id: "google-drive", name: "Google Drive", description: "Attach and sync files directly from your Google Drive.", icon: "📁", category: "storage", status: "available", color: "#0F9D58", setupType: "api-key", docsUrl: "https://console.cloud.google.com/apis/credentials" },
-  { id: "todoist", name: "Todoist", description: "Sync tasks between PendragonX Task Manager and Todoist.", icon: "✅", category: "productivity", status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
-  { id: "slack", name: "Slack", description: "Send notes and cards to Slack channels via webhook.", icon: "💬", category: "communication", status: "available", color: "#4A154B", setupType: "webhook", docsUrl: "https://api.slack.com/messaging/webhooks" },
-  { id: "webhooks", name: "Zapier / Webhooks", description: "Generic webhook URL — connect 5,000+ apps via Zapier, Make, n8n.", icon: "🔗", category: "productivity", status: "available", color: "#FF4A00", setupType: "webhook", docsUrl: "https://zapier.com/app/zaps" },
+  // True OAuth providers — user clicks Connect, signs in to their own account, grants access.
+  { id: "notion",          name: "Notion",           description: "Sign in with Notion to read your pages and databases live — no exports needed.", icon: "📝", category: "productivity",  status: "available", color: "#000000", setupType: "oauth" },
+  { id: "google-drive",    name: "Google Drive",     description: "Sign in with Google to browse and import your Drive files.",                       icon: "📁", category: "storage",       status: "available", color: "#0F9D58", setupType: "oauth" },
+  { id: "google-calendar", name: "Google Calendar",  description: "Sign in with Google to sync your calendar two-way.",                               icon: "📅", category: "productivity",  status: "available", color: "#4285F4", setupType: "oauth" },
+  { id: "google-keep",     name: "Google Keep",      description: "Sign in with Google to import your Keep notes.",                                   icon: "🟡", category: "productivity",  status: "available", color: "#FBBC04", setupType: "oauth" },
+  { id: "outlook",         name: "Outlook",          description: "Sign in with Microsoft to read and send mail from PendragonX.",                    icon: "📧", category: "communication", status: "available", color: "#0072C6", setupType: "oauth" },
+  { id: "outlook-cal",     name: "Outlook Calendar", description: "Sign in with Microsoft to sync your Outlook calendar.",                            icon: "🗓️", category: "productivity",  status: "available", color: "#0072C6", setupType: "oauth" },
+  { id: "onedrive",        name: "OneDrive",         description: "Sign in with Microsoft to browse and import your OneDrive files.",                 icon: "☁️", category: "storage",       status: "available", color: "#0078D4", setupType: "oauth" },
+  { id: "onenote",         name: "OneNote",          description: "Sign in with Microsoft to read your OneNote notebooks.",                           icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "oauth" },
 
-  // File-import connectors (one-click via unified dialog)
-  { id: "notion",        name: "Notion",           description: "Import Notion pages, databases, and CSVs into your notes.",                  icon: "📝", category: "productivity",   status: "available", color: "#000000", setupType: "file-import" },
+  // Connector-based / API key (legacy paths kept)
+  { id: "todoist",  name: "Todoist",           description: "Sync tasks between PendragonX Task Manager and Todoist.",                                 icon: "✅", category: "productivity",  status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
+  { id: "slack",    name: "Slack",             description: "Send notes and cards to Slack channels via webhook.",                                     icon: "💬", category: "communication", status: "available", color: "#4A154B", setupType: "webhook", docsUrl: "https://api.slack.com/messaging/webhooks" },
+  { id: "webhooks", name: "Zapier / Webhooks", description: "Generic webhook URL — connect 5,000+ apps via Zapier, Make, n8n.",                        icon: "🔗", category: "productivity",  status: "available", color: "#FF4A00", setupType: "webhook", docsUrl: "https://zapier.com/app/zaps" },
+
+  // File-import only
   { id: "obsidian",      name: "Obsidian",         description: "Import your Obsidian vault (.md). Wikilinks and frontmatter preserved.",       icon: "💎", category: "import-export",  status: "available", color: "#7C3AED", setupType: "file-import" },
-  { id: "onenote",       name: "OneNote",          description: "Import OneNote sections exported as HTML or Markdown.",                        icon: "📓", category: "import-export",  status: "available", color: "#7719AA", setupType: "file-import" },
-  { id: "outlook",       name: "Outlook",          description: "Import Outlook emails (.eml / .msg) as searchable notes.",                     icon: "📧", category: "communication",  status: "available", color: "#0072C6", setupType: "file-import" },
-  { id: "outlook-cal",   name: "Outlook Calendar", description: "Import Outlook calendar events from .ics exports.",                            icon: "🗓️", category: "productivity",   status: "available", color: "#0072C6", setupType: "file-import" },
-  { id: "onedrive",      name: "OneDrive",         description: "Import documents and notes from your Microsoft OneDrive.",                     icon: "☁️", category: "storage",        status: "available", color: "#0078D4", setupType: "file-import" },
-  { id: "google-keep",   name: "Google Keep",      description: "Import Google Keep notes via Google Takeout export.",                          icon: "🟡", category: "productivity",   status: "available", color: "#FBBC04", setupType: "file-import" },
   { id: "trello",        name: "Trello",           description: "Import Trello cards and boards from JSON exports.",                            icon: "📋", category: "productivity",   status: "available", color: "#0079BF", setupType: "file-import" },
   { id: "roam",          name: "Roam Research",    description: "Import your Roam graph (JSON or Markdown).",                                   icon: "🧠", category: "import-export",  status: "available", color: "#1A1A1A", setupType: "file-import" },
   { id: "logseq",        name: "Logseq",           description: "Import Logseq pages (.md) into your knowledge base.",                          icon: "🪵", category: "import-export",  status: "available", color: "#002B36", setupType: "file-import" },
@@ -80,7 +98,8 @@ const CATEGORIES: { label: string; value: IntegrationCategory | "all"; icon: str
 export function IntegrationsHub() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<IntegrationCategory | "all">("all");
-  const { connectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
+  const { connectedIds: legacyConnectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
+  const oauth = useUserConnections();
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
@@ -94,9 +113,19 @@ export function IntegrationsHub() {
     return true;
   }), [category, search]);
 
-  // Stats
-  const connectedCount = connectedIds.size;
-  const healthyCount = Object.values(meta).filter((m) => m.health === "healthy").length;
+  // Treat any OAuth-connected provider as "connected" for every integration that maps to it.
+  const isConnected = useCallback((id: string) => {
+    if (legacyConnectedIds.has(id)) return true;
+    const oauthMap = OAUTH_PROVIDERS[id];
+    if (oauthMap && oauth.isConnected(oauthMap.provider)) return true;
+    return false;
+  }, [legacyConnectedIds, oauth]);
+
+  const connectedCount = useMemo(
+    () => INTEGRATIONS.filter((i) => isConnected(i.id)).length,
+    [isConnected],
+  );
+  const healthyCount = Object.values(meta).filter((m) => m.health === "healthy").length + oauth.connections.length;
   const errorCount = Object.values(meta).filter((m) => m.health === "error").length;
   const totalSynced = Object.values(meta).reduce((sum, m) => sum + (m.itemsSynced || 0), 0);
 
@@ -104,13 +133,23 @@ export function IntegrationsHub() {
   const closeDialog = useCallback(() => setDialogOpen(null), []);
 
   const handleConnect = useCallback((id: string) => {
+    const oauthMap = OAUTH_PROVIDERS[id];
+    if (oauthMap) {
+      oauth.connect(oauthMap.provider);
+      return;
+    }
     openDialog(id);
-  }, [openDialog]);
+  }, [openDialog, oauth]);
 
   const handleDisconnect = useCallback((id: string) => {
+    const oauthMap = OAUTH_PROVIDERS[id];
+    if (oauthMap && oauth.isConnected(oauthMap.provider)) {
+      oauth.disconnect(oauthMap.provider);
+      return;
+    }
     disconnect(id);
     toast.success("Disconnected successfully");
-  }, [disconnect]);
+  }, [disconnect, oauth]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -199,20 +238,28 @@ export function IntegrationsHub() {
         {/* Connected integrations first */}
         {filtered
           .sort((a, b) => {
-            const aConn = connectedIds.has(a.id) ? 0 : 1;
-            const bConn = connectedIds.has(b.id) ? 0 : 1;
+            const aConn = isConnected(a.id) ? 0 : 1;
+            const bConn = isConnected(b.id) ? 0 : 1;
             return aConn - bConn;
           })
-          .map((integration) => (
-            <IntegrationCard
-              key={integration.id}
-              integration={integration}
-              isConnected={connectedIds.has(integration.id)}
-              connectionMeta={getMeta(integration.id)}
-              onConnect={handleConnect}
-              onDisconnect={handleDisconnect}
-            />
-          ))}
+          .map((integration) => {
+            const oauthMap = OAUTH_PROVIDERS[integration.id];
+            const oauthConn = oauthMap ? oauth.getConnection(oauthMap.provider) : undefined;
+            return (
+              <IntegrationCard
+                key={integration.id}
+                integration={integration}
+                isConnected={isConnected(integration.id)}
+                connectionMeta={
+                  oauthConn
+                    ? { connectedAt: new Date(oauthConn.created_at).getTime(), lastSyncAt: oauthConn.last_synced_at ? new Date(oauthConn.last_synced_at).getTime() : undefined, health: "healthy" as const }
+                    : getMeta(integration.id)
+                }
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+              />
+            );
+          })}
       </div>
 
       {filtered.length === 0 && (
