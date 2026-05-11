@@ -132,8 +132,8 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5">
-              <Zap className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Zap className="h-3 w-3 shrink-0" />
               <span>+{Math.max(0, sessionWords)} this session</span>
             </div>
           </TooltipTrigger>
