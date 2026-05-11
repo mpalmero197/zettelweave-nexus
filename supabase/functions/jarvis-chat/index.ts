@@ -830,7 +830,7 @@ Deno.serve(async (req) => {
       thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
     });
 
-    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo }), {
+    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, model_used: model, deep_think: model === MODEL_DEEP }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
