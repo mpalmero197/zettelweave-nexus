@@ -161,7 +161,7 @@ export function MinimalSidebar({
           <Separator className="my-2" />
           
           <NavButton tab="recorder" icon={Mic} label="Recorder" premium />
-          <NavButton tab="integrations" icon={Puzzle} label="Integrations" premium />
+          <NavButton tab="integrations" icon={Puzzle} label="Connectors" premium />
           <NavButton tab="recycle" icon={Trash2} label="Recycle Bin" />
           
           {isAdmin && (
