@@ -373,6 +373,26 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "run_agent",
+      description: "Activate a specialist PendragonX agent on the user's behalf. Use this when the user asks ALICE to do something an agent specializes in — most importantly, when they ask you to write/draft/synthesize a long document in Catalyst from their notes (use agent_type='author'), or for citation analysis, research, writing feedback, content summarization, smart linking, knowledge gaps, or task extraction. ALICE will find or create the matching agent, update it with the user's topic, kick off a run, and surface the result. Always tell the user which agent you triggered and roughly how long it will take.",
+      parameters: {
+        type: "object",
+        properties: {
+          agent_type: {
+            type: "string",
+            enum: ["author","research","citation","writing_coach","content_summarizer","smart_linking","knowledge_gap","task_extraction","habit_reminder"],
+            description: "'author' = the long-form Author / Card Synthesizer agent that drafts a 4–6k word Catalyst document from the user's existing notes/cards. Use this whenever the user asks for a 'large document', 'long document', 'big writeup', 'master document', or 'synthesize my notes into a paper'.",
+          },
+          topic: { type: "string", description: "Optional. Specific topic/title for the agent to focus on. For the author agent this becomes the document title and core subject." },
+          instructions: { type: "string", description: "Optional extra guidance, tone, focus, or constraints for the agent." },
+        },
+        required: ["agent_type"],
+      },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
@@ -673,6 +693,94 @@ async function executeTool(
         const { error } = await supabase.from("alice_memories").delete().eq("id", id).eq("user_id", userId);
         if (error) return { error: error.message };
         return { ok: true };
+      }
+      case "run_agent": {
+        // Map ALICE-friendly aliases to internal agent_type values.
+        const TYPE_ALIAS: Record<string, string> = {
+          author: "card_synthesizer",
+          card_synthesizer: "card_synthesizer",
+          research: "research",
+          citation: "citation",
+          writing_coach: "writing_coach",
+          content_summarizer: "content_summarizer",
+          smart_linking: "smart_linking",
+          knowledge_gap: "knowledge_gap",
+          task_extraction: "task_extraction",
+          habit_reminder: "habit_reminder",
+        };
+        const requested = String(args.agent_type || "").trim();
+        const internalType = TYPE_ALIAS[requested];
+        if (!internalType) return { error: `Unknown agent_type "${requested}"` };
+
+        const topic = String(args.topic || "").trim().slice(0, 200);
+        const instructions = String(args.instructions || "").trim().slice(0, 1500);
+
+        // Find existing agent of this type for the user (RLS-scoped).
+        const { data: existingAgents } = await supabase
+          .from("agents")
+          .select("id,config")
+          .eq("agent_type", internalType)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        let agentId: string | null = existingAgents?.[0]?.id ?? null;
+        const baseConfig: any = (existingAgents?.[0]?.config as any) || {};
+
+        const newConfig = {
+          ...baseConfig,
+          ...(topic ? { synthesizer_title: topic } : {}),
+          ...(instructions ? { custom_instructions: instructions } : {}),
+        };
+
+        if (!agentId) {
+          const friendlyName = internalType === "card_synthesizer"
+            ? "Author Agent"
+            : internalType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          const { data: created, error: createErr } = await supabase.from("agents").insert({
+            user_id: userId,
+            agent_type: internalType,
+            name: friendlyName,
+            description: `Activated by ALICE on ${new Date().toISOString().slice(0, 10)}.`,
+            config: newConfig,
+            run_frequency_minutes: 1440,
+            is_enabled: true,
+            next_run_at: new Date(Date.now() + 1440 * 60_000).toISOString(),
+          }).select("id").single();
+          if (createErr) return { error: `Couldn't create agent: ${createErr.message}` };
+          agentId = created.id;
+        } else if (topic || instructions) {
+          await supabase.from("agents").update({ config: newConfig }).eq("id", agentId);
+        }
+
+        // Create the run row, then invoke execute-agent.
+        const { data: run, error: runErr } = await supabase.from("agent_runs").insert({
+          agent_id: agentId, user_id: userId, status: "running",
+        }).select("id").single();
+        if (runErr) return { error: `Couldn't start run: ${runErr.message}` };
+
+        // Fire-and-forget invoke: the author agent can take 30–90s and we
+        // don't want to block ALICE's reply. We pass the user's auth header
+        // so execute-agent runs under their identity and respects RLS.
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        fetch(`${supabaseUrl}/functions/v1/execute-agent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: authHeader },
+          body: JSON.stringify({ agentId, runId: run.id }),
+        }).catch((err) => console.error("execute-agent invoke failed:", err));
+
+        const navigate_to = internalType === "card_synthesizer" || internalType === "writing_coach" || internalType === "citation"
+          ? "/app/catalyst"
+          : "/app/agents";
+        const eta = internalType === "card_synthesizer" ? "60–120 seconds" : "20–60 seconds";
+        return {
+          ok: true,
+          agent_id: agentId,
+          run_id: run.id,
+          agent_type: internalType,
+          eta,
+          navigate_to,
+          note: `Agent triggered. It runs in the background and will post a notification (and, for the Author Agent, drop the finished document into Catalyst) when done.`,
+        };
       }
       default:
         return { error: `Unknown tool ${name}` };
