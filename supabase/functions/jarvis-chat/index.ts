@@ -460,7 +460,7 @@ async function executeTool(
         if (hl) params.set("q", hl.slice(0, 200));
         return { ok: true, id: data.id, title: data.title, navigate_to: `/app/cards?${params.toString()}` };
       }
-
+      case "create_note": {
         const { data, error } = await supabase.from("notes").insert({
           user_id: userId,
           title: String(args.title).slice(0, 200),
