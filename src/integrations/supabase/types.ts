@@ -1082,6 +1082,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_briefings: {
+        Row: {
+          briefing_date: string
+          created_at: string
+          headline: string
+          id: string
+          items: Json
+          read_at: string | null
+          sent_push: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          briefing_date: string
+          created_at?: string
+          headline?: string
+          id?: string
+          items?: Json
+          read_at?: string | null
+          sent_push?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          briefing_date?: string
+          created_at?: string
+          headline?: string
+          id?: string
+          items?: Json
+          read_at?: string | null
+          sent_push?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dashboard_layouts: {
         Row: {
           created_at: string
@@ -1999,6 +2035,9 @@ export type Database = {
           auto_master_docs: boolean | null
           avatar_url: string | null
           created_at: string
+          daily_briefing_enabled: boolean
+          daily_briefing_hour: number
+          daily_briefing_timezone: string
           display_name: string | null
           engagement_nudges_enabled: boolean
           id: string
@@ -2015,6 +2054,9 @@ export type Database = {
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          daily_briefing_enabled?: boolean
+          daily_briefing_hour?: number
+          daily_briefing_timezone?: string
           display_name?: string | null
           engagement_nudges_enabled?: boolean
           id?: string
@@ -2031,6 +2073,9 @@ export type Database = {
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          daily_briefing_enabled?: boolean
+          daily_briefing_hour?: number
+          daily_briefing_timezone?: string
           display_name?: string | null
           engagement_nudges_enabled?: boolean
           id?: string

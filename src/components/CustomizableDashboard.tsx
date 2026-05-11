@@ -18,6 +18,7 @@ import { QuotesWidget } from "./widgets/QuotesWidget";
 import { CustomNoteWidget } from "./widgets/CustomNoteWidget";
 import { TaskManagerWidget } from "./widgets/TaskManagerWidget";
 import { ToolHealthWidget } from "./widgets/ToolHealthWidget";
+import { DailyBriefingWidget } from "./widgets/DailyBriefingWidget";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { DashboardWidget } from "@/types/dashboard";
@@ -51,6 +52,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
         case 'documents': return <DocumentsWidget />;
         case 'database': return <DatabaseWidget />;
         case 'tool-health': return <ToolHealthWidget />;
+        case 'daily-briefing': return <DailyBriefingWidget onNavigate={onNavigate} />;
         default: return null;
       }
     })();
