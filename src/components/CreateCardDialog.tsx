@@ -176,7 +176,7 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     const cardData: any = {
       title: sanitizedTitle,
       content: sanitizedContent,
-      description: sanitizedDescription,
+      description: finalDescription,
       tags: sanitizedTags,
       category: finalCategory,
       number: finalNumber,
