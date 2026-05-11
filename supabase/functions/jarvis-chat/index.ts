@@ -632,6 +632,48 @@ async function executeTool(
           note: "Read-only summary. ALICE cannot take admin actions; advise the admin.",
         };
       }
+      case "save_memory": {
+        const kind = String(args.kind || "").trim();
+        const key = String(args.key || "").trim().slice(0, 80);
+        const value = String(args.value || "").trim().slice(0, 500);
+        if (!kind || !key || !value) return { error: "kind, key, value required" };
+        if (!["preference","fact","project","person","rule"].includes(kind)) return { error: "invalid kind" };
+        // Upsert by (user_id, kind, key)
+        const { data: existing } = await supabase.from("alice_memories")
+          .select("id").eq("user_id", userId).eq("kind", kind).eq("key", key).maybeSingle();
+        if (existing?.id) {
+          const { error } = await supabase.from("alice_memories")
+            .update({ value, source: "auto", last_used_at: new Date().toISOString() })
+            .eq("id", existing.id);
+          if (error) return { error: error.message };
+          return { ok: true, id: existing.id, updated: true };
+        }
+        const { data, error } = await supabase.from("alice_memories").insert({
+          user_id: userId, kind, key, value, source: "auto",
+        }).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, updated: false };
+      }
+      case "recall_memory": {
+        const q = String(args.query || "").trim();
+        const kind = String(args.kind || "").trim();
+        let query = supabase.from("alice_memories").select("id,kind,key,value,weight").eq("user_id", userId);
+        if (kind) query = query.eq("kind", kind);
+        if (q) {
+          const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+          query = query.or(`key.ilike.${like},value.ilike.${like}`);
+        }
+        const { data, error } = await query.order("weight", { ascending: false }).limit(20);
+        if (error) return { error: error.message };
+        return { memories: data || [] };
+      }
+      case "forget_memory": {
+        const id = String(args.id || "").trim();
+        if (!id) return { error: "id required" };
+        const { error } = await supabase.from("alice_memories").delete().eq("id", id).eq("user_id", userId);
+        if (error) return { error: error.message };
+        return { ok: true };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
