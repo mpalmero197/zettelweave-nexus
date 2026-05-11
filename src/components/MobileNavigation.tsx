@@ -4,7 +4,7 @@ import {
   FolderOpen, Trash2, BookOpen, Mic, Palette, Bot, Pencil, Search,
   BarChart3, Users, Target, Lightbulb, Bug, CreditCard, Download,
   LogOut, X, LayoutGrid, Lock, GraduationCap, Sparkles, Box, FolderKanban, Focus, Puzzle, Crown,
-  MessageSquareText,
+  
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
