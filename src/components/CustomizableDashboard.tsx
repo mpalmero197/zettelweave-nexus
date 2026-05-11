@@ -52,6 +52,7 @@ export function CustomizableDashboard({ onCreateCard, onEdit, onOpenNote, onNavi
         case 'documents': return <DocumentsWidget />;
         case 'database': return <DatabaseWidget />;
         case 'tool-health': return <ToolHealthWidget />;
+        case 'daily-briefing': return <DailyBriefingWidget onNavigate={onNavigate} />;
         default: return null;
       }
     })();
