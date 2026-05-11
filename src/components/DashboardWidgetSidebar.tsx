@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 const WIDGET_DEFINITIONS: WidgetDefinition[] = [
   { type: 'welcome', name: 'Welcome Banner', description: 'Greeting with quick capture', icon: Brain, defaultSize: { w: 2, h: 2 }, minSize: { w: 2, h: 2 } },
+  { type: 'daily-briefing', name: 'Today (Daily Briefing)', description: 'AI briefing of tasks, events & recent work with deep links', icon: Sun, defaultSize: { w: 2, h: 3 }, minSize: { w: 2, h: 2 } },
   { type: 'stats', name: 'Stats', description: 'Stat pills for cards, notes, notebooks', icon: BarChart3, defaultSize: { w: 2, h: 1 }, minSize: { w: 2, h: 1 } },
   { type: 'recent-cards', name: 'Recent Cards', description: 'Most recently updated cards', icon: FileText, defaultSize: { w: 2, h: 2 }, minSize: { w: 2, h: 2 } },
   { type: 'recent-notes', name: 'Recent Notes', description: 'Latest notes', icon: NotebookPen, defaultSize: { w: 2, h: 2 }, minSize: { w: 2, h: 2 } },
