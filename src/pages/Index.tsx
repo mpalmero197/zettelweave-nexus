@@ -678,7 +678,7 @@ const Index = () => {
                         )}
                       </div>
                     ) : cardView === "list" ? (
-                      <div className="space-y-1">
+                      <div className="space-y-3">
                         {displayedCards.map((card) => (
                           <ZettelCard
                             key={card.id}
