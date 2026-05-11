@@ -710,10 +710,12 @@ Deno.serve(async (req) => {
     const userMessage: string = String(body.message || "").trim();
     const userTimeZone: string = String(body.timeZone || "").trim();
     const userLocale: string = String(body.locale || "en-US").trim();
+    const forceDeepThink: boolean = body.deepThink === true;
     let threadId: string | null = body.threadId || null;
     if (!userMessage) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const model = pickModel(userMessage, forceDeepThink);
 
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) {
