@@ -496,7 +496,7 @@ Deno.serve(async (req) => {
     let finalText = "";
     let navigateTo: string | null = null;
 
-    for (let step = 0; step < 8; step++) {
+    for (let step = 0; step < 12; step++) {
       const res = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
