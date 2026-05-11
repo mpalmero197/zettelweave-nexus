@@ -101,8 +101,8 @@ export function CatalystStatsBar({ content, wordCount, sessionStartWordCount, se
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Clock className="h-3 w-3 shrink-0" />
               <span>{readingTimeMinutes} min read</span>
             </div>
           </TooltipTrigger>
