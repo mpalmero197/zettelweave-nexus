@@ -18,6 +18,7 @@ import { QuotesWidget } from "./widgets/QuotesWidget";
 import { CustomNoteWidget } from "./widgets/CustomNoteWidget";
 import { TaskManagerWidget } from "./widgets/TaskManagerWidget";
 import { ToolHealthWidget } from "./widgets/ToolHealthWidget";
+import { DailyBriefingWidget } from "./widgets/DailyBriefingWidget";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { DashboardWidget } from "@/types/dashboard";
