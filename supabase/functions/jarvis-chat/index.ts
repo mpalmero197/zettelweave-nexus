@@ -472,9 +472,14 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(40);
 
+    const nowIso = new Date().toISOString();
+    const dateBlock = `\n\nCURRENT SERVER TIME (authoritative reference): ${nowIso} UTC. For anything time-sensitive in the user's locale, still call get_current_datetime with their time zone.`;
+    const adminBlock = isAdmin
+      ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
+      : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT + (isAdmin ? "\n\nNOTE: Current user IS an admin. admin_summary is available." : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries."),
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
