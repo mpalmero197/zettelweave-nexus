@@ -86,6 +86,53 @@ export function JarvisChat({ compact = false }: Props) {
     taRef.current?.focus();
   };
 
+  // Speech-to-text (Web Speech API). Tap mic to dictate; tap again to stop and send.
+  const recognitionRef = useRef<any>(null);
+  const [listening, setListening] = useState(false);
+  const baseInputRef = useRef("");
+
+  const toggleDictation = () => {
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast.error("Voice input isn't supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    if (listening) {
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+    baseInputRef.current = input ? input + " " : "";
+    rec.onresult = (e: any) => {
+      let interim = "";
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) final += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      if (final) baseInputRef.current += final + " ";
+      setInput((baseInputRef.current + interim).trimStart());
+    };
+    rec.onerror = (e: any) => {
+      if (e?.error && e.error !== "no-speech" && e.error !== "aborted") {
+        toast.error(`Voice input error: ${e.error}`);
+      }
+    };
+    rec.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = rec;
+    setListening(true);
+    try { rec.start(); } catch { setListening(false); }
+  };
+
+  useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* ignore */ } }, []);
+
   return (
     <div className={cn("flex h-full bg-background", compact && "rounded-lg border border-border overflow-hidden")}>
       {/* Thread sidebar */}
