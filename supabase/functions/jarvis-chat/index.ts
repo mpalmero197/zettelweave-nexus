@@ -754,9 +754,26 @@ Deno.serve(async (req) => {
     const adminBlock = isAdmin
       ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
       : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
+
+    // Inject top long-term memories so ALICE has stable context every turn.
+    const { data: topMemories } = await supabase
+      .from("alice_memories")
+      .select("kind,key,value")
+      .order("weight", { ascending: false })
+      .order("last_used_at", { ascending: false, nullsFirst: false })
+      .limit(25);
+    let memoryBlock = "";
+    if (topMemories && topMemories.length > 0) {
+      const lines = topMemories.map((m: any) => `- (${m.kind}) ${m.key}: ${m.value}`).join("\n");
+      memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n${lines}\nUse these to personalize your replies. If the user states a new stable preference, person, project, or rule, call save_memory to remember it. Do not save one-off facts or sensitive data.`;
+    } else {
+      memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n(No memories yet. As you learn stable preferences, people, projects, or rules, call save_memory to remember them.)`;
+    }
+    const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-2.5-pro)" : "Fast (gemini-3-flash-preview)"} for this turn.`;
+
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + memoryBlock + modeBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
