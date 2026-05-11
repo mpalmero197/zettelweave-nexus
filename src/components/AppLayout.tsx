@@ -257,10 +257,13 @@ export function AppLayout() {
                   onClick={() => setToolboxOpen(!toolboxOpen)}
                   aria-label="Toolbox"
                   title="Toolbox (Focus, Tasks, AI Modify)"
+                  data-onboarding="toolbox-button"
                 >
                   <Wrench className="h-4 w-4" />
                 </Button>
-                <ThemeVariantSelector />
+                <span data-onboarding="theme-switcher" className="inline-flex">
+                  <ThemeVariantSelector />
+                </span>
                 <UserMenu isAdmin={isAdmin} onSignOut={handleSignOut} />
                 <FeatureRequestDialog />
               </div>

@@ -85,12 +85,16 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
     <nav className="hidden md:flex items-center gap-0.5 ml-2" role="navigation" aria-label="Main navigation">
       {navGroups.map((group) => {
         const isActive = group.tabs.includes(activeTab);
+        const anchor =
+          group.tabs.includes("cards") ? "nav-cards" :
+          group.tabs.includes("catalyst") ? "nav-catalyst" : undefined;
         return (
           <DropdownMenu key={group.label}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
+                data-onboarding={anchor}
                 className={`h-8 px-3 text-xs font-medium gap-1 rounded-lg transition-colors ${
                   isActive
                     ? "text-primary bg-primary/10"

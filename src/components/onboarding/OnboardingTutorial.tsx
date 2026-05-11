@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,11 @@ import {
   Sparkles, User as UserIcon, Palette, LayoutDashboard, Plus, Pencil,
   Upload, FileText, Bot, PartyPopper, ChevronRight, ChevronLeft, X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/* ---------------------------------------------------------------- */
+/* Types                                                            */
+/* ---------------------------------------------------------------- */
 
 type StepKey =
   | "welcome" | "profile" | "theme" | "dashboard" | "create-card"
@@ -22,8 +27,145 @@ interface Step {
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  body: React.ReactNode;
+  /** Element to highlight on desktop (CSS selector). */
+  desktopTarget?: string;
+  /** Element to highlight on mobile (CSS selector). */
+  mobileTarget?: string;
+  /** Tab to navigate to before pointing. */
+  navigateTab?: string;
+  /** Optional custom body for steps without a target (welcome/profile/done). */
+  body?: React.ReactNode;
 }
+
+/* ---------------------------------------------------------------- */
+/* Hooks                                                            */
+/* ---------------------------------------------------------------- */
+
+const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
+
+/** Find an element by selector, polling briefly while it mounts. */
+function useTargetRect(selector: string | undefined, deps: unknown[] = []) {
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
+  useLayoutEffect(() => {
+    if (!selector) { setRect(null); return; }
+    let raf = 0;
+    let attempts = 0;
+    const tick = () => {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) {
+        // Make sure the element is visible inside the viewport before measuring.
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        // Defer one frame so any scrolling settles.
+        raf = requestAnimationFrame(() => setRect(el.getBoundingClientRect()));
+        return;
+      }
+      if (attempts++ < 30) { raf = requestAnimationFrame(tick); }
+      else setRect(null);
+    };
+    tick();
+
+    const onChange = () => {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) setRect(el.getBoundingClientRect());
+    };
+    window.addEventListener("resize", onChange);
+    window.addEventListener("scroll", onChange, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onChange);
+      window.removeEventListener("scroll", onChange, true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selector, ...deps]);
+
+  return rect;
+}
+
+/* ---------------------------------------------------------------- */
+/* Spotlight + tooltip                                              */
+/* ---------------------------------------------------------------- */
+
+interface SpotlightProps {
+  rect: DOMRect | null;
+  children: React.ReactNode;
+}
+
+/** Renders a dimmed overlay with a glowing cutout around the target rect. */
+function Spotlight({ rect, children }: SpotlightProps) {
+  // Padding around the target so the highlight isn't flush.
+  const PAD = 8;
+  const r = rect
+    ? {
+        top: Math.max(rect.top - PAD, 0),
+        left: Math.max(rect.left - PAD, 0),
+        width: rect.width + PAD * 2,
+        height: rect.height + PAD * 2,
+      }
+    : null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] pointer-events-none">
+      {/* Dim with a hole punched out via 4 absolute divs (works without SVG masks) */}
+      {r ? (
+        <>
+          <div className="absolute bg-foreground/60 backdrop-blur-[1px] pointer-events-auto" style={{ top: 0, left: 0, right: 0, height: r.top }} />
+          <div className="absolute bg-foreground/60 backdrop-blur-[1px] pointer-events-auto" style={{ top: r.top + r.height, left: 0, right: 0, bottom: 0 }} />
+          <div className="absolute bg-foreground/60 backdrop-blur-[1px] pointer-events-auto" style={{ top: r.top, left: 0, width: r.left, height: r.height }} />
+          <div className="absolute bg-foreground/60 backdrop-blur-[1px] pointer-events-auto" style={{ top: r.top, left: r.left + r.width, right: 0, height: r.height }} />
+          {/* Glow ring */}
+          <div
+            className="absolute rounded-xl ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse pointer-events-none"
+            style={{ top: r.top, left: r.left, width: r.width, height: r.height, transition: "all 250ms ease" }}
+          />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-foreground/60 backdrop-blur-[1px] pointer-events-auto" />
+      )}
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/* Tooltip card placement                                           */
+/* ---------------------------------------------------------------- */
+
+function placeTooltip(rect: DOMRect | null) {
+  const W = 340;
+  const H = 220;
+  const M = 12;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (!rect) {
+    return { top: vh / 2 - H / 2, left: vw / 2 - W / 2, arrow: null as null | "top" | "bottom" | "left" | "right" };
+  }
+  // Prefer below, then above, then right, then left
+  const spaceBelow = vh - rect.bottom;
+  const spaceAbove = rect.top;
+  const spaceRight = vw - rect.right;
+  const spaceLeft = rect.left;
+  let top = 0, left = 0; let arrow: "top" | "bottom" | "left" | "right" = "top";
+  if (spaceBelow >= H + M) {
+    top = rect.bottom + M; left = clamp(rect.left + rect.width / 2 - W / 2, M, vw - W - M); arrow = "top";
+  } else if (spaceAbove >= H + M) {
+    top = rect.top - H - M; left = clamp(rect.left + rect.width / 2 - W / 2, M, vw - W - M); arrow = "bottom";
+  } else if (spaceRight >= W + M) {
+    left = rect.right + M; top = clamp(rect.top + rect.height / 2 - H / 2, M, vh - H - M); arrow = "left";
+  } else if (spaceLeft >= W + M) {
+    left = rect.left - W - M; top = clamp(rect.top + rect.height / 2 - H / 2, M, vh - H - M); arrow = "right";
+  } else {
+    top = vh / 2 - H / 2; left = vw / 2 - W / 2; arrow = "top";
+  }
+  return { top, left, arrow };
+}
+
+const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
+
+/* ---------------------------------------------------------------- */
+/* Main component                                                   */
+/* ---------------------------------------------------------------- */
 
 export function OnboardingTutorial() {
   const { user } = useAuth();
@@ -31,13 +173,14 @@ export function OnboardingTutorial() {
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [displayName, setDisplayName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mobile, setMobile] = useState(isMobile());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const checkedRef = useRef(false);
 
-  // Detect first login
+  // First-login detection
   useEffect(() => {
     if (!user || checkedRef.current) return;
     checkedRef.current = true;
@@ -55,6 +198,13 @@ export function OnboardingTutorial() {
     })();
   }, [user]);
 
+  // Track viewport changes (so a window-resize switches between desktop/mobile targets).
+  useEffect(() => {
+    const onResize = () => setMobile(isMobile());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const handleAvatarUpload = async (file: File) => {
     if (!user) return;
     setUploading(true);
@@ -67,49 +217,36 @@ export function OnboardingTutorial() {
       setAvatarUrl(data.publicUrl);
     } catch (e: any) {
       toast.error(e?.message || "Could not upload avatar");
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   const saveProfile = async () => {
-    if (!user) return;
-    if (!displayName.trim()) {
-      toast.error("Please enter a display name");
-      return false;
-    }
+    if (!user) return false;
+    if (!displayName.trim()) { toast.error("Please enter a display name"); return false; }
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .upsert(
-        { user_id: user.id, display_name: displayName.trim(), avatar_url: avatarUrl || null },
-        { onConflict: "user_id" }
-      );
+      .upsert({ user_id: user.id, display_name: displayName.trim(), avatar_url: avatarUrl || null }, { onConflict: "user_id" });
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return false;
-    }
+    if (error) { toast.error(error.message); return false; }
     return true;
   };
 
   const finish = async () => {
     if (!user) return;
-    await supabase
-      .from("profiles")
-      .upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
+    await supabase.from("profiles").upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
     setOpen(false);
     toast.success("You're all set — welcome to PendragonX!");
   };
 
   const skip = async () => {
     if (user) {
-      await supabase
-        .from("profiles")
-        .upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
+      await supabase.from("profiles").upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
     }
     setOpen(false);
   };
+
+  /* ---------- Tutorial steps ---------- */
 
   const steps: Step[] = [
     {
@@ -118,10 +255,9 @@ export function OnboardingTutorial() {
       description: "A 2-minute tour to get you productive fast.",
       icon: Sparkles,
       body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>PendragonX is your second brain — cards for atomic ideas, notes for long-form, Catalyst for writing, and ALICE to find anything.</p>
-          <p>We'll set up your profile and walk through the essentials. You can skip at any time.</p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          PendragonX is your second brain — cards for atomic ideas, notes for long-form, Catalyst for writing, and ALICE to find anything. We'll set up your profile and walk through the essentials.
+        </p>
       ),
     },
     {
@@ -130,9 +266,9 @@ export function OnboardingTutorial() {
       description: "How friends and collaborators see you.",
       icon: UserIcon,
       body: (
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-14 w-14">
               <AvatarImage src={avatarUrl} />
               <AvatarFallback>{displayName.slice(0, 2).toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
@@ -142,187 +278,197 @@ export function OnboardingTutorial() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 maxLength={40}
+                className="h-8"
               />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
+              <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])} />
+              <Button variant="outline" size="sm" disabled={uploading} onClick={() => fileInputRef.current?.click()} className="h-7 text-xs">
                 {uploading ? "Uploading…" : avatarUrl ? "Change avatar" : "Upload avatar"}
               </Button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            You can update these any time in Settings → Account.
-          </p>
+          <p className="text-[11px] text-muted-foreground">Editable later in Settings → Account.</p>
         </div>
       ),
     },
     {
       key: "theme",
       title: "Pick your theme",
-      description: "Light, dark, or one of our variants.",
+      description: "Tap the palette icon to swap colors.",
       icon: Palette,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Look in the top-right corner of the app for the <strong className="text-foreground">palette icon</strong>. Click it to swap themes and accent colors instantly.</p>
-          <p>We default to dark mode for long writing sessions, but everything is fully themeable.</p>
-        </div>
-      ),
+      desktopTarget: '[data-onboarding="theme-switcher"]',
+      mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "dashboard",
       title: "Your dashboard",
-      description: "A live overview of your knowledge.",
+      description: "A live, interactive overview of your knowledge.",
       icon: LayoutDashboard,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>The Dashboard is your home base — recent cards, today's agenda, writing streak, and quick actions.</p>
-          <p>Every widget is <strong className="text-foreground">interactive</strong>: click anything to jump straight to the underlying note, card, or task. Drag to rearrange — we save your layout automatically.</p>
-        </div>
-      ),
+      navigateTab: "dashboard",
+      desktopTarget: '#main-content',
+      mobileTarget: '#main-content',
     },
     {
       key: "create-card",
       title: "Create your first card",
-      description: "Atomic notes, organized automatically.",
+      description: "Click the + button — we'll fill in tags & category for you.",
       icon: Plus,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Open <strong className="text-foreground">Cards</strong> from the top nav and click the <strong className="text-foreground">+ button</strong>. Type a title and content — that's it.</p>
-          <p>When you hit <strong className="text-foreground">Create</strong>, PendragonX auto-categorizes it, generates a Zettel number, suggests tags, and writes a description for you.</p>
-        </div>
-      ),
+      navigateTab: "cards",
+      desktopTarget: '[data-onboarding="create-card-button"]',
+      mobileTarget: '[data-onboarding="create-card-button"]',
     },
     {
       key: "edit-card",
-      title: "Editing & linking cards",
-      description: "Click to edit, [[wikilink]] to connect.",
+      title: "Edit & link cards",
+      description: "Click any card to edit. Use [[Title]] to link cards together.",
       icon: Pencil,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Click any card to open the editor. Use <code className="rounded bg-muted px-1">[[Card title]]</code> to link cards together — backlinks appear automatically and show in the Knowledge Graph.</p>
-          <p>You can drag cards into Notebooks, share them with friends, or pin favorites to the dashboard.</p>
-        </div>
-      ),
+      navigateTab: "cards",
+      desktopTarget: '[data-onboarding="nav-cards"]',
+      mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "import",
       title: "Import from Obsidian, Notion & more",
-      description: "Bring your existing knowledge in.",
+      description: "Open the toolbox to drop in your existing knowledge.",
       icon: Upload,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Open <strong className="text-foreground">Import Studio</strong> from the toolbox. Drop in a folder of Obsidian markdown, a Notion export, an Evernote <code className="rounded bg-muted px-1">.enex</code> file, or PDFs.</p>
-          <p>PendragonX preserves wikilinks and folder structure, then resolves cross-references after import.</p>
-        </div>
-      ),
+      desktopTarget: '[data-onboarding="toolbox-button"]',
+      mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "catalyst",
       title: "Write in Catalyst",
-      description: "Long-form writing with AI inside.",
+      description: "Long-form writing with AI agents in the sidebar.",
       icon: FileText,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p><strong className="text-foreground">Catalyst</strong> is your writing studio for chapters, essays, and reports. It pulls your cards in as references and offers AI agents in the sidebar to help you outline, expand, or polish.</p>
-          <p>Switch between Web view, Single Page, and Draft view depending on how you like to write.</p>
-        </div>
-      ),
+      navigateTab: "catalyst",
+      desktopTarget: '[data-onboarding="nav-catalyst"]',
+      mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "alice",
       title: "Meet ALICE",
-      description: "Your AI assistant — always one tap away.",
+      description: "Your AI assistant — find anything, set reminders, run multi-step actions.",
       icon: Bot,
-      body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>The floating ALICE button (bottom-right) is your shortcut to find anything, set reminders, summarize, or run multi-step actions.</p>
-          <p>Try: <em>"find my notes about postwar economics"</em>, <em>"remind me tomorrow at 9am to revise chapter 3"</em>, or <em>"open my latest draft"</em>.</p>
-        </div>
-      ),
+      desktopTarget: '[data-onboarding="alice-fab"]',
+      mobileTarget: '[data-onboarding="alice-fab"]',
     },
     {
       key: "done",
       title: "You're ready!",
-      description: "Go build something brilliant.",
+      description: "That's the tour. Need a refresher? Just ask ALICE.",
       icon: PartyPopper,
       body: (
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>That's the tour. Everything you saw lives one click away in the top nav.</p>
-          <p>Need a refresher? Open <strong className="text-foreground">Settings → Help</strong> any time, or just ask ALICE.</p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Everything you saw lives one click away in the top nav. Have fun building.
+        </p>
       ),
     },
   ];
 
   const step = steps[stepIndex];
+  const targetSelector = mobile ? step.mobileTarget : step.desktopTarget;
+
+  // Navigate to the relevant tab before pointing.
+  useEffect(() => {
+    if (!open) return;
+    if (step.navigateTab) {
+      navigate(`/app/${step.navigateTab}`);
+      window.dispatchEvent(new CustomEvent("app-tab-change", { detail: step.navigateTab }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, stepIndex]);
+
+  const rect = useTargetRect(open ? targetSelector : undefined, [stepIndex, mobile]);
+
+  if (!open) return null;
+
   const Icon = step.icon;
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
   const isProfileStep = step.key === "profile";
 
   const handleNext = async () => {
-    if (isProfileStep) {
-      const ok = await saveProfile();
-      if (!ok) return;
-    }
-    if (isLast) {
-      await finish();
-      return;
-    }
+    if (isProfileStep) { const ok = await saveProfile(); if (!ok) return; }
+    if (isLast) { await finish(); return; }
     setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
+  const placement = placeTooltip(rect);
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) skip(); }}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden">
-        <div className="p-6 space-y-5">
-          <DialogHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Step {stepIndex + 1} of {steps.length}
-                </span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={skip} className="h-7 px-2 text-xs">
-                Skip <X className="ml-1 h-3 w-3" />
-              </Button>
-            </div>
-            <Progress value={((stepIndex + 1) / steps.length) * 100} className="h-1" />
-            <DialogTitle className="text-xl">{step.title}</DialogTitle>
-            <DialogDescription>{step.description}</DialogDescription>
-          </DialogHeader>
-
-          <div className="min-h-[140px]">{step.body}</div>
-
-          <div className="flex items-center justify-between pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setStepIndex((i) => Math.max(i - 1, 0))}
-              disabled={isFirst}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" /> Back
-            </Button>
-            <Button size="sm" onClick={handleNext} disabled={saving || uploading}>
-              {isLast ? "Get started" : "Next"}
-              {!isLast && <ChevronRight className="ml-1 h-4 w-4" />}
-            </Button>
+    <Spotlight rect={rect}>
+      <div
+        role="dialog"
+        aria-labelledby="onboarding-title"
+        aria-describedby="onboarding-desc"
+        className="absolute pointer-events-auto rounded-lg border border-border bg-card shadow-2xl animate-fade-in"
+        style={{
+          top: placement.top,
+          left: placement.left,
+          width: 340,
+          maxWidth: "calc(100vw - 24px)",
+        }}
+      >
+        <div className="flex items-start gap-3 p-4 pb-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+            <Icon className="h-5 w-5" />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Step {stepIndex + 1} of {steps.length}
+            </p>
+            <h2 id="onboarding-title" className="text-base font-semibold leading-tight mt-0.5">{step.title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={skip}
+            aria-label="Close tutorial"
+            className="text-muted-foreground hover:text-foreground transition-colors -mr-1 -mt-1 p-1"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div className="px-4 pb-3">
+          <Progress value={((stepIndex + 1) / steps.length) * 100} className="h-1" />
+        </div>
+
+        <div className="px-4 pb-3" id="onboarding-desc">
+          {step.body || (
+            <p className="text-sm text-muted-foreground">{step.description}</p>
+          )}
+        </div>
+
+        <div className={cn(
+          "flex items-center justify-between gap-2 border-t border-border px-3 py-2",
+        )}>
+          <Button variant="ghost" size="sm" onClick={() => setStepIndex((i) => Math.max(i - 1, 0))} disabled={isFirst} className="h-8 text-xs">
+            <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Back
+          </Button>
+          <button onClick={skip} className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-4 hover:underline">
+            Skip tutorial
+          </button>
+          <Button size="sm" onClick={handleNext} disabled={saving || uploading} className="h-8 text-xs">
+            {isLast ? "Get started" : "Next"}
+            {!isLast && <ChevronRight className="h-3.5 w-3.5 ml-1" />}
+          </Button>
+        </div>
+
+        {/* Arrow */}
+        {placement.arrow && rect && (
+          <ArrowIndicator side={placement.arrow} />
+        )}
+      </div>
+    </Spotlight>
   );
+}
+
+function ArrowIndicator({ side }: { side: "top" | "bottom" | "left" | "right" }) {
+  // Position a small triangle on the appropriate edge of the tooltip.
+  const base = "absolute h-3 w-3 rotate-45 bg-card border border-border";
+  const map: Record<string, string> = {
+    top: "left-1/2 -translate-x-1/2 -top-1.5 border-r-0 border-b-0",
+    bottom: "left-1/2 -translate-x-1/2 -bottom-1.5 border-l-0 border-t-0",
+    left: "top-1/2 -translate-y-1/2 -left-1.5 border-r-0 border-t-0",
+    right: "top-1/2 -translate-y-1/2 -right-1.5 border-l-0 border-b-0",
+  };
+  return <div className={cn(base, map[side])} />;
 }

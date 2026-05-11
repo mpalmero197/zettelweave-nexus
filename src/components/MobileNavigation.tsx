@@ -150,6 +150,7 @@ export function MobileNavigation({
       {/* FAB — with focus progress ring */}
       <button
         onClick={() => setOpen(prev => !prev)}
+        data-onboarding="mobile-nav-fab"
         className={cn(
           'md:hidden fixed bottom-6 right-4 z-50 h-14 w-14 rounded-2xl',
           'flex items-center justify-center',
