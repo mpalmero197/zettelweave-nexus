@@ -136,10 +136,42 @@ export function CreateCardDialog({ existingCards, onCreateCard, trigger, organiz
     const sanitizedTitle = sanitizeUserInput(title);
     const sanitizedContent = sanitizeUserInput(content);
     const sanitizedDescription = sanitizeUserInput(description);
-    const sanitizedTags = tags.map(tag => sanitizeUserInput(tag));
+    let sanitizedTags = tags.map(tag => sanitizeUserInput(tag));
 
-    const finalCategory = category || categorizeContent(sanitizedContent, sanitizedTitle);
-    const finalNumber = number || generateZettelNumber(finalCategory, existingCards.map(c => c.number));
+    // If category/number/tags/description are missing, transparently auto-generate
+    // them as part of Create — no separate button required.
+    let finalCategory = category;
+    let finalNumber = number;
+    let finalDescription = sanitizedDescription;
+
+    if (!finalCategory || !finalNumber || sanitizedTags.length === 0 || !finalDescription) {
+      setIsGenerating(true);
+      try {
+        const { data } = await supabase.functions.invoke('ai-categorize-card', {
+          body: {
+            title: sanitizedTitle,
+            content: sanitizedContent,
+            method: organizationMethod,
+            existingNumbers: existingCards.map(c => c.number),
+          },
+        });
+        if (data?.number && !finalNumber) finalNumber = data.number;
+        if (data?.category && !finalCategory) finalCategory = data.category;
+      } catch {
+        /* fall through to deterministic fallback below */
+      }
+      if (sanitizedTags.length === 0) {
+        sanitizedTags = extractKeywords(sanitizedTitle + ' ' + sanitizedContent).map(t => sanitizeUserInput(t));
+      }
+      if (!finalDescription) {
+        const firstSentence = sanitizedContent.split('.')[0] + '.';
+        finalDescription = firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence;
+      }
+      setIsGenerating(false);
+    }
+
+    finalCategory = finalCategory || categorizeContent(sanitizedContent, sanitizedTitle);
+    finalNumber = finalNumber || generateZettelNumber(finalCategory, existingCards.map(c => c.number));
 
     const cardData: any = {
       title: sanitizedTitle,
