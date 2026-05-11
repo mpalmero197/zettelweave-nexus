@@ -123,7 +123,7 @@ export function IntegrationsHub() {
               <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center">
                 <Cable className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-lg font-bold text-foreground">Integrations</h1>
+              <h1 className="text-lg font-bold text-foreground">Connectors</h1>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Connect PendragonX with the tools you already use. Import data, sync tasks, and automate workflows.
