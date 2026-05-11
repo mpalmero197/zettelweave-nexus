@@ -600,12 +600,13 @@ const tools = [
     type: "function",
     function: {
       name: "send_chat_message",
-      description: "Send a direct chat message to a friend (must already be an accepted friend). Get receiver_id from the user explicitly or from prior context — do NOT guess.",
+      description: "Send a direct chat message to a friend. TWO-PHASE: first call with confirmed=false (or unset) to preview — nothing is sent and the message is echoed back. Read it to the user and ask them to confirm. Only call again with confirmed=true after explicit yes.",
       parameters: {
         type: "object",
         properties: {
           receiver_id: { type: "string", description: "UUID of the friend to message." },
           message: { type: "string" },
+          confirmed: { type: "boolean", description: "Set true ONLY after the user has explicitly confirmed the exact message text." },
         },
         required: ["receiver_id", "message"],
       },
@@ -615,7 +616,7 @@ const tools = [
     type: "function",
     function: {
       name: "start_recording",
-      description: "Open the Recorder Studio and arm a recording session of the requested type. Does NOT auto-start capture (user grants mic/screen permission in the UI).",
+      description: "Begin a recording session in the requested mode. Triggers an in-place 3-second countdown overlay and starts capture without navigating away. The user grants mic/screen permission via the browser prompt. Do NOT also call navigate.",
       parameters: {
         type: "object",
         properties: {
