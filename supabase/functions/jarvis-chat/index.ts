@@ -346,6 +346,55 @@ async function executeTool(
         ];
         return { results, count: results.length };
       }
+      case "deep_search": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "Empty query" };
+        const cap = Math.min(Math.max(Number(args.max_results) || 25, 1), 60);
+        const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+        const [notes, cards, docs] = await Promise.all([
+          supabase.from("notes").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+          supabase.from("zettel_cards").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+          supabase.from("catalyst_documents").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+        ]);
+        const needle = q.toLowerCase();
+        const matches: any[] = [];
+        const scan = (rows: any[], type: string) => {
+          for (const r of rows || []) {
+            // Strip HTML tags for line scanning so catalyst HTML still yields readable lines.
+            const plain = String(r.content || "").replace(/<\/(p|div|h[1-6]|li|br|tr)>/gi, "\n").replace(/<[^>]+>/g, "");
+            const lines = plain.split(/\r?\n/);
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line && line.toLowerCase().includes(needle)) {
+                matches.push({
+                  type, document_id: r.id, document_title: r.title || "Untitled",
+                  line_number: i + 1, line,
+                });
+                if (matches.length >= cap) return;
+              }
+            }
+          }
+        };
+        scan(notes.data || [], "note");
+        if (matches.length < cap) scan(cards.data || [], "card");
+        if (matches.length < cap) scan(docs.data || [], "catalyst_document");
+        return { query: q, count: matches.length, matches };
+      }
+      case "open_in_catalyst": {
+        const id = String(args.document_id || "").trim();
+        if (!id) return { error: "document_id required" };
+        const { data, error } = await supabase.from("catalyst_documents")
+          .select("id,title").eq("id", id).is("deleted_at", null).maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Document not found or not accessible." };
+        const params = new URLSearchParams({ docId: id });
+        const hl = String(args.highlight || "").trim();
+        if (hl) params.set("highlight", hl.slice(0, 500));
+        return { ok: true, id: data.id, title: data.title, navigate_to: `/app/catalyst?${params.toString()}` };
+      }
       case "create_note": {
         const { data, error } = await supabase.from("notes").insert({
           user_id: userId,
