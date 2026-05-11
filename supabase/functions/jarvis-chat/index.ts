@@ -983,6 +983,7 @@ Deno.serve(async (req) => {
     const assistantParts: any[] = [];
     let finalText = "";
     let navigateTo: string | null = null;
+    const clientActions: any[] = [];
 
     for (let step = 0; step < 12; step++) {
       const res = await fetch(GATEWAY_URL, {
