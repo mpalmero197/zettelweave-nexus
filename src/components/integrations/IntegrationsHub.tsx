@@ -96,7 +96,8 @@ const CATEGORIES: { label: string; value: IntegrationCategory | "all"; icon: str
 export function IntegrationsHub() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<IntegrationCategory | "all">("all");
-  const { connectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
+  const { connectedIds: legacyConnectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
+  const oauth = useUserConnections();
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
@@ -110,9 +111,19 @@ export function IntegrationsHub() {
     return true;
   }), [category, search]);
 
-  // Stats
-  const connectedCount = connectedIds.size;
-  const healthyCount = Object.values(meta).filter((m) => m.health === "healthy").length;
+  // Treat any OAuth-connected provider as "connected" for every integration that maps to it.
+  const isConnected = useCallback((id: string) => {
+    if (legacyConnectedIds.has(id)) return true;
+    const oauthMap = OAUTH_PROVIDERS[id];
+    if (oauthMap && oauth.isConnected(oauthMap.provider)) return true;
+    return false;
+  }, [legacyConnectedIds, oauth]);
+
+  const connectedCount = useMemo(
+    () => INTEGRATIONS.filter((i) => isConnected(i.id)).length,
+    [isConnected],
+  );
+  const healthyCount = Object.values(meta).filter((m) => m.health === "healthy").length + oauth.connections.length;
   const errorCount = Object.values(meta).filter((m) => m.health === "error").length;
   const totalSynced = Object.values(meta).reduce((sum, m) => sum + (m.itemsSynced || 0), 0);
 
@@ -120,13 +131,23 @@ export function IntegrationsHub() {
   const closeDialog = useCallback(() => setDialogOpen(null), []);
 
   const handleConnect = useCallback((id: string) => {
+    const oauthMap = OAUTH_PROVIDERS[id];
+    if (oauthMap) {
+      oauth.connect(oauthMap.provider);
+      return;
+    }
     openDialog(id);
-  }, [openDialog]);
+  }, [openDialog, oauth]);
 
   const handleDisconnect = useCallback((id: string) => {
+    const oauthMap = OAUTH_PROVIDERS[id];
+    if (oauthMap && oauth.isConnected(oauthMap.provider)) {
+      oauth.disconnect(oauthMap.provider);
+      return;
+    }
     disconnect(id);
     toast.success("Disconnected successfully");
-  }, [disconnect]);
+  }, [disconnect, oauth]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
