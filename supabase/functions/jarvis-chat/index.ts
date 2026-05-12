@@ -113,9 +113,12 @@ You know this product intimately. Map intent → tool, ALWAYS prefer the dedicat
 • MESSENGER → send_chat_message to send a direct message to a friend. ALWAYS call this in two phases: (1) FIRST call with confirmed=false (or omit confirmed) to preview — this returns the message back without sending and you must read the exact message text back to the user and ask "Send it?". (2) ONLY after the user explicitly says yes/confirm/send, call again with confirmed=true to actually deliver. Never navigate to the chat tab as part of sending a DM.
 
 SILENT-EXECUTION RULES (do NOT navigate the user away when they're just dictating actions):
-- create_scratchpad_note, update_quick_capture, create_reminder, send_chat_message, start_recording → execute in place. Do NOT also call the navigate tool. Confirm in chat with one short sentence ("Added to scratchpad", "Recording started", "Sent.").
+- create_scratchpad_note, update_quick_capture, create_reminder, send_chat_message, start_recording, reset_mobile_tts_engine → execute in place. Do NOT also call the navigate tool. Confirm in chat with one short sentence ("Added to scratchpad", "Recording started", "Sent.", "Voice reset.").
 • WEB → web_search for fresh info.
 • MEMORY → save_memory for stable facts about the user, recall_memory before asking them to repeat themselves, forget_memory if they ask you to drop something.
+• SCHEDULING (proactive) → create_scheduled_trigger when the user asks you to do something on a recurring schedule ("every weekday at 8am search the web for AI news", "remind me every Monday morning to review goals"). Convert their local time to UTC before crafting the 5-field cron. Use list_scheduled_triggers / delete_scheduled_trigger to manage existing schedules.
+• BROWSER CONTEXT → get_open_browser_tabs to read the user's currently open Chrome tabs (requires the PendragonX extension). Use it whenever the user asks "what am I looking at", "summarize my tabs", "what was I researching", or before suggesting follow-ups based on their browsing.
+• MOBILE TTS BUG → reset_mobile_tts_engine if the user reports duplicated/echoing/stuttering speech on mobile.
 • ADMIN — admin_summary only if user is admin (read-only).
 
 You are a *superuser* of PendragonX. If a user asks for ANY action this product supports, prefer the dedicated tool. Never describe the steps and stop — execute, then summarize.
@@ -625,6 +628,59 @@ const tools = [
         },
         required: ["recording_type"],
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reset_mobile_tts_engine",
+      description: "Emergency reset of the on-device text-to-speech engine. Call this immediately whenever the user reports duplicated, echoing, stuttering, or repeating speech on their mobile device, or says 'your voice is glitching/repeating itself'. Clears the SpeechSynthesis queue in-place — does NOT navigate.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_scheduled_trigger",
+      description: "Schedule a recurring ALICE action using a 5-field UTC cron expression (minute hour day-of-month month day-of-week). Use whenever the user asks to do something at a specific time on a recurring basis — 'every weekday at 8am', 'each Sunday night', 'every hour'. Convert the user's local time to UTC before building the cron. Supported tool_name values: create_task, create_reminder, web_search, deep_search, search_knowledge.",
+      parameters: {
+        type: "object",
+        properties: {
+          cron_expression: { type: "string", description: "5-field UTC cron, e.g. '0 13 * * 1-5' for weekdays 13:00 UTC." },
+          tool_name: { type: "string", description: "Tool to invoke at each tick. Prefer create_task / create_reminder / web_search." },
+          tool_params: { type: "object", description: "JSON arguments to pass to the tool when it fires." },
+          description: { type: "string", description: "Short human label, e.g. 'Daily AI news search'." },
+        },
+        required: ["cron_expression", "tool_name", "description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_scheduled_triggers",
+      description: "List all of the user's currently active ALICE schedules.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_scheduled_trigger",
+      description: "Remove an ALICE schedule by id (use list_scheduled_triggers first to find it).",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_open_browser_tabs",
+      description: "Return the user's currently open browser tabs (URL + title) as reported by the PendragonX Chrome extension. Use to ground answers about 'what am I looking at', 'summarize my open tabs', or to suggest follow-ups based on their research session. If the snapshot is older than 2 minutes, tell the user the extension is not actively connected.",
+      parameters: { type: "object", properties: {} },
     },
   },
 ];
@@ -1179,6 +1235,64 @@ async function executeTool(
           ok: true,
           client_action: { type: "start_recording", payload: { recording_type, title } },
           note: `Recording will start after a 3-second countdown.`,
+        };
+      }
+      case "reset_mobile_tts_engine": {
+        return {
+          ok: true,
+          client_action: { type: "reset_tts" },
+          note: "Voice engine reset. Try again — should sound clean now.",
+        };
+      }
+      case "create_scheduled_trigger": {
+        const cron = String(args.cron_expression || "").trim();
+        const toolName = String(args.tool_name || "").trim();
+        if (!cron || !toolName) return { error: "cron_expression and tool_name required" };
+        if (cron.split(/\s+/).length !== 5) return { error: "cron_expression must be a 5-field cron" };
+        const { data, error } = await supabase.from("alice_scheduled_triggers").insert({
+          user_id: userId,
+          cron_expression: cron,
+          tool_name: toolName,
+          tool_params: args.tool_params || {},
+          description: String(args.description || "").slice(0, 200) || null,
+          enabled: true,
+        }).select("id, cron_expression, tool_name, description").single();
+        if (error) return { error: error.message };
+        return { ok: true, ...data, note: "Scheduled. ALICE will run it on the cron tick." };
+      }
+      case "list_scheduled_triggers": {
+        const { data, error } = await supabase
+          .from("alice_scheduled_triggers")
+          .select("id, cron_expression, tool_name, description, enabled, last_run_at, next_run_at")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) return { error: error.message };
+        return { ok: true, schedules: data || [] };
+      }
+      case "delete_scheduled_trigger": {
+        const id = String(args.id || "").trim();
+        if (!id) return { error: "id required" };
+        const { error } = await supabase.from("alice_scheduled_triggers").delete().eq("id", id);
+        if (error) return { error: error.message };
+        return { ok: true, deleted: id };
+      }
+      case "get_open_browser_tabs": {
+        const { data, error } = await supabase
+          .from("browser_tab_snapshots")
+          .select("tabs, captured_at")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { ok: true, connected: false, note: "Chrome extension not connected — install it from /install and sign in to share browser context." };
+        const ageMs = Date.now() - new Date(data.captured_at).getTime();
+        const fresh = ageMs < 2 * 60 * 1000;
+        return {
+          ok: true,
+          connected: fresh,
+          captured_at: data.captured_at,
+          age_seconds: Math.round(ageMs / 1000),
+          tabs: data.tabs,
+          note: fresh ? null : "Snapshot is stale (>2 min) — extension may be inactive.",
         };
       }
       default:

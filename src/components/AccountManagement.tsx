@@ -48,6 +48,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'memory' | 'debug'>('profile');
   const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [engagementNudges, setEngagementNudges] = useState(true);
+  const [habitRecovery, setHabitRecovery] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -87,6 +88,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setAvatarUrl(data.avatar_url || '');
             setAutoMasterDocs(data.auto_master_docs || false);
             setEngagementNudges((data as any).engagement_nudges_enabled !== false);
+            setHabitRecovery((data as any).habit_recovery_enabled !== false);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
@@ -1193,6 +1195,37 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                             setEngagementNudges(!checked);
                           } else {
                             toast({ title: checked ? 'Enabled' : 'Disabled', description: checked ? 'You\'ll receive periodic engagement nudges.' : 'Engagement nudges have been turned off.' });
+                          }
+                        }}
+                      />
+                    </div>
+                  </Card>
+
+                  <Card className="p-6 mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1 flex-1 mr-4">
+                        <div className="flex items-center gap-2">
+                          <Bell className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium">Habit Recovery Tasks</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          When you miss a habit, automatically create a "Catch up on habit: [name]" task for the next day so you can get back on track.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={habitRecovery}
+                        onCheckedChange={async (checked) => {
+                          if (!user) return;
+                          setHabitRecovery(checked);
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ habit_recovery_enabled: checked } as any)
+                            .eq('user_id', user.id);
+                          if (error) {
+                            toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
+                            setHabitRecovery(!checked);
+                          } else {
+                            toast({ title: checked ? 'Enabled' : 'Disabled', description: checked ? 'Missed habits will create recovery tasks.' : 'Recovery tasks disabled.' });
                           }
                         }}
                       />

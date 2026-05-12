@@ -32,6 +32,7 @@ import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
 import { AliceUndoBanner } from "./alice/AliceUndoBanner";
 import { AliceFollowupPrompt } from "./alice/AliceFollowupPrompt";
 import { AliceRecordingOverlay } from "./alice/AliceRecordingOverlay";
+import { installAliceTtsResetListener } from "@/lib/aliceTts";
 
 export function AppLayout() {
   useWritingContextDetector();
@@ -84,6 +85,9 @@ export function AppLayout() {
       window.removeEventListener("offline", off);
     };
   }, []);
+
+  // Global TTS reset — ALICE can pull this remotely if mobile speech glitches.
+  useEffect(() => installAliceTtsResetListener(), []);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
