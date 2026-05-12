@@ -1234,6 +1234,64 @@ async function executeTool(
           note: `Recording will start after a 3-second countdown.`,
         };
       }
+      case "reset_mobile_tts_engine": {
+        return {
+          ok: true,
+          client_action: { type: "reset_tts" },
+          note: "Voice engine reset. Try again — should sound clean now.",
+        };
+      }
+      case "create_scheduled_trigger": {
+        const cron = String(args.cron_expression || "").trim();
+        const toolName = String(args.tool_name || "").trim();
+        if (!cron || !toolName) return { error: "cron_expression and tool_name required" };
+        if (cron.split(/\s+/).length !== 5) return { error: "cron_expression must be a 5-field cron" };
+        const { data, error } = await supabase.from("alice_scheduled_triggers").insert({
+          user_id: userId,
+          cron_expression: cron,
+          tool_name: toolName,
+          tool_params: args.tool_params || {},
+          description: String(args.description || "").slice(0, 200) || null,
+          enabled: true,
+        }).select("id, cron_expression, tool_name, description").single();
+        if (error) return { error: error.message };
+        return { ok: true, ...data, note: "Scheduled. ALICE will run it on the cron tick." };
+      }
+      case "list_scheduled_triggers": {
+        const { data, error } = await supabase
+          .from("alice_scheduled_triggers")
+          .select("id, cron_expression, tool_name, description, enabled, last_run_at, next_run_at")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) return { error: error.message };
+        return { ok: true, schedules: data || [] };
+      }
+      case "delete_scheduled_trigger": {
+        const id = String(args.id || "").trim();
+        if (!id) return { error: "id required" };
+        const { error } = await supabase.from("alice_scheduled_triggers").delete().eq("id", id);
+        if (error) return { error: error.message };
+        return { ok: true, deleted: id };
+      }
+      case "get_open_browser_tabs": {
+        const { data, error } = await supabase
+          .from("browser_tab_snapshots")
+          .select("tabs, captured_at")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { ok: true, connected: false, note: "Chrome extension not connected — install it from /install and sign in to share browser context." };
+        const ageMs = Date.now() - new Date(data.captured_at).getTime();
+        const fresh = ageMs < 2 * 60 * 1000;
+        return {
+          ok: true,
+          connected: fresh,
+          captured_at: data.captured_at,
+          age_seconds: Math.round(ageMs / 1000),
+          tabs: data.tabs,
+          note: fresh ? null : "Snapshot is stale (>2 min) — extension may be inactive.",
+        };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
