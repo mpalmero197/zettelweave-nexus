@@ -1,91 +1,102 @@
+# ALICE Sprint: Proactive Capabilities & Context Awareness
 
-# ALICE Upgrade Plan
+Four interrelated work items. Each is scoped to land independently and ship in one pass.
 
-A staged build to give ALICE persistent memory, proactive briefings, multi-step actions with confirm/undo, file/image/audio attachments, and an auto Deep Think mode — and to make every AI tool in PendragonX run on a single shared ALICE Core.
+---
 
-## Stage 1 — ALICE Core (shared engine)
+## 1. ALICE-FIX-001 — Mobile TTS Word Duplication Reset
 
-Create one edge function, `alice-core`, that becomes the single brain for every AI feature.
+**Root cause hypothesis:** The Web Speech API's `SpeechSynthesis` queue on mobile Safari/Chrome occasionally double-fires when the page regains focus or when an utterance is re-queued before the previous one finishes. We need a remote "panic button" that ALICE can pull.
 
-- Accepts a `mode` parameter: `chat`, `summarize`, `study-guide`, `mind-map`, `resume`, `exam`, `daily-report`, `search-rerank`, `modify`, `knowledge-chat`, `catalyst-agent`.
-- Shared toolset (every mode inherits): `deep_search`, `open_note`, `open_card`, `open_in_catalyst`, `navigate`, `web_search`, `create_task`, `schedule_event`, `create_note`, `create_card`, `write_document`, `recall_memory`, `save_memory`.
-- Shared persona/directive: existing `[Inference]/[Unverified]` rules, timezone/location handling, refusal of admin write actions.
-- Auto model routing:
-  - Default → `google/gemini-3-flash-preview`
-  - Auto Deep Think → `google/gemini-2.5-pro` when prompt contains reasoning triggers (multi-step questions, "compare", "analyze", "plan", >400 chars, or attachments present) OR caller passes `forceDeepThink: true`.
-- Migrate existing functions (`jarvis-chat`, `knowledge-chat`, `content-summarizer`, `mind-map-generator`, `study-guide-generator`, etc.) to thin wrappers that call `alice-core` with the right mode.
+**Implementation**
+- Add a global window event listener `alice:reset_tts` in `src/components/AppLayout.tsx` (or a dedicated `AliceTtsReset` mount) that calls `window.speechSynthesis.cancel()` and clears any in-flight `SpeechSynthesisUtterance` queue we maintain.
+- Track the synthesizer state in a small singleton (`src/lib/aliceTts.ts`) so other components (notification reader, dictation playback) share one queue and the reset wipes everything.
+- Expose tool `reset_mobile_tts_engine` in `supabase/functions/jarvis-chat/index.ts`. It returns a `client_action: { type: "reset_tts" }` payload — the existing `useJarvis` fan-out already dispatches `alice:reset_tts`.
+- Update ALICE system prompt: "If the user reports duplicated/echoing speech on mobile, call `reset_mobile_tts_engine` immediately, then confirm."
 
-## Stage 2 — Persistent Long-Term Memory
+**Acceptance:** "ALICE, my voice is repeating itself" → tool fires → on-device queue cleared → next utterance plays clean.
 
-New table `alice_memories`:
-- `id`, `user_id`, `kind` (preference | fact | project | person | rule), `key`, `value`, `weight`, `source` (auto | manual), `created_at`, `last_used_at`.
-- RLS: user-scoped.
-- New tool `save_memory({kind, key, value})` and `recall_memory({query?})`. ALICE auto-saves when she detects stable preferences ("I always write in 1st person", "Sarah is my editor").
-- On every request, top N relevant memories are retrieved by embedding similarity and injected into the system prompt.
-- Settings page: "ALICE Memory" — list, edit, delete, export.
+---
 
-## Stage 3 — Proactive Briefings & Nudges
+## 2. ALICE-FEATURE-001 — Proactive Scheduled Triggers
 
-- New table `alice_briefings`: `id`, `user_id`, `for_date`, `summary_md`, `highlights_jsonb`, `delivered_at`.
-- Scheduled edge function `alice-briefing` (pg_cron at 7 AM user-local) builds a personalized morning briefing: overdue tasks, today's calendar, writing streak, idle projects, suggested next action. Saves a row and pushes a web-push notification.
-- In-app "Today" panel on the dashboard displays the latest briefing; clicking any item deep-links to the source.
-- Idle-project nudges (separate cron) check for projects with no activity in 5+ days and queue a soft notification.
+**Approach:** Reuse Postgres + `pg_cron` + `pg_net` (already standard in this project) instead of introducing a new scheduler service.
 
-## Stage 4 — Multi-Step Action Plans with Confirm/Undo
+**DB migration**
+- New table `alice_scheduled_triggers`:
+  - `id uuid pk`, `user_id uuid not null`, `cron_expression text not null`, `tool_name text not null`, `tool_params jsonb not null default '{}'`, `description text`, `enabled boolean default true`, `last_run_at timestamptz`, `next_run_at timestamptz`, `created_at`, `updated_at`.
+- RLS: owner-only select/insert/update/delete.
 
-- New table `alice_actions`: `id`, `user_id`, `conversation_id`, `plan_jsonb` (ordered steps), `status` (pending_confirm | running | done | failed | undone), `executed_steps_jsonb`, `undo_payload_jsonb`, `created_at`.
-- When ALICE produces a plan with mutations (create event, write doc, schedule task, send message), she returns a structured plan instead of executing. UI renders a confirmation card: "I'll do these 3 things — Approve / Modify / Cancel."
-- On approve, server executes steps sequentially, capturing inverse operations into `undo_payload_jsonb`.
-- An "Undo last action" toast appears for 60 s after completion, calling an `alice-undo` endpoint.
-- Read-only operations (search, lookup, summarize) never require confirmation.
+**Edge functions**
+- New `supabase/functions/run-scheduled-triggers/index.ts` (verify_jwt=false, cron-invoked): selects triggers due now, invokes `jarvis-chat` internally with a synthetic system message that re-runs the named tool, updates `last_run_at`/`next_run_at`.
+- Add `pg_cron` job that hits this function every minute (insert via supabase tool, not migration — contains anon key).
+- New tool `create_scheduled_trigger` in `jarvis-chat`: validates cron, inserts row, returns confirmation.
+- Companion tools: `list_scheduled_triggers`, `delete_scheduled_trigger`.
 
-## Stage 5 — Attachments (Images, PDFs, Audio)
+**Acceptance:** "Every weekday at 8am, run a web search for AI news" → row created → cron fires → ALICE drops a result into the user's notebook/notification.
 
-- Reuse the existing `documents` and `audio-snippets` storage buckets; create `alice-attachments` for images.
-- Chat input gains a paperclip with multi-file picker (image/png, image/jpeg, image/webp, application/pdf, audio/*).
-- Server pipeline:
-  - Images → passed inline to `gemini-2.5-pro` (vision).
-  - PDFs → text extracted server-side; if >8k tokens, chunked + summarized first.
-  - Audio → transcribed (Whisper via existing pipeline), transcript injected.
-- Attachment metadata stored on the message row; renders as a chip with type + name + size in the chat bubble.
+---
 
-## Stage 6 — "Ask ALICE" everywhere
+## 3. ALICE-FEATURE-002 — Habit → Task Recovery Bridge
 
-- New `<AskAliceButton context={…}/>` component placed in headers of: Notes, Cards, Calendar, Catalyst, Whiteboard, Learning Hub, Knowledge Graph, Tasks, Projects.
-- Clicking opens the ALICE drawer pre-loaded with that module's context (current selection, doc id, filters).
-- Knowledge Chat module is replaced by ALICE drawer with `mode: 'knowledge-chat'`.
+**Good news:** `_handle_habit_missed()` trigger already exists and creates a recovery task + in-app notification. What's missing is the user-facing on/off switch and a clean "Catch up on habit: [Name]" title (currently uses `habit_id`).
 
-## Database changes
+**Implementation**
+- Migration: add `habit_recovery_enabled boolean default true` to `profiles`.
+- Update `_handle_habit_missed()`:
+  - Early-return if `profiles.habit_recovery_enabled = false`.
+  - Look up the habit's display name and use `'Catch up on habit: ' || habit_name` as the task title.
+- Frontend: add toggle in Settings → Productivity section bound to `profiles.habit_recovery_enabled`.
 
-- `alice_memories` — long-term memory
-- `alice_briefings` — daily briefings
-- `alice_actions` — pending/executed action plans
-- All with RLS scoped to `auth.uid() = user_id`.
-- pg_cron jobs for `alice-briefing` (daily) and `alice-idle-nudge` (daily).
+**Acceptance:** Missed habit → next-day task titled "Catch up on habit: Morning Run" appears; toggling setting off suppresses creation.
 
-## Edge functions
+---
 
-- `alice-core` — unified brain (new)
-- `alice-briefing` — scheduled briefing builder (new)
-- `alice-undo` — reverse executed plans (new)
-- `alice-attachment-process` — extract/transcribe uploads (new)
-- Existing AI functions migrated to thin wrappers
+## 4. ALICE-FEATURE-003 — Browser Tab Context
 
-## Frontend
+**Implementation**
+- **Extension** (`extension/` + mirror to `public/chrome-extension/`):
+  - Add `"tabs"` to `permissions` in `manifest.json`.
+  - In `background.js`: on demand (and every 30s while side panel is open) collect `chrome.tabs.query({})` → `[{ url, title, active, windowId }]`, POST to a new edge function `ingest-browser-tabs` with the user's Supabase session token (already stored by the extension's popup auth flow).
+  - Respect a `chrome.storage.local` whitelist/blacklist of domain patterns; filter before sending.
+- **Backend**:
+  - Migration: `browser_tab_snapshots(user_id, tabs jsonb, captured_at timestamptz)`. Keep latest row per user (upsert on `user_id`). RLS owner-only.
+  - Migration: `browser_tab_privacy(user_id pk, mode text check in ('all','whitelist','blacklist'), domains text[])`.
+  - Edge function `ingest-browser-tabs` (verify_jwt=true): validates JWT, applies user's privacy filter, upserts snapshot.
+  - New tool `get_open_browser_tabs` in `jarvis-chat`: reads latest snapshot for the user, returns tab list (or graceful "extension not connected" message if stale > 2 min).
+- **Frontend**:
+  - Settings panel for tab visibility: enable toggle, mode selector, domain list editor.
+  - Update extension popup to surface connection status.
 
-- New components: `AskAliceButton`, `AliceMemoryPanel` (settings), `AliceBriefingCard` (dashboard), `AliceActionPlanCard` (chat), `AliceAttachmentChip`, `AliceUndoToast`.
-- Update `useJarvis` → `useAlice`, point to `alice-core`.
+**Acceptance:** Extension installed + enabled → "ALICE, what tabs do I have open?" → returns titles/URLs filtered by privacy rules.
 
-## Rollout order
+---
 
-1. Stage 1 (Core engine) — foundation everything else builds on
-2. Stage 2 (Memory) — immediately improves every response
-3. Stage 4 (Action plans) — biggest "doer" upgrade, needs Core
-4. Stage 5 (Attachments) — high user-perceived value
-5. Stage 3 (Briefings) — needs cron + push wiring
-6. Stage 6 (Ask ALICE buttons) — surface area expansion last
+## Technical Notes
 
-## Out of scope (for now)
+- All new edge functions follow the existing pattern (CORS headers, JWT validation in code where needed, `corsHeaders` from `@supabase/supabase-js/cors`).
+- All new tools registered in `jarvis-chat` system prompt under their respective sections (Scheduling, Context, Diagnostics).
+- `useJarvis.ts` already fans `client_actions` to `window` events — no client wiring change needed for reset_tts.
+- Cron job SQL inserted via supabase tool (contains anon key), not migration.
 
-- Voice input/TTS — deferred (you didn't pick it; easy to add later)
-- Admin write tools — explicitly forbidden per existing directive
+## File Summary
+
+**New files**
+- `src/lib/aliceTts.ts`
+- `supabase/functions/run-scheduled-triggers/index.ts`
+- `supabase/functions/ingest-browser-tabs/index.ts`
+- Settings sub-panels: `src/components/settings/AliceSchedulesPanel.tsx`, `src/components/settings/BrowserTabPrivacyPanel.tsx`
+
+**Edited**
+- `supabase/functions/jarvis-chat/index.ts` (4 new tools + system prompt)
+- `extension/manifest.json`, `extension/background.js`, `extension/popup.js` (+ mirrored copies in `public/chrome-extension/`)
+- `src/components/AppLayout.tsx` (mount TTS reset listener)
+- `src/pages/Settings.tsx` (add new panels, habit recovery toggle)
+- `supabase/config.toml` (register new functions)
+
+**Migrations**
+- `alice_scheduled_triggers` + RLS
+- `browser_tab_snapshots` + `browser_tab_privacy` + RLS
+- `profiles.habit_recovery_enabled` + `_handle_habit_missed()` update
+
+Once approved I'll execute in this order: migrations → edge functions → tools → extension → frontend → cron job.

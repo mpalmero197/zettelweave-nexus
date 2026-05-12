@@ -471,6 +471,48 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_scheduled_triggers: {
+        Row: {
+          created_at: string
+          cron_expression: string
+          description: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          tool_name: string
+          tool_params: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cron_expression: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          tool_name: string
+          tool_params?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cron_expression?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          tool_name?: string
+          tool_params?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string
@@ -506,6 +548,48 @@ export type Database = {
           mime_type?: string
           storage_path?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      browser_tab_privacy: {
+        Row: {
+          domains: string[]
+          enabled: boolean
+          mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          domains?: string[]
+          enabled?: boolean
+          mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          domains?: string[]
+          enabled?: boolean
+          mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      browser_tab_snapshots: {
+        Row: {
+          captured_at: string
+          tabs: Json
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          tabs?: Json
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          tabs?: Json
           user_id?: string
         }
         Relationships: []
@@ -2070,6 +2154,7 @@ export type Database = {
           daily_briefing_timezone: string
           display_name: string | null
           engagement_nudges_enabled: boolean
+          habit_recovery_enabled: boolean
           id: string
           is_visible: boolean | null
           last_activity_at: string | null
@@ -2089,6 +2174,7 @@ export type Database = {
           daily_briefing_timezone?: string
           display_name?: string | null
           engagement_nudges_enabled?: boolean
+          habit_recovery_enabled?: boolean
           id?: string
           is_visible?: boolean | null
           last_activity_at?: string | null
@@ -2108,6 +2194,7 @@ export type Database = {
           daily_briefing_timezone?: string
           display_name?: string | null
           engagement_nudges_enabled?: boolean
+          habit_recovery_enabled?: boolean
           id?: string
           is_visible?: boolean | null
           last_activity_at?: string | null
