@@ -86,8 +86,8 @@ export function AppLayout() {
     };
   }, []);
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
+  // Global TTS reset — ALICE can pull this remotely if mobile speech glitches.
+  useEffect(() => installAliceTtsResetListener(), []);
       if (!user) { setIsAdmin(false); return; }
       try {
         const { data } = await supabase.rpc("has_role", {
