@@ -1417,6 +1417,36 @@ export type Database = {
         }
         Relationships: []
       }
+      habit_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          habit_id: string
+          id: string
+          occurred_at: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          habit_id: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          habit_id?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_history: {
         Row: {
           card_id: string | null
@@ -4047,6 +4077,7 @@ export type Database = {
       }
       cleanup_old_audit_logs: { Args: never; Returns: undefined }
       clear_all_card_links: { Args: never; Returns: number }
+      create_good_morning_summaries: { Args: never; Returns: undefined }
       find_similar_notes: {
         Args: {
           max_results?: number
