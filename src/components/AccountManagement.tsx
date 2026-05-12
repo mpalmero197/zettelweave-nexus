@@ -1200,6 +1200,37 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       />
                     </div>
                   </Card>
+
+                  <Card className="p-6 mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1 flex-1 mr-4">
+                        <div className="flex items-center gap-2">
+                          <Bell className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium">Habit Recovery Tasks</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          When you miss a habit, automatically create a "Catch up on habit: [name]" task for the next day so you can get back on track.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={habitRecovery}
+                        onCheckedChange={async (checked) => {
+                          if (!user) return;
+                          setHabitRecovery(checked);
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ habit_recovery_enabled: checked } as any)
+                            .eq('user_id', user.id);
+                          if (error) {
+                            toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
+                            setHabitRecovery(!checked);
+                          } else {
+                            toast({ title: checked ? 'Enabled' : 'Disabled', description: checked ? 'Missed habits will create recovery tasks.' : 'Recovery tasks disabled.' });
+                          }
+                        }}
+                      />
+                    </div>
+                  </Card>
                 </div>
               </div>
             )}
