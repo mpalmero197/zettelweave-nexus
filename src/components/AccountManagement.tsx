@@ -48,6 +48,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity' | 'appearance' | 'ai' | 'memory' | 'debug'>('profile');
   const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [engagementNudges, setEngagementNudges] = useState(true);
+  const [habitRecovery, setHabitRecovery] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
