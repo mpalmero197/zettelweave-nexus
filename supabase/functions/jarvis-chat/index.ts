@@ -627,6 +627,59 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "reset_mobile_tts_engine",
+      description: "Emergency reset of the on-device text-to-speech engine. Call this immediately whenever the user reports duplicated, echoing, stuttering, or repeating speech on their mobile device, or says 'your voice is glitching/repeating itself'. Clears the SpeechSynthesis queue in-place — does NOT navigate.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_scheduled_trigger",
+      description: "Schedule a recurring ALICE action using a 5-field UTC cron expression (minute hour day-of-month month day-of-week). Use whenever the user asks to do something at a specific time on a recurring basis — 'every weekday at 8am', 'each Sunday night', 'every hour'. Convert the user's local time to UTC before building the cron. Supported tool_name values: create_task, create_reminder, web_search, deep_search, search_knowledge.",
+      parameters: {
+        type: "object",
+        properties: {
+          cron_expression: { type: "string", description: "5-field UTC cron, e.g. '0 13 * * 1-5' for weekdays 13:00 UTC." },
+          tool_name: { type: "string", description: "Tool to invoke at each tick. Prefer create_task / create_reminder / web_search." },
+          tool_params: { type: "object", description: "JSON arguments to pass to the tool when it fires." },
+          description: { type: "string", description: "Short human label, e.g. 'Daily AI news search'." },
+        },
+        required: ["cron_expression", "tool_name", "description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_scheduled_triggers",
+      description: "List all of the user's currently active ALICE schedules.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_scheduled_trigger",
+      description: "Remove an ALICE schedule by id (use list_scheduled_triggers first to find it).",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_open_browser_tabs",
+      description: "Return the user's currently open browser tabs (URL + title) as reported by the PendragonX Chrome extension. Use to ground answers about 'what am I looking at', 'summarize my open tabs', or to suggest follow-ups based on their research session. If the snapshot is older than 2 minutes, tell the user the extension is not actively connected.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
