@@ -111,6 +111,12 @@ verify_jwt = false
 [functions.seo-aeo-self-improve]
 verify_jwt = false
 
+[functions.run-scheduled-triggers]
+verify_jwt = false
+
+[functions.ingest-browser-tabs]
+verify_jwt = true
+
 [functions.serve-llms-txt]
 verify_jwt = false
 
