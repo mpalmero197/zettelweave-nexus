@@ -32,6 +32,7 @@ import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
 import { AliceUndoBanner } from "./alice/AliceUndoBanner";
 import { AliceFollowupPrompt } from "./alice/AliceFollowupPrompt";
 import { AliceRecordingOverlay } from "./alice/AliceRecordingOverlay";
+import { installAliceTtsResetListener } from "@/lib/aliceTts";
 
 export function AppLayout() {
   useWritingContextDetector();
