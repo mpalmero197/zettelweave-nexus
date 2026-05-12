@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "PendragonX Quick Notes",
-  "version": "1.2.0",
-  "description": "Capture notes, run focus sessions, and chat with your PendragonX AI assistant — right inside Chrome's side panel.",
-  "permissions": ["storage", "activeTab", "sidePanel"],
+  "version": "1.3.0",
+  "description": "Capture notes, run focus sessions, share browser context with ALICE, and chat with your PendragonX AI assistant — right inside Chrome's side panel.",
+  "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms"],
+  "host_permissions": ["https://sckglgjydlbztxjupbsk.supabase.co/*"],
   "action": {
     "default_title": "Open PendragonX",
     "default_icon": {
