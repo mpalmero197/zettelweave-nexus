@@ -88,6 +88,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setAvatarUrl(data.avatar_url || '');
             setAutoMasterDocs(data.auto_master_docs || false);
             setEngagementNudges((data as any).engagement_nudges_enabled !== false);
+            setHabitRecovery((data as any).habit_recovery_enabled !== false);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
