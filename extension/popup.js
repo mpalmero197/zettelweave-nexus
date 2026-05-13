@@ -410,6 +410,7 @@ function updateAuthUI() {
   const appContent = document.getElementById('app-content');
   const userEmailEl = document.getElementById('user-email');
   const syncStatus = document.getElementById('sync-status');
+  const adminBadge = document.getElementById('admin-badge');
 
   if (authToken && userEmail) {
     if (loginScreen) loginScreen.style.display = 'none';
@@ -417,11 +418,48 @@ function updateAuthUI() {
     if (appContent) appContent.style.display = 'block';
     if (userEmailEl) userEmailEl.textContent = userEmail;
     if (syncStatus) syncStatus.textContent = '';
+    // Detect admin role to surface the badge (admin tool gating is enforced server-side).
+    checkAdminRole().then((isAdmin) => {
+      if (adminBadge) adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
+    });
   } else {
     if (loginScreen) loginScreen.style.display = 'flex';
     if (userBar) userBar.style.display = 'none';
     if (appContent) appContent.style.display = 'none';
+    if (adminBadge) adminBadge.style.display = 'none';
   }
+}
+
+async function checkAdminRole() {
+  if (!authToken) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/has_role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ _user_id: await getUserId(), _role: 'admin' }),
+    });
+    if (!res.ok) return false;
+    const v = await res.json();
+    return v === true;
+  } catch { return false; }
+}
+
+let _cachedUserId = null;
+async function getUserId() {
+  if (_cachedUserId) return _cachedUserId;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY },
+    });
+    if (!res.ok) return null;
+    const u = await res.json();
+    _cachedUserId = u?.id || null;
+    return _cachedUserId;
+  } catch { return null; }
 }
 
 // ── Cloud Sync ──
