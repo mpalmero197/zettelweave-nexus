@@ -3,31 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PendragonX Quick Notes</title>
+  <title>PendragonX</title>
   <style>
+    /* PendragonX Flat-Minimal theme — Notion/Obsidian inspired
+       Monochromatic neutrals, single graphite primary, 1px borders,
+       Inter typography, 4/8px grid, 0.5rem radius. */
+    :root {
+      --bg:           hsl(0 0% 100%);
+      --bg-subtle:    hsl(220 14% 98%);
+      --surface:      hsl(0 0% 100%);
+      --surface-2:    hsl(220 14% 96%);
+      --surface-3:    hsl(220 13% 91%);
+      --fg:           hsl(220 13% 13%);
+      --fg-muted:     hsl(220 9% 46%);
+      --fg-subtle:    hsl(220 9% 60%);
+      --border:       hsl(220 13% 91%);
+      --border-strong:hsl(220 13% 80%);
+      --primary:      hsl(220 13% 18%);
+      --primary-fg:   hsl(0 0% 100%);
+      --primary-hover:hsl(220 13% 26%);
+      --ring:         hsl(220 13% 35%);
+      --danger:       hsl(0 65% 50%);
+      --danger-bg:    hsl(0 65% 96%);
+      --success:      hsl(142 45% 40%);
+      --warn:         hsl(36 70% 48%);
+      --radius:       8px;
+      --radius-sm:    6px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:           hsl(220 13% 9%);
+        --bg-subtle:    hsl(220 13% 11%);
+        --surface:      hsl(220 13% 12%);
+        --surface-2:    hsl(220 13% 15%);
+        --surface-3:    hsl(220 13% 20%);
+        --fg:           hsl(220 14% 96%);
+        --fg-muted:     hsl(220 9% 65%);
+        --fg-subtle:    hsl(220 9% 50%);
+        --border:       hsl(220 13% 20%);
+        --border-strong:hsl(220 13% 28%);
+        --primary:      hsl(220 14% 96%);
+        --primary-fg:   hsl(220 13% 13%);
+        --primary-hover:hsl(220 14% 88%);
+        --ring:         hsl(220 14% 75%);
+        --danger-bg:    hsl(0 50% 18%);
+      }
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       width: 100%;
-      min-width: 320px;
+      min-width: 340px;
       max-width: 100vw;
-      min-height: 420px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0b;
-      color: #e4e4e7;
+      min-height: 480px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+      font-feature-settings: "cv11", "ss01";
+      background: var(--bg);
+      color: var(--fg);
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      font-size: 13px;
+      line-height: 1.45;
     }
 
     /* Header */
     .header {
       padding: 10px 14px;
-      background: #18181b;
-      border-bottom: 1px solid #27272a;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
-    .header img { width: 22px; height: 22px; border-radius: 4px; }
-    .header h1 { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+    .header img { width: 22px; height: 22px; border-radius: 5px; }
+    .header h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+      flex: 1;
+      letter-spacing: -0.01em;
+    }
+    .header .header-version { font-size: 10px; color: var(--fg-subtle); font-variant-numeric: tabular-nums; }
 
     /* Login screen */
     .login-screen {
@@ -35,167 +91,195 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 28px 32px;
+      padding: 36px 24px 28px;
       text-align: center;
-      min-height: 340px;
+      min-height: 380px;
     }
-    .login-screen .logo-large { width: 56px; height: 56px; border-radius: 12px; margin-bottom: 16px; }
-    .login-screen h2 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
-    .login-screen .subtitle { font-size: 12px; color: #71717a; margin-bottom: 24px; line-height: 1.4; }
+    .login-screen .logo-large {
+      width: 56px; height: 56px; border-radius: 12px; margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .login-screen h2 { font-size: 16px; font-weight: 600; color: var(--fg); margin-bottom: 4px; letter-spacing: -0.01em; }
+    .login-screen .subtitle { font-size: 12px; color: var(--fg-muted); margin-bottom: 22px; line-height: 1.5; max-width: 260px; }
     .login-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
     .login-form input {
       width: 100%;
       padding: 9px 12px;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      background: #18181b;
-      color: #e4e4e7;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--fg);
       font-size: 13px;
-      transition: border-color 0.15s;
+      font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .login-form input:focus { outline: none; border-color: #3b82f6; }
-    .login-form input::placeholder { color: #52525b; }
+    .login-form input:focus {
+      outline: none;
+      border-color: var(--ring);
+      box-shadow: 0 0 0 3px hsl(220 13% 35% / 0.12);
+    }
+    .login-form input::placeholder { color: var(--fg-subtle); }
     #login-btn {
       width: 100%;
       padding: 9px;
-      background: #3b82f6;
-      border: none;
-      border-radius: 8px;
-      color: white;
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-sm);
+      color: var(--primary-fg);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background .15s;
       margin-top: 4px;
+      font-family: inherit;
     }
-    #login-btn:hover { background: #2563eb; }
-    #login-btn:disabled { background: #1e3a5f; cursor: wait; }
+    #login-btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    #login-btn:disabled { opacity: .6; cursor: wait; }
     .auth-error {
       display: none;
-      padding: 6px 10px;
-      background: #450a0a;
-      border-radius: 6px;
-      color: #fca5a5;
+      padding: 7px 10px;
+      background: var(--danger-bg);
+      border: 1px solid hsl(0 65% 50% / .25);
+      border-radius: var(--radius-sm);
+      color: var(--danger);
       font-size: 11px;
       text-align: left;
     }
-    .login-footer { margin-top: 20px; font-size: 11px; color: #52525b; }
-    .login-footer a { color: #3b82f6; text-decoration: none; }
-    .login-footer a:hover { text-decoration: underline; }
+    .login-footer { margin-top: 18px; font-size: 11px; color: var(--fg-muted); }
+    .login-footer a { color: var(--fg); font-weight: 500; text-decoration: none; border-bottom: 1px solid var(--border-strong); }
+    .login-footer a:hover { color: var(--primary); }
 
     /* Logged-in user bar */
     .user-bar {
       display: none;
       padding: 8px 14px;
-      background: #18181b;
-      border-bottom: 1px solid #27272a;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
       align-items: center;
       gap: 8px;
     }
     .user-bar .user-email {
       flex: 1;
       font-size: 11px;
-      color: #a1a1aa;
+      color: var(--fg-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .user-bar .sync-status { font-size: 10px; color: #71717a; white-space: nowrap; }
-    .user-bar .sync-status.success { color: #4ade80; }
-    .user-bar .sync-status.error { color: #f87171; }
-    .user-bar .sync-status.syncing { color: #60a5fa; }
+    .user-bar .sync-status { font-size: 10px; color: var(--fg-subtle); white-space: nowrap; }
+    .user-bar .sync-status.success { color: var(--success); }
+    .user-bar .sync-status.error { color: var(--danger); }
+    .user-bar .sync-status.syncing { color: var(--fg); }
     .icon-btn {
       padding: 4px 8px;
       background: transparent;
-      border: 1px solid #3f3f46;
-      border-radius: 6px;
-      color: #a1a1aa;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--fg-muted);
       font-size: 10px;
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.15s;
+      transition: all .15s;
+      font-family: inherit;
     }
-    .icon-btn:hover { background: #27272a; color: #e4e4e7; }
+    .icon-btn:hover { background: var(--surface-2); color: var(--fg); border-color: var(--border-strong); }
+    .admin-badge {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
 
     /* App content */
     .app-content { display: none; }
 
     /* Tabs */
-    .tabs { display: flex; border-bottom: 1px solid #27272a; }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      padding: 0 6px;
+    }
     .tab {
       flex: 1;
-      padding: 9px;
+      padding: 9px 4px;
       background: none;
       border: none;
-      color: #71717a;
+      color: var(--fg-muted);
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
-      transition: all 0.15s;
+      transition: color .15s;
+      font-family: inherit;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
     }
-    .tab:hover { color: #d4d4d8; background: rgba(255,255,255,0.03); }
-    .tab.active { color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
+    .tab:hover { color: var(--fg); }
+    .tab.active { color: var(--fg); border-bottom-color: var(--fg); }
 
     .content { padding: 12px 14px; }
 
-    /* Scratch Pad */
-    .scratch-area { display: flex; flex-direction: column; gap: 10px; }
-    textarea {
+    /* Generic surfaces */
+    textarea, input[type="text"] {
       width: 100%;
-      min-height: 88px;
-      max-height: 140px;
-      padding: 10px;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      background: #18181b;
-      color: #e4e4e7;
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--fg);
       font-size: 13px;
       resize: none;
       font-family: inherit;
       line-height: 1.5;
-      transition: border-color 0.15s;
+      transition: border-color .15s, box-shadow .15s;
     }
-    textarea:focus { outline: none; border-color: #3b82f6; }
-    textarea::placeholder { color: #52525b; }
+    textarea { min-height: 86px; max-height: 140px; }
+    textarea:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+      outline: none;
+      border-color: var(--ring);
+      box-shadow: 0 0 0 3px hsl(220 13% 35% / .10);
+    }
+    textarea::placeholder, input::placeholder { color: var(--fg-subtle); }
 
     .btn {
       padding: 7px 14px;
-      border-radius: 6px;
-      border: none;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
-      transition: all 0.15s;
+      transition: all .15s;
+      font-family: inherit;
     }
-    .btn-primary { background: #3b82f6; color: white; }
-    .btn-primary:hover { background: #2563eb; }
-    .btn-secondary { background: #27272a; color: #d4d4d8; }
-    .btn-secondary:hover { background: #3f3f46; }
-    .btn-danger { background: #dc2626; color: white; }
-    .btn-danger:hover { background: #b91c1c; }
+    .btn-primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-secondary { background: var(--surface); color: var(--fg); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--surface-2); border-color: var(--border-strong); }
+    .btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+    .btn-danger:hover { filter: brightness(.92); }
     .actions { display: flex; gap: 8px; }
 
     /* Notes list */
-    .notes-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
+    .scratch-area { display: flex; flex-direction: column; gap: 10px; }
+    .notes-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
     .note-card {
       padding: 10px;
-      background: #18181b;
-      border-radius: 8px;
-      border: 1px solid #27272a;
-      transition: border-color 0.15s;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      transition: border-color .15s;
     }
-    .note-card:hover { border-color: #3f3f46; }
-    .note-card.synced { border-left: 2px solid #3b82f6; }
+    .note-card:hover { border-color: var(--border-strong); }
+    .note-card.synced { border-left: 2px solid var(--fg); }
     .note-card p {
       font-size: 12px;
       line-height: 1.5;
-      color: #d4d4d8;
+      color: var(--fg);
       white-space: pre-wrap;
       word-break: break-word;
       display: -webkit-box;
@@ -209,25 +293,26 @@
       align-items: center;
       margin-top: 6px;
       padding-top: 6px;
-      border-top: 1px solid #1e1e21;
+      border-top: 1px solid var(--border);
     }
-    .note-meta span { font-size: 10px; color: #52525b; }
+    .note-meta span { font-size: 10px; color: var(--fg-subtle); font-variant-numeric: tabular-nums; }
     .note-actions { display: flex; gap: 4px; }
     .note-actions button {
       padding: 3px 8px;
       font-size: 10px;
-      background: #27272a;
-      border: none;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
       border-radius: 4px;
-      color: #a1a1aa;
+      color: var(--fg-muted);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all .15s;
+      font-family: inherit;
     }
-    .note-actions button:hover { background: #3f3f46; color: #fff; }
-    .note-actions button.delete:hover { background: #450a0a; color: #f87171; }
+    .note-actions button:hover { background: var(--surface-3); color: var(--fg); }
+    .note-actions button.delete:hover { background: var(--danger-bg); color: var(--danger); border-color: hsl(0 65% 50% / .3); }
 
-    .empty-state { text-align: center; padding: 20px 16px; color: #3f3f46; }
-    .empty-state svg { width: 28px; height: 28px; margin-bottom: 6px; opacity: 0.4; }
+    .empty-state { text-align: center; padding: 24px 16px; color: var(--fg-subtle); }
+    .empty-state svg { width: 28px; height: 28px; margin-bottom: 6px; opacity: 0.5; }
     .empty-state p { font-size: 12px; }
 
     /* Sticky Notes */
@@ -235,298 +320,195 @@
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      max-height: 240px;
+      max-height: 260px;
       overflow-y: auto;
     }
     .sticky-note {
       padding: 8px;
-      border-radius: 6px;
-      min-height: 72px;
+      border-radius: var(--radius-sm);
+      min-height: 76px;
       position: relative;
+      border: 1px solid hsl(0 0% 0% / .06);
     }
     .sticky-note textarea {
       width: 100%;
-      min-height: 52px;
-      max-height: 80px;
+      min-height: 56px;
+      max-height: 90px;
       background: transparent;
       border: none;
-      color: #1a1a1a;
+      color: hsl(220 13% 13%);
       font-size: 11px;
       padding: 2px;
-      line-height: 1.4;
+      line-height: 1.45;
+      box-shadow: none !important;
     }
     .sticky-note textarea:focus { outline: none; }
     .sticky-delete {
       position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 16px;
-      height: 16px;
+      top: 4px; right: 4px;
+      width: 16px; height: 16px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.15);
+      background: hsl(0 0% 0% / .12);
       border: none;
       cursor: pointer;
       font-size: 10px;
-      color: #333;
+      color: hsl(220 13% 13%);
       opacity: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.15s;
+      transition: opacity .15s;
     }
     .sticky-note:hover .sticky-delete { opacity: 1; }
     .color-picker { display: flex; gap: 6px; margin-bottom: 10px; }
     .color-btn {
-      width: 22px;
-      height: 22px;
+      width: 22px; height: 22px;
       border-radius: 50%;
-      border: 2px solid transparent;
+      border: 1px solid hsl(0 0% 0% / .08);
       cursor: pointer;
-      transition: border-color 0.15s, transform 0.1s;
+      transition: transform .1s, box-shadow .15s;
+      padding: 0;
     }
     .color-btn:hover { transform: scale(1.1); }
-    .color-btn.active { border-color: #fff; }
+    .color-btn.active { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
 
-    /* ── Pomodoro Timer ── */
-    .pomodoro-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 8px 0;
-    }
-
-    .pomo-ring-wrapper {
-      position: relative;
-      width: 160px;
-      height: 160px;
-    }
-    .pomo-ring-wrapper svg {
-      transform: rotate(-90deg);
-      width: 160px;
-      height: 160px;
-    }
-    .pomo-ring-bg {
-      fill: none;
-      stroke: #27272a;
-      stroke-width: 6;
-    }
-    .pomo-ring-progress {
-      fill: none;
-      stroke: #3b82f6;
-      stroke-width: 6;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.5s linear;
-    }
-    .pomo-ring-progress.break {
-      stroke: #22c55e;
-    }
-    .pomo-time-display {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .pomo-time {
-      font-size: 36px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      color: #fff;
-      letter-spacing: -1px;
-    }
-    .pomo-label {
-      font-size: 11px;
-      color: #71717a;
-      margin-top: 2px;
-    }
-
-    .pomo-presets {
-      display: flex;
-      gap: 6px;
-    }
+    /* Pomodoro */
+    .pomodoro-container { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 8px 0; }
+    .pomo-ring-wrapper { position: relative; width: 160px; height: 160px; }
+    .pomo-ring-wrapper svg { transform: rotate(-90deg); width: 160px; height: 160px; }
+    .pomo-ring-bg { fill: none; stroke: var(--surface-3); stroke-width: 6; }
+    .pomo-ring-progress { fill: none; stroke: var(--fg); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .5s linear; }
+    .pomo-ring-progress.break { stroke: var(--success); }
+    .pomo-time-display { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .pomo-time { font-size: 36px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--fg); letter-spacing: -1.5px; }
+    .pomo-label { font-size: 11px; color: var(--fg-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .08em; }
+    .pomo-presets { display: flex; gap: 6px; }
     .pomo-preset-btn {
       padding: 5px 12px;
-      border-radius: 6px;
-      border: 1px solid #27272a;
-      background: #18181b;
-      color: #a1a1aa;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg-muted);
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all .15s;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
     }
-    .pomo-preset-btn:hover { border-color: #3f3f46; color: #e4e4e7; }
-    .pomo-preset-btn.active {
-      border-color: #3b82f6;
-      color: #3b82f6;
-      background: rgba(59, 130, 246, 0.1);
-    }
-
-    .pomo-controls {
-      display: flex;
-      gap: 8px;
-    }
-    .pomo-controls .btn {
-      min-width: 80px;
-      text-align: center;
-    }
-
+    .pomo-preset-btn:hover { border-color: var(--border-strong); color: var(--fg); }
+    .pomo-preset-btn.active { border-color: var(--fg); color: var(--fg); background: var(--surface-2); }
+    .pomo-controls { display: flex; gap: 8px; }
+    .pomo-controls .btn { min-width: 84px; text-align: center; }
     .pomo-stats {
       display: flex;
       gap: 16px;
       padding: 10px 16px;
-      background: #18181b;
-      border-radius: 8px;
-      border: 1px solid #27272a;
+      background: var(--bg-subtle);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
       width: 100%;
     }
-    .pomo-stat {
-      flex: 1;
-      text-align: center;
-    }
-    .pomo-stat-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .pomo-stat-label {
-      font-size: 10px;
-      color: #52525b;
-      margin-top: 2px;
-    }
-
+    .pomo-stat { flex: 1; text-align: center; }
+    .pomo-stat-value { font-size: 18px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; }
+    .pomo-stat-label { font-size: 10px; color: var(--fg-subtle); margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; }
     .pomo-break-banner {
       display: none;
       padding: 8px 14px;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.2);
-      border-radius: 8px;
+      background: hsl(142 45% 40% / .08);
+      border: 1px solid hsl(142 45% 40% / .25);
+      border-radius: var(--radius);
       text-align: center;
       width: 100%;
     }
     .pomo-break-banner.visible { display: block; }
-    .pomo-break-banner p {
-      font-size: 12px;
-      color: #4ade80;
-      font-weight: 500;
-    }
-    .pomo-break-banner span {
-      font-size: 10px;
-      color: #52525b;
-      display: block;
-      margin-top: 2px;
-    }
+    .pomo-break-banner p { font-size: 12px; color: var(--success); font-weight: 500; }
+    .pomo-break-banner span { font-size: 10px; color: var(--fg-muted); display: block; margin-top: 2px; }
 
     /* Habits */
     .habits-container { display: flex; flex-direction: column; gap: 10px; }
     .habit-add-row { display: flex; gap: 6px; }
-    .habit-add-row input {
-      flex: 1; padding: 8px 10px; border: 1px solid #27272a; border-radius: 8px;
-      background: #18181b; color: #e4e4e7; font-size: 12px;
-    }
-    .habit-add-row input:focus { outline: none; border-color: #3b82f6; }
-    .habit-add-row input::placeholder { color: #52525b; }
-    .habit-card {
-      padding: 10px; background: #18181b; border-radius: 8px; border: 1px solid #27272a;
-    }
+    .habit-add-row input { flex: 1; padding: 8px 10px; }
+    .habit-card { padding: 10px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); }
     .habit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-    .habit-name { font-size: 12px; font-weight: 600; color: #e4e4e7; }
-    .habit-streak { font-size: 10px; color: #f59e0b; display: flex; align-items: center; gap: 3px; }
+    .habit-name { font-size: 12px; font-weight: 600; color: var(--fg); }
+    .habit-streak { font-size: 10px; color: var(--warn); display: flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
     .habit-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 8px; }
-    .heat-cell { width: 100%; aspect-ratio: 1; border-radius: 3px; background: #27272a; }
-    .heat-cell.active { background: #3b82f6; }
+    .heat-cell { width: 100%; aspect-ratio: 1; border-radius: 3px; background: var(--surface-2); }
+    .heat-cell.active { background: var(--fg); }
     .habit-checkin-btn {
-      width: 100%; padding: 6px; border: none; border-radius: 6px;
-      font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+      width: 100%; padding: 6px; border-radius: var(--radius-sm); border: 1px solid transparent;
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit;
     }
-    .habit-checkin-btn.pending { background: #3b82f6; color: white; }
-    .habit-checkin-btn.pending:hover { background: #2563eb; }
-    .habit-checkin-btn.done { background: #27272a; color: #4ade80; cursor: default; }
-    .habit-delete {
-      padding: 2px 6px; background: transparent; border: none; color: #52525b;
-      cursor: pointer; font-size: 12px; transition: color 0.15s;
-    }
-    .habit-delete:hover { color: #f87171; }
-    .habits-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+    .habit-checkin-btn.pending { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+    .habit-checkin-btn.pending:hover { background: var(--primary-hover); }
+    .habit-checkin-btn.done { background: var(--surface-2); color: var(--success); border-color: var(--border); cursor: default; }
+    .habit-delete { padding: 2px 6px; background: transparent; border: none; color: var(--fg-subtle); cursor: pointer; font-size: 12px; transition: color .15s; }
+    .habit-delete:hover { color: var(--danger); }
+    .habits-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
 
-    .footer {
-      padding: 10px 14px;
-      border-top: 1px solid #27272a;
-      text-align: center;
-    }
-    .footer a { font-size: 11px; color: #3b82f6; text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
+    .footer { padding: 10px 14px; border-top: 1px solid var(--border); text-align: center; background: var(--bg-subtle); }
+    .footer a { font-size: 11px; color: var(--fg-muted); text-decoration: none; }
+    .footer a:hover { color: var(--fg); }
 
-    /* Scrollbar */
-    .notes-list::-webkit-scrollbar,
-    .sticky-grid::-webkit-scrollbar,
-    .habits-list::-webkit-scrollbar { width: 4px; }
-    .notes-list::-webkit-scrollbar-thumb,
-    .sticky-grid::-webkit-scrollbar-thumb,
-    .habits-list::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
-    .notes-list::-webkit-scrollbar-track,
-    .sticky-grid::-webkit-scrollbar-track,
-    .habits-list::-webkit-scrollbar-track { background: transparent; }
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--fg-subtle); }
+    ::-webkit-scrollbar-track { background: transparent; }
 
-    /* AI Assistant */
-    .ai-container { display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 160px); min-height: 360px; }
+    /* ALICE chat */
+    .ai-container { display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 180px); min-height: 380px; }
     .ai-messages {
       flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
-      padding: 4px; border: 1px solid #27272a; border-radius: 8px; background: #0f0f11;
+      padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-subtle);
     }
     .ai-msg {
-      padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.5;
+      padding: 8px 10px; border-radius: var(--radius); font-size: 12px; line-height: 1.55;
       white-space: pre-wrap; word-break: break-word; max-width: 92%;
     }
-    .ai-msg.user { background: #1e3a5f; color: #dbeafe; align-self: flex-end; border-bottom-right-radius: 2px; }
-    .ai-msg.assistant { background: #18181b; color: #e4e4e7; align-self: flex-start; border: 1px solid #27272a; border-bottom-left-radius: 2px; }
-    .ai-msg.system { background: transparent; color: #71717a; font-size: 11px; text-align: center; align-self: center; }
-    .ai-empty { padding: 28px 16px; text-align: center; color: #52525b; font-size: 12px; }
-    .ai-empty strong { color: #a1a1aa; display: block; margin-bottom: 4px; font-size: 13px; }
+    .ai-msg.user { background: var(--primary); color: var(--primary-fg); align-self: flex-end; border-bottom-right-radius: 2px; }
+    .ai-msg.assistant { background: var(--surface); color: var(--fg); align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+    .ai-msg.system { background: transparent; color: var(--fg-subtle); font-size: 11px; text-align: center; align-self: center; }
+    .ai-empty { padding: 20px 12px; text-align: center; color: var(--fg-muted); font-size: 12px; }
+    .ai-empty strong { color: var(--fg); display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
     .ai-suggestions { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
     .ai-suggestion {
-      padding: 8px 10px; background: #18181b; border: 1px solid #27272a; border-radius: 6px;
-      color: #d4d4d8; font-size: 11px; cursor: pointer; text-align: left; transition: all .15s;
+      padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--fg); font-size: 11px; cursor: pointer; text-align: left; transition: all .15s; font-family: inherit;
     }
-    .ai-suggestion:hover { border-color: #3b82f6; color: #fff; }
+    .ai-suggestion:hover { border-color: var(--border-strong); background: var(--surface-2); }
     .ai-input-row { display: flex; gap: 6px; }
-    .ai-input-row textarea {
-      flex: 1; min-height: 38px; max-height: 100px; padding: 8px 10px; font-size: 12px;
-    }
+    .ai-input-row textarea { flex: 1; min-height: 38px; max-height: 120px; padding: 8px 10px; font-size: 12px; }
     .ai-input-row .btn { align-self: stretch; }
     .ai-typing { display: inline-flex; gap: 3px; padding: 4px 0; }
-    .ai-typing span {
-      width: 5px; height: 5px; border-radius: 50%; background: #3b82f6;
-      animation: ai-bounce 1.2s infinite ease-in-out;
-    }
+    .ai-typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-subtle); animation: ai-bounce 1.2s infinite ease-in-out; }
     .ai-typing span:nth-child(2) { animation-delay: .15s; }
     .ai-typing span:nth-child(3) { animation-delay: .3s; }
     @keyframes ai-bounce { 0%,80%,100% { opacity:.3; transform: translateY(0); } 40% { opacity:1; transform: translateY(-3px); } }
     .ai-toolbar { display: flex; gap: 6px; align-items: center; }
-    .ai-toolbar .ai-source-toggle {
-      flex: 1; font-size: 10px; color: #71717a; display: flex; align-items: center; gap: 4px;
-    }
+    .ai-toolbar .ai-mode { flex: 1; font-size: 10px; color: var(--fg-subtle); display: flex; align-items: center; gap: 5px; }
+    .ai-toolbar .ai-mode input { accent-color: var(--fg); }
     .ai-clear {
-      padding: 4px 8px; font-size: 10px; background: transparent; border: 1px solid #3f3f46;
-      border-radius: 6px; color: #a1a1aa; cursor: pointer;
+      padding: 4px 10px; font-size: 10px; background: transparent; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--fg-muted); cursor: pointer; font-family: inherit;
     }
-    .ai-clear:hover { background: #27272a; color: #fff; }
+    .ai-clear:hover { background: var(--surface-2); color: var(--fg); }
   </style>
 </head>
 <body>
   <div class="header">
     <img src="icon-48.png" alt="PendragonX">
     <h1>PendragonX</h1>
-    <span id="header-version" style="font-size:10px; color:#3f3f46;">v1.1</span>
+    <span id="admin-badge" class="admin-badge" style="display:none;">Admin</span>
+    <span id="header-version" class="header-version">v1.3</span>
   </div>
 
   <!-- Login Screen -->
   <div id="login-screen" class="login-screen">
     <img src="icon-128.png" alt="PendragonX" class="logo-large">
     <h2>Welcome back</h2>
-    <p class="subtitle">Sign in to your PendragonX account to capture and sync notes across devices.</p>
+    <p class="subtitle">Sign in to your PendragonX account to chat with ALICE and sync your knowledge base.</p>
     <div class="login-form">
       <input type="email" id="auth-email" placeholder="Email address" autocomplete="email">
       <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
@@ -542,14 +524,14 @@
   <div id="user-bar" class="user-bar">
     <span id="user-email" class="user-email">user@email.com</span>
     <span id="sync-status" class="sync-status"></span>
-    <button id="sync-btn" class="icon-btn">⟳ Sync</button>
+    <button id="sync-btn" class="icon-btn">↻ Sync</button>
     <button id="logout-btn" class="icon-btn">Sign Out</button>
   </div>
 
   <!-- App content -->
   <div id="app-content" class="app-content">
     <div class="tabs">
-      <button class="tab active" data-tab="ai">AI</button>
+      <button class="tab active" data-tab="ai">ALICE</button>
       <button class="tab" data-tab="scratch">Notes</button>
       <button class="tab" data-tab="sticky">Sticky</button>
       <button class="tab" data-tab="habits">Habits</button>
@@ -560,30 +542,31 @@
       <div id="ai-tab" class="ai-container">
         <div id="ai-messages" class="ai-messages">
           <div class="ai-empty" id="ai-empty">
-            <strong>Ask ALICE about your knowledge base</strong>
-            Search across your cards, notes, documents, tasks, calendar &amp; scratch pad.
+            <strong>Talk to ALICE</strong>
+            Your full PendragonX assistant — create notes, capture ideas, set reminders, search your knowledge, run focus timers, and more.
             <div class="ai-suggestions">
+              <button class="ai-suggestion" data-q="Add a note to my scratchpad: pick up milk later">Add a note to my scratchpad</button>
+              <button class="ai-suggestion" data-q="Set a Pomodoro for 25 minutes">Start a 25-minute focus session</button>
+              <button class="ai-suggestion" data-q="What's on my calendar today?">What's on my calendar today?</button>
               <button class="ai-suggestion" data-q="Summarize my recent notes">Summarize my recent notes</button>
-              <button class="ai-suggestion" data-q="What are my upcoming tasks?">What are my upcoming tasks?</button>
-              <button class="ai-suggestion" data-q="Find connections between my cards">Find connections between my cards</button>
             </div>
           </div>
         </div>
         <div class="ai-toolbar">
-          <span class="ai-source-toggle">
-            <input type="checkbox" id="ai-use-internet" />
-            <label for="ai-use-internet">Search the web</label>
+          <span class="ai-mode">
+            <input type="checkbox" id="ai-deep-think" />
+            <label for="ai-deep-think">Deep think</label>
           </span>
-          <button class="ai-clear" id="ai-clear">Clear</button>
+          <button class="ai-clear" id="ai-new-thread">New chat</button>
         </div>
         <div class="ai-input-row">
-          <textarea id="ai-input" rows="1" placeholder="Ask anything about your knowledge base..."></textarea>
+          <textarea id="ai-input" rows="1" placeholder="Ask ALICE anything…"></textarea>
           <button class="btn btn-primary" id="ai-send">Send</button>
         </div>
       </div>
 
       <div id="scratch-tab" class="scratch-area" style="display: none;">
-        <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes..." rows="3"></textarea>
+        <textarea id="scratch-input" placeholder="Jot down quick thoughts, ideas, or notes…" rows="3"></textarea>
         <div class="actions">
           <button class="btn btn-primary" id="save-scratch">Save Note</button>
           <button class="btn btn-secondary" id="clear-scratch">Clear</button>
@@ -609,13 +592,11 @@
 
       <div id="pomodoro-tab" style="display: none;">
         <div class="pomodoro-container">
-          <!-- Break banner -->
           <div id="pomo-break-banner" class="pomo-break-banner">
-            <p>☕ Break time!</p>
+            <p>Break time</p>
             <span>Take a short rest before the next session</span>
           </div>
 
-          <!-- Timer ring -->
           <div class="pomo-ring-wrapper">
             <svg viewBox="0 0 160 160">
               <circle class="pomo-ring-bg" cx="80" cy="80" r="70" />
@@ -628,7 +609,6 @@
             </div>
           </div>
 
-          <!-- Duration presets -->
           <div class="pomo-presets" id="pomo-presets">
             <button class="pomo-preset-btn" data-minutes="15">15m</button>
             <button class="pomo-preset-btn active" data-minutes="25">25m</button>
@@ -636,13 +616,11 @@
             <button class="pomo-preset-btn" data-minutes="60">60m</button>
           </div>
 
-          <!-- Controls -->
           <div class="pomo-controls">
             <button class="btn btn-primary" id="pomo-start">Start</button>
             <button class="btn btn-secondary" id="pomo-reset">Reset</button>
           </div>
 
-          <!-- Session stats -->
           <div class="pomo-stats">
             <div class="pomo-stat">
               <div id="pomo-sessions" class="pomo-stat-value">0</div>
@@ -662,9 +640,9 @@
     </div>
 
     <div class="footer">
-      <a href="https://pendragonx.com" target="_blank">Open PendragonX App →</a>
+      <a href="https://pendragonx.com" target="_blank">Open PendragonX →</a>
     </div>
   </div>
-</body>
 <script src="popup.js"></script>
+</body>
 </html>

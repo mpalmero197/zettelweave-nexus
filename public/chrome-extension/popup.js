@@ -410,6 +410,7 @@ function updateAuthUI() {
   const appContent = document.getElementById('app-content');
   const userEmailEl = document.getElementById('user-email');
   const syncStatus = document.getElementById('sync-status');
+  const adminBadge = document.getElementById('admin-badge');
 
   if (authToken && userEmail) {
     if (loginScreen) loginScreen.style.display = 'none';
@@ -417,11 +418,48 @@ function updateAuthUI() {
     if (appContent) appContent.style.display = 'block';
     if (userEmailEl) userEmailEl.textContent = userEmail;
     if (syncStatus) syncStatus.textContent = '';
+    // Detect admin role to surface the badge (admin tool gating is enforced server-side).
+    checkAdminRole().then((isAdmin) => {
+      if (adminBadge) adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
+    });
   } else {
     if (loginScreen) loginScreen.style.display = 'flex';
     if (userBar) userBar.style.display = 'none';
     if (appContent) appContent.style.display = 'none';
+    if (adminBadge) adminBadge.style.display = 'none';
   }
+}
+
+async function checkAdminRole() {
+  if (!authToken) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/has_role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ _user_id: await getUserId(), _role: 'admin' }),
+    });
+    if (!res.ok) return false;
+    const v = await res.json();
+    return v === true;
+  } catch { return false; }
+}
+
+let _cachedUserId = null;
+async function getUserId() {
+  if (_cachedUserId) return _cachedUserId;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY },
+    });
+    if (!res.ok) return null;
+    const u = await res.json();
+    _cachedUserId = u?.id || null;
+    return _cachedUserId;
+  } catch { return null; }
 }
 
 // ── Cloud Sync ──
@@ -904,11 +942,13 @@ const AI_CONTEXT_TTL = 60 * 1000; // 1 minute
 function setupAIChat() {
   const sendBtn = document.getElementById('ai-send');
   const input = document.getElementById('ai-input');
-  const clearBtn = document.getElementById('ai-clear');
+  const newThreadBtn = document.getElementById('ai-new-thread');
 
   sendBtn?.addEventListener('click', () => sendAIMessage());
-  clearBtn?.addEventListener('click', () => {
+  newThreadBtn?.addEventListener('click', () => {
     aiMessages = [];
+    aliceThreadId = null;
+    chrome.storage.local.remove(['pendragonx_alice_thread_id']);
     renderAIMessages();
   });
   input?.addEventListener('keydown', (e) => {
@@ -919,13 +959,20 @@ function setupAIChat() {
   });
   input?.addEventListener('input', () => {
     input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
   document.querySelectorAll('.ai-suggestion').forEach(btn => {
     btn.addEventListener('click', () => sendAIMessage(btn.dataset.q));
   });
+
+  // Restore the last ALICE thread so the conversation continues across popup opens.
+  chrome.storage.local.get(['pendragonx_alice_thread_id'], (r) => {
+    aliceThreadId = r.pendragonx_alice_thread_id || null;
+  });
 }
+
+let aliceThreadId = null;
 
 async function fetchAIContext() {
   if (!authToken) return {};
@@ -1011,18 +1058,25 @@ async function sendAIMessage(prefilled) {
   renderAIMessages();
 
   try {
-    const useInternet = document.getElementById('ai-use-internet')?.checked || false;
-    const context = await fetchAIContext();
-    const trimmed = aiMessages.slice(-8);
+    const deepThink = document.getElementById('ai-deep-think')?.checked || false;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const locale = navigator.language || 'en-US';
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant-chat`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ messages: trimmed, context, useInternet }),
+      body: JSON.stringify({
+        message: text,
+        threadId: aliceThreadId,
+        timeZone: tz,
+        locale,
+        deepThink,
+        screen: { surface: 'chrome-extension' },
+      }),
     });
 
     const data = await res.json().catch(() => ({}));
@@ -1030,9 +1084,17 @@ async function sendAIMessage(prefilled) {
       throw new Error(data.error || `Request failed (${res.status})`);
     }
 
-    aiMessages.push({ role: 'assistant', content: data.response || 'No response.' });
+    if (data.threadId && data.threadId !== aliceThreadId) {
+      aliceThreadId = data.threadId;
+      chrome.storage.local.set({ pendragonx_alice_thread_id: aliceThreadId });
+    }
+
+    const parts = Array.isArray(data.parts) ? data.parts : [];
+    const reply = parts.filter((p) => p?.type === 'text').map((p) => p.text).join('\n').trim()
+      || 'Done.';
+    aiMessages.push({ role: 'assistant', content: reply });
   } catch (e) {
-    aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach AI assistant.'}` });
+    aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach ALICE.'}` });
   } finally {
     aiLoading = false;
     renderAIMessages();
