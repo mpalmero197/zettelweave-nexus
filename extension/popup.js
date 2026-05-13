@@ -942,11 +942,13 @@ const AI_CONTEXT_TTL = 60 * 1000; // 1 minute
 function setupAIChat() {
   const sendBtn = document.getElementById('ai-send');
   const input = document.getElementById('ai-input');
-  const clearBtn = document.getElementById('ai-clear');
+  const newThreadBtn = document.getElementById('ai-new-thread');
 
   sendBtn?.addEventListener('click', () => sendAIMessage());
-  clearBtn?.addEventListener('click', () => {
+  newThreadBtn?.addEventListener('click', () => {
     aiMessages = [];
+    aliceThreadId = null;
+    chrome.storage.local.remove(['pendragonx_alice_thread_id']);
     renderAIMessages();
   });
   input?.addEventListener('keydown', (e) => {
@@ -957,13 +959,20 @@ function setupAIChat() {
   });
   input?.addEventListener('input', () => {
     input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
   document.querySelectorAll('.ai-suggestion').forEach(btn => {
     btn.addEventListener('click', () => sendAIMessage(btn.dataset.q));
   });
+
+  // Restore the last ALICE thread so the conversation continues across popup opens.
+  chrome.storage.local.get(['pendragonx_alice_thread_id'], (r) => {
+    aliceThreadId = r.pendragonx_alice_thread_id || null;
+  });
 }
+
+let aliceThreadId = null;
 
 async function fetchAIContext() {
   if (!authToken) return {};
