@@ -1058,18 +1058,25 @@ async function sendAIMessage(prefilled) {
   renderAIMessages();
 
   try {
-    const useInternet = document.getElementById('ai-use-internet')?.checked || false;
-    const context = await fetchAIContext();
-    const trimmed = aiMessages.slice(-8);
+    const deepThink = document.getElementById('ai-deep-think')?.checked || false;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const locale = navigator.language || 'en-US';
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant-chat`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ messages: trimmed, context, useInternet }),
+      body: JSON.stringify({
+        message: text,
+        threadId: aliceThreadId,
+        timeZone: tz,
+        locale,
+        deepThink,
+        screen: { surface: 'chrome-extension' },
+      }),
     });
 
     const data = await res.json().catch(() => ({}));
@@ -1077,9 +1084,17 @@ async function sendAIMessage(prefilled) {
       throw new Error(data.error || `Request failed (${res.status})`);
     }
 
-    aiMessages.push({ role: 'assistant', content: data.response || 'No response.' });
+    if (data.threadId && data.threadId !== aliceThreadId) {
+      aliceThreadId = data.threadId;
+      chrome.storage.local.set({ pendragonx_alice_thread_id: aliceThreadId });
+    }
+
+    const parts = Array.isArray(data.parts) ? data.parts : [];
+    const reply = parts.filter((p) => p?.type === 'text').map((p) => p.text).join('\n').trim()
+      || 'Done.';
+    aiMessages.push({ role: 'assistant', content: reply });
   } catch (e) {
-    aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach AI assistant.'}` });
+    aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach ALICE.'}` });
   } finally {
     aiLoading = false;
     renderAIMessages();
