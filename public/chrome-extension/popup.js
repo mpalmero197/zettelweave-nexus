@@ -1,11 +1,8 @@
-// PendragonX Quick Notes - Chrome Extension with Supabase Sync
+// PendragonX Toolbox - Chrome Extension Side Panel
 const SUPABASE_URL = 'https://sckglgjydlbztxjupbsk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNja2dsZ2p5ZGxienR4anVwYnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzYzMjUsImV4cCI6MjA3MTkxMjMyNX0.3uZ0NUIN3yJsUgsCWdTKAhWf_DdLDiDske83hBpK3Yw';
 
 const STORAGE_KEYS = {
-  SCRATCH_NOTES: 'pendragonx_scratch_notes',
-  STICKY_NOTES: 'pendragonx_sticky_notes',
-  SELECTED_COLOR: 'pendragonx_selected_color',
   AUTH_TOKEN: 'pendragonx_auth_token',
   USER_EMAIL: 'pendragonx_user_email',
   POMO_STATE: 'pendragonx_pomo_state',
@@ -13,123 +10,86 @@ const STORAGE_KEYS = {
   HABITS: 'pendragonx_habits',
 };
 
-const STICKY_COLORS = [
-  '#fef08a', '#fed7aa', '#fecaca', '#d9f99d',
-  '#a5f3fc', '#ddd6fe', '#fbcfe8', '#e5e5e5'
-];
-
-let selectedColor = STICKY_COLORS[0];
-let scratchNotes = [];
-let stickyNotes = [];
-let habits = [];
 let authToken = null;
 let userEmail = null;
+let habits = [];
+let authMode = 'signin'; // 'signin' | 'signup'
 
-let syncInterval = null;
-
-// ── Pomodoro State ──
-const CIRCUMFERENCE = 2 * Math.PI * 70; // ~439.82
-let pomoDuration = 25 * 60; // seconds
+// Pomodoro
+const CIRCUMFERENCE = 2 * Math.PI * 70;
+let pomoDuration = 25 * 60;
 let pomoRemaining = pomoDuration;
 let pomoRunning = false;
 let pomoInterval = null;
 let pomoIsBreak = false;
-const BREAK_DURATION = 5 * 60; // 5 min break
-
+const BREAK_DURATION = 5 * 60;
 let pomoStats = { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
 
-// Initialize
+// Server-fetched lists
+let cardsList = [];
+let notesList = [];
+let calendarList = [];
+let tasksList = [];
+let calFilter = 'all';
+let focusRange = 'day';
+
+// ALICE
+let aiMessages = [];
+let aiLoading = false;
+let aliceThreadId = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   setupTabs();
-  setupScratchPad();
-  setupStickyNotes();
   setupAuth();
-  renderColorPicker();
   setupPomodoro();
   setupHabits();
   setupAIChat();
+  setupCards();
+  setupNotes();
+  setupCalendar();
+  setupCapture();
+  setupFocusRange();
 });
 
-// Clean up polling when popup closes
 window.addEventListener('unload', () => {
-  if (syncInterval) clearInterval(syncInterval);
-  // Persist pomodoro state so it survives popup close
   savePomodoroState();
 });
 
-// Start polling every 3 seconds for live sync
-function startLiveSync() {
-  if (syncInterval) clearInterval(syncInterval);
-  if (!authToken) return;
-  syncInterval = setInterval(() => {
-    if (authToken) syncFromCloud(true);
-  }, 3000);
-}
-
-function stopLiveSync() {
-  if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
-}
-
-// Load data from storage
+// ── Storage / load ──
 function loadData() {
-  chrome.storage.local.get(Object.values(STORAGE_KEYS), (result) => {
-    scratchNotes = result[STORAGE_KEYS.SCRATCH_NOTES] || [];
-    stickyNotes = result[STORAGE_KEYS.STICKY_NOTES] || [];
-    selectedColor = result[STORAGE_KEYS.SELECTED_COLOR] || STICKY_COLORS[0];
-    authToken = result[STORAGE_KEYS.AUTH_TOKEN] || null;
-    userEmail = result[STORAGE_KEYS.USER_EMAIL] || null;
-    habits = result[STORAGE_KEYS.HABITS] || [];
-    pomoStats = result[STORAGE_KEYS.POMO_STATS] || { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
+  chrome.storage.local.get([...Object.values(STORAGE_KEYS), 'pendragonx_alice_thread_id'], (r) => {
+    authToken = r[STORAGE_KEYS.AUTH_TOKEN] || null;
+    userEmail = r[STORAGE_KEYS.USER_EMAIL] || null;
+    habits = r[STORAGE_KEYS.HABITS] || [];
+    pomoStats = r[STORAGE_KEYS.POMO_STATS] || { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
+    aliceThreadId = r.pendragonx_alice_thread_id || null;
 
-    // Restore running timer state
-    const savedPomo = result[STORAGE_KEYS.POMO_STATE];
+    const savedPomo = r[STORAGE_KEYS.POMO_STATE];
     if (savedPomo) {
       pomoDuration = savedPomo.duration || 25 * 60;
       pomoIsBreak = savedPomo.isBreak || false;
       if (savedPomo.running && savedPomo.endTime) {
-        const now = Date.now();
-        const remaining = Math.round((savedPomo.endTime - now) / 1000);
-        if (remaining > 0) {
-          pomoRemaining = remaining;
-          pomoRunning = true;
-        } else {
-          // Timer expired while popup was closed
-          pomoRemaining = 0;
-          pomoRunning = false;
-          handlePomodoroComplete();
-        }
+        const remaining = Math.round((savedPomo.endTime - Date.now()) / 1000);
+        if (remaining > 0) { pomoRemaining = remaining; pomoRunning = true; }
+        else { pomoRemaining = 0; handlePomodoroComplete(); }
       } else {
         pomoRemaining = savedPomo.remaining || pomoDuration;
       }
     }
 
-    renderScratchNotes();
-    renderStickyNotes();
     renderHabits();
     updateAuthUI();
     updatePomoUI();
     updatePomoStats();
-
-    // Check streak
-    checkStreak();
-
     if (pomoRunning) startPomoTick();
 
-    if (authToken) {
-      syncFromCloud();
-      syncHabitsFromCloud();
-      startLiveSync();
-    }
+    if (authToken) loadAllServerData();
   });
 }
 
-// Save data to storage
-function saveData() {
+function saveLocal() {
   chrome.storage.local.set({
-    [STORAGE_KEYS.SCRATCH_NOTES]: scratchNotes,
-    [STORAGE_KEYS.STICKY_NOTES]: stickyNotes,
-    [STORAGE_KEYS.SELECTED_COLOR]: selectedColor,
     [STORAGE_KEYS.AUTH_TOKEN]: authToken,
     [STORAGE_KEYS.USER_EMAIL]: userEmail,
     [STORAGE_KEYS.HABITS]: habits,
@@ -137,270 +97,127 @@ function saveData() {
 }
 
 function savePomodoroState() {
-  const state = {
-    duration: pomoDuration,
-    remaining: pomoRemaining,
-    running: pomoRunning,
-    isBreak: pomoIsBreak,
-    endTime: pomoRunning ? Date.now() + pomoRemaining * 1000 : null,
-  };
   chrome.storage.local.set({
-    [STORAGE_KEYS.POMO_STATE]: state,
+    [STORAGE_KEYS.POMO_STATE]: {
+      duration: pomoDuration,
+      remaining: pomoRemaining,
+      running: pomoRunning,
+      isBreak: pomoIsBreak,
+      endTime: pomoRunning ? Date.now() + pomoRemaining * 1000 : null,
+    },
     [STORAGE_KEYS.POMO_STATS]: pomoStats,
   });
 }
 
-// ── Pomodoro Logic ──
-
-function setupPomodoro() {
-  const startBtn = document.getElementById('pomo-start');
-  const resetBtn = document.getElementById('pomo-reset');
-  const presetBtns = document.querySelectorAll('.pomo-preset-btn');
-
-  startBtn?.addEventListener('click', togglePomodoro);
-  resetBtn?.addEventListener('click', resetPomodoro);
-
-  presetBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (pomoRunning) return; // Can't change while running
-      const minutes = parseInt(btn.dataset.minutes);
-      pomoDuration = minutes * 60;
-      pomoRemaining = pomoDuration;
-      pomoIsBreak = false;
-
-      presetBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      updatePomoUI();
-      savePomodoroState();
-    });
-  });
-
-  // Highlight current preset
-  highlightActivePreset();
+// ── Toast ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 1800);
 }
 
-function highlightActivePreset() {
-  const presetBtns = document.querySelectorAll('.pomo-preset-btn');
-  const currentMinutes = Math.round(pomoDuration / 60);
-  presetBtns.forEach(btn => {
-    btn.classList.toggle('active', parseInt(btn.dataset.minutes) === currentMinutes && !pomoIsBreak);
-  });
-}
-
-function togglePomodoro() {
-  if (pomoRunning) {
-    pausePomodoro();
-  } else {
-    startPomodoro();
-  }
-}
-
-function startPomodoro() {
-  pomoRunning = true;
-  startPomoTick();
-  updatePomoUI();
-  savePomodoroState();
-}
-
-function pausePomodoro() {
-  pomoRunning = false;
-  if (pomoInterval) { clearInterval(pomoInterval); pomoInterval = null; }
-  updatePomoUI();
-  savePomodoroState();
-}
-
-function resetPomodoro() {
-  pomoRunning = false;
-  pomoIsBreak = false;
-  if (pomoInterval) { clearInterval(pomoInterval); pomoInterval = null; }
-  pomoRemaining = pomoDuration;
-  updatePomoUI();
-  highlightActivePreset();
-  savePomodoroState();
-
-  const banner = document.getElementById('pomo-break-banner');
-  if (banner) banner.classList.remove('visible');
-}
-
-function startPomoTick() {
-  if (pomoInterval) clearInterval(pomoInterval);
-  pomoInterval = setInterval(() => {
-    if (pomoRemaining <= 0) {
-      clearInterval(pomoInterval);
-      pomoInterval = null;
-      pomoRunning = false;
-      handlePomodoroComplete();
-      return;
-    }
-    pomoRemaining--;
-    updatePomoUI();
-  }, 1000);
-}
-
-function handlePomodoroComplete() {
-  if (!pomoIsBreak) {
-    // Focus session completed
-    pomoStats.sessions++;
-    pomoStats.totalMinutes += Math.round(pomoDuration / 60);
-    pomoStats.lastDate = new Date().toDateString();
-    checkStreak();
-    updatePomoStats();
-    savePomodoroState();
-
-    // Switch to break
-    pomoIsBreak = true;
-    pomoRemaining = BREAK_DURATION;
-    const banner = document.getElementById('pomo-break-banner');
-    if (banner) banner.classList.add('visible');
-
-    // Auto-start break
-    startPomodoro();
-  } else {
-    // Break completed
-    pomoIsBreak = false;
-    pomoRemaining = pomoDuration;
-    const banner = document.getElementById('pomo-break-banner');
-    if (banner) banner.classList.remove('visible');
-    highlightActivePreset();
-    updatePomoUI();
-    savePomodoroState();
-  }
-}
-
-function checkStreak() {
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
-
-  if (pomoStats.lastDate === today) {
-    // Already active today, streak continues
-  } else if (pomoStats.lastDate === yesterday) {
-    pomoStats.streak++;
-  } else if (pomoStats.lastDate !== today) {
-    pomoStats.streak = pomoStats.sessions > 0 && pomoStats.lastDate === null ? 1 : 0;
-  }
-}
-
-function updatePomoUI() {
-  const timeEl = document.getElementById('pomo-time');
-  const labelEl = document.getElementById('pomo-label');
-  const ringEl = document.getElementById('pomo-ring');
-  const startBtn = document.getElementById('pomo-start');
-
-  if (timeEl) {
-    const mins = Math.floor(pomoRemaining / 60);
-    const secs = pomoRemaining % 60;
-    timeEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  }
-
-  if (labelEl) {
-    labelEl.textContent = pomoIsBreak ? 'Break' : 'Focus';
-  }
-
-  if (ringEl) {
-    const total = pomoIsBreak ? BREAK_DURATION : pomoDuration;
-    const progress = total > 0 ? (total - pomoRemaining) / total : 0;
-    ringEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
-    ringEl.classList.toggle('break', pomoIsBreak);
-  }
-
-  if (startBtn) {
-    if (pomoRunning) {
-      startBtn.textContent = 'Pause';
-      startBtn.className = 'btn btn-secondary';
-    } else {
-      startBtn.textContent = pomoRemaining < (pomoIsBreak ? BREAK_DURATION : pomoDuration) ? 'Resume' : 'Start';
-      startBtn.className = 'btn btn-primary';
-    }
-  }
-}
-
-function updatePomoStats() {
-  const sessionsEl = document.getElementById('pomo-sessions');
-  const totalEl = document.getElementById('pomo-total-time');
-  const streakEl = document.getElementById('pomo-streak');
-
-  if (sessionsEl) sessionsEl.textContent = pomoStats.sessions;
-  if (totalEl) {
-    const hrs = Math.floor(pomoStats.totalMinutes / 60);
-    totalEl.textContent = hrs > 0 ? `${hrs}h ${pomoStats.totalMinutes % 60}m` : `${pomoStats.totalMinutes}m`;
-  }
-  if (streakEl) streakEl.textContent = pomoStats.streak;
-}
-
-// ── Auth ──
-
+// ── Auth (sign in + sign up) ──
 function setupAuth() {
   const loginBtn = document.getElementById('login-btn');
   const logoutBtn = document.getElementById('logout-btn');
   const syncBtn = document.getElementById('sync-btn');
-
-  loginBtn?.addEventListener('click', handleLogin);
-  logoutBtn?.addEventListener('click', handleLogout);
-  syncBtn?.addEventListener('click', () => {
-    if (authToken) syncFromCloud();
-  });
-
+  const modeSignin = document.getElementById('auth-mode-signin');
+  const modeSignup = document.getElementById('auth-mode-signup');
   const passwordInput = document.getElementById('auth-password');
-  passwordInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleLogin();
-  });
+
+  modeSignin?.addEventListener('click', () => setAuthMode('signin'));
+  modeSignup?.addEventListener('click', () => setAuthMode('signup'));
+
+  loginBtn?.addEventListener('click', handleAuth);
+  logoutBtn?.addEventListener('click', handleLogout);
+  syncBtn?.addEventListener('click', () => { if (authToken) loadAllServerData(); });
+  passwordInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuth(); });
 }
 
-async function handleLogin() {
-  const authEmailEl = document.getElementById('auth-email');
-  const authPasswordEl = document.getElementById('auth-password');
-  const errorEl = document.getElementById('auth-error');
-  const loginBtn = document.getElementById('login-btn');
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('auth-mode-signin').classList.toggle('active', mode === 'signin');
+  document.getElementById('auth-mode-signup').classList.toggle('active', mode === 'signup');
+  document.getElementById('auth-title').textContent = mode === 'signup' ? 'Create your account' : 'Welcome back';
+  document.getElementById('auth-subtitle').textContent = mode === 'signup'
+    ? 'Sign up for a free PendragonX account.'
+    : 'Sign in to your PendragonX account.';
+  document.getElementById('auth-name').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('login-btn').textContent = mode === 'signup' ? 'Sign Up' : 'Sign In';
+  document.getElementById('auth-password').setAttribute('autocomplete', mode === 'signup' ? 'new-password' : 'current-password');
+}
 
-  if (!authEmailEl || !authPasswordEl || !errorEl || !loginBtn) return;
-
-  const email = authEmailEl.value.trim();
-  const password = authPasswordEl.value;
+async function handleAuth() {
+  const emailEl = document.getElementById('auth-email');
+  const passEl = document.getElementById('auth-password');
+  const nameEl = document.getElementById('auth-name');
+  const errEl = document.getElementById('auth-error');
+  const btn = document.getElementById('login-btn');
+  const email = emailEl.value.trim();
+  const password = passEl.value;
+  const displayName = nameEl.value.trim();
 
   if (!email || !password) {
-    errorEl.textContent = 'Please enter your email and password.';
-    errorEl.style.display = 'block';
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.style.display = 'block';
     return;
   }
-
-  loginBtn.disabled = true;
-  loginBtn.textContent = 'Signing in…';
-  errorEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = authMode === 'signup' ? 'Creating account…' : 'Signing in…';
+  errEl.style.display = 'none';
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error_description || data.msg || 'Login failed');
-
-    authToken = data.access_token;
-    userEmail = data.user.email;
-    saveData();
+    if (authMode === 'signup') {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          email, password,
+          data: { display_name: displayName || email.split('@')[0] },
+          options: { emailRedirectTo: 'https://pendragonx.com' },
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error_description || d.msg || d.error || 'Sign up failed');
+      if (d.access_token) {
+        authToken = d.access_token;
+        userEmail = d.user?.email || email;
+      } else {
+        // Email confirmation required
+        toast('Check your email to confirm your account.');
+        setAuthMode('signin');
+        return;
+      }
+    } else {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email, password }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error_description || d.msg || 'Login failed');
+      authToken = d.access_token;
+      userEmail = d.user.email;
+    }
+    saveLocal();
     updateAuthUI();
-    syncFromCloud();
-    startLiveSync();
-
-    authEmailEl.value = '';
-    authPasswordEl.value = '';
-  } catch (error) {
-    errorEl.textContent = error.message;
-    errorEl.style.display = 'block';
+    loadAllServerData();
+    emailEl.value = ''; passEl.value = ''; if (nameEl) nameEl.value = '';
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
   } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = 'Sign In';
+    btn.disabled = false;
+    btn.textContent = authMode === 'signup' ? 'Sign Up' : 'Sign In';
   }
 }
 
 function handleLogout() {
   authToken = null;
   userEmail = null;
-  stopLiveSync();
-  saveData();
+  saveLocal();
   updateAuthUI();
 }
 
@@ -409,694 +226,674 @@ function updateAuthUI() {
   const userBar = document.getElementById('user-bar');
   const appContent = document.getElementById('app-content');
   const userEmailEl = document.getElementById('user-email');
-  const syncStatus = document.getElementById('sync-status');
   const adminBadge = document.getElementById('admin-badge');
 
   if (authToken && userEmail) {
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (userBar) userBar.style.display = 'flex';
-    if (appContent) appContent.style.display = 'block';
-    if (userEmailEl) userEmailEl.textContent = userEmail;
-    if (syncStatus) syncStatus.textContent = '';
-    // Detect admin role to surface the badge (admin tool gating is enforced server-side).
+    loginScreen.style.display = 'none';
+    userBar.style.display = 'flex';
+    appContent.style.display = 'block';
+    userEmailEl.textContent = userEmail;
     checkAdminRole().then((isAdmin) => {
       if (adminBadge) adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
     });
   } else {
-    if (loginScreen) loginScreen.style.display = 'flex';
-    if (userBar) userBar.style.display = 'none';
-    if (appContent) appContent.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    userBar.style.display = 'none';
+    appContent.style.display = 'none';
     if (adminBadge) adminBadge.style.display = 'none';
   }
-}
-
-async function checkAdminRole() {
-  if (!authToken) return false;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/has_role`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ _user_id: await getUserId(), _role: 'admin' }),
-    });
-    if (!res.ok) return false;
-    const v = await res.json();
-    return v === true;
-  } catch { return false; }
 }
 
 let _cachedUserId = null;
 async function getUserId() {
   if (_cachedUserId) return _cachedUserId;
   try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY },
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${authToken}`, apikey: SUPABASE_ANON_KEY },
     });
-    if (!res.ok) return null;
-    const u = await res.json();
+    if (!r.ok) return null;
+    const u = await r.json();
     _cachedUserId = u?.id || null;
     return _cachedUserId;
   } catch { return null; }
 }
 
-// ── Cloud Sync ──
-
-async function syncFromCloud(silent = false) {
-  if (!authToken) return;
-
-  const syncStatus = document.getElementById('sync-status');
-  if (!silent && syncStatus) {
-    syncStatus.textContent = 'Syncing…';
-    syncStatus.className = 'sync-status syncing';
-  }
-
+async function checkAdminRole() {
+  if (!authToken) return false;
   try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        handleLogout();
-        throw new Error('Session expired');
-      }
-      throw new Error('Sync failed');
-    }
-
-    const data = await response.json();
-    const cloudNotes = data.notes || [];
-
-    const cloudIds = new Set(cloudNotes.map(n => n.id));
-    scratchNotes = scratchNotes.filter(n => !n.synced || cloudIds.has(n.id));
-
-    cloudNotes.forEach(cloudNote => {
-      const localNote = scratchNotes.find(n => n.id === cloudNote.id);
-      if (!localNote) {
-        scratchNotes.push({
-          id: cloudNote.id,
-          content: cloudNote.content,
-          timestamp: cloudNote.created_at,
-          synced: true
-        });
-      } else {
-        localNote.content = cloudNote.content;
-        localNote.synced = true;
-      }
-    });
-
-    scratchNotes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    saveData();
-    renderScratchNotes();
-
-    if (!silent && syncStatus) {
-      syncStatus.textContent = 'Synced ✓';
-      syncStatus.className = 'sync-status success';
-      setTimeout(() => { if (syncStatus) syncStatus.textContent = ''; }, 2000);
-    }
-  } catch (error) {
-    if (!silent && syncStatus) {
-      syncStatus.textContent = error.message;
-      syncStatus.className = 'sync-status error';
-    }
-  }
-}
-
-async function syncNoteToCloud(note) {
-  if (!authToken) return;
-
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
+    const uid = await getUserId();
+    if (!uid) return false;
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/has_role`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY
+        Authorization: `Bearer ${authToken}`,
+        apikey: SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ content: note.content })
+      body: JSON.stringify({ _user_id: uid, _role: 'admin' }),
     });
-
-    if (response.ok) {
-      const data = await response.json();
-      const localNote = scratchNotes.find(n => n.id === note.id);
-      if (localNote && data.note) {
-        localNote.id = data.note.id;
-        localNote.synced = true;
-        saveData();
-        renderScratchNotes();
-      }
-    }
-  } catch (error) {
-    console.error('Failed to sync note:', error);
-  }
-}
-
-async function deleteNoteFromCloud(noteId) {
-  if (!authToken) return;
-
-  try {
-    await fetch(`${SUPABASE_URL}/functions/v1/scratchpad-sync`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY
-      },
-      body: JSON.stringify({ id: noteId })
-    });
-  } catch (error) {
-    console.error('Failed to delete from cloud:', error);
-  }
+    if (!r.ok) return false;
+    return (await r.json()) === true;
+  } catch { return false; }
 }
 
 // ── Tabs ──
-
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab');
   const panels = {
     ai: document.getElementById('ai-tab'),
-    scratch: document.getElementById('scratch-tab'),
-    sticky: document.getElementById('sticky-tab'),
-    pomodoro: document.getElementById('pomodoro-tab'),
-    habits: document.getElementById('habits-tab'),
+    cards: document.getElementById('cards-tab'),
+    notes: document.getElementById('notes-tab'),
+    calendar: document.getElementById('calendar-tab'),
+    focus: document.getElementById('focus-tab'),
   };
-  const displayMap = { ai: 'flex', scratch: 'flex', sticky: 'block', pomodoro: 'block', habits: 'block' };
+  const display = { ai: 'flex', cards: 'block', notes: 'flex', calendar: 'block', focus: 'block' };
+  tabs.forEach((t) => {
+    t.addEventListener('click', () => {
+      tabs.forEach((x) => x.classList.remove('active'));
+      t.classList.add('active');
+      const k = t.dataset.tab;
+      Object.entries(panels).forEach(([key, el]) => {
+        if (el) el.style.display = key === k ? display[key] : 'none';
+      });
+      if (k === 'notes') refreshCurrentTabUrl();
+    });
+  });
+}
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const tabName = tab.dataset.tab;
-      Object.entries(panels).forEach(([k, el]) => {
-        if (el) el.style.display = k === tabName ? displayMap[k] : 'none';
+// ── REST helpers ──
+function authHeaders(extra = {}) {
+  return {
+    Authorization: `Bearer ${authToken}`,
+    apikey: SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+    ...extra,
+  };
+}
+async function rest(path, opts = {}) {
+  if (!authToken) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...opts,
+      headers: { ...authHeaders(opts.headers || {}), ...(opts.headers || {}) },
+    });
+    if (!r.ok) return null;
+    if (r.status === 204) return true;
+    return await r.json();
+  } catch { return null; }
+}
+
+async function loadAllServerData() {
+  await Promise.all([loadCards(), loadNotes(), loadCalendar(), loadTasks(), syncHabitsFromCloud()]);
+}
+
+// ── Cards ──
+function setupCards() {
+  document.getElementById('save-card')?.addEventListener('click', async () => {
+    const title = document.getElementById('card-title').value.trim();
+    const content = document.getElementById('card-content').value.trim();
+    if (!title && !content) return;
+    await createCard({ title: title || 'Untitled', content });
+    document.getElementById('card-title').value = '';
+    document.getElementById('card-content').value = '';
+    toast('Card saved');
+    loadCards();
+  });
+}
+
+async function loadCards() {
+  const data = await rest('zettel_cards?select=id,title,content,category,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
+  cardsList = data || [];
+  renderCards();
+}
+
+async function createCard({ title, content, category }) {
+  const uid = await getUserId();
+  if (!uid) return null;
+  return await rest('zettel_cards', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ user_id: uid, title, content: content || '', category: category || 'general' }),
+  });
+}
+
+function renderCards() {
+  const c = document.getElementById('cards-list');
+  if (!c) return;
+  if (!cardsList.length) {
+    c.innerHTML = '<div class="empty-state"><p>No cards yet</p></div>';
+    return;
+  }
+  c.innerHTML = cardsList.map((card) => `
+    <div class="item-row" data-id="${card.id}">
+      <div class="item-title">${escapeHtml(card.title || 'Untitled')}</div>
+      <div class="item-snippet">${escapeHtml((card.content || '').slice(0, 140))}</div>
+      <div class="item-meta"><span>${escapeHtml(card.category || 'general')}</span><span>${formatDate(card.created_at)}</span></div>
+    </div>
+  `).join('');
+  c.querySelectorAll('.item-row').forEach((el) => {
+    el.addEventListener('click', () => window.open(`https://pendragonx.com/app?card=${el.dataset.id}`, '_blank'));
+  });
+}
+
+// ── Notes ──
+function setupNotes() {
+  document.getElementById('save-scratch')?.addEventListener('click', async () => {
+    const v = document.getElementById('scratch-input').value.trim();
+    if (!v) return;
+    await createNote({ title: v.split('\n')[0].slice(0, 80), content: v });
+    document.getElementById('scratch-input').value = '';
+    toast('Note saved');
+    loadNotes();
+  });
+  document.getElementById('clear-scratch')?.addEventListener('click', () => {
+    document.getElementById('scratch-input').value = '';
+  });
+}
+
+async function loadNotes() {
+  const data = await rest('notes?select=id,title,content,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
+  notesList = data || [];
+  renderNotes();
+}
+
+async function createNote({ title, content, tags }) {
+  const uid = await getUserId();
+  if (!uid) return null;
+  return await rest('notes', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ user_id: uid, title: title || 'Untitled', content: content || '', tags: tags || [] }),
+  });
+}
+
+function renderNotes() {
+  const c = document.getElementById('notes-list');
+  if (!c) return;
+  if (!notesList.length) {
+    c.innerHTML = '<div class="empty-state"><p>No notes yet</p></div>';
+    return;
+  }
+  c.innerHTML = notesList.map((n) => `
+    <div class="note-card" data-id="${n.id}">
+      <p><strong>${escapeHtml(n.title || 'Untitled')}</strong>\n${escapeHtml((n.content || '').slice(0, 200))}</p>
+      <div class="note-meta">
+        <span>${formatDate(n.created_at)} ☁️</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Web capture (active tab) ──
+function setupCapture() {
+  refreshCurrentTabUrl();
+  document.getElementById('capture-text')?.addEventListener('click', () => captureFromPage('text'));
+  document.getElementById('capture-html')?.addEventListener('click', () => captureFromPage('html'));
+  document.getElementById('capture-card')?.addEventListener('click', () => captureFromPage('card'));
+  document.getElementById('capture-pdf')?.addEventListener('click', captureAsPdf);
+}
+
+async function refreshCurrentTabUrl() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const el = document.getElementById('capture-url');
+    if (el) el.textContent = tab?.title ? `${tab.title}` : tab?.url || 'No active tab';
+  } catch {}
+}
+
+async function captureFromPage(mode) {
+  if (!authToken) { toast('Sign in first'); return; }
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => ({
+        title: document.title,
+        url: location.href,
+        text: document.body?.innerText || '',
+        html: document.documentElement?.outerHTML || '',
+      }),
+    });
+    if (!result) return;
+    const sourceLine = `\n\n---\nSource: ${result.url}`;
+    if (mode === 'text') {
+      await createNote({ title: result.title, content: result.text + sourceLine, tags: ['web-capture'] });
+      toast('Saved page text → Notes');
+      loadNotes();
+    } else if (mode === 'html') {
+      // Strip scripts/styles from HTML for storage
+      const cleaned = result.html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+      await createNote({ title: result.title, content: cleaned + sourceLine, tags: ['web-capture', 'html'] });
+      toast('Saved full page HTML → Notes');
+      loadNotes();
+    } else if (mode === 'card') {
+      const snippet = (result.text || '').slice(0, 1500);
+      await createCard({ title: result.title, content: snippet + sourceLine, category: 'web' });
+      toast('Saved → Cards');
+      loadCards();
+    }
+  } catch (e) {
+    toast(`Capture failed: ${e.message}`);
+  }
+}
+
+async function captureAsPdf() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => window.print(),
+    });
+    toast('Print → choose "Save as PDF"');
+  } catch (e) {
+    toast(`PDF failed: ${e.message}`);
+  }
+}
+
+// ── Calendar ──
+function setupCalendar() {
+  document.querySelectorAll('#cal-filter .cal-chip').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#cal-filter .cal-chip').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      calFilter = b.dataset.type;
+      renderCalendar();
+    });
+  });
+  document.getElementById('save-cal')?.addEventListener('click', async () => {
+    const title = document.getElementById('cal-title-input').value.trim();
+    const dt = document.getElementById('cal-date-input').value.trim();
+    if (!title) return;
+    let event_date = new Date().toISOString().slice(0, 10);
+    let event_time = null;
+    if (dt) {
+      const [d, t] = dt.split(' ');
+      if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) event_date = d;
+      if (t && /^\d{2}:\d{2}/.test(t)) event_time = t.length === 5 ? `${t}:00` : t;
+    }
+    const uid = await getUserId();
+    await rest('calendar_events', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: uid, title, event_date, event_time, event_category: 'event', status: 'scheduled' }),
+    });
+    document.getElementById('cal-title-input').value = '';
+    document.getElementById('cal-date-input').value = '';
+    toast('Added to calendar');
+    loadCalendar();
+  });
+}
+
+async function loadCalendar() {
+  const data = await rest('calendar_events?select=id,title,description,event_date,event_time,event_category,status,color&order=event_date.desc&limit=100');
+  calendarList = data || [];
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const c = document.getElementById('cal-list');
+  if (!c) return;
+  let items = calendarList;
+  if (calFilter !== 'all') {
+    items = items.filter((e) => (e.event_category || '').toLowerCase() === calFilter);
+  }
+  if (!items.length) {
+    c.innerHTML = '<div class="empty-state"><p>Nothing scheduled</p></div>';
+    return;
+  }
+  c.innerHTML = items.map((e) => `
+    <div class="cal-row">
+      <div class="cal-dot" style="background: ${e.color || 'var(--fg)'};"></div>
+      <div class="cal-body">
+        <div class="cal-title">${escapeHtml(e.title || 'Untitled')}</div>
+        <div class="cal-when">${e.event_date}${e.event_time ? ' · ' + (e.event_time || '').slice(0, 5) : ''}</div>
+      </div>
+      <span class="cal-type">${escapeHtml(e.event_category || 'event')}</span>
+    </div>
+  `).join('');
+}
+
+// ── Focus tasks ──
+function setupFocusRange() {
+  document.querySelectorAll('.focus-tabs button').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.focus-tabs button').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      focusRange = b.dataset.range;
+      renderFocusTasks();
+    });
+  });
+}
+
+async function loadTasks() {
+  const data = await rest('tasks?select=id,title,is_completed,due_date,priority&order=due_date.asc.nullslast,created_at.desc&limit=200');
+  tasksList = data || [];
+  renderFocusTasks();
+}
+
+function renderFocusTasks() {
+  const c = document.getElementById('focus-tasks');
+  if (!c) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  if (focusRange === 'day') end.setDate(end.getDate() + 1);
+  else if (focusRange === 'week') end.setDate(end.getDate() + 7);
+  else end.setMonth(end.getMonth() + 1);
+
+  const items = tasksList.filter((t) => {
+    if (!t.due_date) return focusRange === 'day' && !t.is_completed;
+    const d = new Date(t.due_date);
+    return d >= today && d < end;
+  });
+  if (!items.length) {
+    c.innerHTML = '<div class="empty-state"><p>No tasks for this range</p></div>';
+    return;
+  }
+  c.innerHTML = items.map((t) => `
+    <div class="task-card" data-id="${t.id}">
+      <div class="task-check ${t.is_completed ? 'done' : ''}">${t.is_completed ? '✓' : ''}</div>
+      <div class="task-name ${t.is_completed ? 'done' : ''}">${escapeHtml(t.title || 'Untitled')}</div>
+      ${t.due_date ? `<div class="task-due">${t.due_date}</div>` : ''}
+    </div>
+  `).join('');
+  c.querySelectorAll('.task-card').forEach((el) => {
+    el.querySelector('.task-check').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const t = tasksList.find((x) => x.id === el.dataset.id);
+      if (!t) return;
+      const newVal = !t.is_completed;
+      t.is_completed = newVal;
+      renderFocusTasks();
+      await rest(`tasks?id=eq.${t.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_completed: newVal, completed_at: newVal ? new Date().toISOString() : null }),
       });
     });
   });
 }
 
-// ── Scratch Pad ──
-
-function setupScratchPad() {
-  const input = document.getElementById('scratch-input');
-  const saveBtn = document.getElementById('save-scratch');
-  const clearBtn = document.getElementById('clear-scratch');
-  if (!input || !saveBtn || !clearBtn) return;
-
-  saveBtn.addEventListener('click', () => {
-    const content = input.value.trim();
-    if (content) {
-      const newNote = {
-        id: Date.now().toString(),
-        content,
-        timestamp: new Date().toISOString(),
-        synced: false
-      };
-      scratchNotes.unshift(newNote);
-      saveData();
-      renderScratchNotes();
-      input.value = '';
-
-      if (authToken) syncNoteToCloud(newNote);
-    }
+// ── Pomodoro ──
+function setupPomodoro() {
+  document.getElementById('pomo-start')?.addEventListener('click', togglePomodoro);
+  document.getElementById('pomo-reset')?.addEventListener('click', resetPomodoro);
+  document.querySelectorAll('.pomo-preset-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (pomoRunning) return;
+      pomoDuration = parseInt(b.dataset.minutes) * 60;
+      pomoRemaining = pomoDuration;
+      pomoIsBreak = false;
+      document.querySelectorAll('.pomo-preset-btn').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      updatePomoUI();
+      savePomodoroState();
+    });
   });
-
-  clearBtn.addEventListener('click', () => { input.value = ''; });
 }
-
-function renderScratchNotes() {
-  const container = document.getElementById('notes-list');
-  if (!container) return;
-
-  if (scratchNotes.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <p>No saved notes yet</p>
-      </div>
-    `;
-    return;
+function togglePomodoro() {
+  if (pomoRunning) { pomoRunning = false; if (pomoInterval) clearInterval(pomoInterval); }
+  else { pomoRunning = true; startPomoTick(); }
+  updatePomoUI(); savePomodoroState();
+}
+function resetPomodoro() {
+  pomoRunning = false; pomoIsBreak = false;
+  if (pomoInterval) clearInterval(pomoInterval);
+  pomoRemaining = pomoDuration;
+  updatePomoUI(); savePomodoroState();
+  document.getElementById('pomo-break-banner')?.classList.remove('visible');
+}
+function startPomoTick() {
+  if (pomoInterval) clearInterval(pomoInterval);
+  pomoInterval = setInterval(() => {
+    if (pomoRemaining <= 0) { clearInterval(pomoInterval); pomoRunning = false; handlePomodoroComplete(); return; }
+    pomoRemaining--; updatePomoUI();
+  }, 1000);
+}
+function handlePomodoroComplete() {
+  if (!pomoIsBreak) {
+    pomoStats.sessions++;
+    pomoStats.totalMinutes += Math.round(pomoDuration / 60);
+    pomoStats.lastDate = new Date().toDateString();
+    updatePomoStats();
+    pomoIsBreak = true;
+    pomoRemaining = BREAK_DURATION;
+    document.getElementById('pomo-break-banner')?.classList.add('visible');
+    pomoRunning = true; startPomoTick();
+  } else {
+    pomoIsBreak = false;
+    pomoRemaining = pomoDuration;
+    document.getElementById('pomo-break-banner')?.classList.remove('visible');
   }
-
-  container.innerHTML = scratchNotes.map(note => `
-    <div class="note-card ${note.synced ? 'synced' : ''}" data-id="${note.id}">
-      <p>${escapeHtml(note.content)}</p>
-      <div class="note-meta">
-        <span>${formatDate(note.timestamp)} ${note.synced ? '☁️' : '💾'}</span>
-        <div class="note-actions">
-          <button class="copy" title="Copy">Copy</button>
-          <button class="delete" title="Delete">Delete</button>
-        </div>
-      </div>
-    </div>
-  `).join('');
-
-  container.querySelectorAll('.note-card').forEach(card => {
-    const id = card.dataset.id;
-    card.querySelector('.copy').addEventListener('click', () => {
-      const note = scratchNotes.find(n => n.id === id);
-      if (note) navigator.clipboard.writeText(note.content);
-    });
-    card.querySelector('.delete').addEventListener('click', () => {
-      const note = scratchNotes.find(n => n.id === id);
-      if (note?.synced) deleteNoteFromCloud(id);
-      scratchNotes = scratchNotes.filter(n => n.id !== id);
-      saveData();
-      renderScratchNotes();
-    });
-  });
+  updatePomoUI(); savePomodoroState();
 }
-
-// ── Sticky Notes ──
-
-function setupStickyNotes() {
-  const addStickyBtn = document.getElementById('add-sticky');
-  if (!addStickyBtn) return;
-  addStickyBtn.addEventListener('click', () => {
-    stickyNotes.push({ id: Date.now().toString(), content: '', color: selectedColor });
-    saveData();
-    renderStickyNotes();
-  });
-}
-
-function renderColorPicker() {
-  const container = document.getElementById('color-picker');
-  if (!container) return;
-  container.innerHTML = STICKY_COLORS.map(color => `
-    <button class="color-btn ${color === selectedColor ? 'active' : ''}" style="background: ${color};" data-color="${color}"></button>
-  `).join('');
-
-  container.querySelectorAll('.color-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedColor = btn.dataset.color;
-      saveData();
-      container.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-}
-
-function renderStickyNotes() {
-  const container = document.getElementById('sticky-grid');
-  if (!container) return;
-
-  if (stickyNotes.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="grid-column: span 2;"><p>No sticky notes yet</p></div>`;
-    return;
+function updatePomoUI() {
+  const t = document.getElementById('pomo-time');
+  if (t) {
+    const m = Math.floor(pomoRemaining / 60), s = pomoRemaining % 60;
+    t.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
-
-  container.innerHTML = stickyNotes.map(note => `
-    <div class="sticky-note" style="background: ${note.color};" data-id="${note.id}">
-      <button class="sticky-delete">×</button>
-      <textarea placeholder="Write something...">${escapeHtml(note.content)}</textarea>
-    </div>
-  `).join('');
-
-  container.querySelectorAll('.sticky-note').forEach(sticky => {
-    const id = sticky.dataset.id;
-    sticky.querySelector('textarea').addEventListener('input', (e) => {
-      const note = stickyNotes.find(n => n.id === id);
-      if (note) { note.content = e.target.value; saveData(); }
-    });
-    sticky.querySelector('.sticky-delete').addEventListener('click', () => {
-      stickyNotes = stickyNotes.filter(n => n.id !== id);
-      saveData();
-      renderStickyNotes();
-    });
-  });
+  const lbl = document.getElementById('pomo-label');
+  if (lbl) lbl.textContent = pomoIsBreak ? 'Break' : 'Focus';
+  const ring = document.getElementById('pomo-ring');
+  if (ring) {
+    const total = pomoIsBreak ? BREAK_DURATION : pomoDuration;
+    const p = total > 0 ? (total - pomoRemaining) / total : 0;
+    ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - p);
+    ring.classList.toggle('break', pomoIsBreak);
+  }
+  const btn = document.getElementById('pomo-start');
+  if (btn) {
+    btn.textContent = pomoRunning ? 'Pause' : (pomoRemaining < (pomoIsBreak ? BREAK_DURATION : pomoDuration) ? 'Resume' : 'Start');
+    btn.className = pomoRunning ? 'btn btn-secondary' : 'btn btn-primary';
+  }
+}
+function updatePomoStats() {
+  document.getElementById('pomo-sessions').textContent = pomoStats.sessions;
+  const tot = document.getElementById('pomo-total-time');
+  if (tot) {
+    const h = Math.floor(pomoStats.totalMinutes / 60);
+    tot.textContent = h > 0 ? `${h}h ${pomoStats.totalMinutes % 60}m` : `${pomoStats.totalMinutes}m`;
+  }
+  document.getElementById('pomo-streak').textContent = pomoStats.streak;
 }
 
 // ── Habits ──
-
 function setupHabits() {
-  const addBtn = document.getElementById('add-habit-btn');
-  const input = document.getElementById('habit-name-input');
-  if (!addBtn || !input) return;
-
-  addBtn.addEventListener('click', () => addHabit());
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addHabit(); });
+  const add = document.getElementById('add-habit-btn');
+  const inp = document.getElementById('habit-name-input');
+  add?.addEventListener('click', addHabit);
+  inp?.addEventListener('keydown', (e) => { if (e.key === 'Enter') addHabit(); });
 }
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
+function todayStr() { return new Date().toISOString().slice(0, 10); }
 function getHabitStreak(checkins) {
   const sorted = [...new Set(checkins)].sort().reverse();
   if (!sorted.length) return 0;
-  let streak = 0;
-  const d = new Date();
+  let s = 0; const d = new Date();
   for (let i = 0; i < 365; i++) {
     const ds = d.toISOString().slice(0, 10);
-    if (sorted.includes(ds)) { streak++; d.setDate(d.getDate() - 1); }
+    if (sorted.includes(ds)) { s++; d.setDate(d.getDate() - 1); }
     else if (i === 0) { d.setDate(d.getDate() - 1); continue; }
     else break;
   }
-  return streak;
+  return s;
 }
-
 function addHabit() {
-  const input = document.getElementById('habit-name-input');
-  if (!input) return;
-  const name = input.value.trim();
+  const inp = document.getElementById('habit-name-input');
+  const name = inp.value.trim();
   if (!name) return;
-
-  const habit = { id: Date.now().toString(), name, checkins: [], synced: false };
-  habits.push(habit);
-  input.value = '';
-  saveData();
-  renderHabits();
-
-  if (authToken) syncHabitToCloud(habit);
+  const h = { id: Date.now().toString(), name, checkins: [], synced: false };
+  habits.push(h); inp.value = ''; saveLocal(); renderHabits();
+  if (authToken) syncHabitToCloud(h);
 }
-
-function checkinHabit(id) {
-  const habit = habits.find(h => h.id === id);
-  if (!habit) return;
-  const today = todayStr();
-  if (habit.checkins.includes(today)) return;
-  habit.checkins.push(today);
-  saveData();
-  renderHabits();
-
-  if (authToken) syncHabitCheckinToCloud(habit);
-}
-
-function deleteHabit(id) {
-  habits = habits.filter(h => h.id !== id);
-  saveData();
-  renderHabits();
-}
-
 function renderHabits() {
-  const container = document.getElementById('habits-list');
-  if (!container) return;
-
-  if (habits.length === 0) {
-    container.innerHTML = '<div class="empty-state"><p>No habits yet. Add one above!</p></div>';
-    return;
-  }
-
+  const c = document.getElementById('habits-list');
+  if (!c) return;
+  if (!habits.length) { c.innerHTML = '<div class="empty-state"><p>No habits yet</p></div>'; return; }
   const today = todayStr();
-
-  container.innerHTML = habits.map(h => {
+  c.innerHTML = habits.map((h) => {
     const streak = getHabitStreak(h.checkins);
-    const doneToday = h.checkins.includes(today);
-
-    // Build 28-day heatmap
-    const cells = [];
-    const d = new Date();
-    for (let i = 27; i >= 0; i--) {
-      const nd = new Date(d);
-      nd.setDate(nd.getDate() - i);
-      const ds = nd.toISOString().slice(0, 10);
-      cells.push(`<div class="heat-cell ${h.checkins.includes(ds) ? 'active' : ''}" title="${ds}"></div>`);
-    }
-
+    const done = h.checkins.includes(today);
     return `
       <div class="habit-card" data-id="${h.id}">
         <div class="habit-header">
           <span class="habit-name">${escapeHtml(h.name)}</span>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="habit-streak">🔥 ${streak}d</span>
-            <button class="habit-delete" data-id="${h.id}">✕</button>
-          </div>
+          <span class="habit-streak">🔥 ${streak}d</span>
         </div>
-        <div class="habit-heatmap">${cells.join('')}</div>
-        <button class="habit-checkin-btn ${doneToday ? 'done' : 'pending'}" data-id="${h.id}" ${doneToday ? 'disabled' : ''}>
-          ${doneToday ? '✓ Done today' : '✓ Check in'}
+        <button class="habit-checkin-btn ${done ? 'done' : 'pending'}" ${done ? 'disabled' : ''}>
+          ${done ? '✓ Done today' : '✓ Check in'}
         </button>
-      </div>
-    `;
+      </div>`;
   }).join('');
-
-  container.querySelectorAll('.habit-checkin-btn.pending').forEach(btn => {
-    btn.addEventListener('click', () => checkinHabit(btn.dataset.id));
-  });
-  container.querySelectorAll('.habit-delete').forEach(btn => {
-    btn.addEventListener('click', () => deleteHabit(btn.dataset.id));
+  c.querySelectorAll('.habit-checkin-btn.pending').forEach((b, i) => {
+    b.addEventListener('click', () => {
+      const card = b.closest('.habit-card');
+      const id = card.dataset.id;
+      const h = habits.find((x) => x.id === id);
+      if (!h || h.checkins.includes(todayStr())) return;
+      h.checkins.push(todayStr());
+      saveLocal(); renderHabits();
+      if (authToken) syncHabitCheckinToCloud(h);
+    });
   });
 }
-
 async function syncHabitsFromCloud() {
   if (!authToken) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/habits?select=id,name,color,streak`, {
-      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY }
-    });
-    if (!res.ok) return;
-    const cloudHabits = await res.json();
-
-    const compRes = await fetch(`${SUPABASE_URL}/rest/v1/habit_completions?select=habit_id,completion_date,completed`, {
-      headers: { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY }
-    });
-    const completions = compRes.ok ? await compRes.json() : [];
-
+    const cloud = await rest('habits?select=id,name');
+    const comp = await rest('habit_completions?select=habit_id,completion_date,completed') || [];
     const byHabit = {};
-    completions.forEach(c => {
-      if (!byHabit[c.habit_id]) byHabit[c.habit_id] = [];
-      if (c.completed) byHabit[c.habit_id].push(c.completion_date);
-    });
-
-    habits = cloudHabits.map(h => ({
-      id: h.id,
-      name: h.name,
-      checkins: byHabit[h.id] || [],
-      synced: true,
-    }));
-
-    saveData();
-    renderHabits();
-  } catch (e) {
-    console.error('Habit sync failed:', e);
-  }
+    comp.forEach((c) => { if (c.completed) (byHabit[c.habit_id] ||= []).push(c.completion_date); });
+    if (cloud) {
+      habits = cloud.map((h) => ({ id: h.id, name: h.name, checkins: byHabit[h.id] || [], synced: true }));
+      saveLocal(); renderHabits();
+    }
+  } catch {}
 }
-
 async function syncHabitToCloud(habit) {
-  if (!authToken) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/habits`, {
+    const uid = await getUserId();
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/habits`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify({ name: habit.name, color: '#3b82f6', streak: 0 }),
+      headers: { ...authHeaders(), Prefer: 'return=representation' },
+      body: JSON.stringify({ user_id: uid, name: habit.name, color: '#3b82f6', streak: 0 }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data[0]) {
-        const local = habits.find(h => h.id === habit.id);
-        if (local) { local.id = data[0].id; local.synced = true; saveData(); renderHabits(); }
+    if (r.ok) {
+      const d = await r.json();
+      if (d?.[0]) {
+        const local = habits.find((h) => h.id === habit.id);
+        if (local) { local.id = d[0].id; local.synced = true; saveLocal(); renderHabits(); }
       }
     }
-  } catch (e) { console.error('Failed to sync habit:', e); }
+  } catch {}
 }
-
 async function syncHabitCheckinToCloud(habit) {
-  if (!authToken || !habit.synced) return;
-  const today = todayStr();
+  if (!habit.synced) return;
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/habit_completions`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ habit_id: habit.id, completion_date: today, completed: true }),
+      headers: authHeaders(),
+      body: JSON.stringify({ habit_id: habit.id, completion_date: todayStr(), completed: true }),
     });
-  } catch (e) { console.error('Failed to sync checkin:', e); }
+  } catch {}
 }
 
 // ── Helpers ──
-
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  const d = document.createElement('div');
+  d.textContent = text || '';
+  return d.innerHTML;
+}
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function formatDate(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-// ── AI Assistant ──
-
-let aiMessages = [];   // { role, content }
-let aiLoading = false;
-let aiContextCache = null;
-let aiContextFetchedAt = 0;
-const AI_CONTEXT_TTL = 60 * 1000; // 1 minute
-
+// ── ALICE ──
 function setupAIChat() {
-  const sendBtn = document.getElementById('ai-send');
-  const input = document.getElementById('ai-input');
-  const newThreadBtn = document.getElementById('ai-new-thread');
-
-  sendBtn?.addEventListener('click', () => sendAIMessage());
-  newThreadBtn?.addEventListener('click', () => {
-    aiMessages = [];
-    aliceThreadId = null;
+  document.getElementById('ai-send')?.addEventListener('click', () => sendAIMessage());
+  document.getElementById('ai-new-thread')?.addEventListener('click', () => {
+    aiMessages = []; aliceThreadId = null;
     chrome.storage.local.remove(['pendragonx_alice_thread_id']);
     renderAIMessages();
   });
-  input?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendAIMessage();
-    }
+  const inp = document.getElementById('ai-input');
+  inp?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); }
   });
-  input?.addEventListener('input', () => {
-    input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  inp?.addEventListener('input', () => {
+    inp.style.height = 'auto';
+    inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
   });
-
-  document.querySelectorAll('.ai-suggestion').forEach(btn => {
-    btn.addEventListener('click', () => sendAIMessage(btn.dataset.q));
+  document.querySelectorAll('.ai-suggestion').forEach((b) => {
+    b.addEventListener('click', () => sendAIMessage(b.dataset.q));
   });
-
-  // Restore the last ALICE thread so the conversation continues across popup opens.
-  chrome.storage.local.get(['pendragonx_alice_thread_id'], (r) => {
-    aliceThreadId = r.pendragonx_alice_thread_id || null;
-  });
-}
-
-let aliceThreadId = null;
-
-async function fetchAIContext() {
-  if (!authToken) return {};
-  const now = Date.now();
-  if (aiContextCache && (now - aiContextFetchedAt) < AI_CONTEXT_TTL) return aiContextCache;
-
-  const headers = { 'Authorization': `Bearer ${authToken}`, 'apikey': SUPABASE_ANON_KEY };
-  const tryFetch = async (path) => {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers });
-      if (!res.ok) return [];
-      return await res.json();
-    } catch { return []; }
-  };
-
-  const [cards, notes, catalystDocs, calendarEvents, tasks, scratchPad] = await Promise.all([
-    tryFetch('zettel_cards?select=id,title,content,category,tags&deleted_at=is.null&order=created_at.desc&limit=50'),
-    tryFetch('notes?select=id,title,content&deleted_at=is.null&order=created_at.desc&limit=50'),
-    tryFetch('catalyst_documents?select=id,title,content&deleted_at=is.null&order=updated_at.desc&limit=25'),
-    tryFetch('calendar_events?select=id,title,event_date,description&order=event_date.desc&limit=30'),
-    tryFetch('tasks?select=id,title,notes,is_completed,due_date,priority&order=created_at.desc&limit=30'),
-    tryFetch('scratchpad_notes?select=id,content&order=updated_at.desc&limit=20'),
-  ]);
-
-  aiContextCache = {
-    cards: (cards || []).map(c => ({ ...c, content: (c.content || '').substring(0, 400) })),
-    notes: (notes || []).map(n => ({ ...n, content: (n.content || '').substring(0, 400) })),
-    catalystDocs: (catalystDocs || []).map(d => ({ ...d, content: (d.content || '').substring(0, 400) })),
-    calendarEvents: calendarEvents || [],
-    tasks: tasks || [],
-    scratchPad: scratchPad || [],
-  };
-  aiContextFetchedAt = now;
-  return aiContextCache;
 }
 
 function renderAIMessages() {
-  const container = document.getElementById('ai-messages');
+  const c = document.getElementById('ai-messages');
   const empty = document.getElementById('ai-empty');
-  if (!container) return;
-
-  if (aiMessages.length === 0 && !aiLoading) {
-    if (empty) {
-      container.innerHTML = '';
-      container.appendChild(empty);
-      empty.style.display = 'block';
-    }
+  if (!c) return;
+  if (!aiMessages.length && !aiLoading) {
+    if (empty) { c.innerHTML = ''; c.appendChild(empty); empty.style.display = 'block'; }
     return;
   }
-
-  container.innerHTML = '';
-  aiMessages.forEach(m => {
-    const div = document.createElement('div');
-    div.className = `ai-msg ${m.role}`;
-    div.textContent = m.content;
-    container.appendChild(div);
+  c.innerHTML = '';
+  aiMessages.forEach((m) => {
+    const d = document.createElement('div');
+    d.className = `ai-msg ${m.role}`;
+    d.textContent = m.content;
+    c.appendChild(d);
   });
-
   if (aiLoading) {
-    const typing = document.createElement('div');
-    typing.className = 'ai-msg assistant';
-    typing.innerHTML = '<span class="ai-typing"><span></span><span></span><span></span></span>';
-    container.appendChild(typing);
+    const t = document.createElement('div');
+    t.className = 'ai-msg assistant';
+    t.innerHTML = '<span class="ai-typing"><span></span><span></span><span></span></span>';
+    c.appendChild(t);
   }
-
-  container.scrollTop = container.scrollHeight;
+  c.scrollTop = c.scrollHeight;
 }
 
 async function sendAIMessage(prefilled) {
-  const input = document.getElementById('ai-input');
-  const text = (prefilled || input?.value || '').trim();
+  const inp = document.getElementById('ai-input');
+  const text = (prefilled || inp?.value || '').trim();
   if (!text || aiLoading) return;
-
   if (!authToken) {
-    aiMessages.push({ role: 'assistant', content: 'Please sign in to chat with your knowledge base.' });
+    aiMessages.push({ role: 'assistant', content: 'Please sign in to chat with ALICE.' });
     renderAIMessages();
     return;
   }
-
   aiMessages.push({ role: 'user', content: text });
-  if (input) { input.value = ''; input.style.height = 'auto'; }
-  aiLoading = true;
-  renderAIMessages();
+  if (inp) { inp.value = ''; inp.style.height = 'auto'; }
+  aiLoading = true; renderAIMessages();
 
   try {
     const deepThink = document.getElementById('ai-deep-think')?.checked || false;
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    const locale = navigator.language || 'en-US';
-
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-chat`, {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-        'apikey': SUPABASE_ANON_KEY,
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
         message: text,
         threadId: aliceThreadId,
         timeZone: tz,
-        locale,
+        locale: navigator.language || 'en-US',
         deepThink,
         screen: { surface: 'chrome-extension' },
       }),
     });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.error) {
-      throw new Error(data.error || `Request failed (${res.status})`);
-    }
-
-    if (data.threadId && data.threadId !== aliceThreadId) {
-      aliceThreadId = data.threadId;
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.error) throw new Error(d.error || `Request failed (${r.status})`);
+    if (d.threadId && d.threadId !== aliceThreadId) {
+      aliceThreadId = d.threadId;
       chrome.storage.local.set({ pendragonx_alice_thread_id: aliceThreadId });
     }
-
-    const parts = Array.isArray(data.parts) ? data.parts : [];
-    const reply = parts.filter((p) => p?.type === 'text').map((p) => p.text).join('\n').trim()
-      || 'Done.';
+    const parts = Array.isArray(d.parts) ? d.parts : [];
+    const reply = parts.filter((p) => p?.type === 'text').map((p) => p.text).join('\n').trim() || 'Done.';
     aiMessages.push({ role: 'assistant', content: reply });
   } catch (e) {
     aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach ALICE.'}` });
   } finally {
-    aiLoading = false;
-    renderAIMessages();
+    aiLoading = false; renderAIMessages();
   }
 }
