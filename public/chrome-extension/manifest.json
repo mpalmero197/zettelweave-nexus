@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "PendragonX Quick Notes",
-  "version": "1.4.0",
-  "description": "Full PendragonX assistant in Chrome's side panel — chat with ALICE, capture notes, run focus sessions, track habits, and share browser context.",
-  "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms"],
-  "host_permissions": ["https://sckglgjydlbztxjupbsk.supabase.co/*"],
+  "name": "PendragonX Toolbox",
+  "version": "1.5.0",
+  "description": "PendragonX Toolbox",
+  "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting"],
+  "host_permissions": [
+    "https://sckglgjydlbztxjupbsk.supabase.co/*",
+    "<all_urls>"
+  ],
   "action": {
-    "default_title": "Open PendragonX",
+    "default_title": "Open PendragonX Toolbox",
     "default_icon": {
       "16": "icon-16.png",
       "48": "icon-48.png",
