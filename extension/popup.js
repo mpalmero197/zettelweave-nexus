@@ -431,6 +431,9 @@ function renderNotes() {
       </div>
     </div>
   `).join('');
+  c.querySelectorAll('.note-card').forEach((el) => {
+    el.addEventListener('click', () => openItemModal('note', el.dataset.id));
+  });
 }
 
 // ── Web capture (active tab) ──
