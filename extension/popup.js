@@ -519,56 +519,158 @@ function setupCalendar() {
       renderCalendar();
     });
   });
-  document.getElementById('save-cal')?.addEventListener('click', async () => {
-    const title = document.getElementById('cal-title-input').value.trim();
-    const dt = document.getElementById('cal-date-input').value.trim();
-    if (!title) return;
-    let event_date = new Date().toISOString().slice(0, 10);
-    let event_time = null;
-    if (dt) {
-      const [d, t] = dt.split(' ');
-      if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) event_date = d;
-      if (t && /^\d{2}:\d{2}/.test(t)) event_time = t.length === 5 ? `${t}:00` : t;
+  document.getElementById('mc-prev')?.addEventListener('click', () => {
+    mcCursor = new Date(mcCursor.getFullYear(), mcCursor.getMonth() - 1, 1);
+    renderMiniCal();
+  });
+  document.getElementById('mc-next')?.addEventListener('click', () => {
+    mcCursor = new Date(mcCursor.getFullYear(), mcCursor.getMonth() + 1, 1);
+    renderMiniCal();
+  });
+  document.getElementById('save-cal')?.addEventListener('click', addCalendarEvent);
+  renderMiniCal();
+}
+
+async function addCalendarEvent() {
+  const title = document.getElementById('cal-title-input').value.trim();
+  const event_date = document.getElementById('cal-date-input').value || new Date().toISOString().slice(0,10);
+  let event_time = document.getElementById('cal-time-input').value || null;
+  const event_category = document.getElementById('cal-cat-input').value || 'event';
+  if (!title) return;
+  if (event_time && event_time.length === 5) event_time = event_time + ':00';
+
+  // Duplicate detection
+  const dup = await findDuplicateEvent(event_date, event_time);
+  if (dup.length) {
+    const choice = await askDuplicate(dup);
+    if (choice === 'cancel') return;
+    if (choice === 'replace') {
+      for (const d of dup) await rest(`calendar_events?id=eq.${d.id}`, { method: 'DELETE' });
     }
-    const uid = await getUserId();
-    await rest('calendar_events', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: uid, title, event_date, event_time, event_category: 'event', status: 'scheduled' }),
-    });
-    document.getElementById('cal-title-input').value = '';
-    document.getElementById('cal-date-input').value = '';
-    toast('Added to calendar');
-    loadCalendar();
+  }
+
+  const uid = await getUserId();
+  await rest('calendar_events', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: uid, title, event_date, event_time, event_category, status: 'scheduled' }),
+  });
+  document.getElementById('cal-title-input').value = '';
+  document.getElementById('cal-date-input').value = '';
+  document.getElementById('cal-time-input').value = '';
+  toast('Added to calendar');
+  loadCalendar();
+}
+
+async function findDuplicateEvent(date, time, excludeId) {
+  if (!date) return [];
+  const uid = await getUserId();
+  let q = `calendar_events?select=id,title,event_date,event_time,event_category&user_id=eq.${uid}&event_date=eq.${date}`;
+  q += time ? `&event_time=eq.${time}` : `&event_time=is.null`;
+  const data = await rest(q) || [];
+  return excludeId ? data.filter(d => d.id !== excludeId) : data;
+}
+
+function askDuplicate(matches) {
+  return new Promise((resolve) => {
+    const m = document.getElementById('dup-modal');
+    const list = document.getElementById('dup-list');
+    list.innerHTML = matches.map(d => `<div>• ${escapeHtml(d.title)} <span style="color:var(--fg-subtle)">(${d.event_category})</span></div>`).join('');
+    m.classList.add('visible');
+    const close = (val) => { m.classList.remove('visible'); resolve(val); cleanup(); };
+    const onCancel = () => close('cancel');
+    const onReplace = () => close('replace');
+    const onKeep = () => close('keep');
+    function cleanup(){
+      document.getElementById('dup-cancel').removeEventListener('click', onCancel);
+      document.getElementById('dup-replace').removeEventListener('click', onReplace);
+      document.getElementById('dup-keep').removeEventListener('click', onKeep);
+    }
+    document.getElementById('dup-cancel').addEventListener('click', onCancel);
+    document.getElementById('dup-replace').addEventListener('click', onReplace);
+    document.getElementById('dup-keep').addEventListener('click', onKeep);
   });
 }
 
 async function loadCalendar() {
-  const data = await rest('calendar_events?select=id,title,description,event_date,event_time,event_category,status,color&order=event_date.desc&limit=100');
+  const data = await rest('calendar_events?select=id,title,description,event_date,event_time,event_category,status,color&order=event_date.desc&limit=200');
   calendarList = data || [];
   renderCalendar();
+  renderMiniCal();
+}
+
+function renderMiniCal() {
+  const grid = document.getElementById('mc-grid');
+  const title = document.getElementById('mc-title');
+  if (!grid || !title) return;
+  const y = mcCursor.getFullYear(), mo = mcCursor.getMonth();
+  title.textContent = mcCursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const first = new Date(y, mo, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(y, mo + 1, 0).getDate();
+  const prevMonthDays = new Date(y, mo, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+  const dotDates = new Set(calendarList.map(e => e.event_date));
+
+  let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="mc-dow">${d}</div>`).join('');
+  for (let i = 0; i < 42; i++) {
+    let dnum, mm = mo, yy = y, other = false;
+    if (i < startDow) { dnum = prevMonthDays - startDow + 1 + i; mm = mo - 1; other = true; }
+    else if (i >= startDow + daysInMonth) { dnum = i - startDow - daysInMonth + 1; mm = mo + 1; other = true; }
+    else dnum = i - startDow + 1;
+    const date = new Date(yy, mm, dnum);
+    const ds = date.toISOString().slice(0,10);
+    const cls = ['mc-day'];
+    if (other) cls.push('other');
+    if (ds === todayStr) cls.push('today');
+    if (ds === mcSelected) cls.push('selected');
+    html += `<div class="${cls.join(' ')}" data-date="${ds}">${dnum}${dotDates.has(ds) ? '<div class="mc-dot"></div>' : ''}</div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.mc-day').forEach(el => {
+    el.addEventListener('click', () => {
+      const ds = el.dataset.date;
+      mcSelected = mcSelected === ds ? null : ds;
+      renderMiniCal(); renderCalendar();
+    });
+  });
 }
 
 function renderCalendar() {
   const c = document.getElementById('cal-list');
   if (!c) return;
   let items = calendarList;
-  if (calFilter !== 'all') {
-    items = items.filter((e) => (e.event_category || '').toLowerCase() === calFilter);
-  }
+  if (calFilter !== 'all') items = items.filter((e) => (e.event_category || '').toLowerCase() === calFilter);
+  if (mcSelected) items = items.filter((e) => e.event_date === mcSelected);
   if (!items.length) {
     c.innerHTML = '<div class="empty-state"><p>Nothing scheduled</p></div>';
     return;
   }
   c.innerHTML = items.map((e) => `
-    <div class="cal-row">
+    <div class="cal-row" data-id="${e.id}">
       <div class="cal-dot" style="background: ${e.color || 'var(--fg)'};"></div>
       <div class="cal-body">
         <div class="cal-title">${escapeHtml(e.title || 'Untitled')}</div>
         <div class="cal-when">${e.event_date}${e.event_time ? ' · ' + (e.event_time || '').slice(0, 5) : ''}</div>
       </div>
       <span class="cal-type">${escapeHtml(e.event_category || 'event')}</span>
+      <div class="cal-actions">
+        <button class="edit" data-action="edit">✏</button>
+        <button class="del" data-action="del">🗑</button>
+      </div>
     </div>
   `).join('');
+  c.querySelectorAll('.cal-row').forEach((el) => {
+    const id = el.dataset.id;
+    el.querySelector('[data-action="edit"]').addEventListener('click', (ev) => { ev.stopPropagation(); openCalModal(id); });
+    el.querySelector('[data-action="del"]').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (!confirm('Delete this event?')) return;
+      await rest(`calendar_events?id=eq.${id}`, { method: 'DELETE' });
+      toast('Deleted');
+      loadCalendar();
+    });
+    el.addEventListener('click', () => openCalModal(id));
+  });
 }
 
 // ── Focus tasks ──
