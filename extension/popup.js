@@ -1016,3 +1016,172 @@ async function sendAIMessage(prefilled) {
     aiLoading = false; renderAIMessages();
   }
 }
+
+// ── In-panel item viewer/editor (notes & cards) ──
+let _imCurrent = null; // { type, id }
+function setupModals() {
+  document.getElementById('im-close')?.addEventListener('click', closeItemModal);
+  document.getElementById('im-save')?.addEventListener('click', saveItemModal);
+  document.getElementById('im-delete')?.addEventListener('click', deleteItemModal);
+  document.getElementById('im-open')?.addEventListener('click', () => {
+    if (!_imCurrent) return;
+    const u = _imCurrent.type === 'card'
+      ? `https://pendragonx.com/app?card=${_imCurrent.id}`
+      : `https://pendragonx.com/app?note=${_imCurrent.id}`;
+    window.open(u, '_blank');
+  });
+
+  document.getElementById('cm-close')?.addEventListener('click', closeCalModal);
+  document.getElementById('cm-save')?.addEventListener('click', saveCalModal);
+  document.getElementById('cm-delete')?.addEventListener('click', deleteCalModal);
+
+  // Click backdrop to close
+  ['item-modal','cal-modal','dup-modal'].forEach(id => {
+    const el = document.getElementById(id);
+    el?.addEventListener('click', (e) => { if (e.target === el) el.classList.remove('visible'); });
+  });
+}
+
+function openItemModal(type, id) {
+  const list = type === 'card' ? cardsList : notesList;
+  const item = list.find((x) => x.id === id);
+  if (!item) return;
+  _imCurrent = { type, id };
+  document.getElementById('im-title-label').textContent = type === 'card' ? 'Edit Card' : 'Edit Note';
+  document.getElementById('im-title').value = item.title || '';
+  document.getElementById('im-content').value = item.content || '';
+  document.getElementById('item-modal').classList.add('visible');
+}
+function closeItemModal() {
+  document.getElementById('item-modal').classList.remove('visible');
+  _imCurrent = null;
+}
+async function saveItemModal() {
+  if (!_imCurrent) return;
+  const title = document.getElementById('im-title').value.trim() || 'Untitled';
+  const content = document.getElementById('im-content').value;
+  const table = _imCurrent.type === 'card' ? 'zettel_cards' : 'notes';
+  await rest(`${table}?id=eq.${_imCurrent.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title, content }),
+  });
+  toast('Saved');
+  closeItemModal();
+  if (_imCurrent?.type === 'card') loadCards(); else loadNotes();
+  if (table === 'zettel_cards') loadCards(); else loadNotes();
+}
+async function deleteItemModal() {
+  if (!_imCurrent) return;
+  if (!confirm('Delete this item?')) return;
+  const table = _imCurrent.type === 'card' ? 'zettel_cards' : 'notes';
+  await rest(`${table}?id=eq.${_imCurrent.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+  });
+  toast('Deleted');
+  const wasCard = _imCurrent.type === 'card';
+  closeItemModal();
+  if (wasCard) loadCards(); else loadNotes();
+}
+
+// ── Calendar event modal ──
+let _cmCurrent = null;
+function openCalModal(id) {
+  const ev = calendarList.find((x) => x.id === id);
+  if (!ev) return;
+  _cmCurrent = id;
+  document.getElementById('cm-title').value = ev.title || '';
+  document.getElementById('cm-date').value = ev.event_date || '';
+  document.getElementById('cm-time').value = (ev.event_time || '').slice(0, 5);
+  document.getElementById('cm-cat').value = ev.event_category || 'event';
+  document.getElementById('cal-modal').classList.add('visible');
+}
+function closeCalModal() {
+  document.getElementById('cal-modal').classList.remove('visible');
+  _cmCurrent = null;
+}
+async function saveCalModal() {
+  if (!_cmCurrent) return;
+  const title = document.getElementById('cm-title').value.trim() || 'Untitled';
+  const event_date = document.getElementById('cm-date').value;
+  let event_time = document.getElementById('cm-time').value || null;
+  const event_category = document.getElementById('cm-cat').value;
+  if (event_time && event_time.length === 5) event_time = event_time + ':00';
+
+  // Duplicate detection (excluding self)
+  const dup = await findDuplicateEvent(event_date, event_time, _cmCurrent);
+  if (dup.length) {
+    const choice = await askDuplicate(dup);
+    if (choice === 'cancel') return;
+    if (choice === 'replace') {
+      for (const d of dup) await rest(`calendar_events?id=eq.${d.id}`, { method: 'DELETE' });
+    }
+  }
+
+  await rest(`calendar_events?id=eq.${_cmCurrent}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title, event_date, event_time, event_category }),
+  });
+  toast('Updated');
+  closeCalModal();
+  loadCalendar();
+}
+async function deleteCalModal() {
+  if (!_cmCurrent) return;
+  if (!confirm('Delete this event?')) return;
+  await rest(`calendar_events?id=eq.${_cmCurrent}`, { method: 'DELETE' });
+  toast('Deleted');
+  closeCalModal();
+  loadCalendar();
+}
+
+// ── Auto-sync ──
+function setupAutoSync() {
+  // Periodic refresh every 30s while panel is open
+  if (_syncTimer) clearInterval(_syncTimer);
+  _syncTimer = setInterval(() => {
+    if (authToken && document.visibilityState === 'visible') doSync();
+  }, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && authToken) doSync();
+  });
+  // Token refresh every 50 min
+  if (_refreshTimer) clearInterval(_refreshTimer);
+  _refreshTimer = setInterval(() => { if (authToken) refreshAuthToken(); }, 50 * 60 * 1000);
+}
+
+async function doSync() {
+  setSyncStatus('syncing');
+  try {
+    await loadAllServerData();
+    setSyncStatus('ok');
+  } catch {
+    setSyncStatus('error');
+  }
+}
+
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!dot || !lbl) return;
+  dot.classList.remove('syncing','error');
+  if (state === 'syncing') { dot.classList.add('syncing'); lbl.textContent = 'Syncing…'; }
+  else if (state === 'error') { dot.classList.add('error'); lbl.textContent = 'Offline'; }
+  else lbl.textContent = 'Synced';
+}
+
+async function refreshAuthToken() {
+  // Best-effort: re-fetch user; if it fails, sign-out
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${authToken}`, apikey: SUPABASE_ANON_KEY },
+    });
+    if (!r.ok) throw new Error('expired');
+  } catch {
+    // Token likely expired; clear and prompt re-login
+    authToken = null;
+    saveLocal();
+    updateAuthUI();
+    toast('Session expired — please sign in');
+  }
+}
