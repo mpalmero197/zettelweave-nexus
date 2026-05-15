@@ -32,6 +32,13 @@ let calendarList = [];
 let tasksList = [];
 let calFilter = 'all';
 let focusRange = 'day';
+let mcCursor = new Date(); // anchor for mini calendar (1st of displayed month)
+mcCursor.setDate(1);
+let mcSelected = null; // 'YYYY-MM-DD' filter
+
+// Auto-sync
+let _syncTimer = null;
+let _refreshTimer = null;
 
 // ALICE
 let aiMessages = [];
@@ -50,6 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCalendar();
   setupCapture();
   setupFocusRange();
+  setupModals();
+  setupAutoSync();
 });
 
 window.addEventListener('unload', () => {
