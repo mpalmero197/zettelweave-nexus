@@ -481,9 +481,14 @@ async function captureFromPage(mode) {
       loadNotes();
     } else if (mode === 'card') {
       const snippet = (result.text || '').slice(0, 1500);
-      await createCard({ title: result.title, content: snippet + sourceLine, category: 'web' });
-      toast('Saved → Cards');
-      loadCards();
+      const created = await createCard({ title: result.title, content: snippet + sourceLine, category: 'web' });
+      toast('Saved to Cards');
+      await loadCards();
+      // Auto-switch to Cards tab so the user sees where it landed
+      document.querySelector('.tab[data-tab="cards"]')?.click();
+      // Open the new card immediately
+      const id = created?.[0]?.id;
+      if (id) setTimeout(() => openItemModal('card', id), 200);
     }
   } catch (e) {
     toast(`Capture failed: ${e.message}`);
