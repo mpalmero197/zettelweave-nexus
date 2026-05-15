@@ -381,7 +381,7 @@ function renderCards() {
     </div>
   `).join('');
   c.querySelectorAll('.item-row').forEach((el) => {
-    el.addEventListener('click', () => window.open(`https://pendragonx.com/app?card=${el.dataset.id}`, '_blank'));
+    el.addEventListener('click', () => openItemModal('card', el.dataset.id));
   });
 }
 
