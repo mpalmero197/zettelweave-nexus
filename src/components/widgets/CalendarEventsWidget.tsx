@@ -25,10 +25,38 @@ export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps =
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [newEventTitle, setNewEventTitle] = useState('');
+  const [editing, setEditing] = useState<CalendarEvent | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [dupConfirm, setDupConfirm] = useState<{
+    matches: CalendarEvent[];
+    onChoice: (c: 'cancel' | 'replace' | 'keep') => void;
+  } | null>(null);
+
+  const findDuplicates = async (date: string, time: string | null, excludeId?: string) => {
+    if (!user || !date) return [] as CalendarEvent[];
+    let q = supabase.from('calendar_events').select('id,title,event_date,event_time').eq('user_id', user.id).eq('event_date', date);
+    q = time ? q.eq('event_time', time) : q.is('event_time', null);
+    const { data } = await q;
+    return (data || []).filter(d => d.id !== excludeId);
+  };
+
+  const askDuplicate = (matches: CalendarEvent[]) =>
+    new Promise<'cancel' | 'replace' | 'keep'>((resolve) => {
+      setDupConfirm({ matches, onChoice: (c) => { setDupConfirm(null); resolve(c); } });
+    });
 
   const addEvent = async () => {
     if (!user || !newEventTitle.trim()) return;
     const today = format(new Date(), 'yyyy-MM-dd');
+    const dup = await findDuplicates(today, null);
+    if (dup.length) {
+      const choice = await askDuplicate(dup);
+      if (choice === 'cancel') return;
+      if (choice === 'replace') {
+        await supabase.from('calendar_events').delete().in('id', dup.map(d => d.id));
+      }
+    }
     const { error } = await supabase.from('calendar_events').insert({
       user_id: user.id, title: newEventTitle.trim(), event_date: today,
       source_type: 'manual', source_id: crypto.randomUUID(),
@@ -36,6 +64,39 @@ export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps =
     if (error) { toast.error('Failed to add event'); return; }
     toast.success('Event added');
     setNewEventTitle('');
+    fetchUpcomingEvents();
+  };
+
+  const deleteEvent = async (id: string) => {
+    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete'); return; }
+    toast.success('Deleted');
+    fetchUpcomingEvents();
+  };
+
+  const startEdit = (ev: CalendarEvent) => {
+    setEditing(ev);
+    setEditDate(ev.event_date);
+    setEditTime((ev.event_time || '').slice(0, 5));
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const time = editTime ? (editTime.length === 5 ? editTime + ':00' : editTime) : null;
+    const dup = await findDuplicates(editDate, time, editing.id);
+    if (dup.length) {
+      const choice = await askDuplicate(dup);
+      if (choice === 'cancel') return;
+      if (choice === 'replace') {
+        await supabase.from('calendar_events').delete().in('id', dup.map(d => d.id));
+      }
+    }
+    const { error } = await supabase.from('calendar_events')
+      .update({ event_date: editDate, event_time: time })
+      .eq('id', editing.id);
+    if (error) { toast.error('Failed to update'); return; }
+    toast.success('Updated');
+    setEditing(null);
     fetchUpcomingEvents();
   };
 
