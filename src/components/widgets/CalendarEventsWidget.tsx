@@ -184,7 +184,7 @@ export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps =
           </div>
         ) : events.length > 0 ? (
           events.map((event) => (
-            <div key={event.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
+            <div key={event.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors group">
               <div className="w-8 h-8 rounded-md bg-muted flex flex-col items-center justify-center shrink-0">
                 <span className="text-[8px] text-muted-foreground uppercase leading-none">{format(parseISO(event.event_date), 'MMM')}</span>
                 <span className="text-xs font-bold text-foreground leading-none">{format(parseISO(event.event_date), 'd')}</span>
@@ -201,12 +201,49 @@ export function CalendarEventsWidget({ onNavigate }: CalendarEventsWidgetProps =
                   )}
                 </div>
               </div>
+              <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                <Popover open={editing?.id === event.id} onOpenChange={(o) => { if (!o) setEditing(null); else startEdit(event); }}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" aria-label="Edit event">
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3 space-y-2" align="end">
+                    <p className="text-xs font-medium">Move event</p>
+                    <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="h-8 text-xs" />
+                    <Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} className="h-8 text-xs" />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(null)}>Cancel</Button>
+                      <Button size="sm" className="h-7 text-xs" onClick={saveEdit}>Save</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:text-destructive" onClick={() => deleteEvent(event.id)} aria-label="Delete event">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           ))
         ) : (
           <p className="text-xs text-muted-foreground py-6 text-center">No upcoming events</p>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={!!dupConfirm}
+        onClose={() => dupConfirm?.onChoice('cancel')}
+        onConfirm={() => dupConfirm?.onChoice('keep')}
+        title="Time conflict"
+        description={`Another event already exists at this time: ${dupConfirm?.matches.map(m => m.title).join(', ')}. Keep both, replace existing, or cancel?`}
+        cancelText="Cancel"
+        confirmText="Keep both"
+        customContent={
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => dupConfirm?.onChoice('cancel')}>Cancel</Button>
+            <Button variant="outline" onClick={() => dupConfirm?.onChoice('replace')}>Replace existing</Button>
+            <Button onClick={() => dupConfirm?.onChoice('keep')}>Keep both</Button>
+          </div>
+        }
+      />
     </div>
   );
 }
