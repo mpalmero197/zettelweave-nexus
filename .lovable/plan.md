@@ -1,102 +1,81 @@
-# ALICE Sprint: Proactive Capabilities & Context Awareness
+# PendragonX Toolbox — Improvements Plan
 
-Four interrelated work items. Each is scoped to land independently and ship in one pass.
+Scope: Chrome extension (`extension/` + mirrored `public/chrome-extension/`) and the web Calendar surface.
 
----
+## 1. Auto-sync (no more manual refresh)
 
-## 1. ALICE-FIX-001 — Mobile TTS Word Duplication Reset
+- On panel open, sync immediately, then every **30 s** via `setInterval` (cleared on `window.unload`).
+- Re-sync on `document.visibilitychange` → `visible`.
+- Re-sync on `chrome.tabs.onActivated` (already broadcasted by background; popup will listen via `chrome.runtime.onMessage`).
+- Subscribe to Supabase Realtime for `zettel_cards`, `notes`, `calendar_events`, `tasks` (filtered by `user_id`) using the REST/Realtime websocket — fall back to polling if the socket fails.
+- Replace the manual "Sync" button label with a live status dot (Synced • / Syncing… / Offline).
 
-**Root cause hypothesis:** The Web Speech API's `SpeechSynthesis` queue on mobile Safari/Chrome occasionally double-fires when the page regains focus or when an utterance is re-queued before the previous one finishes. We need a remote "panic button" that ALICE can pull.
+## 2. Open notes & cards inside the toolbox
 
-**Implementation**
-- Add a global window event listener `alice:reset_tts` in `src/components/AppLayout.tsx` (or a dedicated `AliceTtsReset` mount) that calls `window.speechSynthesis.cancel()` and clears any in-flight `SpeechSynthesisUtterance` queue we maintain.
-- Track the synthesizer state in a small singleton (`src/lib/aliceTts.ts`) so other components (notification reader, dictation playback) share one queue and the reset wipes everything.
-- Expose tool `reset_mobile_tts_engine` in `supabase/functions/jarvis-chat/index.ts`. It returns a `client_action: { type: "reset_tts" }` payload — the existing `useJarvis` fan-out already dispatches `alice:reset_tts`.
-- Update ALICE system prompt: "If the user reports duplicated/echoing speech on mobile, call `reset_mobile_tts_engine` immediately, then confirm."
+- Replace `window.open(...)` on card/note rows with an in-panel **viewer/editor modal**:
+  - Editable `title` + `content` textarea, autosaves on blur (PATCH `notes` / `zettel_cards`).
+  - Buttons: **Save**, **Delete** (soft-delete via `deleted_at`), **Open in PendragonX** (kept as escape hatch), **Close**.
+- Modal is a single overlay component reused by both Notes and Cards tabs.
 
-**Acceptance:** "ALICE, my voice is repeating itself" → tool fires → on-device queue cleared → next utterance plays clean.
+## 3. Fix "Save as Card" routing bug
 
----
+Root cause candidates to verify and resolve:
+- The `Save as Card` button currently lives in the **Notes** tab, so after capture the panel still shows the Notes list — making it look like the card was saved to Notes.
+- Fix:
+  - Move web-capture controls into a shared **Capture bar** visible on both Notes and Cards tabs.
+  - After `captureFromPage('card')`, auto-switch to the **Cards** tab and highlight the new row.
+  - Toast clearly says "Saved to Cards" (with an "Open" action that launches the new modal).
+  - Audit `createCard` to ensure `category: 'web'` and the row truly lands in `zettel_cards` (add a sanity `select` after insert).
 
-## 2. ALICE-FEATURE-001 — Proactive Scheduled Triggers
+## 4. Richer calendar — toolbox
 
-**Approach:** Reuse Postgres + `pg_cron` + `pg_net` (already standard in this project) instead of introducing a new scheduler service.
+Replace the current flat list with:
 
-**DB migration**
-- New table `alice_scheduled_triggers`:
-  - `id uuid pk`, `user_id uuid not null`, `cron_expression text not null`, `tool_name text not null`, `tool_params jsonb not null default '{}'`, `description text`, `enabled boolean default true`, `last_run_at timestamptz`, `next_run_at timestamptz`, `created_at`, `updated_at`.
-- RLS: owner-only select/insert/update/delete.
+- **Mini month grid** at the top (7-col CSS grid, dots per event, click a day to filter the list).
+- Quick-add row: title + date + time + category dropdown (event / appointment / meeting / phone / personal / deadline / reminder / task / habit).
+- **Per-event actions** on each row: edit (inline title/date/time/category), delete, **move** (date+time picker).
+- **Duplicate detection** on save/move: query `calendar_events?event_date=eq.X&event_time=eq.Y&user_id=eq.me`. If matches exist, show a confirm dialog:
+  - "An event already exists at this time — keep both, replace existing, or cancel?"
+- Filter chips already exist; add "Today / Week / Month" range chips alongside the category filter.
 
-**Edge functions**
-- New `supabase/functions/run-scheduled-triggers/index.ts` (verify_jwt=false, cron-invoked): selects triggers due now, invokes `jarvis-chat` internally with a synthetic system message that re-runs the named tool, updates `last_run_at`/`next_run_at`.
-- Add `pg_cron` job that hits this function every minute (insert via supabase tool, not migration — contains anon key).
-- New tool `create_scheduled_trigger` in `jarvis-chat`: validates cron, inserts row, returns confirmation.
-- Companion tools: `list_scheduled_triggers`, `delete_scheduled_trigger`.
+Technical sketch:
 
-**Acceptance:** "Every weekday at 8am, run a web search for AI news" → row created → cron fires → ALICE drops a result into the user's notebook/notification.
+```text
+[ Aug 2026 ◀ ▶ ]
+[S M T W T F S]   ← clickable cells with colored dots
+[ + Add: title | date | time | category ▾ ]
+[ Filter: All • Event • Task • Habit … ]
+[ Event row → ✏ 🕒 🗑 ]
+```
 
----
+## 5. Richer calendar — website
 
-## 3. ALICE-FEATURE-002 — Habit → Task Recovery Bridge
+In `src/components/widgets/CalendarEventsWidget.tsx` and the main Calendar page:
+- Add inline edit/delete/move (Popover with shadcn `Calendar` + time input).
+- Same duplicate-detection flow via `ConfirmDialog` with "Keep both / Replace / Cancel".
+- Color-coded category dots matching the toolbox.
+- Drag-to-reschedule on the full Calendar page (uses existing `useDraggable`).
 
-**Good news:** `_handle_habit_missed()` trigger already exists and creates a recovery task + in-app notification. What's missing is the user-facing on/off switch and a clean "Catch up on habit: [Name]" title (currently uses `habit_id`).
+## 6. Other improvements (bundled)
 
-**Implementation**
-- Migration: add `habit_recovery_enabled boolean default true` to `profiles`.
-- Update `_handle_habit_missed()`:
-  - Early-return if `profiles.habit_recovery_enabled = false`.
-  - Look up the habit's display name and use `'Catch up on habit: ' || habit_name` as the task title.
-- Frontend: add toggle in Settings → Productivity section bound to `profiles.habit_recovery_enabled`.
+- **Global search** at the top of the panel — fuzzy across cards, notes, calendar, tasks; results open in the new in-panel viewer.
+- **Keyboard shortcuts**: `1-5` switch tabs, `⌘/Ctrl+K` focuses search, `⌘/Ctrl+Enter` saves the active form.
+- **Quick-capture from selection**: right-click context menu items "Save selection → Note / Card" via `chrome.contextMenus`.
+- **Per-tab badge** on the toolbar icon showing today's open task count.
+- **Offline queue**: writes that fail (no network) are queued in `chrome.storage.local` and flushed when sync resumes.
+- **Token refresh**: extension currently never refreshes the Supabase JWT — add silent refresh using the stored `refresh_token` so users aren't logged out after 1 hour.
 
-**Acceptance:** Missed habit → next-day task titled "Catch up on habit: Morning Run" appears; toggling setting off suppresses creation.
+## Files to change
 
----
+- `extension/popup.html` — modal markup, mini-calendar grid, capture bar, search bar, status dot.
+- `extension/popup.js` — auto-sync loop, realtime subscription, viewer/editor, calendar edit/delete/move + dup check, tab auto-switch, contextMenus, offline queue, token refresh.
+- `extension/background.js` — `chrome.contextMenus` registration, badge updates.
+- `extension/manifest.json` — add `contextMenus` permission, bump version.
+- Mirror everything to `public/chrome-extension/` and rebuild `public/pendragonx-chrome-extension.zip`.
+- `src/pages/` Calendar page + `src/components/widgets/CalendarEventsWidget.tsx` — edit/delete/move + duplicate confirm.
+- New `src/components/calendar/EventEditPopover.tsx` for the shared edit UI.
 
-## 4. ALICE-FEATURE-003 — Browser Tab Context
+## Out of scope (confirm before adding)
 
-**Implementation**
-- **Extension** (`extension/` + mirror to `public/chrome-extension/`):
-  - Add `"tabs"` to `permissions` in `manifest.json`.
-  - In `background.js`: on demand (and every 30s while side panel is open) collect `chrome.tabs.query({})` → `[{ url, title, active, windowId }]`, POST to a new edge function `ingest-browser-tabs` with the user's Supabase session token (already stored by the extension's popup auth flow).
-  - Respect a `chrome.storage.local` whitelist/blacklist of domain patterns; filter before sending.
-- **Backend**:
-  - Migration: `browser_tab_snapshots(user_id, tabs jsonb, captured_at timestamptz)`. Keep latest row per user (upsert on `user_id`). RLS owner-only.
-  - Migration: `browser_tab_privacy(user_id pk, mode text check in ('all','whitelist','blacklist'), domains text[])`.
-  - Edge function `ingest-browser-tabs` (verify_jwt=true): validates JWT, applies user's privacy filter, upserts snapshot.
-  - New tool `get_open_browser_tabs` in `jarvis-chat`: reads latest snapshot for the user, returns tab list (or graceful "extension not connected" message if stale > 2 min).
-- **Frontend**:
-  - Settings panel for tab visibility: enable toggle, mode selector, domain list editor.
-  - Update extension popup to surface connection status.
-
-**Acceptance:** Extension installed + enabled → "ALICE, what tabs do I have open?" → returns titles/URLs filtered by privacy rules.
-
----
-
-## Technical Notes
-
-- All new edge functions follow the existing pattern (CORS headers, JWT validation in code where needed, `corsHeaders` from `@supabase/supabase-js/cors`).
-- All new tools registered in `jarvis-chat` system prompt under their respective sections (Scheduling, Context, Diagnostics).
-- `useJarvis.ts` already fans `client_actions` to `window` events — no client wiring change needed for reset_tts.
-- Cron job SQL inserted via supabase tool (contains anon key), not migration.
-
-## File Summary
-
-**New files**
-- `src/lib/aliceTts.ts`
-- `supabase/functions/run-scheduled-triggers/index.ts`
-- `supabase/functions/ingest-browser-tabs/index.ts`
-- Settings sub-panels: `src/components/settings/AliceSchedulesPanel.tsx`, `src/components/settings/BrowserTabPrivacyPanel.tsx`
-
-**Edited**
-- `supabase/functions/jarvis-chat/index.ts` (4 new tools + system prompt)
-- `extension/manifest.json`, `extension/background.js`, `extension/popup.js` (+ mirrored copies in `public/chrome-extension/`)
-- `src/components/AppLayout.tsx` (mount TTS reset listener)
-- `src/pages/Settings.tsx` (add new panels, habit recovery toggle)
-- `supabase/config.toml` (register new functions)
-
-**Migrations**
-- `alice_scheduled_triggers` + RLS
-- `browser_tab_snapshots` + `browser_tab_privacy` + RLS
-- `profiles.habit_recovery_enabled` + `_handle_habit_missed()` update
-
-Once approved I'll execute in this order: migrations → edge functions → tools → extension → frontend → cron job.
+- Two-way sync of the Pomodoro timer between web and extension.
+- Recurring-event UI in the toolbox (DB already supports it).
