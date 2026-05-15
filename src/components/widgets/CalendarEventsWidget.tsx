@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isToday, isTomorrow, parseISO, differenceInHours, differenceInMinutes } from 'date-fns';
