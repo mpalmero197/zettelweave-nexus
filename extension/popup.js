@@ -1030,6 +1030,7 @@ async function sendAIMessage(prefilled) {
   aiLoading = true; renderAIMessages();
 
   try {
+    await ensureFreshSession();
     const deepThink = document.getElementById('ai-deep-think')?.checked || false;
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     const r = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-chat`, {
@@ -1044,8 +1045,19 @@ async function sendAIMessage(prefilled) {
         screen: { surface: 'chrome-extension' },
       }),
     });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok || d.error) throw new Error(d.error || `Request failed (${r.status})`);
+    let d = await r.json().catch(() => ({}));
+    if (r.status === 401 && await ensureFreshSession(true)) {
+      const retry = await fetch(`${SUPABASE_URL}/functions/v1/jarvis-chat`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          message: text, threadId: aliceThreadId, timeZone: tz, locale: navigator.language || 'en-US',
+          deepThink, screen: { surface: 'chrome-extension' },
+        }),
+      });
+      d = await retry.json().catch(() => ({}));
+      if (!retry.ok || d.error) throw new Error(d.error || `Request failed (${retry.status})`);
+    } else if (!r.ok || d.error) throw new Error(d.error || `Request failed (${r.status})`);
     if (d.threadId && d.threadId !== aliceThreadId) {
       aliceThreadId = d.threadId;
       chrome.storage.local.set({ pendragonx_alice_thread_id: aliceThreadId });
