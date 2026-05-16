@@ -4,13 +4,21 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const STORAGE_KEYS = {
   AUTH_TOKEN: 'pendragonx_auth_token',
+  REFRESH_TOKEN: 'pendragonx_refresh_token',
+  SESSION_EXPIRES_AT: 'pendragonx_session_expires_at',
   USER_EMAIL: 'pendragonx_user_email',
   POMO_STATE: 'pendragonx_pomo_state',
   POMO_STATS: 'pendragonx_pomo_stats',
   HABITS: 'pendragonx_habits',
+  CACHE_CARDS: 'pendragonx_cache_cards',
+  CACHE_NOTES: 'pendragonx_cache_notes',
+  CACHE_CALENDAR: 'pendragonx_cache_calendar',
+  CACHE_TASKS: 'pendragonx_cache_tasks',
 };
 
 let authToken = null;
+let refreshToken = null;
+let sessionExpiresAt = 0;
 let userEmail = null;
 let habits = [];
 let authMode = 'signin'; // 'signin' | 'signup'
@@ -69,7 +77,13 @@ window.addEventListener('unload', () => {
 function loadData() {
   chrome.storage.local.get([...Object.values(STORAGE_KEYS), 'pendragonx_alice_thread_id'], (r) => {
     authToken = r[STORAGE_KEYS.AUTH_TOKEN] || null;
+    refreshToken = r[STORAGE_KEYS.REFRESH_TOKEN] || null;
+    sessionExpiresAt = Number(r[STORAGE_KEYS.SESSION_EXPIRES_AT] || 0);
     userEmail = r[STORAGE_KEYS.USER_EMAIL] || null;
+    cardsList = Array.isArray(r[STORAGE_KEYS.CACHE_CARDS]) ? r[STORAGE_KEYS.CACHE_CARDS] : [];
+    notesList = Array.isArray(r[STORAGE_KEYS.CACHE_NOTES]) ? r[STORAGE_KEYS.CACHE_NOTES] : [];
+    calendarList = Array.isArray(r[STORAGE_KEYS.CACHE_CALENDAR]) ? r[STORAGE_KEYS.CACHE_CALENDAR] : [];
+    tasksList = Array.isArray(r[STORAGE_KEYS.CACHE_TASKS]) ? r[STORAGE_KEYS.CACHE_TASKS] : [];
     habits = r[STORAGE_KEYS.HABITS] || [];
     pomoStats = r[STORAGE_KEYS.POMO_STATS] || { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
     aliceThreadId = r.pendragonx_alice_thread_id || null;
@@ -87,6 +101,10 @@ function loadData() {
       }
     }
 
+    renderCards();
+    renderNotes();
+    renderCalendar();
+    renderFocusTasks();
     renderHabits();
     updateAuthUI();
     updatePomoUI();
@@ -100,6 +118,8 @@ function loadData() {
 function saveLocal() {
   chrome.storage.local.set({
     [STORAGE_KEYS.AUTH_TOKEN]: authToken,
+    [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
+    [STORAGE_KEYS.SESSION_EXPIRES_AT]: sessionExpiresAt,
     [STORAGE_KEYS.USER_EMAIL]: userEmail,
     [STORAGE_KEYS.HABITS]: habits,
   });
@@ -191,8 +211,7 @@ async function handleAuth() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error_description || d.msg || d.error || 'Sign up failed');
       if (d.access_token) {
-        authToken = d.access_token;
-        userEmail = d.user?.email || email;
+        applySession(d, email);
       } else {
         // Email confirmation required
         toast('Check your email to confirm your account.');
@@ -207,8 +226,7 @@ async function handleAuth() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error_description || d.msg || 'Login failed');
-      authToken = d.access_token;
-      userEmail = d.user.email;
+      applySession(d, email);
     }
     saveLocal();
     updateAuthUI();
@@ -256,10 +274,16 @@ function updateAuthUI() {
 let _cachedUserId = null;
 async function getUserId() {
   if (_cachedUserId) return _cachedUserId;
+  if (!(await ensureFreshSession())) return null;
   try {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    let r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { Authorization: `Bearer ${authToken}`, apikey: SUPABASE_ANON_KEY },
     });
+    if (r.status === 401 && await ensureFreshSession(true)) {
+      r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { Authorization: `Bearer ${authToken}`, apikey: SUPABASE_ANON_KEY },
+      });
+    }
     if (!r.ok) return null;
     const u = await r.json();
     _cachedUserId = u?.id || null;
@@ -321,18 +345,25 @@ function authHeaders(extra = {}) {
 }
 async function rest(path, opts = {}) {
   if (!authToken) return null;
+  if (!(await ensureFreshSession())) return null;
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    const makeRequest = () => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       ...opts,
       headers: { ...authHeaders(opts.headers || {}), ...(opts.headers || {}) },
     });
-    if (!r.ok) return null;
+    let r = await makeRequest();
+    if (r.status === 401 && await ensureFreshSession(true)) r = await makeRequest();
+    if (!r.ok) {
+      setSyncStatus('error');
+      return null;
+    }
     if (r.status === 204) return true;
     return await r.json();
-  } catch { return null; }
+  } catch { setSyncStatus('error'); return null; }
 }
 
 async function loadAllServerData() {
+  await ensureFreshSession();
   await Promise.all([loadCards(), loadNotes(), loadCalendar(), loadTasks(), syncHabitsFromCloud()]);
 }
 
@@ -352,7 +383,10 @@ function setupCards() {
 
 async function loadCards() {
   const data = await rest('zettel_cards?select=id,title,content,category,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
-  cardsList = data || [];
+  if (Array.isArray(data)) {
+    cardsList = data;
+    chrome.storage.local.set({ [STORAGE_KEYS.CACHE_CARDS]: cardsList });
+  }
   renderCards();
 }
 
@@ -402,7 +436,10 @@ function setupNotes() {
 
 async function loadNotes() {
   const data = await rest('notes?select=id,title,content,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
-  notesList = data || [];
+  if (Array.isArray(data)) {
+    notesList = data;
+    chrome.storage.local.set({ [STORAGE_KEYS.CACHE_NOTES]: notesList });
+  }
   renderNotes();
 }
 
@@ -593,7 +630,10 @@ function askDuplicate(matches) {
 
 async function loadCalendar() {
   const data = await rest('calendar_events?select=id,title,description,event_date,event_time,event_category,status,color&order=event_date.desc&limit=200');
-  calendarList = data || [];
+  if (Array.isArray(data)) {
+    calendarList = data;
+    chrome.storage.local.set({ [STORAGE_KEYS.CACHE_CALENDAR]: calendarList });
+  }
   renderCalendar();
   renderMiniCal();
 }
@@ -687,7 +727,10 @@ function setupFocusRange() {
 
 async function loadTasks() {
   const data = await rest('tasks?select=id,title,is_completed,due_date,priority&order=due_date.asc.nullslast,created_at.desc&limit=200');
-  tasksList = data || [];
+  if (Array.isArray(data)) {
+    tasksList = data;
+    chrome.storage.local.set({ [STORAGE_KEYS.CACHE_TASKS]: tasksList });
+  }
   renderFocusTasks();
 }
 
@@ -1145,9 +1188,10 @@ function setupAutoSync() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && authToken) doSync();
   });
-  // Token refresh every 50 min
+  // Keep the Supabase session warm. Access tokens expire; refresh tokens should keep
+  // the toolbox signed in without dropping lists after idle time.
   if (_refreshTimer) clearInterval(_refreshTimer);
-  _refreshTimer = setInterval(() => { if (authToken) refreshAuthToken(); }, 50 * 60 * 1000);
+  _refreshTimer = setInterval(() => { if (authToken) ensureFreshSession(true); }, 10 * 60 * 1000);
 }
 
 async function doSync() {
@@ -1170,18 +1214,37 @@ function setSyncStatus(state) {
   else lbl.textContent = 'Synced';
 }
 
-async function refreshAuthToken() {
-  // Best-effort: re-fetch user; if it fails, sign-out
+function applySession(d, fallbackEmail) {
+  authToken = d.access_token || authToken;
+  refreshToken = d.refresh_token || refreshToken;
+  userEmail = d.user?.email || fallbackEmail || userEmail;
+  const expiresIn = Number(d.expires_in || 3600);
+  sessionExpiresAt = d.expires_at ? Number(d.expires_at) * 1000 : Date.now() + expiresIn * 1000;
+  _cachedUserId = d.user?.id || null;
+  saveLocal();
+}
+
+async function ensureFreshSession(force = false) {
+  if (!authToken) return false;
+  if (!force && sessionExpiresAt && sessionExpiresAt - Date.now() > 2 * 60 * 1000) return true;
+  if (!refreshToken) return true;
   try {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${authToken}`, apikey: SUPABASE_ANON_KEY },
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ refresh_token: refreshToken }),
     });
-    if (!r.ok) throw new Error('expired');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.access_token) throw new Error(d.error_description || d.msg || 'Refresh failed');
+    applySession(d);
+    setSyncStatus('ok');
+    return true;
   } catch {
-    // Token likely expired; clear and prompt re-login
-    authToken = null;
-    saveLocal();
-    updateAuthUI();
-    toast('Session expired — please sign in');
+    setSyncStatus('error');
+    return false;
   }
+}
+
+async function refreshAuthToken() {
+  return ensureFreshSession(true);
 }
