@@ -11,7 +11,8 @@ async function callAI(apiKey: string, messages: any[], temperature = 0.7, maxTok
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Lovable-API-Key': apiKey,
+        'X-Lovable-AIG-SDK': 'vercel-ai-sdk',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

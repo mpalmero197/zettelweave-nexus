@@ -86,6 +86,7 @@ You can navigate to any tab (cards, notes, catalyst, calendar, journal, habits, 
 
 You can:
 - search / read the user's knowledge (notes, cards, documents)
+- edit, delete, combine, and summarize notes, cards, scratchpad entries, sticky notes, and Catalyst documents when asked
 - run a deep_search across ALL of the user's notes, cards and catalyst documents to find the EXACT lines containing a phrase, even across multiple documents
 - open a specific catalyst document (and jump to a highlighted line) via open_in_catalyst — use this whenever the user wants to "open", "show", "pull up" a note/document, do NOT just navigate
 - create notes, cards, catalyst documents, tasks, calendar events
@@ -103,6 +104,7 @@ You know this product intimately. Map intent → tool, ALWAYS prefer the dedicat
 • POMODORO / FOCUS TIMER → start_pomodoro_timer (NOT create_task). User says "set a timer", "start a pomodoro", "focus for N minutes", "deep work block", "study session" → call start_pomodoro_timer with the requested minutes (default 25). Pause/Stop → pause_pomodoro_timer / reset_pomodoro_timer. Open the Focus sidebar → open_focus_sidebar.
 • AGENDA / SCHEDULING → create_event for date+time appointments, create_task for to-dos with optional due date. Standalone time-anchored ping ("remind me at 3pm to call mom") → create_reminder. "Remind me to X tomorrow at 3pm" with no other event semantics → create_reminder; if it's a real meeting/appointment use create_event.
 • WRITING — short capture → create_note. Numbered/atomic idea → create_card. Long-form draft, chapter, paper, article → create_catalyst_document (or run_agent with agent_type='author' to draft from existing notes). Quick scratch / brain-dump line → create_scratchpad_note. Persistent floating one-liner pad ("put it on my quick capture") → update_quick_capture.
+• CONTENT MAINTENANCE → update_content_item / delete_content_item / combine_content_items / summarize_content_items for notes, cards, scratchpad entries, sticky notes, and Catalyst documents. For destructive deletes, confirm intent if ambiguous; otherwise execute when the user clearly asks.
 • ORGANIZATION → create_notebook to make a new notebook; assign_note_to_notebook to file an existing note inside one.
 • PROJECTS → create_project for a new project workspace; create_project_task for to-dos under a project (or standalone if no project).
 • MIND MAPS / CANVAS → create_mind_map (provide a hierarchical JSON tree in map_data).
@@ -141,6 +143,7 @@ Rules:
 - When asked to "schedule", "remind", "block time" — actually create the task/event.
 - When asked to "set a timer / start a pomodoro / focus for N minutes" — call start_pomodoro_timer. Do NOT create a task.
 - When asked to "draft", "write", "compose a document/chapter/article" — create a catalyst_document and navigate to /app/catalyst.
+- When asked to edit, delete, combine, or summarize an existing user item, use the dedicated content maintenance tools; do not merely advise.
 - When asked to "find a book" — call find_book and offer to open the Learning Hub.
 - After tool calls, give a tight natural-language summary of what you did. Cite titles. Use markdown sparingly.
 - Never invent IDs, URLs, or facts. If a tool errors, say so plainly.`;
@@ -290,6 +293,73 @@ const tools = [
           content: { type: "string", description: "Full draft body" },
         },
         required: ["title", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_content_item",
+      description: "Edit an existing note, card, scratchpad entry, sticky note, or Catalyst document. Use after finding/opening the target item. Can replace or append content.",
+      parameters: {
+        type: "object",
+        properties: {
+          content_type: { type: "string", enum: ["note", "card", "scratchpad", "sticky_note", "catalyst_document"] },
+          id: { type: "string" },
+          title: { type: "string", description: "New title where the content type supports titles." },
+          content: { type: "string", description: "New content, or appended content when append=true." },
+          append: { type: "boolean", description: "Append content to the existing body instead of replacing it." },
+        },
+        required: ["content_type", "id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_content_item",
+      description: "Delete an existing note, card, scratchpad entry, sticky note, or Catalyst document. Notes/cards/documents are soft-deleted when supported; scratchpad/sticky entries are removed.",
+      parameters: {
+        type: "object",
+        properties: {
+          content_type: { type: "string", enum: ["note", "card", "scratchpad", "sticky_note", "catalyst_document"] },
+          id: { type: "string" },
+        },
+        required: ["content_type", "id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "combine_content_items",
+      description: "Combine multiple existing notes/cards/scratchpad entries/sticky notes/Catalyst documents into one new item. By default it keeps the originals unless delete_sources=true.",
+      parameters: {
+        type: "object",
+        properties: {
+          items: { type: "array", items: { type: "object", properties: { content_type: { type: "string", enum: ["note", "card", "scratchpad", "sticky_note", "catalyst_document"] }, id: { type: "string" } }, required: ["content_type", "id"] } },
+          target_type: { type: "string", enum: ["note", "card", "catalyst_document"] },
+          title: { type: "string" },
+          delete_sources: { type: "boolean" },
+        },
+        required: ["items", "target_type", "title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "summarize_content_items",
+      description: "Create a concise report/summary from selected or recent notes, cards, scratchpad entries, sticky notes, and Catalyst documents. Returns the summary and can save it as a note or Catalyst document.",
+      parameters: {
+        type: "object",
+        properties: {
+          items: { type: "array", items: { type: "object", properties: { content_type: { type: "string", enum: ["note", "card", "scratchpad", "sticky_note", "catalyst_document"] }, id: { type: "string" } }, required: ["content_type", "id"] } },
+          content_types: { type: "array", items: { type: "string", enum: ["note", "card", "scratchpad", "sticky_note", "catalyst_document"] } },
+          recent_limit: { type: "number", description: "How many recent items per type to include when items are not provided. Default 10, max 25." },
+          save_as: { type: "string", enum: ["none", "note", "catalyst_document"], description: "Optionally save the report." },
+          title: { type: "string", description: "Title for the saved report." },
+        },
       },
     },
   },
@@ -692,6 +762,65 @@ const VALID_TABS = new Set([
   "knowledge-gaps","notebooks",
 ]);
 
+
+type ContentType = "note" | "card" | "scratchpad" | "sticky_note" | "catalyst_document";
+
+const CONTENT_TABLES: Record<ContentType, { table: string; title?: string; content: string; softDelete?: boolean; extraSelect?: string }> = {
+  note: { table: "notes", title: "title", content: "content", softDelete: true, extraSelect: "id,title,content,deleted_at" },
+  card: { table: "zettel_cards", title: "title", content: "content", softDelete: true, extraSelect: "id,title,content,category,deleted_at" },
+  scratchpad: { table: "scratchpad_notes", content: "content", extraSelect: "id,content,created_at" },
+  sticky_note: { table: "sticky_notes", content: "content", extraSelect: "id,content,color,created_at" },
+  catalyst_document: { table: "catalyst_documents", title: "title", content: "content", softDelete: true, extraSelect: "id,title,content,deleted_at" },
+};
+
+function normalizeContentType(raw: any): ContentType | null {
+  const t = String(raw || "").trim();
+  if (t === "zettel_card") return "card";
+  if (t === "sticky" || t === "stickynote") return "sticky_note";
+  if (["note", "card", "scratchpad", "sticky_note", "catalyst_document"].includes(t)) return t as ContentType;
+  return null;
+}
+
+function stripHtml(input: string): string {
+  return String(input || "").replace(/<\/(p|div|h[1-6]|li|br|tr)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/\s+\n/g, "\n").replace(/[ \t]+/g, " ").trim();
+}
+
+function wordCount(input: string): number {
+  const text = stripHtml(input).trim();
+  return text ? text.split(/\s+/).length : 0;
+}
+
+async function fetchContentItem(supabase: any, rawType: any, id: string) {
+  const contentType = normalizeContentType(rawType);
+  if (!contentType || !id) return { error: "Invalid content_type or id" };
+  const cfg = CONTENT_TABLES[contentType];
+  let q = supabase.from(cfg.table).select(cfg.extraSelect || "*").eq("id", id).maybeSingle();
+  if (cfg.softDelete) q = q.is("deleted_at", null);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  if (!data) return { error: `${contentType} not found or not accessible.` };
+  return {
+    content_type: contentType,
+    id: data.id,
+    title: cfg.title ? (data[cfg.title] || "Untitled") : `${contentType.replace("_", " ")} ${String(data.id).slice(0, 8)}`,
+    content: String(data[cfg.content] || ""),
+    row: data,
+  };
+}
+
+async function createCombinedContent(supabase: any, userId: string, targetType: ContentType, title: string, content: string) {
+  if (targetType === "note") {
+    return await supabase.from("notes").insert({ user_id: userId, title: title.slice(0, 200), content }).select("id,title").single();
+  }
+  if (targetType === "card") {
+    return await supabase.from("zettel_cards").insert({ user_id: userId, title: title.slice(0, 200), content, category: "synthesis", number: `A${Date.now().toString(36).toUpperCase()}`, tags: ["alice-combined"] }).select("id,title").single();
+  }
+  if (targetType === "catalyst_document") {
+    return await supabase.from("catalyst_documents").insert({ user_id: userId, title: title.slice(0, 200), content, selected_source: "alice_combined", word_count: wordCount(content) }).select("id,title").single();
+  }
+  return { data: null, error: { message: "target_type must be note, card, or catalyst_document" } };
+}
+
 async function executeTool(
   name: string,
   args: any,
@@ -874,6 +1003,117 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, id: data.id, title: data.title, navigate_to: "/app/catalyst" };
       }
+      case "update_content_item": {
+        const contentType = normalizeContentType(args.content_type);
+        const id = String(args.id || "").trim();
+        if (!contentType || !id) return { error: "content_type and id required" };
+        const cfg = CONTENT_TABLES[contentType];
+        const current = await fetchContentItem(supabase, contentType, id);
+        if ((current as any).error) return current;
+        const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+        if (cfg.title && typeof args.title === "string" && args.title.trim()) patch[cfg.title] = args.title.trim().slice(0, 200);
+        if (typeof args.content === "string") {
+          patch[cfg.content] = args.append === true
+            ? `${(current as any).content}${(current as any).content ? "\n\n" : ""}${args.content}`
+            : args.content;
+          if (contentType === "catalyst_document") patch.word_count = wordCount(patch[cfg.content]);
+        }
+        if (Object.keys(patch).length === 1) return { error: "Provide title and/or content to update." };
+        const { data, error } = await supabase.from(cfg.table).update(patch).eq("id", id).select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, content_type: contentType, id: data.id, updated: Object.keys(patch).filter((k) => k !== "updated_at") };
+      }
+      case "delete_content_item": {
+        const contentType = normalizeContentType(args.content_type);
+        const id = String(args.id || "").trim();
+        if (!contentType || !id) return { error: "content_type and id required" };
+        const cfg = CONTENT_TABLES[contentType];
+        const current = await fetchContentItem(supabase, contentType, id);
+        if ((current as any).error) return current;
+        const result = cfg.softDelete
+          ? await supabase.from(cfg.table).update({ deleted_at: new Date().toISOString(), permanent_delete_at: new Date(Date.now() + 30 * 86400_000).toISOString() }).eq("id", id)
+          : await supabase.from(cfg.table).delete().eq("id", id);
+        if (result.error) return { error: result.error.message };
+        return { ok: true, content_type: contentType, id, title: (current as any).title, deleted: true };
+      }
+      case "combine_content_items": {
+        const items = Array.isArray(args.items) ? args.items : [];
+        const targetType = normalizeContentType(args.target_type);
+        const title = String(args.title || "Combined by ALICE").trim() || "Combined by ALICE";
+        if (!items.length) return { error: "items required" };
+        if (!targetType || !["note", "card", "catalyst_document"].includes(targetType)) return { error: "target_type must be note, card, or catalyst_document" };
+        const fetched: any[] = [];
+        for (const item of items.slice(0, 20)) {
+          const got = await fetchContentItem(supabase, item.content_type, String(item.id || ""));
+          if ((got as any).error) return got;
+          fetched.push(got);
+        }
+        const content = fetched.map((item) => `## ${item.title}\n\n${item.content}`).join("\n\n---\n\n");
+        const { data, error } = await createCombinedContent(supabase, userId, targetType, title, content);
+        if (error) return { error: error.message };
+        if (args.delete_sources === true) {
+          for (const item of fetched) {
+            const cfg = CONTENT_TABLES[item.content_type as ContentType];
+            if (cfg.softDelete) await supabase.from(cfg.table).update({ deleted_at: new Date().toISOString(), permanent_delete_at: new Date(Date.now() + 30 * 86400_000).toISOString() }).eq("id", item.id);
+            else await supabase.from(cfg.table).delete().eq("id", item.id);
+          }
+        }
+        return { ok: true, id: data.id, title: data.title, target_type: targetType, combined_count: fetched.length, sources_deleted: args.delete_sources === true };
+      }
+      case "summarize_content_items": {
+        const explicitItems = Array.isArray(args.items) ? args.items : [];
+        const requestedTypes = Array.isArray(args.content_types) && args.content_types.length
+          ? args.content_types.map(normalizeContentType).filter(Boolean) as ContentType[]
+          : ["note", "card", "scratchpad", "sticky_note", "catalyst_document"] as ContentType[];
+        const limit = Math.min(Math.max(Number(args.recent_limit) || 10, 1), 25);
+        const fetched: any[] = [];
+        if (explicitItems.length) {
+          for (const item of explicitItems.slice(0, 30)) {
+            const got = await fetchContentItem(supabase, item.content_type, String(item.id || ""));
+            if ((got as any).error) return got;
+            fetched.push(got);
+          }
+        } else {
+          for (const t of requestedTypes) {
+            const cfg = CONTENT_TABLES[t];
+            let q = supabase.from(cfg.table).select(cfg.extraSelect || "*").order("updated_at", { ascending: false }).limit(limit);
+            if (cfg.softDelete) q = q.is("deleted_at", null);
+            const { data, error } = await q;
+            if (error) continue;
+            for (const row of data || []) {
+              fetched.push({ content_type: t, id: row.id, title: cfg.title ? (row[cfg.title] || "Untitled") : `${t.replace("_", " ")} ${String(row.id).slice(0, 8)}`, content: String(row[cfg.content] || "") });
+            }
+          }
+        }
+        if (!fetched.length) return { error: "No accessible content found to summarize." };
+        const corpus = fetched.map((item, i) => `[${i + 1}] ${item.content_type}: ${item.title}\n${stripHtml(item.content).slice(0, 3500)}`).join("\n\n---\n\n").slice(0, 24000);
+        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        if (!lovableKey) return { error: "LOVABLE_API_KEY not configured" };
+        const r = await fetch(GATEWAY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+          body: JSON.stringify({
+            model: MODEL_DEFAULT,
+            messages: [
+              { role: "system", content: "You summarize a writer's private knowledge base. Return clear markdown with: Executive Summary, Key Points, Open Questions, Suggested Next Actions. Be concise but useful." },
+              { role: "user", content: `Summarize these PendragonX items. Cite source numbers inline when useful.\n\n${corpus}` },
+            ],
+          }),
+        });
+        if (!r.ok) return { error: `AI gateway ${r.status}: ${(await r.text()).slice(0, 200)}` };
+        const j = await r.json();
+        const summary = String(j.choices?.[0]?.message?.content || "").trim();
+        const saveAs = String(args.save_as || "none");
+        let saved: any = null;
+        if (summary && (saveAs === "note" || saveAs === "catalyst_document")) {
+          const title = String(args.title || "ALICE Content Summary").slice(0, 200);
+          const target = saveAs === "note" ? "note" : "catalyst_document";
+          const created = await createCombinedContent(supabase, userId, target as ContentType, title, summary);
+          if (created.error) return { error: created.error.message, summary };
+          saved = { id: created.data.id, title: created.data.title, type: target };
+        }
+        return { ok: true, summarized_count: fetched.length, summary, saved };
+      }
       case "create_task": {
         const { data, error } = await supabase.from("tasks").insert({
           user_id: userId,
@@ -1052,11 +1292,19 @@ async function executeTool(
         // don't want to block ALICE's reply. We pass the user's auth header
         // so execute-agent runs under their identity and respects RLS.
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        fetch(`${supabaseUrl}/functions/v1/execute-agent`, {
+        const invokeAgent = fetch(`${supabaseUrl}/functions/v1/execute-agent`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: authHeader },
           body: JSON.stringify({ agentId, runId: run.id }),
-        }).catch((err) => console.error("execute-agent invoke failed:", err));
+        }).catch(async (err) => {
+          console.error("execute-agent invoke failed:", err);
+          await serviceClient.from("agent_runs").update({ status: "failed", completed_at: new Date().toISOString(), error_message: err?.message || String(err) }).eq("id", run.id);
+          await serviceClient.from("agent_notifications").insert({ user_id: userId, agent_id: agentId, title: "ALICE report failed", message: err?.message || "The background report could not finish.", notification_type: "warning" });
+        });
+        const edgeRuntime = (globalThis as any).EdgeRuntime;
+        if (edgeRuntime?.waitUntil) edgeRuntime.waitUntil(invokeAgent);
+        else await invokeAgent;
+        await serviceClient.from("agent_notifications").insert({ user_id: userId, agent_id: agentId, title: "ALICE report started", message: `I started ${internalType.replace(/_/g, " ")}. I’ll post the result here when it finishes.`, notification_type: "info" });
 
         const navigate_to = internalType === "card_synthesizer" || internalType === "writing_coach" || internalType === "citation"
           ? "/app/catalyst"

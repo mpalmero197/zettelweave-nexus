@@ -49,9 +49,34 @@ function debouncedSync() {
   }, 1500);
 }
 
+async function ensureFreshSession(token, refreshToken, expiresAt) {
+  if (!token) return null;
+  if (expiresAt && Number(expiresAt) - Date.now() > 2 * 60 * 1000) return token;
+  if (!refreshToken) return token;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.access_token) return token;
+    await chrome.storage.local.set({
+      pendragonx_auth_token: d.access_token,
+      pendragonx_refresh_token: d.refresh_token || refreshToken,
+      pendragonx_session_expires_at: d.expires_at ? Number(d.expires_at) * 1000 : Date.now() + Number(d.expires_in || 3600) * 1000,
+      pendragonx_user_email: d.user?.email,
+    });
+    return d.access_token;
+  } catch {
+    return token;
+  }
+}
+
 async function syncOpenTabs() {
-  const { pendragonx_auth_token: token, pendragonx_tab_share_enabled: enabled } =
-    await chrome.storage.local.get(["pendragonx_auth_token", "pendragonx_tab_share_enabled"]);
+  const stored = await chrome.storage.local.get(["pendragonx_auth_token", "pendragonx_refresh_token", "pendragonx_session_expires_at", "pendragonx_tab_share_enabled"]);
+  const token = await ensureFreshSession(stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at);
+  const enabled = stored.pendragonx_tab_share_enabled;
   if (!token) return; // not signed in
   if (enabled === false) return; // user explicitly disabled
 
