@@ -373,16 +373,17 @@ function setupCards() {
     const title = document.getElementById('card-title').value.trim();
     const content = document.getElementById('card-content').value.trim();
     if (!title && !content) return;
-    await createCard({ title: title || 'Untitled', content });
+    toast('Categorizing…');
+    const created = await createCardAutoDewey({ title: title || 'Untitled', content });
     document.getElementById('card-title').value = '';
     document.getElementById('card-content').value = '';
-    toast('Card saved');
+    toast(created?.number ? `Card saved · ${created.number}` : 'Card saved');
     loadCards();
   });
 }
 
 async function loadCards() {
-  const data = await rest('zettel_cards?select=id,title,content,category,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
+  const data = await rest('zettel_cards?select=id,title,content,category,number,linked_cards,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
   if (Array.isArray(data)) {
     cardsList = data;
     chrome.storage.local.set({ [STORAGE_KEYS.CACHE_CARDS]: cardsList });
@@ -390,15 +391,109 @@ async function loadCards() {
   renderCards();
 }
 
-async function createCard({ title, content, category }) {
+// Call the ai-categorize-card edge function to get a Dewey {number, category}
+async function categorizeWithDewey(title, content) {
+  if (!authToken) return null;
+  try {
+    if (!(await ensureFreshSession())) return null;
+    const existingNumbers = (cardsList || []).map(c => c.number).filter(Boolean).slice(0, 200);
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/ai-categorize-card`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: (title || '').slice(0, 500),
+        content: (content || '').slice(0, 49000),
+        method: 'dewey',
+        existingNumbers,
+      }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (data?.error || !data?.number) return null;
+    return { number: String(data.number), category: String(data.category || data.number) };
+  } catch { return null; }
+}
+
+// Topic-graph linking: find sibling cards sharing the same Dewey trunk
+function findRelatedByDewey(newNumber, limit = 5) {
+  if (!newNumber || !cardsList?.length) return [];
+  const trunk = String(newNumber).split('-')[0];                 // strip "-suffix"
+  const head = trunk.split('.')[0];                              // "005.437" -> "005"
+  const branch = trunk.includes('.') ? trunk.split('.').slice(0, 2).join('.') : trunk;
+  const scored = cardsList
+    .filter(c => c.id && c.number)
+    .map(c => {
+      const cTrunk = String(c.number).split('-')[0];
+      let score = 0;
+      if (cTrunk === trunk) score = 3;
+      else if (cTrunk.startsWith(branch + '.') || cTrunk === branch) score = 2;
+      else if (cTrunk.startsWith(head)) score = 1;
+      return { id: c.id, score };
+    })
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(x => x.id);
+  return scored;
+}
+
+// Reciprocal link: append the new card id to each related card's linked_cards
+async function linkBack(relatedIds, newCardId) {
+  if (!relatedIds?.length || !newCardId) return;
+  await Promise.all(relatedIds.map(async (id) => {
+    try {
+      const rows = await rest(`zettel_cards?id=eq.${id}&select=linked_cards`);
+      const existing = Array.isArray(rows) && rows[0]?.linked_cards ? rows[0].linked_cards : [];
+      if (existing.includes(newCardId)) return;
+      const next = Array.from(new Set([...existing, newCardId]));
+      await rest(`zettel_cards?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ linked_cards: next }),
+      });
+    } catch {}
+  }));
+}
+
+async function createCard({ title, content, number, category, tags, linked_cards }) {
   const uid = await getUserId();
   if (!uid) return null;
   return await rest('zettel_cards', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({ user_id: uid, title, content: content || '', category: category || 'general' }),
+    body: JSON.stringify({
+      user_id: uid,
+      title,
+      content: content || '',
+      number: number || `000-${Date.now().toString(36)}`,
+      category: category || '000 - General',
+      tags: tags || [],
+      linked_cards: linked_cards || [],
+    }),
   });
 }
+
+// Categorize via Dewey, create the card, and reciprocally link to siblings.
+async function createCardAutoDewey({ title, content, tags }) {
+  // Ensure we have a fresh cardsList so existingNumbers/linking are accurate
+  if (!cardsList?.length) await loadCards();
+  const cat = await categorizeWithDewey(title, content);
+  const number = cat?.number || `000-${Date.now().toString(36)}`;
+  const category = cat?.category || '000 - General';
+  const related = findRelatedByDewey(number, 5);
+  const rows = await createCard({
+    title, content, number, category,
+    tags: Array.from(new Set([...(tags || []), 'auto-dewey'])),
+    linked_cards: related,
+  });
+  const created = Array.isArray(rows) ? rows[0] : null;
+  if (created?.id) linkBack(related, created.id); // fire and forget
+  return created ? { ...created, number, category } : null;
+}
+
 
 function renderCards() {
   const c = document.getElementById('cards-list');
@@ -506,27 +601,38 @@ async function captureFromPage(mode) {
     });
     if (!result) return;
     const sourceLine = `\n\n---\nSource: ${result.url}`;
+
+    // All three capture modes now produce a Dewey-categorized, graph-linked Card.
+    let title = result.title || 'Untitled page';
+    let body = '';
+    const extraTags = ['web-capture'];
+
     if (mode === 'text') {
-      await createNote({ title: result.title, content: result.text + sourceLine, tags: ['web-capture'] });
-      toast('Saved page text → Notes');
-      loadNotes();
+      body = (result.text || '').slice(0, 8000);
     } else if (mode === 'html') {
-      // Strip scripts/styles from HTML for storage
-      const cleaned = result.html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-      await createNote({ title: result.title, content: cleaned + sourceLine, tags: ['web-capture', 'html'] });
-      toast('Saved full page HTML → Notes');
-      loadNotes();
+      const cleaned = (result.html || '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      body = cleaned.slice(0, 8000);
+      extraTags.push('full-page');
     } else if (mode === 'card') {
-      const snippet = (result.text || '').slice(0, 1500);
-      const created = await createCard({ title: result.title, content: snippet + sourceLine, category: 'web' });
-      toast('Saved to Cards');
-      await loadCards();
-      // Auto-switch to Cards tab so the user sees where it landed
-      document.querySelector('.tab[data-tab="cards"]')?.click();
-      // Open the new card immediately
-      const id = created?.[0]?.id;
-      if (id) setTimeout(() => openItemModal('card', id), 200);
+      body = (result.text || '').slice(0, 1500);
     }
+
+    toast('Categorizing & linking…');
+    const created = await createCardAutoDewey({
+      title,
+      content: body + sourceLine,
+      tags: extraTags,
+    });
+    if (!created) { toast('Save failed'); return; }
+    toast(`Saved to Cards · ${created.number}${created.linked_cards?.length ? ` · linked ${created.linked_cards.length}` : ''}`);
+    await loadCards();
+    document.querySelector('.tab[data-tab="cards"]')?.click();
+    if (created.id) setTimeout(() => openItemModal('card', created.id), 200);
   } catch (e) {
     toast(`Capture failed: ${e.message}`);
   }
