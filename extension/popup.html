@@ -493,9 +493,35 @@
     .habit-delete:hover { color: var(--danger); }
     .habits-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
 
-    .footer { padding: 10px 14px; border-top: 1px solid var(--border); text-align: center; background: var(--bg-subtle); }
-    .footer a { font-size: 11px; color: var(--fg-muted); text-decoration: none; }
+    .footer {
+      padding: 9px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .footer .foot-brand { font-size: 10px; color: var(--fg-subtle); letter-spacing: .02em; }
+    .footer a { font-size: 11px; color: var(--fg-muted); text-decoration: none; font-weight: 500; transition: color .15s; }
     .footer a:hover { color: var(--fg); }
+
+    /* Skeleton loader */
+    @keyframes skel-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+    .skel {
+      background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+      background-size: 400px 100%;
+      animation: skel-shimmer 1.4s ease-in-out infinite;
+      border-radius: var(--radius-sm);
+      height: 56px;
+      margin-bottom: 6px;
+    }
+    .skel.sm { height: 36px; }
+
+    /* Fade-in on tab switch */
+    @keyframes tab-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+    .content > div[id$="-tab"] { animation: tab-in .2s ease both; }
+
 
     /* Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
