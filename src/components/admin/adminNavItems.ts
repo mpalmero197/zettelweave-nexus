@@ -78,6 +78,7 @@ export const adminNavItems: AdminNavItem[] = [
       { id: 'ai-assistant', label: 'AI Assistant', icon: Bot },
       { id: 'ai-fixer', label: 'AI Frontend Fixer', icon: Wrench },
       { id: 'seo-engine', label: 'SEO/AEO Engine', icon: Sparkles },
+      { id: 'extension', label: 'Chrome Extension', icon: Chrome },
     ],
   },
   {
