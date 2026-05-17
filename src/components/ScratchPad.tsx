@@ -233,29 +233,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     toast.success("Note deleted");
   };
 
-  const handleDownloadExtension = async () => {
-    setIsDownloading(true);
-    try {
-      const res = await fetch(`/pendragonx-chrome-extension.zip?t=${Date.now()}`);
-      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "pendragonx-chrome-extension.zip";
-      a.click();
-      URL.revokeObjectURL(a.href);
-
-      toast.success("Extension downloaded!", {
-        description: "1. Unzip the file\n2. Go to chrome://extensions\n3. Enable Developer Mode\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
-        duration: 10000,
-      });
-    } catch (error) {
-      console.error("Failed to generate extension ZIP:", error);
-      toast.error("Failed to download extension");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  // Extension download moved to Admin → System → Chrome Extension
 
   const handleSync = () => {
     if (user) {
