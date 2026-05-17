@@ -601,27 +601,38 @@ async function captureFromPage(mode) {
     });
     if (!result) return;
     const sourceLine = `\n\n---\nSource: ${result.url}`;
+
+    // All three capture modes now produce a Dewey-categorized, graph-linked Card.
+    let title = result.title || 'Untitled page';
+    let body = '';
+    const extraTags = ['web-capture'];
+
     if (mode === 'text') {
-      await createNote({ title: result.title, content: result.text + sourceLine, tags: ['web-capture'] });
-      toast('Saved page text → Notes');
-      loadNotes();
+      body = (result.text || '').slice(0, 8000);
     } else if (mode === 'html') {
-      // Strip scripts/styles from HTML for storage
-      const cleaned = result.html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-      await createNote({ title: result.title, content: cleaned + sourceLine, tags: ['web-capture', 'html'] });
-      toast('Saved full page HTML → Notes');
-      loadNotes();
+      const cleaned = (result.html || '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      body = cleaned.slice(0, 8000);
+      extraTags.push('full-page');
     } else if (mode === 'card') {
-      const snippet = (result.text || '').slice(0, 1500);
-      const created = await createCard({ title: result.title, content: snippet + sourceLine, category: 'web' });
-      toast('Saved to Cards');
-      await loadCards();
-      // Auto-switch to Cards tab so the user sees where it landed
-      document.querySelector('.tab[data-tab="cards"]')?.click();
-      // Open the new card immediately
-      const id = created?.[0]?.id;
-      if (id) setTimeout(() => openItemModal('card', id), 200);
+      body = (result.text || '').slice(0, 1500);
     }
+
+    toast('Categorizing & linking…');
+    const created = await createCardAutoDewey({
+      title,
+      content: body + sourceLine,
+      tags: extraTags,
+    });
+    if (!created) { toast('Save failed'); return; }
+    toast(`Saved to Cards · ${created.number}${created.linked_cards?.length ? ` · linked ${created.linked_cards.length}` : ''}`);
+    await loadCards();
+    document.querySelector('.tab[data-tab="cards"]')?.click();
+    if (created.id) setTimeout(() => openItemModal('card', created.id), 200);
   } catch (e) {
     toast(`Capture failed: ${e.message}`);
   }
