@@ -25,7 +25,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const [savedNotes, setSavedNotes] = useState<ScratchNote[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [sharingNoteId, setSharingNoteId] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  // Chrome extension download moved to Admin → System → Chrome Extension
   const { user } = useAuth();
 
   // Load notes from Supabase if logged in, else localStorage
