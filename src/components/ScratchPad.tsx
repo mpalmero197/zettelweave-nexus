@@ -380,53 +380,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
         </div>
       )}
 
-      {/* Chrome Extension Promo */}
-      <Card className="border-dashed border-primary/30 bg-primary/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Chrome className="h-5 w-5 text-primary" />
-            Chrome Extension
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Capture notes from anywhere • Syncs with your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Install our Chrome extension to quickly jot down notes from any webpage. Sign in with the same account to sync notes across devices.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDownloadExtension}
-              disabled={isDownloading}
-              className="gap-1.5"
-            >
-              {isDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              {isDownloading ? "Packaging..." : "Download Extension"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                toast.info("How to install:", {
-                  description: "1. Download & unzip the file\n2. Open chrome://extensions\n3. Enable Developer Mode (top right)\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
-                  duration: 10000
-                });
-              }}
-              className="gap-1.5 text-xs"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Installation Guide
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Chrome Extension distribution moved to Admin → System → Chrome Extension */}
 
       {sharingNoteId && (
         <ShareDialog
