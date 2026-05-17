@@ -380,6 +380,8 @@ export default function Admin() {
         return <AIFixesPanel />;
       case 'system-seo-engine':
         return <SeoEnginePanel />;
+      case 'system-extension':
+        return <ChromeExtensionPanel />;
       case 'docs':
         return <DocumentationViewer />;
       default:
