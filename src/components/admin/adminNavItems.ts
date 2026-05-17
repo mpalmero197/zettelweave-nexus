@@ -16,6 +16,7 @@ import {
   FileSearch,
   Bot,
   Sparkles,
+  Chrome,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
