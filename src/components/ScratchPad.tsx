@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Save, FileText, Trash2, Chrome, Download, ExternalLink, RefreshCw, Cloud, Loader2, Users } from "lucide-react";
+import { Plus, Save, FileText, Trash2, RefreshCw, Cloud, Users } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
   const [savedNotes, setSavedNotes] = useState<ScratchNote[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [sharingNoteId, setSharingNoteId] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  // Chrome extension download moved to Admin → System → Chrome Extension
   const { user } = useAuth();
 
   // Load notes from Supabase if logged in, else localStorage
@@ -233,29 +233,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
     toast.success("Note deleted");
   };
 
-  const handleDownloadExtension = async () => {
-    setIsDownloading(true);
-    try {
-      const res = await fetch(`/pendragonx-chrome-extension.zip?t=${Date.now()}`);
-      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "pendragonx-chrome-extension.zip";
-      a.click();
-      URL.revokeObjectURL(a.href);
-
-      toast.success("Extension downloaded!", {
-        description: "1. Unzip the file\n2. Go to chrome://extensions\n3. Enable Developer Mode\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
-        duration: 10000,
-      });
-    } catch (error) {
-      console.error("Failed to generate extension ZIP:", error);
-      toast.error("Failed to download extension");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  // Extension download moved to Admin → System → Chrome Extension
 
   const handleSync = () => {
     if (user) {
@@ -380,53 +358,7 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
         </div>
       )}
 
-      {/* Chrome Extension Promo */}
-      <Card className="border-dashed border-primary/30 bg-primary/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Chrome className="h-5 w-5 text-primary" />
-            Chrome Extension
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Capture notes from anywhere • Syncs with your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Install our Chrome extension to quickly jot down notes from any webpage. Sign in with the same account to sync notes across devices.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDownloadExtension}
-              disabled={isDownloading}
-              className="gap-1.5"
-            >
-              {isDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              {isDownloading ? "Packaging..." : "Download Extension"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                toast.info("How to install:", {
-                  description: "1. Download & unzip the file\n2. Open chrome://extensions\n3. Enable Developer Mode (top right)\n4. Click 'Load unpacked'\n5. Select the unzipped folder",
-                  duration: 10000
-                });
-              }}
-              className="gap-1.5 text-xs"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Installation Guide
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Chrome Extension distribution moved to Admin → System → Chrome Extension */}
 
       {sharingNoteId && (
         <ShareDialog

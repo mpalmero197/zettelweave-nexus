@@ -20,6 +20,7 @@ import { PlatformReport } from '@/components/admin/PlatformReport';
 import { AdminAIChat } from '@/components/admin/AdminAIChat';
 import { AIFixesPanel } from '@/components/admin/AIFixesPanel';
 import { SeoEnginePanel } from '@/components/admin/SeoEnginePanel';
+import { ChromeExtensionPanel } from '@/components/admin/ChromeExtensionPanel';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -379,6 +380,8 @@ export default function Admin() {
         return <AIFixesPanel />;
       case 'system-seo-engine':
         return <SeoEnginePanel />;
+      case 'system-extension':
+        return <ChromeExtensionPanel />;
       case 'docs':
         return <DocumentationViewer />;
       default:
