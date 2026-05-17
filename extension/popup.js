@@ -373,16 +373,17 @@ function setupCards() {
     const title = document.getElementById('card-title').value.trim();
     const content = document.getElementById('card-content').value.trim();
     if (!title && !content) return;
-    await createCard({ title: title || 'Untitled', content });
+    toast('Categorizing…');
+    const created = await createCardAutoDewey({ title: title || 'Untitled', content });
     document.getElementById('card-title').value = '';
     document.getElementById('card-content').value = '';
-    toast('Card saved');
+    toast(created?.number ? `Card saved · ${created.number}` : 'Card saved');
     loadCards();
   });
 }
 
 async function loadCards() {
-  const data = await rest('zettel_cards?select=id,title,content,category,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
+  const data = await rest('zettel_cards?select=id,title,content,category,number,linked_cards,created_at&deleted_at=is.null&order=created_at.desc&limit=50');
   if (Array.isArray(data)) {
     cardsList = data;
     chrome.storage.local.set({ [STORAGE_KEYS.CACHE_CARDS]: cardsList });
@@ -390,15 +391,109 @@ async function loadCards() {
   renderCards();
 }
 
-async function createCard({ title, content, category }) {
+// Call the ai-categorize-card edge function to get a Dewey {number, category}
+async function categorizeWithDewey(title, content) {
+  if (!authToken) return null;
+  try {
+    if (!(await ensureFreshSession())) return null;
+    const existingNumbers = (cardsList || []).map(c => c.number).filter(Boolean).slice(0, 200);
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/ai-categorize-card`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: (title || '').slice(0, 500),
+        content: (content || '').slice(0, 49000),
+        method: 'dewey',
+        existingNumbers,
+      }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (data?.error || !data?.number) return null;
+    return { number: String(data.number), category: String(data.category || data.number) };
+  } catch { return null; }
+}
+
+// Topic-graph linking: find sibling cards sharing the same Dewey trunk
+function findRelatedByDewey(newNumber, limit = 5) {
+  if (!newNumber || !cardsList?.length) return [];
+  const trunk = String(newNumber).split('-')[0];                 // strip "-suffix"
+  const head = trunk.split('.')[0];                              // "005.437" -> "005"
+  const branch = trunk.includes('.') ? trunk.split('.').slice(0, 2).join('.') : trunk;
+  const scored = cardsList
+    .filter(c => c.id && c.number)
+    .map(c => {
+      const cTrunk = String(c.number).split('-')[0];
+      let score = 0;
+      if (cTrunk === trunk) score = 3;
+      else if (cTrunk.startsWith(branch + '.') || cTrunk === branch) score = 2;
+      else if (cTrunk.startsWith(head)) score = 1;
+      return { id: c.id, score };
+    })
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(x => x.id);
+  return scored;
+}
+
+// Reciprocal link: append the new card id to each related card's linked_cards
+async function linkBack(relatedIds, newCardId) {
+  if (!relatedIds?.length || !newCardId) return;
+  await Promise.all(relatedIds.map(async (id) => {
+    try {
+      const rows = await rest(`zettel_cards?id=eq.${id}&select=linked_cards`);
+      const existing = Array.isArray(rows) && rows[0]?.linked_cards ? rows[0].linked_cards : [];
+      if (existing.includes(newCardId)) return;
+      const next = Array.from(new Set([...existing, newCardId]));
+      await rest(`zettel_cards?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ linked_cards: next }),
+      });
+    } catch {}
+  }));
+}
+
+async function createCard({ title, content, number, category, tags, linked_cards }) {
   const uid = await getUserId();
   if (!uid) return null;
   return await rest('zettel_cards', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({ user_id: uid, title, content: content || '', category: category || 'general' }),
+    body: JSON.stringify({
+      user_id: uid,
+      title,
+      content: content || '',
+      number: number || `000-${Date.now().toString(36)}`,
+      category: category || '000 - General',
+      tags: tags || [],
+      linked_cards: linked_cards || [],
+    }),
   });
 }
+
+// Categorize via Dewey, create the card, and reciprocally link to siblings.
+async function createCardAutoDewey({ title, content, tags }) {
+  // Ensure we have a fresh cardsList so existingNumbers/linking are accurate
+  if (!cardsList?.length) await loadCards();
+  const cat = await categorizeWithDewey(title, content);
+  const number = cat?.number || `000-${Date.now().toString(36)}`;
+  const category = cat?.category || '000 - General';
+  const related = findRelatedByDewey(number, 5);
+  const rows = await createCard({
+    title, content, number, category,
+    tags: Array.from(new Set([...(tags || []), 'auto-dewey'])),
+    linked_cards: related,
+  });
+  const created = Array.isArray(rows) ? rows[0] : null;
+  if (created?.id) linkBack(related, created.id); // fire and forget
+  return created ? { ...created, number, category } : null;
+}
+
 
 function renderCards() {
   const c = document.getElementById('cards-list');
