@@ -1672,7 +1672,7 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
 
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + memoryBlock + modeBlock + screenBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
