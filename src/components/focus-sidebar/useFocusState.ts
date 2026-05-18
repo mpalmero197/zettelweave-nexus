@@ -143,6 +143,7 @@ export function useFocusState() {
   const [ambientSound, setAmbientSound] = useState(initial.ambientSound);
   const [ambientVolume, setAmbientVolume] = useState(initial.ambientVolume);
   const [sessionHistory, setSessionHistory] = useState<FocusSession[]>(loadHistory);
+  const [workDays, setWorkDays] = useState<Set<string>>(loadWorkDays);
   const [dailyGoal, setDailyGoal] = useState(loadDailyGoal);
   const [pendingNote, setPendingNote] = useState(false);
 
@@ -154,14 +155,14 @@ export function useFocusState() {
   const dailyStats = useMemo(() => {
     const today = todayKey();
     const todaySessions = sessionHistory.filter(
-      s => new Date(s.timestamp).toISOString().split('T')[0] === today && s.mode === 'work'
+      s => dateKey(new Date(s.timestamp)) === today && s.mode === 'work'
     );
     return {
       sessionsToday: todaySessions.length,
       minutesToday: Math.round(todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60),
-      streak: computeStreak(sessionHistory),
+      streak: computeStreak(sessionHistory, workDays),
     };
-  }, [sessionHistory]);
+  }, [sessionHistory, workDays]);
 
   // Auto-import today's important tasks from project_tasks
   useEffect(() => {
