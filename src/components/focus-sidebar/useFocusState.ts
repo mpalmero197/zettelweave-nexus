@@ -245,10 +245,18 @@ export function useFocusState() {
       taskTitle: activeTaskId ? tasks.find(t => t.id === activeTaskId)?.title : undefined,
     };
     setSessionHistory(prev => {
-      const updated = [...prev, session].slice(-50);
+      const updated = [...prev, session].slice(-500);
       saveHistory(updated);
       return updated;
     });
+    if (sessionMode === 'work') {
+      setWorkDays(prev => {
+        const next = new Set(prev);
+        next.add(todayKey());
+        saveWorkDays(next);
+        return next;
+      });
+    }
     return session.id;
   }, [activeTaskId, tasks]);
 
