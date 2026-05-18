@@ -808,7 +808,7 @@ const DOCUMENT_TEMPLATES = [
       const items = block.trim().split('\n').map(line =>
         `<li>${line.replace(/^\d+\. /, '')}</li>`
       ).join('');
-      return `<ol>${items}</ol>`;
+      return `<ol>${items}</ul>`;
     });
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
@@ -979,7 +979,7 @@ const DOCUMENT_TEMPLATES = [
         const hl = (detail.highlight || '').trim();
         if (hl) {
           const safe = hl.replace(/<[^>]+>/g, '');
-          const re = new RegExp(`(${safe.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i');
+          const re = new RegExp(`(${safe.replace(/[.*+?^${}()|[\\\]]/g, '\\$&')})`, 'i');
           html = html.replace(re, `<mark id="alice-highlight" style="background:hsl(48 95% 60%);color:hsl(0 0% 10%);padding:1px 3px;border-radius:2px">$1</mark>`);
         }
         setDocumentTitle(data.title);
@@ -1869,7 +1869,7 @@ const DOCUMENT_TEMPLATES = [
                           const section = gap.metadata?.section;
                           if (section) {
                             // Look for a heading that matches the section
-                            const sectionRegex = new RegExp(`(<h[1-6][^>]*>[^<]*${section.replace(/[.*+?^${}()|[\\\]]/g, '\\$&')}[^<]*</h[1-6]>)`, 'i');
+                            const sectionRegex = new RegExp(`(<h[1-6][^>]*>[^<]*${section.replace(/[.*+?^${}()|[\\\/\/]]/g, '\\$&')}[^<]*</h[1-6]>)`, 'i');
                             const match = editorContent.match(sectionRegex);
                             if (match && match.index !== undefined) {
                               const insertPos = match.index + match[0].length;
