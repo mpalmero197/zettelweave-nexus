@@ -26,7 +26,7 @@ import { DEWEY_CATEGORIES, ORGANIZATION_METHODS } from "@/types/zettel";
 import { exportToPDF, printCards } from "@/utils/exportUtils";
 import { Footer } from "@/components/Footer";
 
-// Lazy-load every heavy feature component ÃÂ¢ÃÂÃÂ each is only mounted when its tab/dialog activates
+// Lazy-load every heavy feature component ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ each is only mounted when its tab/dialog activates
 const CreateCardDialog = lazy(() => import("@/components/CreateCardDialog").then(m => ({ default: m.CreateCardDialog })));
 const ImportStudio = lazy(() => import("@/components/ImportStudio").then(m => ({ default: m.ImportStudio })));
 const GraphView = lazy(() => import("@/components/GraphViewNew").then(m => ({ default: m.GraphView })));
@@ -557,6 +557,9 @@ const Index = () => {
                     onSearchResults={handleSearchResults}
                     onQueryChange={setCurrentQuery}
                     currentQuery={currentQuery}
+                    searchHistory={history}
+                    onClearHistory={clearHistory}
+                    onRemoveFromHistory={removeFromHistory}
                     onNavigateToCard={(cardId) => {
                       const card = cards.find(c => c.id === cardId);
                       if (card) {
@@ -853,7 +856,7 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Dialogs and Popovers (all lazy-loaded ÃÂ¢ÃÂÃÂ wrap in Suspense) */}
+      {/* Dialogs and Popovers (all lazy-loaded ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ wrap in Suspense) */}
       <Suspense fallback={null}>
         {showAccountManagement && (
           <AccountManagement onClose={() => setShowAccountManagement(false)} />
