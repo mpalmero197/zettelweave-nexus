@@ -346,7 +346,7 @@ export function FloatingChatBubble() {
               >
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage src={thread.sender_avatar} />
-                  <AvatarFallback className="text-xs">{thread.sender_name ? thread.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{(thread.sender_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
@@ -393,7 +393,7 @@ export function FloatingChatBubble() {
                 <div className="relative flex-shrink-0">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={friend.avatar_url} />
-                    <AvatarFallback className="text-xs">{friend.display_name ? friend.display_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                    <AvatarFallback className="text-xs">{(friend.display_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className={cn(
                     'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card',
@@ -425,7 +425,7 @@ export function FloatingChatBubble() {
               >
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage src={request.sender_avatar} />
-                  <AvatarFallback className="text-xs">{request.sender_name ? request.sender_name.substring(0, 2).toUpperCase() : '??'}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{(request.sender_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{request.sender_name}</p>
