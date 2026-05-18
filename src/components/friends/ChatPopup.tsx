@@ -315,7 +315,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
     });
   };
 
-  // ── Shared body content ──
+  // ─── Shared body content ───
   const renderBody = () => (
     <>
       {/* Friend request alerts */}
@@ -350,7 +350,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
             <Avatar className="h-16 w-16 mb-4 ring-2 ring-border shadow-md">
               <AvatarImage src={friendAvatar} />
               <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
-                {(friendName ?? '').substring(0, 2).toUpperCase()}
+                {String(friendName ?? '').substring(0, 2).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <p className="text-sm font-semibold text-foreground mb-1">Start a conversation</p>
@@ -421,7 +421,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
     </>
   );
 
-  // ── Mobile: full-screen overlay ──
+  // ─── Mobile: full-screen overlay ───
   if (isMobile) {
     return (
       <div className="fixed inset-0 z-[60] bg-background flex flex-col animate-in slide-in-from-right-full duration-200">
@@ -440,7 +440,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
             <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
               <AvatarImage src={friendAvatar} />
               <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-                {(friendName ?? '').substring(0, 2).toUpperCase()}
+                {String(friendName ?? '').substring(0, 2).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background" />
@@ -456,7 +456,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
     );
   }
 
-  // ── Desktop: floating card ──
+  // ─── Desktop: floating card ───
   return (
     <div className={cn(
       'fixed bottom-4 right-20 w-[380px] z-50 flex flex-col',
@@ -471,7 +471,7 @@ export function ChatPopup({ friendId, friendName, friendAvatar, onClose }: ChatP
           <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
             <AvatarImage src={friendAvatar} />
             <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-              {(friendName ?? '').substring(0, 2).toUpperCase()}
+              {String(friendName ?? '').substring(0, 2).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card animate-chat-online-pulse" />
