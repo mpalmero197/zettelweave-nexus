@@ -31,7 +31,7 @@ const PREMIUM_TABS = new Set([
 ]);
 
 const SECTIONS = [
-  {
+  { 
     label: 'Quick Access',
     items: [
       { id: 'dashboard', label: 'Home', icon: Home },
@@ -104,7 +104,6 @@ export function MobileNavigation({
     if (!vv) return;
 
     const onResize = () => {
-      // The difference between window inner height and viewport height = keyboard height
       const kbHeight = window.innerHeight - vv.height;
       setKeyboardOffset(kbHeight > 50 ? kbHeight : 0);
     };
@@ -143,6 +142,7 @@ export function MobileNavigation({
 
   const isKeyboardUp = searchFocused && keyboardOffset > 50;
 
+  // Move early return to after all hook declarations to avoid Rules of Hooks violations
   if (!isMobile) return null;
 
   return (
