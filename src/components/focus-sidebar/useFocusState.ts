@@ -32,8 +32,16 @@ interface FocusState {
 
 const PRESETS = { work: 25 * 60, 'short-break': 5 * 60, 'long-break': 15 * 60 };
 
+// Local-date key (YYYY-MM-DD) — avoids UTC drift near midnight that broke streaks
+function dateKey(d: Date = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function todayKey() {
-  return new Date().toISOString().split('T')[0];
+  return dateKey();
 }
 
 function loadHistory(): FocusSession[] {
@@ -44,8 +52,21 @@ function loadHistory(): FocusSession[] {
 }
 
 function saveHistory(sessions: FocusSession[]) {
-  // Keep last 50
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(-50)));
+  // Keep last 500 — enough to preserve streak data for ~2 months of heavy use
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(-500)));
+}
+
+function loadWorkDays(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STREAK_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+
+function saveWorkDays(days: Set<string>) {
+  // Keep last 365 days
+  const sorted = Array.from(days).sort().slice(-365);
+  localStorage.setItem(STREAK_KEY, JSON.stringify(sorted));
 }
 
 function loadDailyGoal(): number {
@@ -54,25 +75,22 @@ function loadDailyGoal(): number {
   } catch { return 8; }
 }
 
-function computeStreak(sessions: FocusSession[]): number {
-  const workDays = new Set(
-    sessions
-      .filter(s => s.mode === 'work')
-      .map(s => new Date(s.timestamp).toISOString().split('T')[0])
-  );
+function computeStreak(sessions: FocusSession[], persistedDays: Set<string>): number {
+  // Merge session-derived work days with persisted set (survives history truncation)
+  const workDays = new Set(persistedDays);
+  sessions
+    .filter(s => s.mode === 'work')
+    .forEach(s => workDays.add(dateKey(new Date(s.timestamp))));
+
   let streak = 0;
   const d = new Date();
-  // Check if today has sessions; if not, start from yesterday
-  const todayStr = todayKey();
-  if (!workDays.has(todayStr)) {
+  // If today has no session, start counting from yesterday so streak doesn't reset before day ends
+  if (!workDays.has(dateKey(d))) {
     d.setDate(d.getDate() - 1);
   }
-  while (true) {
-    const key = d.toISOString().split('T')[0];
-    if (workDays.has(key)) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    } else break;
+  while (workDays.has(dateKey(d))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
   }
   return streak;
 }
