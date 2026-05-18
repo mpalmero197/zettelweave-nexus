@@ -346,7 +346,7 @@ export function FloatingChatBubble() {
               >
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage src={thread.sender_avatar} />
-                  <AvatarFallback className="text-xs">{(thread.sender_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{String(thread.sender_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
@@ -393,11 +393,11 @@ export function FloatingChatBubble() {
                 <div className="relative flex-shrink-0">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={friend.avatar_url} />
-                    <AvatarFallback className="text-xs">{(friend.display_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="text-xs">{String(friend.display_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className={cn(
                     'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card',
-                    friend.user_status === 'online' ? 'bg-primary animate-chat-online-pulse' :
+                    friend.user_status === 'online' ? 'bg-primary animate-chat-online-pulse' : 
                     friend.user_status === 'idle' ? 'bg-accent-foreground/40' : 'bg-muted-foreground/30'
                   )} />
                 </div>
@@ -425,7 +425,7 @@ export function FloatingChatBubble() {
               >
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage src={request.sender_avatar} />
-                  <AvatarFallback className="text-xs">{(request.sender_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{String(request.sender_name || '??').substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{request.sender_name}</p>
@@ -446,7 +446,7 @@ export function FloatingChatBubble() {
     return (
       <>
         {/* Small fixed pill — bottom-left to avoid FAB conflict */}
-        <button
+        <button 
           onClick={() => setIsOpen(true)}
           className={cn(
             'md:hidden fixed bottom-6 left-4 z-50 h-11 rounded-full px-3',
@@ -459,7 +459,7 @@ export function FloatingChatBubble() {
         >
           <MessageCircle className="h-5 w-5" />
           {totalBadgeCount > 0 && (
-            <Badge
+            <Badge 
               variant="destructive"
               className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px] rounded-full animate-chat-badge-pulse"
             >
