@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Chrome, Download, Loader2, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminSectionHeader } from './AdminSectionHeader';
+import { ChromeExtensionPreview } from './ChromeExtensionPreview';
 
 export function ChromeExtensionPanel() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -52,6 +53,8 @@ export function ChromeExtensionPanel() {
           </Button>
         }
       />
+
+      <ChromeExtensionPreview />
 
       <Card className="border-primary/10">
         <CardHeader>
