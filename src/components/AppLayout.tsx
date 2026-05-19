@@ -86,7 +86,7 @@ export function AppLayout() {
     };
   }, []);
 
-  // Global TTS reset — ALICE can pull this remotely if mobile speech glitches.
+  // Global TTS reset â ALICE can pull this remotely if mobile speech glitches.
   useEffect(() => installAliceTtsResetListener(), []);
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export function AppLayout() {
       const m = path.match(/^\/app\/([\w-]+)/);
       if (m) window.dispatchEvent(new CustomEvent("app-tab-change", { detail: m[1] }));
 
-      // Deep-link: /app/catalyst?docId=...&highlight=... → tell Catalyst to open it.
+      // Deep-link: /app/catalyst?docId=...&highlight=... â tell Catalyst to open it.
       try {
         const url = new URL(path, window.location.origin);
         if (url.pathname === "/app/catalyst") {
