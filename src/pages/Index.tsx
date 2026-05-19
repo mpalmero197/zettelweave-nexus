@@ -88,7 +88,7 @@ const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { history, addToHistory, clearHistory, removeFromHistory } = useSearchHistory();
+  const { history, addToHistory, clearHistory, removeItem: removeFromHistory } = useSearchHistory();
   const { hasAccess: hasPremium, isAdmin: premiumIsAdmin } = usePremiumAccess();
   const [currentQuery, setCurrentQuery] = useState("");
   const { cards, isLoading, createCard, updateCard, deleteCard, deleteAllCards, isDeletingAll } = useZettelCards();
@@ -557,9 +557,7 @@ const Index = () => {
                     onSearchResults={handleSearchResults}
                     onQueryChange={setCurrentQuery}
                     currentQuery={currentQuery}
-                    searchHistory={history}
-                    onClearHistory={clearHistory}
-                    onRemoveFromHistory={removeFromHistory}
+                    
                     onNavigateToCard={(cardId) => {
                       const card = cards.find(c => c.id === cardId);
                       if (card) {
