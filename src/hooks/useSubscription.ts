@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,7 +15,7 @@ export const useSubscription = () => {
   const { toast } = useToast();
   const isMounted = useRef(true);
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) throw error;
@@ -36,18 +36,24 @@ export const useSubscription = () => {
         setLoading(false);
       }
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     isMounted.current = true;
+    
     checkSubscription();
-    const interval = setInterval(checkSubscription, 60000);
+    
+    const interval = setInterval(() => {
+      if (isMounted.current) {
+        checkSubscription();
+      }
+    }, 60000);
     
     return () => {
       isMounted.current = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [checkSubscription]);
 
   const startCheckout = async (plan: 'monthly' | 'yearly' = 'monthly') => {
     try {
