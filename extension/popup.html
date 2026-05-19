@@ -228,7 +228,7 @@
     /* Tabs */
     .tabs {
       position: sticky;
-      top: 49px;
+      top: 0;
       z-index: 15;
       display: flex;
       gap: 2px;
@@ -664,17 +664,8 @@
   </style>
 </head>
 <body>
-  <div class="header">
-    <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L14.5 8.5 L21 9.5 L16.5 14 L18 21 L12 17.5 L6 21 L7.5 14 L3 9.5 L9.5 8.5 Z"/></svg>
-    </span>
-    <span class="brand-text">
-      <h1>PendragonX Toolbox</h1>
-      <span class="brand-tag">Your second brain, on every page</span>
-    </span>
-    <span id="admin-badge" class="admin-badge" style="display:none;">Admin</span>
-    <span id="header-version" class="header-version">v1.7.0</span>
-  </div>
+  <!-- Chrome handles the window title; no in-app title to save vertical space -->
+
 
   <!-- Auth Screen (Sign In / Sign Up) -->
   <div id="login-screen" class="login-screen">
@@ -702,6 +693,7 @@
   <!-- Logged-in user bar -->
   <div id="user-bar" class="user-bar">
     <span id="user-email" class="user-email">user@email.com</span>
+    <span id="admin-badge" class="admin-badge" style="display:none;">Admin</span>
     <span id="sync-status" class="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Synced</span></span>
     <button id="sync-btn" class="icon-btn" title="Refresh now" aria-label="Refresh">&#8635;</button>
     <button id="logout-btn" class="icon-btn">Sign Out</button>
