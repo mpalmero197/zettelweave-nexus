@@ -533,14 +533,13 @@ export function Calendar() {
       setNewTask({ name: '', priority: 'medium', notes: '' });
       fetchEvents();
     } else if (newItemType === 'habit' && user && newHabit.name.trim()) {
-      await (supabase.from('habits' as any)).insert({
-        user_id: user.id,
-        name: newHabit.name.trim(),
-        color: newHabit.color,
-        streak: 0,
-      } as any);
+      try {
+        await addHabitToStore(newHabit.name.trim());
+      } catch (e) {
+        console.error('Failed to create habit', e);
+      }
       setNewHabit({ name: '', color: '#3b82f6' });
-      fetchEvents();
+      await reloadHabits();
     }
     setShowAddDialog(false);
   };
