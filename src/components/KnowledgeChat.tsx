@@ -36,12 +36,37 @@ export function KnowledgeChat() {
     totalSourceCount,
   } = useKnowledgeChat(true);
 
+  const submit = () => {
+    if (isLoading) return;
+    if (!input.trim() && pendingImages.length === 0) return;
+    sendMessage(input, pendingImages);
+    setPendingImages([]);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      submit();
     }
   };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const next: string[] = [];
+    for (const f of Array.from(files)) {
+      if (!f.type.startsWith('image/')) { toast.error(`${f.name}: not an image`); continue; }
+      if (f.size > 8 * 1024 * 1024) { toast.error(`${f.name}: max 8MB`); continue; }
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      });
+      next.push(dataUrl);
+    }
+    if (next.length) setPendingImages(prev => [...prev, ...next].slice(0, 8));
+  };
+
 
   const copyToClipboard = async (content: string, index: number) => {
     try {
