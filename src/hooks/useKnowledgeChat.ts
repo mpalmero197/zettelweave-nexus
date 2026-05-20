@@ -192,11 +192,12 @@ export function useKnowledgeChat(isActive: boolean = true) {
     return context;
   }, [selectedSources, cards, notes, catalystDocs, calendarEvents, tasks, scratchpadNotes, enabledSourceCount]);
 
-  const sendMessage = useCallback(async (messageText?: string) => {
+  const sendMessage = useCallback(async (messageText?: string, attachedImages?: string[]) => {
     const text = messageText || input;
-    if (!text.trim() || isLoading) return;
+    const imgs = attachedImages && attachedImages.length > 0 ? attachedImages : undefined;
+    if ((!text.trim() && !imgs) || isLoading) return;
 
-    const userMessage: ChatMessage = { role: 'user', content: text };
+    const userMessage: ChatMessage = { role: 'user', content: text || '(image)', attachedImages: imgs };
     setMessages(prev => [...prev, userMessage]);
     if (!messageText) setInput('');
     setIsLoading(true);
@@ -206,9 +207,10 @@ export function useKnowledgeChat(isActive: boolean = true) {
       const trimmedHistory = [...messages, userMessage].slice(-8);
       const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
         body: {
-          messages: trimmedHistory,
+          messages: trimmedHistory.map(({ attachedImages: _ai, ...m }) => m),
           context: buildContext(),
           selectedSources,
+          images: imgs,
         }
       });
 
