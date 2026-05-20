@@ -282,24 +282,9 @@ export function Calendar() {
         taskId: t.id,
       }));
 
+      // Habit completions come from the shared useHabitsStore hook (see derived items below).
       const habitItems: CalendarItem[] = [];
-      try {
-        const { data: completionsData } = await (supabase.from('habit_completions' as any))
-          .select('*, habits:habit_id(name)')
-          .eq('user_id', user.id);
-        if (completionsData && Array.isArray(completionsData)) {
-          for (const c of completionsData as any[]) {
-            if (c.completed && c.completion_date) {
-              habitItems.push({
-                id: `habit-${c.habit_id}-${c.completion_date}`,
-                title: c.habits?.name || 'Habit',
-                event_date: c.completion_date,
-                source_type: 'habit',
-              });
-            }
-          }
-        }
-      } catch {}
+
 
       const calItems: CalendarItem[] = [
         ...calEvents.map(ev => ({
