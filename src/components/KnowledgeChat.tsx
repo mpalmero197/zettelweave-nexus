@@ -1,20 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2, BookOpen, ChevronLeft } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2, BookOpen, ChevronLeft, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useKnowledgeChat } from '@/hooks/useKnowledgeChat';
 import { KnowledgeChatSourcePanel } from '@/components/KnowledgeChatSourcePanel';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 
 export function KnowledgeChat() {
   const isMobile = useIsMobile();
   const [showSources, setShowSources] = useState(!isMobile);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     messages,
@@ -33,12 +36,37 @@ export function KnowledgeChat() {
     totalSourceCount,
   } = useKnowledgeChat(true);
 
+  const submit = () => {
+    if (isLoading) return;
+    if (!input.trim() && pendingImages.length === 0) return;
+    sendMessage(input, pendingImages);
+    setPendingImages([]);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      submit();
     }
   };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const next: string[] = [];
+    for (const f of Array.from(files)) {
+      if (!f.type.startsWith('image/')) { toast.error(`${f.name}: not an image`); continue; }
+      if (f.size > 8 * 1024 * 1024) { toast.error(`${f.name}: max 8MB`); continue; }
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      });
+      next.push(dataUrl);
+    }
+    if (next.length) setPendingImages(prev => [...prev, ...next].slice(0, 8));
+  };
+
 
   const copyToClipboard = async (content: string, index: number) => {
     try {
@@ -195,7 +223,18 @@ export function KnowledgeChat() {
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      <div className="space-y-2">
+                        {msg.attachedImages && msg.attachedImages.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {msg.attachedImages.map((src, ii) => (
+                              <img key={ii} src={src} alt="attachment" className="rounded-lg max-h-48 object-cover w-full border border-primary-foreground/20" />
+                            ))}
+                          </div>
+                        )}
+                        {msg.content && msg.content !== '(image)' && (
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        )}
+                      </div>
                     )}
 
                     {msg.role === 'assistant' && (
@@ -246,23 +285,60 @@ export function KnowledgeChat() {
 
         {/* Input */}
         <div className="p-4 border-t border-border/50 bg-gradient-to-r from-background to-accent/5 shrink-0">
-          <div className="flex gap-2 max-w-3xl mx-auto">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about your knowledge..."
-              disabled={isLoading}
-              className="flex-1 rounded-xl border-border/50 bg-background"
-            />
-            <Button
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="rounded-xl"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+          <div className="max-w-3xl mx-auto space-y-2">
+            {pendingImages.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {pendingImages.map((src, i) => (
+                  <div key={i} className="relative group">
+                    <img src={src} alt="" className="h-16 w-16 rounded-lg object-cover border border-border/50" />
+                    <button
+                      onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="rounded-xl shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                title="Attach image"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={pendingImages.length > 0 ? 'Add a question about the image(s)...' : 'Ask about your knowledge...'}
+                disabled={isLoading}
+                className="flex-1 rounded-xl border-border/50 bg-background"
+              />
+              <Button
+                onClick={submit}
+                disabled={(!input.trim() && pendingImages.length === 0) || isLoading}
+                size="icon"
+                className="rounded-xl"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
