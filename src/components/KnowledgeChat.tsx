@@ -223,7 +223,18 @@ export function KnowledgeChat() {
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      <div className="space-y-2">
+                        {msg.attachedImages && msg.attachedImages.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {msg.attachedImages.map((src, ii) => (
+                              <img key={ii} src={src} alt="attachment" className="rounded-lg max-h-48 object-cover w-full border border-primary-foreground/20" />
+                            ))}
+                          </div>
+                        )}
+                        {msg.content && msg.content !== '(image)' && (
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        )}
+                      </div>
                     )}
 
                     {msg.role === 'assistant' && (
