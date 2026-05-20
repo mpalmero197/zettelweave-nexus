@@ -8,6 +8,7 @@ import { ZettelCard as ZettelCardType } from '@/types/zettel';
 import { isToday } from 'date-fns';
 
 import { useBuJoStore } from './bullet-journal/useBuJoStore';
+import { useHabitsStore } from '@/hooks/useHabitsStore';
 import { DailyLog } from './bullet-journal/DailyLog';
 import { MonthlyLog } from './bullet-journal/MonthlyLog';
 import { FutureLog } from './bullet-journal/FutureLog';
@@ -26,6 +27,7 @@ interface BulletJournalProps {
 
 export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) => {
   const store = useBuJoStore();
+  const habitsStore = useHabitsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'task' | 'event' | 'note'>('all');
 
@@ -54,10 +56,10 @@ export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) 
       todayCount: today.length,
       openTasks: openTasks.length,
       staleTasks: staleTasks.length,
-      habits: store.data.habits.length,
+      habits: habitsStore.habits.length,
       collections: store.data.collections.length,
     };
-  }, [store.data]);
+  }, [store.data, habitsStore.habits.length]);
 
   const migrateToCard = (entry: BulletEntry) => {
     if (!onCreateCard) return;
@@ -193,12 +195,13 @@ export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) 
 
         <TabsContent value="habits">
           <HabitTrackerComponent
-            habits={store.data.habits}
-            onAdd={store.addHabit}
-            onToggle={store.toggleHabitDay}
-            onDelete={store.deleteHabit}
+            habits={habitsStore.habits}
+            onAdd={habitsStore.addHabit}
+            onToggle={habitsStore.toggleHabitDay}
+            onDelete={habitsStore.deleteHabit}
           />
         </TabsContent>
+
 
         <TabsContent value="collections">
           <CollectionsView

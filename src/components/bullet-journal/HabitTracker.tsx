@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Habit, HABIT_COLORS } from './types';
+import { Habit } from './types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
 
 interface HabitTrackerProps {
   habits: Habit[];
-  onAdd: (habit: Habit) => void;
-  onToggle: (habitId: string, date: string) => void;
-  onDelete: (id: string) => void;
+  onAdd: (name: string) => void | Promise<void>;
+  onToggle: (habitId: string, date: string) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
 }
 
 const DAYS_SHOWN = 14;
@@ -24,19 +24,18 @@ export const HabitTrackerComponent: React.FC<HabitTrackerProps> = ({ habits, onA
     ), []
   );
 
-  const addHabit = () => {
+  const addHabit = async () => {
     const name = newName.trim();
     if (!name) return;
-    const habit: Habit = {
-      id: crypto.randomUUID(),
-      name,
-      days: [],
-      color: HABIT_COLORS[habits.length % HABIT_COLORS.length],
-    };
-    onAdd(habit);
-    setNewName('');
-    toast.success('Habit added');
+    try {
+      await onAdd(name);
+      setNewName('');
+      toast.success('Habit added');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to add habit');
+    }
   };
+
 
   return (
     <div className="space-y-4">

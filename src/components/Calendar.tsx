@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
+import { useHabitsStore } from '@/hooks/useHabitsStore';
 import {
   format, isSameDay, isSameMonth, parseISO, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, eachDayOfInterval, addMonths, subMonths,
@@ -215,6 +216,7 @@ function formatDuration(minutes: number): string {
 export function Calendar() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { habits: habitsList, addHabit: addHabitToStore, reload: reloadHabits } = useHabitsStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -280,24 +282,9 @@ export function Calendar() {
         taskId: t.id,
       }));
 
+      // Habit completions come from the shared useHabitsStore hook (see derived items below).
       const habitItems: CalendarItem[] = [];
-      try {
-        const { data: completionsData } = await (supabase.from('habit_completions' as any))
-          .select('*, habits:habit_id(name)')
-          .eq('user_id', user.id);
-        if (completionsData && Array.isArray(completionsData)) {
-          for (const c of completionsData as any[]) {
-            if (c.completed && c.completion_date) {
-              habitItems.push({
-                id: `habit-${c.habit_id}-${c.completion_date}`,
-                title: c.habits?.name || 'Habit',
-                event_date: c.completion_date,
-                source_type: 'habit',
-              });
-            }
-          }
-        }
-      } catch {}
+
 
       const calItems: CalendarItem[] = [
         ...calEvents.map(ev => ({
@@ -334,8 +321,25 @@ export function Calendar() {
 
   /* ---------- derived ---------- */
 
+  // Derive habit completion items from the shared Supabase habits store
+  const habitItems = useMemo<CalendarItem[]>(() => {
+    const items: CalendarItem[] = [];
+    for (const h of habitsList) {
+      for (const d of h.days) {
+        if (!d.done) continue;
+        items.push({
+          id: `habit-${h.id}-${d.date}`,
+          title: h.name,
+          event_date: d.date,
+          source_type: 'habit',
+        });
+      }
+    }
+    return items;
+  }, [habitsList]);
+
   const filteredItems = useMemo(() => {
-    let items = allItems;
+    let items = [...allItems, ...habitItems];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       items = items.filter(i =>
@@ -353,7 +357,7 @@ export function Calendar() {
       });
     }
     return items;
-  }, [allItems, searchQuery, filterCategory]);
+  }, [allItems, habitItems, searchQuery, filterCategory]);
 
   const itemsByDate = useMemo(() => {
     const map = new Map<string, CalendarItem[]>();
@@ -529,14 +533,13 @@ export function Calendar() {
       setNewTask({ name: '', priority: 'medium', notes: '' });
       fetchEvents();
     } else if (newItemType === 'habit' && user && newHabit.name.trim()) {
-      await (supabase.from('habits' as any)).insert({
-        user_id: user.id,
-        name: newHabit.name.trim(),
-        color: newHabit.color,
-        streak: 0,
-      } as any);
+      try {
+        await addHabitToStore(newHabit.name.trim());
+      } catch (e) {
+        console.error('Failed to create habit', e);
+      }
       setNewHabit({ name: '', color: '#3b82f6' });
-      fetchEvents();
+      await reloadHabits();
     }
     setShowAddDialog(false);
   };
