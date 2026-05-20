@@ -56,10 +56,10 @@ export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) 
       todayCount: today.length,
       openTasks: openTasks.length,
       staleTasks: staleTasks.length,
-      habits: store.data.habits.length,
+      habits: habitsStore.habits.length,
       collections: store.data.collections.length,
     };
-  }, [store.data]);
+  }, [store.data, habitsStore.habits.length]);
 
   const migrateToCard = (entry: BulletEntry) => {
     if (!onCreateCard) return;
