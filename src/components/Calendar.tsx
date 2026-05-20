@@ -321,8 +321,25 @@ export function Calendar() {
 
   /* ---------- derived ---------- */
 
+  // Derive habit completion items from the shared Supabase habits store
+  const habitItems = useMemo<CalendarItem[]>(() => {
+    const items: CalendarItem[] = [];
+    for (const h of habitsList) {
+      for (const d of h.days) {
+        if (!d.done) continue;
+        items.push({
+          id: `habit-${h.id}-${d.date}`,
+          title: h.name,
+          event_date: d.date,
+          source_type: 'habit',
+        });
+      }
+    }
+    return items;
+  }, [habitsList]);
+
   const filteredItems = useMemo(() => {
-    let items = allItems;
+    let items = [...allItems, ...habitItems];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       items = items.filter(i =>
@@ -340,7 +357,7 @@ export function Calendar() {
       });
     }
     return items;
-  }, [allItems, searchQuery, filterCategory]);
+  }, [allItems, habitItems, searchQuery, filterCategory]);
 
   const itemsByDate = useMemo(() => {
     const map = new Map<string, CalendarItem[]>();
