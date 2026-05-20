@@ -12,6 +12,8 @@ export interface ChatMessage {
   images?: string[];
   citations?: string[];
   relatedQuestions?: string[];
+  /** Images attached by the user to this message (data URLs) for ALICE to see */
+  attachedImages?: string[];
 }
 
 export interface SourceCategory {
