@@ -216,6 +216,7 @@ function formatDuration(minutes: number): string {
 export function Calendar() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { habits: habitsList, addHabit: addHabitToStore, reload: reloadHabits } = useHabitsStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date());
