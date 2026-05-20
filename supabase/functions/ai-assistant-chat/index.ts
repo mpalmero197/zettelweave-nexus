@@ -129,7 +129,7 @@ serve(async (req) => {
     const hasInternetKeywords = internetPatterns.some(pattern => pattern.test(lastUserMessage));
     
     // Use internet search if: explicitly requested OR (has internet keywords AND is not specifically about user's knowledge base)
-    const shouldSearchInternet = useInternet || (hasInternetKeywords && !isKnowledgeBaseQuery);
+    const shouldSearchInternet = !hasImages && (useInternet || (hasInternetKeywords && !isKnowledgeBaseQuery));
     
     console.log("Is knowledge base query:", isKnowledgeBaseQuery);
     console.log("Has internet keywords:", hasInternetKeywords);
