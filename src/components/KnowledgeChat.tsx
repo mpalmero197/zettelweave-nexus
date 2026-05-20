@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2, BookOpen, ChevronLeft } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, Copy, Check, Globe, Maximize2, BookOpen, ChevronLeft, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useKnowledgeChat } from '@/hooks/useKnowledgeChat';
 import { KnowledgeChatSourcePanel } from '@/components/KnowledgeChatSourcePanel';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 
 export function KnowledgeChat() {
