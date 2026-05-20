@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
+import { useHabitsStore } from '@/hooks/useHabitsStore';
 import {
   format, isSameDay, isSameMonth, parseISO, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, eachDayOfInterval, addMonths, subMonths,
