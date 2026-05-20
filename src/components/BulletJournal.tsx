@@ -8,6 +8,7 @@ import { ZettelCard as ZettelCardType } from '@/types/zettel';
 import { isToday } from 'date-fns';
 
 import { useBuJoStore } from './bullet-journal/useBuJoStore';
+import { useHabitsStore } from '@/hooks/useHabitsStore';
 import { DailyLog } from './bullet-journal/DailyLog';
 import { MonthlyLog } from './bullet-journal/MonthlyLog';
 import { FutureLog } from './bullet-journal/FutureLog';
