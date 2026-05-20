@@ -195,12 +195,13 @@ export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) 
 
         <TabsContent value="habits">
           <HabitTrackerComponent
-            habits={store.data.habits}
-            onAdd={store.addHabit}
-            onToggle={store.toggleHabitDay}
-            onDelete={store.deleteHabit}
+            habits={habitsStore.habits}
+            onAdd={habitsStore.addHabit}
+            onToggle={habitsStore.toggleHabitDay}
+            onDelete={habitsStore.deleteHabit}
           />
         </TabsContent>
+
 
         <TabsContent value="collections">
           <CollectionsView
