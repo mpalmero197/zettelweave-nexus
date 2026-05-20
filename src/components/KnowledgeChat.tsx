@@ -16,6 +16,8 @@ export function KnowledgeChat() {
   const isMobile = useIsMobile();
   const [showSources, setShowSources] = useState(!isMobile);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     messages,
