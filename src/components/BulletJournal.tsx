@@ -27,6 +27,7 @@ interface BulletJournalProps {
 
 export const BulletJournal = ({ onCreateCard, onAddHabit }: BulletJournalProps) => {
   const store = useBuJoStore();
+  const habitsStore = useHabitsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'task' | 'event' | 'note'>('all');
 
