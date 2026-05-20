@@ -285,23 +285,60 @@ export function KnowledgeChat() {
 
         {/* Input */}
         <div className="p-4 border-t border-border/50 bg-gradient-to-r from-background to-accent/5 shrink-0">
-          <div className="flex gap-2 max-w-3xl mx-auto">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about your knowledge..."
-              disabled={isLoading}
-              className="flex-1 rounded-xl border-border/50 bg-background"
-            />
-            <Button
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="rounded-xl"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+          <div className="max-w-3xl mx-auto space-y-2">
+            {pendingImages.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {pendingImages.map((src, i) => (
+                  <div key={i} className="relative group">
+                    <img src={src} alt="" className="h-16 w-16 rounded-lg object-cover border border-border/50" />
+                    <button
+                      onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="rounded-xl shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                title="Attach image"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={pendingImages.length > 0 ? 'Add a question about the image(s)...' : 'Ask about your knowledge...'}
+                disabled={isLoading}
+                className="flex-1 rounded-xl border-border/50 bg-background"
+              />
+              <Button
+                onClick={submit}
+                disabled={(!input.trim() && pendingImages.length === 0) || isLoading}
+                size="icon"
+                className="rounded-xl"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
