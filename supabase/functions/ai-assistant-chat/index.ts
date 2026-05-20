@@ -59,7 +59,8 @@ serve(async (req) => {
       });
     }
 
-    const { messages, context, useInternet, selectedSources } = body;
+    const { messages, context, useInternet, selectedSources, images } = body;
+    const hasImages = Array.isArray(images) && images.length > 0;
 
     // Trim oversized context arrays instead of rejecting
     if (context && typeof context === 'object') {
