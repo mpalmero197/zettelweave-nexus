@@ -33,6 +33,7 @@ interface Notebook {
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
+  parent_id?: string | null;
 }
 
 interface NotebookWithCounts extends Notebook {
@@ -66,10 +67,11 @@ export function Notebooks() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set());
 
-  const [newNotebook, setNewNotebook] = useState({
+  const [newNotebook, setNewNotebook] = useState<{ name: string; description: string; color: string; parent_id: string | null }>({
     name: '',
     description: '',
-    color: colorOptions[0]
+    color: colorOptions[0],
+    parent_id: null,
   });
 
   useEffect(() => {
@@ -160,12 +162,13 @@ export function Notebooks() {
           user_id: user.id,
           name: newNotebook.name,
           description: newNotebook.description,
-          color: newNotebook.color
-        });
+          color: newNotebook.color,
+          parent_id: newNotebook.parent_id,
+        } as any);
 
       if (error) throw error;
 
-      setNewNotebook({ name: '', description: '', color: colorOptions[0] });
+      setNewNotebook({ name: '', description: '', color: colorOptions[0], parent_id: null });
       setShowCreateDialog(false);
       fetchNotebooks();
       toast.success('Notebook created successfully');
@@ -287,6 +290,19 @@ export function Notebooks() {
                 onChange={(e) => setNewNotebook(prev => ({ ...prev, description: e.target.value }))}
                 rows={3}
               />
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Parent notebook (optional)</label>
+                <select
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  value={newNotebook.parent_id ?? ''}
+                  onChange={(e) => setNewNotebook(prev => ({ ...prev, parent_id: e.target.value || null }))}
+                >
+                  <option value="">— None (top-level) —</option>
+                  {notebooks.filter(n => !n.parent_id).map(n => (
+                    <option key={n.id} value={n.id}>{n.name}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Color</label>
                 <div className="flex flex-wrap gap-2">

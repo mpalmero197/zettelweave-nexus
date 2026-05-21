@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Link } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { DEWEY_CATEGORIES } from "@/types/zettel";
-import { Link } from "lucide-react";
 import { sanitizeUserInput } from "@/utils/security";
+import { RichTextEditor } from "./workspace/RichTextEditor";
+import { LinkPicker } from "./workspace/LinkPicker";
 
 interface EditCardDialogProps {
   card: ZettelCardType;
@@ -35,6 +35,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
   });
   const [newTag, setNewTag] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  const [linkPickerOpen, setLinkPickerOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -119,7 +120,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Card</DialogTitle>
           <DialogDescription>
@@ -187,83 +188,14 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
           
           <div className="grid gap-2">
             <Label htmlFor="content">Content</Label>
-            <div className="space-y-2">
-              <div className="flex gap-2 text-xs">
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `**${selected}**` + after }));
-                  }}
-                >
-                  Bold
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `*${selected}*` + after }));
-                  }}
-                >
-                  Italic
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `__${selected}__` + after }));
-                  }}
-                >
-                  Underline
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `~~${selected}~~` + after }));
-                  }}
-                >
-                  Strike
-                </Button>
-              </div>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Enter the main content of your card"
-                className="min-h-[200px] font-mono"
-                data-writing-suggest="zettelcard"
-              />
-            </div>
+            <RichTextEditor
+              value={formData.content}
+              onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+              placeholder="Write your card content. Use the toolbar for bold, italic, lists, checkboxes…"
+              minHeight="240px"
+            />
           </div>
+
           
           <div className="grid gap-2">
             <Label>Tags</Label>
@@ -347,46 +279,18 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
           </div>
 
           <div className="grid gap-2">
-            <Label>Linked Cards</Label>
-            <p className="text-xs text-muted-foreground">Enter card numbers (e.g., 1a, 2.3, 100) to link cards</p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Card number (e.g., 1a2b)"
-                className="flex-1"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const value = (e.target as HTMLInputElement).value.trim();
-                    if (value && !formData.linkedCards.includes(value)) {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        linkedCards: [...prev.linkedCards, value] 
-                      }));
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }
-                }}
-              />
-              <Button 
-                type="button" 
-                size="sm" 
-                variant="outline"
-                onClick={() => {
-                  const input = document.querySelector('input[placeholder="Card number (e.g., 1a2b)"]') as HTMLInputElement;
-                  const value = input?.value.trim();
-                  if (value && !formData.linkedCards.includes(value)) {
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      linkedCards: [...prev.linkedCards, value] 
-                    }));
-                    if (input) input.value = '';
-                  }
-                }}
-              >
-                <Link className="h-4 w-4" />
+            <div className="flex items-center justify-between">
+              <Label>Linked Cards</Label>
+              <Button type="button" variant="outline" size="sm" onClick={() => setLinkPickerOpen(true)}>
+                <Link className="h-3.5 w-3.5 mr-1.5" />
+                Browse &amp; link cards
               </Button>
             </div>
-            <div className="flex flex-wrap gap-1 mt-2">
+            <p className="text-xs text-muted-foreground">Search and check multiple cards to link them all at once.</p>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {formData.linkedCards.length === 0 && (
+                <span className="text-xs text-muted-foreground italic">No linked cards yet.</span>
+              )}
               {formData.linkedCards.map((cardNumber, index) => (
                 <Badge key={index} variant="outline" className="flex items-center gap-1">
                   #{cardNumber}
@@ -395,9 +299,9 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
                     variant="ghost"
                     size="sm"
                     className="h-auto p-0 hover:bg-transparent"
-                    onClick={() => setFormData(prev => ({ 
-                      ...prev, 
-                      linkedCards: prev.linkedCards.filter(num => num !== cardNumber) 
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      linkedCards: prev.linkedCards.filter(num => num !== cardNumber)
                     }))}
                   >
                     <X className="h-3 w-3" />
@@ -405,8 +309,18 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
                 </Badge>
               ))}
             </div>
+            <LinkPicker
+              open={linkPickerOpen}
+              onOpenChange={setLinkPickerOpen}
+              source="cards"
+              byCardNumber
+              excludeId={card.number}
+              selected={formData.linkedCards}
+              onSave={(picked) => setFormData(prev => ({ ...prev, linkedCards: picked }))}
+            />
           </div>
         </div>
+
         
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>

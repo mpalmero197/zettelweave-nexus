@@ -1,81 +1,95 @@
-# PendragonX Toolbox — Improvements Plan
+# Cards & Notes Workspace Revamp
 
-Scope: Chrome extension (`extension/` + mirrored `public/chrome-extension/`) and the web Calendar surface.
+Transition Cards and Notes from grid-based browsing into a focused two-pane workspace (Evernote-style), with rich text editing, nested notebooks, and a searchable batch linker.
 
-## 1. Auto-sync (no more manual refresh)
+## Scope
 
-- On panel open, sync immediately, then every **30 s** via `setInterval` (cleared on `window.unload`).
-- Re-sync on `document.visibilitychange` → `visible`.
-- Re-sync on `chrome.tabs.onActivated` (already broadcasted by background; popup will listen via `chrome.runtime.onMessage`).
-- Subscribe to Supabase Realtime for `zettel_cards`, `notes`, `calendar_events`, `tasks` (filtered by `user_id`) using the REST/Realtime websocket — fall back to polling if the socket fails.
-- Replace the manual "Sync" button label with a live status dot (Synced • / Syncing… / Offline).
+Two surfaces are affected:
+1. **Notes** (`src/components/NotesView.tsx` / related) — notebook hierarchy + two-pane editor
+2. **Cards / ZettelCards** (`src/components/CardsView.tsx` / `CardViewer.tsx` / `EditCardDialog.tsx`) — two-pane editor + rich text + batch linker
 
-## 2. Open notes & cards inside the toolbox
-
-- Replace `window.open(...)` on card/note rows with an in-panel **viewer/editor modal**:
-  - Editable `title` + `content` textarea, autosaves on blur (PATCH `notes` / `zettel_cards`).
-  - Buttons: **Save**, **Delete** (soft-delete via `deleted_at`), **Open in PendragonX** (kept as escape hatch), **Close**.
-- Modal is a single overlay component reused by both Notes and Cards tabs.
-
-## 3. Fix "Save as Card" routing bug
-
-Root cause candidates to verify and resolve:
-- The `Save as Card` button currently lives in the **Notes** tab, so after capture the panel still shows the Notes list — making it look like the card was saved to Notes.
-- Fix:
-  - Move web-capture controls into a shared **Capture bar** visible on both Notes and Cards tabs.
-  - After `captureFromPage('card')`, auto-switch to the **Cards** tab and highlight the new row.
-  - Toast clearly says "Saved to Cards" (with an "Open" action that launches the new modal).
-  - Audit `createCard` to ensure `category: 'web'` and the row truly lands in `zettel_cards` (add a sanity `select` after insert).
-
-## 4. Richer calendar — toolbox
-
-Replace the current flat list with:
-
-- **Mini month grid** at the top (7-col CSS grid, dots per event, click a day to filter the list).
-- Quick-add row: title + date + time + category dropdown (event / appointment / meeting / phone / personal / deadline / reminder / task / habit).
-- **Per-event actions** on each row: edit (inline title/date/time/category), delete, **move** (date+time picker).
-- **Duplicate detection** on save/move: query `calendar_events?event_date=eq.X&event_time=eq.Y&user_id=eq.me`. If matches exist, show a confirm dialog:
-  - "An event already exists at this time — keep both, replace existing, or cancel?"
-- Filter chips already exist; add "Today / Week / Month" range chips alongside the category filter.
-
-Technical sketch:
+## 1. Two-Pane Desktop Layout
 
 ```text
-[ Aug 2026 ◀ ▶ ]
-[S M T W T F S]   ← clickable cells with colored dots
-[ + Add: title | date | time | category ▾ ]
-[ Filter: All • Event • Task • Habit … ]
-[ Event row → ✏ 🕒 🗑 ]
+┌─────────────┬──────────────────────────────────────┐
+│ Notebooks   │                                      │
+│ ├ Work      │                                      │
+│ │  └ Notes  │       Editor / Reader (75%)          │
+│ ├ Personal  │                                      │
+│ Notes List  │                                      │
+│ • Note A    │                                      │
+│ • Note B ◄  │                                      │
+└─────────────┴──────────────────────────────────────┘
+   ~25%                       ~75%
 ```
 
-## 5. Richer calendar — website
+- Left column (~25%): scrollable list of items in the active notebook, with search/filter at top.
+- Right column (~75%): full reader + inline editor for the selected item.
+- On mobile: collapse to single pane with back-button navigation between list ↔ editor (reuse existing `useIsMobile` pattern).
 
-In `src/components/widgets/CalendarEventsWidget.tsx` and the main Calendar page:
-- Add inline edit/delete/move (Popover with shadcn `Calendar` + time input).
-- Same duplicate-detection flow via `ConfirmDialog` with "Keep both / Replace / Cancel".
-- Color-coded category dots matching the toolbox.
-- Drag-to-reschedule on the full Calendar page (uses existing `useDraggable`).
+## 2. Notebook Hierarchy (Notes)
 
-## 6. Other improvements (bundled)
+- Add `parent_id` (nullable, FK → notebooks.id) to the `notebooks` table to support sub-notebooks.
+- New `NotebookTree` sidebar component: collapsible tree, drag-to-reparent later (out of scope for v1).
+- Selecting a notebook filters the middle list; selecting "All Notes" shows everything.
 
-- **Global search** at the top of the panel — fuzzy across cards, notes, calendar, tasks; results open in the new in-panel viewer.
-- **Keyboard shortcuts**: `1-5` switch tabs, `⌘/Ctrl+K` focuses search, `⌘/Ctrl+Enter` saves the active form.
-- **Quick-capture from selection**: right-click context menu items "Save selection → Note / Card" via `chrome.contextMenus`.
-- **Per-tab badge** on the toolbar icon showing today's open task count.
-- **Offline queue**: writes that fail (no network) are queued in `chrome.storage.local` and flushed when sync resumes.
-- **Token refresh**: extension currently never refreshes the Supabase JWT — add silent refresh using the stored `refresh_token` so users aren't logged out after 1 hour.
+Schema change (migration):
+```sql
+ALTER TABLE notebooks ADD COLUMN parent_id uuid REFERENCES notebooks(id) ON DELETE SET NULL;
+CREATE INDEX idx_notebooks_parent ON notebooks(parent_id);
+```
 
-## Files to change
+## 3. Rich Text Editor
 
-- `extension/popup.html` — modal markup, mini-calendar grid, capture bar, search bar, status dot.
-- `extension/popup.js` — auto-sync loop, realtime subscription, viewer/editor, calendar edit/delete/move + dup check, tab auto-switch, contextMenus, offline queue, token refresh.
-- `extension/background.js` — `chrome.contextMenus` registration, badge updates.
-- `extension/manifest.json` — add `contextMenus` permission, bump version.
-- Mirror everything to `public/chrome-extension/` and rebuild `public/pendragonx-chrome-extension.zip`.
-- `src/pages/` Calendar page + `src/components/widgets/CalendarEventsWidget.tsx` — edit/delete/move + duplicate confirm.
-- New `src/components/calendar/EventEditPopover.tsx` for the shared edit UI.
+Use **TipTap** (already React-friendly, lightweight, headless). Install:
+- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`, `@tiptap/extension-underline`
 
-## Out of scope (confirm before adding)
+Toolbar supports: **bold**, *italic*, underline, ~~strikethrough~~, bullet list, ordered list, task list (checkboxes), and a "radio group" custom node (rendered via task-item variant with single-select styling).
 
-- Two-way sync of the Pomodoro timer between web and extension.
-- Recurring-event UI in the toolbox (DB already supports it).
+Persist as HTML in existing `content` fields (notes.content already supports HTML based on `NotesBoard` stripping).
+
+## 4. Searchable Batch Linker
+
+New component `LinkPicker.tsx`:
+- Dialog with search input + virtualized checkbox list of all user's cards/notes.
+- Filters by title/number/tags as you type.
+- Checked items batch-link to the current item on Save.
+- For cards: writes to `card.linkedCards` (existing array). For notes: writes to `note.linked_notes` (new column if needed) or a junction table.
+
+## 5. Files
+
+**Create:**
+- `src/components/workspace/TwoPaneLayout.tsx` — reusable shell
+- `src/components/workspace/NotebookTree.tsx`
+- `src/components/workspace/RichTextEditor.tsx` (TipTap wrapper + toolbar)
+- `src/components/workspace/LinkPicker.tsx`
+- `src/components/NotesWorkspace.tsx` — new two-pane Notes screen
+- `src/components/CardsWorkspace.tsx` — new two-pane Cards screen
+
+**Edit:**
+- `src/components/EditCardDialog.tsx` — swap textarea → RichTextEditor; replace manual link UI with LinkPicker
+- `src/components/CardViewer.tsx` — render HTML content (sanitized)
+- Wherever Cards / Notes are currently mounted in `src/pages/Index.tsx`, swap to new Workspace components
+- `src/components/NotesView.tsx` (if present) — replaced by NotesWorkspace
+
+**Migration:** add `notebooks.parent_id`.
+
+## Technical Notes
+
+- HTML sanitization: use DOMPurify on render to prevent XSS from stored content.
+- Keep existing `NotesBoard` (spatial view) as an alternate view toggle — don't delete.
+- Mobile: respect existing 44px touch targets and 100dvh layouts from memory.
+- Design tokens only (per Flat-Minimal aesthetic in memory) — no hardcoded colors.
+
+## Out of Scope (v1)
+
+- Drag-and-drop reparenting of notebooks
+- Real-time collaborative editing
+- Version history for rich content
+- Backlinks display changes (existing contextual backlinks remain)
+
+## Open Questions
+
+1. Should the rich-text format also apply to the existing **Catalyst** writer, or stay isolated to Cards/Notes? (Default: isolated.)
+2. For sub-notebooks: max nesting depth? (Default: unlimited, but UI indents cap at 4 levels.)
+3. Keep the spatial `NotesBoard` as a toggleable view alongside the new two-pane? (Default: yes.)
