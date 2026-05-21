@@ -188,83 +188,14 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
           
           <div className="grid gap-2">
             <Label htmlFor="content">Content</Label>
-            <div className="space-y-2">
-              <div className="flex gap-2 text-xs">
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `**${selected}**` + after }));
-                  }}
-                >
-                  Bold
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `*${selected}*` + after }));
-                  }}
-                >
-                  Italic
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `__${selected}__` + after }));
-                  }}
-                >
-                  Underline
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const selected = formData.content.substring(start, end);
-                    const before = formData.content.substring(0, start);
-                    const after = formData.content.substring(end);
-                    setFormData(prev => ({ ...prev, content: before + `~~${selected}~~` + after }));
-                  }}
-                >
-                  Strike
-                </Button>
-              </div>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Enter the main content of your card"
-                className="min-h-[200px] font-mono"
-                data-writing-suggest="zettelcard"
-              />
-            </div>
+            <RichTextEditor
+              value={formData.content}
+              onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+              placeholder="Write your card content. Use the toolbar for bold, italic, lists, checkboxes…"
+              minHeight="240px"
+            />
           </div>
+
           
           <div className="grid gap-2">
             <Label>Tags</Label>
