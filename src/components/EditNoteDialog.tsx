@@ -293,126 +293,18 @@ export function EditNoteDialog({ note, notebooks, isOpen, onClose, onSave }: Edi
             </div>
 
             <TabsContent value="edit" className="mt-2 flex-1 min-h-0 flex-col gap-2 overflow-hidden data-[state=active]:flex data-[state=inactive]:hidden">
-              {/* Markdown Toolbar */}
-              <div className="flex flex-wrap gap-1 p-2 bg-muted/50 rounded-md">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('**', '**')}
-                  title="Bold"
-                >
-                  <Bold className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('*', '*')}
-                  title="Italic"
-                >
-                  <Italic className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('~~', '~~')}
-                  title="Strikethrough"
-                >
-                  <Strikethrough className="h-4 w-4" />
-                </Button>
-                <Separator orientation="vertical" className="h-8" />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('\n# ')}
-                  title="Heading 1"
-                >
-                  <Heading1 className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('\n## ')}
-                  title="Heading 2"
-                >
-                  <Heading2 className="h-4 w-4" />
-                </Button>
-                <Separator orientation="vertical" className="h-8" />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('\n- ')}
-                  title="Bullet List"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('\n1. ')}
-                  title="Numbered List"
-                >
-                  <ListOrdered className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('\n> ')}
-                  title="Quote"
-                >
-                  <Quote className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('`', '`')}
-                  title="Code"
-                >
-                  <Code className="h-4 w-4" />
-                </Button>
-                <Separator orientation="vertical" className="h-8" />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('[', '](url)')}
-                  title="Link"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => insertMarkdown('![alt](', ')')}
-                  title="Image"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <ScrollArea className="flex-1 border rounded-md">
-                <Textarea
-                  id="note-content"
-                  value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="Write your note content here... (Markdown supported)"
-                  className="min-h-[400px] border-0 focus-visible:ring-0 font-mono resize-none"
-                  data-writing-suggest="note"
-                />
-              </ScrollArea>
+              <RichTextEditor
+                value={formData.content}
+                onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+                placeholder="Write your note. Use the toolbar for formatting, lists, and checkboxes…"
+                minHeight="400px"
+                className="flex-1"
+              />
               {validationErrors.content && (
                 <p className="text-sm text-destructive">{validationErrors.content}</p>
               )}
             </TabsContent>
+
 
             <TabsContent value="preview" className="mt-2 flex-1 min-h-0 overflow-hidden data-[state=active]:flex data-[state=inactive]:hidden">
               <ScrollArea className="h-full border rounded-md">
