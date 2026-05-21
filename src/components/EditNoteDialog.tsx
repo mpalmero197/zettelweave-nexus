@@ -28,7 +28,7 @@ import {
   Tag as TagIcon,
   Calendar
 } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from './workspace/RichTextEditor';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { z } from 'zod';
