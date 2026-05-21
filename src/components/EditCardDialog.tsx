@@ -120,7 +120,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Card</DialogTitle>
           <DialogDescription>
