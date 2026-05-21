@@ -1905,6 +1905,7 @@ export type Database = {
           id: string
           is_favorite: boolean | null
           name: string
+          parent_id: string | null
           updated_at: string
           user_id: string
         }
@@ -1915,6 +1916,7 @@ export type Database = {
           id?: string
           is_favorite?: boolean | null
           name: string
+          parent_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1925,10 +1927,19 @@ export type Database = {
           id?: string
           is_favorite?: boolean | null
           name?: string
+          parent_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notebooks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notes: {
         Row: {
