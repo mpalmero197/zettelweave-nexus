@@ -291,6 +291,19 @@ export function Notebooks() {
                 rows={3}
               />
               <div>
+                <label className="text-sm font-medium mb-1.5 block">Parent notebook (optional)</label>
+                <select
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  value={newNotebook.parent_id ?? ''}
+                  onChange={(e) => setNewNotebook(prev => ({ ...prev, parent_id: e.target.value || null }))}
+                >
+                  <option value="">— None (top-level) —</option>
+                  {notebooks.filter(n => !n.parent_id).map(n => (
+                    <option key={n.id} value={n.id}>{n.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="text-sm font-medium mb-2 block">Color</label>
                 <div className="flex flex-wrap gap-2">
                   {colorOptions.map((color) => (
