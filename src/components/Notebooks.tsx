@@ -33,6 +33,7 @@ interface Notebook {
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
+  parent_id?: string | null;
 }
 
 interface NotebookWithCounts extends Notebook {
