@@ -67,10 +67,11 @@ export function Notebooks() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set());
 
-  const [newNotebook, setNewNotebook] = useState({
+  const [newNotebook, setNewNotebook] = useState<{ name: string; description: string; color: string; parent_id: string | null }>({
     name: '',
     description: '',
-    color: colorOptions[0]
+    color: colorOptions[0],
+    parent_id: null,
   });
 
   useEffect(() => {
