@@ -162,12 +162,13 @@ export function Notebooks() {
           user_id: user.id,
           name: newNotebook.name,
           description: newNotebook.description,
-          color: newNotebook.color
-        });
+          color: newNotebook.color,
+          parent_id: newNotebook.parent_id,
+        } as any);
 
       if (error) throw error;
 
-      setNewNotebook({ name: '', description: '', color: colorOptions[0] });
+      setNewNotebook({ name: '', description: '', color: colorOptions[0], parent_id: null });
       setShowCreateDialog(false);
       fetchNotebooks();
       toast.success('Notebook created successfully');
