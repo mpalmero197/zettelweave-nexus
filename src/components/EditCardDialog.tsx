@@ -35,6 +35,7 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
   });
   const [newTag, setNewTag] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  const [linkPickerOpen, setLinkPickerOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
