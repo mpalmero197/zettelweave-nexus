@@ -217,6 +217,7 @@ export function JarvisChat({ compact = false }: Props) {
                       if (p.type === "plan") return (
                         <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
                       );
+                      if (p.type === "card") return <AliceCardRenderer key={i} card={p.card} />;
                       return (
                         <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown>{p.text}</ReactMarkdown>
