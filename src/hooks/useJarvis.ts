@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { getScreenContext } from "@/hooks/useScreenContext";
 
 import type { AlicePlan } from "@/components/alice/AliceActionPlan";
+import { parseCardBlocks, type AliceCard } from "@/components/jarvis/cards/RichCards";
 
 export type JarvisPart =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; args: any; result: any }
-  | { type: "plan"; plan: AlicePlan };
+  | { type: "plan"; plan: AlicePlan }
+  | { type: "card"; card: AliceCard };
 
 /**
  * ALICE may embed a structured action plan in its assistant text using a
