@@ -1237,11 +1237,10 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       />
                     </div>
                   </Card>
-                </div>
-              </div>
-            )}
 
                   <Separator className="my-6" />
+
+
 
                   <h3 className="text-lg font-medium mb-4">ALICE Preferences</h3>
 
