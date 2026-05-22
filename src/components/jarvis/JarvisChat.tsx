@@ -7,6 +7,7 @@ import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileTe
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
+import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { cn } from "@/lib/utils";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
@@ -216,6 +217,7 @@ export function JarvisChat({ compact = false }: Props) {
                       if (p.type === "plan") return (
                         <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
                       );
+                      if (p.type === "card") return <AliceCardRenderer key={i} card={p.card} />;
                       return (
                         <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown>{p.text}</ReactMarkdown>

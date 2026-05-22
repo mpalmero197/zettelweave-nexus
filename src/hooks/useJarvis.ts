@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { getScreenContext } from "@/hooks/useScreenContext";
 
 import type { AlicePlan } from "@/components/alice/AliceActionPlan";
+import { parseCardBlocks, type AliceCard } from "@/components/jarvis/cards/RichCards";
 
 export type JarvisPart =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; args: any; result: any }
-  | { type: "plan"; plan: AlicePlan };
+  | { type: "plan"; plan: AlicePlan }
+  | { type: "card"; card: AliceCard };
 
 /**
  * ALICE may embed a structured action plan in its assistant text using a
@@ -47,7 +49,17 @@ function extractPlans(parts: JarvisPart[]): JarvisPart[] {
     if (tail) out.push({ type: "text", text: tail });
     if (last === 0 && out[out.length - 1]?.type !== "text") out.push(p);
   }
-  return out;
+  // Second pass: split any remaining text parts on [[ALICE_CARD]] blocks.
+  const final: JarvisPart[] = [];
+  for (const p of out) {
+    if (p.type !== "text") { final.push(p); continue; }
+    const chunks = parseCardBlocks(p.text);
+    for (const c of chunks) {
+      if (c.kind === "text") { if (c.text.trim()) final.push({ type: "text", text: c.text }); }
+      else final.push({ type: "card", card: c.card });
+    }
+  }
+  return final;
 }
 
 export type JarvisMessage = {

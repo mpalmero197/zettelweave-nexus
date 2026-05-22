@@ -49,6 +49,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [autoMasterDocs, setAutoMasterDocs] = useState(false);
   const [engagementNudges, setEngagementNudges] = useState(true);
   const [habitRecovery, setHabitRecovery] = useState(true);
+  const [searchEngine, setSearchEngine] = useState<'google' | 'duckduckgo'>('google');
+  const [aliceProactive, setAliceProactive] = useState(true);
+  const [aliceProactiveLevel, setAliceProactiveLevel] = useState(3);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -74,7 +77,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Load profile data
       supabase
         .from('profiles')
-        .select('display_name, about_me, avatar_url, auto_master_docs')
+        .select('display_name, about_me, avatar_url, auto_master_docs, preferred_search_engine, alice_proactive_enabled, alice_proactive_level')
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data, error }) => {
@@ -89,6 +92,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setAutoMasterDocs(data.auto_master_docs || false);
             setEngagementNudges((data as any).engagement_nudges_enabled !== false);
             setHabitRecovery((data as any).habit_recovery_enabled !== false);
+            setSearchEngine(((data as any).preferred_search_engine as any) || 'google');
+            setAliceProactive((data as any).alice_proactive_enabled !== false);
+            setAliceProactiveLevel((data as any).alice_proactive_level ?? 3);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
@@ -1230,6 +1236,68 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                         }}
                       />
                     </div>
+                  </Card>
+
+                  <Separator className="my-6" />
+
+
+
+                  <h3 className="text-lg font-medium mb-4">ALICE Preferences</h3>
+
+                  <Card className="p-6">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Preferred Search Engine</h4>
+                      <p className="text-sm text-muted-foreground mb-3">Which engine ALICE uses for web_search calls.</p>
+                      <select
+                        value={searchEngine}
+                        onChange={async (e) => {
+                          if (!user) return;
+                          const v = e.target.value as 'google' | 'duckduckgo';
+                          setSearchEngine(v);
+                          await supabase.from('profiles').update({ preferred_search_engine: v } as any).eq('user_id', user.id);
+                          toast({ title: 'Saved', description: `ALICE will use ${v === 'google' ? 'Google' : 'DuckDuckGo'}.` });
+                        }}
+                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        <option value="google">Google (default)</option>
+                        <option value="duckduckgo">DuckDuckGo (privacy-first)</option>
+                      </select>
+                    </div>
+                  </Card>
+
+                  <Card className="p-6 mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1 flex-1 mr-4">
+                        <h4 className="font-medium">Proactive ALICE</h4>
+                        <p className="text-sm text-muted-foreground">
+                          ALICE wakes up on her own to surface useful nudges based on your calendar, tasks, and recent work.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={aliceProactive}
+                        onCheckedChange={async (checked) => {
+                          if (!user) return;
+                          setAliceProactive(checked);
+                          await supabase.from('profiles').update({ alice_proactive_enabled: checked } as any).eq('user_id', user.id);
+                          toast({ title: checked ? 'Enabled' : 'Disabled', description: checked ? 'ALICE will check in periodically.' : 'Proactive nudges turned off.' });
+                        }}
+                      />
+                    </div>
+                    {aliceProactive && (
+                      <div className="mt-4 space-y-2">
+                        <label className="text-sm font-medium">Frequency (1 = quiet, 5 = always on): {aliceProactiveLevel}</label>
+                        <input
+                          type="range" min={1} max={5} step={1} value={aliceProactiveLevel}
+                          onChange={async (e) => {
+                            if (!user) return;
+                            const v = parseInt(e.target.value, 10);
+                            setAliceProactiveLevel(v);
+                            await supabase.from('profiles').update({ alice_proactive_level: v } as any).eq('user_id', user.id);
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
                   </Card>
                 </div>
               </div>

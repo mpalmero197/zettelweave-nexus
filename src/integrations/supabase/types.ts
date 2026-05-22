@@ -471,6 +471,39 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_pulses: {
+        Row: {
+          acted_at: string | null
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          status: string
+          summary: string
+          user_id: string
+        }
+        Insert: {
+          acted_at?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          status?: string
+          summary: string
+          user_id: string
+        }
+        Update: {
+          acted_at?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          status?: string
+          summary?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alice_scheduled_triggers: {
         Row: {
           created_at: string
@@ -2231,6 +2264,8 @@ export type Database = {
       profiles: {
         Row: {
           about_me: string | null
+          alice_proactive_enabled: boolean
+          alice_proactive_level: number
           auto_master_docs: boolean | null
           avatar_url: string | null
           created_at: string
@@ -2245,12 +2280,15 @@ export type Database = {
           last_activity_at: string | null
           last_nudge_sent_at: string | null
           onboarding_completed: boolean
+          preferred_search_engine: string
           updated_at: string
           user_id: string
           user_status: Database["public"]["Enums"]["user_status"] | null
         }
         Insert: {
           about_me?: string | null
+          alice_proactive_enabled?: boolean
+          alice_proactive_level?: number
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
@@ -2265,12 +2303,15 @@ export type Database = {
           last_activity_at?: string | null
           last_nudge_sent_at?: string | null
           onboarding_completed?: boolean
+          preferred_search_engine?: string
           updated_at?: string
           user_id: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
         }
         Update: {
           about_me?: string | null
+          alice_proactive_enabled?: boolean
+          alice_proactive_level?: number
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
@@ -2285,6 +2326,7 @@ export type Database = {
           last_activity_at?: string | null
           last_nudge_sent_at?: string | null
           onboarding_completed?: boolean
+          preferred_search_engine?: string
           updated_at?: string
           user_id?: string
           user_status?: Database["public"]["Enums"]["user_status"] | null
