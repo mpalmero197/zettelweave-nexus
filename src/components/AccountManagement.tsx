@@ -77,7 +77,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Load profile data
       supabase
         .from('profiles')
-        .select('display_name, about_me, avatar_url, auto_master_docs')
+        .select('display_name, about_me, avatar_url, auto_master_docs, preferred_search_engine, alice_proactive_enabled, alice_proactive_level')
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data, error }) => {
@@ -92,6 +92,9 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setAutoMasterDocs(data.auto_master_docs || false);
             setEngagementNudges((data as any).engagement_nudges_enabled !== false);
             setHabitRecovery((data as any).habit_recovery_enabled !== false);
+            setSearchEngine(((data as any).preferred_search_engine as any) || 'google');
+            setAliceProactive((data as any).alice_proactive_enabled !== false);
+            setAliceProactiveLevel((data as any).alice_proactive_level ?? 3);
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
