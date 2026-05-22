@@ -1,95 +1,76 @@
-# Cards & Notes Workspace Revamp
+# ALICE Spark Overhaul — Phased Plan
 
-Transition Cards and Notes from grid-based browsing into a focused two-pane workspace (Evernote-style), with rich text editing, nested notebooks, and a searchable batch linker.
+Big scope. I'll ship this in three reviewable phases so we don't get lost. Each phase is independently shippable.
 
-## Scope
+---
 
-Two surfaces are affected:
-1. **Notes** (`src/components/NotesView.tsx` / related) — notebook hierarchy + two-pane editor
-2. **Cards / ZettelCards** (`src/components/CardsView.tsx` / `CardViewer.tsx` / `EditCardDialog.tsx`) — two-pane editor + rich text + batch linker
+## Phase 1 — Rich Media Chat UI (Gemini-style)
 
-## 1. Two-Pane Desktop Layout
+**Goal:** Replace the text-only Jarvis chat with an "expressive" renderer that turns tool results into rich cards instead of raw text.
 
-```text
-┌─────────────┬──────────────────────────────────────┐
-│ Notebooks   │                                      │
-│ ├ Work      │                                      │
-│ │  └ Notes  │       Editor / Reader (75%)          │
-│ ├ Personal  │                                      │
-│ Notes List  │                                      │
-│ • Note A    │                                      │
-│ • Note B ◄  │                                      │
-└─────────────┴──────────────────────────────────────┘
-   ~25%                       ~75%
-```
+**New components** (`src/components/jarvis/cards/`):
+- `ImageCard.tsx` — image with caption + lightbox
+- `MapCard.tsx` — embedded OpenStreetMap iframe (no API key) with pin + "Open in Google Maps" link
+- `PdfCard.tsx` — title, page count badge, "Open PDF" CTA, inline preview thumb
+- `VideoCard.tsx` — YouTube/MP4 embed with poster, lazy-loaded
+- `SpreadsheetCard.tsx` — first ~10 rows of a CSV/XLSX in a table, "Open full" link
+- `LinkCard.tsx` — OG-style preview (favicon, title, snippet, domain)
+- `QuoteCard.tsx` — large pull-quote with source attribution
+- `FileCard.tsx` — generic uploaded file (icon by mime, size, download)
 
-- Left column (~25%): scrollable list of items in the active notebook, with search/filter at top.
-- Right column (~75%): full reader + inline editor for the selected item.
-- On mobile: collapse to single pane with back-button navigation between list ↔ editor (reuse existing `useIsMobile` pattern).
+**Renderer:** `JarvisRichMessage.tsx` parses assistant `parts` for new part types (`image`, `map`, `pdf`, `video`, `link`, `quote`, `spreadsheet`, `file`) plus a fenced markdown convention `[[ALICE_CARD type=link]]{...json...}[[/ALICE_CARD]]` so the model can emit cards inline (mirrors existing `[[ALICE_PLAN]]` pattern in `useJarvis.ts`).
 
-## 2. Notebook Hierarchy (Notes)
+**Typography & color refresh** (chat-scoped, not site-wide):
+- Heading font: **Sora** (display) paired with existing Inter body
+- New accent gradient token `--alice-gradient` (electric indigo → cyan)
+- Cards: 1px border + subtle gradient hover, framer-motion stagger fade-in
+- Streaming token cursor (blinking caret)
 
-- Add `parent_id` (nullable, FK → notebooks.id) to the `notebooks` table to support sub-notebooks.
-- New `NotebookTree` sidebar component: collapsible tree, drag-to-reparent later (out of scope for v1).
-- Selecting a notebook filters the middle list; selecting "All Notes" shows everything.
+**Files edited:** `src/components/jarvis/JarvisChat.tsx`, `src/hooks/useJarvis.ts` (add `extractCards` next to `extractPlans`), `src/index.css` (add `--alice-*` tokens), `supabase/functions/jarvis-chat/index.ts` (system prompt: when web search / file lookup returns rich content, emit `[[ALICE_CARD]]` blocks).
 
-Schema change (migration):
-```sql
-ALTER TABLE notebooks ADD COLUMN parent_id uuid REFERENCES notebooks(id) ON DELETE SET NULL;
-CREATE INDEX idx_notebooks_parent ON notebooks(parent_id);
-```
+---
 
-## 3. Rich Text Editor
+## Phase 2 — Attachments + Search Engine Picker
 
-Use **TipTap** (already React-friendly, lightweight, headless). Install:
-- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`, `@tiptap/extension-underline`
+**Attachments (+ button):**
+- New `JarvisAttachmentMenu.tsx` triggered by `+` button left of input
+- Options: **Image**, **PDF/Doc**, **Audio**, **Camera** (mobile), **From knowledge base**
+- Upload → `card-media` bucket (existing) → attach as `file_url` part on next user message
+- `jarvis-chat` edge function extended to accept `attachments: [{url, mime, name}]`, passes images directly to Gemini vision, extracts text from PDFs via existing `fetch-url-content` pattern
 
-Toolbar supports: **bold**, *italic*, underline, ~~strikethrough~~, bullet list, ordered list, task list (checkboxes), and a "radio group" custom node (rendered via task-item variant with single-select styling).
+**Search engine picker:**
+- New column `profiles.preferred_search_engine` enum: `google` (default) | `duckduckgo`
+- Settings UI: dropdown in `src/pages/Settings.tsx` → Privacy section
+- `supabase/functions/web-search/index.ts` reads pref from caller's profile; if `duckduckgo`, swaps to DuckDuckGo Instant Answer + HTML fallback (no API key needed). Google path unchanged.
 
-Persist as HTML in existing `content` fields (notes.content already supports HTML based on `NotesBoard` stripping).
+**Migration:** add `preferred_search_engine TEXT DEFAULT 'google'` to `profiles`.
 
-## 4. Searchable Batch Linker
+---
 
-New component `LinkPicker.tsx`:
-- Dialog with search input + virtualized checkbox list of all user's cards/notes.
-- Filters by title/number/tags as you type.
-- Checked items batch-link to the current item on Save.
-- For cards: writes to `card.linkedCards` (existing array). For notes: writes to `note.linked_notes` (new column if needed) or a junction table.
+## Phase 3 — Proactive ALICE (Spark-style, level 3/5)
 
-## 5. Files
+**Goal:** ALICE wakes up on her own ~2–3×/day to surface useful nudges based on the user's calendar, tasks, recent notes, and stated goals.
 
-**Create:**
-- `src/components/workspace/TwoPaneLayout.tsx` — reusable shell
-- `src/components/workspace/NotebookTree.tsx`
-- `src/components/workspace/RichTextEditor.tsx` (TipTap wrapper + toolbar)
-- `src/components/workspace/LinkPicker.tsx`
-- `src/components/NotesWorkspace.tsx` — new two-pane Notes screen
-- `src/components/CardsWorkspace.tsx` — new two-pane Cards screen
+**New edge function:** `alice-proactive-pulse`
+- Cron: every 4 hours via `pg_cron`
+- For each user with `alice_proactive_enabled = true`:
+  1. Pull last 24h of cards/notes, today's calendar events, overdue tasks, active habits
+  2. Send compact context to Gemini with prompt: *"Suggest 1 proactive action ALICE should take or surface. Output JSON {action, rationale, suggested_trigger?}"*
+  3. If action is time-bound → call existing `create_scheduled_trigger` flow (insert into `alice_scheduled_triggers`)
+  4. Else → insert an `in_app_notifications` row tagged `alice_pulse` + optionally a `jarvis_messages` row in a dedicated "ALICE Pulse" thread
 
-**Edit:**
-- `src/components/EditCardDialog.tsx` — swap textarea → RichTextEditor; replace manual link UI with LinkPicker
-- `src/components/CardViewer.tsx` — render HTML content (sanitized)
-- Wherever Cards / Notes are currently mounted in `src/pages/Index.tsx`, swap to new Workspace components
-- `src/components/NotesView.tsx` (if present) — replaced by NotesWorkspace
+**New table:** `alice_pulses` (id, user_id, kind, summary, payload jsonb, status [pending|seen|acted|dismissed], created_at)
 
-**Migration:** add `notebooks.parent_id`.
+**New UI:**
+- `AlicePulseFeed.tsx` — dropdown in top bar (Sparkles icon w/ unread dot) listing recent pulses; tap to act/dismiss
+- Settings toggle: "Proactive ALICE" + frequency slider (1–5, default 3 = every 4h) → stored on `profiles`
 
-## Technical Notes
+**Migration:** add `profiles.alice_proactive_enabled BOOLEAN DEFAULT true`, `profiles.alice_proactive_level INTEGER DEFAULT 3`; create `alice_pulses` table with RLS (user owns rows).
 
-- HTML sanitization: use DOMPurify on render to prevent XSS from stored content.
-- Keep existing `NotesBoard` (spatial view) as an alternate view toggle — don't delete.
-- Mobile: respect existing 44px touch targets and 100dvh layouts from memory.
-- Design tokens only (per Flat-Minimal aesthetic in memory) — no hardcoded colors.
+---
 
-## Out of Scope (v1)
+## Order of ship
 
-- Drag-and-drop reparenting of notebooks
-- Real-time collaborative editing
-- Version history for rich content
-- Backlinks display changes (existing contextual backlinks remain)
+I'll start with **Phase 1** end-to-end (it has the most visible payoff and unblocks Phases 2–3 visually), then circle back for 2, then 3. Each phase is one focused turn so you can review and steer between them.
 
-## Open Questions
-
-1. Should the rich-text format also apply to the existing **Catalyst** writer, or stay isolated to Cards/Notes? (Default: isolated.)
-2. For sub-notebooks: max nesting depth? (Default: unlimited, but UI indents cap at 4 levels.)
-3. Keep the spatial `NotesBoard` as a toggleable view alongside the new two-pane? (Default: yes.)
+Reply **"go"** to start Phase 1, or tell me to re-order / drop a phase.
