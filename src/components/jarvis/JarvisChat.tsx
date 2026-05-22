@@ -7,6 +7,7 @@ import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileTe
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
+import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { cn } from "@/lib/utils";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
