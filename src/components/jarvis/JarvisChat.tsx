@@ -294,9 +294,10 @@ export function JarvisChat({ compact = false }: Props) {
             >
               {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
-            <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
+            <Button onClick={submit} disabled={sending || (!input.trim() && attachments.length === 0)} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
               <Send className="h-4 w-4" />
             </Button>
+            </div>
           </div>
         </div>
       </div>
