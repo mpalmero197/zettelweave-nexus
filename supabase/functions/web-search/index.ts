@@ -145,7 +145,9 @@ List 3-5 follow-up questions the user might want to explore.`
           },
           {
             role: 'user',
-            content: query
+            content: ddgContext
+              ? `${query}\n\n[DuckDuckGo grounding — prefer these sources when relevant]\n${ddgContext}`
+              : query
           }
         ],
         temperature: 0.3,
