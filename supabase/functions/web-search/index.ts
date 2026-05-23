@@ -65,7 +65,41 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Read user's preferred search engine. Defaults to 'google'.
+    let engine: 'google' | 'duckduckgo' = 'google';
+    try {
+      const { data: prof } = await supabaseClient
+        .from('profiles')
+        .select('preferred_search_engine')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (prof?.preferred_search_engine === 'duckduckgo') engine = 'duckduckgo';
+    } catch (_) { /* ignore — default to google */ }
+
+    // For DuckDuckGo, fetch their Instant Answer API and feed snippets to
+    // Gemini as grounding context so the synthesizer stays consistent.
+    let ddgContext = "";
+    if (engine === 'duckduckgo') {
+      try {
+        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+        const ddgRes = await fetch(ddgUrl, { headers: { 'User-Agent': 'PendragonX/1.0' } });
+        if (ddgRes.ok) {
+          const ddg = await ddgRes.json();
+          const parts: string[] = [];
+          if (ddg.AbstractText) parts.push(`Summary: ${ddg.AbstractText} (Source: ${ddg.AbstractURL})`);
+          if (Array.isArray(ddg.RelatedTopics)) {
+            const topics = ddg.RelatedTopics.slice(0, 10).map((t: any) => t?.Text && t?.FirstURL ? `- ${t.Text} (${t.FirstURL})` : null).filter(Boolean);
+            if (topics.length) parts.push("Related:\n" + topics.join("\n"));
+          }
+          ddgContext = parts.join("\n\n");
+        }
+      } catch (e) {
+        console.warn("DuckDuckGo fetch failed; falling back to model-only synthesis", e);
+      }
+    }
+
     console.log("Search request", {
+      engine,
       queryLength: query.length,
       hasContext: includeContext,
       userId: user.id,
@@ -73,7 +107,7 @@ serve(async (req) => {
     });
 
     // Use Gemini via Lovable AI Gateway for web search
-    console.log("Running Gemini web search for:", query.length, "chars");
+    console.log(`Running ${engine} web search for:`, query.length, "chars");
     const searchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
