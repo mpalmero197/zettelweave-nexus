@@ -72,6 +72,7 @@ export function JarvisChat({ compact = false }: Props) {
   };
 
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<JarvisAttachment[]>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -82,9 +83,11 @@ export function JarvisChat({ compact = false }: Props) {
 
   const submit = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text && attachments.length === 0) return;
     setInput("");
-    await sendMessage(text);
+    const atts = attachments;
+    setAttachments([]);
+    await sendMessage(text, atts);
     taRef.current?.focus();
   };
 
