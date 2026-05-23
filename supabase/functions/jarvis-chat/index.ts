@@ -1700,11 +1700,37 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
       if (text) messages.push({ role: m.role, content: text });
     }
-    messages.push({ role: "user", content: userMessage });
+    // Build multimodal user content: text + image_url parts for image
+    // attachments, plus a context note listing non-image files.
+    const imageAtts = attachments.filter((a) => (a.mime || "").startsWith("image/"));
+    const otherAtts = attachments.filter((a) => !(a.mime || "").startsWith("image/"));
+    let composedText = userMessage;
+    if (otherAtts.length > 0) {
+      const list = otherAtts.map((a) => `- ${a.name} (${a.mime}) ${a.url}`).join("\n");
+      composedText += `\n\n[User attached files]\n${list}`;
+    }
+    if (imageAtts.length > 0) {
+      const parts: any[] = [{ type: "text", text: composedText || "(see attached images)" }];
+      for (const a of imageAtts) parts.push({ type: "image_url", image_url: { url: a.url } });
+      messages.push({ role: "user", content: parts });
+    } else {
+      messages.push({ role: "user", content: composedText });
+    }
 
+    // Persist user message with inline preview cards so the thread renders
+    // attachments on reload.
+    const persistedUserParts: any[] = [];
+    if (userMessage) persistedUserParts.push({ type: "text", text: userMessage });
+    for (const a of attachments) {
+      if ((a.mime || "").startsWith("image/")) {
+        persistedUserParts.push({ type: "card", card: { type: "image", url: a.url, caption: a.name } });
+      } else {
+        persistedUserParts.push({ type: "card", card: { type: "file", url: a.url, name: a.name, mime: a.mime, size: a.size } });
+      }
+    }
     await supabase.from("jarvis_messages").insert({
       thread_id: threadId, user_id: user.id, role: "user",
-      parts: [{ type: "text", text: userMessage }],
+      parts: persistedUserParts,
     });
 
     const assistantParts: any[] = [];
