@@ -123,13 +123,25 @@ export function useJarvis(initialThreadId?: string | null) {
     loadThreads();
   }, [activeThreadId, loadThreads, newThread]);
 
-  const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || sending) return;
+  const sendMessage = useCallback(async (
+    text: string,
+    attachments?: { url: string; mime: string; name: string; size?: number }[],
+  ) => {
+    if ((!text.trim() && !(attachments && attachments.length)) || sending) return;
     setSending(true);
-    // Optimistic user message
+    // Build optimistic user message + inline preview cards for attachments
+    const optimisticParts: JarvisPart[] = [];
+    if (text.trim()) optimisticParts.push({ type: "text", text });
+    for (const a of attachments || []) {
+      if (a.mime.startsWith("image/")) {
+        optimisticParts.push({ type: "card", card: { type: "image", url: a.url, caption: a.name } });
+      } else {
+        optimisticParts.push({ type: "card", card: { type: "file", url: a.url, name: a.name, mime: a.mime, size: a.size } });
+      }
+    }
     const optimistic: JarvisMessage = {
       id: `tmp-${Date.now()}`, role: "user",
-      parts: [{ type: "text", text }], created_at: new Date().toISOString(),
+      parts: optimisticParts, created_at: new Date().toISOString(),
     };
     setMessages((m) => [...m, optimistic]);
 
@@ -142,22 +154,18 @@ export function useJarvis(initialThreadId?: string | null) {
       } catch { /* ignore */ }
       const screen = getScreenContext();
       const { data, error } = await supabase.functions.invoke("jarvis-chat", {
-        body: { message: text, threadId: activeThreadId, timeZone, locale, screen },
+        body: { message: text, threadId: activeThreadId, timeZone, locale, screen, attachments: attachments || [] },
       });
       if (error) throw error;
       const newThreadId = data.threadId as string;
       if (!activeThreadId) setActiveThreadId(newThreadId);
-      // Append assistant message
       setMessages((m) => [...m, {
         id: `tmp-asst-${Date.now()}`, role: "assistant",
         parts: extractPlans(data.parts || []), created_at: new Date().toISOString(),
       }]);
-      // ALICE may request navigation as part of acting on the user's behalf
       if (data?.navigate_to && typeof data.navigate_to === "string") {
         window.dispatchEvent(new CustomEvent("alice-navigate", { detail: data.navigate_to }));
       }
-      // ALICE may request the client to perform UI-only actions (start a
-      // pomodoro timer, etc.) — fan out as global events.
       if (Array.isArray(data?.client_actions)) {
         for (const action of data.client_actions) {
           if (action && typeof action === "object" && action.type) {
