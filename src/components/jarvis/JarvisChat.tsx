@@ -3,11 +3,12 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff } from "lucide-react";
+import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
+import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
 import { cn } from "@/lib/utils";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
@@ -71,6 +72,7 @@ export function JarvisChat({ compact = false }: Props) {
   };
 
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<JarvisAttachment[]>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -81,9 +83,11 @@ export function JarvisChat({ compact = false }: Props) {
 
   const submit = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text && attachments.length === 0) return;
     setInput("");
-    await sendMessage(text);
+    const atts = attachments;
+    setAttachments([]);
+    await sendMessage(text, atts);
     taRef.current?.focus();
   };
 
@@ -239,19 +243,46 @@ export function JarvisChat({ compact = false }: Props) {
 
         {/* Composer */}
         <div className={cn("border-t border-border", compact ? "p-2" : "p-3")}>
-          <div className="max-w-3xl mx-auto flex gap-2 items-end">
-            <Textarea
-              ref={taRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
-              }}
-              placeholder="Ask ALICE anything…"
-              rows={1}
-              className={cn("resize-none", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[40px] max-h-40")}
-              disabled={sending}
-            />
+          <div className="max-w-3xl mx-auto space-y-2">
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {attachments.map((a, i) => (
+                  <div key={i} className="group relative flex items-center gap-1.5 rounded-md border border-border bg-muted/40 pl-1.5 pr-6 py-1 text-xs max-w-[200px]">
+                    {a.mime.startsWith("image/") ? (
+                      <img src={a.url} alt="" className="h-6 w-6 rounded object-cover" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className="truncate">{a.name}</span>
+                    <button
+                      onClick={() => setAttachments((as) => as.filter((_, j) => j !== i))}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-background"
+                      aria-label="Remove attachment"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 items-end">
+              <JarvisAttachmentMenu
+                compact={compact}
+                disabled={sending}
+                onAttach={(a) => setAttachments((as) => [...as, a])}
+              />
+              <Textarea
+                ref={taRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+                }}
+                placeholder="Ask ALICE anything…"
+                rows={1}
+                className={cn("resize-none flex-1", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[40px] max-h-40")}
+                disabled={sending}
+              />
             <Button
               type="button"
               onClick={toggleDictation}
@@ -263,9 +294,10 @@ export function JarvisChat({ compact = false }: Props) {
             >
               {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
-            <Button onClick={submit} disabled={sending || !input.trim()} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
+            <Button onClick={submit} disabled={sending || (!input.trim() && attachments.length === 0)} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
               <Send className="h-4 w-4" />
             </Button>
+            </div>
           </div>
         </div>
       </div>
