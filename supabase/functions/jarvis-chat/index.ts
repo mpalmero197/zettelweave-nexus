@@ -446,6 +446,20 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "get_weather",
+      description: "Get current weather and a short forecast for a place. Uses Open-Meteo (no API key). If `location` is omitted, defaults to the user's last known location from their profile, then falls back to IP geolocation.",
+      parameters: {
+        type: "object",
+        properties: {
+          location: { type: "string", description: "City, address, or 'lat,lon' — optional." },
+          units: { type: "string", enum: ["metric", "imperial"], description: "Defaults to metric." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "admin_summary",
       description: "ADMIN ONLY (read-only). Returns top-level platform stats: user count, recent error count, pending feature requests. Use to advise the admin — never to take action.",
       parameters: { type: "object", properties: {} },
@@ -1187,6 +1201,81 @@ async function executeTool(
         return j?.results
           ? { results: (j.results || []).slice(0, 8) }
           : (j?.summary ? { summary: j.summary } : { results: [] });
+      }
+      case "get_weather": {
+        try {
+          const units = String(args.units || "metric");
+          const tempUnit = units === "imperial" ? "fahrenheit" : "celsius";
+          const windUnit = units === "imperial" ? "mph" : "kmh";
+          let lat: number | null = null;
+          let lon: number | null = null;
+          let placeLabel = String(args.location || "").trim();
+
+          if (placeLabel) {
+            // Try "lat,lon" first
+            const m = placeLabel.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+            if (m) { lat = parseFloat(m[1]); lon = parseFloat(m[2]); }
+            else {
+              const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=${encodeURIComponent(placeLabel)}`);
+              const gj = await g.json().catch(() => ({}));
+              const r0 = gj?.results?.[0];
+              if (r0) { lat = r0.latitude; lon = r0.longitude; placeLabel = [r0.name, r0.admin1, r0.country].filter(Boolean).join(", "); }
+            }
+          }
+          if (lat == null || lon == null) {
+            // IP fallback
+            const ip = await fetch("https://ipapi.co/json/").then((r) => r.json()).catch(() => null);
+            if (ip?.latitude && ip?.longitude) {
+              lat = ip.latitude; lon = ip.longitude;
+              placeLabel = placeLabel || [ip.city, ip.region, ip.country_name].filter(Boolean).join(", ");
+            }
+          }
+          if (lat == null || lon == null) return { error: "Could not determine a location for the weather lookup." };
+
+          const u = new URL("https://api.open-meteo.com/v1/forecast");
+          u.searchParams.set("latitude", String(lat));
+          u.searchParams.set("longitude", String(lon));
+          u.searchParams.set("current", "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m");
+          u.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+          u.searchParams.set("temperature_unit", tempUnit);
+          u.searchParams.set("wind_speed_unit", windUnit);
+          u.searchParams.set("timezone", "auto");
+          u.searchParams.set("forecast_days", "3");
+          const wr = await fetch(u.toString());
+          const wj = await wr.json().catch(() => ({}));
+          if (!wj?.current) return { error: "Weather service unavailable." };
+
+          const codeMap: Record<number, string> = {
+            0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast",
+            45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle",
+            61: "Light rain", 63: "Rain", 65: "Heavy rain",
+            71: "Light snow", 73: "Snow", 75: "Heavy snow",
+            80: "Rain showers", 81: "Heavy showers", 82: "Violent showers",
+            95: "Thunderstorm", 96: "Thunderstorm w/ hail", 99: "Severe thunderstorm",
+          };
+          const tUnit = units === "imperial" ? "°F" : "°C";
+          const wUnit = units === "imperial" ? "mph" : "km/h";
+          const daily = (wj.daily?.time || []).map((d: string, i: number) => ({
+            date: d,
+            condition: codeMap[wj.daily.weather_code?.[i]] || "—",
+            high: `${Math.round(wj.daily.temperature_2m_max?.[i])}${tUnit}`,
+            low: `${Math.round(wj.daily.temperature_2m_min?.[i])}${tUnit}`,
+            precip_chance: `${wj.daily.precipitation_probability_max?.[i] ?? 0}%`,
+          }));
+          return {
+            location: placeLabel || `${lat.toFixed(2)}, ${lon.toFixed(2)}`,
+            current: {
+              condition: codeMap[wj.current.weather_code] || "—",
+              temperature: `${Math.round(wj.current.temperature_2m)}${tUnit}`,
+              feels_like: `${Math.round(wj.current.apparent_temperature)}${tUnit}`,
+              humidity: `${wj.current.relative_humidity_2m}%`,
+              wind: `${Math.round(wj.current.wind_speed_10m)} ${wUnit}`,
+            },
+            forecast: daily,
+          };
+        } catch (e: any) {
+          return { error: e?.message || "weather lookup failed" };
+        }
       }
       case "admin_summary": {
         if (!isAdmin) return { error: "Not authorized — admin only." };
