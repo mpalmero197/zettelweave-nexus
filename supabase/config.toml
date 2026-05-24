@@ -114,6 +114,9 @@ verify_jwt = false
 [functions.run-scheduled-triggers]
 verify_jwt = false
 
+[functions.alice-proactive-pulse]
+verify_jwt = false
+
 [functions.ingest-browser-tabs]
 verify_jwt = true
 

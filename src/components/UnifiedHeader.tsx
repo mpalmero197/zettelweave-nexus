@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Brain, Sun, Moon, User, Menu, X, Search, Crown } from "lucide-react";
 import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { AlicePulseFeed } from "@/components/alice/AlicePulseFeed";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -140,6 +141,8 @@ export function UnifiedHeader({
           <div className="flex items-center gap-1 md:gap-2">
             {/* Notification Bell */}
             <NotificationBell />
+            <AlicePulseFeed />
+
 
             {/* Theme Toggle - Always Visible */}
             <Button
