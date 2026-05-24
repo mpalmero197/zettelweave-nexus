@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X } from "lucide-react";
+import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
@@ -18,6 +18,7 @@ const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string 
   create_task: { icon: CheckSquare, label: "Created a task" },
   create_event: { icon: Calendar, label: "Scheduled an event" },
   web_search: { icon: Globe, label: "Searched the web" },
+  get_weather: { icon: CloudSun, label: "Checked the weather" },
 };
 
 function ToolPart({ part }: { part: Extract<JarvisPart, { type: "tool" }> }) {
