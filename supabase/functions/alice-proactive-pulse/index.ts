@@ -143,19 +143,6 @@ Deno.serve(async (req) => {
         user_id: p.user_id, kind, summary, payload, status: "pending",
       }).select("id").single();
 
-      // If model suggested a scheduled trigger, persist it
-      if (ai?.suggested_trigger?.run_at) {
-        try {
-          await admin.from("alice_scheduled_triggers").insert({
-            user_id: p.user_id,
-            run_at: ai.suggested_trigger.run_at,
-            action: ai.suggested_trigger.action || "remind",
-            payload: ai.suggested_trigger.payload || { title: summary },
-            status: "pending",
-          });
-        } catch { /* optional */ }
-      }
-
       results.push({ user: p.user_id, pulseId: pulse?.id, kind });
     } catch (e: any) {
       results.push({ user: p.user_id, error: e?.message || "err" });
