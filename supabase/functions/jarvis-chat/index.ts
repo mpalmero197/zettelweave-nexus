@@ -1777,6 +1777,69 @@ Deno.serve(async (req) => {
       await supabase.from("jarvis_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId).eq("user_id", user.id);
     }
 
+    // ───────────────────────────────────────────────────────────────────────
+    // FAST-PATH NAVIGATION ROUTER — bypass the LLM entirely for simple
+    // "open/go to/show me <tab>" commands so navigation is instant and exact.
+    // ───────────────────────────────────────────────────────────────────────
+    const TAB_SYNONYMS: Record<string, string> = {
+      home: "dashboard", dashboard: "dashboard",
+      card: "cards", cards: "cards", zettel: "cards", zettelkasten: "cards", zettelcards: "cards",
+      note: "notes", notes: "notes",
+      catalyst: "catalyst", writer: "catalyst", writing: "catalyst", editor: "catalyst", document: "catalyst", documents: "catalyst", docs: "catalyst",
+      calendar: "calendar", agenda: "calendar", schedule: "calendar",
+      journal: "journal", diary: "journal",
+      habit: "habits", habits: "habits",
+      scratchpad: "scratchpad", scratch: "scratchpad",
+      stickynotes: "stickynotes", sticky: "stickynotes", "sticky-notes": "stickynotes", "sticky notes": "stickynotes",
+      collab: "collab", chat: "collab", messenger: "collab", messages: "collab",
+      recorder: "recorder", recording: "recorder", studio: "recorder",
+      canvas: "canvas", whiteboard: "canvas", mindmap: "canvas", "mind map": "canvas", "mind-map": "canvas",
+      learning: "learning", library: "learning", books: "learning",
+      project: "projects", projects: "projects",
+      space: "spaces", spaces: "spaces",
+      integration: "integrations", integrations: "integrations",
+      "knowledge-gap": "knowledge-gaps", "knowledge gaps": "knowledge-gaps", gaps: "knowledge-gaps",
+      notebook: "notebooks", notebooks: "notebooks",
+      file: "files", files: "files",
+      graph: "graph",
+      search: "search",
+      recycle: "recycle", trash: "recycle", bin: "recycle",
+    };
+    const fastNav = (() => {
+      const raw = userMessage.toLowerCase().trim().replace(/[?!.,]+$/g, "");
+      if (!raw || raw.length > 60 || attachments.length > 0) return null;
+      // Strip leading verbs
+      const stripped = raw
+        .replace(/^(please\s+|can you\s+|could you\s+|would you\s+|hey alice[, ]+|alice[, ]+)/g, "")
+        .replace(/^(go to|open(?:\s+up)?|show(?:\s+me)?|take me to|navigate to|navigate|switch to|jump to|bring up|pull up|launch)\s+/g, "")
+        .replace(/^(the|my)\s+/g, "")
+        .replace(/\s+(tab|page|view|section|app)$/g, "")
+        .trim();
+      const key = TAB_SYNONYMS[stripped];
+      if (!key) return null;
+      return `/app/${key}`;
+    })();
+
+    if (fastNav) {
+      const tab = fastNav.split("/").pop() || "";
+      const friendly = tab.replace(/-/g, " ");
+      const assistantParts = [
+        { type: "tool", name: "navigate", args: { tab }, result: { ok: true, navigate_to: fastNav } },
+        { type: "text", text: `Opening ${friendly}.` },
+      ];
+      await supabase.from("jarvis_messages").insert({
+        thread_id: threadId, user_id: user.id, role: "user",
+        parts: [{ type: "text", text: userMessage }],
+      });
+      await supabase.from("jarvis_messages").insert({
+        thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
+      });
+      return new Response(JSON.stringify({
+        threadId, parts: assistantParts, navigate_to: fastNav, client_actions: [], model_used: "fast-router", deep_think: false,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     const { data: history } = await supabase
       .from("jarvis_messages")
       .select("role,parts")
