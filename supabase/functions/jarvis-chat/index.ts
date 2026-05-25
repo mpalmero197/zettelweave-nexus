@@ -1304,6 +1304,43 @@ async function executeTool(
           return { error: e?.message || "weather lookup failed" };
         }
       }
+      case "find_video": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "query required" };
+        const limit = Math.min(Math.max(Number(args.limit) || 3, 1), 6);
+        try {
+          const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/search-videos`;
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader, apikey: Deno.env.get("SUPABASE_ANON_KEY") || "" },
+            body: JSON.stringify({ query: q }),
+          });
+          const j = await r.json().catch(() => ({}));
+          const items = Array.isArray(j?.data) ? j.data.slice(0, limit) : [];
+          if (items.length === 0) return { error: j?.error || "No videos found." };
+          return { results: items };
+        } catch (e: any) {
+          return { error: e?.message || "video search failed" };
+        }
+      }
+      case "generate_image": {
+        const prompt = String(args.prompt || "").trim();
+        if (!prompt) return { error: "prompt required" };
+        try {
+          const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-image`;
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader, apikey: Deno.env.get("SUPABASE_ANON_KEY") || "" },
+            body: JSON.stringify({ prompt }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (j?.error) return { error: j.error };
+          if (!j?.imageUrl) return { error: "no image returned" };
+          return { url: j.imageUrl, prompt };
+        } catch (e: any) {
+          return { error: e?.message || "image generation failed" };
+        }
+      }
       case "admin_summary": {
         if (!isAdmin) return { error: "Not authorized — admin only." };
         const [users, errors, features] = await Promise.all([
