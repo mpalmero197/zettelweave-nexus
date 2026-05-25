@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon } from "lucide-react";
+import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, Wind, Droplets } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,8 @@ export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
   | { type: "map"; lat: number; lng: number; label?: string; zoom?: number }
   | { type: "pdf"; url: string; title: string; pages?: number; thumbnail?: string }
-  | { type: "video"; url: string; title?: string; poster?: string }
+  | { type: "video"; url: string; title?: string; poster?: string; thumbnail?: string; channel?: string; provider?: string; description?: string }
+  | { type: "weather"; location: string; current: { condition: string; temperature: string; feels_like?: string; humidity?: string; wind?: string }; forecast?: Array<{ date: string; condition: string; high: string; low: string; precip_chance?: string }> }
   | { type: "spreadsheet"; title?: string; headers: string[]; rows: (string | number)[][]; sourceUrl?: string }
   | { type: "link"; url: string; title: string; description?: string; image?: string; favicon?: string; domain?: string }
   | { type: "quote"; text: string; author?: string; source?: string; sourceUrl?: string }
@@ -99,16 +100,83 @@ function PdfCard({ card }: { card: Extract<AliceCard, { type: "pdf" }> }) {
 
 function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
   const ytId = youtubeId(card.url);
+  const [playing, setPlaying] = useState(false);
+  const thumb = card.thumbnail || card.poster || (ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : "");
   return (
     <motion.div {...cardMotion} className={shellClass}>
       <div className="relative aspect-video bg-black">
-        {ytId ? (
-          <iframe src={`https://www.youtube-nocookie.com/embed/${ytId}`} title={card.title || "Video"} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+        {playing || !thumb ? (
+          ytId ? (
+            <iframe src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`} title={card.title || "Video"} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          ) : (
+            <video src={card.url} poster={card.poster} controls autoPlay className="w-full h-full" />
+          )
         ) : (
-          <video src={card.url} poster={card.poster} controls className="w-full h-full" />
+          <button onClick={() => setPlaying(true)} className="group w-full h-full relative">
+            <img src={thumb} alt={card.title || ""} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+              <div className="h-14 w-14 rounded-full bg-primary/95 flex items-center justify-center shadow-lg"><Play className="h-6 w-6 text-primary-foreground fill-current ml-0.5" /></div>
+            </div>
+          </button>
         )}
       </div>
-      {card.title && <div className="px-3 py-2 text-sm font-medium flex items-center gap-1.5"><Play className="h-3.5 w-3.5 text-primary" />{card.title}</div>}
+      {(card.title || card.channel) && (
+        <div className="px-3 py-2">
+          {card.title && <div className="text-sm font-medium line-clamp-2">{card.title}</div>}
+          {card.channel && <div className="text-[11px] text-muted-foreground mt-0.5">{card.channel}{card.provider ? ` · ${card.provider}` : ""}</div>}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function weatherIcon(condition: string) {
+  const c = condition.toLowerCase();
+  if (c.includes("thunder")) return CloudLightning;
+  if (c.includes("snow")) return CloudSnow;
+  if (c.includes("rain") || c.includes("shower") || c.includes("drizzle")) return CloudRain;
+  if (c.includes("fog")) return CloudFog;
+  if (c.includes("cloud") || c.includes("overcast")) return Cloud;
+  return Sun;
+}
+
+function WeatherCard({ card }: { card: Extract<AliceCard, { type: "weather" }> }) {
+  const Icon = weatherIcon(card.current.condition);
+  return (
+    <motion.div {...cardMotion} className={cn(shellClass, "bg-gradient-to-br from-primary/10 via-card to-card")}>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{card.location}</div>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <div className="text-4xl font-light">{card.current.temperature}</div>
+              <div className="text-sm text-muted-foreground">{card.current.condition}</div>
+            </div>
+            {card.current.feels_like && <div className="text-[11px] text-muted-foreground mt-0.5">Feels like {card.current.feels_like}</div>}
+          </div>
+          <Icon className="h-12 w-12 text-primary/80 flex-shrink-0" />
+        </div>
+        <div className="flex gap-4 mt-3 text-[11px] text-muted-foreground">
+          {card.current.humidity && <span className="inline-flex items-center gap-1"><Droplets className="h-3 w-3" />{card.current.humidity}</span>}
+          {card.current.wind && <span className="inline-flex items-center gap-1"><Wind className="h-3 w-3" />{card.current.wind}</span>}
+        </div>
+        {card.forecast && card.forecast.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-3 gap-2">
+            {card.forecast.slice(0, 3).map((d, i) => {
+              const DI = weatherIcon(d.condition);
+              const day = (() => { try { return new Date(d.date).toLocaleDateString(undefined, { weekday: "short" }); } catch { return d.date; } })();
+              return (
+                <div key={i} className="text-center">
+                  <div className="text-[10px] text-muted-foreground">{day}</div>
+                  <DI className="h-5 w-5 mx-auto my-1 text-primary/70" />
+                  <div className="text-xs"><span className="font-medium">{d.high}</span> <span className="text-muted-foreground">{d.low}</span></div>
+                  {d.precip_chance && <div className="text-[10px] text-muted-foreground">{d.precip_chance}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -199,6 +267,7 @@ export function AliceCardRenderer({ card }: { card: AliceCard }) {
     case "map": return <MapCard card={card} />;
     case "pdf": return <PdfCard card={card} />;
     case "video": return <VideoCard card={card} />;
+    case "weather": return <WeatherCard card={card} />;
     case "spreadsheet": return <SpreadsheetCard card={card} />;
     case "link": return <LinkCard card={card} />;
     case "quote": return <QuoteCard card={card} />;

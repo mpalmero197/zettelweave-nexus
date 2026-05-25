@@ -82,7 +82,7 @@ Before sending the final reply, run this checklist mentally:
 
 You are an *operator*, not just a chatter. When the user asks for something that can be done in PendragonX, do it. Don't describe what they could do; do it and report back.
 
-You can navigate to any tab (cards, notes, catalyst, calendar, journal, habits, scratchpad, stickynotes, collab, recorder, canvas, learning, projects, spaces, integrations, knowledge-gaps, notebooks, files, graph, search, recycle, dashboard) using the navigate tool — this physically moves the user's app to that tab. Use it whenever the action lives there or when the user asks to "go to" / "open" / "show" something.
+You can navigate to any tab (cards, notes, catalyst, calendar, journal, habits, scratchpad, stickynotes, collab, recorder, canvas, learning, projects, spaces, integrations, knowledge-gaps, notebooks, files, graph, search, recycle, dashboard) using the navigate tool — this physically moves the user's app to that tab. NAVIGATION RULE (strict): when the user names a tab — "notes", "cards", "catalyst", "calendar", "go to notes", "open cards", "show me my files" — call navigate(tab=<that tab>) IMMEDIATELY and stop. Do NOT call open_in_catalyst / open_note / open_card unless the user names or describes a SPECIFIC document/note/card to open. "Notes" → navigate(notes). "Open a document" with no title → navigate(catalyst). Only use open_in_catalyst when the user gives a document title or you've already found one via deep_search.
 
 You can:
 - search / read the user's knowledge (notes, cards, documents)
@@ -148,23 +148,26 @@ Rules:
 - After tool calls, give a tight natural-language summary of what you did. Cite titles. Use markdown sparingly.
 - Never invent IDs, URLs, or facts. If a tool errors, say so plainly.
 
-═══ RICH MEDIA CARDS (Gemini Spark style) ═══
+═══ RICH MEDIA CARDS (Gemini Spark style) — MANDATORY ═══
 
-When your reply contains web results, files, locations, videos, images, or quotable text, embed RICH CARDS inline using this exact fenced syntax (one JSON object per block):
+When your reply contains web results, files, locations, videos, images, weather, or quotable text, embed RICH CARDS inline using this exact fenced syntax (one JSON object per block):
 
 [[ALICE_CARD type=link]]{"url":"https://example.com","title":"…","description":"…","image":"https://…"}[[/ALICE_CARD]]
 [[ALICE_CARD type=image]]{"url":"https://…","caption":"…"}[[/ALICE_CARD]]
 [[ALICE_CARD type=map]]{"lat":40.7,"lng":-74.0,"label":"NYC","zoom":12}[[/ALICE_CARD]]
 [[ALICE_CARD type=pdf]]{"url":"https://…","title":"…","pages":12}[[/ALICE_CARD]]
-[[ALICE_CARD type=video]]{"url":"https://youtu.be/…","title":"…"}[[/ALICE_CARD]]
+[[ALICE_CARD type=video]]{"url":"https://youtu.be/…","title":"…","thumbnail":"https://…","channel":"…","provider":"YouTube"}[[/ALICE_CARD]]
+[[ALICE_CARD type=weather]]{"location":"Austin, TX","current":{"condition":"Partly cloudy","temperature":"72°F","feels_like":"70°F","humidity":"55%","wind":"8 mph"},"forecast":[{"date":"2026-05-26","condition":"Sunny","high":"78°F","low":"61°F","precip_chance":"10%"}]}[[/ALICE_CARD]]
 [[ALICE_CARD type=spreadsheet]]{"title":"…","headers":["A","B"],"rows":[["x",1]]}[[/ALICE_CARD]]
 [[ALICE_CARD type=quote]]{"text":"…","author":"…","source":"…","sourceUrl":"https://…"}[[/ALICE_CARD]]
 [[ALICE_CARD type=file]]{"url":"https://…","name":"…","mime":"application/pdf"}[[/ALICE_CARD]]
 
 Rules:
-- Emit cards INSTEAD of pasting raw URLs whenever you have structured data for them. Keep prose short between cards.
-- For web_search results, prefer one link card per top result (max 4).
-- For a book from find_book, use a link card with image=cover_url.
+- After get_weather → ALWAYS emit a [[ALICE_CARD type=weather]] from the returned JSON, then 1 short sentence. Do NOT just describe weather in prose.
+- After find_video → ALWAYS emit 1–3 [[ALICE_CARD type=video]] blocks (one per top result, include thumbnail+channel+provider+url). One short sentence intro.
+- After generate_image → ALWAYS emit [[ALICE_CARD type=image]] with the returned url. One sentence.
+- After web_search → emit one link card per top result (max 4).
+- For a book from find_book → use a link card with image=cover_url.
 - Card JSON must be valid on a SINGLE line. No trailing commas, no comments.
 - Never put internal IDs in cards. Only public URLs.`;
 
@@ -447,13 +450,37 @@ const tools = [
     type: "function",
     function: {
       name: "get_weather",
-      description: "Get current weather and a short forecast for a place. Uses Open-Meteo (no API key). If `location` is omitted, defaults to the user's last known location from their profile, then falls back to IP geolocation.",
+      description: "Get current weather and a short forecast for a place. Uses Open-Meteo (no API key). If `location` is omitted, defaults to the user's last known location from their profile, then falls back to IP geolocation. After calling this, you MUST render a [[ALICE_CARD type=weather]].",
       parameters: {
         type: "object",
         properties: {
           location: { type: "string", description: "City, address, or 'lat,lon' — optional." },
           units: { type: "string", enum: ["metric", "imperial"], description: "Defaults to metric." },
         },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_video",
+      description: "Search the public web for videos (YouTube, Khan Academy, TED, Vimeo, etc.) matching a query. Use whenever the user asks for a video, tutorial, lecture, or 'show me a video of X'. After calling this, you MUST render 1–3 [[ALICE_CARD type=video]] blocks.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" }, limit: { type: "number", description: "Max videos to surface, default 3, max 6." } },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_image",
+      description: "Generate a new image from a text prompt using Gemini image generation. Use whenever the user asks ALICE to 'show me', 'draw', 'create', 'make', or 'generate' an image, picture, illustration, or visual. After calling this, you MUST render an [[ALICE_CARD type=image]] with the returned url.",
+      parameters: {
+        type: "object",
+        properties: { prompt: { type: "string", description: "Vivid description of the image to generate." } },
+        required: ["prompt"],
       },
     },
   },
@@ -1277,6 +1304,43 @@ async function executeTool(
           return { error: e?.message || "weather lookup failed" };
         }
       }
+      case "find_video": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "query required" };
+        const limit = Math.min(Math.max(Number(args.limit) || 3, 1), 6);
+        try {
+          const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/search-videos`;
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader, apikey: Deno.env.get("SUPABASE_ANON_KEY") || "" },
+            body: JSON.stringify({ query: q }),
+          });
+          const j = await r.json().catch(() => ({}));
+          const items = Array.isArray(j?.data) ? j.data.slice(0, limit) : [];
+          if (items.length === 0) return { error: j?.error || "No videos found." };
+          return { results: items };
+        } catch (e: any) {
+          return { error: e?.message || "video search failed" };
+        }
+      }
+      case "generate_image": {
+        const prompt = String(args.prompt || "").trim();
+        if (!prompt) return { error: "prompt required" };
+        try {
+          const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-image`;
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader, apikey: Deno.env.get("SUPABASE_ANON_KEY") || "" },
+            body: JSON.stringify({ prompt }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (j?.error) return { error: j.error };
+          if (!j?.imageUrl) return { error: "no image returned" };
+          return { url: j.imageUrl, prompt };
+        } catch (e: any) {
+          return { error: e?.message || "image generation failed" };
+        }
+      }
       case "admin_summary": {
         if (!isAdmin) return { error: "Not authorized — admin only." };
         const [users, errors, features] = await Promise.all([
@@ -1712,6 +1776,69 @@ Deno.serve(async (req) => {
     } else {
       await supabase.from("jarvis_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId).eq("user_id", user.id);
     }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // FAST-PATH NAVIGATION ROUTER — bypass the LLM entirely for simple
+    // "open/go to/show me <tab>" commands so navigation is instant and exact.
+    // ───────────────────────────────────────────────────────────────────────
+    const TAB_SYNONYMS: Record<string, string> = {
+      home: "dashboard", dashboard: "dashboard",
+      card: "cards", cards: "cards", zettel: "cards", zettelkasten: "cards", zettelcards: "cards",
+      note: "notes", notes: "notes",
+      catalyst: "catalyst", writer: "catalyst", writing: "catalyst", editor: "catalyst", document: "catalyst", documents: "catalyst", docs: "catalyst",
+      calendar: "calendar", agenda: "calendar", schedule: "calendar",
+      journal: "journal", diary: "journal",
+      habit: "habits", habits: "habits",
+      scratchpad: "scratchpad", scratch: "scratchpad",
+      stickynotes: "stickynotes", sticky: "stickynotes", "sticky-notes": "stickynotes", "sticky notes": "stickynotes",
+      collab: "collab", chat: "collab", messenger: "collab", messages: "collab",
+      recorder: "recorder", recording: "recorder", studio: "recorder",
+      canvas: "canvas", whiteboard: "canvas", mindmap: "canvas", "mind map": "canvas", "mind-map": "canvas",
+      learning: "learning", library: "learning", books: "learning",
+      project: "projects", projects: "projects",
+      space: "spaces", spaces: "spaces",
+      integration: "integrations", integrations: "integrations",
+      "knowledge-gap": "knowledge-gaps", "knowledge gaps": "knowledge-gaps", gaps: "knowledge-gaps",
+      notebook: "notebooks", notebooks: "notebooks",
+      file: "files", files: "files",
+      graph: "graph",
+      search: "search",
+      recycle: "recycle", trash: "recycle", bin: "recycle",
+    };
+    const fastNav = (() => {
+      const raw = userMessage.toLowerCase().trim().replace(/[?!.,]+$/g, "");
+      if (!raw || raw.length > 60 || attachments.length > 0) return null;
+      // Strip leading verbs
+      const stripped = raw
+        .replace(/^(please\s+|can you\s+|could you\s+|would you\s+|hey alice[, ]+|alice[, ]+)/g, "")
+        .replace(/^(go to|open(?:\s+up)?|show(?:\s+me)?|take me to|navigate to|navigate|switch to|jump to|bring up|pull up|launch)\s+/g, "")
+        .replace(/^(the|my)\s+/g, "")
+        .replace(/\s+(tab|page|view|section|app)$/g, "")
+        .trim();
+      const key = TAB_SYNONYMS[stripped];
+      if (!key) return null;
+      return `/app/${key}`;
+    })();
+
+    if (fastNav) {
+      const tab = fastNav.split("/").pop() || "";
+      const friendly = tab.replace(/-/g, " ");
+      const assistantParts = [
+        { type: "tool", name: "navigate", args: { tab }, result: { ok: true, navigate_to: fastNav } },
+        { type: "text", text: `Opening ${friendly}.` },
+      ];
+      await supabase.from("jarvis_messages").insert({
+        thread_id: threadId, user_id: user.id, role: "user",
+        parts: [{ type: "text", text: userMessage }],
+      });
+      await supabase.from("jarvis_messages").insert({
+        thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
+      });
+      return new Response(JSON.stringify({
+        threadId, parts: assistantParts, navigate_to: fastNav, client_actions: [], model_used: "fast-router", deep_think: false,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     const { data: history } = await supabase
       .from("jarvis_messages")
