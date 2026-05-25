@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon } from "lucide-react";
+import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, Wind, Droplets } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,8 @@ export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
   | { type: "map"; lat: number; lng: number; label?: string; zoom?: number }
   | { type: "pdf"; url: string; title: string; pages?: number; thumbnail?: string }
-  | { type: "video"; url: string; title?: string; poster?: string }
+  | { type: "video"; url: string; title?: string; poster?: string; thumbnail?: string; channel?: string; provider?: string; description?: string }
+  | { type: "weather"; location: string; current: { condition: string; temperature: string; feels_like?: string; humidity?: string; wind?: string }; forecast?: Array<{ date: string; condition: string; high: string; low: string; precip_chance?: string }> }
   | { type: "spreadsheet"; title?: string; headers: string[]; rows: (string | number)[][]; sourceUrl?: string }
   | { type: "link"; url: string; title: string; description?: string; image?: string; favicon?: string; domain?: string }
   | { type: "quote"; text: string; author?: string; source?: string; sourceUrl?: string }
