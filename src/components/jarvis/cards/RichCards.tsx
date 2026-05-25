@@ -267,6 +267,7 @@ export function AliceCardRenderer({ card }: { card: AliceCard }) {
     case "map": return <MapCard card={card} />;
     case "pdf": return <PdfCard card={card} />;
     case "video": return <VideoCard card={card} />;
+    case "weather": return <WeatherCard card={card} />;
     case "spreadsheet": return <SpreadsheetCard card={card} />;
     case "link": return <LinkCard card={card} />;
     case "quote": return <QuoteCard card={card} />;
