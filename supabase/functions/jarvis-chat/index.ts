@@ -450,13 +450,37 @@ const tools = [
     type: "function",
     function: {
       name: "get_weather",
-      description: "Get current weather and a short forecast for a place. Uses Open-Meteo (no API key). If `location` is omitted, defaults to the user's last known location from their profile, then falls back to IP geolocation.",
+      description: "Get current weather and a short forecast for a place. Uses Open-Meteo (no API key). If `location` is omitted, defaults to the user's last known location from their profile, then falls back to IP geolocation. After calling this, you MUST render a [[ALICE_CARD type=weather]].",
       parameters: {
         type: "object",
         properties: {
           location: { type: "string", description: "City, address, or 'lat,lon' — optional." },
           units: { type: "string", enum: ["metric", "imperial"], description: "Defaults to metric." },
         },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_video",
+      description: "Search the public web for videos (YouTube, Khan Academy, TED, Vimeo, etc.) matching a query. Use whenever the user asks for a video, tutorial, lecture, or 'show me a video of X'. After calling this, you MUST render 1–3 [[ALICE_CARD type=video]] blocks.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" }, limit: { type: "number", description: "Max videos to surface, default 3, max 6." } },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_image",
+      description: "Generate a new image from a text prompt using Gemini image generation. Use whenever the user asks ALICE to 'show me', 'draw', 'create', 'make', or 'generate' an image, picture, illustration, or visual. After calling this, you MUST render an [[ALICE_CARD type=image]] with the returned url.",
+      parameters: {
+        type: "object",
+        properties: { prompt: { type: "string", description: "Vivid description of the image to generate." } },
+        required: ["prompt"],
       },
     },
   },
