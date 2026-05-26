@@ -1592,9 +1592,6 @@ async function executeTool(
         else await invokeAgent;
         await serviceClient.from("agent_notifications").insert({ user_id: userId, agent_id: agentId, title: "ALICE report started", message: `I started ${internalType.replace(/_/g, " ")}. I’ll post the result here when it finishes.`, notification_type: "info" });
 
-        const navigate_to = internalType === "card_synthesizer" || internalType === "writing_coach" || internalType === "citation"
-          ? "/app/catalyst"
-          : "/app/agents";
         const eta = internalType === "card_synthesizer" ? "60–120 seconds" : "20–60 seconds";
         return {
           ok: true,
@@ -1602,8 +1599,56 @@ async function executeTool(
           run_id: run.id,
           agent_type: internalType,
           eta,
-          navigate_to,
-          note: `Agent triggered. It runs in the background and will post a notification (and, for the Author Agent, drop the finished document into Catalyst) when done.`,
+          // Deliberately NO navigate_to: ALICE should not send the user to /app/agents.
+          // She will follow up with get_agent_status and report the result inline.
+          note: `Agent running in the background. Use get_agent_status with run_id=${run.id} to check progress and read findings — do not navigate the user to /app/agents.`,
+        };
+      }
+      case "get_agent_status": {
+        const runId = String(args.run_id || "").trim();
+        const agentIdArg = String(args.agent_id || "").trim();
+        const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 50);
+        let run: any = null;
+        if (runId) {
+          const { data, error } = await supabase
+            .from("agent_runs")
+            .select("id,agent_id,status,started_at,completed_at,error_message,items_processed,items_found")
+            .eq("id", runId).eq("user_id", userId).maybeSingle();
+          if (error) return { error: error.message };
+          run = data;
+        } else if (agentIdArg) {
+          const { data, error } = await supabase
+            .from("agent_runs")
+            .select("id,agent_id,status,started_at,completed_at,error_message,items_processed,items_found")
+            .eq("agent_id", agentIdArg).eq("user_id", userId)
+            .order("started_at", { ascending: false }).limit(1).maybeSingle();
+          if (error) return { error: error.message };
+          run = data;
+        } else {
+          return { error: "Provide run_id or agent_id." };
+        }
+        if (!run) return { error: "No matching run found." };
+        const { data: findings } = await supabase
+          .from("agent_findings")
+          .select("id,finding_type,title,content,metadata,relevance_score,created_at")
+          .eq("run_id", run.id).eq("user_id", userId)
+          .order("relevance_score", { ascending: false })
+          .limit(limit);
+        // Surface a primary document_id when the Author Agent has produced a Catalyst doc.
+        const docFinding = (findings || []).find((f: any) => f.finding_type === "document_created");
+        const documentId = docFinding?.metadata?.document_id || null;
+        return {
+          ok: true,
+          run,
+          findings: findings || [],
+          document_id: documentId,
+          hint: run.status === "completed"
+            ? "Summarize the top findings to the user inline. If document_id is present, offer to open it with open_in_catalyst."
+            : run.status === "running"
+              ? "Still working. Tell the user it's in progress and offer to check back."
+              : run.status === "failed"
+                ? "Report the error_message to the user honestly."
+                : "Report the current status.",
         };
       }
       case "start_pomodoro_timer": {
