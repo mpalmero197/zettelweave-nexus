@@ -551,13 +551,28 @@ const tools = [
         properties: {
           agent_type: {
             type: "string",
-            enum: ["author","research","citation","writing_coach","content_summarizer","smart_linking","knowledge_gap","task_extraction","habit_reminder"],
-            description: "'author' = the long-form Author / Card Synthesizer agent that drafts a 4–6k word Catalyst document from the user's existing notes/cards. Use this whenever the user asks for a 'large document', 'long document', 'big writeup', 'master document', or 'synthesize my notes into a paper'.",
+            enum: ["author","research","citation","writing_coach","content_summarizer","smart_linking","knowledge_gap","task_extraction","habit_reminder","daily_digest","spaced_repetition","custom"],
+            description: "'author' = the long-form Author / Card Synthesizer agent that drafts a 4–6k word Catalyst document from the user's existing notes/cards. Use this whenever the user asks for a 'large document', 'long document', 'big writeup', 'master document', or 'synthesize my notes into a paper'. 'custom' lets you run a free-form custom agent with the user's exact instructions.",
           },
           topic: { type: "string", description: "Optional. Specific topic/title for the agent to focus on. For the author agent this becomes the document title and core subject." },
           instructions: { type: "string", description: "Optional extra guidance, tone, focus, or constraints for the agent." },
         },
         required: ["agent_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_agent_status",
+      description: "Check the status and findings of an agent run you previously kicked off with run_agent. Use this whenever the user asks 'is it done?', 'what did the agent find?', 'show me the results', or when you want to follow up on a fire-and-forget agent task. Returns the run status plus the top findings so you can summarize them in chat. Do NOT navigate the user to /app/agents to view results — read them here and report inline.",
+      parameters: {
+        type: "object",
+        properties: {
+          run_id: { type: "string", description: "The run_id returned from run_agent." },
+          agent_id: { type: "string", description: "Optional agent_id if run_id is unknown — returns latest run for that agent." },
+          limit: { type: "number", description: "Max findings to return (default 10)." },
+        },
       },
     },
   },
