@@ -187,8 +187,8 @@ export function JarvisChat({ compact = false }: Props) {
 
   return (
     <div className={cn("alice-surface alice-body flex h-full", compact && "rounded-2xl overflow-hidden")}>
-      {/* Thread sidebar */}
-      {!compact && (
+      {/* Thread sidebar — desktop only */}
+      {showSidebar && (
         <aside className="w-64 alice-glass flex flex-col border-r border-white/5">
           <div className="p-3 border-b border-white/5 flex items-center gap-2">
             <div className="alice-orb h-7 w-7" aria-hidden />
@@ -238,6 +238,75 @@ export function JarvisChat({ compact = false }: Props) {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header with thread drawer + new-chat shortcut.
+            Hidden inside the compact popup (it already has its own chrome). */}
+        {!showSidebar && !compact && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/5 alice-glass">
+            <Sheet open={threadSheetOpen} onOpenChange={setThreadSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-9 gap-2 px-2">
+                  <Menu className="h-4 w-4" />
+                  <span className="text-sm font-medium truncate max-w-[160px]">
+                    {threads.find((t) => t.id === activeThreadId)?.title || "ALICE"}
+                  </span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+                <SheetHeader className="p-3 border-b">
+                  <SheetTitle className="flex items-center gap-2 text-base">
+                    <div className="alice-orb h-6 w-6" aria-hidden />
+                    Conversations
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="p-3">
+                  <Button
+                    onClick={() => { newThread(); setThreadSheetOpen(false); }}
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> New conversation
+                  </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-2 space-y-0.5">
+                    {threads.map((t) => (
+                      <div key={t.id} className={cn(
+                        "group flex items-center rounded-md transition-colors hover:bg-muted",
+                        activeThreadId === t.id && "bg-muted",
+                      )}>
+                        <button
+                          onClick={() => { selectThread(t.id); setThreadSheetOpen(false); }}
+                          className="flex-1 text-left text-sm px-3 py-2.5 truncate"
+                        >
+                          {t.title}
+                        </button>
+                        <button
+                          onClick={() => deleteThread(t.id)}
+                          className="p-2 hover:text-destructive"
+                          aria-label="Delete thread"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {threads.length === 0 && (
+                      <p className="text-xs opacity-60 px-2 py-4 text-center">No conversations yet.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={newThread}
+              className="h-9 w-9 p-0"
+              aria-label="New conversation"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <div ref={scrollRef} className="flex-1 overflow-y-auto alice-transcript">
           <div className={cn("mx-auto space-y-5", transcriptMaxW, compact ? "px-3 py-4" : "px-6 py-8")}>
             {messages.length === 0 && (
