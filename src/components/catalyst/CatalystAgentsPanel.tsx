@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   Bot, Play, Loader2, ChevronRight, ChevronLeft, Sparkles,
   Search, Bell, Link, FileText, Pencil, HelpCircle, Calendar,
   Quote, CheckSquare, Brain, Wand2, BookOpen, Plus, ArrowLeft,
-  ExternalLink, Copy, Eye, FileDown, MapPin,
+  ExternalLink, Copy, Eye, FileDown, MapPin, Feather,
 } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import { Agent, AgentType, AGENT_DEFINITIONS } from '@/types/agents';
@@ -20,6 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { CreateAgentDialog } from '@/components/agents/CreateAgentDialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
 import { AgentDetail } from '@/components/agents/AgentDetail';
 
 const AGENT_ICONS: Record<AgentType, React.ElementType> = {
