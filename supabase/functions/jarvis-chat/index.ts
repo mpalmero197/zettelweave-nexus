@@ -814,6 +814,82 @@ const tools = [
       parameters: { type: "object", properties: {} },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_my_agenda",
+      description: "Return the user's live agenda: today's + tomorrow's calendar events, tasks due today / overdue, active habits and whether each is completed today, and the most recent unread notifications. Use this whenever the user asks 'what's on my plate', 'what's today', 'my agenda', 'what am I behind on', 'how am I doing today', or before suggesting how to spend time.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_task",
+      description: "Mark a project task as done. Accepts either task_id (preferred) or a task_title to fuzzy-match against the user's open tasks.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string", description: "UUID of the project_tasks row." },
+          task_title: { type: "string", description: "Fuzzy title to match if id is unknown." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_habit_done",
+      description: "Log a habit completion for today. Accepts either habit_id or habit_title (fuzzy match against the user's active habits).",
+      parameters: {
+        type: "object",
+        properties: {
+          habit_id: { type: "string" },
+          habit_title: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "snooze_reminder",
+      description: "Snooze a pending in-app notification or scheduled reminder by N minutes. Use when the user says 'remind me in 15 min', 'snooze that', 'not now'. Either notification_id or reminder_id must be supplied — list_notifications/list_reminders can resolve these.",
+      parameters: {
+        type: "object",
+        properties: {
+          notification_id: { type: "string" },
+          reminder_id: { type: "string" },
+          minutes: { type: "number", description: "Minutes to delay. Default 15." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_notifications",
+      description: "Return the user's most recent in-app notifications (unread first). Use when the user says 'what notifications do I have', 'any alerts', 'catch me up'.",
+      parameters: {
+        type: "object",
+        properties: { limit: { type: "number" }, only_unread: { type: "boolean" } },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_notification_read",
+      description: "Mark one or all in-app notifications as read.",
+      parameters: {
+        type: "object",
+        properties: {
+          notification_id: { type: "string", description: "Specific id; if omitted and all=true, marks every notification read." },
+          all: { type: "boolean" },
+        },
+      },
+    },
+  },
 ];
 
 const VALID_TABS = new Set([
