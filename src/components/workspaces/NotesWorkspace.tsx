@@ -37,6 +37,7 @@ const isHtml = (s: string) => /<[a-z][\s\S]*>/i.test(s);
 
 export function NotesWorkspace() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [notes, setNotes] = useState<Note[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +45,7 @@ export function NotesWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [favOnly, setFavOnly] = useState(false);
   const [editing, setEditing] = useState<Note | null>(null);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
   const load = async () => {
     if (!user) return;
