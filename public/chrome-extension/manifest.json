@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PendragonX Toolbox",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "PendragonX Toolbox",
   "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting"],
   "host_permissions": [

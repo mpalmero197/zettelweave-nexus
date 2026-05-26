@@ -89,6 +89,7 @@ const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -223,6 +224,11 @@ const App = () => (
                 <Route path="/unsubscribe" element={
                   <Suspense fallback={<LoadingFallback />}>
                     <Unsubscribe />
+                  </Suspense>
+                } />
+                <Route path="/sso" element={
+                  <Suspense fallback={<LoadingFallback message="Signing in from Toolbox..." />}>
+                    <SsoHandoff />
                   </Suspense>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
