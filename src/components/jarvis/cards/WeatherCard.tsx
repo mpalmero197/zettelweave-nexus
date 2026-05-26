@@ -295,7 +295,7 @@ export function WeatherCard({ data, className, showSave = true, onSave }: Weathe
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5">
-                  <StickyNote className="h-3.5 w-3.5" /> Save as note
+                  <StickyNote className="h-3.5 w-3.5" /> Save
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-3">
@@ -307,32 +307,42 @@ export function WeatherCard({ data, className, showSave = true, onSave }: Weathe
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="e.g. travel, garden, austin"
                   className="h-8 mt-1.5 text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSave();
-                  }}
                   autoFocus
                 />
                 <div className="text-[10px] text-muted-foreground mt-1.5">
-                  Added as a tag plus #weather and the city.
+                  Tagged with the topic plus #weather and the city.
                 </div>
-                <Button
-                  size="sm"
-                  className="w-full mt-2.5 h-8 text-xs gap-1.5"
-                  onClick={handleSave}
-                  disabled={saving || saved}
-                >
-                  {saved ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" /> Saved
-                    </>
-                  ) : saving ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
-                    </>
-                  ) : (
-                    <>Save note</>
-                  )}
-                </Button>
+                <div className="grid grid-cols-2 gap-2 mt-2.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1.5"
+                    onClick={handleSave}
+                    disabled={saving || saved}
+                  >
+                    {saved ? (
+                      <><Check className="h-3.5 w-3.5" /> Saved</>
+                    ) : saving ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /></>
+                    ) : (
+                      <><StickyNote className="h-3.5 w-3.5" /> Note</>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    onClick={handleSaveCard}
+                    disabled={savingCard || savedCard}
+                  >
+                    {savedCard ? (
+                      <><Check className="h-3.5 w-3.5" /> Saved</>
+                    ) : savingCard ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /></>
+                    ) : (
+                      <><Layers className="h-3.5 w-3.5" /> Card</>
+                    )}
+                  </Button>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
