@@ -3,12 +3,14 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import {
   Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText,
   StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun, Play,
-  ImageIcon, Navigation,
+  ImageIcon, Navigation, Menu,
 } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
@@ -112,6 +114,11 @@ interface Props {
 
 export function JarvisChat({ compact = false }: Props) {
   const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
+  const isMobile = useIsMobile();
+  const [threadSheetOpen, setThreadSheetOpen] = useState(false);
+  // On mobile (or compact popup) collapse the sidebar entirely and surface
+  // threads via a Sheet trigger — gives the conversation full width.
+  const showSidebar = !compact && !isMobile;
 
   const runPlan = async (plan: AlicePlan) => {
     await sendMessage(
@@ -180,8 +187,8 @@ export function JarvisChat({ compact = false }: Props) {
 
   return (
     <div className={cn("alice-surface alice-body flex h-full", compact && "rounded-2xl overflow-hidden")}>
-      {/* Thread sidebar */}
-      {!compact && (
+      {/* Thread sidebar — desktop only */}
+      {showSidebar && (
         <aside className="w-64 alice-glass flex flex-col border-r border-white/5">
           <div className="p-3 border-b border-white/5 flex items-center gap-2">
             <div className="alice-orb h-7 w-7" aria-hidden />
@@ -231,23 +238,96 @@ export function JarvisChat({ compact = false }: Props) {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header with thread drawer + new-chat shortcut.
+            Hidden inside the compact popup (it already has its own chrome). */}
+        {!showSidebar && !compact && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/5 alice-glass">
+            <Sheet open={threadSheetOpen} onOpenChange={setThreadSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-9 gap-2 px-2">
+                  <Menu className="h-4 w-4" />
+                  <span className="text-sm font-medium truncate max-w-[160px]">
+                    {threads.find((t) => t.id === activeThreadId)?.title || "ALICE"}
+                  </span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+                <SheetHeader className="p-3 border-b">
+                  <SheetTitle className="flex items-center gap-2 text-base">
+                    <div className="alice-orb h-6 w-6" aria-hidden />
+                    Conversations
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="p-3">
+                  <Button
+                    onClick={() => { newThread(); setThreadSheetOpen(false); }}
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> New conversation
+                  </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-2 space-y-0.5">
+                    {threads.map((t) => (
+                      <div key={t.id} className={cn(
+                        "group flex items-center rounded-md transition-colors hover:bg-muted",
+                        activeThreadId === t.id && "bg-muted",
+                      )}>
+                        <button
+                          onClick={() => { selectThread(t.id); setThreadSheetOpen(false); }}
+                          className="flex-1 text-left text-sm px-3 py-2.5 truncate"
+                        >
+                          {t.title}
+                        </button>
+                        <button
+                          onClick={() => deleteThread(t.id)}
+                          className="p-2 hover:text-destructive"
+                          aria-label="Delete thread"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {threads.length === 0 && (
+                      <p className="text-xs opacity-60 px-2 py-4 text-center">No conversations yet.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={newThread}
+              className="h-9 w-9 p-0"
+              aria-label="New conversation"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <div ref={scrollRef} className="flex-1 overflow-y-auto alice-transcript">
-          <div className={cn("mx-auto space-y-5", transcriptMaxW, compact ? "px-3 py-4" : "px-6 py-8")}>
+          <div className={cn(
+            "mx-auto space-y-4 md:space-y-5",
+            transcriptMaxW,
+            compact ? "px-3 py-4" : "px-3 py-5 md:px-6 md:py-8",
+          )}>
             {messages.length === 0 && (
-              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-16 space-y-5")}>
-                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-20 w-20")} />
+              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-10 md:py-16 space-y-4 md:space-y-5")}>
+                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-16 w-16 md:h-20 md:w-20")} />
                 <h2
-                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-3xl")}
+                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-2xl md:text-3xl")}
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
                   Hello. I'm ALICE.
                 </h2>
                 {!compact && (
-                  <p className="text-sm opacity-70 max-w-md mx-auto">
+                  <p className="text-sm opacity-70 max-w-md mx-auto px-4">
                     Your second-brain co-pilot. Ask, create, schedule, search — I'll show my work as I go.
                   </p>
                 )}
-                <div className={cn("flex flex-wrap justify-center gap-2 pt-2", compact && "pt-1")}>
+                <div className={cn("flex flex-wrap justify-center gap-2 pt-2 px-2", compact && "pt-1")}>
                   {STARTER_PROMPTS.slice(0, compact ? 2 : 4).map((p) => (
                     <button key={p} className="alice-chip" onClick={() => submit(p)}>
                       {p}
@@ -260,8 +340,10 @@ export function JarvisChat({ compact = false }: Props) {
               <div key={m.id} className={cn("flex flex-col gap-1 alice-msg-in", m.role === "user" ? "items-end" : "items-start")}>
                 {m.role === "user" ? (
                   <div className={cn(
-                    "alice-user-bubble max-w-[85%] rounded-2xl whitespace-pre-wrap",
-                    compact ? "px-3.5 py-2 text-[13px]" : "px-4 py-2.5 text-sm",
+                    "alice-user-bubble rounded-2xl whitespace-pre-wrap break-words",
+                    // Wider cap on phones — 85% looks cramped beside the orb-free right edge.
+                    "max-w-[92%] md:max-w-[85%]",
+                    compact ? "px-3.5 py-2 text-[13px]" : "px-3.5 py-2 text-[14px] md:px-4 md:py-2.5 md:text-sm",
                   )}>
                     {m.parts.map((p, i) => {
                       if (p.type !== "text") return null;
@@ -270,9 +352,12 @@ export function JarvisChat({ compact = false }: Props) {
                     })}
                   </div>
                 ) : (
-                  <div className="flex gap-3 w-full">
-                    <div className="alice-orb alice-orb-static h-7 w-7 shrink-0 mt-0.5" aria-hidden />
-                    <div className={cn("flex-1 min-w-0", compact ? "text-[13px]" : "text-[15px] leading-relaxed")}>
+                  <div className="flex gap-2 md:gap-3 w-full">
+                    <div className="alice-orb alice-orb-static h-6 w-6 md:h-7 md:w-7 shrink-0 mt-0.5" aria-hidden />
+                    <div className={cn(
+                      "flex-1 min-w-0",
+                      compact ? "text-[13px]" : "text-[14px] md:text-[15px] leading-relaxed",
+                    )}>
                       {m.parts.map((p, i) => {
                         if (p.type === "tool") return <ToolPart key={i} part={p} />;
                         if (p.type === "plan") return (
@@ -280,7 +365,7 @@ export function JarvisChat({ compact = false }: Props) {
                         );
                         if (p.type === "card") return <div key={i} className="my-2"><AliceCardRenderer card={p.card} /></div>;
                         return (
-                          <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
+                          <div key={i} className="prose prose-sm dark:prose-invert max-w-none break-words">
                             <ReactMarkdown>{p.text}</ReactMarkdown>
                           </div>
                         );
@@ -295,7 +380,11 @@ export function JarvisChat({ compact = false }: Props) {
         </div>
 
         {/* Composer */}
-        <div className={cn(compact ? "p-2" : "p-4")}>
+        <div className={cn(
+          compact ? "p-2" : "p-2 md:p-4",
+          // Respect iOS safe-area on phones so the composer doesn't sit under the home indicator.
+          "pb-[max(env(safe-area-inset-bottom),0.5rem)] md:pb-4",
+        )}>
           <div className={cn("mx-auto space-y-2", transcriptMaxW)}>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -358,7 +447,7 @@ export function JarvisChat({ compact = false }: Props) {
                 </Button>
               </div>
             </div>
-            <p className="text-[10px] uppercase tracking-[0.18em] opacity-50 text-center">
+            <p className="hidden md:block text-[10px] uppercase tracking-[0.18em] opacity-50 text-center">
               ALICE shows its work · streaming reasoning
             </p>
           </div>
