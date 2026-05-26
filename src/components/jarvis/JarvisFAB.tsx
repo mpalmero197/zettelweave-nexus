@@ -72,8 +72,8 @@ export function JarvisFAB() {
           <div
             className={cn(
               "fixed z-50 bg-background border border-border shadow-2xl overflow-hidden flex flex-col",
-              // Mobile: full-width bottom sheet that owns the bottom 88% of the
-              // viewport — actually usable real estate on a phone.
+              "transition-[height,border-radius] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[height]",
+              // Mobile: full-width bottom sheet.
               "inset-x-0 bottom-0 rounded-t-2xl rounded-b-none border-b-0",
               minimized ? "h-12" : "h-[88dvh]",
               // Desktop: floating panel anchored bottom-right.
@@ -83,6 +83,13 @@ export function JarvisFAB() {
             )}
             role="dialog"
             aria-label="ALICE"
+            onClick={(e) => {
+              // Tap anywhere on the minimized bar to expand & focus.
+              if (minimized) {
+                e.stopPropagation();
+                expand();
+              }
+            }}
           >
             {/* Drag handle (mobile only) — visual affordance for "swipe me" */}
             {isMobile && !minimized && (
