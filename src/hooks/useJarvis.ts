@@ -7,6 +7,40 @@ import { getScreenContext } from "@/hooks/useScreenContext";
 import type { AlicePlan } from "@/components/alice/AliceActionPlan";
 import { parseCardBlocks, type AliceCard } from "@/components/jarvis/cards/RichCards";
 
+// Cache of the user's geolocation across sends. We request once per session
+// and re-use until the page is reloaded so ALICE never has to guess.
+let __coordsCache: { latitude: number; longitude: number; accuracy?: number } | null = null;
+let __coordsDenied = false;
+let __coordsToastShown = false;
+async function getUserCoords(): Promise<{ latitude: number; longitude: number; accuracy?: number } | null> {
+  if (__coordsCache) return __coordsCache;
+  if (__coordsDenied) return null;
+  if (typeof navigator === "undefined" || !navigator.geolocation) return null;
+  try {
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false, timeout: 6000, maximumAge: 5 * 60 * 1000,
+      });
+    });
+    __coordsCache = {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+    };
+    return __coordsCache;
+  } catch (e: any) {
+    __coordsDenied = true;
+    if (!__coordsToastShown && e?.code === 1 /* PERMISSION_DENIED */) {
+      __coordsToastShown = true;
+      toast.message("Location is off", {
+        description: "Enable location for PendragonX in your browser so ALICE can give accurate local weather.",
+      });
+    }
+    return null;
+  }
+}
+
+
 export type JarvisPart =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; args: any; result: any }
