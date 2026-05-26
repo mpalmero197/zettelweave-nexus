@@ -890,6 +890,7 @@ async function executeTool(
   userId: string,
   isAdmin: boolean,
   authHeader: string,
+  userCoords?: { latitude: number; longitude: number; accuracy?: number } | null,
 ) {
   try {
     switch (name) {
@@ -1250,14 +1251,25 @@ async function executeTool(
             }
           }
           if (lat == null || lon == null) {
-            // IP fallback
+            // Prefer the browser-provided coordinates (real device location)
+            if (userCoords && Number.isFinite(userCoords.latitude) && Number.isFinite(userCoords.longitude)) {
+              lat = userCoords.latitude; lon = userCoords.longitude;
+              try {
+                const rg = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                const rj = await rg.json().catch(() => ({}));
+                placeLabel = placeLabel || [rj.city || rj.locality, rj.principalSubdivision, rj.countryName].filter(Boolean).join(", ");
+              } catch { /* ignore */ }
+            }
+          }
+          if (lat == null || lon == null) {
+            // IP fallback — least accurate, only used when location permission is denied
             const ip = await fetch("https://ipapi.co/json/").then((r) => r.json()).catch(() => null);
             if (ip?.latitude && ip?.longitude) {
               lat = ip.latitude; lon = ip.longitude;
               placeLabel = placeLabel || [ip.city, ip.region, ip.country_name].filter(Boolean).join(", ");
             }
           }
-          if (lat == null || lon == null) return { error: "Could not determine a location for the weather lookup." };
+          if (lat == null || lon == null) return { error: "Location unavailable. Please enable location permission for PendragonX in your browser, or tell me a city." };
 
           const u = new URL("https://api.open-meteo.com/v1/forecast");
           u.searchParams.set("latitude", String(lat));
@@ -1758,6 +1770,10 @@ Deno.serve(async (req) => {
     const screen: { route?: string; regions?: Array<{ id: string; label: string; data: any }> } =
       (body.screen && typeof body.screen === "object") ? body.screen : {};
     let threadId: string | null = body.threadId || null;
+    const userCoords: { latitude: number; longitude: number; accuracy?: number } | null =
+      body.userCoords && Number.isFinite(body.userCoords.latitude) && Number.isFinite(body.userCoords.longitude)
+        ? { latitude: Number(body.userCoords.latitude), longitude: Number(body.userCoords.longitude), accuracy: Number(body.userCoords.accuracy) || undefined }
+        : null;
     if (!userMessage && attachments.length === 0) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -1981,7 +1997,7 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
         for (const tc of choice.tool_calls) {
           let parsed: any = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader);
+          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader, userCoords);
           if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
           if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
