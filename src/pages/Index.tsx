@@ -630,7 +630,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
-                  <Notes />
+                  <NotesWorkspace />
                 </TabsContent>
 
                 <TabsContent value="notebooks" className="mt-0">
@@ -654,68 +654,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="p-4 sm:p-6">
-                    {isLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                        {[...Array(8)].map((_, i) => (
-                          <div key={i} className="h-32 bg-muted/50 rounded-lg animate-pulse" />
-                        ))}
-                      </div>
-                    ) : displayedCards.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-15 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {cards.length === 0
-                            ? "Start building your knowledge base by creating your first card"
-                            : cardSearch.trim()
-                            ? `No cards matching "${cardSearch}"`
-                            : showFavoritesOnly
-                            ? "No favorite cards yet"
-                            : showNewCardsOnly
-                            ? "No new cards in the last 24 hours"
-                            : "No cards found"
-                          }
-                        </p>
-                        {cards.length === 0 && (
-                          <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
-                        )}
-                      </div>
-                    ) : cardView === "list" ? (
-                      <div className="space-y-3">
-                        {displayedCards.map((card) => (
-                          <ZettelCard
-                            key={card.id}
-                            card={card}
-                            variant="compact"
-                            onEdit={setViewingCard}
-                            onLink={(card) => {
-                              setEditingCard(card);
-                              toast.success("Link card feature - select cards to link");
-                            }}
-                            onDelete={handleDeleteCard}
-                            onUpdate={handleUpdateCard}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                        {displayedCards.map((card) => (
-                          <ZettelCard
-                            key={card.id}
-                            card={card}
-                            onEdit={setViewingCard}
-                            onLink={(card) => {
-                              setEditingCard(card);
-                              toast.success("Link card feature - select cards to link");
-                            }}
-                            onDelete={handleDeleteCard}
-                            onUpdate={handleUpdateCard}
-                            className="h-fit"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <CardsWorkspace />
                 </TabsContent>
 
                 <TabsContent value="graph" className="mt-0">
