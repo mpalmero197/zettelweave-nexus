@@ -539,7 +539,8 @@ serve(async (req) => {
         }
         itemsProcessed = 1;
         try {
-          const result = await runCitationAgent(apiKey, documentContent, documentTitle, agentId, runId, user.id);
+          const citationStyle = String((agent.config as any)?.citation_style || 'apa').toLowerCase();
+          const result = await runCitationAgent(apiKey, documentContent, documentTitle, agentId, runId, user.id, citationStyle);
           findings.push(...result.findings);
           itemsFound = result.findings.length;
         } catch (e) {
