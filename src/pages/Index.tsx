@@ -422,8 +422,8 @@ const Index = () => {
       {/* Main Content - Mobile Optimized */}
       <main id="main-content" className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0 px-2 md:px-3 relative flex-1" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
-          {/* Cards Menu Bar - Mobile Optimized */}
-          {activeTab === "cards" && (
+          {/* Cards Menu Bar - hidden when using two-pane workspace */}
+          {false && activeTab === "cards" && (
             <div className="sticky top-10 md:top-14 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
               <div className="flex items-center gap-2 max-w-7xl mx-auto">
                 {/* Create button */}
