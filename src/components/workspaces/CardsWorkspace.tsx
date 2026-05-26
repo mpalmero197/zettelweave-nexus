@@ -6,13 +6,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Search, Star, Plus, Edit3, Link2, Trash2 } from 'lucide-react';
+import { Brain, Search, Star, Plus, Edit3, Link2, Trash2, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 import { EditCardDialog } from '@/components/EditCardDialog';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const isHtml = (s: string) => /<[a-z][\s\S]*>/i.test(s);
 
