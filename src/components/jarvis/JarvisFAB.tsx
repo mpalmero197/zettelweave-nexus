@@ -25,6 +25,27 @@ export function JarvisFAB() {
     }
   }, [isMobile, open, minimized]);
 
+  // Auto-minimize on mobile after ALICE completes a navigation or client
+  // action so the user can see the destination she took them to.
+  useEffect(() => {
+    if (!isMobile || !open) return;
+    const collapse = () => setMinimized(true);
+    const actionTypes = [
+      "alice-navigate",
+      "alice:open_card", "alice:open_note", "alice:open_document",
+      "alice:open_task", "alice:open_event", "alice:open",
+    ];
+    actionTypes.forEach((t) => window.addEventListener(t, collapse));
+    return () => actionTypes.forEach((t) => window.removeEventListener(t, collapse));
+  }, [isMobile, open]);
+
+  const expand = () => {
+    setMinimized(false);
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent("alice-focus-input"));
+    });
+  };
+
   return (
     <>
       {!open && (
@@ -51,8 +72,8 @@ export function JarvisFAB() {
           <div
             className={cn(
               "fixed z-50 bg-background border border-border shadow-2xl overflow-hidden flex flex-col",
-              // Mobile: full-width bottom sheet that owns the bottom 88% of the
-              // viewport — actually usable real estate on a phone.
+              "transition-[height,border-radius] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[height]",
+              // Mobile: full-width bottom sheet.
               "inset-x-0 bottom-0 rounded-t-2xl rounded-b-none border-b-0",
               minimized ? "h-12" : "h-[88dvh]",
               // Desktop: floating panel anchored bottom-right.
@@ -62,6 +83,13 @@ export function JarvisFAB() {
             )}
             role="dialog"
             aria-label="ALICE"
+            onClick={(e) => {
+              // Tap anywhere on the minimized bar to expand & focus.
+              if (minimized) {
+                e.stopPropagation();
+                expand();
+              }
+            }}
           >
             {/* Drag handle (mobile only) — visual affordance for "swipe me" */}
             {isMobile && !minimized && (
@@ -76,7 +104,7 @@ export function JarvisFAB() {
             <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/40 md:py-1.5 md:px-2.5">
               <button
                 type="button"
-                onClick={() => setMinimized((m) => !m)}
+                onClick={() => (minimized ? expand() : setMinimized(true))}
                 className="flex items-center gap-2 min-w-0 flex-1 text-left h-9 md:h-auto"
                 aria-label={minimized ? "Expand ALICE" : "Minimize ALICE"}
               >
@@ -88,7 +116,7 @@ export function JarvisFAB() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 md:h-7 md:w-7 p-0"
-                  onClick={() => setMinimized((m) => !m)}
+                  onClick={(e) => { e.stopPropagation(); minimized ? expand() : setMinimized(true); }}
                   aria-label={minimized ? "Expand" : "Minimize"}
                 >
                   {minimized ? <ChevronUp className="h-4 w-4" /> : <Minus className="h-4 w-4" />}

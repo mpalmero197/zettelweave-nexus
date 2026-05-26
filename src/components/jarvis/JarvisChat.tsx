@@ -135,6 +135,15 @@ export function JarvisChat({ compact = false }: Props) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
+  // Allow the FAB shell to re-focus the input after it expands from minimized.
+  useEffect(() => {
+    const onFocus = () => {
+      // Small delay so the height transition has begun before keyboard pops up.
+      setTimeout(() => taRef.current?.focus(), 60);
+    };
+    window.addEventListener("alice-focus-input", onFocus);
+    return () => window.removeEventListener("alice-focus-input", onFocus);
+  }, []);
 
   const submit = async (override?: string) => {
     const text = (override ?? input).trim();
