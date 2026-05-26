@@ -104,7 +104,7 @@ export function JarvisFAB() {
             <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/40 md:py-1.5 md:px-2.5">
               <button
                 type="button"
-                onClick={() => setMinimized((m) => !m)}
+                onClick={() => (minimized ? expand() : setMinimized(true))}
                 className="flex items-center gap-2 min-w-0 flex-1 text-left h-9 md:h-auto"
                 aria-label={minimized ? "Expand ALICE" : "Minimize ALICE"}
               >
@@ -116,7 +116,7 @@ export function JarvisFAB() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 md:h-7 md:w-7 p-0"
-                  onClick={() => setMinimized((m) => !m)}
+                  onClick={(e) => { e.stopPropagation(); minimized ? expand() : setMinimized(true); }}
                   aria-label={minimized ? "Expand" : "Minimize"}
                 >
                   {minimized ? <ChevronUp className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
