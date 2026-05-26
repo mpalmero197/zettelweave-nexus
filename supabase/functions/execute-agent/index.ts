@@ -183,14 +183,52 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
 
   console.log(`Author Agent: Selected topic "${topicData.topic}"`);
 
-  console.log('Author Agent: Generating full document...');
-  let documentBody = '';
-
+  // ── Narrative-flow upgrade: outline → section drafting → cohesion stitch ──
+  console.log('Author Agent: Building narrative outline...');
+  let outline: any = null;
   try {
-    documentBody = await callAI(apiKey, [
-      { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document. Aim for at least 4,000 words. Use standard Markdown only. Paragraphs 3-4 sentences max. Heading hierarchy: # H1, ## H2, ### H3. Bold sparingly. No ALL CAPS, no underlining.` },
-      { role: 'user', content: `Write a comprehensive document on: "${topicData.topic}"\nAngle: "${topicData.angle}"\n\nInclude 8+ major sections, 400-600 words each. End with References section.\n${userFocus ? `FOCUS: ${userFocus}\n` : ''}User's existing knowledge:\n${filteredSummary.substring(0, 6000)}\n\nGo beyond existing knowledge. Target 5,000+ words.` }
-    ], 0.75, 16384);
+    const outlineRaw = await callAI(apiKey, [
+      { role: 'system', content: 'You are a senior nonfiction editor. Design a publication-ready outline. Return ONLY valid JSON.' },
+      { role: 'user', content: `Design an outline for a long-form document on "${topicData.topic}" (angle: ${topicData.angle}).\n\nUser's existing knowledge (use as evidence):\n${filteredSummary.substring(0, 5000)}\n\nReturn JSON:\n{\n  "thesis": "1-sentence controlling argument",\n  "throughline": "the narrative arc connecting every section",\n  "sections": [\n    {"heading":"H2 title","purpose":"what this section does for the reader","key_points":["..."],"target_words":550,"transition_in":"how it picks up from the previous section"}\n  ]\n}\n\nProduce 8-10 sections, ~550 words each. Each section's purpose must advance the throughline.` }
+    ], 0.5, 3072);
+    const m = outlineRaw.match(/\{[\s\S]*\}/);
+    if (m) outline = JSON.parse(m[0]);
+  } catch (e) {
+    console.error('Author Agent: Outline failed, falling back to single-shot:', e);
+  }
+
+  let documentBody = '';
+  try {
+    if (outline && Array.isArray(outline.sections) && outline.sections.length > 0) {
+      const sections: string[] = [];
+      let prevTail = '';
+      for (let i = 0; i < outline.sections.length; i++) {
+        const s = outline.sections[i];
+        const sectionMd = await callAI(apiKey, [
+          { role: 'system', content: `You are writing one section of a long, cohesive nonfiction document. Maintain a single authorial voice across sections. Use standard Markdown only (## for H2, ### for H3). Paragraphs 3-4 sentences. Favor flowing prose over bullet lists. Bold sparingly. Open with a one-sentence transition that connects to the previous section's ending. Do NOT restate the document title.` },
+          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nSECTION ${i + 1}/${outline.sections.length}\nHEADING: ${s.heading}\nPURPOSE: ${s.purpose}\nKEY POINTS: ${(s.key_points || []).join('; ')}\nTRANSITION IN: ${s.transition_in || 'natural continuation'}\nTARGET LENGTH: ~${s.target_words || 550} words\n\nPREVIOUS SECTION ENDING (for continuity):\n${prevTail || '[opening section — set the stage in 1-2 sentences before diving in]'}\n\nUSER KNOWLEDGE (integrate where relevant):\n${filteredSummary.substring(0, 3500)}\n\nWrite the full section, beginning with "## ${s.heading}".` }
+        ], 0.7, 4096);
+        sections.push(sectionMd.trim());
+        prevTail = sectionMd.trim().slice(-600);
+      }
+      documentBody = sections.join('\n\n');
+
+      // Cohesion stitch pass
+      try {
+        const stitched = await callAI(apiKey, [
+          { role: 'system', content: 'You are an editor performing a light cohesion pass. Preserve every section\'s ideas, evidence, and length. Only smooth transitions between sections, fix repeated phrasings across boundaries, and ensure one consistent authorial voice. Return the full revised Markdown.' },
+          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nDOCUMENT:\n${documentBody.substring(0, 28000)}` }
+        ], 0.4, 16384);
+        if (stitched && stitched.length > documentBody.length * 0.7) documentBody = stitched;
+      } catch (e) {
+        console.error('Author Agent: Cohesion stitch failed (non-fatal):', e);
+      }
+    } else {
+      documentBody = await callAI(apiKey, [
+        { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document with a clear narrative arc. Aim for at least 4,000 words. Use standard Markdown only. Paragraphs 3-4 sentences max. Heading hierarchy: # H1, ## H2, ### H3. Favor flowing prose over bullet lists.` },
+        { role: 'user', content: `Write a comprehensive document on: "${topicData.topic}"\nAngle: "${topicData.angle}"\n\nInclude 8+ major sections, 400-600 words each. Maintain a consistent throughline.\n${userFocus ? `FOCUS: ${userFocus}\n` : ''}User's existing knowledge:\n${filteredSummary.substring(0, 6000)}` }
+      ], 0.75, 16384);
+    }
   } catch (e) {
     console.error('Author Agent: Generation failed:', e);
     documentBody = `## ${topicData.topic}\n\n*Generation error. Please try again.*\n`;
@@ -200,8 +238,8 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
   if (wordCount1 < 5000 && wordCount1 > 100) {
     try {
       const extension = await callAI(apiKey, [
-        { role: 'system', content: 'Continue this document. Add entirely new sections. Standard Markdown only.' },
-        { role: 'user', content: `Continue about "${topicData.topic}". Currently ~${wordCount1} words.\n\nEnding:\n${documentBody.slice(-2000)}\n\nWrite 3,000+ more words of new sections.` }
+        { role: 'system', content: 'Continue this document. Add entirely new sections that advance the existing throughline. Open with a real transition from the last paragraph. Standard Markdown only.' },
+        { role: 'user', content: `Continue "${topicData.topic}" (~${wordCount1} words so far).\n\nEnding:\n${documentBody.slice(-2000)}\n\nWrite 2,500+ more words of new sections without repeating earlier material.` }
       ], 0.75, 16384);
       documentBody += '\n\n' + extension;
     } catch (e) {
@@ -236,92 +274,172 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
 }
 
 // ── Citation Agent: analyzes document and returns numbered citations ──
-async function runCitationAgent(apiKey: string, documentContent: string, documentTitle: string, agentId: string, runId: string, userId: string) {
+async function runCitationAgent(apiKey: string, documentContent: string, documentTitle: string, agentId: string, runId: string, userId: string, style: string = 'apa') {
   const plainText = documentContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const STYLES = ['apa', 'mla', 'chicago_author_date', 'chicago_notes_bib', 'harvard', 'ieee', 'vancouver', 'ama'];
+  const requested = STYLES.includes(style.toLowerCase()) ? style.toLowerCase() : 'apa';
 
-  const prompt = `You are an expert academic citation analyst. Analyze the following document and identify key claims, facts, statistics, or assertions that should be cited with a source.\n\nDocument Title: "${documentTitle}"\n\nDocument Content:\n${plainText.substring(0, 12000)}\n\nFor each claim that needs a citation, provide:\n1. The exact text passage that needs a citation (a short phrase or sentence from the document)\n2. A plausible academic or authoritative source (author, title, year, publisher/journal, URL if applicable)\n3. The formatted APA citation\n\nReturn ONLY a valid JSON array:\n[{\n  "passage": "the exact text from the document that needs citation",\n  "source_title": "Title of the Source",\n  "source_author": "Author Name(s)",\n  "source_year": 2023,\n  "source_url": "https://example.com or null",\n  "apa_citation": "Full APA formatted citation string"\n}]\n\nFind 5-15 passages that need citations. Focus on factual claims, statistics, and assertions.`;
+  const prompt = `You are an expert academic citation analyst. Identify claims, statistics, definitions, historical facts, and assertions in the document that require a source. For each, propose a plausible authoritative source AND emit the citation in MULTIPLE styles so the user can pick one.\n\nDocument Title: "${documentTitle}"\n\nDocument:\n${plainText.substring(0, 12000)}\n\nReturn ONLY a valid JSON array:\n[{\n  "passage": "exact text from the document needing citation",\n  "claim_type": "statistic|definition|historical|empirical|attribution|theoretical|legal|other",\n  "source_title": "...",\n  "source_author": "Last, F. M. (& multiple if applicable)",\n  "source_year": 2023,\n  "source_publisher": "publisher or journal",\n  "source_volume_issue_pages": "Vol(Issue), pp-pp or null",\n  "source_doi": "10.xxxx/... or null",\n  "source_url": "https://... or null",\n  "confidence": 0.0,\n  "in_text": {\n    "apa": "(Author, 2023)",\n    "mla": "(Author 14)",\n    "chicago_author_date": "(Author 2023, 14)",\n    "chicago_notes_bib": "1. Author, Title, 14.",\n    "harvard": "(Author, 2023)",\n    "ieee": "[1]",\n    "vancouver": "(1)",\n    "ama": "1"\n  },\n  "bibliography": {\n    "apa": "Author, F. M. (2023). Title. Publisher.",\n    "mla": "Author, First. Title. Publisher, 2023.",\n    "chicago_author_date": "Author, First. 2023. Title. Publisher.",\n    "chicago_notes_bib": "Author, First. Title. Publisher, 2023.",\n    "harvard": "Author, F.M., 2023. Title. Publisher.",\n    "ieee": "[1] F. M. Author, Title. Publisher, 2023.",\n    "vancouver": "1. Author FM. Title. Publisher; 2023.",\n    "ama": "1. Author FM. Title. Publisher; 2023."\n  }\n}]\n\nReturn 5-15 entries. Confidence is your honest estimate (0.0-1.0) that the source you propose actually exists; never fabricate DOIs.`;
 
   const raw = await callAI(apiKey, [
-    { role: 'system', content: 'You are a citation expert. Return only valid JSON arrays.' },
+    { role: 'system', content: 'You are a multi-style citation expert. Return only a valid JSON array. Never invent DOIs — leave them null when unsure.' },
     { role: 'user', content: prompt }
-  ], 0.3, 4096);
+  ], 0.25, 5120);
 
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return { citations: [], findings: [] };
 
-  const citations = JSON.parse(jsonMatch[0]);
-  const findings = citations.map((c: any, i: number) => ({
-    agent_id: agentId, run_id: runId, user_id: userId,
-    finding_type: 'citation',
-    title: `[${i + 1}] ${c.source_title}`,
-    content: c.apa_citation,
-    metadata: {
-      citation_number: i + 1,
-      passage: c.passage,
-      source_title: c.source_title,
-      source_author: c.source_author,
-      source_year: c.source_year,
-      source_url: c.source_url,
-      apa_citation: c.apa_citation,
-    },
-    relevance_score: 0.9
-  }));
+  let citations: any[] = [];
+  try { citations = JSON.parse(jsonMatch[0]); } catch { return { citations: [], findings: [] }; }
+
+  const findings = citations.map((c: any, i: number) => {
+    const bib = c.bibliography || {};
+    const inText = c.in_text || {};
+    const preferred = bib[requested] || bib.apa || c.apa_citation || c.source_title;
+    return {
+      agent_id: agentId, run_id: runId, user_id: userId,
+      finding_type: 'citation',
+      title: `[${i + 1}] ${c.source_title || 'Untitled source'}`,
+      content: preferred,
+      metadata: {
+        citation_number: i + 1,
+        passage: c.passage,
+        claim_type: c.claim_type || 'other',
+        confidence: typeof c.confidence === 'number' ? c.confidence : null,
+        source_title: c.source_title,
+        source_author: c.source_author,
+        source_year: c.source_year,
+        source_publisher: c.source_publisher || null,
+        source_volume_issue_pages: c.source_volume_issue_pages || null,
+        source_doi: c.source_doi || null,
+        source_url: c.source_url || null,
+        preferred_style: requested,
+        in_text: inText,
+        bibliography: bib,
+        // Back-compat for older UI:
+        apa_citation: bib.apa || c.apa_citation || null,
+      },
+      relevance_score: Math.max(0.4, Math.min(0.95, (c.confidence ?? 0.8))),
+    };
+  });
 
   return { citations, findings };
 }
 
-// ── Research Agent: finds relevant info with links and quotes ──
+// ── Research Agent: grounded sources with credibility scoring + cross-check ──
 async function runResearchAgent(apiKey: string, documentContent: string, documentTitle: string, agentId: string, runId: string, userId: string) {
   const plainText = documentContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
-  const prompt = `You are an expert research assistant. Analyze the following document and find relevant external resources that would enhance the content.\n\nDocument Title: "${documentTitle}"\n\nDocument Content:\n${plainText.substring(0, 10000)}\n\nFor each research finding, provide:\n1. A relevant topic or concept from the document\n2. A real, authoritative source URL (academic paper, reputable publication, official documentation)\n3. The most relevant quote or key insight from that source\n4. Why this resource is relevant to the document\n\nReturn ONLY a valid JSON array:\n[{\n  "topic": "The specific topic from the document",\n  "source_title": "Title of the external resource",\n  "source_url": "https://real-url.com",\n  "relevant_quote": "The most relevant quote or key excerpt from the source (2-4 sentences)",\n  "relevance_explanation": "Why this is useful for the author"\n}]\n\nFind 5-10 highly relevant research findings. Focus on authoritative, citable sources.`;
+  const prompt = `You are an expert research librarian. Find external resources that genuinely back specific claims in the document. For each finding, the relevant_quote MUST be directly relevant to a claim you can name. Reject vaguely-related sources.\n\nDocument: "${documentTitle}"\nContent: ${plainText.substring(0, 10000)}\n\nReturn ONLY a JSON array:\n[{\n  "claim": "the specific claim from the document this source supports",\n  "topic": "topic area",\n  "source_title": "...",\n  "source_url": "https://real-url.com",\n  "source_domain": "e.g. nature.com",\n  "source_type": "peer_reviewed|preprint|book|gov|standards_body|reputable_news|industry_report|wiki|blog|other",\n  "publication_year": 2023,\n  "credibility": 0.0,\n  "credibility_reason": "1-sentence justification (peer-reviewed venue, primary source, authoritative org, etc.)",\n  "relevant_quote": "2-4 sentence excerpt that directly supports the claim",\n  "supports_or_contradicts": "supports|contradicts|nuances",\n  "relevance_explanation": "how it backs the specific claim"\n}]\n\nReturn 5-10 findings. Prefer peer_reviewed/gov/standards_body over blogs. Set credibility honestly (0.0-1.0). Skip a source if you can't connect it to a specific claim.`;
 
   const raw = await callAI(apiKey, [
-    { role: 'system', content: 'You are a research assistant. Return only valid JSON arrays.' },
+    { role: 'system', content: 'You are a research librarian. Return only a valid JSON array. Never invent URLs — omit the entry if uncertain. Prefer high-credibility primary sources.' },
     { role: 'user', content: prompt }
-  ], 0.4, 4096);
+  ], 0.3, 5120);
 
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return [];
 
-  const results = JSON.parse(jsonMatch[0]);
-  return results.map((r: any) => ({
-    agent_id: agentId, run_id: runId, user_id: userId,
-    finding_type: 'research_finding',
-    title: `🔍 ${r.source_title}`,
-    content: r.relevant_quote,
-    metadata: {
-      topic: r.topic,
-      source_title: r.source_title,
-      source_url: r.source_url,
-      relevant_quote: r.relevant_quote,
-      relevance_explanation: r.relevance_explanation,
-    },
-    relevance_score: 0.85
-  }));
+  let results: any[] = [];
+  try { results = JSON.parse(jsonMatch[0]); } catch { return []; }
+
+  // Filter low-credibility / missing URL items
+  const filtered = results.filter((r: any) =>
+    typeof r?.source_url === 'string' && /^https?:\/\//i.test(r.source_url) && (r.credibility ?? 0.5) >= 0.4
+  );
+
+  return filtered.map((r: any) => {
+    const cred = Math.max(0, Math.min(1, Number(r.credibility) || 0.5));
+    const stance = r.supports_or_contradicts || 'supports';
+    const icon = stance === 'contradicts' ? '⚠️' : stance === 'nuances' ? 'ℹ️' : '🔍';
+    return {
+      agent_id: agentId, run_id: runId, user_id: userId,
+      finding_type: 'research_finding',
+      title: `${icon} ${r.source_title}`,
+      content: r.relevant_quote,
+      metadata: {
+        claim: r.claim || null,
+        topic: r.topic,
+        source_title: r.source_title,
+        source_url: r.source_url,
+        source_domain: r.source_domain || null,
+        source_type: r.source_type || 'other',
+        publication_year: r.publication_year || null,
+        credibility: cred,
+        credibility_reason: r.credibility_reason || null,
+        supports_or_contradicts: stance,
+        relevant_quote: r.relevant_quote,
+        relevance_explanation: r.relevance_explanation,
+      },
+      relevance_score: Math.max(0.4, Math.min(0.98, cred * 0.7 + 0.25)),
+    };
+  });
 }
 
-// ── Writing Coach Agent ──
+// ── Writing Coach: deep stylistic analysis with quantitative metrics ──
 async function runWritingCoachAgent(apiKey: string, documentContent: string, documentTitle: string, agentId: string, runId: string, userId: string) {
   const plainText = documentContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
+  // Lightweight quantitative pre-analysis the model can ground its critique in.
+  const sentences = plainText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+  const words = plainText.split(/\s+/).filter(Boolean);
+  const syllables = words.reduce((sum, w) => {
+    const m = w.toLowerCase().replace(/[^a-z]/g, '').match(/[aeiouy]+/g);
+    return sum + Math.max(1, m ? m.length : 1);
+  }, 0);
+  const wordCount = words.length || 1;
+  const sentenceCount = sentences.length || 1;
+  const avgSentLen = wordCount / sentenceCount;
+  const lengths = sentences.map(s => s.split(/\s+/).filter(Boolean).length);
+  const mean = lengths.reduce((a, b) => a + b, 0) / (lengths.length || 1);
+  const variance = lengths.reduce((a, b) => a + (b - mean) ** 2, 0) / (lengths.length || 1);
+  const stdev = Math.sqrt(variance);
+  const flesch = 206.835 - 1.015 * avgSentLen - 84.6 * (syllables / wordCount);
+  const fkGrade = 0.39 * avgSentLen + 11.8 * (syllables / wordCount) - 15.59;
+  const passiveHits = (plainText.match(/\b(?:is|are|was|were|be|been|being)\s+\w+ed\b/gi) || []).length;
+  const passiveRatio = passiveHits / sentenceCount;
+  const adverbHits = (plainText.match(/\b\w+ly\b/gi) || []).length;
+  const fillerHits = (plainText.match(/\b(very|really|just|actually|basically|literally|simply|that)\b/gi) || []).length;
+  const metrics = {
+    word_count: wordCount,
+    sentence_count: sentenceCount,
+    avg_sentence_length: Number(avgSentLen.toFixed(1)),
+    sentence_length_stdev: Number(stdev.toFixed(1)),
+    flesch_reading_ease: Number(flesch.toFixed(1)),
+    flesch_kincaid_grade: Number(fkGrade.toFixed(1)),
+    passive_voice_ratio: Number(passiveRatio.toFixed(3)),
+    adverbs_per_1000w: Number(((adverbHits / wordCount) * 1000).toFixed(1)),
+    filler_words_per_1000w: Number(((fillerHits / wordCount) * 1000).toFixed(1)),
+  };
+
   const raw = await callAI(apiKey, [
-    { role: 'system', content: 'You are a professional writing coach. Return only valid JSON arrays.' },
-    { role: 'user', content: `Analyze this document for writing quality. Provide feedback on grammar, style, tone, readability, and structure.\n\nDocument: "${documentTitle}"\nContent: ${plainText.substring(0, 10000)}\n\nReturn a JSON array of feedback items:\n[{"category": "grammar|style|tone|structure|readability", "severity": "high|medium|low", "passage": "the problematic text", "issue": "what's wrong", "suggestion": "how to fix it"}]\n\nFind 5-12 actionable feedback items.`}
-  ], 0.3, 4096);
+    { role: 'system', content: 'You are a senior editor and writing coach. Use the supplied quantitative metrics to ground your critique. Return only a valid JSON array of feedback items.' },
+    { role: 'user', content: `Document: "${documentTitle}"\nMetrics: ${JSON.stringify(metrics)}\n\nContent:\n${plainText.substring(0, 10000)}\n\nReturn a JSON array of feedback items, covering:\n- voice_consistency (does authorial voice drift?)\n- tone (matches stated/inferred audience)\n- sentence_rhythm (use stdev; flag monotony if stdev < 5)\n- passive_voice (flag if ratio > 0.15)\n- diction (filler words, weak verbs, overused adverbs)\n- clarity (ambiguous referents, buried subjects)\n- structure (paragraph cohesion, signposting, topic sentences)\n- argumentation (unsupported claims, logical gaps)\n- readability (vs. inferred target audience using flesch grade)\n- grammar (only real errors, not stylistic preferences)\n\nReturn JSON:\n[{"category":"voice_consistency|tone|sentence_rhythm|passive_voice|diction|clarity|structure|argumentation|readability|grammar","severity":"high|medium|low","passage":"exact text from the document","issue":"what's wrong, citing the metric when relevant","suggestion":"concrete rewrite or fix","example_revision":"optional rewritten sentence"}]\n\nReturn 6-14 items. Prioritize high-leverage stylistic issues over nitpicks.` }
+  ], 0.3, 5120);
 
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return [];
-  const items = JSON.parse(jsonMatch[0]);
+  const items = jsonMatch ? (() => { try { return JSON.parse(jsonMatch[0]); } catch { return []; } })() : [];
 
-  return items.map((item: any, i: number) => ({
+  const findings = items.map((item: any) => ({
     agent_id: agentId, run_id: runId, user_id: userId,
     finding_type: 'writing_feedback',
-    title: `✍️ ${item.category}: ${item.issue.substring(0, 60)}`,
+    title: `✍️ ${item.category}: ${String(item.issue || '').substring(0, 60)}`,
     content: item.suggestion,
-    metadata: { category: item.category, severity: item.severity, passage: item.passage, issue: item.issue, suggestion: item.suggestion },
+    metadata: { ...item, metrics },
     relevance_score: item.severity === 'high' ? 0.95 : item.severity === 'medium' ? 0.75 : 0.5
   }));
+
+  // Always emit a metrics-summary finding so the user sees the quantitative read.
+  findings.unshift({
+    agent_id: agentId, run_id: runId, user_id: userId,
+    finding_type: 'writing_metrics',
+    title: `📊 Style metrics for "${documentTitle}"`,
+    content: `Flesch ease ${metrics.flesch_reading_ease} (grade ${metrics.flesch_kincaid_grade}) · avg sentence ${metrics.avg_sentence_length}w (σ ${metrics.sentence_length_stdev}) · passive ${(metrics.passive_voice_ratio * 100).toFixed(1)}% · filler ${metrics.filler_words_per_1000w}/1k`,
+    metadata: metrics,
+    relevance_score: 0.6,
+  });
+
+  return findings;
 }
 
 // ── Content Summarizer Agent ──
@@ -347,28 +465,32 @@ async function runSummarizerAgent(apiKey: string, documentContent: string, docum
   }];
 }
 
-// ── Task Extraction Agent (document-aware) ──
+// ── Task Extraction: intent-vs-context classifier ──
 async function runTaskExtractionAgent(apiKey: string, documentContent: string, documentTitle: string, agentId: string, runId: string, userId: string) {
   const plainText = documentContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
   const raw = await callAI(apiKey, [
-    { role: 'system', content: 'You are a task extraction expert. Return only valid JSON arrays.' },
-    { role: 'user', content: `Extract all action items, to-dos, and tasks from this document.\n\nDocument: "${documentTitle}"\nContent: ${plainText.substring(0, 10000)}\n\nReturn JSON array:\n[{"task": "specific action item", "priority": "high|medium|low", "context": "which section it came from", "deadline_hint": "any mentioned deadline or null"}]\n\nFind all implicit and explicit tasks.`}
-  ], 0.3, 2048);
+    { role: 'system', content: 'You are an expert at distinguishing genuine action items from descriptive or hypothetical mentions. Return only a valid JSON array.' },
+    { role: 'user', content: `Extract REAL action items from this document. A real action item:\n- Is something a human is expected to DO (imperative or commitment)\n- Has a clear actor or implied owner\n- Is NOT a description of what someone already did, a hypothetical, a quoted instruction in someone else's voice, or a definition/example\n\nFor each candidate, classify the linguistic signal that justifies it.\n\nDocument: "${documentTitle}"\nContent: ${plainText.substring(0, 10000)}\n\nReturn JSON:\n[{\n  "task": "the action, rewritten as a clean imperative",\n  "original_phrase": "the exact phrase from the document",\n  "intent_signal": "imperative|commitment|deadline|assignment|question_to_self|none",\n  "is_actionable": true,\n  "is_actionable_reason": "1-sentence justification",\n  "confidence": 0.0,\n  "owner": "person/team or 'self' or null",\n  "priority": "high|medium|low",\n  "due_date_iso": "YYYY-MM-DD or null",\n  "deadline_hint": "raw deadline phrase or null",\n  "depends_on": "preceding task or null",\n  "context": "section/paragraph it came from"\n}]\n\nExclude items where is_actionable is false or confidence < 0.5. Cap at 20 items. Distinguish carefully: 'we should consider X' = imperative/medium; 'the team built X' = NOT a task; 'remember to file the report by Friday' = commitment/high with deadline.` }
+  ], 0.25, 3072);
 
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return [];
-  const tasks = JSON.parse(jsonMatch[0]);
+  let tasks: any[] = [];
+  try { tasks = JSON.parse(jsonMatch[0]); } catch { return []; }
 
-  return tasks.map((t: any) => ({
+  const filtered = tasks.filter((t: any) => t && t.is_actionable !== false && (t.confidence ?? 0.6) >= 0.5 && t.intent_signal !== 'none');
+
+  return filtered.map((t: any) => ({
     agent_id: agentId, run_id: runId, user_id: userId,
     finding_type: 'extracted_task',
-    title: `✅ ${t.task.substring(0, 80)}`,
-    content: `Priority: ${t.priority}${t.deadline_hint ? ` | Deadline: ${t.deadline_hint}` : ''} | From: ${t.context}`,
+    title: `✅ ${String(t.task || '').substring(0, 80)}`,
+    content: `${t.owner ? `Owner: ${t.owner} · ` : ''}Priority: ${t.priority || 'medium'}${t.due_date_iso ? ` · Due: ${t.due_date_iso}` : t.deadline_hint ? ` · ${t.deadline_hint}` : ''} · Signal: ${t.intent_signal}\n${t.is_actionable_reason || ''}`,
     metadata: t,
-    relevance_score: t.priority === 'high' ? 0.95 : t.priority === 'medium' ? 0.75 : 0.5
+    relevance_score: (t.priority === 'high' ? 0.95 : t.priority === 'medium' ? 0.75 : 0.55) * Math.max(0.5, Math.min(1, t.confidence ?? 0.7))
   }));
 }
+
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -417,7 +539,8 @@ serve(async (req) => {
         }
         itemsProcessed = 1;
         try {
-          const result = await runCitationAgent(apiKey, documentContent, documentTitle, agentId, runId, user.id);
+          const citationStyle = String((agent.config as any)?.citation_style || 'apa').toLowerCase();
+          const result = await runCitationAgent(apiKey, documentContent, documentTitle, agentId, runId, user.id, citationStyle);
           findings.push(...result.findings);
           itemsFound = result.findings.length;
         } catch (e) {
@@ -528,19 +651,104 @@ serve(async (req) => {
       }
 
       case 'smart_linking': {
-        const { data: cards } = await supabaseClient.from('zettel_cards').select('id, title, content, tags, linked_cards').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(20);
+        // Semantic relevance across disparate notes: embeddings first, then AI re-rank.
+        const cfg = (agent.config as any) || {};
+        const threshold = Number(cfg.similarity_threshold ?? 0.78);
+        const maxPerCard = Number(cfg.max_suggestions ?? 5);
+        const { data: cards } = await supabaseClient
+          .from('zettel_cards')
+          .select('id, title, content, tags, linked_cards, content_embedding')
+          .eq('user_id', user.id).is('deleted_at', null)
+          .order('updated_at', { ascending: false }).limit(40);
+
         if (cards && cards.length > 1) {
           itemsProcessed = cards.length;
-          for (let i = 0; i < cards.length; i++) {
-            for (let j = i + 1; j < cards.length; j++) {
-              const card1 = cards[i], card2 = cards[j];
-              if (card1.linked_cards?.includes(card2.id) || card2.linked_cards?.includes(card1.id)) continue;
-              const sharedTags = (card1.tags || []).filter((t: string) => (card2.tags || []).includes(t));
-              if (sharedTags.length > 0) {
-                itemsFound++;
-                findings.push({ agent_id: agentId, run_id: runId, user_id: user.id, finding_type: 'link_suggestion', title: `Link "${card1.title}" ↔ "${card2.title}"`, content: `Shared tags: ${sharedTags.join(', ')}`, metadata: { card1_id: card1.id, card2_id: card2.id, shared_tags: sharedTags }, relevance_score: Math.min(sharedTags.length * 0.3, 1) });
+          const seenPair = new Set<string>();
+          const pairKey = (a: string, b: string) => a < b ? `${a}|${b}` : `${b}|${a}`;
+          const candidates: Array<{ a: any; b: any; similarity: number; sharedTags: string[] }> = [];
+
+          // 1) Embedding-based candidates via existing SECURITY DEFINER RPC.
+          for (const card of cards) {
+            if (!card.content_embedding) continue;
+            const { data: sims } = await supabaseClient.rpc('find_similar_zettel_cards', {
+              target_id: card.id,
+              similarity_threshold: threshold,
+              max_results: maxPerCard,
+            });
+            for (const s of (sims || [])) {
+              const key = pairKey(card.id, s.id);
+              if (seenPair.has(key)) continue;
+              if (card.linked_cards?.includes(s.id)) continue;
+              seenPair.add(key);
+              const other = cards.find((c: any) => c.id === s.id) || s;
+              const sharedTags = (card.tags || []).filter((t: string) => (other.tags || []).includes(t));
+              candidates.push({ a: card, b: other, similarity: s.similarity, sharedTags });
+            }
+          }
+
+          // 2) Fallback: cards without embeddings — use tag overlap.
+          if (candidates.length === 0) {
+            for (let i = 0; i < cards.length; i++) {
+              for (let j = i + 1; j < cards.length; j++) {
+                const a = cards[i], b = cards[j];
+                if (a.linked_cards?.includes(b.id) || b.linked_cards?.includes(a.id)) continue;
+                const sharedTags = (a.tags || []).filter((t: string) => (b.tags || []).includes(t));
+                if (sharedTags.length === 0) continue;
+                const key = pairKey(a.id, b.id);
+                if (seenPair.has(key)) continue;
+                seenPair.add(key);
+                candidates.push({ a, b, similarity: Math.min(0.5 + sharedTags.length * 0.1, 0.95), sharedTags });
               }
             }
+          }
+
+          // 3) AI re-rank: ask the model to confirm conceptual relevance for top candidates.
+          const top = candidates.sort((x, y) => y.similarity - x.similarity).slice(0, 12);
+          let reranked: Array<{ a: any; b: any; similarity: number; sharedTags: string[]; reason: string; conceptual_score: number }> = [];
+          if (top.length > 0) {
+            try {
+              const payload = top.map((p, idx) => ({
+                idx,
+                a_title: p.a.title, a_excerpt: String(p.a.content || '').substring(0, 350),
+                b_title: p.b.title, b_excerpt: String(p.b.content || '').substring(0, 350),
+                vector_similarity: Number(p.similarity.toFixed(3)),
+                shared_tags: p.sharedTags,
+              }));
+              const judged = await callAI(apiKey, [
+                { role: 'system', content: 'You judge whether two notes are CONCEPTUALLY linked (not merely topically near). Return only valid JSON.' },
+                { role: 'user', content: `Rate each pair for conceptual link strength on 0.0-1.0 and explain the link in one sentence. Reject pairs that share only superficial vocabulary.\n\nPairs:\n${JSON.stringify(payload)}\n\nReturn JSON: [{"idx":0,"conceptual_score":0.0,"reason":"..."}]` }
+              ], 0.2, 2048);
+              const m = judged.match(/\[[\s\S]*\]/);
+              if (m) {
+                const arr = JSON.parse(m[0]);
+                for (const r of arr) {
+                  const src = top[r.idx];
+                  if (!src) continue;
+                  if ((r.conceptual_score ?? 0) < 0.55) continue;
+                  reranked.push({ ...src, reason: r.reason || 'Conceptually related', conceptual_score: r.conceptual_score });
+                }
+              }
+            } catch (e) {
+              console.error('Smart Linking rerank failed (non-fatal):', e);
+              reranked = top.map(t => ({ ...t, reason: `Vector similarity ${t.similarity.toFixed(2)}${t.sharedTags.length ? `, shared tags: ${t.sharedTags.join(', ')}` : ''}`, conceptual_score: t.similarity }));
+            }
+          }
+
+          for (const r of reranked) {
+            itemsFound++;
+            findings.push({
+              agent_id: agentId, run_id: runId, user_id: user.id,
+              finding_type: 'link_suggestion',
+              title: `Link "${r.a.title}" ↔ "${r.b.title}"`,
+              content: r.reason,
+              metadata: {
+                card1_id: r.a.id, card2_id: r.b.id,
+                shared_tags: r.sharedTags,
+                vector_similarity: Number(r.similarity.toFixed(3)),
+                conceptual_score: Number((r.conceptual_score ?? r.similarity).toFixed(3)),
+              },
+              relevance_score: Math.min(0.98, (r.conceptual_score ?? r.similarity) * 0.6 + r.similarity * 0.4),
+            });
           }
         }
         break;
