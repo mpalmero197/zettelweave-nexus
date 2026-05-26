@@ -7,6 +7,7 @@
  * The hook extracts those into structured `card` parts. Each card type
  * below renders a single payload shape.
  */
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon,
