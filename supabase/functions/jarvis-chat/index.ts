@@ -1908,9 +1908,14 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       screenBlock = `\n\n═══ WHAT IS CURRENTLY ON THE USER'S SCREEN ═══\nRoute: ${screen.route || "(unknown)"}\n(No instrumented regions reported for this turn. If the user asks about something on their screen, ask which app/page they mean.)`;
     }
 
+    // Gemini-Spark-style addendum: be transparent about your work, use tools
+    // freely instead of guessing, and end with concrete next-step suggestions
+    // when natural. Keep prose tight — the UI shows tool work as cards.
+    const sparkBlock = `\n\n═══ SPARK MODE — TRANSPARENT AGENCY ═══\n- Before answering anything that touches the user's data, current time, or the live web, CALL THE RELEVANT TOOL first. Don't paraphrase guesses.\n- Decompose multi-step asks into ordered actions and execute them; the UI renders each tool step inline.\n- Prefer rich cards over walls of text: weather → get_weather; video → find_video; image → generate_image; web results stay as a brief summary plus the [[ALICE_CARD]] block already injected.\n- End substantive replies with a single short line of 1–2 follow-up suggestions prefixed exactly with "Next: " (e.g. "Next: save this as a note · open in Catalyst"). Skip for trivial chit-chat.\n- Keep voice calm, sharp, concrete. No filler ("Sure!", "Of course!", "I'd be happy to…").`;
+
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock + sparkBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
