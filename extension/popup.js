@@ -1107,17 +1107,41 @@ function renderAIMessages() {
     return;
   }
   c.innerHTML = '';
+  const aliceSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3"/></svg>';
   aiMessages.forEach((m) => {
+    if (m.role === 'system') {
+      const s = document.createElement('div');
+      s.className = 'ai-msg system';
+      s.textContent = m.content;
+      c.appendChild(s);
+      return;
+    }
+    const row = document.createElement('div');
+    row.className = `ai-row ${m.role}`;
+    if (m.role === 'assistant') {
+      const av = document.createElement('div');
+      av.className = 'ai-avatar';
+      av.innerHTML = aliceSvg;
+      row.appendChild(av);
+    }
     const d = document.createElement('div');
     d.className = `ai-msg ${m.role}`;
     d.textContent = m.content;
-    c.appendChild(d);
+    row.appendChild(d);
+    c.appendChild(row);
   });
   if (aiLoading) {
+    const row = document.createElement('div');
+    row.className = 'ai-row assistant';
+    const av = document.createElement('div');
+    av.className = 'ai-avatar';
+    av.innerHTML = aliceSvg;
+    row.appendChild(av);
     const t = document.createElement('div');
     t.className = 'ai-msg assistant';
-    t.innerHTML = '<span class="ai-typing"><span></span><span></span><span></span></span>';
-    c.appendChild(t);
+    t.innerHTML = '<span class="ai-typing">Thinking<span class="ai-dots"><span></span><span></span><span></span></span></span>';
+    row.appendChild(t);
+    c.appendChild(row);
   }
   c.scrollTop = c.scrollHeight;
 }
