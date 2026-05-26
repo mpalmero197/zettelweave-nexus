@@ -226,6 +226,11 @@ const App = () => (
                     <Unsubscribe />
                   </Suspense>
                 } />
+                <Route path="/sso" element={
+                  <Suspense fallback={<LoadingFallback message="Signing in from Toolbox..." />}>
+                    <SsoHandoff />
+                  </Suspense>
+                } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={
