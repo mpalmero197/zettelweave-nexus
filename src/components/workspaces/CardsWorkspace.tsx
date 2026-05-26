@@ -46,8 +46,8 @@ export function CardsWorkspace() {
   }, [cards, query, favOnly]);
 
   useEffect(() => {
-    if (!selectedId && filtered[0]) setSelectedId(filtered[0].id);
-  }, [filtered, selectedId]);
+    if (!isMobile && !selectedId && filtered[0]) setSelectedId(filtered[0].id);
+  }, [filtered, selectedId, isMobile]);
 
   const selected = useMemo(() => cards.find(c => c.id === selectedId) || null, [cards, selectedId]);
   const linked = useMemo(
