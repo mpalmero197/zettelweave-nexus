@@ -121,6 +121,7 @@ SILENT-EXECUTION RULES (do NOT navigate the user away when they're just dictatin
 • SCHEDULING (proactive) → create_scheduled_trigger when the user asks you to do something on a recurring schedule ("every weekday at 8am search the web for AI news", "remind me every Monday morning to review goals"). Convert their local time to UTC before crafting the 5-field cron. Use list_scheduled_triggers / delete_scheduled_trigger to manage existing schedules.
 • BROWSER CONTEXT → get_open_browser_tabs to read the user's currently open Chrome tabs (requires the PendragonX extension). Use it whenever the user asks "what am I looking at", "summarize my tabs", "what was I researching", or before suggesting follow-ups based on their browsing.
 • MOBILE TTS BUG → reset_mobile_tts_engine if the user reports duplicated/echoing/stuttering speech on mobile.
+• AGENDA / NOTIFICATIONS → get_my_agenda for a fresh dump; complete_task to finish a project task; mark_habit_done to log today's habit; snooze_reminder to push a notification later; list_notifications / mark_notification_read for the bell. The system prompt's LIVE AGENDA block already gives you the current snapshot — answer "what's on my plate" / "today" / "any notifications" from it without an extra tool call.
 • ADMIN — admin_summary only if user is admin (read-only).
 
 You are a *superuser* of PendragonX. If a user asks for ANY action this product supports, prefer the dedicated tool. Never describe the steps and stop — execute, then summarize.
@@ -812,6 +813,82 @@ const tools = [
       name: "get_open_browser_tabs",
       description: "Return the user's currently open browser tabs (URL + title) as reported by the PendragonX Chrome extension. Use to ground answers about 'what am I looking at', 'summarize my open tabs', or to suggest follow-ups based on their research session. If the snapshot is older than 2 minutes, tell the user the extension is not actively connected.",
       parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_my_agenda",
+      description: "Return the user's live agenda: today's + tomorrow's calendar events, tasks due today / overdue, active habits and whether each is completed today, and the most recent unread notifications. Use this whenever the user asks 'what's on my plate', 'what's today', 'my agenda', 'what am I behind on', 'how am I doing today', or before suggesting how to spend time.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_task",
+      description: "Mark a project task as done. Accepts either task_id (preferred) or a task_title to fuzzy-match against the user's open tasks.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string", description: "UUID of the project_tasks row." },
+          task_title: { type: "string", description: "Fuzzy title to match if id is unknown." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_habit_done",
+      description: "Log a habit completion for today. Accepts either habit_id or habit_title (fuzzy match against the user's active habits).",
+      parameters: {
+        type: "object",
+        properties: {
+          habit_id: { type: "string" },
+          habit_title: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "snooze_reminder",
+      description: "Snooze a pending in-app notification or scheduled reminder by N minutes. Use when the user says 'remind me in 15 min', 'snooze that', 'not now'. Either notification_id or reminder_id must be supplied — list_notifications/list_reminders can resolve these.",
+      parameters: {
+        type: "object",
+        properties: {
+          notification_id: { type: "string" },
+          reminder_id: { type: "string" },
+          minutes: { type: "number", description: "Minutes to delay. Default 15." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_notifications",
+      description: "Return the user's most recent in-app notifications (unread first). Use when the user says 'what notifications do I have', 'any alerts', 'catch me up'.",
+      parameters: {
+        type: "object",
+        properties: { limit: { type: "number" }, only_unread: { type: "boolean" } },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_notification_read",
+      description: "Mark one or all in-app notifications as read.",
+      parameters: {
+        type: "object",
+        properties: {
+          notification_id: { type: "string", description: "Specific id; if omitted and all=true, marks every notification read." },
+          all: { type: "boolean" },
+        },
+      },
     },
   },
 ];
@@ -1728,6 +1805,139 @@ async function executeTool(
           note: fresh ? null : "Snapshot is stale (>2 min) — extension may be inactive.",
         };
       }
+      case "get_my_agenda": {
+        const today = new Date().toISOString().slice(0, 10);
+        const tomorrow = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+        const [evs, dueTasks, overdueTasks, habits, notifs] = await Promise.all([
+          supabase.from("calendar_events")
+            .select("id,title,event_date,event_time,location,reminder_minutes")
+            .gte("event_date", today).lte("event_date", tomorrow)
+            .neq("status", "cancelled").order("event_date").order("event_time").limit(25),
+          supabase.from("project_tasks")
+            .select("id,name,due_date,priority,status")
+            .eq("due_date", today).neq("status", "done").limit(25),
+          supabase.from("project_tasks")
+            .select("id,name,due_date,priority,status")
+            .lt("due_date", today).neq("status", "done")
+            .order("due_date", { ascending: true }).limit(25),
+          supabase.from("habits")
+            .select("id,title,frequency").eq("is_archived", false).limit(25),
+          supabase.from("in_app_notifications")
+            .select("id,title,body,item_type,item_id,is_read,created_at")
+            .eq("is_read", false).order("created_at", { ascending: false }).limit(10),
+        ]);
+        // Mark each habit as completed today or not.
+        const habitList: any[] = [];
+        for (const h of habits.data || []) {
+          const { data: done } = await supabase.from("habit_completions")
+            .select("id").eq("habit_id", h.id).eq("completed_on", today).maybeSingle();
+          habitList.push({ id: h.id, title: h.title, frequency: h.frequency, completed_today: !!done });
+        }
+        return {
+          ok: true,
+          today,
+          events: evs.data || [],
+          tasks_due_today: dueTasks.data || [],
+          tasks_overdue: overdueTasks.data || [],
+          habits: habitList,
+          unread_notifications: notifs.data || [],
+        };
+      }
+      case "complete_task": {
+        let id = String(args.task_id || "").trim();
+        if (!id) {
+          const t = String(args.task_title || "").trim();
+          if (!t) return { error: "task_id or task_title required" };
+          const like = `%${t.replace(/[%_\\]/g, "\\$&")}%`;
+          const { data: matches } = await supabase.from("project_tasks")
+            .select("id,name").ilike("name", like).neq("status", "done").limit(5);
+          if (!matches || !matches.length) return { error: `No open task matches "${t}"` };
+          if (matches.length > 1) return { error: `Multiple matches: ${matches.map((m: any) => m.name).join("; ")}. Please specify task_id.` };
+          id = matches[0].id;
+        }
+        const { data, error } = await supabase.from("project_tasks")
+          .update({ status: "done", updated_at: new Date().toISOString() })
+          .eq("id", id).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, status: "done" };
+      }
+      case "mark_habit_done": {
+        let id = String(args.habit_id || "").trim();
+        if (!id) {
+          const t = String(args.habit_title || "").trim();
+          if (!t) return { error: "habit_id or habit_title required" };
+          const like = `%${t.replace(/[%_\\]/g, "\\$&")}%`;
+          const { data: matches } = await supabase.from("habits")
+            .select("id,title").ilike("title", like).eq("is_archived", false).limit(5);
+          if (!matches || !matches.length) return { error: `No active habit matches "${t}"` };
+          if (matches.length > 1) return { error: `Multiple matches: ${matches.map((m: any) => m.title).join("; ")}. Please specify habit_id.` };
+          id = matches[0].id;
+        }
+        const today = new Date().toISOString().slice(0, 10);
+        // Upsert today's completion
+        const { data: existing } = await supabase.from("habit_completions")
+          .select("id").eq("habit_id", id).eq("completed_on", today).maybeSingle();
+        if (existing) return { ok: true, id: existing.id, already: true, note: "Already logged today." };
+        const { data, error } = await supabase.from("habit_completions")
+          .insert({ user_id: userId, habit_id: id, completed_on: today })
+          .select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, completed_on: today };
+      }
+      case "snooze_reminder": {
+        const mins = Math.min(Math.max(Number(args.minutes) || 15, 1), 60 * 24);
+        const newAt = new Date(Date.now() + mins * 60_000).toISOString();
+        const reminderId = String(args.reminder_id || "").trim();
+        const notifId = String(args.notification_id || "").trim();
+        if (reminderId) {
+          const { error } = await supabase.from("reminders")
+            .update({ remind_at: newAt, is_sent: false })
+            .eq("id", reminderId);
+          if (error) return { error: error.message };
+          return { ok: true, reminder_id: reminderId, remind_at: newAt };
+        }
+        if (notifId) {
+          // Mark old notification read and queue a fresh reminder.
+          const { data: n } = await supabase.from("in_app_notifications")
+            .select("title,body,item_type,item_id").eq("id", notifId).maybeSingle();
+          await supabase.from("in_app_notifications").update({ is_read: true }).eq("id", notifId);
+          const { data, error } = await supabase.from("reminders").insert({
+            user_id: userId,
+            item_type: n?.item_type || "alice",
+            item_id: n?.item_id || crypto.randomUUID(),
+            item_title: n?.title || "Snoozed",
+            remind_at: newAt,
+            offset_minutes: 0,
+          }).select("id").single();
+          if (error) return { error: error.message };
+          return { ok: true, reminder_id: data.id, remind_at: newAt };
+        }
+        return { error: "notification_id or reminder_id required" };
+      }
+      case "list_notifications": {
+        const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 50);
+        let q = supabase.from("in_app_notifications")
+          .select("id,title,body,item_type,item_id,is_read,created_at")
+          .order("created_at", { ascending: false }).limit(limit);
+        if (args.only_unread === true) q = q.eq("is_read", false);
+        const { data, error } = await q;
+        if (error) return { error: error.message };
+        return { ok: true, notifications: data || [], count: (data || []).length };
+      }
+      case "mark_notification_read": {
+        if (args.all === true) {
+          const { error } = await supabase.from("in_app_notifications")
+            .update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+          if (error) return { error: error.message };
+          return { ok: true, marked_all: true };
+        }
+        const id = String(args.notification_id || "").trim();
+        if (!id) return { error: "notification_id or all=true required" };
+        const { error } = await supabase.from("in_app_notifications")
+          .update({ is_read: true }).eq("id", id);
+        if (error) return { error: error.message };
+        return { ok: true, id };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
@@ -1929,9 +2139,48 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     // when natural. Keep prose tight — the UI shows tool work as cards.
     const sparkBlock = `\n\n═══ SPARK MODE — TRANSPARENT AGENCY ═══\n- Before answering anything that touches the user's data, current time, or the live web, CALL THE RELEVANT TOOL first. Don't paraphrase guesses.\n- Decompose multi-step asks into ordered actions and execute them; the UI renders each tool step inline.\n- Prefer rich cards over walls of text: weather → get_weather; video → find_video; image → generate_image; web results stay as a brief summary plus the [[ALICE_CARD]] block already injected.\n- End substantive replies with a single short line of 1–2 follow-up suggestions prefixed exactly with "Next: " (e.g. "Next: save this as a note · open in Catalyst"). Skip for trivial chit-chat.\n- Keep voice calm, sharp, concrete. No filler ("Sure!", "Of course!", "I'd be happy to…").`;
 
+    // ─── LIVE AGENDA SNAPSHOT — always-on context ───
+    // Inject a concise summary of today's events, tasks, habits, and unread
+    // alerts so ALICE has real situational awareness without needing to call
+    // get_my_agenda every turn. She still has the tool for deeper drilldowns.
+    let agendaBlock = "";
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const tomorrow = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+      const [evs, due, over, habits, unread] = await Promise.all([
+        supabase.from("calendar_events")
+          .select("title,event_date,event_time,location")
+          .gte("event_date", today).lte("event_date", tomorrow)
+          .neq("status", "cancelled").order("event_date").order("event_time").limit(8),
+        supabase.from("project_tasks")
+          .select("name,priority").eq("due_date", today).neq("status", "done").limit(8),
+        supabase.from("project_tasks")
+          .select("name,due_date").lt("due_date", today).neq("status", "done")
+          .order("due_date", { ascending: true }).limit(5),
+        supabase.from("habits").select("id,title").eq("is_archived", false).limit(10),
+        supabase.from("in_app_notifications")
+          .select("title,created_at").eq("is_read", false)
+          .order("created_at", { ascending: false }).limit(5),
+      ]);
+      const habitsToday: string[] = [];
+      for (const h of (habits.data || [])) {
+        const { data: d } = await supabase.from("habit_completions")
+          .select("id").eq("habit_id", h.id).eq("completed_on", today).maybeSingle();
+        habitsToday.push(`${h.title}${d ? " ✓" : " ✗"}`);
+      }
+      const ev = (evs.data || []).map((e: any) => `- ${e.event_date} ${e.event_time || ""} · ${e.title}${e.location ? ` @ ${e.location}` : ""}`).join("\n") || "(none)";
+      const dueList = (due.data || []).map((t: any) => `- [${(t.priority||"med").toUpperCase()}] ${t.name}`).join("\n") || "(none)";
+      const overList = (over.data || []).map((t: any) => `- ${t.due_date} · ${t.name}`).join("\n") || "(none)";
+      const habitLine = habitsToday.length ? habitsToday.join(" · ") : "(no habits tracked)";
+      const unreadList = (unread.data || []).map((n: any) => `- ${n.title}`).join("\n") || "(none)";
+      agendaBlock = `\n\n═══ LIVE AGENDA (today=${today}) ═══\nEvents (today/tomorrow):\n${ev}\nTasks due today:\n${dueList}\nOverdue tasks:\n${overList}\nHabits today: ${habitLine}\nUnread notifications:\n${unreadList}\nUse this snapshot to ground proactive suggestions. If the user asks "what's on my plate", "today", "overdue", "habits", or "any notifications", answer from this block directly — no tool call needed. To act on these (complete a task, log a habit, snooze a reminder), call complete_task / mark_habit_done / snooze_reminder. For fresh detail, call get_my_agenda.`;
+    } catch (e) {
+      console.error("agenda snapshot failed", e);
+    }
+
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock + sparkBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock + agendaBlock + sparkBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
