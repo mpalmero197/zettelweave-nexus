@@ -183,14 +183,52 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
 
   console.log(`Author Agent: Selected topic "${topicData.topic}"`);
 
-  console.log('Author Agent: Generating full document...');
-  let documentBody = '';
-
+  // ── Narrative-flow upgrade: outline → section drafting → cohesion stitch ──
+  console.log('Author Agent: Building narrative outline...');
+  let outline: any = null;
   try {
-    documentBody = await callAI(apiKey, [
-      { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document. Aim for at least 4,000 words. Use standard Markdown only. Paragraphs 3-4 sentences max. Heading hierarchy: # H1, ## H2, ### H3. Bold sparingly. No ALL CAPS, no underlining.` },
-      { role: 'user', content: `Write a comprehensive document on: "${topicData.topic}"\nAngle: "${topicData.angle}"\n\nInclude 8+ major sections, 400-600 words each. End with References section.\n${userFocus ? `FOCUS: ${userFocus}\n` : ''}User's existing knowledge:\n${filteredSummary.substring(0, 6000)}\n\nGo beyond existing knowledge. Target 5,000+ words.` }
-    ], 0.75, 16384);
+    const outlineRaw = await callAI(apiKey, [
+      { role: 'system', content: 'You are a senior nonfiction editor. Design a publication-ready outline. Return ONLY valid JSON.' },
+      { role: 'user', content: `Design an outline for a long-form document on "${topicData.topic}" (angle: ${topicData.angle}).\n\nUser's existing knowledge (use as evidence):\n${filteredSummary.substring(0, 5000)}\n\nReturn JSON:\n{\n  "thesis": "1-sentence controlling argument",\n  "throughline": "the narrative arc connecting every section",\n  "sections": [\n    {"heading":"H2 title","purpose":"what this section does for the reader","key_points":["..."],"target_words":550,"transition_in":"how it picks up from the previous section"}\n  ]\n}\n\nProduce 8-10 sections, ~550 words each. Each section's purpose must advance the throughline.` }
+    ], 0.5, 3072);
+    const m = outlineRaw.match(/\{[\s\S]*\}/);
+    if (m) outline = JSON.parse(m[0]);
+  } catch (e) {
+    console.error('Author Agent: Outline failed, falling back to single-shot:', e);
+  }
+
+  let documentBody = '';
+  try {
+    if (outline && Array.isArray(outline.sections) && outline.sections.length > 0) {
+      const sections: string[] = [];
+      let prevTail = '';
+      for (let i = 0; i < outline.sections.length; i++) {
+        const s = outline.sections[i];
+        const sectionMd = await callAI(apiKey, [
+          { role: 'system', content: `You are writing one section of a long, cohesive nonfiction document. Maintain a single authorial voice across sections. Use standard Markdown only (## for H2, ### for H3). Paragraphs 3-4 sentences. Favor flowing prose over bullet lists. Bold sparingly. Open with a one-sentence transition that connects to the previous section's ending. Do NOT restate the document title.` },
+          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nSECTION ${i + 1}/${outline.sections.length}\nHEADING: ${s.heading}\nPURPOSE: ${s.purpose}\nKEY POINTS: ${(s.key_points || []).join('; ')}\nTRANSITION IN: ${s.transition_in || 'natural continuation'}\nTARGET LENGTH: ~${s.target_words || 550} words\n\nPREVIOUS SECTION ENDING (for continuity):\n${prevTail || '[opening section — set the stage in 1-2 sentences before diving in]'}\n\nUSER KNOWLEDGE (integrate where relevant):\n${filteredSummary.substring(0, 3500)}\n\nWrite the full section, beginning with "## ${s.heading}".` }
+        ], 0.7, 4096);
+        sections.push(sectionMd.trim());
+        prevTail = sectionMd.trim().slice(-600);
+      }
+      documentBody = sections.join('\n\n');
+
+      // Cohesion stitch pass
+      try {
+        const stitched = await callAI(apiKey, [
+          { role: 'system', content: 'You are an editor performing a light cohesion pass. Preserve every section\'s ideas, evidence, and length. Only smooth transitions between sections, fix repeated phrasings across boundaries, and ensure one consistent authorial voice. Return the full revised Markdown.' },
+          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nDOCUMENT:\n${documentBody.substring(0, 28000)}` }
+        ], 0.4, 16384);
+        if (stitched && stitched.length > documentBody.length * 0.7) documentBody = stitched;
+      } catch (e) {
+        console.error('Author Agent: Cohesion stitch failed (non-fatal):', e);
+      }
+    } else {
+      documentBody = await callAI(apiKey, [
+        { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document with a clear narrative arc. Aim for at least 4,000 words. Use standard Markdown only. Paragraphs 3-4 sentences max. Heading hierarchy: # H1, ## H2, ### H3. Favor flowing prose over bullet lists.` },
+        { role: 'user', content: `Write a comprehensive document on: "${topicData.topic}"\nAngle: "${topicData.angle}"\n\nInclude 8+ major sections, 400-600 words each. Maintain a consistent throughline.\n${userFocus ? `FOCUS: ${userFocus}\n` : ''}User's existing knowledge:\n${filteredSummary.substring(0, 6000)}` }
+      ], 0.75, 16384);
+    }
   } catch (e) {
     console.error('Author Agent: Generation failed:', e);
     documentBody = `## ${topicData.topic}\n\n*Generation error. Please try again.*\n`;
@@ -200,8 +238,8 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
   if (wordCount1 < 5000 && wordCount1 > 100) {
     try {
       const extension = await callAI(apiKey, [
-        { role: 'system', content: 'Continue this document. Add entirely new sections. Standard Markdown only.' },
-        { role: 'user', content: `Continue about "${topicData.topic}". Currently ~${wordCount1} words.\n\nEnding:\n${documentBody.slice(-2000)}\n\nWrite 3,000+ more words of new sections.` }
+        { role: 'system', content: 'Continue this document. Add entirely new sections that advance the existing throughline. Open with a real transition from the last paragraph. Standard Markdown only.' },
+        { role: 'user', content: `Continue "${topicData.topic}" (~${wordCount1} words so far).\n\nEnding:\n${documentBody.slice(-2000)}\n\nWrite 2,500+ more words of new sections without repeating earlier material.` }
       ], 0.75, 16384);
       documentBody += '\n\n' + extension;
     } catch (e) {
