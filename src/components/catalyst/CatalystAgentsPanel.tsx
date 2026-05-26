@@ -592,11 +592,34 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
         )}
         {wizardStep === 'focus' && (
           <div className="space-y-3">
-            <Textarea value={focusInstructions} onChange={(e) => setFocusInstructions(e.target.value)} placeholder="e.g. Focus on practical applications..." className="mt-1 min-h-[100px] text-xs" />
+            <Textarea value={focusInstructions} onChange={(e) => setFocusInstructions(e.target.value)} placeholder="e.g. Focus on practical applications..." className="mt-1 min-h-[80px] text-xs" />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium">Target length</label>
+                <span className="text-xs font-mono tabular-nums text-muted-foreground">{targetWords.toLocaleString()} words</span>
+              </div>
+              <Slider value={[targetWords]} min={1500} max={25000} step={500} onValueChange={(v) => setTargetWords(v[0])} />
+              <div className="flex justify-between text-[10px] text-muted-foreground"><span>1.5k</span><span>25k</span></div>
+            </div>
+
+            <div className="flex items-start gap-3 p-2.5 rounded-lg border border-border bg-muted/20">
+              <Feather className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="style-mimicry" className="text-xs font-medium cursor-pointer">Write in my voice</label>
+                  <Switch id="style-mimicry" checked={styleMimicry} onCheckedChange={setStyleMimicry} />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Analyzes your notes to match your tone, rhythm, and vocabulary.</p>
+              </div>
+            </div>
+
             <Card className="p-3 bg-muted/30">
               <div className="space-y-1 text-xs">
                 <p><strong>Topic:</strong> {topicInput || 'AI will choose'}</p>
                 <p><strong>Sources:</strong> {selectedSourceIds.size || 'All'}</p>
+                <p><strong>Length:</strong> ~{targetWords.toLocaleString()} words</p>
+                <p><strong>Voice:</strong> {styleMimicry ? 'Your style' : 'Default'}</p>
               </div>
             </Card>
             <div className="flex gap-2">
@@ -606,11 +629,44 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
           </div>
         )}
         {wizardStep === 'generating' && (
-          <div className="flex flex-col items-center justify-center py-8 space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Author Agent is writing...</p>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2.5">
+              <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{STAGE_LABELS[runProgress.stage] || 'Working'}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{runProgress.detail || 'Author Agent is writing...'}</p>
+              </div>
+              <span className="text-sm font-mono tabular-nums font-semibold shrink-0">{Math.round(runProgress.progress)}%</span>
+            </div>
+            <Progress value={runProgress.progress} className="h-2" />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>
+                {runProgress.sectionsTotal > 0
+                  ? `Section ${runProgress.sectionsDone}/${runProgress.sectionsTotal}`
+                  : 'Planning...'}
+              </span>
+              <span>{eta || ' '}</span>
+            </div>
+            {runProgress.wordsTarget > 0 && (
+              <div className="text-[11px] text-muted-foreground text-center">
+                {runProgress.wordsDone.toLocaleString()} / {runProgress.wordsTarget.toLocaleString()} words
+              </div>
+            )}
+            {runProgress.status === 'completed' && (
+              <div className="space-y-2">
+                <p className="text-xs text-center text-green-600 font-medium">Document ready! Open Catalyst to view it.</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => { setView('list'); setWizardStep('topic'); setActiveRunId(null); setIsGenerating(false); }}>Done</Button>
+              </div>
+            )}
+            {runProgress.status === 'failed' && (
+              <div className="space-y-2">
+                <p className="text-xs text-center text-destructive font-medium">Generation failed. Please try again.</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => { setView('list'); setWizardStep('topic'); setActiveRunId(null); setIsGenerating(false); }}>Back</Button>
+              </div>
+            )}
           </div>
         )}
+
       </div>
     );
   }
