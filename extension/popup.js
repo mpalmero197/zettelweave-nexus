@@ -1217,10 +1217,10 @@ function setupModals() {
   document.getElementById('im-delete')?.addEventListener('click', deleteItemModal);
   document.getElementById('im-open')?.addEventListener('click', () => {
     if (!_imCurrent) return;
-    const u = _imCurrent.type === 'card'
-      ? `https://pendragonx.com/app?card=${_imCurrent.id}`
-      : `https://pendragonx.com/app?note=${_imCurrent.id}`;
-    window.open(u, '_blank');
+    const path = _imCurrent.type === 'card'
+      ? `/app?card=${_imCurrent.id}`
+      : `/app?note=${_imCurrent.id}`;
+    openInWebAppSignedIn(path);
   });
 
   document.getElementById('cm-close')?.addEventListener('click', closeCalModal);
