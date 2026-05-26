@@ -52,9 +52,9 @@ export function CardsWorkspace() {
     [selected, cards]
   );
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     try {
-      const created = await createCard({
+      createCard({
         number: `N-${Date.now()}`,
         title: 'New card',
         content: '',
@@ -62,7 +62,6 @@ export function CardsWorkspace() {
         tags: [],
         linkedCards: [],
       });
-      if (created?.id) setSelectedId(created.id);
     } catch {
       toast.error('Failed to create card');
     }
