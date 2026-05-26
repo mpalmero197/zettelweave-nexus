@@ -153,9 +153,11 @@ export function useJarvis(initialThreadId?: string | null) {
         locale = navigator.language || "en-US";
       } catch { /* ignore */ }
       const screen = getScreenContext();
+      const userCoords = await getUserCoords();
       const { data, error } = await supabase.functions.invoke("jarvis-chat", {
-        body: { message: text, threadId: activeThreadId, timeZone, locale, screen, attachments: attachments || [] },
+        body: { message: text, threadId: activeThreadId, timeZone, locale, screen, attachments: attachments || [], userCoords },
       });
+
       if (error) throw error;
       const newThreadId = data.threadId as string;
       if (!activeThreadId) setActiveThreadId(newThreadId);
