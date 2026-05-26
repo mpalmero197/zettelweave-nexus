@@ -147,6 +147,59 @@ export function WeatherCard({ data, className, showSave = true, onSave }: Weathe
     }
   };
 
+  const [savingCard, setSavingCard] = useState(false);
+  const [savedCard, setSavedCard] = useState(false);
+
+  const handleSaveCard = async () => {
+    if (!user) {
+      toast.error("Sign in to save cards");
+      return;
+    }
+    setSavingCard(true);
+    const cleanTopic = topic.trim() || "weather";
+    try {
+      const number = `W-${Date.now().toString(36).toUpperCase()}`;
+      const payload = {
+        user_id: user.id,
+        number,
+        title: `Weather — ${data.location}`,
+        description: `${data.current.temperature} · ${data.current.condition}`,
+        content: buildNote(),
+        category: "550",
+        tags: Array.from(new Set([cleanTopic.toLowerCase(), "weather", data.location.toLowerCase()])),
+        linked_cards: [] as string[],
+      };
+      const { data: inserted, error } = await supabase
+        .from("zettel_cards")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      if (inserted) {
+        supabase.functions
+          .invoke("generate-embedding", {
+            body: {
+              contentId: inserted.id,
+              contentType: "zettel_card",
+              text: `${payload.title} ${payload.content}`,
+            },
+          })
+          .catch(() => {});
+      }
+      setSavedCard(true);
+      toast.success(`Saved as card · ${number}`);
+      onSave?.();
+      setTimeout(() => {
+        setPopoverOpen(false);
+        setSavedCard(false);
+      }, 1200);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save card");
+    } finally {
+      setSavingCard(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
