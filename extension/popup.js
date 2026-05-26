@@ -1171,11 +1171,42 @@ async function sendAIMessage(prefilled) {
     const parts = Array.isArray(d.parts) ? d.parts : [];
     const reply = parts.filter((p) => p?.type === 'text').map((p) => p.text).join('\n').trim() || 'Done.';
     aiMessages.push({ role: 'assistant', content: reply });
+    // ALICE asked us to take the user somewhere in the web app.
+    // Open it in a new tab and pass the toolbox session along so the user
+    // lands signed in — no "please log in" detour.
+    if (d.navigate_to && typeof d.navigate_to === 'string') {
+      openInWebAppSignedIn(d.navigate_to);
+      aiMessages.push({ role: 'system', content: `Opening ${d.navigate_to} on pendragonx.com…` });
+    }
   } catch (e) {
     aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach ALICE.'}` });
   } finally {
     aiLoading = false; renderAIMessages();
   }
+}
+
+// Open a path on the web app with the current toolbox session handed off,
+// so the user doesn't have to sign in again on the site.
+async function openInWebAppSignedIn(path) {
+  let to = path && path.startsWith('/') ? path : '/app';
+  try {
+    if (authToken && refreshToken) {
+      // Refresh first if we're close to expiry so the handoff token is valid.
+      await ensureFreshSession();
+      const hash = new URLSearchParams({
+        at: authToken,
+        rt: refreshToken,
+        to,
+      }).toString();
+      const url = `https://pendragonx.com/sso#${hash}`;
+      chrome.tabs.create({ url });
+      return;
+    }
+  } catch (e) {
+    console.warn('[Toolbox] SSO handoff failed, opening anonymously', e);
+  }
+  // Fallback: just open the destination; the site will prompt for login.
+  chrome.tabs.create({ url: `https://pendragonx.com${to}` });
 }
 
 // ── In-panel item viewer/editor (notes & cards) ──
