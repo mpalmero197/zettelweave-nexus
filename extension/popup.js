@@ -1098,6 +1098,24 @@ function setupAIChat() {
   });
 }
 
+function deriveAliceFollowups(lastAssistant, lastUser) {
+  const text = `${lastUser || ''} ${lastAssistant || ''}`.toLowerCase();
+  const pool = [
+    [/weather|forecast|temperature|rain/, ["What should I wear today?", "Show me the weekly forecast", "Will it rain this weekend?"]],
+    [/meeting|calendar|schedule|event|appointment/, ["Block focus time after that", "What else is on my calendar today?", "Add a 15-minute prep reminder"]],
+    [/task|todo|to-do|reminder|priorit/, ["Show all overdue tasks", "Break this into subtasks", "What's most important right now?"]],
+    [/note|card|zettel|notebook/, ["Summarize this in 3 bullets", "Find related notes", "Turn this into a study guide"]],
+    [/search|find|look up|web/, ["Go deeper on the top result", "Compare the top two sources", "Save the best one to my notes"]],
+    [/video|youtube|watch/, ["Summarize the top video", "Find a shorter version", "Save this to my watch later"]],
+    [/write|draft|essay|article|paper/, ["Make it more concise", "Add a stronger opening", "Rewrite in a friendlier tone"]],
+    [/code|function|bug|error|api/, ["Explain this step by step", "Show me a simpler version", "Add error handling"]],
+    [/plan|strategy|roadmap|goal/, ["Turn this into a checklist", "What's the very next step?", "Estimate how long each step takes"]],
+    [/summar|recap|tl;dr|overview/, ["Give me the 3 key takeaways", "Make it even shorter", "Quiz me on this"]],
+  ];
+  for (const [re, chips] of pool) if (re.test(text)) return chips;
+  return ["Tell me more", "Summarize that in 3 bullets", "What should I do next?"];
+}
+
 function renderAIMessages() {
   const c = document.getElementById('ai-messages');
   const empty = document.getElementById('ai-empty');
@@ -1107,7 +1125,6 @@ function renderAIMessages() {
     return;
   }
   c.innerHTML = '';
-  const aliceSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3"/></svg>';
   aiMessages.forEach((m) => {
     if (m.role === 'system') {
       const s = document.createElement('div');
@@ -1121,7 +1138,6 @@ function renderAIMessages() {
     if (m.role === 'assistant') {
       const av = document.createElement('div');
       av.className = 'ai-avatar';
-      av.innerHTML = aliceSvg;
       row.appendChild(av);
     }
     const d = document.createElement('div');
@@ -1134,14 +1150,29 @@ function renderAIMessages() {
     const row = document.createElement('div');
     row.className = 'ai-row assistant';
     const av = document.createElement('div');
-    av.className = 'ai-avatar';
-    av.innerHTML = aliceSvg;
+    av.className = 'ai-avatar streaming';
     row.appendChild(av);
     const t = document.createElement('div');
     t.className = 'ai-msg assistant';
-    t.innerHTML = '<span class="ai-typing">Thinking<span class="ai-dots"><span></span><span></span><span></span></span></span>';
+    t.innerHTML = '<span class="ai-typing"><span class="ai-shimmer">Thinking</span><span class="ai-dots"><span></span><span></span><span></span></span></span>';
     row.appendChild(t);
     c.appendChild(row);
+  } else {
+    // Append follow-up chips after the last assistant message.
+    const lastAssistant = [...aiMessages].reverse().find((m) => m.role === 'assistant');
+    if (lastAssistant) {
+      const lastUser = [...aiMessages].reverse().find((m) => m.role === 'user');
+      const chips = deriveAliceFollowups(lastAssistant.content, lastUser ? lastUser.content : '');
+      const wrap = document.createElement('div');
+      wrap.className = 'ai-followups';
+      wrap.innerHTML = `<span class="ai-followups-label">Try</span>` + chips.map((chip, i) =>
+        `<button class="ai-followup-chip" data-q="${chip.replace(/"/g, '&quot;')}" style="animation-delay:${i * 80}ms">${chip} <span aria-hidden>→</span></button>`
+      ).join('');
+      c.appendChild(wrap);
+      wrap.querySelectorAll('.ai-followup-chip').forEach((b) => {
+        b.addEventListener('click', () => sendAIMessage(b.dataset.q));
+      });
+    }
   }
   c.scrollTop = c.scrollHeight;
 }

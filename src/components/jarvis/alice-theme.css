@@ -1,41 +1,68 @@
-/* ALICE — Aurora Glass theme (scoped to .alice-surface)
- * Inspired by Gemini's neural expressive aesthetic.
- * Self-contained: does not affect the global Flat-Minimal design system. */
+/* ============================================================
+ * ALICE — Neural Expressive theme (Gemini-inspired)
+ * Scoped to .alice-surface and #ai-tab (extension).
+ * Self-contained: does not affect the global Flat-Minimal design.
+ * ============================================================ */
 
 .alice-surface {
-  --alice-bg: 240 33% 6%;             /* #0b0b14 */
-  --alice-panel: 250 38% 13%;         /* #1a1530 */
-  --alice-violet: 252 100% 68%;       /* #7c5cff */
-  --alice-cyan: 187 92% 54%;          /* #22d3ee */
-  --alice-pink: 326 96% 68%;          /* aurora warm flicker */
-  --alice-ink: 240 14% 95%;           /* near-white text */
+  --alice-bg: 240 33% 6%;             /* deep cosmic ink */
+  --alice-bg-2: 245 30% 9%;
+  --alice-panel: 250 38% 13%;
+  --alice-violet: 252 100% 68%;
+  --alice-blue: 224 100% 66%;
+  --alice-cyan: 187 92% 54%;
+  --alice-pink: 326 96% 68%;
+  --alice-warm: 32 100% 68%;          /* aurora warm flicker */
+  --alice-ink: 240 14% 95%;
   --alice-ink-dim: 240 10% 70%;
   --alice-border: 250 30% 22% / 0.55;
+  --alice-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
   color: hsl(var(--alice-ink));
   background:
-    radial-gradient(80% 60% at 15% 0%, hsl(var(--alice-violet) / 0.20), transparent 60%),
-    radial-gradient(70% 50% at 100% 10%, hsl(var(--alice-cyan) / 0.14), transparent 60%),
-    radial-gradient(90% 70% at 50% 110%, hsl(var(--alice-pink) / 0.10), transparent 60%),
+    radial-gradient(80% 60% at 15% 0%, hsl(var(--alice-violet) / 0.22), transparent 60%),
+    radial-gradient(70% 50% at 100% 10%, hsl(var(--alice-cyan) / 0.16), transparent 60%),
+    radial-gradient(90% 70% at 50% 110%, hsl(var(--alice-pink) / 0.12), transparent 60%),
+    radial-gradient(60% 40% at 80% 80%, hsl(var(--alice-warm) / 0.06), transparent 60%),
     hsl(var(--alice-bg));
   position: relative;
   overflow: hidden;
 }
 
+/* Slow drifting aurora veil */
 .alice-surface::before {
   content: "";
   position: absolute;
   inset: -20%;
   background:
     conic-gradient(from 180deg at 50% 50%,
-      hsl(var(--alice-violet) / 0.10),
-      hsl(var(--alice-cyan) / 0.08),
-      hsl(var(--alice-pink) / 0.08),
-      hsl(var(--alice-violet) / 0.10));
+      hsl(var(--alice-violet) / 0.12),
+      hsl(var(--alice-blue) / 0.10),
+      hsl(var(--alice-cyan) / 0.10),
+      hsl(var(--alice-pink) / 0.10),
+      hsl(var(--alice-warm) / 0.06),
+      hsl(var(--alice-violet) / 0.12));
   filter: blur(60px);
-  opacity: 0.5;
-  animation: alice-aurora-drift 28s linear infinite;
+  opacity: 0.55;
+  animation: alice-aurora-drift 36s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle stardust */
+.alice-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, hsl(var(--alice-cyan) / 0.5), transparent 50%),
+    radial-gradient(1px 1px at 30% 75%, hsl(var(--alice-violet) / 0.5), transparent 50%),
+    radial-gradient(1px 1px at 70% 30%, hsl(var(--alice-pink) / 0.5), transparent 50%),
+    radial-gradient(1px 1px at 90% 65%, hsl(var(--alice-cyan) / 0.5), transparent 50%);
+  background-repeat: no-repeat;
+  opacity: 0.4;
+  animation: alice-twinkle 6s ease-in-out infinite alternate;
   pointer-events: none;
   z-index: 0;
 }
@@ -44,6 +71,10 @@
 
 @keyframes alice-aurora-drift {
   to { transform: rotate(360deg); }
+}
+@keyframes alice-twinkle {
+  0% { opacity: 0.25; }
+  100% { opacity: 0.55; }
 }
 
 /* Prose / body text */
@@ -57,78 +88,192 @@
   border: 1px solid hsl(var(--alice-border));
 }
 
-/* Neural orb avatar */
+/* ===================== Neural Orb =====================
+ * Static idle, breathing on hover, pulsing while streaming.
+ * Toggle pulse with [data-state="streaming"] on the .alice-orb element. */
 .alice-orb {
   position: relative;
   border-radius: 9999px;
   background:
     radial-gradient(circle at 30% 30%, hsl(var(--alice-cyan)) 0%, transparent 45%),
     radial-gradient(circle at 70% 70%, hsl(var(--alice-pink)) 0%, transparent 50%),
-    conic-gradient(from 0deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)), hsl(var(--alice-pink)), hsl(var(--alice-violet)));
+    conic-gradient(from 0deg,
+      hsl(var(--alice-violet)),
+      hsl(var(--alice-blue)),
+      hsl(var(--alice-cyan)),
+      hsl(var(--alice-pink)),
+      hsl(var(--alice-warm)),
+      hsl(var(--alice-violet)));
   box-shadow:
     0 0 0 1px hsl(var(--alice-violet) / 0.45),
     0 0 24px hsl(var(--alice-violet) / 0.35),
     inset 0 0 10px hsl(0 0% 100% / 0.25);
-  animation: alice-orb-spin 8s linear infinite;
+  animation: alice-orb-spin 12s linear infinite;
+  isolation: isolate;
+}
+/* Glow halo behind the orb that breathes — visual "presence" */
+.alice-orb::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, hsl(var(--alice-violet) / 0.4), transparent 70%);
+  filter: blur(8px);
+  opacity: 0.5;
+  z-index: -1;
+  animation: alice-orb-breathe 4s ease-in-out infinite;
 }
 .alice-orb-static { animation: none; }
+.alice-orb[data-state="streaming"] {
+  animation: alice-orb-spin 4s linear infinite;
+  box-shadow:
+    0 0 0 1px hsl(var(--alice-cyan) / 0.6),
+    0 0 32px hsl(var(--alice-cyan) / 0.55),
+    0 0 60px hsl(var(--alice-violet) / 0.35),
+    inset 0 0 12px hsl(0 0% 100% / 0.35);
+}
+.alice-orb[data-state="streaming"]::after {
+  animation: alice-orb-breathe 1.6s ease-in-out infinite;
+  opacity: 0.85;
+}
 
 @keyframes alice-orb-spin {
   to { transform: rotate(360deg); }
 }
-
-/* User bubble — high-contrast violet */
-.alice-user-bubble {
-  background: linear-gradient(135deg, hsl(var(--alice-violet)) 0%, hsl(326 80% 60%) 100%);
-  color: hsl(0 0% 100%);
-  box-shadow: 0 6px 24px -8px hsl(var(--alice-violet) / 0.6);
+@keyframes alice-orb-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.45; }
+  50%      { transform: scale(1.15); opacity: 0.85; }
 }
 
-/* Composer focus ring (aurora gradient border) */
-.alice-composer {
+/* ===================== User Bubble =====================
+ * Conic-gradient border + gradient fill. Springs in. */
+.alice-user-bubble {
+  position: relative;
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet)) 0%,
+    hsl(var(--alice-blue)) 45%,
+    hsl(326 80% 60%) 100%);
+  color: hsl(0 0% 100%);
+  box-shadow:
+    0 6px 28px -10px hsl(var(--alice-violet) / 0.7),
+    0 1px 0 hsl(0 0% 100% / 0.12) inset;
+  animation: alice-bubble-in 0.45s var(--alice-spring) both;
+}
+
+/* ===================== Assistant Block ===================== */
+.alice-assistant-bubble {
   position: relative;
   border-radius: 18px;
-  padding: 1px;
-  background: linear-gradient(135deg,
-    hsl(var(--alice-violet) / 0.5),
-    hsl(var(--alice-cyan) / 0.5),
-    hsl(var(--alice-pink) / 0.5));
-  transition: filter 0.25s ease;
+  padding: 12px 14px;
+  background:
+    linear-gradient(180deg, hsl(var(--alice-panel) / 0.6), hsl(var(--alice-bg-2) / 0.6));
+  border: 1px solid hsl(var(--alice-border));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: alice-bubble-in 0.5s var(--alice-spring) both;
+  overflow: hidden;
 }
-.alice-composer:focus-within {
-  filter: drop-shadow(0 0 14px hsl(var(--alice-violet) / 0.5));
+/* Thin animated aurora rail along the top edge — Gemini-esque accent */
+.alice-assistant-bubble::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--alice-violet)),
+    hsl(var(--alice-cyan)),
+    hsl(var(--alice-pink)),
+    transparent);
+  background-size: 200% 100%;
+  animation: alice-rail 4s linear infinite;
+  opacity: 0.7;
 }
+
+@keyframes alice-bubble-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes alice-rail {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===================== Composer ===================== */
+.alice-composer {
+  position: relative;
+  border-radius: 22px;
+  padding: 1.5px;
+  background: conic-gradient(from 0deg,
+    hsl(var(--alice-violet) / 0.6),
+    hsl(var(--alice-blue) / 0.6),
+    hsl(var(--alice-cyan) / 0.6),
+    hsl(var(--alice-pink) / 0.6),
+    hsl(var(--alice-warm) / 0.4),
+    hsl(var(--alice-violet) / 0.6));
+  transition: filter 0.25s ease, transform 0.25s ease;
+}
+.alice-composer::before {
+  content: "";
+  position: absolute; inset: -2px;
+  border-radius: 24px;
+  background: inherit;
+  filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.alice-composer:focus-within { filter: brightness(1.1); }
+.alice-composer:focus-within::before { opacity: 0.7; }
 .alice-composer-inner {
-  border-radius: 17px;
-  background: hsl(var(--alice-bg) / 0.85);
+  border-radius: 20px;
+  background: hsl(var(--alice-bg) / 0.92);
   backdrop-filter: blur(12px);
 }
 
-/* Send button */
+/* ===================== Send Button ===================== */
 .alice-send {
-  background: linear-gradient(135deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)));
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet)),
+    hsl(var(--alice-blue)),
+    hsl(var(--alice-cyan)));
+  background-size: 200% 200%;
   color: white;
   border: none;
-  box-shadow: 0 4px 18px -4px hsl(var(--alice-violet) / 0.6);
+  box-shadow: 0 6px 20px -6px hsl(var(--alice-violet) / 0.7);
+  transition: filter 0.15s, transform 0.15s, background-position 0.6s;
 }
-.alice-send:hover:not(:disabled) { filter: brightness(1.1); }
+.alice-send:hover:not(:disabled) {
+  filter: brightness(1.15);
+  background-position: 100% 100%;
+  transform: scale(1.04);
+}
 .alice-send:disabled { opacity: 0.4; }
 
-/* Tool chip */
+/* ===================== Tool Chip ===================== */
 .alice-tool {
-  border-radius: 12px;
+  border-radius: 14px;
   background: hsl(var(--alice-panel) / 0.5);
   border: 1px solid hsl(var(--alice-border));
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+.alice-tool:hover {
+  background: hsl(var(--alice-panel) / 0.8);
+  border-color: hsl(var(--alice-violet) / 0.5);
+  transform: translateY(-1px);
 }
 .alice-tool-icon-glow {
-  background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.3), hsl(var(--alice-cyan) / 0.3));
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet) / 0.35),
+    hsl(var(--alice-cyan) / 0.35));
+  box-shadow: 0 0 12px hsl(var(--alice-violet) / 0.3);
 }
 
-/* Live thinking shimmer text */
+/* ===================== Live Thinking ===================== */
 .alice-shimmer {
   background: linear-gradient(90deg,
     hsl(var(--alice-ink-dim)) 0%,
-    hsl(var(--alice-violet)) 30%,
+    hsl(var(--alice-violet)) 25%,
+    hsl(var(--alice-blue)) 40%,
     hsl(var(--alice-cyan)) 55%,
     hsl(var(--alice-pink)) 75%,
     hsl(var(--alice-ink-dim)) 100%);
@@ -136,21 +281,20 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: alice-shimmer 2.4s linear infinite;
+  animation: alice-shimmer 2.6s linear infinite;
   font-weight: 500;
 }
 @keyframes alice-shimmer {
-  0% { background-position: 100% 0; }
+  0%   { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }
 
-/* Thread item active state */
 .alice-thread-active {
   background: linear-gradient(90deg, hsl(var(--alice-violet) / 0.25), transparent);
   border-left: 2px solid hsl(var(--alice-violet));
 }
 
-/* Subtle neural grid backdrop on transcript */
+/* Subtle neural grid on transcript */
 .alice-transcript {
   background-image:
     linear-gradient(hsl(var(--alice-violet) / 0.04) 1px, transparent 1px),
@@ -158,44 +302,87 @@
   background-size: 32px 32px;
 }
 
-/* Message fade-in */
-.alice-msg-in {
-  animation: alice-msg-in 0.35s ease-out both;
-}
-@keyframes alice-msg-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* Message entry */
+.alice-msg-in { animation: alice-bubble-in 0.45s var(--alice-spring) both; }
 
-/* Suggestion chip */
+/* ===================== Suggestion Chip ===================== */
 .alice-chip {
+  position: relative;
   border-radius: 9999px;
-  padding: 6px 14px;
+  padding: 7px 14px;
   font-size: 12px;
   background: hsl(var(--alice-panel) / 0.6);
   border: 1px solid hsl(var(--alice-border));
   color: hsl(var(--alice-ink));
-  transition: all 0.2s;
+  transition: all 0.25s var(--alice-spring);
   cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .alice-chip:hover {
-  background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.25), hsl(var(--alice-cyan) / 0.25));
-  border-color: hsl(var(--alice-violet) / 0.6);
+  background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.3), hsl(var(--alice-cyan) / 0.3));
+  border-color: hsl(var(--alice-violet) / 0.7);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 20px -8px hsl(var(--alice-violet) / 0.6);
 }
 
-/* Pulsing dot used by live status */
+/* Follow-up chip variant — slightly more glow, used after each answer */
+.alice-followup-chip {
+  position: relative;
+  border-radius: 9999px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  background: hsl(var(--alice-bg) / 0.7);
+  color: hsl(var(--alice-ink));
+  cursor: pointer;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.25s var(--alice-spring);
+  display: inline-flex; align-items: center; gap: 6px;
+  animation: alice-bubble-in 0.4s var(--alice-spring) both;
+}
+.alice-followup-chip::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: 9999px;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet) / 0.55),
+    hsl(var(--alice-cyan) / 0.55),
+    hsl(var(--alice-pink) / 0.55));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+.alice-followup-chip:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 22px -8px hsl(var(--alice-violet) / 0.6);
+  background: hsl(var(--alice-bg) / 0.85);
+}
+.alice-followup-chip .alice-followup-icon {
+  display: inline-flex;
+  width: 14px; height: 14px;
+  background: linear-gradient(135deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+
+/* Pulsing dot */
 .alice-live-dot {
-  width: 6px; height: 6px; border-radius: 9999px;
+  width: 7px; height: 7px; border-radius: 9999px;
   background: hsl(var(--alice-cyan));
-  box-shadow: 0 0 10px hsl(var(--alice-cyan));
+  box-shadow: 0 0 12px hsl(var(--alice-cyan));
   animation: alice-pulse 1.4s ease-in-out infinite;
 }
 @keyframes alice-pulse {
   0%, 100% { opacity: 0.4; transform: scale(0.85); }
-  50%      { opacity: 1; transform: scale(1.15); }
+  50%      { opacity: 1; transform: scale(1.2); }
 }
 
-/* Hide native textarea outline inside composer */
+/* Inputs */
 .alice-surface textarea {
   background: transparent !important;
   border: none !important;
@@ -204,12 +391,43 @@
 }
 .alice-surface textarea::placeholder { color: hsl(var(--alice-ink-dim)); }
 
-/* Prose colours inside aurora theme */
+/* Prose colours */
 .alice-surface .prose,
 .alice-surface .prose * { color: hsl(var(--alice-ink)); }
 .alice-surface .prose a { color: hsl(var(--alice-cyan)); }
+.alice-surface .prose strong { color: hsl(var(--alice-ink)); }
 .alice-surface .prose code {
   background: hsl(var(--alice-panel) / 0.6);
   color: hsl(var(--alice-cyan));
   padding: 1px 5px; border-radius: 4px;
+}
+.alice-surface .prose pre {
+  background: hsl(var(--alice-bg-2) / 0.85);
+  border: 1px solid hsl(var(--alice-border));
+  border-radius: 12px;
+}
+.alice-surface .prose h1,
+.alice-surface .prose h2,
+.alice-surface .prose h3 {
+  background: linear-gradient(135deg,
+    hsl(var(--alice-ink)),
+    hsl(var(--alice-cyan)));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  letter-spacing: -0.01em;
+}
+.alice-surface .prose blockquote {
+  border-left: 3px solid hsl(var(--alice-violet) / 0.7);
+  color: hsl(var(--alice-ink-dim));
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .alice-surface::before,
+  .alice-surface::after,
+  .alice-orb,
+  .alice-orb::after,
+  .alice-assistant-bubble::before,
+  .alice-shimmer,
+  .alice-live-dot { animation: none !important; }
 }
