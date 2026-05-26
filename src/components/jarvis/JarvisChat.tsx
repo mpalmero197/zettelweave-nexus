@@ -447,7 +447,7 @@ export function JarvisChat({ compact = false }: Props) {
                 </Button>
               </div>
             </div>
-            <p className="text-[10px] uppercase tracking-[0.18em] opacity-50 text-center">
+            <p className="hidden md:block text-[10px] uppercase tracking-[0.18em] opacity-50 text-center">
               ALICE shows its work · streaming reasoning
             </p>
           </div>
