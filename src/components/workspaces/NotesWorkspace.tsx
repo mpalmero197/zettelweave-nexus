@@ -78,8 +78,8 @@ export function NotesWorkspace() {
   }, [notes, query, favOnly]);
 
   useEffect(() => {
-    if (!selectedId && filtered[0]) setSelectedId(filtered[0].id);
-  }, [filtered, selectedId]);
+    if (!isMobile && !selectedId && filtered[0]) setSelectedId(filtered[0].id);
+  }, [filtered, selectedId, isMobile]);
 
   const selected = useMemo(() => notes.find(n => n.id === selectedId) || null, [notes, selectedId]);
   const selectedNotebook = useMemo(
