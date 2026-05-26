@@ -1,0 +1,215 @@
+/* ALICE — Aurora Glass theme (scoped to .alice-surface)
+ * Inspired by Gemini's neural expressive aesthetic.
+ * Self-contained: does not affect the global Flat-Minimal design system. */
+
+.alice-surface {
+  --alice-bg: 240 33% 6%;             /* #0b0b14 */
+  --alice-panel: 250 38% 13%;         /* #1a1530 */
+  --alice-violet: 252 100% 68%;       /* #7c5cff */
+  --alice-cyan: 187 92% 54%;          /* #22d3ee */
+  --alice-pink: 326 96% 68%;          /* aurora warm flicker */
+  --alice-ink: 240 14% 95%;           /* near-white text */
+  --alice-ink-dim: 240 10% 70%;
+  --alice-border: 250 30% 22% / 0.55;
+
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  color: hsl(var(--alice-ink));
+  background:
+    radial-gradient(80% 60% at 15% 0%, hsl(var(--alice-violet) / 0.20), transparent 60%),
+    radial-gradient(70% 50% at 100% 10%, hsl(var(--alice-cyan) / 0.14), transparent 60%),
+    radial-gradient(90% 70% at 50% 110%, hsl(var(--alice-pink) / 0.10), transparent 60%),
+    hsl(var(--alice-bg));
+  position: relative;
+  overflow: hidden;
+}
+
+.alice-surface::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    conic-gradient(from 180deg at 50% 50%,
+      hsl(var(--alice-violet) / 0.10),
+      hsl(var(--alice-cyan) / 0.08),
+      hsl(var(--alice-pink) / 0.08),
+      hsl(var(--alice-violet) / 0.10));
+  filter: blur(60px);
+  opacity: 0.5;
+  animation: alice-aurora-drift 28s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.alice-surface > * { position: relative; z-index: 1; }
+
+@keyframes alice-aurora-drift {
+  to { transform: rotate(360deg); }
+}
+
+/* Prose / body text */
+.alice-surface .alice-body { font-family: "DM Sans", "Inter", system-ui, sans-serif; }
+
+/* Glass panel */
+.alice-glass {
+  background: hsl(var(--alice-panel) / 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid hsl(var(--alice-border));
+}
+
+/* Neural orb avatar */
+.alice-orb {
+  position: relative;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 30% 30%, hsl(var(--alice-cyan)) 0%, transparent 45%),
+    radial-gradient(circle at 70% 70%, hsl(var(--alice-pink)) 0%, transparent 50%),
+    conic-gradient(from 0deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)), hsl(var(--alice-pink)), hsl(var(--alice-violet)));
+  box-shadow:
+    0 0 0 1px hsl(var(--alice-violet) / 0.45),
+    0 0 24px hsl(var(--alice-violet) / 0.35),
+    inset 0 0 10px hsl(0 0% 100% / 0.25);
+  animation: alice-orb-spin 8s linear infinite;
+}
+.alice-orb-static { animation: none; }
+
+@keyframes alice-orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* User bubble — high-contrast violet */
+.alice-user-bubble {
+  background: linear-gradient(135deg, hsl(var(--alice-violet)) 0%, hsl(326 80% 60%) 100%);
+  color: hsl(0 0% 100%);
+  box-shadow: 0 6px 24px -8px hsl(var(--alice-violet) / 0.6);
+}
+
+/* Composer focus ring (aurora gradient border) */
+.alice-composer {
+  position: relative;
+  border-radius: 18px;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet) / 0.5),
+    hsl(var(--alice-cyan) / 0.5),
+    hsl(var(--alice-pink) / 0.5));
+  transition: filter 0.25s ease;
+}
+.alice-composer:focus-within {
+  filter: drop-shadow(0 0 14px hsl(var(--alice-violet) / 0.5));
+}
+.alice-composer-inner {
+  border-radius: 17px;
+  background: hsl(var(--alice-bg) / 0.85);
+  backdrop-filter: blur(12px);
+}
+
+/* Send button */
+.alice-send {
+  background: linear-gradient(135deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)));
+  color: white;
+  border: none;
+  box-shadow: 0 4px 18px -4px hsl(var(--alice-violet) / 0.6);
+}
+.alice-send:hover:not(:disabled) { filter: brightness(1.1); }
+.alice-send:disabled { opacity: 0.4; }
+
+/* Tool chip */
+.alice-tool {
+  border-radius: 12px;
+  background: hsl(var(--alice-panel) / 0.5);
+  border: 1px solid hsl(var(--alice-border));
+}
+.alice-tool-icon-glow {
+  background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.3), hsl(var(--alice-cyan) / 0.3));
+}
+
+/* Live thinking shimmer text */
+.alice-shimmer {
+  background: linear-gradient(90deg,
+    hsl(var(--alice-ink-dim)) 0%,
+    hsl(var(--alice-violet)) 30%,
+    hsl(var(--alice-cyan)) 55%,
+    hsl(var(--alice-pink)) 75%,
+    hsl(var(--alice-ink-dim)) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: alice-shimmer 2.4s linear infinite;
+  font-weight: 500;
+}
+@keyframes alice-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Thread item active state */
+.alice-thread-active {
+  background: linear-gradient(90deg, hsl(var(--alice-violet) / 0.25), transparent);
+  border-left: 2px solid hsl(var(--alice-violet));
+}
+
+/* Subtle neural grid backdrop on transcript */
+.alice-transcript {
+  background-image:
+    linear-gradient(hsl(var(--alice-violet) / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--alice-violet) / 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Message fade-in */
+.alice-msg-in {
+  animation: alice-msg-in 0.35s ease-out both;
+}
+@keyframes alice-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Suggestion chip */
+.alice-chip {
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  background: hsl(var(--alice-panel) / 0.6);
+  border: 1px solid hsl(var(--alice-border));
+  color: hsl(var(--alice-ink));
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.alice-chip:hover {
+  background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.25), hsl(var(--alice-cyan) / 0.25));
+  border-color: hsl(var(--alice-violet) / 0.6);
+}
+
+/* Pulsing dot used by live status */
+.alice-live-dot {
+  width: 6px; height: 6px; border-radius: 9999px;
+  background: hsl(var(--alice-cyan));
+  box-shadow: 0 0 10px hsl(var(--alice-cyan));
+  animation: alice-pulse 1.4s ease-in-out infinite;
+}
+@keyframes alice-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+
+/* Hide native textarea outline inside composer */
+.alice-surface textarea {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: hsl(var(--alice-ink));
+}
+.alice-surface textarea::placeholder { color: hsl(var(--alice-ink-dim)); }
+
+/* Prose colours inside aurora theme */
+.alice-surface .prose,
+.alice-surface .prose * { color: hsl(var(--alice-ink)); }
+.alice-surface .prose a { color: hsl(var(--alice-cyan)); }
+.alice-surface .prose code {
+  background: hsl(var(--alice-panel) / 0.6);
+  color: hsl(var(--alice-cyan));
+  padding: 1px 5px; border-radius: 4px;
+}

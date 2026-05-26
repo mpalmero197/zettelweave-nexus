@@ -1,15 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText, StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun, Play, ImageIcon, Navigation } from "lucide-react";
+import {
+  Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText,
+  StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun, Play,
+  ImageIcon, Navigation,
+} from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
 import { cn } from "@/lib/utils";
+import "./alice-theme.css";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
   search_knowledge: { icon: Search, label: "Searched your knowledge" },
@@ -30,34 +35,68 @@ function ToolPart({ part }: { part: Extract<JarvisPart, { type: "tool" }> }) {
   const Icon = meta.icon;
   const isError = part.result?.error;
   return (
-    <div className="my-2 rounded-md border border-border bg-muted/40 text-xs">
+    <div className="alice-tool my-2 text-xs alice-msg-in">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted/60"
+        className="flex w-full items-center gap-2 px-3 py-2 rounded-[12px] hover:bg-white/5 transition-colors"
       >
-        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        <Icon className={cn("h-3.5 w-3.5", isError ? "text-destructive" : "text-primary")} />
+        {open ? <ChevronDown className="h-3.5 w-3.5 opacity-60" /> : <ChevronRight className="h-3.5 w-3.5 opacity-60" />}
+        <span className="alice-tool-icon-glow inline-flex h-6 w-6 items-center justify-center rounded-md">
+          <Icon className={cn("h-3.5 w-3.5", isError && "text-destructive")} />
+        </span>
         <span className="font-medium">{meta.label}</span>
-        {part.args?.title && <span className="text-muted-foreground truncate">— {part.args.title}</span>}
-        {part.args?.query && <span className="text-muted-foreground truncate">— "{part.args.query}"</span>}
+        {part.args?.title && <span className="opacity-60 truncate">— {part.args.title}</span>}
+        {part.args?.query && <span className="opacity-60 truncate">— "{part.args.query}"</span>}
         {isError && <span className="ml-auto text-destructive">error</span>}
       </button>
       {open && (
-        <div className="border-t border-border p-3 space-y-2">
+        <div className="border-t border-white/5 p-3 space-y-2">
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Input</div>
-            <pre className="text-[11px] overflow-x-auto bg-background/60 p-2 rounded">{JSON.stringify(part.args, null, 2)}</pre>
+            <div className="text-[10px] uppercase tracking-wide opacity-60 mb-1">Input</div>
+            <pre className="text-[11px] overflow-x-auto bg-black/30 p-2 rounded">{JSON.stringify(part.args, null, 2)}</pre>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Result</div>
-            <pre className="text-[11px] overflow-x-auto bg-background/60 p-2 rounded">{JSON.stringify(part.result, null, 2)}</pre>
+            <div className="text-[10px] uppercase tracking-wide opacity-60 mb-1">Result</div>
+            <pre className="text-[11px] overflow-x-auto bg-black/30 p-2 rounded">{JSON.stringify(part.result, null, 2)}</pre>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+const THINKING_PHASES = [
+  "Thinking",
+  "Parsing intent",
+  "Consulting your knowledge",
+  "Weighing options",
+  "Composing a reply",
+];
+
+function LiveThinkingStream() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % THINKING_PHASES.length), 1600);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex items-center gap-3 py-2 alice-msg-in">
+      <div className="alice-orb h-6 w-6" />
+      <div className="flex items-center gap-2">
+        <span className="alice-live-dot" />
+        <span className="alice-shimmer text-sm">{THINKING_PHASES[idx]}…</span>
+      </div>
+    </div>
+  );
+}
+
+const STARTER_PROMPTS = [
+  "What's on my plate today?",
+  "Summarize my latest notes",
+  "Show me the weather",
+  "Find a video on Zettelkasten",
+];
 
 interface Props {
   /** Optional: render in compact mode (popover/floating panel) */
@@ -68,8 +107,6 @@ export function JarvisChat({ compact = false }: Props) {
   const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
 
   const runPlan = async (plan: AlicePlan) => {
-    // Ship the structured plan back to ALICE for execution. The edge
-    // function recognizes the `executePlan` flag and runs each step.
     await sendMessage(
       `Execute the approved plan "${plan.goal}".\n\n[[ALICE_PLAN_EXECUTE]]${JSON.stringify(plan)}[[/ALICE_PLAN_EXECUTE]]`,
     );
@@ -85,8 +122,8 @@ export function JarvisChat({ compact = false }: Props) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
 
-  const submit = async () => {
-    const text = input.trim();
+  const submit = async (override?: string) => {
+    const text = (override ?? input).trim();
     if (!text && attachments.length === 0) return;
     setInput("");
     const atts = attachments;
@@ -95,60 +132,63 @@ export function JarvisChat({ compact = false }: Props) {
     taRef.current?.focus();
   };
 
-  // Speech-to-text (Web Speech API). Tap mic to dictate; tap again to stop and send.
+  // Speech-to-text (Web Speech API).
   const recognitionRef = useRef<any>(null);
   const [listening, setListening] = useState(false);
   const baseInputRef = useRef("");
 
   const toggleDictation = () => {
     const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) {
-      toast.error("Voice input isn't supported in this browser. Try Chrome or Edge.");
-      return;
-    }
-    if (listening) {
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      return;
-    }
+    if (!SR) { toast.error("Voice input isn't supported in this browser. Try Chrome or Edge."); return; }
+    if (listening) { try { recognitionRef.current?.stop(); } catch { /* ignore */ } return; }
     const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = true;
+    rec.continuous = true; rec.interimResults = true;
     rec.lang = navigator.language || "en-US";
     baseInputRef.current = input ? input + " " : "";
     rec.onresult = (e: any) => {
-      let interim = "";
-      let final = "";
+      let interim = ""; let final = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
-        if (r.isFinal) final += r[0].transcript;
-        else interim += r[0].transcript;
+        if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript;
       }
       if (final) baseInputRef.current += final + " ";
       setInput((baseInputRef.current + interim).trimStart());
     };
     rec.onerror = (e: any) => {
-      if (e?.error && e.error !== "no-speech" && e.error !== "aborted") {
-        toast.error(`Voice input error: ${e.error}`);
-      }
+      if (e?.error && e.error !== "no-speech" && e.error !== "aborted") toast.error(`Voice input error: ${e.error}`);
     };
-    rec.onend = () => {
-      setListening(false);
-      recognitionRef.current = null;
-    };
-    recognitionRef.current = rec;
-    setListening(true);
+    rec.onend = () => { setListening(false); recognitionRef.current = null; };
+    recognitionRef.current = rec; setListening(true);
     try { rec.start(); } catch { setListening(false); }
   };
 
   useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* ignore */ } }, []);
 
+  // Dynamic transcript width: widen when assistant cards are present
+  const hasRichCards = useMemo(
+    () => messages.some((m) => m.role === "assistant" && m.parts.some((p) => p.type === "card")),
+    [messages],
+  );
+  const transcriptMaxW = hasRichCards ? "max-w-4xl" : "max-w-3xl";
+
   return (
-    <div className={cn("flex h-full bg-background", compact && "rounded-lg border border-border overflow-hidden")}>
+    <div className={cn("alice-surface alice-body flex h-full", compact && "rounded-2xl overflow-hidden")}>
       {/* Thread sidebar */}
       {!compact && (
-        <aside className="w-64 border-r border-border flex flex-col">
-          <div className="p-3 border-b border-border">
-            <Button onClick={newThread} variant="outline" size="sm" className="w-full justify-start gap-2">
+        <aside className="w-64 alice-glass flex flex-col border-r border-white/5">
+          <div className="p-3 border-b border-white/5 flex items-center gap-2">
+            <div className="alice-orb h-7 w-7" aria-hidden />
+            <div className="flex-1">
+              <div className="text-sm font-semibold tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>ALICE</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] opacity-60">Aurora · Online</div>
+            </div>
+          </div>
+          <div className="p-3">
+            <Button
+              onClick={newThread}
+              size="sm"
+              className="w-full justify-start gap-2 alice-send border-0"
+            >
               <Plus className="h-4 w-4" /> New conversation
             </Button>
           </div>
@@ -156,18 +196,18 @@ export function JarvisChat({ compact = false }: Props) {
             <div className="p-2 space-y-0.5">
               {threads.map((t) => (
                 <div key={t.id} className={cn(
-                  "group flex items-center rounded-md hover:bg-accent transition-colors",
-                  activeThreadId === t.id && "bg-accent",
+                  "group flex items-center rounded-md transition-colors hover:bg-white/5",
+                  activeThreadId === t.id && "alice-thread-active",
                 )}>
                   <button
                     onClick={() => selectThread(t.id)}
-                    className="flex-1 text-left text-sm px-2 py-1.5 truncate"
+                    className="flex-1 text-left text-sm px-3 py-2 truncate"
                   >
                     {t.title}
                   </button>
                   <button
                     onClick={() => deleteThread(t.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:text-destructive"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:text-destructive transition-opacity"
                     aria-label="Delete thread"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -175,7 +215,7 @@ export function JarvisChat({ compact = false }: Props) {
                 </div>
               ))}
               {threads.length === 0 && (
-                <p className="text-xs text-muted-foreground px-2 py-4 text-center">No conversations yet.</p>
+                <p className="text-xs opacity-60 px-2 py-4 text-center">No conversations yet.</p>
               )}
             </div>
           </ScrollArea>
@@ -184,83 +224,85 @@ export function JarvisChat({ compact = false }: Props) {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          <div className={cn("max-w-3xl mx-auto space-y-4", compact ? "px-3 py-3" : "px-4 py-6 space-y-6")}>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto alice-transcript">
+          <div className={cn("mx-auto space-y-5", transcriptMaxW, compact ? "px-3 py-4" : "px-6 py-8")}>
             {messages.length === 0 && (
-              <div className={cn("text-center space-y-2", compact ? "py-6" : "py-12 space-y-3")}>
-                <div className={cn("inline-flex items-center justify-center rounded-full bg-primary/10", compact ? "h-9 w-9" : "h-12 w-12")}>
-                  <Sparkles className={cn("text-primary", compact ? "h-4 w-4" : "h-6 w-6")} />
-                </div>
-                <h2 className={cn("font-semibold", compact ? "text-sm" : "text-lg")}>At your service.</h2>
+              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-16 space-y-5")}>
+                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-20 w-20")} />
+                <h2
+                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-3xl")}
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  Hello. I'm ALICE.
+                </h2>
                 {!compact && (
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Ask me to find anything in your knowledge base, create notes or cards, schedule tasks, or look something up online.
+                  <p className="text-sm opacity-70 max-w-md mx-auto">
+                    Your second-brain co-pilot. Ask, create, schedule, search — I'll show my work as I go.
                   </p>
                 )}
-                {compact && (
-                  <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                    Find, create, schedule, search.
-                  </p>
-                )}
+                <div className={cn("flex flex-wrap justify-center gap-2 pt-2", compact && "pt-1")}>
+                  {STARTER_PROMPTS.slice(0, compact ? 2 : 4).map((p) => (
+                    <button key={p} className="alice-chip" onClick={() => submit(p)}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {messages.map((m) => (
-              <div key={m.id} className={cn("flex flex-col gap-1", m.role === "user" ? "items-end" : "items-start")}>
+              <div key={m.id} className={cn("flex flex-col gap-1 alice-msg-in", m.role === "user" ? "items-end" : "items-start")}>
                 {m.role === "user" ? (
                   <div className={cn(
-                    "max-w-[85%] rounded-2xl bg-primary text-primary-foreground whitespace-pre-wrap",
-                    compact ? "px-3 py-1.5 text-[13px]" : "px-4 py-2 text-sm",
+                    "alice-user-bubble max-w-[85%] rounded-2xl whitespace-pre-wrap",
+                    compact ? "px-3.5 py-2 text-[13px]" : "px-4 py-2.5 text-sm",
                   )}>
                     {m.parts.map((p, i) => {
                       if (p.type !== "text") return null;
-                      // Hide the internal plan-execute directive from the bubble UI.
                       const cleaned = p.text.replace(/\[\[ALICE_PLAN_EXECUTE\]\][\s\S]*?\[\[\/ALICE_PLAN_EXECUTE\]\]/g, "").trim();
                       return cleaned ? <span key={i}>{cleaned}</span> : null;
                     })}
                   </div>
                 ) : (
-                  <div className={cn("max-w-full w-full text-foreground", compact ? "text-[13px]" : "text-sm")}>
-                    {m.parts.map((p, i) => {
-                      if (p.type === "tool") return <ToolPart key={i} part={p} />;
-                      if (p.type === "plan") return (
-                        <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
-                      );
-                      if (p.type === "card") return <AliceCardRenderer key={i} card={p.card} />;
-                      return (
-                        <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown>{p.text}</ReactMarkdown>
-                        </div>
-                      );
-                    })}
+                  <div className="flex gap-3 w-full">
+                    <div className="alice-orb alice-orb-static h-7 w-7 shrink-0 mt-0.5" aria-hidden />
+                    <div className={cn("flex-1 min-w-0", compact ? "text-[13px]" : "text-[15px] leading-relaxed")}>
+                      {m.parts.map((p, i) => {
+                        if (p.type === "tool") return <ToolPart key={i} part={p} />;
+                        if (p.type === "plan") return (
+                          <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
+                        );
+                        if (p.type === "card") return <div key={i} className="my-2"><AliceCardRenderer card={p.card} /></div>;
+                        return (
+                          <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown>{p.text}</ReactMarkdown>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
             ))}
-            {sending && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                <span>Thinking…</span>
-              </div>
-            )}
+            {sending && <LiveThinkingStream />}
           </div>
         </div>
 
         {/* Composer */}
-        <div className={cn("border-t border-border", compact ? "p-2" : "p-3")}>
-          <div className="max-w-3xl mx-auto space-y-2">
+        <div className={cn(compact ? "p-2" : "p-4")}>
+          <div className={cn("mx-auto space-y-2", transcriptMaxW)}>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {attachments.map((a, i) => (
-                  <div key={i} className="group relative flex items-center gap-1.5 rounded-md border border-border bg-muted/40 pl-1.5 pr-6 py-1 text-xs max-w-[200px]">
+                  <div key={i} className="alice-glass group relative flex items-center gap-1.5 rounded-md pl-1.5 pr-6 py-1 text-xs max-w-[200px]">
                     {a.mime.startsWith("image/") ? (
                       <img src={a.url} alt="" className="h-6 w-6 rounded object-cover" />
                     ) : (
-                      <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                      <FileText className="h-3.5 w-3.5 opacity-60" />
                     )}
                     <span className="truncate">{a.name}</span>
                     <button
                       onClick={() => setAttachments((as) => as.filter((_, j) => j !== i))}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-background"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-white/10"
                       aria-label="Remove attachment"
                     >
                       <X className="h-3 w-3" />
@@ -269,39 +311,49 @@ export function JarvisChat({ compact = false }: Props) {
                 ))}
               </div>
             )}
-            <div className="flex gap-2 items-end">
-              <JarvisAttachmentMenu
-                compact={compact}
-                disabled={sending}
-                onAttach={(a) => setAttachments((as) => [...as, a])}
-              />
-              <Textarea
-                ref={taRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
-                }}
-                placeholder="Ask ALICE anything…"
-                rows={1}
-                className={cn("resize-none flex-1", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[40px] max-h-40")}
-                disabled={sending}
-              />
-            <Button
-              type="button"
-              onClick={toggleDictation}
-              size="icon"
-              variant={listening ? "destructive" : "outline"}
-              className={cn("shrink-0", compact && "h-9 w-9")}
-              aria-label={listening ? "Stop dictation" : "Dictate to ALICE"}
-              title={listening ? "Stop dictation" : "Dictate to ALICE"}
-            >
-              {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
-            <Button onClick={submit} disabled={sending || (!input.trim() && attachments.length === 0)} size="icon" className={cn("shrink-0", compact && "h-9 w-9")}>
-              <Send className="h-4 w-4" />
-            </Button>
+            <div className="alice-composer">
+              <div className="alice-composer-inner flex gap-2 items-end p-2">
+                <JarvisAttachmentMenu
+                  compact={compact}
+                  disabled={sending}
+                  onAttach={(a) => setAttachments((as) => [...as, a])}
+                />
+                <Textarea
+                  ref={taRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+                  }}
+                  placeholder="Ask ALICE anything…"
+                  rows={1}
+                  className={cn("resize-none flex-1 shadow-none focus-visible:ring-0", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[44px] max-h-40 text-[15px]")}
+                  disabled={sending}
+                />
+                <Button
+                  type="button"
+                  onClick={toggleDictation}
+                  size="icon"
+                  variant="ghost"
+                  className={cn("shrink-0 rounded-full hover:bg-white/10", listening && "text-destructive", compact && "h-9 w-9")}
+                  aria-label={listening ? "Stop dictation" : "Dictate to ALICE"}
+                  title={listening ? "Stop dictation" : "Dictate to ALICE"}
+                >
+                  {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                <Button
+                  onClick={() => submit()}
+                  disabled={sending || (!input.trim() && attachments.length === 0)}
+                  size="icon"
+                  className={cn("shrink-0 alice-send rounded-full", compact && "h-9 w-9")}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+            <p className="text-[10px] uppercase tracking-[0.18em] opacity-50 text-center">
+              ALICE shows its work · streaming reasoning
+            </p>
           </div>
         </div>
       </div>
