@@ -1804,6 +1804,139 @@ async function executeTool(
           note: fresh ? null : "Snapshot is stale (>2 min) — extension may be inactive.",
         };
       }
+      case "get_my_agenda": {
+        const today = new Date().toISOString().slice(0, 10);
+        const tomorrow = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+        const [evs, dueTasks, overdueTasks, habits, notifs] = await Promise.all([
+          supabase.from("calendar_events")
+            .select("id,title,event_date,event_time,location,reminder_minutes")
+            .gte("event_date", today).lte("event_date", tomorrow)
+            .neq("status", "cancelled").order("event_date").order("event_time").limit(25),
+          supabase.from("project_tasks")
+            .select("id,name,due_date,priority,status")
+            .eq("due_date", today).neq("status", "done").limit(25),
+          supabase.from("project_tasks")
+            .select("id,name,due_date,priority,status")
+            .lt("due_date", today).neq("status", "done")
+            .order("due_date", { ascending: true }).limit(25),
+          supabase.from("habits")
+            .select("id,title,frequency").eq("is_archived", false).limit(25),
+          supabase.from("in_app_notifications")
+            .select("id,title,body,item_type,item_id,is_read,created_at")
+            .eq("is_read", false).order("created_at", { ascending: false }).limit(10),
+        ]);
+        // Mark each habit as completed today or not.
+        const habitList: any[] = [];
+        for (const h of habits.data || []) {
+          const { data: done } = await supabase.from("habit_completions")
+            .select("id").eq("habit_id", h.id).eq("completed_on", today).maybeSingle();
+          habitList.push({ id: h.id, title: h.title, frequency: h.frequency, completed_today: !!done });
+        }
+        return {
+          ok: true,
+          today,
+          events: evs.data || [],
+          tasks_due_today: dueTasks.data || [],
+          tasks_overdue: overdueTasks.data || [],
+          habits: habitList,
+          unread_notifications: notifs.data || [],
+        };
+      }
+      case "complete_task": {
+        let id = String(args.task_id || "").trim();
+        if (!id) {
+          const t = String(args.task_title || "").trim();
+          if (!t) return { error: "task_id or task_title required" };
+          const like = `%${t.replace(/[%_\\]/g, "\\$&")}%`;
+          const { data: matches } = await supabase.from("project_tasks")
+            .select("id,name").ilike("name", like).neq("status", "done").limit(5);
+          if (!matches || !matches.length) return { error: `No open task matches "${t}"` };
+          if (matches.length > 1) return { error: `Multiple matches: ${matches.map((m: any) => m.name).join("; ")}. Please specify task_id.` };
+          id = matches[0].id;
+        }
+        const { data, error } = await supabase.from("project_tasks")
+          .update({ status: "done", updated_at: new Date().toISOString() })
+          .eq("id", id).select("id,name").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, status: "done" };
+      }
+      case "mark_habit_done": {
+        let id = String(args.habit_id || "").trim();
+        if (!id) {
+          const t = String(args.habit_title || "").trim();
+          if (!t) return { error: "habit_id or habit_title required" };
+          const like = `%${t.replace(/[%_\\]/g, "\\$&")}%`;
+          const { data: matches } = await supabase.from("habits")
+            .select("id,title").ilike("title", like).eq("is_archived", false).limit(5);
+          if (!matches || !matches.length) return { error: `No active habit matches "${t}"` };
+          if (matches.length > 1) return { error: `Multiple matches: ${matches.map((m: any) => m.title).join("; ")}. Please specify habit_id.` };
+          id = matches[0].id;
+        }
+        const today = new Date().toISOString().slice(0, 10);
+        // Upsert today's completion
+        const { data: existing } = await supabase.from("habit_completions")
+          .select("id").eq("habit_id", id).eq("completed_on", today).maybeSingle();
+        if (existing) return { ok: true, id: existing.id, already: true, note: "Already logged today." };
+        const { data, error } = await supabase.from("habit_completions")
+          .insert({ user_id: userId, habit_id: id, completed_on: today })
+          .select("id").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, completed_on: today };
+      }
+      case "snooze_reminder": {
+        const mins = Math.min(Math.max(Number(args.minutes) || 15, 1), 60 * 24);
+        const newAt = new Date(Date.now() + mins * 60_000).toISOString();
+        const reminderId = String(args.reminder_id || "").trim();
+        const notifId = String(args.notification_id || "").trim();
+        if (reminderId) {
+          const { error } = await supabase.from("reminders")
+            .update({ remind_at: newAt, is_sent: false })
+            .eq("id", reminderId);
+          if (error) return { error: error.message };
+          return { ok: true, reminder_id: reminderId, remind_at: newAt };
+        }
+        if (notifId) {
+          // Mark old notification read and queue a fresh reminder.
+          const { data: n } = await supabase.from("in_app_notifications")
+            .select("title,body,item_type,item_id").eq("id", notifId).maybeSingle();
+          await supabase.from("in_app_notifications").update({ is_read: true }).eq("id", notifId);
+          const { data, error } = await supabase.from("reminders").insert({
+            user_id: userId,
+            item_type: n?.item_type || "alice",
+            item_id: n?.item_id || crypto.randomUUID(),
+            item_title: n?.title || "Snoozed",
+            remind_at: newAt,
+            offset_minutes: 0,
+          }).select("id").single();
+          if (error) return { error: error.message };
+          return { ok: true, reminder_id: data.id, remind_at: newAt };
+        }
+        return { error: "notification_id or reminder_id required" };
+      }
+      case "list_notifications": {
+        const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 50);
+        let q = supabase.from("in_app_notifications")
+          .select("id,title,body,item_type,item_id,is_read,created_at")
+          .order("created_at", { ascending: false }).limit(limit);
+        if (args.only_unread === true) q = q.eq("is_read", false);
+        const { data, error } = await q;
+        if (error) return { error: error.message };
+        return { ok: true, notifications: data || [], count: (data || []).length };
+      }
+      case "mark_notification_read": {
+        if (args.all === true) {
+          const { error } = await supabase.from("in_app_notifications")
+            .update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+          if (error) return { error: error.message };
+          return { ok: true, marked_all: true };
+        }
+        const id = String(args.notification_id || "").trim();
+        if (!id) return { error: "notification_id or all=true required" };
+        const { error } = await supabase.from("in_app_notifications")
+          .update({ is_read: true }).eq("id", id);
+        if (error) return { error: error.message };
+        return { ok: true, id };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
