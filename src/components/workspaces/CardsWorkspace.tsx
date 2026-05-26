@@ -19,10 +19,12 @@ const isHtml = (s: string) => /<[a-z][\s\S]*>/i.test(s);
 
 export function CardsWorkspace() {
   const { cards, isLoading, createCard, updateCard, deleteCard } = useZettelCards();
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [favOnly, setFavOnly] = useState(false);
   const [editing, setEditing] = useState<ZettelCardType | null>(null);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
