@@ -66,30 +66,37 @@ function ToolPart({ part }: { part: Extract<JarvisPart, { type: "tool" }> }) {
   );
 }
 
-const THINKING_PHASES = [
-  "Thinking",
-  "Parsing intent",
-  "Consulting your knowledge",
-  "Weighing options",
-  "Composing a reply",
-];
-
 function LiveThinkingStream() {
-  const [idx, setIdx] = useState(0);
+  // Honest indicator: no cycling fake phases. Show a single shimmer label
+  // with an elapsed-seconds counter so the user can see real progress, and
+  // surface the latest activity hint if upstream code dispatches one via
+  // `window.dispatchEvent(new CustomEvent("alice-activity", { detail: "..." }))`.
+  const [seconds, setSeconds] = useState(0);
+  const [activity, setActivity] = useState<string>("Working");
   useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % THINKING_PHASES.length), 1600);
-    return () => clearInterval(t);
+    const t = setInterval(() => setSeconds((s) => s + 1), 1000);
+    const onAct = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (typeof detail === "string" && detail.trim()) setActivity(detail.trim());
+    };
+    window.addEventListener("alice-activity", onAct as EventListener);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("alice-activity", onAct as EventListener);
+    };
   }, []);
   return (
     <div className="flex items-center gap-3 py-2 alice-msg-in">
       <div className="alice-orb h-6 w-6" />
       <div className="flex items-center gap-2">
         <span className="alice-live-dot" />
-        <span className="alice-shimmer text-sm">{THINKING_PHASES[idx]}…</span>
+        <span className="alice-shimmer text-sm">{activity}…</span>
+        <span className="text-xs opacity-50 tabular-nums">{seconds}s</span>
       </div>
     </div>
   );
 }
+
 
 const STARTER_PROMPTS = [
   "What's on my plate today?",
