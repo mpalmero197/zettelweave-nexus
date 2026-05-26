@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
+import { AliceFollowupChips } from "@/components/jarvis/AliceFollowupChips";
 import { cn } from "@/lib/utils";
 import "./alice-theme.css";
 
