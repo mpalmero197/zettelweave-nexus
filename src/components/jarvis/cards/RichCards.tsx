@@ -9,9 +9,14 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, Wind, Droplets } from "lucide-react";
+import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, Wind, Droplets, StickyNote, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
@@ -142,6 +147,56 @@ function weatherIcon(condition: string) {
 
 function WeatherCard({ card }: { card: Extract<AliceCard, { type: "weather" }> }) {
   const Icon = weatherIcon(card.current.condition);
+  const { user } = useAuth();
+  const [topic, setTopic] = useState("weather");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const buildNote = () => {
+    const lines: string[] = [];
+    lines.push(`# Weather — ${card.location}`);
+    lines.push("");
+    lines.push(`**${card.current.temperature}** · ${card.current.condition}`);
+    if (card.current.feels_like) lines.push(`Feels like ${card.current.feels_like}`);
+    const meta: string[] = [];
+    if (card.current.humidity) meta.push(`Humidity ${card.current.humidity}`);
+    if (card.current.wind) meta.push(`Wind ${card.current.wind}`);
+    if (meta.length) lines.push(meta.join(" · "));
+    if (card.forecast?.length) {
+      lines.push("", "## Forecast");
+      for (const d of card.forecast) {
+        const day = (() => { try { return new Date(d.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); } catch { return d.date; } })();
+        lines.push(`- **${day}** — ${d.condition}, ${d.high} / ${d.low}${d.precip_chance ? ` (${d.precip_chance} precip)` : ""}`);
+      }
+    }
+    lines.push("", `_Captured ${new Date().toLocaleString()} via ALICE._`);
+    return lines.join("\n");
+  };
+
+  const handleSave = async () => {
+    if (!user) { toast.error("Sign in to save notes"); return; }
+    setSaving(true);
+    const cleanTopic = topic.trim() || "weather";
+    try {
+      const { error } = await supabase.from("notes").insert({
+        user_id: user.id,
+        title: `Weather — ${card.location}`,
+        content: buildNote(),
+        tags: Array.from(new Set([cleanTopic.toLowerCase(), "weather", card.location.toLowerCase()])),
+        is_favorite: false,
+      });
+      if (error) throw error;
+      setSaved(true);
+      toast.success(`Saved to notes · #${cleanTopic}`);
+      setTimeout(() => { setOpen(false); setSaved(false); }, 1200);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save note");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <motion.div {...cardMotion} className={cn(shellClass, "bg-gradient-to-br from-primary/10 via-card to-card")}>
       <div className="p-4">
@@ -176,6 +231,30 @@ function WeatherCard({ card }: { card: Extract<AliceCard, { type: "weather" }> }
             })}
           </div>
         )}
+        <div className="mt-3 pt-3 border-t border-border/60 flex justify-end">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5">
+                <StickyNote className="h-3.5 w-3.5" /> Save as note
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-3">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Link to topic</label>
+              <Input
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g. travel, garden, austin"
+                className="h-8 mt-1.5 text-sm"
+                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+                autoFocus
+              />
+              <div className="text-[10px] text-muted-foreground mt-1.5">Added as a tag plus #weather and the city.</div>
+              <Button size="sm" className="w-full mt-2.5 h-8 text-xs gap-1.5" onClick={handleSave} disabled={saving || saved}>
+                {saved ? <><Check className="h-3.5 w-3.5" /> Saved</> : saving ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Save note</>}
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     </motion.div>
   );
@@ -282,7 +361,9 @@ export function AliceCardRenderer({ card }: { card: AliceCard }) {
  */
 export function parseCardBlocks(text: string): Array<{ kind: "text"; text: string } | { kind: "card"; card: AliceCard }> {
   const out: Array<{ kind: "text"; text: string } | { kind: "card"; card: AliceCard }> = [];
-  const RX = /\[\[ALICE_CARD(?:\s+type=([a-z]+))?\]\]([\s\S]*?)\[\[\/ALICE_CARD\]\]/g;
+  // Accept both `[[...]]` and `[...]` brackets on open/close tags — models
+  // occasionally drop one bracket on the closing tag.
+  const RX = /\[\[?ALICE_CARD(?:\s+type=([a-z]+))?\]\]?([\s\S]*?)\[\[?\/ALICE_CARD\]\]?/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = RX.exec(text)) !== null) {
