@@ -372,45 +372,77 @@ export function JarvisChat({ compact = false }: Props) {
                 </div>
               </div>
             )}
-            {messages.map((m) => (
-              <div key={m.id} className={cn("flex flex-col gap-1 alice-msg-in", m.role === "user" ? "items-end" : "items-start")}>
-                {m.role === "user" ? (
-                  <div className={cn(
-                    "alice-user-bubble rounded-2xl whitespace-pre-wrap break-words",
-                    // Wider cap on phones — 85% looks cramped beside the orb-free right edge.
-                    "max-w-[92%] md:max-w-[85%]",
-                    compact ? "px-3.5 py-2 text-[13px]" : "px-3.5 py-2 text-[14px] md:px-4 md:py-2.5 md:text-sm",
-                  )}>
-                    {m.parts.map((p, i) => {
-                      if (p.type !== "text") return null;
-                      const cleaned = p.text.replace(/\[\[ALICE_PLAN_EXECUTE\]\][\s\S]*?\[\[\/ALICE_PLAN_EXECUTE\]\]/g, "").trim();
-                      return cleaned ? <span key={i}>{cleaned}</span> : null;
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex gap-2 md:gap-3 w-full">
-                    <div className="alice-orb alice-orb-static h-6 w-6 md:h-7 md:w-7 shrink-0 mt-0.5" aria-hidden />
+            {messages.map((m, mi) => {
+              const isLast = mi === messages.length - 1;
+              const isLastAssistantDone =
+                isLast && m.role === "assistant" && !sending;
+              const lastUserText = (() => {
+                for (let j = mi - 1; j >= 0; j--) {
+                  if (messages[j].role === "user") {
+                    return messages[j].parts
+                      .filter((p) => p.type === "text")
+                      .map((p: any) => p.text)
+                      .join(" ");
+                  }
+                }
+                return "";
+              })();
+              const assistantText = m.parts
+                .filter((p) => p.type === "text")
+                .map((p: any) => p.text)
+                .join(" ");
+              return (
+                <div key={m.id} className={cn("flex flex-col gap-1 alice-msg-in", m.role === "user" ? "items-end" : "items-start")}>
+                  {m.role === "user" ? (
                     <div className={cn(
-                      "flex-1 min-w-0",
-                      compact ? "text-[13px]" : "text-[14px] md:text-[15px] leading-relaxed",
+                      "alice-user-bubble rounded-2xl whitespace-pre-wrap break-words",
+                      "max-w-[92%] md:max-w-[85%]",
+                      compact ? "px-3.5 py-2 text-[13px]" : "px-3.5 py-2 text-[14px] md:px-4 md:py-2.5 md:text-sm",
                     )}>
                       {m.parts.map((p, i) => {
-                        if (p.type === "tool") return <ToolPart key={i} part={p} />;
-                        if (p.type === "plan") return (
-                          <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
-                        );
-                        if (p.type === "card") return <div key={i} className="my-2"><AliceCardRenderer card={p.card} /></div>;
-                        return (
-                          <div key={i} className="prose prose-sm dark:prose-invert max-w-none break-words">
-                            <ReactMarkdown>{p.text}</ReactMarkdown>
-                          </div>
-                        );
+                        if (p.type !== "text") return null;
+                        const cleaned = p.text.replace(/\[\[ALICE_PLAN_EXECUTE\]\][\s\S]*?\[\[\/ALICE_PLAN_EXECUTE\]\]/g, "").trim();
+                        return cleaned ? <span key={i}>{cleaned}</span> : null;
                       })}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  ) : (
+                    <>
+                      <div className="flex gap-2 md:gap-3 w-full">
+                        <div
+                          className="alice-orb h-6 w-6 md:h-7 md:w-7 shrink-0 mt-0.5"
+                          data-state={isLast && sending ? "streaming" : undefined}
+                          aria-hidden
+                        />
+                        <div className={cn(
+                          "alice-assistant-bubble flex-1 min-w-0",
+                          compact ? "text-[13px]" : "text-[14px] md:text-[15px] leading-relaxed",
+                        )}>
+                          {m.parts.map((p, i) => {
+                            if (p.type === "tool") return <ToolPart key={i} part={p} />;
+                            if (p.type === "plan") return (
+                              <AliceActionPlan key={i} plan={p.plan} onApprove={runPlan} />
+                            );
+                            if (p.type === "card") return <div key={i} className="my-2"><AliceCardRenderer card={p.card} /></div>;
+                            return (
+                              <div key={i} className="prose prose-sm dark:prose-invert max-w-none break-words">
+                                <ReactMarkdown>{p.text}</ReactMarkdown>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {isLastAssistantDone && assistantText.trim().length > 0 && (
+                        <AliceFollowupChips
+                          lastAssistant={assistantText}
+                          lastUser={lastUserText}
+                          onPick={(prompt) => submit(prompt)}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
             {sending && <LiveThinkingStream />}
           </div>
         </div>
