@@ -146,25 +146,118 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
     }
   };
 
-  const startAuthorWizard = () => { setView('author-wizard'); setWizardStep('topic'); setTopicInput(''); setSelectedSourceIds(new Set()); setFocusInstructions(''); setSourceSearch(''); };
+  const startAuthorWizard = async () => {
+    setView('author-wizard'); setWizardStep('topic'); setTopicInput(''); setSelectedSourceIds(new Set()); setFocusInstructions(''); setSourceSearch('');
+    setTargetWords(8000); setActiveRunId(null);
+    // Pull the user's default style-mimicry preference from their profile
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (u) {
+        const { data } = await supabase.from('profiles').select('author_style_mimicry_enabled').eq('user_id', u.id).maybeSingle();
+        if (data && typeof (data as any).author_style_mimicry_enabled === 'boolean') {
+          setStyleMimicry((data as any).author_style_mimicry_enabled);
+        }
+      }
+    } catch { /* ignore */ }
+  };
+
+  // Poll the active run for progress updates while generating
+  useEffect(() => {
+    if (!activeRunId || wizardStep !== 'generating') return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await (supabase.from('agent_runs') as any)
+          .select('progress, progress_stage, progress_detail, progress_sections_done, progress_sections_total, progress_words_done, progress_words_target, status')
+          .eq('id', activeRunId).maybeSingle();
+        if (!cancelled && data) {
+          setRunProgress({
+            progress: Number(data.progress) || 0,
+            stage: data.progress_stage || 'working',
+            detail: data.progress_detail || '',
+            sectionsDone: data.progress_sections_done || 0,
+            sectionsTotal: data.progress_sections_total || 0,
+            wordsDone: data.progress_words_done || 0,
+            wordsTarget: data.progress_words_target || 0,
+            status: data.status || 'running',
+          });
+          if (data.status === 'completed' || data.status === 'failed') {
+            return; // stop polling
+          }
+        }
+      } catch (e) { console.error('progress poll failed', e); }
+      if (!cancelled) setTimeout(tick, 2000);
+    };
+    tick();
+    return () => { cancelled = true; };
+  }, [activeRunId, wizardStep]);
 
   const handleGenerate = async () => {
+    const configPayload = {
+      synthesizer_title: topicInput || undefined,
+      custom_instructions: focusInstructions || undefined,
+      selected_source_ids: Array.from(selectedSourceIds),
+      synthesizer_max_cards: 50,
+      author_target_words: targetWords,
+      author_style_mimicry: styleMimicry,
+    };
     let authorAgent = agents.find(a => a.agent_type === 'card_synthesizer');
     if (!authorAgent) {
-      const created = await createAgent('card_synthesizer', 'Author Agent', 'Writes comprehensive documents', { synthesizer_title: topicInput || undefined, synthesizer_max_cards: 50, author_min_words: 10000 }, 60);
+      const created = await createAgent('card_synthesizer', 'Author Agent', 'Writes comprehensive documents', configPayload as any, 60);
       if (!created) { toast.error('Failed to create Author Agent'); return; }
       authorAgent = created;
     } else {
-      await updateAgent(authorAgent.id, { config: { ...authorAgent.config, synthesizer_title: topicInput || undefined, custom_instructions: focusInstructions || undefined, selected_source_ids: Array.from(selectedSourceIds) } as any });
+      await updateAgent(authorAgent.id, { config: { ...authorAgent.config, ...configPayload } as any });
     }
-    setWizardStep('generating'); setIsGenerating(true);
+    setWizardStep('generating');
+    setIsGenerating(true);
+    setRunProgress({ progress: 0, stage: 'starting', detail: 'Preparing...', sectionsDone: 0, sectionsTotal: 0, wordsDone: 0, wordsTarget: targetWords, status: 'running' });
+    startTimeRef.current = Date.now();
     try {
-      await triggerAgentRun(authorAgent.id);
-      toast.success('Author Agent started!');
+      // Fire-and-forget: don't await — progress comes through agent_runs polling
+      const runPromise = triggerAgentRun(authorAgent.id);
+      runPromise.then(run => {
+        if (run?.id) setActiveRunId(run.id);
+      }).catch(() => toast.error('Failed to start Author Agent'));
+      // Also poll for the latest run while waiting for the runId
+      const { supabase } = await import('@/integrations/supabase/client');
+      const findLatest = async () => {
+        const { data } = await (supabase.from('agent_runs') as any)
+          .select('id')
+          .eq('agent_id', authorAgent!.id)
+          .order('started_at', { ascending: false })
+          .limit(1);
+        if (data && data[0]?.id) setActiveRunId(data[0].id);
+      };
+      setTimeout(findLatest, 800);
       onDocumentGenerated?.();
-    } catch { toast.error('Failed to start Author Agent'); }
-    finally { setIsGenerating(false); setTimeout(() => { setView('list'); setWizardStep('topic'); }, 3000); }
+    } catch {
+      toast.error('Failed to start Author Agent');
+      setIsGenerating(false);
+    }
   };
+
+  // ETA estimation: blends elapsed-vs-progress with a sensible minimum
+  const eta = useMemo(() => {
+    if (!startTimeRef.current || runProgress.progress < 3) return null;
+    const elapsed = (Date.now() - startTimeRef.current) / 1000;
+    const remainingPct = Math.max(0, 100 - runProgress.progress);
+    const projected = (elapsed / runProgress.progress) * remainingPct;
+    if (!isFinite(projected) || projected < 0) return null;
+    const secs = Math.round(projected);
+    if (secs < 60) return `~${secs}s left`;
+    return `~${Math.ceil(secs / 60)} min left`;
+  }, [runProgress.progress]);
+
+  const STAGE_LABELS: Record<string, string> = {
+    starting: 'Starting up', gathering: 'Reading your knowledge', style_analysis: 'Studying your voice',
+    topic: 'Choosing topic', outline: 'Outlining', writing: 'Writing', polish: 'Polishing',
+    saving: 'Saving', done: 'Complete', working: 'Working',
+  };
+
+
 
   const selectedAgent = agents.find(a => a.id === selectedAgentId);
 
