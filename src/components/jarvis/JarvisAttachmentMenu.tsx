@@ -30,7 +30,7 @@ export function JarvisAttachmentMenu({ onAttach, disabled, compact }: Props) {
     setBusy(true);
     try {
       const ext = file.name.split(".").pop() || "bin";
-      const path = `jarvis/${user.id}/${crypto.randomUUID()}.${ext}`;
+      const path = `${user.id}/jarvis/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
         contentType: file.type || "application/octet-stream",
         upsert: false,

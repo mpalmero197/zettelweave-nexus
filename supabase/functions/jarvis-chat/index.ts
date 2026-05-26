@@ -1989,6 +1989,27 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       break;
     }
 
+    // Safety net: if the model called find_video / generate_image / get_weather
+    // but forgot to embed the corresponding [[ALICE_CARD]] block, inject it.
+    const injected: string[] = [];
+    for (const p of assistantParts) {
+      if (p.type !== "tool" || !p.result || (p.result as any).error) continue;
+      if (p.name === "find_video" && !/ALICE_CARD\s+type=video/.test(finalText)) {
+        const results = (p.result as any).results || [];
+        for (const v of results.slice(0, 3)) {
+          injected.push(`[[ALICE_CARD type=video]]${JSON.stringify({ url: v.url, title: v.title, thumbnail: v.thumbnail, channel: v.channel, provider: v.provider })}[[/ALICE_CARD]]`);
+        }
+      }
+      if (p.name === "generate_image" && !/ALICE_CARD\s+type=image/.test(finalText)) {
+        const r: any = p.result;
+        if (r.url) injected.push(`[[ALICE_CARD type=image]]${JSON.stringify({ url: r.url, caption: r.prompt })}[[/ALICE_CARD]]`);
+      }
+      if (p.name === "get_weather" && !/ALICE_CARD\s+type=weather/.test(finalText)) {
+        injected.push(`[[ALICE_CARD type=weather]]${JSON.stringify(p.result)}[[/ALICE_CARD]]`);
+      }
+    }
+    if (injected.length) finalText = (finalText ? finalText + "\n\n" : "") + injected.join("\n");
+
     if (finalText) assistantParts.push({ type: "text", text: finalText });
 
     await supabase.from("jarvis_messages").insert({
