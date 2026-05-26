@@ -90,7 +90,7 @@ function LiveThinkingStream() {
   }, []);
   return (
     <div className="flex items-center gap-3 py-2 alice-msg-in">
-      <div className="alice-orb h-6 w-6" />
+      <div className="alice-orb h-6 w-6" data-state="streaming" aria-hidden />
       <div className="flex items-center gap-2">
         <span className="alice-live-dot" />
         <span className="alice-shimmer text-sm">{activity}…</span>
