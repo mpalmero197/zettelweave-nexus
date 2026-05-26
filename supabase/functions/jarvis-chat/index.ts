@@ -95,7 +95,13 @@ You can:
 - get the current verified date/time via get_current_datetime
 - navigate the user to any feature
 - start / pause / reset the Focus Pomodoro timer with custom durations
-- run specialist agents (Author, Research, Citation, Smart Linking, etc.)
+- run specialist agents (Author, Research, Citation, Smart Linking, Knowledge Gap, Task Extraction, Daily Digest, Spaced Repetition, Custom) via run_agent, then check on them with get_agent_status and report results back IN CHAT.
+
+AGENT USAGE RULE (strict, non-negotiable):
+- NEVER navigate the user to "/app/agents". The agents page is an internal management surface; the user should never be sent there by you.
+- When the user asks you to do something an agent can do (draft a long document, find citations, do research on a doc, summarize, extract tasks, surface knowledge gaps, suggest links, etc.), call run_agent. Tell them in one short sentence which agent you started and roughly the ETA.
+- If the user asks "what did the agent find?" / "is it done?" / "show me the results", call get_agent_status with the run_id from your last run_agent call to read findings, then summarize the top findings inline. For Author Agent results, also offer to open the produced Catalyst document with open_in_catalyst (do not auto-navigate without asking).
+- Agents are YOUR tools. Use them to complete the user's task; do not redirect the user to operate them manually.
 
 ═══ PENDRAGONX FEATURE CATALOG (you are a superuser) ═══
 
@@ -545,13 +551,28 @@ const tools = [
         properties: {
           agent_type: {
             type: "string",
-            enum: ["author","research","citation","writing_coach","content_summarizer","smart_linking","knowledge_gap","task_extraction","habit_reminder"],
-            description: "'author' = the long-form Author / Card Synthesizer agent that drafts a 4–6k word Catalyst document from the user's existing notes/cards. Use this whenever the user asks for a 'large document', 'long document', 'big writeup', 'master document', or 'synthesize my notes into a paper'.",
+            enum: ["author","research","citation","writing_coach","content_summarizer","smart_linking","knowledge_gap","task_extraction","habit_reminder","daily_digest","spaced_repetition","custom"],
+            description: "'author' = the long-form Author / Card Synthesizer agent that drafts a 4–6k word Catalyst document from the user's existing notes/cards. Use this whenever the user asks for a 'large document', 'long document', 'big writeup', 'master document', or 'synthesize my notes into a paper'. 'custom' lets you run a free-form custom agent with the user's exact instructions.",
           },
           topic: { type: "string", description: "Optional. Specific topic/title for the agent to focus on. For the author agent this becomes the document title and core subject." },
           instructions: { type: "string", description: "Optional extra guidance, tone, focus, or constraints for the agent." },
         },
         required: ["agent_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_agent_status",
+      description: "Check the status and findings of an agent run you previously kicked off with run_agent. Use this whenever the user asks 'is it done?', 'what did the agent find?', 'show me the results', or when you want to follow up on a fire-and-forget agent task. Returns the run status plus the top findings so you can summarize them in chat. Do NOT navigate the user to /app/agents to view results — read them here and report inline.",
+      parameters: {
+        type: "object",
+        properties: {
+          run_id: { type: "string", description: "The run_id returned from run_agent." },
+          agent_id: { type: "string", description: "Optional agent_id if run_id is unknown — returns latest run for that agent." },
+          limit: { type: "number", description: "Max findings to return (default 10)." },
+        },
       },
     },
   },
@@ -1499,6 +1520,9 @@ async function executeTool(
           knowledge_gap: "knowledge_gap",
           task_extraction: "task_extraction",
           habit_reminder: "habit_reminder",
+          daily_digest: "daily_digest",
+          spaced_repetition: "spaced_repetition",
+          custom: "custom",
         };
         const requested = String(args.agent_type || "").trim();
         const internalType = TYPE_ALIAS[requested];
@@ -1568,9 +1592,6 @@ async function executeTool(
         else await invokeAgent;
         await serviceClient.from("agent_notifications").insert({ user_id: userId, agent_id: agentId, title: "ALICE report started", message: `I started ${internalType.replace(/_/g, " ")}. I’ll post the result here when it finishes.`, notification_type: "info" });
 
-        const navigate_to = internalType === "card_synthesizer" || internalType === "writing_coach" || internalType === "citation"
-          ? "/app/catalyst"
-          : "/app/agents";
         const eta = internalType === "card_synthesizer" ? "60–120 seconds" : "20–60 seconds";
         return {
           ok: true,
@@ -1578,8 +1599,56 @@ async function executeTool(
           run_id: run.id,
           agent_type: internalType,
           eta,
-          navigate_to,
-          note: `Agent triggered. It runs in the background and will post a notification (and, for the Author Agent, drop the finished document into Catalyst) when done.`,
+          // Deliberately NO navigate_to: ALICE should not send the user to /app/agents.
+          // She will follow up with get_agent_status and report the result inline.
+          note: `Agent running in the background. Use get_agent_status with run_id=${run.id} to check progress and read findings — do not navigate the user to /app/agents.`,
+        };
+      }
+      case "get_agent_status": {
+        const runId = String(args.run_id || "").trim();
+        const agentIdArg = String(args.agent_id || "").trim();
+        const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 50);
+        let run: any = null;
+        if (runId) {
+          const { data, error } = await supabase
+            .from("agent_runs")
+            .select("id,agent_id,status,started_at,completed_at,error_message,items_processed,items_found")
+            .eq("id", runId).eq("user_id", userId).maybeSingle();
+          if (error) return { error: error.message };
+          run = data;
+        } else if (agentIdArg) {
+          const { data, error } = await supabase
+            .from("agent_runs")
+            .select("id,agent_id,status,started_at,completed_at,error_message,items_processed,items_found")
+            .eq("agent_id", agentIdArg).eq("user_id", userId)
+            .order("started_at", { ascending: false }).limit(1).maybeSingle();
+          if (error) return { error: error.message };
+          run = data;
+        } else {
+          return { error: "Provide run_id or agent_id." };
+        }
+        if (!run) return { error: "No matching run found." };
+        const { data: findings } = await supabase
+          .from("agent_findings")
+          .select("id,finding_type,title,content,metadata,relevance_score,created_at")
+          .eq("run_id", run.id).eq("user_id", userId)
+          .order("relevance_score", { ascending: false })
+          .limit(limit);
+        // Surface a primary document_id when the Author Agent has produced a Catalyst doc.
+        const docFinding = (findings || []).find((f: any) => f.finding_type === "document_created");
+        const documentId = docFinding?.metadata?.document_id || null;
+        return {
+          ok: true,
+          run,
+          findings: findings || [],
+          document_id: documentId,
+          hint: run.status === "completed"
+            ? "Summarize the top findings to the user inline. If document_id is present, offer to open it with open_in_catalyst."
+            : run.status === "running"
+              ? "Still working. Tell the user it's in progress and offer to check back."
+              : run.status === "failed"
+                ? "Report the error_message to the user honestly."
+                : "Report the current status.",
         };
       }
       case "start_pomodoro_timer": {
