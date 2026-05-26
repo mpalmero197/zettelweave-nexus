@@ -7,16 +7,12 @@
  * The hook extracts those into structured `card` parts. Each card type
  * below renders a single payload shape.
  */
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, Wind, Droplets, StickyNote, Check, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { WeatherCard } from "./WeatherCard";
 
 export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
