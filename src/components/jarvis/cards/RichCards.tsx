@@ -9,14 +9,11 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, Wind, Droplets, StickyNote, Check, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  ExternalLink, MapPin, FileText, Play, Quote, Table2, FileIcon, X, ImageIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { WeatherCard } from "./WeatherCard";
 
 export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
@@ -135,131 +132,6 @@ function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
   );
 }
 
-function weatherIcon(condition: string) {
-  const c = condition.toLowerCase();
-  if (c.includes("thunder")) return CloudLightning;
-  if (c.includes("snow")) return CloudSnow;
-  if (c.includes("rain") || c.includes("shower") || c.includes("drizzle")) return CloudRain;
-  if (c.includes("fog")) return CloudFog;
-  if (c.includes("cloud") || c.includes("overcast")) return Cloud;
-  return Sun;
-}
-
-function WeatherCard({ card }: { card: Extract<AliceCard, { type: "weather" }> }) {
-  const Icon = weatherIcon(card.current.condition);
-  const { user } = useAuth();
-  const [topic, setTopic] = useState("weather");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  const buildNote = () => {
-    const lines: string[] = [];
-    lines.push(`# Weather — ${card.location}`);
-    lines.push("");
-    lines.push(`**${card.current.temperature}** · ${card.current.condition}`);
-    if (card.current.feels_like) lines.push(`Feels like ${card.current.feels_like}`);
-    const meta: string[] = [];
-    if (card.current.humidity) meta.push(`Humidity ${card.current.humidity}`);
-    if (card.current.wind) meta.push(`Wind ${card.current.wind}`);
-    if (meta.length) lines.push(meta.join(" · "));
-    if (card.forecast?.length) {
-      lines.push("", "## Forecast");
-      for (const d of card.forecast) {
-        const day = (() => { try { return new Date(d.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); } catch { return d.date; } })();
-        lines.push(`- **${day}** — ${d.condition}, ${d.high} / ${d.low}${d.precip_chance ? ` (${d.precip_chance} precip)` : ""}`);
-      }
-    }
-    lines.push("", `_Captured ${new Date().toLocaleString()} via ALICE._`);
-    return lines.join("\n");
-  };
-
-  const handleSave = async () => {
-    if (!user) { toast.error("Sign in to save notes"); return; }
-    setSaving(true);
-    const cleanTopic = topic.trim() || "weather";
-    try {
-      const { error } = await supabase.from("notes").insert({
-        user_id: user.id,
-        title: `Weather — ${card.location}`,
-        content: buildNote(),
-        tags: Array.from(new Set([cleanTopic.toLowerCase(), "weather", card.location.toLowerCase()])),
-        is_favorite: false,
-      });
-      if (error) throw error;
-      setSaved(true);
-      toast.success(`Saved to notes · #${cleanTopic}`);
-      setTimeout(() => { setOpen(false); setSaved(false); }, 1200);
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to save note");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <motion.div {...cardMotion} className={cn(shellClass, "bg-gradient-to-br from-primary/10 via-card to-card")}>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{card.location}</div>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <div className="text-4xl font-light">{card.current.temperature}</div>
-              <div className="text-sm text-muted-foreground">{card.current.condition}</div>
-            </div>
-            {card.current.feels_like && <div className="text-[11px] text-muted-foreground mt-0.5">Feels like {card.current.feels_like}</div>}
-          </div>
-          <Icon className="h-12 w-12 text-primary/80 flex-shrink-0" />
-        </div>
-        <div className="flex gap-4 mt-3 text-[11px] text-muted-foreground">
-          {card.current.humidity && <span className="inline-flex items-center gap-1"><Droplets className="h-3 w-3" />{card.current.humidity}</span>}
-          {card.current.wind && <span className="inline-flex items-center gap-1"><Wind className="h-3 w-3" />{card.current.wind}</span>}
-        </div>
-        {card.forecast && card.forecast.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-3 gap-2">
-            {card.forecast.slice(0, 3).map((d, i) => {
-              const DI = weatherIcon(d.condition);
-              const day = (() => { try { return new Date(d.date).toLocaleDateString(undefined, { weekday: "short" }); } catch { return d.date; } })();
-              return (
-                <div key={i} className="text-center">
-                  <div className="text-[10px] text-muted-foreground">{day}</div>
-                  <DI className="h-5 w-5 mx-auto my-1 text-primary/70" />
-                  <div className="text-xs"><span className="font-medium">{d.high}</span> <span className="text-muted-foreground">{d.low}</span></div>
-                  {d.precip_chance && <div className="text-[10px] text-muted-foreground">{d.precip_chance}</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div className="mt-3 pt-3 border-t border-border/60 flex justify-end">
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5">
-                <StickyNote className="h-3.5 w-3.5" /> Save as note
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-3">
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Link to topic</label>
-              <Input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. travel, garden, austin"
-                className="h-8 mt-1.5 text-sm"
-                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-                autoFocus
-              />
-              <div className="text-[10px] text-muted-foreground mt-1.5">Added as a tag plus #weather and the city.</div>
-              <Button size="sm" className="w-full mt-2.5 h-8 text-xs gap-1.5" onClick={handleSave} disabled={saving || saved}>
-                {saved ? <><Check className="h-3.5 w-3.5" /> Saved</> : saving ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Save note</>}
-              </Button>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 function SpreadsheetCard({ card }: { card: Extract<AliceCard, { type: "spreadsheet" }> }) {
   return (
     <motion.div {...cardMotion} className={shellClass}>
@@ -346,7 +218,7 @@ export function AliceCardRenderer({ card }: { card: AliceCard }) {
     case "map": return <MapCard card={card} />;
     case "pdf": return <PdfCard card={card} />;
     case "video": return <VideoCard card={card} />;
-    case "weather": return <WeatherCard card={card} />;
+    case "weather": return <WeatherCard data={card} />;
     case "spreadsheet": return <SpreadsheetCard card={card} />;
     case "link": return <LinkCard card={card} />;
     case "quote": return <QuoteCard card={card} />;
