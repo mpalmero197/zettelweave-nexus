@@ -33,6 +33,8 @@ const GraphView = lazy(() => import("@/components/GraphViewNew").then(m => ({ de
 const Graph3D = lazy(() => import("@/components/Graph3D").then(m => ({ default: m.Graph3D })));
 const CardViewer = lazy(() => import("@/components/CardViewer").then(m => ({ default: m.CardViewer })));
 const Notes = lazy(() => import("@/components/Notes").then(m => ({ default: m.Notes })));
+const NotesWorkspace = lazy(() => import("@/components/workspaces/NotesWorkspace").then(m => ({ default: m.NotesWorkspace })));
+const CardsWorkspace = lazy(() => import("@/components/workspaces/CardsWorkspace").then(m => ({ default: m.CardsWorkspace })));
 const RecorderStudio = lazy(() => import("@/components/RecorderStudio").then(m => ({ default: m.RecorderStudio })));
 const AudioManager = lazy(() => import("@/components/AudioManager").then(m => ({ default: m.AudioManager })));
 const ScratchPad = lazy(() => import("@/components/ScratchPad").then(m => ({ default: m.ScratchPad })));
@@ -420,8 +422,8 @@ const Index = () => {
       {/* Main Content - Mobile Optimized */}
       <main id="main-content" className="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0 px-2 md:px-3 relative flex-1" role="main">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative">
-          {/* Cards Menu Bar - Mobile Optimized */}
-          {activeTab === "cards" && (
+          {/* Cards Menu Bar - hidden when using two-pane workspace */}
+          {false && activeTab === "cards" && (
             <div className="sticky top-10 md:top-14 z-30 bg-card/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-3 py-2 mb-2">
               <div className="flex items-center gap-2 max-w-7xl mx-auto">
                 {/* Create button */}
@@ -628,7 +630,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="notes" className="mt-0">
-                  <Notes />
+                  <NotesWorkspace />
                 </TabsContent>
 
                 <TabsContent value="notebooks" className="mt-0">
@@ -652,68 +654,7 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="cards" className="mt-0">
-                  <div className="p-4 sm:p-6">
-                    {isLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                        {[...Array(8)].map((_, i) => (
-                          <div key={i} className="h-32 bg-muted/50 rounded-lg animate-pulse" />
-                        ))}
-                      </div>
-                    ) : displayedCards.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FileText className="h-10 w-10 mx-auto mb-3 opacity-15 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {cards.length === 0
-                            ? "Start building your knowledge base by creating your first card"
-                            : cardSearch.trim()
-                            ? `No cards matching "${cardSearch}"`
-                            : showFavoritesOnly
-                            ? "No favorite cards yet"
-                            : showNewCardsOnly
-                            ? "No new cards in the last 24 hours"
-                            : "No cards found"
-                          }
-                        </p>
-                        {cards.length === 0 && (
-                          <CreateCardDialog onCreateCard={handleCreateCard} existingCards={cards} organizationMethod={organizationMethod} />
-                        )}
-                      </div>
-                    ) : cardView === "list" ? (
-                      <div className="space-y-3">
-                        {displayedCards.map((card) => (
-                          <ZettelCard
-                            key={card.id}
-                            card={card}
-                            variant="compact"
-                            onEdit={setViewingCard}
-                            onLink={(card) => {
-                              setEditingCard(card);
-                              toast.success("Link card feature - select cards to link");
-                            }}
-                            onDelete={handleDeleteCard}
-                            onUpdate={handleUpdateCard}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                        {displayedCards.map((card) => (
-                          <ZettelCard
-                            key={card.id}
-                            card={card}
-                            onEdit={setViewingCard}
-                            onLink={(card) => {
-                              setEditingCard(card);
-                              toast.success("Link card feature - select cards to link");
-                            }}
-                            onDelete={handleDeleteCard}
-                            onUpdate={handleUpdateCard}
-                            className="h-fit"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <CardsWorkspace />
                 </TabsContent>
 
                 <TabsContent value="graph" className="mt-0">
