@@ -1520,6 +1520,9 @@ async function executeTool(
           knowledge_gap: "knowledge_gap",
           task_extraction: "task_extraction",
           habit_reminder: "habit_reminder",
+          daily_digest: "daily_digest",
+          spaced_repetition: "spaced_repetition",
+          custom: "custom",
         };
         const requested = String(args.agent_type || "").trim();
         const internalType = TYPE_ALIAS[requested];
