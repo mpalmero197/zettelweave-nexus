@@ -25,6 +25,27 @@ export function JarvisFAB() {
     }
   }, [isMobile, open, minimized]);
 
+  // Auto-minimize on mobile after ALICE completes a navigation or client
+  // action so the user can see the destination she took them to.
+  useEffect(() => {
+    if (!isMobile || !open) return;
+    const collapse = () => setMinimized(true);
+    const actionTypes = [
+      "alice-navigate",
+      "alice:open_card", "alice:open_note", "alice:open_document",
+      "alice:open_task", "alice:open_event", "alice:open",
+    ];
+    actionTypes.forEach((t) => window.addEventListener(t, collapse));
+    return () => actionTypes.forEach((t) => window.removeEventListener(t, collapse));
+  }, [isMobile, open]);
+
+  const expand = () => {
+    setMinimized(false);
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent("alice-focus-input"));
+    });
+  };
+
   return (
     <>
       {!open && (
