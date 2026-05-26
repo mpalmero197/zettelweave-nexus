@@ -282,7 +282,9 @@ export function AliceCardRenderer({ card }: { card: AliceCard }) {
  */
 export function parseCardBlocks(text: string): Array<{ kind: "text"; text: string } | { kind: "card"; card: AliceCard }> {
   const out: Array<{ kind: "text"; text: string } | { kind: "card"; card: AliceCard }> = [];
-  const RX = /\[\[ALICE_CARD(?:\s+type=([a-z]+))?\]\]([\s\S]*?)\[\[\/ALICE_CARD\]\]/g;
+  // Accept both `[[...]]` and `[...]` brackets on open/close tags — models
+  // occasionally drop one bracket on the closing tag.
+  const RX = /\[\[?ALICE_CARD(?:\s+type=([a-z]+))?\]\]?([\s\S]*?)\[\[?\/ALICE_CARD\]\]?/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = RX.exec(text)) !== null) {
