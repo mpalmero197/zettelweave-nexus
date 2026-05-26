@@ -2138,9 +2138,48 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     // when natural. Keep prose tight — the UI shows tool work as cards.
     const sparkBlock = `\n\n═══ SPARK MODE — TRANSPARENT AGENCY ═══\n- Before answering anything that touches the user's data, current time, or the live web, CALL THE RELEVANT TOOL first. Don't paraphrase guesses.\n- Decompose multi-step asks into ordered actions and execute them; the UI renders each tool step inline.\n- Prefer rich cards over walls of text: weather → get_weather; video → find_video; image → generate_image; web results stay as a brief summary plus the [[ALICE_CARD]] block already injected.\n- End substantive replies with a single short line of 1–2 follow-up suggestions prefixed exactly with "Next: " (e.g. "Next: save this as a note · open in Catalyst"). Skip for trivial chit-chat.\n- Keep voice calm, sharp, concrete. No filler ("Sure!", "Of course!", "I'd be happy to…").`;
 
+    // ─── LIVE AGENDA SNAPSHOT — always-on context ───
+    // Inject a concise summary of today's events, tasks, habits, and unread
+    // alerts so ALICE has real situational awareness without needing to call
+    // get_my_agenda every turn. She still has the tool for deeper drilldowns.
+    let agendaBlock = "";
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const tomorrow = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+      const [evs, due, over, habits, unread] = await Promise.all([
+        supabase.from("calendar_events")
+          .select("title,event_date,event_time,location")
+          .gte("event_date", today).lte("event_date", tomorrow)
+          .neq("status", "cancelled").order("event_date").order("event_time").limit(8),
+        supabase.from("project_tasks")
+          .select("name,priority").eq("due_date", today).neq("status", "done").limit(8),
+        supabase.from("project_tasks")
+          .select("name,due_date").lt("due_date", today).neq("status", "done")
+          .order("due_date", { ascending: true }).limit(5),
+        supabase.from("habits").select("id,title").eq("is_archived", false).limit(10),
+        supabase.from("in_app_notifications")
+          .select("title,created_at").eq("is_read", false)
+          .order("created_at", { ascending: false }).limit(5),
+      ]);
+      const habitsToday: string[] = [];
+      for (const h of (habits.data || [])) {
+        const { data: d } = await supabase.from("habit_completions")
+          .select("id").eq("habit_id", h.id).eq("completed_on", today).maybeSingle();
+        habitsToday.push(`${h.title}${d ? " ✓" : " ✗"}`);
+      }
+      const ev = (evs.data || []).map((e: any) => `- ${e.event_date} ${e.event_time || ""} · ${e.title}${e.location ? ` @ ${e.location}` : ""}`).join("\n") || "(none)";
+      const dueList = (due.data || []).map((t: any) => `- [${(t.priority||"med").toUpperCase()}] ${t.name}`).join("\n") || "(none)";
+      const overList = (over.data || []).map((t: any) => `- ${t.due_date} · ${t.name}`).join("\n") || "(none)";
+      const habitLine = habitsToday.length ? habitsToday.join(" · ") : "(no habits tracked)";
+      const unreadList = (unread.data || []).map((n: any) => `- ${n.title}`).join("\n") || "(none)";
+      agendaBlock = `\n\n═══ LIVE AGENDA (today=${today}) ═══\nEvents (today/tomorrow):\n${ev}\nTasks due today:\n${dueList}\nOverdue tasks:\n${overList}\nHabits today: ${habitLine}\nUnread notifications:\n${unreadList}\nUse this snapshot to ground proactive suggestions. If the user asks "what's on my plate", "today", "overdue", "habits", or "any notifications", answer from this block directly — no tool call needed. To act on these (complete a task, log a habit, snooze a reminder), call complete_task / mark_habit_done / snooze_reminder. For fresh detail, call get_my_agenda.`;
+    } catch (e) {
+      console.error("agenda snapshot failed", e);
+    }
+
     const messages: any[] = [{
       role: "system",
-      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock + sparkBlock,
+      content: SYSTEM_PROMPT_BASE + dateBlock + adminBlock + secrecyBlock + memoryBlock + modeBlock + screenBlock + agendaBlock + sparkBlock,
     }];
     for (const m of history || []) {
       const text = (m.parts as any[]).filter((p) => p.type === "text").map((p) => p.text).join("\n");
