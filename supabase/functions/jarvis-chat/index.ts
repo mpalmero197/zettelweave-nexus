@@ -1997,7 +1997,7 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
         for (const tc of choice.tool_calls) {
           let parsed: any = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader);
+          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader, userCoords);
           if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
           if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
