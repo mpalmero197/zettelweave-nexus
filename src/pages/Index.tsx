@@ -33,6 +33,8 @@ const GraphView = lazy(() => import("@/components/GraphViewNew").then(m => ({ de
 const Graph3D = lazy(() => import("@/components/Graph3D").then(m => ({ default: m.Graph3D })));
 const CardViewer = lazy(() => import("@/components/CardViewer").then(m => ({ default: m.CardViewer })));
 const Notes = lazy(() => import("@/components/Notes").then(m => ({ default: m.Notes })));
+const NotesWorkspace = lazy(() => import("@/components/workspaces/NotesWorkspace").then(m => ({ default: m.NotesWorkspace })));
+const CardsWorkspace = lazy(() => import("@/components/workspaces/CardsWorkspace").then(m => ({ default: m.CardsWorkspace })));
 const RecorderStudio = lazy(() => import("@/components/RecorderStudio").then(m => ({ default: m.RecorderStudio })));
 const AudioManager = lazy(() => import("@/components/AudioManager").then(m => ({ default: m.AudioManager })));
 const ScratchPad = lazy(() => import("@/components/ScratchPad").then(m => ({ default: m.ScratchPad })));
