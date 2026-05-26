@@ -129,11 +129,53 @@ function markdownToHtml(md: string): string {
   return result.join('');
 }
 
+async function updateProgress(
+  supabaseClient: any,
+  runId: string,
+  patch: { progress?: number; stage?: string; detail?: string; sectionsDone?: number; sectionsTotal?: number; wordsDone?: number; wordsTarget?: number }
+) {
+  const update: Record<string, unknown> = {};
+  if (patch.progress !== undefined) update.progress = Math.max(0, Math.min(100, Math.round(patch.progress * 10) / 10));
+  if (patch.stage !== undefined) update.progress_stage = patch.stage;
+  if (patch.detail !== undefined) update.progress_detail = patch.detail;
+  if (patch.sectionsDone !== undefined) update.progress_sections_done = patch.sectionsDone;
+  if (patch.sectionsTotal !== undefined) update.progress_sections_total = patch.sectionsTotal;
+  if (patch.wordsDone !== undefined) update.progress_words_done = patch.wordsDone;
+  if (patch.wordsTarget !== undefined) update.progress_words_target = patch.wordsTarget;
+  try { await supabaseClient.from('agent_runs').update(update).eq('id', runId); } catch (e) { console.error('progress update failed', e); }
+}
+
+async function buildStyleProfile(apiKey: string, supabaseClient: any, userId: string): Promise<string | null> {
+  // Pull a corpus of the user's own writing (notes + cards) for voice extraction.
+  const [{ data: notes }, { data: cards }] = await Promise.all([
+    supabaseClient.from('notes').select('content').eq('user_id', userId).is('deleted_at', null).order('updated_at', { ascending: false }).limit(20),
+    supabaseClient.from('zettel_cards').select('content').eq('user_id', userId).is('deleted_at', null).order('updated_at', { ascending: false }).limit(20),
+  ]);
+  const corpus = [...(notes || []), ...(cards || [])]
+    .map((r: any) => String(r.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter((t: string) => t.length > 120)
+    .slice(0, 30)
+    .join('\n\n---\n\n')
+    .substring(0, 12000);
+  if (corpus.length < 400) return null;
+  try {
+    const profile = await callAI(apiKey, [
+      { role: 'system', content: 'You are a stylometric analyst. Profile a writer\'s voice so another writer could imitate it convincingly. Be specific and concrete.' },
+      { role: 'user', content: `Analyze the writing samples below and produce a tight STYLE BRIEF (under 400 words) covering:\n- Voice & persona (warm/clinical/wry/etc.)\n- Sentence rhythm (avg length, variety, use of fragments)\n- Vocabulary register (plain/technical/literary; favorite words to mirror)\n- Paragraph shape (topic-sentence habits, paragraph length)\n- Rhetorical moves (analogies, asides, examples, lists)\n- Punctuation tics (em-dashes, semicolons, parentheticals)\n- Things to AVOID that this writer never does\n\nSAMPLES:\n${corpus}\n\nReturn just the brief, no preamble.` }
+    ], 0.3, 1200);
+    return profile.trim().slice(0, 2400);
+  } catch (e) {
+    console.error('Style profile failed (non-fatal):', e);
+    return null;
+  }
+}
+
 async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId: string, apiKey: string) {
   const findings: any[] = [];
   const agentId = agent.id;
+  const config = (agent.config || {}) as any;
 
-  console.log('Author Agent: Gathering all content sources...');
+  await updateProgress(supabaseClient, runId, { progress: 2, stage: 'gathering', detail: 'Gathering your knowledge base...' });
   const content = await gatherAllContent(supabaseClient, user.id);
   const totalItems = content.cards.length + content.notes.length + content.scratchpad.length + content.catalystDocs.length;
 
@@ -147,11 +189,12 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
     return { itemsProcessed: 0, itemsFound: 0, findings };
   }
 
-  const contentSummary = buildContentSummary(content);
-  const config = agent.config || {};
-  const userTopic = (config as any).synthesizer_title;
-  const userFocus = (config as any).custom_instructions;
-  const selectedSourceIds: string[] = (config as any).selected_source_ids || [];
+  const userTopic = config.synthesizer_title;
+  const userFocus = config.custom_instructions;
+  const selectedSourceIds: string[] = config.selected_source_ids || [];
+  // Target document length. Accepts author_target_words (new) or author_min_words (legacy). Cap at 25k to keep within edge function runtime.
+  const requestedTarget = Number(config.author_target_words ?? config.author_min_words ?? 8000);
+  const targetWords = Math.max(1500, Math.min(25000, Math.round(requestedTarget)));
 
   if (selectedSourceIds.length > 0) {
     content.cards = content.cards.filter((c: any) => selectedSourceIds.includes(c.id));
@@ -159,97 +202,128 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
     content.scratchpad = content.scratchpad.filter((s: any) => selectedSourceIds.includes(s.id));
     content.catalystDocs = content.catalystDocs.filter((d: any) => selectedSourceIds.includes(d.id));
   }
+  const contentSummary = buildContentSummary(content);
 
-  const filteredSummary = selectedSourceIds.length > 0 ? buildContentSummary(content) : contentSummary;
+  // ── Resolve the per-user style-mimicry preference ──
+  let styleMimicryEnabled = true;
+  try {
+    const { data: profile } = await supabaseClient.from('profiles').select('author_style_mimicry_enabled').eq('user_id', user.id).maybeSingle();
+    if (profile && profile.author_style_mimicry_enabled === false) styleMimicryEnabled = false;
+  } catch (e) { console.error('profile lookup failed', e); }
+  // Per-run override (from wizard) wins over profile default
+  if (typeof config.author_style_mimicry === 'boolean') styleMimicryEnabled = config.author_style_mimicry;
 
+  let styleBrief: string | null = null;
+  if (styleMimicryEnabled) {
+    await updateProgress(supabaseClient, runId, { progress: 6, stage: 'style_analysis', detail: 'Studying your writing voice...' });
+    styleBrief = await buildStyleProfile(apiKey, supabaseClient, user.id);
+  }
+
+  // ── Topic selection ──
   let topicData: any = { topic: userTopic || 'Exploration of Key Themes', angle: userFocus || 'A synthesis of the user\'s knowledge' };
-
   if (!userTopic) {
-    console.log('Author Agent: Selecting topic...');
+    await updateProgress(supabaseClient, runId, { progress: 10, stage: 'topic', detail: 'Selecting topic...' });
     try {
       const topicRaw = await callAI(apiKey, [
         { role: 'system', content: 'You are a topic selection AI. Return only valid JSON.' },
-        { role: 'user', content: `You are an expert research analyst. Below is a user's knowledge base.\n\nYour job: Identify the SINGLE most fascinating topic to explore in depth.\n\nReturn ONLY a JSON object: {"topic": "...", "angle": "..."}\n\n${filteredSummary}` }
+        { role: 'user', content: `You are an expert research analyst. Below is a user's knowledge base.\n\nYour job: Identify the SINGLE most fascinating topic to explore in depth.\n\nReturn ONLY a JSON object: {"topic": "...", "angle": "..."}\n\n${contentSummary}` }
       ], 0.8, 1024);
       const jsonMatch = topicRaw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed.topic) topicData = parsed;
       }
-    } catch (e) {
-      console.error('Author Agent: Topic selection failed, using fallback:', e);
-    }
+    } catch (e) { console.error('Author Agent: Topic selection failed, using fallback:', e); }
   }
 
-  console.log(`Author Agent: Selected topic "${topicData.topic}"`);
+  // ── Outline: size sections to hit the target word count ──
+  await updateProgress(supabaseClient, runId, { progress: 14, stage: 'outline', detail: `Planning a ${targetWords.toLocaleString()}-word document...`, wordsTarget: targetWords });
+  const sectionWordTarget = 650; // sweet spot per section
+  const desiredSections = Math.max(6, Math.min(40, Math.round(targetWords / sectionWordTarget)));
 
-  // ── Narrative-flow upgrade: outline → section drafting → cohesion stitch ──
-  console.log('Author Agent: Building narrative outline...');
   let outline: any = null;
   try {
     const outlineRaw = await callAI(apiKey, [
       { role: 'system', content: 'You are a senior nonfiction editor. Design a publication-ready outline. Return ONLY valid JSON.' },
-      { role: 'user', content: `Design an outline for a long-form document on "${topicData.topic}" (angle: ${topicData.angle}).\n\nUser's existing knowledge (use as evidence):\n${filteredSummary.substring(0, 5000)}\n\nReturn JSON:\n{\n  "thesis": "1-sentence controlling argument",\n  "throughline": "the narrative arc connecting every section",\n  "sections": [\n    {"heading":"H2 title","purpose":"what this section does for the reader","key_points":["..."],"target_words":550,"transition_in":"how it picks up from the previous section"}\n  ]\n}\n\nProduce 8-10 sections, ~550 words each. Each section's purpose must advance the throughline.` }
-    ], 0.5, 3072);
+      { role: 'user', content: `Design an outline for a long-form document on "${topicData.topic}" (angle: ${topicData.angle}).\n\nTarget total length: ~${targetWords} words across ${desiredSections} sections (~${sectionWordTarget} words each).\n\nUser's existing knowledge (use as evidence):\n${contentSummary.substring(0, 6000)}\n\nReturn JSON:\n{\n  "thesis": "1-sentence controlling argument",\n  "throughline": "the narrative arc connecting every section",\n  "sections": [\n    {"heading":"H2 title","purpose":"what this section does for the reader","key_points":["..."],"target_words":${sectionWordTarget},"transition_in":"how it picks up from the previous section"}\n  ]\n}\n\nProduce EXACTLY ${desiredSections} sections. Each section's purpose must advance the throughline. Group sections into a coherent arc (setup → development → complication → resolution).` }
+    ], 0.5, 4096);
     const m = outlineRaw.match(/\{[\s\S]*\}/);
     if (m) outline = JSON.parse(m[0]);
-  } catch (e) {
-    console.error('Author Agent: Outline failed, falling back to single-shot:', e);
-  }
+  } catch (e) { console.error('Author Agent: Outline failed:', e); }
 
   let documentBody = '';
-  try {
-    if (outline && Array.isArray(outline.sections) && outline.sections.length > 0) {
-      const sections: string[] = [];
-      let prevTail = '';
-      for (let i = 0; i < outline.sections.length; i++) {
-        const s = outline.sections[i];
-        const sectionMd = await callAI(apiKey, [
-          { role: 'system', content: `You are writing one section of a long, cohesive nonfiction document. Maintain a single authorial voice across sections. Use standard Markdown only (## for H2, ### for H3). Paragraphs 3-4 sentences. Favor flowing prose over bullet lists. Bold sparingly. Open with a one-sentence transition that connects to the previous section's ending. Do NOT restate the document title.` },
-          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nSECTION ${i + 1}/${outline.sections.length}\nHEADING: ${s.heading}\nPURPOSE: ${s.purpose}\nKEY POINTS: ${(s.key_points || []).join('; ')}\nTRANSITION IN: ${s.transition_in || 'natural continuation'}\nTARGET LENGTH: ~${s.target_words || 550} words\n\nPREVIOUS SECTION ENDING (for continuity):\n${prevTail || '[opening section — set the stage in 1-2 sentences before diving in]'}\n\nUSER KNOWLEDGE (integrate where relevant):\n${filteredSummary.substring(0, 3500)}\n\nWrite the full section, beginning with "## ${s.heading}".` }
-        ], 0.7, 4096);
-        sections.push(sectionMd.trim());
-        prevTail = sectionMd.trim().slice(-600);
-      }
-      documentBody = sections.join('\n\n');
+  const sectionsArr: any[] = outline && Array.isArray(outline.sections) ? outline.sections : [];
+  const sectionCount = sectionsArr.length;
 
-      // Cohesion stitch pass
+  if (sectionCount > 0) {
+    await updateProgress(supabaseClient, runId, { progress: 20, stage: 'writing', detail: `Writing section 1 of ${sectionCount}...`, sectionsTotal: sectionCount });
+
+    const sections: string[] = [];
+    let prevTail = '';
+    let cumulativeWords = 0;
+    // Reserve 75% of the bar (20% → 95%) for writing, 5% for stitching/saving.
+    const writingSpan = 75;
+
+    const styleClause = styleBrief
+      ? `\n\nWRITE IN THE USER'S VOICE. Match this style brief exactly:\n${styleBrief}\n`
+      : '';
+
+    for (let i = 0; i < sectionCount; i++) {
+      const s = sectionsArr[i];
+      const targetForSection = Math.max(300, Math.min(1100, Number(s.target_words) || sectionWordTarget));
+      try {
+        const sectionMd = await callAI(apiKey, [
+          { role: 'system', content: `You are writing one section of a long, cohesive nonfiction document. Maintain a single authorial voice across sections. Use standard Markdown only (## for H2, ### for H3). Paragraphs 3-4 sentences. Favor flowing prose over bullet lists. Bold sparingly. Open with a one-sentence transition that connects to the previous section's ending. Do NOT restate the document title.${styleClause}` },
+          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nSECTION ${i + 1}/${sectionCount}\nHEADING: ${s.heading}\nPURPOSE: ${s.purpose}\nKEY POINTS: ${(s.key_points || []).join('; ')}\nTRANSITION IN: ${s.transition_in || 'natural continuation'}\nTARGET LENGTH: ~${targetForSection} words\n\nPREVIOUS SECTION ENDING (for continuity):\n${prevTail || '[opening section — set the stage in 1-2 sentences before diving in]'}\n\nUSER KNOWLEDGE (integrate where relevant):\n${contentSummary.substring(0, 3500)}\n\nWrite the full section, beginning with "## ${s.heading}".` }
+        ], 0.7, 4096);
+        const trimmed = sectionMd.trim();
+        sections.push(trimmed);
+        prevTail = trimmed.slice(-600);
+        cumulativeWords += trimmed.split(/\s+/).length;
+      } catch (e) {
+        console.error(`Author Agent: section ${i + 1} failed:`, e);
+        sections.push(`## ${s.heading}\n\n*Section generation failed — continuing.*`);
+      }
+      const sectionPct = 20 + ((i + 1) / sectionCount) * writingSpan;
+      await updateProgress(supabaseClient, runId, {
+        progress: sectionPct,
+        stage: 'writing',
+        detail: i + 1 < sectionCount ? `Writing section ${i + 2} of ${sectionCount}...` : 'Finalizing sections...',
+        sectionsDone: i + 1,
+        wordsDone: cumulativeWords,
+      });
+    }
+    documentBody = sections.join('\n\n');
+
+    // Cohesion stitch pass (only for shorter docs to stay within token limits)
+    if (documentBody.length < 28000) {
+      await updateProgress(supabaseClient, runId, { progress: 96, stage: 'polish', detail: 'Smoothing transitions...' });
       try {
         const stitched = await callAI(apiKey, [
           { role: 'system', content: 'You are an editor performing a light cohesion pass. Preserve every section\'s ideas, evidence, and length. Only smooth transitions between sections, fix repeated phrasings across boundaries, and ensure one consistent authorial voice. Return the full revised Markdown.' },
-          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nDOCUMENT:\n${documentBody.substring(0, 28000)}` }
+          { role: 'user', content: `THESIS: ${outline.thesis}\nTHROUGHLINE: ${outline.throughline}\n\nDOCUMENT:\n${documentBody}` }
         ], 0.4, 16384);
         if (stitched && stitched.length > documentBody.length * 0.7) documentBody = stitched;
-      } catch (e) {
-        console.error('Author Agent: Cohesion stitch failed (non-fatal):', e);
-      }
-    } else {
-      documentBody = await callAI(apiKey, [
-        { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document with a clear narrative arc. Aim for at least 4,000 words. Use standard Markdown only. Paragraphs 3-4 sentences max. Heading hierarchy: # H1, ## H2, ### H3. Favor flowing prose over bullet lists.` },
-        { role: 'user', content: `Write a comprehensive document on: "${topicData.topic}"\nAngle: "${topicData.angle}"\n\nInclude 8+ major sections, 400-600 words each. Maintain a consistent throughline.\n${userFocus ? `FOCUS: ${userFocus}\n` : ''}User's existing knowledge:\n${filteredSummary.substring(0, 6000)}` }
-      ], 0.75, 16384);
+      } catch (e) { console.error('Author Agent: Cohesion stitch failed (non-fatal):', e); }
     }
-  } catch (e) {
-    console.error('Author Agent: Generation failed:', e);
-    documentBody = `## ${topicData.topic}\n\n*Generation error. Please try again.*\n`;
-  }
-
-  const wordCount1 = documentBody.split(/\s+/).length;
-  if (wordCount1 < 5000 && wordCount1 > 100) {
+  } else {
+    // Fallback single-shot
+    await updateProgress(supabaseClient, runId, { progress: 50, stage: 'writing', detail: 'Drafting document...' });
     try {
-      const extension = await callAI(apiKey, [
-        { role: 'system', content: 'Continue this document. Add entirely new sections that advance the existing throughline. Open with a real transition from the last paragraph. Standard Markdown only.' },
-        { role: 'user', content: `Continue "${topicData.topic}" (~${wordCount1} words so far).\n\nEnding:\n${documentBody.slice(-2000)}\n\nWrite 2,500+ more words of new sections without repeating earlier material.` }
+      documentBody = await callAI(apiKey, [
+        { role: 'system', content: `You are a world-class author and researcher. Write an extensive, publication-quality document with a clear narrative arc. Aim for ~${targetWords} words. Use standard Markdown only. Paragraphs 3-4 sentences max. Heading hierarchy: # H1, ## H2, ### H3. Favor flowing prose over bullet lists.${styleBrief ? `\n\nWRITE IN THE USER'S VOICE:\n${styleBrief}` : ''}` },
+        { role: 'user', content: `Write a comprehensive document on: "${topicData.topic}"\nAngle: "${topicData.angle}"\n${userFocus ? `FOCUS: ${userFocus}\n` : ''}User's existing knowledge:\n${contentSummary.substring(0, 6000)}` }
       ], 0.75, 16384);
-      documentBody += '\n\n' + extension;
     } catch (e) {
-      console.error('Author Agent: Extension failed (non-fatal):', e);
+      console.error('Author Agent: Generation failed:', e);
+      documentBody = `## ${topicData.topic}\n\n*Generation error. Please try again.*\n`;
     }
   }
 
-  const customTitle = (config as any).synthesizer_title;
-  const docTitle = customTitle ? `${customTitle} (Created by PendragonX)` : `${topicData.topic} (Created by PendragonX)`;
+  await updateProgress(supabaseClient, runId, { progress: 98, stage: 'saving', detail: 'Saving document...' });
 
+  const customTitle = config.synthesizer_title;
+  const docTitle = customTitle ? `${customTitle} (Created by PendragonX)` : `${topicData.topic} (Created by PendragonX)`;
   const finalMarkdown = `# ${docTitle}\n\n> *${topicData.angle}*\n\n---\n\n${documentBody}\n\n---\n\n*Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}*\n`;
   const finalContent = markdownToHtml(finalMarkdown);
   const finalWordCount = finalMarkdown.split(/\s+/).length;
@@ -261,17 +335,21 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
 
   if (docError) throw new Error(`Failed to save document: ${docError.message}`);
 
+  await updateProgress(supabaseClient, runId, { progress: 100, stage: 'done', detail: `Done — ${finalWordCount.toLocaleString()} words`, wordsDone: finalWordCount });
+
   findings.push({
     agent_id: agentId, run_id: runId, user_id: user.id,
     finding_type: 'document_created',
     title: `📄 "${docTitle}" is ready!`,
     content: `${finalWordCount.toLocaleString()}-word document created. Open Catalyst to view it.`,
-    metadata: { document_id: newDoc.id, topic: topicData.topic, word_count: finalWordCount },
+    metadata: { document_id: newDoc.id, topic: topicData.topic, word_count: finalWordCount, target_words: targetWords, style_mimicry: styleMimicryEnabled && !!styleBrief },
     relevance_score: 1.0
   });
 
   return { itemsProcessed: totalItems, itemsFound: 1, findings };
 }
+
+
 
 // ── Citation Agent: analyzes document and returns numbered citations ──
 async function runCitationAgent(apiKey: string, documentContent: string, documentTitle: string, agentId: string, runId: string, userId: string, style: string = 'apa') {
