@@ -651,19 +651,104 @@ serve(async (req) => {
       }
 
       case 'smart_linking': {
-        const { data: cards } = await supabaseClient.from('zettel_cards').select('id, title, content, tags, linked_cards').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(20);
+        // Semantic relevance across disparate notes: embeddings first, then AI re-rank.
+        const cfg = (agent.config as any) || {};
+        const threshold = Number(cfg.similarity_threshold ?? 0.78);
+        const maxPerCard = Number(cfg.max_suggestions ?? 5);
+        const { data: cards } = await supabaseClient
+          .from('zettel_cards')
+          .select('id, title, content, tags, linked_cards, content_embedding')
+          .eq('user_id', user.id).is('deleted_at', null)
+          .order('updated_at', { ascending: false }).limit(40);
+
         if (cards && cards.length > 1) {
           itemsProcessed = cards.length;
-          for (let i = 0; i < cards.length; i++) {
-            for (let j = i + 1; j < cards.length; j++) {
-              const card1 = cards[i], card2 = cards[j];
-              if (card1.linked_cards?.includes(card2.id) || card2.linked_cards?.includes(card1.id)) continue;
-              const sharedTags = (card1.tags || []).filter((t: string) => (card2.tags || []).includes(t));
-              if (sharedTags.length > 0) {
-                itemsFound++;
-                findings.push({ agent_id: agentId, run_id: runId, user_id: user.id, finding_type: 'link_suggestion', title: `Link "${card1.title}" ↔ "${card2.title}"`, content: `Shared tags: ${sharedTags.join(', ')}`, metadata: { card1_id: card1.id, card2_id: card2.id, shared_tags: sharedTags }, relevance_score: Math.min(sharedTags.length * 0.3, 1) });
+          const seenPair = new Set<string>();
+          const pairKey = (a: string, b: string) => a < b ? `${a}|${b}` : `${b}|${a}`;
+          const candidates: Array<{ a: any; b: any; similarity: number; sharedTags: string[] }> = [];
+
+          // 1) Embedding-based candidates via existing SECURITY DEFINER RPC.
+          for (const card of cards) {
+            if (!card.content_embedding) continue;
+            const { data: sims } = await supabaseClient.rpc('find_similar_zettel_cards', {
+              target_id: card.id,
+              similarity_threshold: threshold,
+              max_results: maxPerCard,
+            });
+            for (const s of (sims || [])) {
+              const key = pairKey(card.id, s.id);
+              if (seenPair.has(key)) continue;
+              if (card.linked_cards?.includes(s.id)) continue;
+              seenPair.add(key);
+              const other = cards.find((c: any) => c.id === s.id) || s;
+              const sharedTags = (card.tags || []).filter((t: string) => (other.tags || []).includes(t));
+              candidates.push({ a: card, b: other, similarity: s.similarity, sharedTags });
+            }
+          }
+
+          // 2) Fallback: cards without embeddings — use tag overlap.
+          if (candidates.length === 0) {
+            for (let i = 0; i < cards.length; i++) {
+              for (let j = i + 1; j < cards.length; j++) {
+                const a = cards[i], b = cards[j];
+                if (a.linked_cards?.includes(b.id) || b.linked_cards?.includes(a.id)) continue;
+                const sharedTags = (a.tags || []).filter((t: string) => (b.tags || []).includes(t));
+                if (sharedTags.length === 0) continue;
+                const key = pairKey(a.id, b.id);
+                if (seenPair.has(key)) continue;
+                seenPair.add(key);
+                candidates.push({ a, b, similarity: Math.min(0.5 + sharedTags.length * 0.1, 0.95), sharedTags });
               }
             }
+          }
+
+          // 3) AI re-rank: ask the model to confirm conceptual relevance for top candidates.
+          const top = candidates.sort((x, y) => y.similarity - x.similarity).slice(0, 12);
+          let reranked: Array<{ a: any; b: any; similarity: number; sharedTags: string[]; reason: string; conceptual_score: number }> = [];
+          if (top.length > 0) {
+            try {
+              const payload = top.map((p, idx) => ({
+                idx,
+                a_title: p.a.title, a_excerpt: String(p.a.content || '').substring(0, 350),
+                b_title: p.b.title, b_excerpt: String(p.b.content || '').substring(0, 350),
+                vector_similarity: Number(p.similarity.toFixed(3)),
+                shared_tags: p.sharedTags,
+              }));
+              const judged = await callAI(apiKey, [
+                { role: 'system', content: 'You judge whether two notes are CONCEPTUALLY linked (not merely topically near). Return only valid JSON.' },
+                { role: 'user', content: `Rate each pair for conceptual link strength on 0.0-1.0 and explain the link in one sentence. Reject pairs that share only superficial vocabulary.\n\nPairs:\n${JSON.stringify(payload)}\n\nReturn JSON: [{"idx":0,"conceptual_score":0.0,"reason":"..."}]` }
+              ], 0.2, 2048);
+              const m = judged.match(/\[[\s\S]*\]/);
+              if (m) {
+                const arr = JSON.parse(m[0]);
+                for (const r of arr) {
+                  const src = top[r.idx];
+                  if (!src) continue;
+                  if ((r.conceptual_score ?? 0) < 0.55) continue;
+                  reranked.push({ ...src, reason: r.reason || 'Conceptually related', conceptual_score: r.conceptual_score });
+                }
+              }
+            } catch (e) {
+              console.error('Smart Linking rerank failed (non-fatal):', e);
+              reranked = top.map(t => ({ ...t, reason: `Vector similarity ${t.similarity.toFixed(2)}${t.sharedTags.length ? `, shared tags: ${t.sharedTags.join(', ')}` : ''}`, conceptual_score: t.similarity }));
+            }
+          }
+
+          for (const r of reranked) {
+            itemsFound++;
+            findings.push({
+              agent_id: agentId, run_id: runId, user_id: user.id,
+              finding_type: 'link_suggestion',
+              title: `Link "${r.a.title}" ↔ "${r.b.title}"`,
+              content: r.reason,
+              metadata: {
+                card1_id: r.a.id, card2_id: r.b.id,
+                shared_tags: r.sharedTags,
+                vector_similarity: Number(r.similarity.toFixed(3)),
+                conceptual_score: Number((r.conceptual_score ?? r.similarity).toFixed(3)),
+              },
+              relevance_score: Math.min(0.98, (r.conceptual_score ?? r.similarity) * 0.6 + r.similarity * 0.4),
+            });
           }
         }
         break;
