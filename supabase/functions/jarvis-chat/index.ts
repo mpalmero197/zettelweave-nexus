@@ -890,6 +890,7 @@ async function executeTool(
   userId: string,
   isAdmin: boolean,
   authHeader: string,
+  userCoords?: { latitude: number; longitude: number; accuracy?: number } | null,
 ) {
   try {
     switch (name) {
