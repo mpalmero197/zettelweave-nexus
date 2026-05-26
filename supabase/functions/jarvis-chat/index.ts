@@ -1770,6 +1770,10 @@ Deno.serve(async (req) => {
     const screen: { route?: string; regions?: Array<{ id: string; label: string; data: any }> } =
       (body.screen && typeof body.screen === "object") ? body.screen : {};
     let threadId: string | null = body.threadId || null;
+    const userCoords: { latitude: number; longitude: number; accuracy?: number } | null =
+      body.userCoords && Number.isFinite(body.userCoords.latitude) && Number.isFinite(body.userCoords.longitude)
+        ? { latitude: Number(body.userCoords.latitude), longitude: Number(body.userCoords.longitude), accuracy: Number(body.userCoords.accuracy) || undefined }
+        : null;
     if (!userMessage && attachments.length === 0) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
