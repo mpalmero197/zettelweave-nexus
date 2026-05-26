@@ -308,22 +308,26 @@ export function JarvisChat({ compact = false }: Props) {
           </div>
         )}
         <div ref={scrollRef} className="flex-1 overflow-y-auto alice-transcript">
-          <div className={cn("mx-auto space-y-5", transcriptMaxW, compact ? "px-3 py-4" : "px-6 py-8")}>
+          <div className={cn(
+            "mx-auto space-y-4 md:space-y-5",
+            transcriptMaxW,
+            compact ? "px-3 py-4" : "px-3 py-5 md:px-6 md:py-8",
+          )}>
             {messages.length === 0 && (
-              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-16 space-y-5")}>
-                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-20 w-20")} />
+              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-10 md:py-16 space-y-4 md:space-y-5")}>
+                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-16 w-16 md:h-20 md:w-20")} />
                 <h2
-                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-3xl")}
+                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-2xl md:text-3xl")}
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
                   Hello. I'm ALICE.
                 </h2>
                 {!compact && (
-                  <p className="text-sm opacity-70 max-w-md mx-auto">
+                  <p className="text-sm opacity-70 max-w-md mx-auto px-4">
                     Your second-brain co-pilot. Ask, create, schedule, search — I'll show my work as I go.
                   </p>
                 )}
-                <div className={cn("flex flex-wrap justify-center gap-2 pt-2", compact && "pt-1")}>
+                <div className={cn("flex flex-wrap justify-center gap-2 pt-2 px-2", compact && "pt-1")}>
                   {STARTER_PROMPTS.slice(0, compact ? 2 : 4).map((p) => (
                     <button key={p} className="alice-chip" onClick={() => submit(p)}>
                       {p}
@@ -336,8 +340,10 @@ export function JarvisChat({ compact = false }: Props) {
               <div key={m.id} className={cn("flex flex-col gap-1 alice-msg-in", m.role === "user" ? "items-end" : "items-start")}>
                 {m.role === "user" ? (
                   <div className={cn(
-                    "alice-user-bubble max-w-[85%] rounded-2xl whitespace-pre-wrap",
-                    compact ? "px-3.5 py-2 text-[13px]" : "px-4 py-2.5 text-sm",
+                    "alice-user-bubble rounded-2xl whitespace-pre-wrap break-words",
+                    // Wider cap on phones — 85% looks cramped beside the orb-free right edge.
+                    "max-w-[92%] md:max-w-[85%]",
+                    compact ? "px-3.5 py-2 text-[13px]" : "px-3.5 py-2 text-[14px] md:px-4 md:py-2.5 md:text-sm",
                   )}>
                     {m.parts.map((p, i) => {
                       if (p.type !== "text") return null;
@@ -346,9 +352,12 @@ export function JarvisChat({ compact = false }: Props) {
                     })}
                   </div>
                 ) : (
-                  <div className="flex gap-3 w-full">
-                    <div className="alice-orb alice-orb-static h-7 w-7 shrink-0 mt-0.5" aria-hidden />
-                    <div className={cn("flex-1 min-w-0", compact ? "text-[13px]" : "text-[15px] leading-relaxed")}>
+                  <div className="flex gap-2 md:gap-3 w-full">
+                    <div className="alice-orb alice-orb-static h-6 w-6 md:h-7 md:w-7 shrink-0 mt-0.5" aria-hidden />
+                    <div className={cn(
+                      "flex-1 min-w-0",
+                      compact ? "text-[13px]" : "text-[14px] md:text-[15px] leading-relaxed",
+                    )}>
                       {m.parts.map((p, i) => {
                         if (p.type === "tool") return <ToolPart key={i} part={p} />;
                         if (p.type === "plan") return (
@@ -356,7 +365,7 @@ export function JarvisChat({ compact = false }: Props) {
                         );
                         if (p.type === "card") return <div key={i} className="my-2"><AliceCardRenderer card={p.card} /></div>;
                         return (
-                          <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
+                          <div key={i} className="prose prose-sm dark:prose-invert max-w-none break-words">
                             <ReactMarkdown>{p.text}</ReactMarkdown>
                           </div>
                         );
@@ -371,7 +380,11 @@ export function JarvisChat({ compact = false }: Props) {
         </div>
 
         {/* Composer */}
-        <div className={cn(compact ? "p-2" : "p-4")}>
+        <div className={cn(
+          compact ? "p-2" : "p-2 md:p-4",
+          // Respect iOS safe-area on phones so the composer doesn't sit under the home indicator.
+          "pb-[max(env(safe-area-inset-bottom),0.5rem)] md:pb-4",
+        )}>
           <div className={cn("mx-auto space-y-2", transcriptMaxW)}>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
