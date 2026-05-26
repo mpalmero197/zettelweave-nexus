@@ -60,8 +60,18 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
   const [topicInput, setTopicInput] = useState('');
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
   const [focusInstructions, setFocusInstructions] = useState('');
+  const [targetWords, setTargetWords] = useState<number>(8000);
+  const [styleMimicry, setStyleMimicry] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sourceSearch, setSourceSearch] = useState('');
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [runProgress, setRunProgress] = useState<{
+    progress: number; stage: string; detail: string;
+    sectionsDone: number; sectionsTotal: number;
+    wordsDone: number; wordsTarget: number; status: string;
+  }>({ progress: 0, stage: 'starting', detail: 'Preparing...', sectionsDone: 0, sectionsTotal: 0, wordsDone: 0, wordsTarget: 0, status: 'running' });
+  const startTimeRef = useRef<number>(0);
+
 
   // Agent results state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
