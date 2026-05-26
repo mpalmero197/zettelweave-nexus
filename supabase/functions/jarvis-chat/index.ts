@@ -1251,14 +1251,25 @@ async function executeTool(
             }
           }
           if (lat == null || lon == null) {
-            // IP fallback
+            // Prefer the browser-provided coordinates (real device location)
+            if (userCoords && Number.isFinite(userCoords.latitude) && Number.isFinite(userCoords.longitude)) {
+              lat = userCoords.latitude; lon = userCoords.longitude;
+              try {
+                const rg = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                const rj = await rg.json().catch(() => ({}));
+                placeLabel = placeLabel || [rj.city || rj.locality, rj.principalSubdivision, rj.countryName].filter(Boolean).join(", ");
+              } catch { /* ignore */ }
+            }
+          }
+          if (lat == null || lon == null) {
+            // IP fallback — least accurate, only used when location permission is denied
             const ip = await fetch("https://ipapi.co/json/").then((r) => r.json()).catch(() => null);
             if (ip?.latitude && ip?.longitude) {
               lat = ip.latitude; lon = ip.longitude;
               placeLabel = placeLabel || [ip.city, ip.region, ip.country_name].filter(Boolean).join(", ");
             }
           }
-          if (lat == null || lon == null) return { error: "Could not determine a location for the weather lookup." };
+          if (lat == null || lon == null) return { error: "Location unavailable. Please enable location permission for PendragonX in your browser, or tell me a city." };
 
           const u = new URL("https://api.open-meteo.com/v1/forecast");
           u.searchParams.set("latitude", String(lat));
