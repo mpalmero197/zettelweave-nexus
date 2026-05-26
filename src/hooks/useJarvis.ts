@@ -179,6 +179,26 @@ export function useJarvis(initialThreadId?: string | null) {
     };
     setMessages((m) => [...m, optimistic]);
 
+    // Honest activity hint based on the user's intent — the live indicator
+    // in the chat picks this up via a window event so it shows what ALICE
+    // is actually about to do, not a randomized list of phases.
+    try {
+      const lower = text.toLowerCase();
+      let hint = "Working";
+      if (/\b(weather|forecast|temperature|rain|snow)\b/.test(lower)) hint = "Checking the weather";
+      else if (/\b(video|youtube|watch)\b/.test(lower)) hint = "Finding a video";
+      else if (/\b(image|picture|photo|generate.*image)\b/.test(lower)) hint = "Generating an image";
+      else if (/\b(search|google|look up|news)\b/.test(lower)) hint = "Searching the web";
+      else if (/\b(note|notes|notebook)\b/.test(lower)) hint = "Opening your notes";
+      else if (/\b(card|cards|zettel)\b/.test(lower)) hint = "Opening your cards";
+      else if (/\b(calendar|event|schedule|reminder|task|todo)\b/.test(lower)) hint = "Checking your calendar";
+      else if (/\b(book|read)\b/.test(lower)) hint = "Searching books";
+      else if (/\b(write|catalyst|document|draft)\b/.test(lower)) hint = "Opening Catalyst";
+      else if (/\b(summary|summarize|recap)\b/.test(lower)) hint = "Summarizing your content";
+      window.dispatchEvent(new CustomEvent("alice-activity", { detail: hint }));
+    } catch { /* ignore */ }
+
+
     try {
       let timeZone = "";
       let locale = "en-US";
