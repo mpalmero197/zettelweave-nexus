@@ -530,18 +530,22 @@
     ::-webkit-scrollbar-track { background: transparent; }
 
     /* ============================================================
-       ALICE — Aurora Glass theme (mirrors src/components/jarvis/alice-theme.css)
+       ALICE — Neural Expressive theme (mirrors src/components/jarvis/alice-theme.css)
        Scoped to #ai-tab so the rest of the Toolbox keeps Flat-Minimal.
        ============================================================ */
     #ai-tab {
       --alice-bg: 240 33% 6%;
+      --alice-bg-2: 245 30% 9%;
       --alice-panel: 250 38% 13%;
       --alice-violet: 252 100% 68%;
+      --alice-blue: 224 100% 66%;
       --alice-cyan: 187 92% 54%;
       --alice-pink: 326 96% 68%;
+      --alice-warm: 32 100% 68%;
       --alice-ink: 240 14% 95%;
       --alice-ink-dim: 240 10% 70%;
       --alice-border: 250 30% 22%;
+      --alice-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
       font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
       color: hsl(var(--alice-ink));
       position: relative;
@@ -551,25 +555,44 @@
       border-radius: var(--radius);
       overflow: hidden;
       background:
-        radial-gradient(80% 60% at 15% 0%, hsl(var(--alice-violet) / 0.20), transparent 60%),
-        radial-gradient(70% 50% at 100% 10%, hsl(var(--alice-cyan) / 0.14), transparent 60%),
-        radial-gradient(90% 70% at 50% 110%, hsl(var(--alice-pink) / 0.10), transparent 60%),
+        radial-gradient(80% 60% at 15% 0%, hsl(var(--alice-violet) / 0.22), transparent 60%),
+        radial-gradient(70% 50% at 100% 10%, hsl(var(--alice-cyan) / 0.16), transparent 60%),
+        radial-gradient(90% 70% at 50% 110%, hsl(var(--alice-pink) / 0.12), transparent 60%),
+        radial-gradient(60% 40% at 80% 80%, hsl(var(--alice-warm) / 0.06), transparent 60%),
         hsl(var(--alice-bg));
     }
+    /* Slow drifting aurora veil */
     #ai-tab::before {
       content: "";
       position: absolute; inset: -20%;
       background: conic-gradient(from 180deg at 50% 50%,
-        hsl(var(--alice-violet) / 0.10),
-        hsl(var(--alice-cyan) / 0.08),
-        hsl(var(--alice-pink) / 0.08),
-        hsl(var(--alice-violet) / 0.10));
-      filter: blur(60px); opacity: .5;
-      animation: alice-aurora-drift 28s linear infinite;
+        hsl(var(--alice-violet) / 0.12),
+        hsl(var(--alice-blue) / 0.10),
+        hsl(var(--alice-cyan) / 0.10),
+        hsl(var(--alice-pink) / 0.10),
+        hsl(var(--alice-warm) / 0.06),
+        hsl(var(--alice-violet) / 0.12));
+      filter: blur(60px); opacity: .55;
+      animation: alice-aurora-drift 36s linear infinite;
+      pointer-events: none; z-index: 0;
+    }
+    /* Stardust layer */
+    #ai-tab::after {
+      content: "";
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, hsl(var(--alice-cyan) / 0.5), transparent 50%),
+        radial-gradient(1px 1px at 30% 75%, hsl(var(--alice-violet) / 0.5), transparent 50%),
+        radial-gradient(1px 1px at 70% 30%, hsl(var(--alice-pink) / 0.5), transparent 50%),
+        radial-gradient(1px 1px at 90% 65%, hsl(var(--alice-cyan) / 0.5), transparent 50%);
+      background-repeat: no-repeat;
+      opacity: .4;
+      animation: alice-twinkle 6s ease-in-out infinite alternate;
       pointer-events: none; z-index: 0;
     }
     #ai-tab > * { position: relative; z-index: 1; }
     @keyframes alice-aurora-drift { to { transform: rotate(360deg); } }
+    @keyframes alice-twinkle { 0% { opacity: .25; } 100% { opacity: .55; } }
 
     #ai-tab .ai-messages {
       flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
@@ -584,45 +607,97 @@
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
     }
-    #ai-tab .ai-row { display: flex; gap: 8px; max-width: 100%; animation: alice-msg-in .35s ease-out both; }
+    #ai-tab .ai-row { display: flex; gap: 8px; max-width: 100%; animation: alice-bubble-in .45s var(--alice-spring) both; }
     #ai-tab .ai-row.user { justify-content: flex-end; }
     #ai-tab .ai-row.assistant { justify-content: flex-start; }
-    @keyframes alice-msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes alice-bubble-in {
+      from { opacity: 0; transform: translateY(8px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
+    /* ===================== Neural Orb (avatar) ===================== */
     #ai-tab .ai-avatar {
-      width: 24px; height: 24px; border-radius: 9999px; flex-shrink: 0;
+      position: relative;
+      width: 26px; height: 26px; border-radius: 9999px; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       color: white; margin-top: 1px;
       background:
         radial-gradient(circle at 30% 30%, hsl(var(--alice-cyan)) 0%, transparent 45%),
         radial-gradient(circle at 70% 70%, hsl(var(--alice-pink)) 0%, transparent 50%),
-        conic-gradient(from 0deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)), hsl(var(--alice-pink)), hsl(var(--alice-violet)));
+        conic-gradient(from 0deg,
+          hsl(var(--alice-violet)),
+          hsl(var(--alice-blue)),
+          hsl(var(--alice-cyan)),
+          hsl(var(--alice-pink)),
+          hsl(var(--alice-warm)),
+          hsl(var(--alice-violet)));
       box-shadow:
         0 0 0 1px hsl(var(--alice-violet) / 0.45),
-        0 0 14px hsl(var(--alice-violet) / 0.35),
+        0 0 18px hsl(var(--alice-violet) / 0.35),
         inset 0 0 8px hsl(0 0% 100% / 0.25);
-      animation: alice-orb-spin 8s linear infinite;
+      animation: alice-orb-spin 12s linear infinite;
+      isolation: isolate;
+    }
+    #ai-tab .ai-avatar::after {
+      content: "";
+      position: absolute; inset: -25%;
+      border-radius: 9999px;
+      background: radial-gradient(circle, hsl(var(--alice-violet) / 0.4), transparent 70%);
+      filter: blur(8px); opacity: .5; z-index: -1;
+      animation: alice-orb-breathe 4s ease-in-out infinite;
     }
     #ai-tab .ai-avatar svg { display: none; }
     @keyframes alice-orb-spin { to { transform: rotate(360deg); } }
+    @keyframes alice-orb-breathe {
+      0%, 100% { transform: scale(1); opacity: .45; }
+      50%      { transform: scale(1.15); opacity: .85; }
+    }
+    /* Streaming-state pulse */
+    #ai-tab .ai-avatar.streaming {
+      animation: alice-orb-spin 4s linear infinite;
+      box-shadow:
+        0 0 0 1px hsl(var(--alice-cyan) / 0.6),
+        0 0 32px hsl(var(--alice-cyan) / 0.55),
+        0 0 60px hsl(var(--alice-violet) / 0.35),
+        inset 0 0 12px hsl(0 0% 100% / 0.35);
+    }
+    #ai-tab .ai-avatar.streaming::after { animation: alice-orb-breathe 1.6s ease-in-out infinite; opacity: .85; }
 
+    /* ===================== Bubbles ===================== */
     #ai-tab .ai-msg {
-      padding: 10px 13px; border-radius: 14px; font-size: 12.5px; line-height: 1.55;
+      padding: 11px 14px; border-radius: 18px; font-size: 12.5px; line-height: 1.55;
       white-space: pre-wrap; word-break: break-word; max-width: 86%;
     }
     #ai-tab .ai-msg.user {
-      background: linear-gradient(135deg, hsl(var(--alice-violet)) 0%, hsl(326 80% 60%) 100%);
+      background: linear-gradient(135deg,
+        hsl(var(--alice-violet)) 0%,
+        hsl(var(--alice-blue)) 45%,
+        hsl(326 80% 60%) 100%);
       color: white;
       border-bottom-right-radius: 4px;
-      box-shadow: 0 6px 24px -8px hsl(var(--alice-violet) / 0.6);
+      box-shadow:
+        0 6px 28px -10px hsl(var(--alice-violet) / 0.7),
+        0 1px 0 hsl(0 0% 100% / 0.12) inset;
     }
     #ai-tab .ai-msg.assistant {
-      background: hsl(var(--alice-panel) / 0.55);
+      position: relative; overflow: hidden;
+      background: linear-gradient(180deg, hsl(var(--alice-panel) / 0.6), hsl(var(--alice-bg-2) / 0.6));
       color: hsl(var(--alice-ink));
       border: 1px solid hsl(var(--alice-border) / .55);
       border-bottom-left-radius: 4px;
       backdrop-filter: blur(10px);
     }
+    /* Aurora rail along top of assistant bubbles */
+    #ai-tab .ai-msg.assistant::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg,
+        transparent, hsl(var(--alice-violet)), hsl(var(--alice-cyan)),
+        hsl(var(--alice-pink)), transparent);
+      background-size: 200% 100%;
+      animation: alice-rail 4s linear infinite;
+      opacity: .7;
+    }
+    @keyframes alice-rail { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     #ai-tab .ai-msg.system {
       background: transparent; color: hsl(var(--alice-ink-dim));
       font-size: 10.5px; text-align: center; align-self: center; letter-spacing: .04em;
@@ -634,53 +709,108 @@
       color: hsl(var(--alice-cyan));
       padding: 1px 5px; border-radius: 4px;
     }
+    /* Gradient headings inside assistant prose */
+    #ai-tab .ai-msg.assistant h1,
+    #ai-tab .ai-msg.assistant h2,
+    #ai-tab .ai-msg.assistant h3 {
+      background: linear-gradient(135deg, hsl(var(--alice-ink)), hsl(var(--alice-cyan)));
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent; letter-spacing: -0.01em;
+    }
+    #ai-tab .ai-msg.assistant blockquote {
+      border-left: 3px solid hsl(var(--alice-violet) / 0.7);
+      color: hsl(var(--alice-ink-dim));
+      padding-left: 10px; margin: 6px 0;
+    }
 
+    /* ===================== Empty state ===================== */
     #ai-tab .ai-empty { padding: 32px 14px 16px; text-align: center; color: hsl(var(--alice-ink-dim)); font-size: 12px; }
     #ai-tab .ai-empty .ai-hero {
-      width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 9999px;
+      position: relative;
+      width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 9999px;
       background:
         radial-gradient(circle at 30% 30%, hsl(var(--alice-cyan)) 0%, transparent 45%),
         radial-gradient(circle at 70% 70%, hsl(var(--alice-pink)) 0%, transparent 50%),
-        conic-gradient(from 0deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)), hsl(var(--alice-pink)), hsl(var(--alice-violet)));
+        conic-gradient(from 0deg,
+          hsl(var(--alice-violet)),
+          hsl(var(--alice-blue)),
+          hsl(var(--alice-cyan)),
+          hsl(var(--alice-pink)),
+          hsl(var(--alice-warm)),
+          hsl(var(--alice-violet)));
       box-shadow:
         0 0 0 1px hsl(var(--alice-violet) / 0.45),
-        0 0 26px hsl(var(--alice-violet) / 0.45),
+        0 0 32px hsl(var(--alice-violet) / 0.5),
         inset 0 0 12px hsl(0 0% 100% / 0.25);
-      animation: alice-orb-spin 8s linear infinite;
+      animation: alice-orb-spin 12s linear infinite;
+      isolation: isolate;
+    }
+    #ai-tab .ai-empty .ai-hero::after {
+      content: "";
+      position: absolute; inset: -30%;
+      border-radius: 9999px;
+      background: radial-gradient(circle, hsl(var(--alice-violet) / 0.45), transparent 70%);
+      filter: blur(10px); opacity: .55; z-index: -1;
+      animation: alice-orb-breathe 4s ease-in-out infinite;
     }
     #ai-tab .ai-empty .ai-hero svg { display: none; }
     #ai-tab .ai-empty strong {
-      color: hsl(var(--alice-ink)); display: block; margin-bottom: 4px;
-      font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+      display: block; margin-bottom: 4px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+      background: linear-gradient(135deg, hsl(var(--alice-ink)), hsl(var(--alice-cyan)));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
     #ai-tab .ai-empty .ai-tagline { color: hsl(var(--alice-ink-dim)); font-size: 11.5px; line-height: 1.5; max-width: 280px; margin: 0 auto; }
 
-    #ai-tab .ai-suggestions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 18px; }
+    /* Suggestion chips with gradient border */
+    #ai-tab .ai-suggestions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 20px; }
     #ai-tab .ai-suggestion {
-      padding: 8px 12px; border-radius: 9999px;
+      position: relative;
+      padding: 9px 13px; border-radius: 9999px;
       background: hsl(var(--alice-panel) / 0.6);
       border: 1px solid hsl(var(--alice-border) / .55);
       color: hsl(var(--alice-ink)); font-size: 11px; cursor: pointer; text-align: left;
-      transition: all .2s; font-family: inherit; line-height: 1.35;
+      transition: all .25s var(--alice-spring); font-family: inherit; line-height: 1.35;
+      backdrop-filter: blur(8px);
     }
     #ai-tab .ai-suggestion:hover {
-      background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.25), hsl(var(--alice-cyan) / 0.25));
-      border-color: hsl(var(--alice-violet) / 0.6);
-      transform: translateY(-1px);
+      background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.3), hsl(var(--alice-cyan) / 0.3));
+      border-color: hsl(var(--alice-violet) / 0.7);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 20px -8px hsl(var(--alice-violet) / 0.6);
     }
 
+    /* ===================== Composer (conic gradient border) ===================== */
     #ai-tab .ai-input-row {
+      position: relative;
       display: flex; gap: 6px;
-      padding: 6px;
-      border-radius: 16px;
-      background: hsl(var(--alice-bg) / 0.85);
-      border: 1px solid hsl(var(--alice-border) / .55);
-      backdrop-filter: blur(12px);
-      transition: filter .25s ease, border-color .15s, box-shadow .15s;
+      padding: 1.5px;
+      border-radius: 22px;
+      background: conic-gradient(from 0deg,
+        hsl(var(--alice-violet) / 0.6),
+        hsl(var(--alice-blue) / 0.6),
+        hsl(var(--alice-cyan) / 0.6),
+        hsl(var(--alice-pink) / 0.6),
+        hsl(var(--alice-warm) / 0.4),
+        hsl(var(--alice-violet) / 0.6));
+      transition: filter .25s ease;
     }
-    #ai-tab .ai-input-row:focus-within {
-      border-color: hsl(var(--alice-violet) / .8);
-      box-shadow: 0 0 0 3px hsl(var(--alice-violet) / .18), 0 0 18px hsl(var(--alice-violet) / .35);
+    #ai-tab .ai-input-row::before {
+      content: "";
+      position: absolute; inset: -2px;
+      border-radius: 24px;
+      background: inherit;
+      filter: blur(10px); opacity: 0;
+      transition: opacity .3s ease;
+      z-index: -1;
+    }
+    #ai-tab .ai-input-row:focus-within { filter: brightness(1.1); }
+    #ai-tab .ai-input-row:focus-within::before { opacity: .7; }
+    #ai-tab .ai-input-row-inner {
+      display: flex; flex: 1; gap: 6px;
+      padding: 6px;
+      border-radius: 20px;
+      background: hsl(var(--alice-bg) / 0.92);
+      backdrop-filter: blur(12px);
     }
     #ai-tab .ai-input-row textarea {
       flex: 1; min-height: 32px; max-height: 120px; padding: 6px 8px; font-size: 12.5px;
@@ -689,70 +819,60 @@
       font-family: inherit;
     }
     #ai-tab .ai-input-row textarea::placeholder { color: hsl(var(--alice-ink-dim)); }
-    #ai-tab .ai-input-row .btn,
     #ai-tab #ai-send {
-      align-self: flex-end; padding: 7px 14px; font-size: 12px; font-weight: 600;
-      border: none; border-radius: 10px; cursor: pointer;
-      background: linear-gradient(135deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)));
+      align-self: flex-end; padding: 8px 14px; font-size: 12px; font-weight: 600;
+      border: none; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(135deg,
+        hsl(var(--alice-violet)),
+        hsl(var(--alice-blue)),
+        hsl(var(--alice-cyan)));
+      background-size: 200% 200%;
       color: white;
-      box-shadow: 0 4px 18px -4px hsl(var(--alice-violet) / 0.6);
-      transition: filter .15s;
+      box-shadow: 0 6px 20px -6px hsl(var(--alice-violet) / 0.7);
+      transition: filter .15s, transform .15s, background-position .6s;
     }
-    #ai-tab #ai-send:hover:not(:disabled) { filter: brightness(1.1); }
+    #ai-tab #ai-send:hover:not(:disabled) {
+      filter: brightness(1.15);
+      background-position: 100% 100%;
+      transform: scale(1.04);
+    }
     #ai-tab #ai-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Streaming-state avatar pulse (Neural Expressive) */
-    #ai-tab .ai-avatar.streaming {
-      animation: alice-orb-spin 4s linear infinite;
-      box-shadow:
-        0 0 0 1px hsl(var(--alice-cyan) / 0.6),
-        0 0 26px hsl(var(--alice-cyan) / 0.55),
-        0 0 46px hsl(var(--alice-violet) / 0.35),
-        inset 0 0 10px hsl(0 0% 100% / 0.35);
-    }
-    /* Aurora rail on assistant bubbles */
-    #ai-tab .ai-msg.assistant { position: relative; overflow: hidden; }
-    #ai-tab .ai-msg.assistant::before {
-      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg,
-        transparent, hsl(var(--alice-violet)), hsl(var(--alice-cyan)),
-        hsl(var(--alice-pink)), transparent);
-      background-size: 200% 100%;
-      animation: ai-rail 4s linear infinite;
-      opacity: .7;
-    }
-    @keyframes ai-rail { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
+    /* ===================== Typing / Shimmer ===================== */
     #ai-tab .ai-typing { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 11.5px; color: hsl(var(--alice-ink-dim)); }
     #ai-tab .ai-typing .ai-shimmer {
       background: linear-gradient(90deg,
         hsl(var(--alice-ink-dim)) 0%,
-        hsl(var(--alice-violet)) 30%,
+        hsl(var(--alice-violet)) 25%,
+        hsl(var(--alice-blue)) 40%,
         hsl(var(--alice-cyan)) 55%,
         hsl(var(--alice-pink)) 75%,
         hsl(var(--alice-ink-dim)) 100%);
       background-size: 250% 100%;
       -webkit-background-clip: text; background-clip: text;
       color: transparent;
-      animation: ai-shimmer 2.4s linear infinite;
+      animation: alice-shimmer 2.6s linear infinite;
       font-weight: 500;
     }
-    @keyframes ai-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    @keyframes alice-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
     #ai-tab .ai-typing .ai-dots { display: inline-flex; gap: 3px; }
     #ai-tab .ai-typing .ai-dots span {
-      width: 5px; height: 5px; border-radius: 50%;
+      width: 6px; height: 6px; border-radius: 50%;
       background: hsl(var(--alice-cyan));
-      box-shadow: 0 0 6px hsl(var(--alice-cyan) / .8);
-      animation: ai-bounce 1.2s infinite ease-in-out;
+      box-shadow: 0 0 8px hsl(var(--alice-cyan));
+      animation: alice-pulse 1.4s ease-in-out infinite;
     }
     #ai-tab .ai-typing .ai-dots span:nth-child(2) { animation-delay: .15s; }
     #ai-tab .ai-typing .ai-dots span:nth-child(3) { animation-delay: .3s; }
-    @keyframes ai-bounce { 0%,80%,100% { opacity:.3; transform: translateY(0); } 40% { opacity:1; transform: translateY(-3px); } }
+    @keyframes alice-pulse {
+      0%, 100% { opacity: .4; transform: scale(.85); }
+      50%      { opacity: 1; transform: scale(1.2); }
+    }
 
-    /* Follow-up suggestion chips after assistant answer */
+    /* ===================== Follow-up chips ===================== */
     #ai-tab .ai-followups {
       display: flex; flex-wrap: wrap; gap: 6px;
-      margin: 4px 0 0 30px;
+      margin: 4px 0 0 34px;
       align-items: center;
     }
     #ai-tab .ai-followups-label {
@@ -761,27 +881,37 @@
     }
     #ai-tab .ai-followup-chip {
       position: relative;
-      padding: 6px 11px; font-size: 11px; line-height: 1;
+      padding: 7px 13px; font-size: 11.5px; line-height: 1;
       background: hsl(var(--alice-bg) / 0.7);
       color: hsl(var(--alice-ink));
-      border: 1px solid hsl(var(--alice-violet) / .45);
+      border: 1px solid transparent;
+      background-clip: padding-box;
       border-radius: 9999px;
       cursor: pointer; font-family: inherit;
       display: inline-flex; align-items: center; gap: 5px;
-      transition: transform .2s cubic-bezier(0.34,1.56,0.64,1), box-shadow .2s, background .2s, border-color .2s;
-      animation: alice-followup-in .4s cubic-bezier(0.34,1.56,0.64,1) both;
+      transition: all .25s var(--alice-spring);
+      animation: alice-bubble-in .4s var(--alice-spring) both;
+    }
+    #ai-tab .ai-followup-chip::before {
+      content: ""; position: absolute; inset: 0; border-radius: 9999px; padding: 1px;
+      background: linear-gradient(135deg,
+        hsl(var(--alice-violet) / 0.55),
+        hsl(var(--alice-cyan) / 0.55),
+        hsl(var(--alice-pink) / 0.55));
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events: none;
     }
     #ai-tab .ai-followup-chip:hover {
       transform: translateY(-2px) scale(1.04);
       box-shadow: 0 8px 22px -8px hsl(var(--alice-violet) / .6);
-      border-color: hsl(var(--alice-cyan) / .7);
       background: hsl(var(--alice-bg) / 0.92);
     }
-    @keyframes alice-followup-in {
-      from { opacity: 0; transform: translateY(6px) scale(.95); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
 
+    /* ===================== Toolbar ===================== */
     #ai-tab .ai-toolbar { display: flex; gap: 6px; align-items: center; }
     #ai-tab .ai-toolbar .ai-mode { flex: 1; font-size: 10.5px; color: hsl(var(--alice-ink-dim)); display: flex; align-items: center; gap: 6px; letter-spacing: .02em; }
     #ai-tab .ai-toolbar .ai-mode input { accent-color: hsl(var(--alice-violet)); }
@@ -803,6 +933,15 @@
     /* Scrollbar inside aurora panel */
     #ai-tab .ai-messages::-webkit-scrollbar-thumb { background: hsl(var(--alice-violet) / .35); }
     #ai-tab .ai-messages::-webkit-scrollbar-thumb:hover { background: hsl(var(--alice-violet) / .55); }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      #ai-tab::before, #ai-tab::after,
+      #ai-tab .ai-avatar, #ai-tab .ai-avatar::after,
+      #ai-tab .ai-msg.assistant::before,
+      #ai-tab .ai-typing .ai-shimmer,
+      #ai-tab .ai-typing .ai-dots span { animation: none !important; }
+    }
 
     /* Auth toggle */
     .auth-toggle { display: flex; gap: 4px; margin-bottom: 12px; background: var(--surface-2); border-radius: var(--radius-sm); padding: 3px; width: 100%; }
