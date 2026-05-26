@@ -77,6 +77,10 @@ export interface AgentConfig {
   synthesizer_tag_filter?: string[];
   synthesizer_max_cards?: number;
   author_min_words?: number;
+  author_target_words?: number;
+  author_style_mimicry?: boolean;
+  selected_source_ids?: string[];
+
 
   // Custom agent
   custom_instructions?: string;

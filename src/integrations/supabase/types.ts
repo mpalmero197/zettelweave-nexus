@@ -202,6 +202,13 @@ export type Database = {
           id: string
           items_found: number | null
           items_processed: number | null
+          progress: number | null
+          progress_detail: string | null
+          progress_sections_done: number | null
+          progress_sections_total: number | null
+          progress_stage: string | null
+          progress_words_done: number | null
+          progress_words_target: number | null
           results: Json | null
           started_at: string
           status: string
@@ -214,6 +221,13 @@ export type Database = {
           id?: string
           items_found?: number | null
           items_processed?: number | null
+          progress?: number | null
+          progress_detail?: string | null
+          progress_sections_done?: number | null
+          progress_sections_total?: number | null
+          progress_stage?: string | null
+          progress_words_done?: number | null
+          progress_words_target?: number | null
           results?: Json | null
           started_at?: string
           status?: string
@@ -226,6 +240,13 @@ export type Database = {
           id?: string
           items_found?: number | null
           items_processed?: number | null
+          progress?: number | null
+          progress_detail?: string | null
+          progress_sections_done?: number | null
+          progress_sections_total?: number | null
+          progress_stage?: string | null
+          progress_words_done?: number | null
+          progress_words_target?: number | null
           results?: Json | null
           started_at?: string
           status?: string
@@ -2266,6 +2287,7 @@ export type Database = {
           about_me: string | null
           alice_proactive_enabled: boolean
           alice_proactive_level: number
+          author_style_mimicry_enabled: boolean | null
           auto_master_docs: boolean | null
           avatar_url: string | null
           created_at: string
@@ -2289,6 +2311,7 @@ export type Database = {
           about_me?: string | null
           alice_proactive_enabled?: boolean
           alice_proactive_level?: number
+          author_style_mimicry_enabled?: boolean | null
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
@@ -2312,6 +2335,7 @@ export type Database = {
           about_me?: string | null
           alice_proactive_enabled?: boolean
           alice_proactive_level?: number
+          author_style_mimicry_enabled?: boolean | null
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string

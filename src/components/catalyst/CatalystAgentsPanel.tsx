@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   Bot, Play, Loader2, ChevronRight, ChevronLeft, Sparkles,
   Search, Bell, Link, FileText, Pencil, HelpCircle, Calendar,
   Quote, CheckSquare, Brain, Wand2, BookOpen, Plus, ArrowLeft,
-  ExternalLink, Copy, Eye, FileDown, MapPin,
+  ExternalLink, Copy, Eye, FileDown, MapPin, Feather,
 } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import { Agent, AgentType, AGENT_DEFINITIONS } from '@/types/agents';
@@ -20,6 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { CreateAgentDialog } from '@/components/agents/CreateAgentDialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
 import { AgentDetail } from '@/components/agents/AgentDetail';
 
 const AGENT_ICONS: Record<AgentType, React.ElementType> = {
@@ -57,8 +60,18 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
   const [topicInput, setTopicInput] = useState('');
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
   const [focusInstructions, setFocusInstructions] = useState('');
+  const [targetWords, setTargetWords] = useState<number>(8000);
+  const [styleMimicry, setStyleMimicry] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sourceSearch, setSourceSearch] = useState('');
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [runProgress, setRunProgress] = useState<{
+    progress: number; stage: string; detail: string;
+    sectionsDone: number; sectionsTotal: number;
+    wordsDone: number; wordsTarget: number; status: string;
+  }>({ progress: 0, stage: 'starting', detail: 'Preparing...', sectionsDone: 0, sectionsTotal: 0, wordsDone: 0, wordsTarget: 0, status: 'running' });
+  const startTimeRef = useRef<number>(0);
+
 
   // Agent results state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -133,25 +146,118 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
     }
   };
 
-  const startAuthorWizard = () => { setView('author-wizard'); setWizardStep('topic'); setTopicInput(''); setSelectedSourceIds(new Set()); setFocusInstructions(''); setSourceSearch(''); };
+  const startAuthorWizard = async () => {
+    setView('author-wizard'); setWizardStep('topic'); setTopicInput(''); setSelectedSourceIds(new Set()); setFocusInstructions(''); setSourceSearch('');
+    setTargetWords(8000); setActiveRunId(null);
+    // Pull the user's default style-mimicry preference from their profile
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (u) {
+        const { data } = await supabase.from('profiles').select('author_style_mimicry_enabled').eq('user_id', u.id).maybeSingle();
+        if (data && typeof (data as any).author_style_mimicry_enabled === 'boolean') {
+          setStyleMimicry((data as any).author_style_mimicry_enabled);
+        }
+      }
+    } catch { /* ignore */ }
+  };
+
+  // Poll the active run for progress updates while generating
+  useEffect(() => {
+    if (!activeRunId || wizardStep !== 'generating') return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await (supabase.from('agent_runs') as any)
+          .select('progress, progress_stage, progress_detail, progress_sections_done, progress_sections_total, progress_words_done, progress_words_target, status')
+          .eq('id', activeRunId).maybeSingle();
+        if (!cancelled && data) {
+          setRunProgress({
+            progress: Number(data.progress) || 0,
+            stage: data.progress_stage || 'working',
+            detail: data.progress_detail || '',
+            sectionsDone: data.progress_sections_done || 0,
+            sectionsTotal: data.progress_sections_total || 0,
+            wordsDone: data.progress_words_done || 0,
+            wordsTarget: data.progress_words_target || 0,
+            status: data.status || 'running',
+          });
+          if (data.status === 'completed' || data.status === 'failed') {
+            return; // stop polling
+          }
+        }
+      } catch (e) { console.error('progress poll failed', e); }
+      if (!cancelled) setTimeout(tick, 2000);
+    };
+    tick();
+    return () => { cancelled = true; };
+  }, [activeRunId, wizardStep]);
 
   const handleGenerate = async () => {
+    const configPayload = {
+      synthesizer_title: topicInput || undefined,
+      custom_instructions: focusInstructions || undefined,
+      selected_source_ids: Array.from(selectedSourceIds),
+      synthesizer_max_cards: 50,
+      author_target_words: targetWords,
+      author_style_mimicry: styleMimicry,
+    };
     let authorAgent = agents.find(a => a.agent_type === 'card_synthesizer');
     if (!authorAgent) {
-      const created = await createAgent('card_synthesizer', 'Author Agent', 'Writes comprehensive documents', { synthesizer_title: topicInput || undefined, synthesizer_max_cards: 50, author_min_words: 10000 }, 60);
+      const created = await createAgent('card_synthesizer', 'Author Agent', 'Writes comprehensive documents', configPayload as any, 60);
       if (!created) { toast.error('Failed to create Author Agent'); return; }
       authorAgent = created;
     } else {
-      await updateAgent(authorAgent.id, { config: { ...authorAgent.config, synthesizer_title: topicInput || undefined, custom_instructions: focusInstructions || undefined, selected_source_ids: Array.from(selectedSourceIds) } as any });
+      await updateAgent(authorAgent.id, { config: { ...authorAgent.config, ...configPayload } as any });
     }
-    setWizardStep('generating'); setIsGenerating(true);
+    setWizardStep('generating');
+    setIsGenerating(true);
+    setRunProgress({ progress: 0, stage: 'starting', detail: 'Preparing...', sectionsDone: 0, sectionsTotal: 0, wordsDone: 0, wordsTarget: targetWords, status: 'running' });
+    startTimeRef.current = Date.now();
     try {
-      await triggerAgentRun(authorAgent.id);
-      toast.success('Author Agent started!');
+      // Fire-and-forget: don't await — progress comes through agent_runs polling
+      const runPromise = triggerAgentRun(authorAgent.id);
+      runPromise.then(run => {
+        if (run?.id) setActiveRunId(run.id);
+      }).catch(() => toast.error('Failed to start Author Agent'));
+      // Also poll for the latest run while waiting for the runId
+      const { supabase } = await import('@/integrations/supabase/client');
+      const findLatest = async () => {
+        const { data } = await (supabase.from('agent_runs') as any)
+          .select('id')
+          .eq('agent_id', authorAgent!.id)
+          .order('started_at', { ascending: false })
+          .limit(1);
+        if (data && data[0]?.id) setActiveRunId(data[0].id);
+      };
+      setTimeout(findLatest, 800);
       onDocumentGenerated?.();
-    } catch { toast.error('Failed to start Author Agent'); }
-    finally { setIsGenerating(false); setTimeout(() => { setView('list'); setWizardStep('topic'); }, 3000); }
+    } catch {
+      toast.error('Failed to start Author Agent');
+      setIsGenerating(false);
+    }
   };
+
+  // ETA estimation: blends elapsed-vs-progress with a sensible minimum
+  const eta = useMemo(() => {
+    if (!startTimeRef.current || runProgress.progress < 3) return null;
+    const elapsed = (Date.now() - startTimeRef.current) / 1000;
+    const remainingPct = Math.max(0, 100 - runProgress.progress);
+    const projected = (elapsed / runProgress.progress) * remainingPct;
+    if (!isFinite(projected) || projected < 0) return null;
+    const secs = Math.round(projected);
+    if (secs < 60) return `~${secs}s left`;
+    return `~${Math.ceil(secs / 60)} min left`;
+  }, [runProgress.progress]);
+
+  const STAGE_LABELS: Record<string, string> = {
+    starting: 'Starting up', gathering: 'Reading your knowledge', style_analysis: 'Studying your voice',
+    topic: 'Choosing topic', outline: 'Outlining', writing: 'Writing', polish: 'Polishing',
+    saving: 'Saving', done: 'Complete', working: 'Working',
+  };
+
+
 
   const selectedAgent = agents.find(a => a.id === selectedAgentId);
 
@@ -486,11 +592,34 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
         )}
         {wizardStep === 'focus' && (
           <div className="space-y-3">
-            <Textarea value={focusInstructions} onChange={(e) => setFocusInstructions(e.target.value)} placeholder="e.g. Focus on practical applications..." className="mt-1 min-h-[100px] text-xs" />
+            <Textarea value={focusInstructions} onChange={(e) => setFocusInstructions(e.target.value)} placeholder="e.g. Focus on practical applications..." className="mt-1 min-h-[80px] text-xs" />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium">Target length</label>
+                <span className="text-xs font-mono tabular-nums text-muted-foreground">{targetWords.toLocaleString()} words</span>
+              </div>
+              <Slider value={[targetWords]} min={1500} max={25000} step={500} onValueChange={(v) => setTargetWords(v[0])} />
+              <div className="flex justify-between text-[10px] text-muted-foreground"><span>1.5k</span><span>25k</span></div>
+            </div>
+
+            <div className="flex items-start gap-3 p-2.5 rounded-lg border border-border bg-muted/20">
+              <Feather className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="style-mimicry" className="text-xs font-medium cursor-pointer">Write in my voice</label>
+                  <Switch id="style-mimicry" checked={styleMimicry} onCheckedChange={setStyleMimicry} />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Analyzes your notes to match your tone, rhythm, and vocabulary.</p>
+              </div>
+            </div>
+
             <Card className="p-3 bg-muted/30">
               <div className="space-y-1 text-xs">
                 <p><strong>Topic:</strong> {topicInput || 'AI will choose'}</p>
                 <p><strong>Sources:</strong> {selectedSourceIds.size || 'All'}</p>
+                <p><strong>Length:</strong> ~{targetWords.toLocaleString()} words</p>
+                <p><strong>Voice:</strong> {styleMimicry ? 'Your style' : 'Default'}</p>
               </div>
             </Card>
             <div className="flex gap-2">
@@ -500,11 +629,44 @@ export function CatalystAgentsPanel({ cards, notes, scratchpadNotes, onDocumentG
           </div>
         )}
         {wizardStep === 'generating' && (
-          <div className="flex flex-col items-center justify-center py-8 space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Author Agent is writing...</p>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2.5">
+              <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{STAGE_LABELS[runProgress.stage] || 'Working'}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{runProgress.detail || 'Author Agent is writing...'}</p>
+              </div>
+              <span className="text-sm font-mono tabular-nums font-semibold shrink-0">{Math.round(runProgress.progress)}%</span>
+            </div>
+            <Progress value={runProgress.progress} className="h-2" />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>
+                {runProgress.sectionsTotal > 0
+                  ? `Section ${runProgress.sectionsDone}/${runProgress.sectionsTotal}`
+                  : 'Planning...'}
+              </span>
+              <span>{eta || ' '}</span>
+            </div>
+            {runProgress.wordsTarget > 0 && (
+              <div className="text-[11px] text-muted-foreground text-center">
+                {runProgress.wordsDone.toLocaleString()} / {runProgress.wordsTarget.toLocaleString()} words
+              </div>
+            )}
+            {runProgress.status === 'completed' && (
+              <div className="space-y-2">
+                <p className="text-xs text-center text-green-600 font-medium">Document ready! Open Catalyst to view it.</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => { setView('list'); setWizardStep('topic'); setActiveRunId(null); setIsGenerating(false); }}>Done</Button>
+              </div>
+            )}
+            {runProgress.status === 'failed' && (
+              <div className="space-y-2">
+                <p className="text-xs text-center text-destructive font-medium">Generation failed. Please try again.</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => { setView('list'); setWizardStep('topic'); setActiveRunId(null); setIsGenerating(false); }}>Back</Button>
+              </div>
+            )}
           </div>
         )}
+
       </div>
     );
   }
