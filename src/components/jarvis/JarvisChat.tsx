@@ -3,12 +3,14 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import {
   Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText,
   StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun, Play,
-  ImageIcon, Navigation,
+  ImageIcon, Navigation, Menu,
 } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
