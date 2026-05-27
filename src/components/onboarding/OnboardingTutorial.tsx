@@ -251,19 +251,29 @@ export function OnboardingTutorial() {
   const steps: Step[] = [
     {
       key: "welcome",
-      title: "Welcome to PendragonX",
-      description: "A 2-minute tour to get you productive fast.",
+      title: "Welcome — let's beat the blank page",
+      description: "A 2-minute guided path so you know exactly where to begin.",
       icon: Sparkles,
       body: (
-        <p className="text-sm text-muted-foreground">
-          PendragonX is your second brain — cards for atomic ideas, notes for long-form, Catalyst for writing, and ALICE to find anything. We'll set up your profile and walk through the essentials.
-        </p>
+        <div className="space-y-2.5 text-sm text-muted-foreground">
+          <p>
+            PendragonX can feel like a lot at first. So here's the <span className="text-foreground font-medium">one path</span> we recommend for your first 10 minutes:
+          </p>
+          <ol className="space-y-1 pl-4 list-decimal marker:text-primary marker:font-semibold">
+            <li><span className="text-foreground">Set your profile</span> — so collaborators recognize you.</li>
+            <li><span className="text-foreground">Pick a theme</span> — make it yours in one click.</li>
+            <li><span className="text-foreground">Create one card</span> — the smallest unit of thought.</li>
+            <li><span className="text-foreground">Link it to another</span> — that's where the magic starts.</li>
+            <li><span className="text-foreground">Ask ALICE something</span> — your AI knows your knowledge.</li>
+          </ol>
+          <p className="text-[11px]">Skip anytime — you can replay this tour from Settings.</p>
+        </div>
       ),
     },
     {
       key: "profile",
-      title: "Your display name & avatar",
-      description: "How friends and collaborators see you.",
+      title: "Step 1 — Your identity",
+      description: "Takes 15 seconds. How collaborators and ALICE address you.",
       icon: UserIcon,
       body: (
         <div className="space-y-3">
@@ -274,7 +284,7 @@ export function OnboardingTutorial() {
             </Avatar>
             <div className="flex-1 space-y-2">
               <Input
-                placeholder="Display name"
+                placeholder="Display name (e.g. your first name)"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 maxLength={40}
@@ -286,22 +296,24 @@ export function OnboardingTutorial() {
               </Button>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">Editable later in Settings → Account.</p>
+          <p className="text-[11px] text-muted-foreground">
+            ALICE will greet you by name and your avatar shows up on shared cards, Collab chats, and project comments. Change anytime in Settings → Account.
+          </p>
         </div>
       ),
     },
     {
       key: "theme",
-      title: "Pick your theme",
-      description: "Tap the palette icon to swap colors.",
+      title: "Step 2 — Make it yours",
+      description: "Tap the palette to switch color schemes. Try a dark theme for night writing or a warm theme for journaling — it changes the whole feel.",
       icon: Palette,
       desktopTarget: '[data-onboarding="theme-switcher"]',
       mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "dashboard",
-      title: "Your dashboard",
-      description: "A live, interactive overview of your knowledge.",
+      title: "Step 3 — Your home base",
+      description: "This Dashboard is your daily launchpad. Every widget is clickable: Resume picks up your last note, Next Task starts a focus timer, Upcoming jumps to your calendar. When in doubt, come back here — it always shows what to do next.",
       icon: LayoutDashboard,
       navigateTab: "dashboard",
       desktopTarget: '#main-content',
@@ -309,8 +321,8 @@ export function OnboardingTutorial() {
     },
     {
       key: "create-card",
-      title: "Create your first card",
-      description: "Click the + button — we'll fill in tags & category for you.",
+      title: "Step 4 — Write one card",
+      description: "Cards are atomic ideas — one thought per card (a quote, a definition, a half-formed thesis). Click + and type anything. ALICE auto-suggests tags, category, and related cards while you write. Don't overthink it: a 2-sentence card is perfect.",
       icon: Plus,
       navigateTab: "cards",
       desktopTarget: '[data-onboarding="create-card-button"]',
@@ -318,8 +330,8 @@ export function OnboardingTutorial() {
     },
     {
       key: "edit-card",
-      title: "Edit & link cards",
-      description: "Click any card to edit. Use [[Title]] to link cards together.",
+      title: "Step 5 — Link cards with [[wikilinks]]",
+      description: "This is the superpower. Inside any card, type [[ and the title of another card — PendragonX connects them. Linked cards form your knowledge graph, surface as backlinks, and feed ALICE's answers. Two cards + one link = a second brain.",
       icon: Pencil,
       navigateTab: "cards",
       desktopTarget: '[data-onboarding="nav-cards"]',
@@ -327,16 +339,16 @@ export function OnboardingTutorial() {
     },
     {
       key: "import",
-      title: "Import from Obsidian, Notion & more",
-      description: "Open the toolbox to drop in your existing knowledge.",
+      title: "Already have notes? Bring them in",
+      description: "Open the Toolbox to import from Obsidian (.md), Notion, Evernote (.enex), Google Docs, OneDrive, or paste a URL. Wikilinks are preserved and resolved after import. Start with one notebook — you don't have to migrate everything at once.",
       icon: Upload,
       desktopTarget: '[data-onboarding="toolbox-button"]',
       mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "catalyst",
-      title: "Write in Catalyst",
-      description: "Long-form writing with AI agents in the sidebar.",
+      title: "When cards aren't enough — Catalyst",
+      description: "Catalyst is for long-form: essays, chapters, blog posts. Your cards become reference material in the sidebar, and AI agents (Researcher, Editor, Citer) work alongside you. Use Cards for ideas, Catalyst for the final draft.",
       icon: FileText,
       navigateTab: "catalyst",
       desktopTarget: '[data-onboarding="nav-catalyst"]',
@@ -344,21 +356,29 @@ export function OnboardingTutorial() {
     },
     {
       key: "alice",
-      title: "Meet ALICE",
-      description: "Your AI assistant — find anything, set reminders, run multi-step actions.",
+      title: "Step 6 — Ask ALICE anything",
+      description: 'ALICE reads your whole knowledge base. Try: "What did I write about stoicism?", "Summarize my project notes from this week", or "Remind me tomorrow to finish chapter 3." She cites sources and can run multi-step actions.',
       icon: Bot,
       desktopTarget: '[data-onboarding="alice-fab"]',
       mobileTarget: '[data-onboarding="alice-fab"]',
     },
     {
       key: "done",
-      title: "You're ready!",
-      description: "That's the tour. Need a refresher? Just ask ALICE.",
+      title: "You're set — here's what to do today",
+      description: "",
       icon: PartyPopper,
       body: (
-        <p className="text-sm text-muted-foreground">
-          Everything you saw lives one click away in the top nav. Have fun building.
-        </p>
+        <div className="space-y-2.5 text-sm text-muted-foreground">
+          <p className="text-foreground font-medium">Your first session checklist:</p>
+          <ul className="space-y-1.5 pl-1">
+            <li className="flex gap-2"><span className="text-primary">→</span> Create 3 cards on something you're thinking about</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Link at least 2 of them with [[wikilinks]]</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Ask ALICE to summarize what you wrote</li>
+          </ul>
+          <p className="text-[11px]">
+            Lost later? Click the <span className="text-foreground">?</span> in Settings to replay this tour, or just ask ALICE "where do I start?"
+          </p>
+        </div>
       ),
     },
   ];
@@ -431,7 +451,7 @@ export function OnboardingTutorial() {
           <Progress value={((stepIndex + 1) / steps.length) * 100} className="h-1" />
         </div>
 
-        <div className="px-4 pb-3" id="onboarding-desc">
+        <div className="px-4 pb-3 max-h-[55vh] overflow-y-auto" id="onboarding-desc">
           {step.body || (
             <p className="text-sm text-muted-foreground">{step.description}</p>
           )}
