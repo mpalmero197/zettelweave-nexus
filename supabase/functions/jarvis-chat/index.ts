@@ -1076,36 +1076,49 @@ async function executeTool(
       }
       case "search_knowledge": {
         const q = String(args.query || "").trim();
-        if (!q) return { error: "Empty query" };
+        const ct = String(args.content_type || "").trim();
+        const validCt = ["note", "card", "catalyst_document"].includes(ct) ? ct : "";
+        if (!q && !validCt) return { error: "Empty query (pass content_type to list recent items of a type)" };
         const lim = Math.min(Math.max(Number(args.limit) || 8, 1), 15);
-        const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+        const like = q ? `%${q.replace(/[%_\\]/g, "\\$&")}%` : "";
+        const wantNotes = !validCt || validCt === "note";
+        const wantCards = !validCt || validCt === "card";
+        const wantDocs = !validCt || validCt === "catalyst_document";
+        const buildQ = (table: string, cols: string) => {
+          let qb = supabase.from(table).select(cols).is("deleted_at", null);
+          if (q) qb = qb.or(`title.ilike.${like},content.ilike.${like}`);
+          else qb = qb.order("updated_at", { ascending: false });
+          return qb.limit(lim);
+        };
         const [notes, cards, docs] = await Promise.all([
-          supabase.from("notes").select("id,title,content,tags").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(lim),
-          supabase.from("zettel_cards").select("id,title,content,category,tags").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(lim),
-          supabase.from("catalyst_documents").select("id,title,content").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(lim),
+          wantNotes ? buildQ("notes", "id,title,content,tags") : Promise.resolve({ data: [] as any[] }),
+          wantCards ? buildQ("zettel_cards", "id,title,content,category,tags") : Promise.resolve({ data: [] as any[] }),
+          wantDocs ? buildQ("catalyst_documents", "id,title,content") : Promise.resolve({ data: [] as any[] }),
         ]);
         const results = [
-          ...(notes.data || []).map((n: any) => ({ type: "note", id: n.id, title: n.title, snippet: String(n.content || "").slice(0, 240), tags: n.tags })),
-          ...(cards.data || []).map((c: any) => ({ type: "card", id: c.id, title: c.title, category: c.category, snippet: String(c.content || "").slice(0, 240), tags: c.tags })),
-          ...(docs.data || []).map((d: any) => ({ type: "catalyst_document", id: d.id, title: d.title, snippet: String(d.content || "").slice(0, 240) })),
+          ...((notes as any).data || []).map((n: any) => ({ type: "note", id: n.id, title: n.title, snippet: String(n.content || "").slice(0, 240), tags: n.tags })),
+          ...((cards as any).data || []).map((c: any) => ({ type: "card", id: c.id, title: c.title, category: c.category, snippet: String(c.content || "").slice(0, 240), tags: c.tags })),
+          ...((docs as any).data || []).map((d: any) => ({ type: "catalyst_document", id: d.id, title: d.title, snippet: String(d.content || "").slice(0, 240) })),
         ];
-        return { results, count: results.length };
+        return { results, count: results.length, content_type: validCt || "any", listing_recent: !q };
       }
       case "deep_search": {
         const q = String(args.query || "").trim();
         if (!q) return { error: "Empty query" };
+        const ct = String(args.content_type || "").trim();
+        const validCt = ["note", "card", "catalyst_document"].includes(ct) ? ct : "";
         const cap = Math.min(Math.max(Number(args.max_results) || 25, 1), 60);
         const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+        const wantNotes = !validCt || validCt === "note";
+        const wantCards = !validCt || validCt === "card";
+        const wantDocs = !validCt || validCt === "catalyst_document";
         const [notes, cards, docs] = await Promise.all([
-          supabase.from("notes").select("id,title,content").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
-          supabase.from("zettel_cards").select("id,title,content").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
-          supabase.from("catalyst_documents").select("id,title,content").is("deleted_at", null)
-            .or(`title.ilike.${like},content.ilike.${like}`).limit(40),
+          wantNotes ? supabase.from("notes").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40) : Promise.resolve({ data: [] as any[] }),
+          wantCards ? supabase.from("zettel_cards").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40) : Promise.resolve({ data: [] as any[] }),
+          wantDocs ? supabase.from("catalyst_documents").select("id,title,content").is("deleted_at", null)
+            .or(`title.ilike.${like},content.ilike.${like}`).limit(40) : Promise.resolve({ data: [] as any[] }),
         ]);
         const needle = q.toLowerCase();
         const matches: any[] = [];
@@ -1126,10 +1139,11 @@ async function executeTool(
             }
           }
         };
-        scan(notes.data || [], "note");
-        if (matches.length < cap) scan(cards.data || [], "card");
-        if (matches.length < cap) scan(docs.data || [], "catalyst_document");
-        return { query: q, count: matches.length, matches };
+        // When type is fixed, scan only that one; otherwise scan all in order.
+        if (!validCt || validCt === "note") scan((notes as any).data || [], "note");
+        if (matches.length < cap && (!validCt || validCt === "card")) scan((cards as any).data || [], "card");
+        if (matches.length < cap && (!validCt || validCt === "catalyst_document")) scan((docs as any).data || [], "catalyst_document");
+        return { query: q, count: matches.length, content_type: validCt || "any", matches };
       }
       case "open_in_catalyst": {
         const id = String(args.document_id || "").trim();
