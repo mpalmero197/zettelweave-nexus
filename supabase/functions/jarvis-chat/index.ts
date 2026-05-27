@@ -245,10 +245,14 @@ const tools = [
     type: "function",
     function: {
       name: "search_knowledge",
-      description: "Search the user's notes, zettel cards, and catalyst documents by keyword. Returns up to 15 matches with titles + snippets.",
+      description: "Search the user's notes, zettel cards, and catalyst documents by keyword. Returns up to 15 matches with titles + snippets. PASS content_type whenever the user's wording or current screen route disambiguates type — e.g. 'document/doc/draft/chapter' or route /app/catalyst → content_type='catalyst_document'; 'note/notebook' or /app/notes → 'note'; 'card/zettel' or /app/cards → 'card'. An empty query combined with content_type returns the most recently updated items of that type (use this when the user says 'open one' or 'show me my documents' without naming a title).",
       parameters: {
         type: "object",
-        properties: { query: { type: "string" }, limit: { type: "number" } },
+        properties: {
+          query: { type: "string", description: "Search phrase. May be empty when content_type is set to list recent items." },
+          limit: { type: "number" },
+          content_type: { type: "string", enum: ["note", "card", "catalyst_document"], description: "Restrict results to a single type." },
+        },
         required: ["query"],
       },
     },
@@ -257,12 +261,13 @@ const tools = [
     type: "function",
     function: {
       name: "deep_search",
-      description: "Line-level search across ALL of the user's notes, zettel cards and catalyst documents. Returns each matching LINE with the document title, document id, type, line number, and the surrounding line text. Use this when the user wants to find an exact phrase, sentence, or fact across their writing.",
+      description: "Line-level search across the user's notes, zettel cards and catalyst documents. Returns each matching LINE with the document title, document id, type, line number, and the surrounding line text. Use this when the user wants to find an exact phrase, sentence, or fact. ALWAYS pass content_type when the user's wording or screen route makes the type obvious.",
       parameters: {
         type: "object",
         properties: {
           query: { type: "string", description: "Phrase to find (case-insensitive substring match)." },
           max_results: { type: "number", description: "Max line matches to return (default 25, hard cap 60)." },
+          content_type: { type: "string", enum: ["note", "card", "catalyst_document"], description: "Restrict scan to a single type." },
         },
         required: ["query"],
       },
