@@ -451,7 +451,7 @@ export function OnboardingTutorial() {
           <Progress value={((stepIndex + 1) / steps.length) * 100} className="h-1" />
         </div>
 
-        <div className="px-4 pb-3" id="onboarding-desc">
+        <div className="px-4 pb-3 max-h-[55vh] overflow-y-auto" id="onboarding-desc">
           {step.body || (
             <p className="text-sm text-muted-foreground">{step.description}</p>
           )}
