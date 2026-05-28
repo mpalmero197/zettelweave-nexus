@@ -4,11 +4,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  Plus, 
-  Save, 
-  X, 
-  Trash2, 
+import {
+  Plus,
+  Save,
+  X,
+  Trash2,
   Move,
   Palette,
   Bold,
@@ -16,11 +16,16 @@ import {
   Underline,
   Strikethrough,
   Highlighter,
-  Type
+  Type,
+  CheckSquare,
+  Bell,
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import Draggable from "react-draggable";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
 
 interface StickyNote {
   id: string;
