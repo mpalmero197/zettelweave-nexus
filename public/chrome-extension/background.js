@@ -40,6 +40,50 @@ chrome.tabs?.onActivated.addListener(() => debouncedSync());
 chrome.tabs?.onUpdated.addListener((_id, info) => { if (info.status === "complete") debouncedSync(); });
 chrome.tabs?.onRemoved.addListener(() => debouncedSync());
 
+// ───── Highlight → Scratchpad capture (from content.js) ─────
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return;
+  (async () => {
+    try {
+      const stored = await chrome.storage.local.get([
+        "pendragonx_auth_token",
+        "pendragonx_refresh_token",
+        "pendragonx_session_expires_at",
+      ]);
+      const token = await ensureFreshSession(
+        stored.pendragonx_auth_token,
+        stored.pendragonx_refresh_token,
+        stored.pendragonx_session_expires_at
+      );
+      if (!token) {
+        sendResponse({ ok: false, error: "sign in" });
+        return;
+      }
+      const content = String(msg.content || "").slice(0, 500);
+      const sourceUrl = String(msg.source_url || "");
+      const sourceTitle = String(msg.source_title || "");
+      const body = sourceUrl
+        ? `${content}\n\n— from ${sourceTitle || sourceUrl}\n${sourceUrl}`
+        : content;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ content: body }),
+      });
+      sendResponse({ ok: res.ok, error: res.ok ? undefined : `HTTP ${res.status}` });
+    } catch (e) {
+      sendResponse({ ok: false, error: String(e?.message || e) });
+    }
+  })();
+  return true; // async sendResponse
+});
+
+
 let _syncTimer = null;
 function debouncedSync() {
   if (_syncTimer) clearTimeout(_syncTimer);

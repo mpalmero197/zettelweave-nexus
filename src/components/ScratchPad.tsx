@@ -272,28 +272,38 @@ export const ScratchPad = ({ onCreateCard }: ScratchPadProps) => {
           )}
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
+          <p className="text-[11px] text-muted-foreground -mt-1">
+            Napkin-sized. Quick ideas, snippets, brain dumps — keep it under ~500 characters. For longer thinking, use a Note. For something atomic and explainable in a paragraph or two, use a Card.
+          </p>
           <Textarea
-            placeholder="Jot down quick thoughts, ideas, or notes..."
+            placeholder="A line or two — what you'd scribble on a napkin…"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => setContent(e.target.value.slice(0, 500))}
+            maxLength={500}
             className="min-h-24 resize-y"
           />
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleSave} disabled={!content.trim()}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Note
-            </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={() => handleCreateCard(content)} 
-              disabled={!content.trim()}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Zettel Card
-            </Button>
+          <div className="flex items-center justify-between gap-2">
+            <span className={`text-[11px] tabular-nums ${content.length > 450 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+              {content.length}/500
+            </span>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave} disabled={!content.trim()}>
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCreateCard(content)}
+                disabled={!content.trim()}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Promote to Card
+              </Button>
+            </div>
           </div>
         </CardContent>
+
       </Card>
 
       {savedNotes.length > 0 && (

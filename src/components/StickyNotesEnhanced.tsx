@@ -4,11 +4,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  Plus, 
-  Save, 
-  X, 
-  Trash2, 
+import {
+  Plus,
+  Save,
+  X,
+  Trash2,
   Move,
   Palette,
   Bold,
@@ -16,11 +16,16 @@ import {
   Underline,
   Strikethrough,
   Highlighter,
-  Type
+  Type,
+  CheckSquare,
+  Bell,
 } from "lucide-react";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { toast } from "sonner";
 import Draggable from "react-draggable";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
 
 interface StickyNote {
   id: string;
@@ -64,6 +69,32 @@ const STORAGE_KEY = "enhanced-sticky-notes:v1";
 export const StickyNotesEnhanced = ({ onCreateCard, isFloating = false }: StickyNotesEnhancedProps) => {
   const [notes, setNotes] = useState<StickyNote[]>([]);
   const [selectedColor, setSelectedColor] = useState(colors[0]);
+  const { user } = useAuth();
+
+  const convertToTask = async (note: StickyNote, kind: 'task' | 'reminder') => {
+    if (!user) {
+      toast.error("Sign in to convert sticky notes into tasks");
+      return;
+    }
+    const lines = note.content.split('\n').filter(Boolean);
+    const title = (lines[0] || 'Sticky reminder').slice(0, 120);
+    const notesBody = lines.slice(1).join('\n') || (kind === 'reminder' ? 'Reminder from sticky note' : 'From sticky note');
+    try {
+      const { error } = await supabase.from('tasks').insert({
+        user_id: user.id,
+        title: kind === 'reminder' ? `🔔 ${title}` : title,
+        notes: notesBody,
+        estimated_time: 15,
+        list: 'inbox',
+      });
+      if (error) throw error;
+      toast.success(kind === 'reminder' ? 'Reminder added to Tasks' : 'Task created — find it in Tasks');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to create task');
+    }
+  };
+
 
   useEffect(() => {
     try {
@@ -324,15 +355,36 @@ export const StickyNotesEnhanced = ({ onCreateCard, isFloating = false }: Sticky
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => convertToTask(note, 'task')}
+                  title="Convert to Task"
+                >
+                  <CheckSquare className="h-3 w-3" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => convertToTask(note, 'reminder')}
+                  title="Convert to Reminder"
+                >
+                  <Bell className="h-3 w-3" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-6 w-6 p-0"
                   onClick={() => convertToCard(note)}
-                  title="Convert to Zettel Card"
+                  title="Promote to Card"
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
+
                 
                 <Button 
                   variant="ghost" 
