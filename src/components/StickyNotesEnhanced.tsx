@@ -355,15 +355,36 @@ export const StickyNotesEnhanced = ({ onCreateCard, isFloating = false }: Sticky
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => convertToTask(note, 'task')}
+                  title="Convert to Task"
+                >
+                  <CheckSquare className="h-3 w-3" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => convertToTask(note, 'reminder')}
+                  title="Convert to Reminder"
+                >
+                  <Bell className="h-3 w-3" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-6 w-6 p-0"
                   onClick={() => convertToCard(note)}
-                  title="Convert to Zettel Card"
+                  title="Promote to Card"
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
+
                 
                 <Button 
                   variant="ghost" 
