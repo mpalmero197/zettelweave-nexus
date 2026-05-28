@@ -187,14 +187,23 @@ export function EditCardDialog({ card, isOpen, onClose, onSave, organizationMeth
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="content">Content</Label>
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="content">Content</Label>
+              <span className={`text-[11px] tabular-nums ${formData.content.replace(/<[^>]*>/g, '').length > 1500 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                {formData.content.replace(/<[^>]*>/g, '').length} chars · aim for ~index card length
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              A card holds one atomic idea you can explain in a paragraph or two. If you need more room, this belongs in a Note or Catalyst document.
+            </p>
             <RichTextEditor
               value={formData.content}
               onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
-              placeholder="Write your card content. Use the toolbar for bold, italic, lists, checkboxes…"
+              placeholder="One idea. One index card. Paragraph or two…"
               minHeight="240px"
             />
           </div>
+
 
           
           <div className="grid gap-2">
