@@ -7,8 +7,8 @@ import { useZettelCards } from "@/hooks/useZettelCards";
 import type { ZettelCard as ZettelCardType } from "@/types/zettel";
 
 const ScratchPad = lazy(() => import("@/components/ScratchPad").then(m => ({ default: m.ScratchPad })));
-const CardsWorkspace = lazy(() => import("@/components/CardsWorkspace").then(m => ({ default: m.CardsWorkspace })));
-const NotesWorkspace = lazy(() => import("@/components/NotesWorkspace").then(m => ({ default: m.NotesWorkspace })));
+const CardsWorkspace = lazy(() => import("@/components/workspaces/CardsWorkspace").then(m => ({ default: m.CardsWorkspace })));
+const NotesWorkspace = lazy(() => import("@/components/workspaces/NotesWorkspace").then(m => ({ default: m.NotesWorkspace })));
 const StickyNotesSimple = lazy(() => import("@/components/StickyNotesSimple").then(m => ({ default: m.StickyNotesSimple })));
 
 type HubTab = "scratchpad" | "cards" | "notes" | "stickynotes";
