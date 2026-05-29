@@ -4,6 +4,27 @@ All notable changes to PendragonX are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-05-29
+
+### Added
+
+- **Capture Hub — One Place for Every Thought**
+  - Combined Scratchpad, Cards, Notes, and Sticky Notes into a single unified workspace at `/app/hub`.
+  - Header explainer shows the taxonomy at a glance: Scratchpad (napkin scribbles, ≤500c), Cards (atomic ideas, ≤1,500c), Notes (long-form), Sticky Notes (reminders & tasks).
+  - Switch between shapes with one click; URL persists the active sub-tab (`?hub=cards`, etc.).
+  - Promoted to the primary nav as the "Capture" group; individual tabs remain reachable via deep-links for power users.
+- **Tutorial — Rewritten Around the Hub**
+  - Step 4 now introduces the Capture Hub and the four content shapes with their limits.
+  - Step 5 teaches `[[wikilinks]]` for cross-linking Cards and Notes inside the Hub.
+  - The "final checklist" updated to point users at the Hub first.
+- **PendragonX Toolbox v1.9.1 — Reliable Highlight → Scratchpad**
+  - Rebuilt the highlight-capture pill: now triggers on mouse-up, keyboard selection (Shift+Arrow, Ctrl+A), and `selectionchange` — so it appears on virtually every selection across every site.
+  - Stronger visual styling (glow, larger hit target) and clearer status messages (`Saving…`, `✓ Saved to PendragonX Scratchpad`, `Sign in to PendragonX first`).
+  - Better positioning logic and full `all:initial` reset so host page CSS can't hide the pill.
+  - Added debug logging under `[PendragonX Toolbox]` so users can confirm the script loaded on a given page.
+
+
+
 ## [Unreleased] — 2026-05-26
 
 ### Added

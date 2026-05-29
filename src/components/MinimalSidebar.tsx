@@ -103,11 +103,16 @@ export function MinimalSidebar({
           <Separator className="my-2" />
           
           <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            Capture
+          </div>
+          <NavButton tab="hub" icon={FileText} label="Capture Hub" />
+
+          <Separator className="my-2" />
+
+          <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
             Knowledge
           </div>
-          <NavButton tab="cards" icon={FileText} label="Cards" />
           <NavButton tab="graph" icon={BarChart3} label="Graph" premium />
-          <NavButton tab="notes" icon={BookOpen} label="Notes & Notebooks" />
           <NavButton tab="files" icon={FolderOpen} label="Files" />
           
           <Separator className="my-2" />
@@ -122,9 +127,6 @@ export function MinimalSidebar({
           <NavButton tab="calendar" icon={CalendarIcon} label="Calendar" />
           <NavButton tab="journal" icon={StickyNote} label="Journal" premium />
           <NavButton tab="habits" icon={Target} label="Habits" />
-          
-          <NavButton tab="scratchpad" icon={FileEdit} label="Scratchpad" />
-          <NavButton tab="stickynotes" icon={StickyNote} label="Sticky Notes" />
           <NavButton tab="projects" icon={FolderKanban} label="Projects" premium />
           
           <Separator className="my-2" />

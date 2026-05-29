@@ -35,8 +35,7 @@ const SECTIONS = [
     label: 'Quick Access',
     items: [
       { id: 'dashboard', label: 'Home', icon: Home },
-      { id: 'cards', label: 'Cards', icon: FileText },
-      { id: 'notes', label: 'Notes', icon: BookOpen },
+      { id: 'hub', label: 'Capture Hub', icon: FileText },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
   },
@@ -54,8 +53,6 @@ const SECTIONS = [
     label: 'Planner',
     items: [
       { id: 'journal', label: 'Journal', icon: StickyNote },
-      { id: 'scratchpad', label: 'Scratchpad', icon: Pencil },
-      { id: 'stickynotes', label: 'Sticky Notes', icon: StickyNote },
       { id: 'projects', label: 'Projects', icon: FolderKanban },
     ],
   },

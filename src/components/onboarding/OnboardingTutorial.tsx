@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 /* ---------------------------------------------------------------- */
 
 type StepKey =
-  | "welcome" | "profile" | "theme" | "dashboard" | "create-card"
-  | "edit-card" | "import" | "catalyst" | "alice" | "done";
+  | "welcome" | "profile" | "theme" | "dashboard" | "capture-hub"
+  | "wikilinks" | "import" | "catalyst" | "alice" | "done";
 
 interface Step {
   key: StepKey;
@@ -320,35 +320,37 @@ export function OnboardingTutorial() {
       mobileTarget: '#main-content',
     },
     {
-      key: "create-card",
-      title: "Step 4 — Write one card",
-      description: "Cards are atomic ideas — one thought per card (a quote, a definition, a half-formed thesis). Click + and type anything. ALICE auto-suggests tags, category, and related cards while you write. Don't overthink it: a 2-sentence card is perfect.",
-      icon: Plus,
-      navigateTab: "cards",
-      desktopTarget: '[data-onboarding="create-card-button"]',
-      mobileTarget: '[data-onboarding="create-card-button"]',
+      key: "capture-hub",
+      title: "Step 4 — The Capture Hub: one place for every thought",
+      description:
+        "Stop deciding where things go. The Hub holds all four capture shapes in one screen: Scratchpad (napkin scribbles, ≤500 chars), Cards (atomic ideas in a paragraph or two), Notes (long-form thinking), and Sticky Notes (reminders & tasks). Pick the shape that fits — ALICE will suggest a promotion if your content outgrows its home (e.g. a long Scratchpad → Card).",
+      icon: FileText,
+      navigateTab: "hub",
+      desktopTarget: '[data-onboarding="nav-hub"]',
+      mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
-      key: "edit-card",
-      title: "Step 5 — Link cards with [[wikilinks]]",
-      description: "This is the superpower. Inside any card, type [[ and the title of another card — PendragonX connects them. Linked cards form your knowledge graph, surface as backlinks, and feed ALICE's answers. Two cards + one link = a second brain.",
+      key: "wikilinks",
+      title: "Step 5 — Link ideas with [[wikilinks]]",
+      description:
+        "This is the superpower. Inside any Card or Note, type [[ followed by another item's title — PendragonX connects them. Linked items form your knowledge graph, surface as backlinks, and feed ALICE's answers. Two ideas + one link = a second brain.",
       icon: Pencil,
-      navigateTab: "cards",
-      desktopTarget: '[data-onboarding="nav-cards"]',
+      navigateTab: "hub",
+      desktopTarget: '[data-onboarding="nav-hub"]',
       mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "import",
       title: "Already have notes? Bring them in",
-      description: "Open the Toolbox to import from Obsidian (.md), Notion, Evernote (.enex), Google Docs, OneDrive, or paste a URL. Wikilinks are preserved and resolved after import. Start with one notebook — you don't have to migrate everything at once.",
+      description: "Open the Toolbox to import from Obsidian (.md), Notion, Evernote (.enex), Google Docs, OneDrive, or paste a URL. Wikilinks are preserved and resolved after import. While browsing, highlight any sentence and the Toolbox will offer to save it as a Scratchpad.",
       icon: Upload,
       desktopTarget: '[data-onboarding="toolbox-button"]',
       mobileTarget: '[data-onboarding="mobile-nav-fab"]',
     },
     {
       key: "catalyst",
-      title: "When cards aren't enough — Catalyst",
-      description: "Catalyst is for long-form: essays, chapters, blog posts. Your cards become reference material in the sidebar, and AI agents (Researcher, Editor, Citer) work alongside you. Use Cards for ideas, Catalyst for the final draft.",
+      title: "When the Hub isn't enough — Catalyst",
+      description: "Catalyst is for long-form projects: essays, chapters, theses, books. Your cards & notes become reference material in the sidebar, and AI agents (Researcher, Editor, Citer) work alongside you. Use the Hub for capture, Catalyst for the final draft.",
       icon: FileText,
       navigateTab: "catalyst",
       desktopTarget: '[data-onboarding="nav-catalyst"]',
@@ -371,9 +373,9 @@ export function OnboardingTutorial() {
         <div className="space-y-2.5 text-sm text-muted-foreground">
           <p className="text-foreground font-medium">Your first session checklist:</p>
           <ul className="space-y-1.5 pl-1">
-            <li className="flex gap-2"><span className="text-primary">→</span> Create 3 cards on something you're thinking about</li>
-            <li className="flex gap-2"><span className="text-primary">→</span> Link at least 2 of them with [[wikilinks]]</li>
-            <li className="flex gap-2"><span className="text-primary">→</span> Ask ALICE to summarize what you wrote</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Open the Capture Hub and jot down 3 ideas (Scratchpad or Cards)</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Link two ideas with [[wikilinks]]</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Ask ALICE to summarize what you captured</li>
           </ul>
           <p className="text-[11px]">
             Lost later? Click the <span className="text-foreground">?</span> in Settings to replay this tour, or just ask ALICE "where do I start?"

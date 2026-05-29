@@ -36,13 +36,18 @@ interface TopNavBarProps {
 
 const navGroups = [
   {
+    label: "Capture",
+    tabs: ["hub"],
+    items: [
+      { id: "hub", label: "Capture Hub", icon: FileText },
+    ],
+  },
+  {
     label: "Knowledge",
-    tabs: ["dashboard", "cards", "graph", "notes", "files", "learning", "knowledge-gaps"],
+    tabs: ["dashboard", "graph", "files", "learning", "knowledge-gaps"],
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { id: "cards", label: "Cards", icon: FileText },
       { id: "graph", label: "Graph", icon: BarChart3 },
-      { id: "notes", label: "Notes", icon: BookOpen },
       { id: "files", label: "Files", icon: FolderOpen },
       { id: "learning", label: "Learning Hub", icon: GraduationCap },
       { id: "knowledge-gaps", label: "Knowledge Gaps", icon: Lightbulb },
@@ -50,13 +55,11 @@ const navGroups = [
   },
   {
     label: "Planner",
-    tabs: ["calendar", "journal", "scratchpad", "stickynotes", "projects"],
+    tabs: ["calendar", "journal", "projects"],
     items: [
       { id: "calendar", label: "Calendar", icon: Calendar },
       { id: "projects", label: "Projects", icon: FolderOpen },
       { id: "journal", label: "Journal", icon: NotebookPen },
-      { id: "scratchpad", label: "Scratchpad", icon: PenLine },
-      { id: "stickynotes", label: "Sticky Notes", icon: StickyNote },
     ],
   },
   {
@@ -86,7 +89,7 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
       {navGroups.map((group) => {
         const isActive = group.tabs.includes(activeTab);
         const anchor =
-          group.tabs.includes("cards") ? "nav-cards" :
+          group.tabs.includes("hub") ? "nav-hub" :
           group.tabs.includes("catalyst") ? "nav-catalyst" : undefined;
         return (
           <DropdownMenu key={group.label}>
