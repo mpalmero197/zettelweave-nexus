@@ -1,56 +1,66 @@
 // PendragonX Toolbox — content script.
-// When the user highlights text on any page, show a small floating pill
-// offering to save the selection as a Scratchpad entry (napkin-sized capture).
-// The Toolbox side panel does NOT need to be open — we just need a logged-in
-// user session, which the background service worker holds.
+// Floating "Save as scratchpad" pill when a user highlights ≥ 8 chars on any
+// page. Works whether or not the side panel is open — only needs an active
+// PendragonX session held by the background service worker.
 
 (() => {
   if (window.__pendragonxToolboxHighlight) return;
   window.__pendragonxToolboxHighlight = true;
 
-  const MAX_LEN = 500; // matches the Scratchpad napkin limit
+  const MAX_LEN = 500;
+  const MIN_LEN = 8;
   const PILL_ID = "pendragonx-scratchpad-pill";
+  const LOG = (...a) => console.debug("[PendragonX Toolbox]", ...a);
+  LOG("highlight-capture loaded on", location.href);
 
   let lastSelectionText = "";
+  let pendingTimer = null;
 
   function removePill() {
     const el = document.getElementById(PILL_ID);
     if (el) el.remove();
   }
 
-  function makePill(x, y, text) {
+  function makePill(rect, text) {
     removePill();
     const pill = document.createElement("div");
     pill.id = PILL_ID;
+    // Position above the selection; fall back to below if near top.
+    const top = rect.top - 44 < 8 ? rect.bottom + 8 : rect.top - 44;
+    const left = Math.max(8, Math.min(window.innerWidth - 220, rect.left + rect.width / 2 - 100));
     pill.style.cssText = [
+      "all:initial",
       "position:fixed",
-      `left:${Math.max(8, x)}px`,
-      `top:${Math.max(8, y)}px`,
+      `left:${left}px`,
+      `top:${top}px`,
       "z-index:2147483647",
-      "background:#111",
+      "background:#0f0f12",
       "color:#fff",
-      "font:500 12px/1 'Inter',system-ui,sans-serif",
-      "padding:8px 12px",
+      "font:600 12px/1.2 'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif",
+      "padding:9px 14px",
       "border-radius:9999px",
-      "box-shadow:0 6px 24px rgba(0,0,0,.25)",
+      "box-shadow:0 8px 28px rgba(0,0,0,.35), 0 0 0 1px rgba(167,139,250,.4)",
       "cursor:pointer",
       "user-select:none",
-      "display:flex",
+      "display:inline-flex",
       "align-items:center",
       "gap:8px",
-      "border:1px solid rgba(255,255,255,.08)",
     ].join(";");
 
     const len = text.length;
     const truncated = len > MAX_LEN;
     pill.innerHTML = `
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#a78bfa"></span>
-      <span>Save as scratchpad${truncated ? ` (first ${MAX_LEN} chars)` : ""}</span>
-      <span style="opacity:.5;font-size:10px;margin-left:4px">${len}c</span>
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>
+      <span>Save as Scratchpad${truncated ? ` (first ${MAX_LEN})` : ""}</span>
+      <span style="opacity:.55;font-weight:500">${len}c</span>
     `;
-    pill.addEventListener("mousedown", (e) => e.preventDefault());
-    pill.addEventListener("click", async () => {
+    // Prevent the click from clearing the selection before we read it.
+    pill.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
+    pill.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const payload = text.slice(0, MAX_LEN);
+      pill.innerHTML = `<span>Saving…</span>`;
       try {
         const res = await chrome.runtime.sendMessage({
           type: "PENDRAGONX_SAVE_SCRATCHPAD",
@@ -58,48 +68,60 @@
           source_url: location.href,
           source_title: document.title,
         });
+        LOG("save result", res);
         pill.style.background = res?.ok ? "#16a34a" : "#dc2626";
-        pill.innerText = res?.ok ? "Saved to Scratchpad ✓" : `Failed: ${res?.error || "sign in"}`;
-        setTimeout(removePill, 1600);
+        pill.innerHTML = res?.ok
+          ? `<span>✓ Saved to PendragonX Scratchpad</span>`
+          : `<span>${res?.error === "sign in" ? "Sign in to PendragonX first" : "Failed: " + (res?.error || "unknown")}</span>`;
+        setTimeout(removePill, 1900);
       } catch (err) {
+        LOG("save error", err);
         pill.style.background = "#dc2626";
-        pill.innerText = "Could not save";
-        setTimeout(removePill, 1600);
+        pill.innerText = "Could not save (open the Toolbox)";
+        setTimeout(removePill, 2000);
       }
     });
     document.body.appendChild(pill);
   }
 
-  document.addEventListener("selectionchange", () => {
-    // Debounce — only act on mouseup/keyup to avoid flicker
-  });
-
   function handleSelectionEnd() {
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : "";
-    if (!text || text.length < 8) {
+    if (!text || text.length < MIN_LEN) {
       removePill();
       lastSelectionText = "";
       return;
     }
-    if (text === lastSelectionText) return;
+    if (text === lastSelectionText && document.getElementById(PILL_ID)) return;
     lastSelectionText = text;
-
-    const range = sel.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    const x = rect.left + rect.width / 2 - 80;
-    const y = rect.top - 40;
-    makePill(x, y < 8 ? rect.bottom + 8 : y, text);
+    try {
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) return;
+      makePill(rect, text);
+    } catch (e) {
+      LOG("range error", e);
+    }
   }
 
-  document.addEventListener("mouseup", () => setTimeout(handleSelectionEnd, 10));
+  function schedule() {
+    if (pendingTimer) clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(handleSelectionEnd, 120);
+  }
+
+  // Mouse + keyboard + selectionchange — covers all common selection paths.
+  document.addEventListener("mouseup", schedule, true);
   document.addEventListener("keyup", (e) => {
-    if (e.shiftKey || e.key === "Shift") setTimeout(handleSelectionEnd, 10);
-  });
+    if (e.shiftKey || e.key === "Shift" || e.key.startsWith("Arrow") || (e.ctrlKey && e.key.toLowerCase() === "a")) {
+      schedule();
+    }
+  }, true);
+  document.addEventListener("selectionchange", schedule);
   document.addEventListener("mousedown", (e) => {
     if (e.target instanceof Element && e.target.closest(`#${PILL_ID}`)) return;
     removePill();
     lastSelectionText = "";
-  });
+  }, true);
   window.addEventListener("scroll", removePill, { passive: true });
+  window.addEventListener("blur", removePill);
 })();
