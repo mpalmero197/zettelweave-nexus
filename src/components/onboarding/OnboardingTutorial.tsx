@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 /* ---------------------------------------------------------------- */
 
 type StepKey =
-  | "welcome" | "profile" | "theme" | "dashboard" | "create-card"
-  | "edit-card" | "import" | "catalyst" | "alice" | "done";
+  | "welcome" | "profile" | "theme" | "dashboard" | "capture-hub"
+  | "wikilinks" | "import" | "catalyst" | "alice" | "done";
 
 interface Step {
   key: StepKey;
