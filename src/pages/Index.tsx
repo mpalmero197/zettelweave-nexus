@@ -53,6 +53,7 @@ const CollabStudio = lazy(() => import("@/components/friends/CollabStudio").then
 const LearningHub = lazy(() => import("@/components/LearningHub").then(m => ({ default: m.LearningHub })));
 const SpacesHub = lazy(() => import("@/components/spaces/SpacesHub").then(m => ({ default: m.SpacesHub })));
 const UnifiedSearchPage = lazy(() => import("@/components/UnifiedSearchPage").then(m => ({ default: m.UnifiedSearchPage })));
+const CaptureHub = lazy(() => import("@/components/CaptureHub").then(m => ({ default: m.CaptureHub })));
 const ProjectManager = lazy(() => import("@/components/ProjectManager").then(m => ({ default: m.ProjectManager })));
 const KnowledgeGapAnalyzer = lazy(() => import("@/components/KnowledgeGapAnalyzer").then(m => ({ default: m.KnowledgeGapAnalyzer })));
 const IntegrationsHub = lazy(() => import("@/components/integrations/IntegrationsHub").then(m => ({ default: m.IntegrationsHub })));
