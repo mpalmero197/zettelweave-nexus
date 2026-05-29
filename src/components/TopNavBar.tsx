@@ -89,7 +89,7 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
       {navGroups.map((group) => {
         const isActive = group.tabs.includes(activeTab);
         const anchor =
-          group.tabs.includes("cards") ? "nav-cards" :
+          group.tabs.includes("hub") ? "nav-hub" :
           group.tabs.includes("catalyst") ? "nav-catalyst" : undefined;
         return (
           <DropdownMenu key={group.label}>
