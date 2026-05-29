@@ -373,9 +373,9 @@ export function OnboardingTutorial() {
         <div className="space-y-2.5 text-sm text-muted-foreground">
           <p className="text-foreground font-medium">Your first session checklist:</p>
           <ul className="space-y-1.5 pl-1">
-            <li className="flex gap-2"><span className="text-primary">→</span> Create 3 cards on something you're thinking about</li>
-            <li className="flex gap-2"><span className="text-primary">→</span> Link at least 2 of them with [[wikilinks]]</li>
-            <li className="flex gap-2"><span className="text-primary">→</span> Ask ALICE to summarize what you wrote</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Open the Capture Hub and jot down 3 ideas (Scratchpad or Cards)</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Link two ideas with [[wikilinks]]</li>
+            <li className="flex gap-2"><span className="text-primary">→</span> Ask ALICE to summarize what you captured</li>
           </ul>
           <p className="text-[11px]">
             Lost later? Click the <span className="text-foreground">?</span> in Settings to replay this tour, or just ask ALICE "where do I start?"
