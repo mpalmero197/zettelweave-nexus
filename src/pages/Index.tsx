@@ -728,6 +728,10 @@ const Index = () => {
                   </PremiumGate>
                 </TabsContent>
 
+                <TabsContent value="hub" className="mt-0">
+                  <CaptureHub />
+                </TabsContent>
+
                 <TabsContent value="stickynotes" className="mt-0">
                   <StickyNotesSimple />
                 </TabsContent>
