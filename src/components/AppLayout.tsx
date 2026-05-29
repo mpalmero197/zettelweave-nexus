@@ -161,7 +161,7 @@ export function AppLayout() {
   };
 
   const APP_TABS = new Set([
-    "dashboard","cards","graph","notes","files","canvas","calendar","journal",
+    "dashboard","hub","cards","graph","notes","files","canvas","calendar","journal",
     "habits","scratchpad","stickynotes","catalyst","collab","recorder","recycle",
     "search","debugger","learning","projects","spaces","integrations",
     "knowledge-gaps","notebooks",
