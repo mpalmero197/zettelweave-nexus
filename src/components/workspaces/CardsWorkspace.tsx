@@ -226,9 +226,15 @@ export function CardsWorkspace() {
     <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-card/20">
       <Brain className="h-10 w-10 opacity-20 mb-3" />
       <p className="text-sm">Select a card to view</p>
-      <Button size="sm" variant="outline" className="mt-4" onClick={handleCreate}>
-        <Plus className="h-3.5 w-3.5 mr-1.5" /> New card
-      </Button>
+      <CreateCardDialog
+        existingCards={cards}
+        onCreateCard={(c) => createCard(c as any)}
+        trigger={
+          <Button size="sm" variant="outline" className="mt-4">
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> New card
+          </Button>
+        }
+      />
     </div>
   );
 
