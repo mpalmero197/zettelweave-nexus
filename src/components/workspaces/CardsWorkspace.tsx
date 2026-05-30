@@ -12,6 +12,7 @@ import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 import { EditCardDialog } from '@/components/EditCardDialog';
+import { CreateCardDialog } from '@/components/CreateCardDialog';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -55,21 +56,8 @@ export function CardsWorkspace() {
     [selected, cards]
   );
 
-  const handleCreate = () => {
-    try {
-      createCard({
-        number: `N-${Date.now()}`,
-        title: 'New card',
-        content: 'Start writing your idea here…',
-        category: 'Uncategorized',
-        tags: [],
-        linkedCards: [],
-      });
-      toast.success('Card created — click it to edit');
-    } catch {
-      toast.error('Failed to create card');
-    }
-  };
+  // Card creation is handled by <CreateCardDialog /> which opens the full form.
+
 
   const handleDelete = async () => {
     if (!selected) return;
@@ -86,9 +74,20 @@ export function CardsWorkspace() {
           <h2 className="text-sm font-semibold flex items-center gap-1.5">
             <Brain className="h-4 w-4 text-primary" /> Cards
           </h2>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCreate} aria-label="New card">
-            <Plus className="h-4 w-4" />
-          </Button>
+          <CreateCardDialog
+            existingCards={cards}
+            onCreateCard={(c) => createCard(c as any)}
+            trigger={
+              <Button
+                size="sm"
+                className="h-8 px-2.5 gap-1 text-xs font-medium"
+                aria-label="New card"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                New
+              </Button>
+            }
+          />
         </div>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
@@ -227,9 +226,15 @@ export function CardsWorkspace() {
     <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-card/20">
       <Brain className="h-10 w-10 opacity-20 mb-3" />
       <p className="text-sm">Select a card to view</p>
-      <Button size="sm" variant="outline" className="mt-4" onClick={handleCreate}>
-        <Plus className="h-3.5 w-3.5 mr-1.5" /> New card
-      </Button>
+      <CreateCardDialog
+        existingCards={cards}
+        onCreateCard={(c) => createCard(c as any)}
+        trigger={
+          <Button size="sm" variant="outline" className="mt-4">
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> New card
+          </Button>
+        }
+      />
     </div>
   );
 
