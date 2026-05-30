@@ -1960,6 +1960,7 @@ async function executeTool(
         const { error } = await supabase.from("alice_scheduled_triggers").delete().eq("id", id);
         if (error) return { error: error.message };
         return { ok: true, deleted: id };
+      }
       case "start_background_task": {
         const goal = String(args.goal || "").trim();
         if (!goal) return { error: "goal required" };
