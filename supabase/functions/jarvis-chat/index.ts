@@ -1003,7 +1003,65 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "cancel_background_task",
+      description: "Cancel a queued or in-flight background ALICE run by id.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recall_episodic",
+      description: "Semantically search ALICE's long-term episodic memory of past chats and completed background runs. Use BEFORE answering open-ended or recurring questions — 'what did we decide about X?', 'have I asked this before?', 'what were the conclusions of that research?'. Pass the user's current question or a paraphrase as the query. Returns up to 5 prior episodes with a similarity score.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "The semantic search query (usually the user's current question)." },
+          limit: { type: "number", description: "Max results (default 5, max 10)." },
+        },
+        required: ["query"],
+      },
+    },
+  },
 ];
+
+// HuggingFace all-MiniLM-L6-v2 — same provider used by the rest of PendragonX
+// for 384-dim embeddings. Returns null on any failure (best-effort, never fatal).
+async function embed384(text: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(
+      "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: text.slice(0, 2000), options: { wait_for_model: true } }),
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Model returns either flat [384] or nested [tokens][384] — mean-pool the latter.
+    if (Array.isArray(data) && Array.isArray(data[0])) {
+      const dims = data[0].length;
+      const out = new Array(dims).fill(0);
+      for (const tok of data) for (let i = 0; i < dims; i++) out[i] += tok[i];
+      for (let i = 0; i < dims; i++) out[i] /= data.length;
+      return out;
+    }
+    if (Array.isArray(data) && typeof data[0] === "number") return data;
+    return null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+
 
 
 const VALID_TABS = new Set([
