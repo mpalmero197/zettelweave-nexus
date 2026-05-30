@@ -1960,7 +1960,26 @@ async function executeTool(
         const { error } = await supabase.from("alice_scheduled_triggers").delete().eq("id", id);
         if (error) return { error: error.message };
         return { ok: true, deleted: id };
+      case "start_background_task": {
+        const goal = String(args.goal || "").trim();
+        if (!goal) return { error: "goal required" };
+        const instructions = args.instructions ? String(args.instructions) : null;
+        const max_steps = Math.min(30, Math.max(1, Number(args.max_steps) || 12));
+        const { data, error } = await supabase.from("alice_runs").insert({
+          user_id: userId, goal, instructions, max_steps, status: "pending", next_run_at: new Date().toISOString(),
+        }).select("id, goal, status, max_steps").single();
+        if (error) return { error: error.message };
+        return { ok: true, run: data, note: "Queued — advances ~once per minute. Ask 'what is ALICE working on?' to check." };
       }
+      case "list_background_tasks": {
+        const status = String(args.status || "all");
+        let q = supabase.from("alice_runs").select("id, goal, status, step_count, max_steps, result, error, created_at, finished_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+        if (status !== "all") q = q.eq("status", status);
+        const { data, error } = await q;
+        if (error) return { error: error.message };
+        return { ok: true, runs: data || [] };
+      }
+
       case "get_open_browser_tabs": {
         const { data, error } = await supabase
           .from("browser_tab_snapshots")
