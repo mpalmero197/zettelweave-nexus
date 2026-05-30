@@ -56,21 +56,8 @@ export function CardsWorkspace() {
     [selected, cards]
   );
 
-  const handleCreate = () => {
-    try {
-      createCard({
-        number: `N-${Date.now()}`,
-        title: 'New card',
-        content: 'Start writing your idea here…',
-        category: 'Uncategorized',
-        tags: [],
-        linkedCards: [],
-      });
-      toast.success('Card created — click it to edit');
-    } catch {
-      toast.error('Failed to create card');
-    }
-  };
+  // Card creation is handled by <CreateCardDialog /> which opens the full form.
+
 
   const handleDelete = async () => {
     if (!selected) return;
