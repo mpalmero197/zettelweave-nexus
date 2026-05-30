@@ -132,6 +132,8 @@ interface Props {
 
 export function JarvisChat({ compact = false }: Props) {
   const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
+  const { user } = useAuth();
+  const firstName = useMemo(() => getFirstName(user), [user]);
   const isMobile = useIsMobile();
   const [threadSheetOpen, setThreadSheetOpen] = useState(false);
   // On mobile (or compact popup) collapse the sidebar entirely and surface
