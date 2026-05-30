@@ -1078,12 +1078,22 @@ function formatDate(iso) {
 }
 
 // ── ALICE ──
+let _aliceEmptyHTML = '';
 function setupAIChat() {
+  // Cache the empty-state markup once so "New chat" can restore it after
+  // a chat has cleared the messages container.
+  const initialEmpty = document.getElementById('ai-empty');
+  if (initialEmpty) _aliceEmptyHTML = initialEmpty.outerHTML;
+
   document.getElementById('ai-send')?.addEventListener('click', () => sendAIMessage());
   document.getElementById('ai-new-thread')?.addEventListener('click', () => {
-    aiMessages = []; aliceThreadId = null;
+    aiMessages = [];
+    aliceThreadId = null;
+    aiLoading = false;
     chrome.storage.local.remove(['pendragonx_alice_thread_id']);
     renderAIMessages();
+    document.getElementById('ai-input')?.focus();
+    toast('New chat started');
   });
   const inp = document.getElementById('ai-input');
   inp?.addEventListener('keydown', (e) => {
@@ -1093,8 +1103,10 @@ function setupAIChat() {
     inp.style.height = 'auto';
     inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
   });
-  document.querySelectorAll('.ai-suggestion').forEach((b) => {
-    b.addEventListener('click', () => sendAIMessage(b.dataset.q));
+  // Delegated so suggestions inside re-rendered empty state still work.
+  document.getElementById('ai-messages')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ai-suggestion');
+    if (btn?.dataset.q) sendAIMessage(btn.dataset.q);
   });
 }
 
@@ -1118,10 +1130,13 @@ function deriveAliceFollowups(lastAssistant, lastUser) {
 
 function renderAIMessages() {
   const c = document.getElementById('ai-messages');
-  const empty = document.getElementById('ai-empty');
   if (!c) return;
   if (!aiMessages.length && !aiLoading) {
-    if (empty) { c.innerHTML = ''; c.appendChild(empty); empty.style.display = 'block'; }
+    // Restore the cached empty state (the original node may have been wiped
+    // by a previous render's c.innerHTML = '').
+    c.innerHTML = _aliceEmptyHTML || '';
+    const e = document.getElementById('ai-empty');
+    if (e) e.style.display = 'block';
     return;
   }
   c.innerHTML = '';
