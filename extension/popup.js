@@ -1130,10 +1130,13 @@ function deriveAliceFollowups(lastAssistant, lastUser) {
 
 function renderAIMessages() {
   const c = document.getElementById('ai-messages');
-  const empty = document.getElementById('ai-empty');
   if (!c) return;
   if (!aiMessages.length && !aiLoading) {
-    if (empty) { c.innerHTML = ''; c.appendChild(empty); empty.style.display = 'block'; }
+    // Restore the cached empty state (the original node may have been wiped
+    // by a previous render's c.innerHTML = '').
+    c.innerHTML = _aliceEmptyHTML || '';
+    const e = document.getElementById('ai-empty');
+    if (e) e.style.display = 'block';
     return;
   }
   c.innerHTML = '';
