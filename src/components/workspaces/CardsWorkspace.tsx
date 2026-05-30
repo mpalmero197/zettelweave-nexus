@@ -12,6 +12,7 @@ import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 import { EditCardDialog } from '@/components/EditCardDialog';
+import { CreateCardDialog } from '@/components/CreateCardDialog';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
