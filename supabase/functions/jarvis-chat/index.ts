@@ -2038,6 +2038,31 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, runs: data || [] };
       }
+      case "cancel_background_task": {
+        const id = String(args.id || "").trim();
+        if (!id) return { error: "id required" };
+        const { data, error } = await supabase.from("alice_runs")
+          .update({ status: "cancelled", finished_at: new Date().toISOString() })
+          .eq("id", id).eq("user_id", userId).in("status", ["pending","running"])
+          .select("id").maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Run not found, already finished, or not yours." };
+        return { ok: true, cancelled: id };
+      }
+      case "recall_episodic": {
+        const query = String(args.query || "").trim();
+        if (!query) return { error: "query required" };
+        const limit = Math.min(10, Math.max(1, Number(args.limit) || 5));
+        const vec = await embed384(query);
+        if (!vec) return { ok: true, results: [], note: "Embedding service unavailable; recall skipped." };
+        const { data, error } = await supabase.rpc("match_alice_episodic", {
+          query_embedding: vec, match_count: limit, min_similarity: 0.5,
+        });
+        if (error) return { error: error.message };
+        return { ok: true, results: data || [] };
+      }
+
+
 
       case "get_open_browser_tabs": {
         const { data, error } = await supabase
