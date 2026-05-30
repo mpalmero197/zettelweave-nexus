@@ -401,20 +401,20 @@
     .note-card {
       padding: 12px;
       cursor: pointer;
-      background: hsl(var(--panel) / .55);
+      background: hsl(var(--panel-2) / .92);
       border-radius: var(--radius);
       border: 1px solid hsl(var(--border));
       transition: all .2s var(--spring);
-      backdrop-filter: blur(6px);
+      box-shadow: 0 2px 8px -4px hsl(0 0% 0% / .5);
     }
     .note-card:hover {
-      border-color: hsl(var(--violet) / .45);
-      background: hsl(var(--panel-2) / .85);
+      border-color: hsl(var(--violet) / .55);
+      background: hsl(var(--panel-2));
       transform: translateY(-1px);
     }
     .note-card.synced { border-left: 2px solid hsl(var(--success)); }
     .note-card p {
-      font-size: 12px; line-height: 1.55; color: hsl(var(--fg));
+      font-size: 12.5px; line-height: 1.6; color: hsl(var(--fg));
       white-space: pre-wrap; word-break: break-word;
       display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
     }
