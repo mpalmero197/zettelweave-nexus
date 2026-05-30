@@ -558,11 +558,13 @@
 
     /* ===================== Footer ===================== */
     .footer {
+      margin-top: auto;
+      position: sticky; bottom: 0; z-index: 15;
       padding: 10px 14px;
       border-top: 1px solid hsl(var(--border) / .7);
-      background: hsl(var(--bg) / .55);
+      background: hsl(var(--bg) / .85);
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      backdrop-filter: blur(10px);
+      backdrop-filter: saturate(160%) blur(14px);
     }
     .footer .foot-brand { font-size: 10px; color: hsl(var(--fg-subtle)); letter-spacing: .04em; }
     .footer a { font-size: 11px; color: hsl(var(--cyan)); text-decoration: none; font-weight: 500; transition: text-shadow .2s; }
