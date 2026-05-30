@@ -974,7 +974,37 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "start_background_task",
+      description: "Hand off a long, durable, multi-step job to a background agent so it keeps running even after the chat closes. Use this for 'work on this overnight', 'research X over the next hour', 'draft chapter 3 in the background', 'monitor topic Y and report back', or anything the user explicitly says is fire-and-forget. The run is queued, progresses one step per minute, and the user can see status with list_background_tasks. Do NOT use for things the user expects answered right now in chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          goal: { type: "string", description: "Concise one-sentence objective, e.g. 'Draft a 2k-word essay comparing stoicism and existentialism using my notes'." },
+          instructions: { type: "string", description: "Optional extra constraints, tone, sources to prefer, or success criteria." },
+          max_steps: { type: "number", description: "Upper bound on planner/executor iterations (default 12, max 30)." },
+        },
+        required: ["goal"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_background_tasks",
+      description: "Show the user's recent background ALICE runs (status, goal, last step). Use when they ask 'what's ALICE working on?', 'is that done?', 'what background tasks do I have?'.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["pending","running","completed","failed","cancelled","all"], description: "Filter (default 'all', shows last 10)." },
+        },
+      },
+    },
+  },
 ];
+
 
 const VALID_TABS = new Set([
   "dashboard","cards","graph","notes","files","canvas","calendar","journal",
