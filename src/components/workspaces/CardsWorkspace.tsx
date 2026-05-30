@@ -60,11 +60,12 @@ export function CardsWorkspace() {
       createCard({
         number: `N-${Date.now()}`,
         title: 'New card',
-        content: '',
+        content: 'Start writing your idea here…',
         category: 'Uncategorized',
         tags: [],
         linkedCards: [],
       });
+      toast.success('Card created — click it to edit');
     } catch {
       toast.error('Failed to create card');
     }
