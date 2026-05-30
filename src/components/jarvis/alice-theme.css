@@ -1,163 +1,148 @@
 /* ============================================================
- * ALICE — Neural Expressive theme (Gemini-inspired)
+ * ALICE — Gemini Neural Expressive theme
  * Scoped to .alice-surface and #ai-tab (extension).
- * Self-contained: does not affect the global Flat-Minimal design.
+ * Deep ink canvas, iridescent star, soft bottom-edge aurora.
  * ============================================================ */
 
 .alice-surface {
-  --alice-bg: 240 33% 6%;             /* deep cosmic ink */
-  --alice-bg-2: 245 30% 9%;
-  --alice-panel: 250 38% 13%;
-  --alice-violet: 252 100% 68%;
-  --alice-blue: 224 100% 66%;
-  --alice-cyan: 187 92% 54%;
-  --alice-pink: 326 96% 68%;
-  --alice-warm: 32 100% 68%;          /* aurora warm flicker */
-  --alice-ink: 240 14% 95%;
-  --alice-ink-dim: 240 10% 70%;
-  --alice-border: 250 30% 22% / 0.55;
+  --alice-bg: 240 24% 3%;             /* near-black ink */
+  --alice-bg-2: 240 22% 6%;
+  --alice-panel: 240 18% 10%;
+  --alice-violet: 252 100% 72%;
+  --alice-blue: 224 100% 68%;
+  --alice-cyan: 187 92% 58%;
+  --alice-pink: 326 96% 70%;
+  --alice-warm: 32 100% 72%;
+  --alice-ink: 240 14% 96%;
+  --alice-ink-dim: 240 8% 68%;
+  --alice-border: 240 12% 18% / 0.65;
   --alice-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  font-family: "Google Sans Text", "Inter", system-ui, sans-serif;
   color: hsl(var(--alice-ink));
   background:
-    radial-gradient(80% 60% at 15% 0%, hsl(var(--alice-violet) / 0.22), transparent 60%),
-    radial-gradient(70% 50% at 100% 10%, hsl(var(--alice-cyan) / 0.16), transparent 60%),
-    radial-gradient(90% 70% at 50% 110%, hsl(var(--alice-pink) / 0.12), transparent 60%),
-    radial-gradient(60% 40% at 80% 80%, hsl(var(--alice-warm) / 0.06), transparent 60%),
+    /* signature Gemini bottom-edge aurora glow */
+    radial-gradient(120% 60% at 50% 118%, hsl(var(--alice-blue) / 0.32), transparent 55%),
+    radial-gradient(80% 40% at 50% 110%, hsl(var(--alice-violet) / 0.18), transparent 60%),
     hsl(var(--alice-bg));
   position: relative;
   overflow: hidden;
 }
 
-/* Slow drifting aurora veil */
-.alice-surface::before {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background:
-    conic-gradient(from 180deg at 50% 50%,
-      hsl(var(--alice-violet) / 0.12),
-      hsl(var(--alice-blue) / 0.10),
-      hsl(var(--alice-cyan) / 0.10),
-      hsl(var(--alice-pink) / 0.10),
-      hsl(var(--alice-warm) / 0.06),
-      hsl(var(--alice-violet) / 0.12));
-  filter: blur(60px);
-  opacity: 0.55;
-  animation: alice-aurora-drift 36s linear infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Subtle stardust */
+/* Very subtle stardust — calm, not busy */
 .alice-surface::after {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(1px 1px at 10% 20%, hsl(var(--alice-cyan) / 0.5), transparent 50%),
-    radial-gradient(1px 1px at 30% 75%, hsl(var(--alice-violet) / 0.5), transparent 50%),
-    radial-gradient(1px 1px at 70% 30%, hsl(var(--alice-pink) / 0.5), transparent 50%),
-    radial-gradient(1px 1px at 90% 65%, hsl(var(--alice-cyan) / 0.5), transparent 50%);
+    radial-gradient(1px 1px at 12% 22%, hsl(var(--alice-cyan) / 0.55), transparent 60%),
+    radial-gradient(1px 1px at 78% 18%, hsl(var(--alice-violet) / 0.45), transparent 60%),
+    radial-gradient(1px 1px at 35% 78%, hsl(var(--alice-pink) / 0.35), transparent 60%),
+    radial-gradient(1px 1px at 88% 62%, hsl(var(--alice-cyan) / 0.4), transparent 60%);
   background-repeat: no-repeat;
-  opacity: 0.4;
-  animation: alice-twinkle 6s ease-in-out infinite alternate;
+  opacity: 0.35;
+  animation: alice-twinkle 7s ease-in-out infinite alternate;
   pointer-events: none;
   z-index: 0;
 }
 
 .alice-surface > * { position: relative; z-index: 1; }
 
-@keyframes alice-aurora-drift {
-  to { transform: rotate(360deg); }
-}
 @keyframes alice-twinkle {
-  0% { opacity: 0.25; }
-  100% { opacity: 0.55; }
+  0% { opacity: 0.2; }
+  100% { opacity: 0.5; }
 }
 
 /* Prose / body text */
-.alice-surface .alice-body { font-family: "DM Sans", "Inter", system-ui, sans-serif; }
+.alice-surface .alice-body { font-family: "Google Sans Text", "Inter", system-ui, sans-serif; }
 
-/* Glass panel */
+/* Glass panel — flatter, more "Material You at night" */
 .alice-glass {
-  background: hsl(var(--alice-panel) / 0.55);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  background: hsl(var(--alice-panel) / 0.65);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid hsl(var(--alice-border));
 }
 
-/* ===================== Neural Orb =====================
- * Static idle, breathing on hover, pulsing while streaming.
- * Toggle pulse with [data-state="streaming"] on the .alice-orb element. */
+/* ===================== Gemini Star =====================
+ * Iridescent 4-point star with a breathing halo.
+ * State toggled via data-state on the .gemini-star wrapper. */
+.gemini-star {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+}
+.gemini-star svg {
+  display: block;
+  filter:
+    drop-shadow(0 0 14px hsl(var(--alice-violet) / 0.55))
+    drop-shadow(0 0 28px hsl(var(--alice-blue) / 0.35));
+  animation: gemini-star-breathe 4.5s ease-in-out infinite;
+}
+.gemini-star::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  border-radius: 9999px;
+  background: radial-gradient(circle,
+    hsl(var(--alice-violet) / 0.32),
+    hsl(var(--alice-blue) / 0.18) 45%,
+    transparent 70%);
+  filter: blur(14px);
+  z-index: -1;
+  opacity: 0.65;
+  animation: gemini-halo-breathe 4.5s ease-in-out infinite;
+}
+.gemini-star[data-state="streaming"] svg {
+  animation: gemini-star-breathe 1.5s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 18px hsl(var(--alice-cyan) / 0.7))
+    drop-shadow(0 0 40px hsl(var(--alice-violet) / 0.5));
+}
+.gemini-star[data-state="streaming"]::after {
+  animation: gemini-halo-breathe 1.5s ease-in-out infinite;
+  opacity: 0.9;
+}
+@keyframes gemini-star-breathe {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.08) rotate(8deg); }
+}
+@keyframes gemini-halo-breathe {
+  0%, 100% { transform: scale(0.9); opacity: 0.45; }
+  50%      { transform: scale(1.15); opacity: 0.85; }
+}
+
+/* Legacy .alice-orb kept for thread sidebar / mobile header — render as a
+   small gemini-style gradient pip so existing markup still looks on-brand. */
 .alice-orb {
   position: relative;
   border-radius: 9999px;
   background:
-    radial-gradient(circle at 30% 30%, hsl(var(--alice-cyan)) 0%, transparent 45%),
-    radial-gradient(circle at 70% 70%, hsl(var(--alice-pink)) 0%, transparent 50%),
+    radial-gradient(circle at 30% 30%, #FFE7A8 0%, transparent 40%),
+    radial-gradient(circle at 70% 70%, #E94A8C 0%, transparent 45%),
     conic-gradient(from 0deg,
-      hsl(var(--alice-violet)),
-      hsl(var(--alice-blue)),
-      hsl(var(--alice-cyan)),
-      hsl(var(--alice-pink)),
-      hsl(var(--alice-warm)),
-      hsl(var(--alice-violet)));
+      #6B7BFF, #36C5F0, #E94A8C, #FF9F6B, #6B7BFF);
   box-shadow:
-    0 0 0 1px hsl(var(--alice-violet) / 0.45),
-    0 0 24px hsl(var(--alice-violet) / 0.35),
-    inset 0 0 10px hsl(0 0% 100% / 0.25);
-  animation: alice-orb-spin 12s linear infinite;
+    0 0 0 1px hsl(var(--alice-violet) / 0.4),
+    0 0 14px hsl(var(--alice-violet) / 0.4),
+    inset 0 0 8px hsl(0 0% 100% / 0.2);
   isolation: isolate;
 }
-/* Glow halo behind the orb that breathes — visual "presence" */
-.alice-orb::after {
-  content: "";
-  position: absolute;
-  inset: -25%;
-  border-radius: 9999px;
-  background: radial-gradient(circle, hsl(var(--alice-violet) / 0.4), transparent 70%);
-  filter: blur(8px);
-  opacity: 0.5;
-  z-index: -1;
-  animation: alice-orb-breathe 4s ease-in-out infinite;
-}
-.alice-orb-static { animation: none; }
 .alice-orb[data-state="streaming"] {
-  animation: alice-orb-spin 4s linear infinite;
-  box-shadow:
-    0 0 0 1px hsl(var(--alice-cyan) / 0.6),
-    0 0 32px hsl(var(--alice-cyan) / 0.55),
-    0 0 60px hsl(var(--alice-violet) / 0.35),
-    inset 0 0 12px hsl(0 0% 100% / 0.35);
-}
-.alice-orb[data-state="streaming"]::after {
-  animation: alice-orb-breathe 1.6s ease-in-out infinite;
-  opacity: 0.85;
+  animation: gemini-star-breathe 1.5s ease-in-out infinite;
 }
 
-@keyframes alice-orb-spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes alice-orb-breathe {
-  0%, 100% { transform: scale(1); opacity: 0.45; }
-  50%      { transform: scale(1.15); opacity: 0.85; }
-}
-
-/* ===================== User Bubble =====================
- * Conic-gradient border + gradient fill. Springs in. */
+/* ===================== User Bubble ===================== */
 .alice-user-bubble {
   position: relative;
   background: linear-gradient(135deg,
     hsl(var(--alice-violet)) 0%,
-    hsl(var(--alice-blue)) 45%,
-    hsl(326 80% 60%) 100%);
+    hsl(var(--alice-blue)) 60%);
   color: hsl(0 0% 100%);
   box-shadow:
-    0 6px 28px -10px hsl(var(--alice-violet) / 0.7),
-    0 1px 0 hsl(0 0% 100% / 0.12) inset;
-  animation: alice-bubble-in 0.45s var(--alice-spring) both;
+    0 4px 22px -10px hsl(var(--alice-blue) / 0.7),
+    0 1px 0 hsl(0 0% 100% / 0.1) inset;
+  animation: alice-bubble-in 0.4s var(--alice-spring) both;
 }
 
 /* ===================== Assistant Block ===================== */
@@ -165,123 +150,89 @@
   position: relative;
   border-radius: 18px;
   padding: 12px 14px;
-  background:
-    linear-gradient(180deg, hsl(var(--alice-panel) / 0.6), hsl(var(--alice-bg-2) / 0.6));
-  border: 1px solid hsl(var(--alice-border));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  animation: alice-bubble-in 0.5s var(--alice-spring) both;
-  overflow: hidden;
-}
-/* Thin animated aurora rail along the top edge — Gemini-esque accent */
-.alice-assistant-bubble::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg,
-    transparent,
-    hsl(var(--alice-violet)),
-    hsl(var(--alice-cyan)),
-    hsl(var(--alice-pink)),
-    transparent);
-  background-size: 200% 100%;
-  animation: alice-rail 4s linear infinite;
-  opacity: 0.7;
+  background: transparent;
+  border: none;
+  animation: alice-bubble-in 0.45s var(--alice-spring) both;
+  overflow: visible;
 }
 
 @keyframes alice-bubble-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes alice-rail {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }
 
 /* ===================== Composer ===================== */
 .alice-composer {
   position: relative;
-  border-radius: 22px;
-  padding: 1.5px;
-  background: conic-gradient(from 0deg,
-    hsl(var(--alice-violet) / 0.6),
-    hsl(var(--alice-blue) / 0.6),
-    hsl(var(--alice-cyan) / 0.6),
-    hsl(var(--alice-pink) / 0.6),
-    hsl(var(--alice-warm) / 0.4),
-    hsl(var(--alice-violet) / 0.6));
-  transition: filter 0.25s ease, transform 0.25s ease;
+  border-radius: 9999px;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet) / 0.25),
+    hsl(var(--alice-blue) / 0.18),
+    hsl(var(--alice-cyan) / 0.18));
+  transition: filter 0.25s ease;
 }
-.alice-composer::before {
-  content: "";
-  position: absolute; inset: -2px;
-  border-radius: 24px;
-  background: inherit;
-  filter: blur(10px);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
+.alice-composer:focus-within {
+  background: linear-gradient(135deg,
+    hsl(var(--alice-violet) / 0.65),
+    hsl(var(--alice-blue) / 0.55),
+    hsl(var(--alice-cyan) / 0.55));
+  filter: drop-shadow(0 4px 18px hsl(var(--alice-blue) / 0.35));
 }
-.alice-composer:focus-within { filter: brightness(1.1); }
-.alice-composer:focus-within::before { opacity: 0.7; }
 .alice-composer-inner {
-  border-radius: 20px;
-  background: hsl(var(--alice-bg) / 0.92);
+  border-radius: 9999px;
+  background: hsl(240 16% 12% / 0.92);
   backdrop-filter: blur(12px);
+  padding: 6px 6px 6px 8px !important;
 }
 
 /* ===================== Send Button ===================== */
 .alice-send {
   background: linear-gradient(135deg,
-    hsl(var(--alice-violet)),
     hsl(var(--alice-blue)),
-    hsl(var(--alice-cyan)));
-  background-size: 200% 200%;
+    hsl(var(--alice-violet)));
   color: white;
   border: none;
-  box-shadow: 0 6px 20px -6px hsl(var(--alice-violet) / 0.7);
-  transition: filter 0.15s, transform 0.15s, background-position 0.6s;
+  box-shadow: 0 4px 16px -6px hsl(var(--alice-blue) / 0.7);
+  transition: filter 0.15s, transform 0.15s;
 }
 .alice-send:hover:not(:disabled) {
-  filter: brightness(1.15);
-  background-position: 100% 100%;
-  transform: scale(1.04);
+  filter: brightness(1.12);
+  transform: scale(1.05);
 }
-.alice-send:disabled { opacity: 0.4; }
+.alice-send:disabled { opacity: 0.45; }
 
 /* ===================== Tool Chip ===================== */
 .alice-tool {
   border-radius: 14px;
-  background: hsl(var(--alice-panel) / 0.5);
+  background: hsl(var(--alice-panel) / 0.55);
   border: 1px solid hsl(var(--alice-border));
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
 }
 .alice-tool:hover {
-  background: hsl(var(--alice-panel) / 0.8);
-  border-color: hsl(var(--alice-violet) / 0.5);
-  transform: translateY(-1px);
+  background: hsl(var(--alice-panel) / 0.85);
+  border-color: hsl(var(--alice-violet) / 0.45);
 }
 .alice-tool-icon-glow {
   background: linear-gradient(135deg,
     hsl(var(--alice-violet) / 0.35),
     hsl(var(--alice-cyan) / 0.35));
-  box-shadow: 0 0 12px hsl(var(--alice-violet) / 0.3);
+  box-shadow: 0 0 10px hsl(var(--alice-violet) / 0.25);
 }
 
 /* ===================== Live Thinking ===================== */
 .alice-shimmer {
   background: linear-gradient(90deg,
     hsl(var(--alice-ink-dim)) 0%,
-    hsl(var(--alice-violet)) 25%,
-    hsl(var(--alice-blue)) 40%,
-    hsl(var(--alice-cyan)) 55%,
-    hsl(var(--alice-pink)) 75%,
+    hsl(var(--alice-violet)) 30%,
+    hsl(var(--alice-blue)) 50%,
+    hsl(var(--alice-cyan)) 65%,
     hsl(var(--alice-ink-dim)) 100%);
   background-size: 250% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: alice-shimmer 2.6s linear infinite;
+  animation: alice-shimmer 2.4s linear infinite;
   font-weight: 500;
 }
 @keyframes alice-shimmer {
@@ -290,43 +241,48 @@
 }
 
 .alice-thread-active {
-  background: linear-gradient(90deg, hsl(var(--alice-violet) / 0.25), transparent);
-  border-left: 2px solid hsl(var(--alice-violet));
+  background: linear-gradient(90deg, hsl(var(--alice-blue) / 0.22), transparent);
+  border-left: 2px solid hsl(var(--alice-blue));
 }
 
-/* Subtle neural grid on transcript */
-.alice-transcript {
-  background-image:
-    linear-gradient(hsl(var(--alice-violet) / 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--alice-violet) / 0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
+/* Calmer transcript — no grid */
+.alice-transcript { background-image: none; }
 
 /* Message entry */
-.alice-msg-in { animation: alice-bubble-in 0.45s var(--alice-spring) both; }
+.alice-msg-in { animation: alice-bubble-in 0.4s var(--alice-spring) both; }
+
+/* ===================== Greeting ===================== */
+.alice-greeting {
+  font-family: "Google Sans", "Google Sans Text", "Inter", system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: hsl(var(--alice-ink));
+  text-align: center;
+  line-height: 1.15;
+}
 
 /* ===================== Suggestion Chip ===================== */
 .alice-chip {
   position: relative;
   border-radius: 9999px;
-  padding: 7px 14px;
-  font-size: 12px;
-  background: hsl(var(--alice-panel) / 0.6);
+  padding: 8px 16px;
+  font-size: 13px;
+  background: hsl(var(--alice-panel) / 0.55);
   border: 1px solid hsl(var(--alice-border));
   color: hsl(var(--alice-ink));
   transition: all 0.25s var(--alice-spring);
   cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .alice-chip:hover {
-  background: linear-gradient(135deg, hsl(var(--alice-violet) / 0.3), hsl(var(--alice-cyan) / 0.3));
-  border-color: hsl(var(--alice-violet) / 0.7);
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 6px 20px -8px hsl(var(--alice-violet) / 0.6);
+  background: hsl(var(--alice-panel) / 0.85);
+  border-color: hsl(var(--alice-blue) / 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px -6px hsl(var(--alice-blue) / 0.5);
 }
 
-/* Follow-up chip variant — slightly more glow, used after each answer */
+/* Follow-up chip variant */
 .alice-followup-chip {
   position: relative;
   border-radius: 9999px;
@@ -347,9 +303,9 @@
   border-radius: 9999px;
   padding: 1px;
   background: linear-gradient(135deg,
-    hsl(var(--alice-violet) / 0.55),
-    hsl(var(--alice-cyan) / 0.55),
-    hsl(var(--alice-pink) / 0.55));
+    hsl(var(--alice-violet) / 0.45),
+    hsl(var(--alice-blue) / 0.45),
+    hsl(var(--alice-cyan) / 0.45));
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -358,16 +314,9 @@
   pointer-events: none;
 }
 .alice-followup-chip:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 8px 22px -8px hsl(var(--alice-violet) / 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -8px hsl(var(--alice-blue) / 0.55);
   background: hsl(var(--alice-bg) / 0.85);
-}
-.alice-followup-chip .alice-followup-icon {
-  display: inline-flex;
-  width: 14px; height: 14px;
-  background: linear-gradient(135deg, hsl(var(--alice-violet)), hsl(var(--alice-cyan)));
-  -webkit-background-clip: text; background-clip: text;
-  color: transparent;
 }
 
 /* Pulsing dot */
@@ -388,6 +337,7 @@
   border: none !important;
   outline: none !important;
   color: hsl(var(--alice-ink));
+  font-size: 15px;
 }
 .alice-surface textarea::placeholder { color: hsl(var(--alice-ink-dim)); }
 
@@ -409,25 +359,20 @@
 .alice-surface .prose h1,
 .alice-surface .prose h2,
 .alice-surface .prose h3 {
-  background: linear-gradient(135deg,
-    hsl(var(--alice-ink)),
-    hsl(var(--alice-cyan)));
-  -webkit-background-clip: text; background-clip: text;
-  color: transparent;
+  color: hsl(var(--alice-ink));
   letter-spacing: -0.01em;
 }
 .alice-surface .prose blockquote {
-  border-left: 3px solid hsl(var(--alice-violet) / 0.7);
+  border-left: 3px solid hsl(var(--alice-blue) / 0.7);
   color: hsl(var(--alice-ink-dim));
 }
 
 /* Reduced motion respect */
 @media (prefers-reduced-motion: reduce) {
-  .alice-surface::before,
   .alice-surface::after,
+  .gemini-star svg,
+  .gemini-star::after,
   .alice-orb,
-  .alice-orb::after,
-  .alice-assistant-bubble::before,
   .alice-shimmer,
   .alice-live-dot { animation: none !important; }
 }
