@@ -2574,6 +2574,19 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
     });
 
+    // Episodic memory: summarize this turn into a compact, embeddable line and
+    // store it for future semantic recall. Best-effort; never blocks the reply.
+    if (userMessage && finalText) {
+      const summary = `Q: ${userMessage.slice(0, 240)}\nA: ${finalText.slice(0, 360)}`;
+      embed384(summary).then((vec) => {
+        if (!vec) return;
+        return supabase.from("alice_episodic_memory").insert({
+          user_id: user.id, summary, source_kind: "chat", source_id: threadId, embedding: vec as any,
+        });
+      }).catch(() => {});
+    }
+
+
     return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
