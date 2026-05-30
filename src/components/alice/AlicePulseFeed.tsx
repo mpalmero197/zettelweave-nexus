@@ -18,19 +18,30 @@ type Pulse = {
   payload: any;
 };
 
+type Run = {
+  id: string;
+  goal: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  step_count: number;
+  max_steps: number;
+  result: string | null;
+  created_at: string;
+};
+
 export function AlicePulseFeed() {
   const { user } = useAuth();
   const [pulses, setPulses] = useState<Pulse[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("alice_pulses")
-      .select("id, kind, summary, status, created_at, payload")
-      .order("created_at", { ascending: false })
-      .limit(15);
-    setPulses((data as any) || []);
+    const [{ data: p }, { data: r }] = await Promise.all([
+      supabase.from("alice_pulses").select("id, kind, summary, status, created_at, payload").order("created_at", { ascending: false }).limit(15),
+      supabase.from("alice_runs").select("id, goal, status, step_count, max_steps, result, created_at").order("created_at", { ascending: false }).limit(8),
+    ]);
+    setPulses((p as any) || []);
+    setRuns((r as any) || []);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
@@ -40,11 +51,14 @@ export function AlicePulseFeed() {
     const ch = supabase
       .channel(`alice-pulses-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "alice_pulses", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "alice_runs", filter: `user_id=eq.${user.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, load]);
 
-  const unread = pulses.filter((p) => p.status === "pending").length;
+  const activeRuns = runs.filter((r) => r.status === "pending" || r.status === "running");
+  const unread = pulses.filter((p) => p.status === "pending").length + activeRuns.length;
+
 
   const setStatus = async (id: string, status: "seen" | "acted" | "dismissed") => {
     await supabase.from("alice_pulses").update({ status, acted_at: new Date().toISOString() }).eq("id", id);
