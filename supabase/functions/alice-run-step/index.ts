@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
           next_run_at: isDone ? new Date().toISOString() : new Date(Date.now() + 30_000).toISOString(),
         }).eq("id", run.id);
 
-        // Notify user when a run completes.
+        // Notify user when a run completes + write episodic memory.
         if (isDone) {
           await svc.from("in_app_notifications").insert({
             user_id: run.user_id,
@@ -145,7 +145,29 @@ Deno.serve(async (req) => {
             item_id: run.id,
             is_read: false,
           });
+          try {
+            const summary = `Background run — Goal: ${run.goal}\nResult: ${(parsed.result || stepRecord.result || "").toString().slice(0, 400)}`;
+            const embRes = await fetch(
+              "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+              { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ inputs: summary.slice(0, 2000), options: { wait_for_model: true } }) },
+            );
+            if (embRes.ok) {
+              const ed = await embRes.json();
+              let vec: number[] | null = null;
+              if (Array.isArray(ed) && Array.isArray(ed[0])) {
+                const dims = ed[0].length; const out = new Array(dims).fill(0);
+                for (const tok of ed) for (let i = 0; i < dims; i++) out[i] += tok[i];
+                for (let i = 0; i < dims; i++) out[i] /= ed.length;
+                vec = out;
+              } else if (Array.isArray(ed) && typeof ed[0] === "number") { vec = ed; }
+              if (vec) await svc.from("alice_episodic_memory").insert({
+                user_id: run.user_id, summary, source_kind: "run", source_id: run.id, embedding: vec as any,
+              });
+            }
+          } catch (_e) { /* best-effort */ }
         }
+
 
         summaries.push({ id: run.id, step: stepRecord.n, done: isDone });
       } catch (innerErr: any) {
