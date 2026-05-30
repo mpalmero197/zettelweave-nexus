@@ -10,7 +10,7 @@ const PREVIEW_SRC = '/chrome-extension/popup.html';
 
 export function ChromeExtensionPreview() {
   const [mode, setMode] = useState<Mode>('desktop');
-  const [nonce, setNonce] = useState(0);
+  const [nonce, setNonce] = useState(() => Date.now());
   const src = `${PREVIEW_SRC}?n=${nonce}`;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
