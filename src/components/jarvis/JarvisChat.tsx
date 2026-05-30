@@ -110,6 +110,21 @@ const STARTER_PROMPTS = [
   "Find a video on Zettelkasten",
 ];
 
+function getFirstName(user: ReturnType<typeof useAuth>["user"]): string {
+  if (!user) return "there";
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const candidates = [
+    meta.first_name,
+    meta.given_name,
+    meta.full_name,
+    meta.name,
+    meta.display_name,
+  ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  const raw = candidates[0] ?? user.email?.split("@")[0] ?? "there";
+  const first = String(raw).trim().split(/\s+/)[0];
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
 interface Props {
   /** Optional: render in compact mode (popover/floating panel) */
   compact?: boolean;
