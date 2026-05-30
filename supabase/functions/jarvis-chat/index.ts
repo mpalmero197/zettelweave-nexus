@@ -2388,10 +2388,20 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
 
       if (choice.tool_calls?.length) {
         messages.push({ role: "assistant", content: choice.content || "", tool_calls: choice.tool_calls });
-        for (const tc of choice.tool_calls) {
+        // Parallel tool execution — ALICE can now fan out independent tool calls (e.g.
+        // weather + agenda + web_search) in one round-trip instead of serializing them.
+        const parsedCalls = choice.tool_calls.map((tc: any) => {
           let parsed: any = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader, userCoords);
+          return { tc, parsed };
+        });
+        const results = await Promise.all(parsedCalls.map(({ tc, parsed }) =>
+          executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader, userCoords)
+            .catch((err: any) => ({ error: err?.message || String(err) }))
+        ));
+        for (let i = 0; i < parsedCalls.length; i++) {
+          const { tc, parsed } = parsedCalls[i];
+          const result = results[i];
           if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
           if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
