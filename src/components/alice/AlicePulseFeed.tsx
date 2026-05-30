@@ -93,7 +93,49 @@ export function AlicePulseFeed() {
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Proactive</span>
         </div>
         <ScrollArea className="max-h-[420px]">
-          {pulses.length === 0 ? (
+          {runs.length > 0 && (
+            <div className="border-b">
+              <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3" /> Background tasks
+              </div>
+              <ul className="divide-y">
+                {runs.slice(0, 5).map((r) => {
+                  const pct = Math.min(100, Math.round((r.step_count / Math.max(1, r.max_steps)) * 100));
+                  const Icon = r.status === "completed" ? CheckCircle2
+                    : r.status === "failed" || r.status === "cancelled" ? AlertCircle
+                    : Loader2;
+                  const iconClass = r.status === "completed" ? "text-emerald-500"
+                    : r.status === "failed" || r.status === "cancelled" ? "text-destructive"
+                    : "text-primary animate-spin";
+                  return (
+                    <li key={r.id} className="p-3 text-sm space-y-1.5">
+                      <div className="flex items-start gap-2">
+                        <Icon className={cn("h-3.5 w-3.5 mt-0.5", iconClass)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="leading-snug line-clamp-2">{r.goal}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{r.status}</span>
+                            <span className="text-[10px] text-muted-foreground">{r.step_count}/{r.max_steps}</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
+                          </div>
+                          {(r.status === "pending" || r.status === "running") && (
+                            <div className="mt-1.5 h-1 w-full bg-muted rounded overflow-hidden">
+                              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                          )}
+                          {r.status === "completed" && r.result && (
+                            <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-3">{r.result}</p>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {pulses.length === 0 && runs.length === 0 ? (
+
             <div className="p-6 text-center text-xs text-muted-foreground">
               ALICE is quietly watching. Nudges will appear here when something useful comes up.
             </div>
