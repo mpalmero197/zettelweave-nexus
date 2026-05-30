@@ -557,7 +557,7 @@ function renderNotes() {
   }
   c.innerHTML = notesList.map((n) => `
     <div class="note-card" data-id="${n.id}">
-      <p><strong>${escapeHtml(n.title || 'Untitled')}</strong>\n${escapeHtml((n.content || '').slice(0, 200))}</p>
+      <p><strong>${escapeHtml(n.title || 'Untitled')}</strong>\n${escapeHtml((n.content || '').slice(0, 380))}</p>
       <div class="note-meta">
         <span>${formatDate(n.created_at)} ☁️</span>
       </div>
