@@ -74,9 +74,20 @@ export function CardsWorkspace() {
           <h2 className="text-sm font-semibold flex items-center gap-1.5">
             <Brain className="h-4 w-4 text-primary" /> Cards
           </h2>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCreate} aria-label="New card">
-            <Plus className="h-4 w-4" />
-          </Button>
+          <CreateCardDialog
+            existingCards={cards}
+            onCreateCard={(c) => createCard(c as any)}
+            trigger={
+              <Button
+                size="sm"
+                className="h-8 px-2.5 gap-1 text-xs font-medium"
+                aria-label="New card"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                New
+              </Button>
+            }
+          />
         </div>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
