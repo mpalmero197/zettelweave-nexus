@@ -1,8 +1,8 @@
 import { lazy, Suspense, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { PenLine, FileText, BookOpen, StickyNote, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PenLine, FileText, BookOpen, StickyNote, HelpCircle } from "lucide-react";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import type { ZettelCard as ZettelCardType } from "@/types/zettel";
 
@@ -80,51 +80,72 @@ export function CaptureHub() {
   };
 
   return (
-    <div className="px-2 sm:px-4 py-3 space-y-3">
-      {/* Explainer header — taxonomy overview */}
-      <Card className="border-border/60 bg-card/60">
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex items-start gap-2 mb-3">
-            <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-            <div className="text-xs sm:text-sm">
-              <span className="font-semibold text-foreground">One place to capture everything.</span>{" "}
-              <span className="text-muted-foreground">
-                Pick the shape that fits what you're capturing — short to long. ALICE will suggest a promotion (e.g. Scratchpad → Card) if your content outgrows its home.
-              </span>
+    <div className="px-2 sm:px-4 py-2 space-y-2">
+      {/* Compact segmented picker — single row, fits in ~52px */}
+      <div className="flex items-center gap-1.5">
+        <div
+          role="tablist"
+          aria-label="Capture type"
+          className="flex flex-1 items-center gap-1 rounded-full border border-border/60 bg-card/60 p-1 overflow-x-auto scrollbar-hide"
+        >
+          {TAXONOMY.map((t) => {
+            const Icon = t.icon;
+            const isActive = t.id === tab;
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => handleChange(t.id)}
+                title={`${t.label} · ${t.tagline} · ${t.limit}`}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
+                }`}
+              >
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "" : t.accent}`} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Info popover — full taxonomy on demand */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              aria-label="How capture types work"
+              className="shrink-0 rounded-full border border-border/60 bg-card/60 p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-3 space-y-2.5">
+            <div className="text-xs">
+              <p className="font-semibold text-foreground mb-1">One place to capture everything.</p>
+              <p className="text-muted-foreground leading-relaxed">
+                Pick the shape that fits — short to long. ALICE suggests a promotion (Scratchpad → Card) when content outgrows its home.
+              </p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-            {TAXONOMY.map((t) => {
-              const Icon = t.icon;
-              const isActive = t.id === tab;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => handleChange(t.id)}
-                  className={`text-left rounded-lg border p-2.5 transition-all ${
-                    isActive
-                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                      : "border-border/60 bg-background hover:border-border hover:bg-accent/40"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Icon className={`h-3.5 w-3.5 ${t.accent}`} />
-                    <span className="text-xs font-semibold">{t.label}</span>
+            <div className="border-t border-border/60 pt-2 space-y-2">
+              {TAXONOMY.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <div key={t.id} className="flex items-start gap-2">
+                    <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${t.accent}`} />
+                    <div className="text-[11px] leading-snug">
+                      <span className="font-semibold text-foreground">{t.label}</span>
+                      <span className="text-muted-foreground/80"> · {t.limit}</span>
+                      <p className="text-muted-foreground mt-0.5">{t.when}</p>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground line-clamp-2">{t.tagline}</div>
-                  <div className="text-[10px] text-muted-foreground/70 mt-1 tabular-nums">{t.limit}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Contextual explainer for active tab */}
-          <div className="mt-3 pt-3 border-t border-border/60 text-[11px] sm:text-xs text-muted-foreground">
-            <span className={`font-medium ${active.accent}`}>{active.label}:</span> {active.when}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* Active workspace */}
       <Tabs value={tab} onValueChange={handleChange} className="w-full">
