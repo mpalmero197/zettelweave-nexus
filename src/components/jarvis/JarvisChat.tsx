@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
 import { AliceFollowupChips } from "@/components/jarvis/AliceFollowupChips";
+import { GeminiStar } from "@/components/jarvis/GeminiStar";
 import { cn } from "@/lib/utils";
 import "./alice-theme.css";
 
@@ -90,7 +92,7 @@ function LiveThinkingStream() {
   }, []);
   return (
     <div className="flex items-center gap-3 py-2 alice-msg-in">
-      <div className="alice-orb h-6 w-6" data-state="streaming" aria-hidden />
+      <GeminiStar size={22} state="streaming" />
       <div className="flex items-center gap-2">
         <span className="alice-live-dot" />
         <span className="alice-shimmer text-sm">{activity}…</span>
@@ -108,6 +110,21 @@ const STARTER_PROMPTS = [
   "Find a video on Zettelkasten",
 ];
 
+function getFirstName(user: ReturnType<typeof useAuth>["user"]): string {
+  if (!user) return "there";
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const candidates = [
+    meta.first_name,
+    meta.given_name,
+    meta.full_name,
+    meta.name,
+    meta.display_name,
+  ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  const raw = candidates[0] ?? user.email?.split("@")[0] ?? "there";
+  const first = String(raw).trim().split(/\s+/)[0];
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
 interface Props {
   /** Optional: render in compact mode (popover/floating panel) */
   compact?: boolean;
@@ -115,6 +132,8 @@ interface Props {
 
 export function JarvisChat({ compact = false }: Props) {
   const { threads, activeThreadId, messages, sending, sendMessage, newThread, selectThread, deleteThread } = useJarvis();
+  const { user } = useAuth();
+  const firstName = useMemo(() => getFirstName(user), [user]);
   const isMobile = useIsMobile();
   const [threadSheetOpen, setThreadSheetOpen] = useState(false);
   // On mobile (or compact popup) collapse the sidebar entirely and surface
@@ -350,20 +369,15 @@ export function JarvisChat({ compact = false }: Props) {
             compact ? "px-3 py-4" : "px-3 py-5 md:px-6 md:py-8",
           )}>
             {messages.length === 0 && (
-              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-10 md:py-16 space-y-4 md:space-y-5")}>
-                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-16 w-16 md:h-20 md:w-20")} />
-                <h2
-                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-2xl md:text-3xl")}
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  Hello. I'm ALICE.
+              <div className={cn(
+                "flex flex-col items-center justify-center text-center",
+                compact ? "py-10 space-y-5" : "py-16 md:py-24 space-y-6 md:space-y-8",
+              )}>
+                <GeminiStar size={compact ? 56 : 72} />
+                <h2 className={cn("alice-greeting", compact ? "text-2xl" : "text-3xl md:text-[34px]")}>
+                  Hi {firstName}, let's get into it
                 </h2>
-                {!compact && (
-                  <p className="text-sm opacity-70 max-w-md mx-auto px-4">
-                    Your second-brain co-pilot. Ask, create, schedule, search — I'll show my work as I go.
-                  </p>
-                )}
-                <div className={cn("flex flex-wrap justify-center gap-2 pt-2 px-2", compact && "pt-1")}>
+                <div className={cn("flex flex-wrap justify-center gap-2 px-2", compact ? "pt-1" : "pt-2")}>
                   {STARTER_PROMPTS.slice(0, compact ? 2 : 4).map((p) => (
                     <button key={p} className="alice-chip" onClick={() => submit(p)}>
                       {p}
@@ -408,11 +422,12 @@ export function JarvisChat({ compact = false }: Props) {
                   ) : (
                     <>
                       <div className="flex gap-2 md:gap-3 w-full">
-                        <div
-                          className="alice-orb h-6 w-6 md:h-7 md:w-7 shrink-0 mt-0.5"
-                          data-state={isLast && sending ? "streaming" : undefined}
-                          aria-hidden
-                        />
+                        <div className="shrink-0 mt-1">
+                          <GeminiStar
+                            size={compact ? 22 : 26}
+                            state={isLast && sending ? "streaming" : "idle"}
+                          />
+                        </div>
                         <div className={cn(
                           "alice-assistant-bubble flex-1 min-w-0",
                           compact ? "text-[13px]" : "text-[14px] md:text-[15px] leading-relaxed",
