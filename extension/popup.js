@@ -258,7 +258,7 @@ function updateAuthUI() {
   if (authToken && userEmail) {
     loginScreen.style.display = 'none';
     userBar.style.display = 'flex';
-    appContent.style.display = 'block';
+    appContent.style.display = 'flex';
     userEmailEl.textContent = userEmail;
     checkAdminRole().then((isAdmin) => {
       if (adminBadge) adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
