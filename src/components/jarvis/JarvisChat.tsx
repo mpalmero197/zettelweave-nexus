@@ -369,20 +369,15 @@ export function JarvisChat({ compact = false }: Props) {
             compact ? "px-3 py-4" : "px-3 py-5 md:px-6 md:py-8",
           )}>
             {messages.length === 0 && (
-              <div className={cn("text-center", compact ? "py-6 space-y-3" : "py-10 md:py-16 space-y-4 md:space-y-5")}>
-                <div className={cn("alice-orb mx-auto", compact ? "h-12 w-12" : "h-16 w-16 md:h-20 md:w-20")} />
-                <h2
-                  className={cn("font-semibold tracking-tight", compact ? "text-lg" : "text-2xl md:text-3xl")}
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  Hello. I'm ALICE.
+              <div className={cn(
+                "flex flex-col items-center justify-center text-center",
+                compact ? "py-10 space-y-5" : "py-16 md:py-24 space-y-6 md:space-y-8",
+              )}>
+                <GeminiStar size={compact ? 56 : 72} />
+                <h2 className={cn("alice-greeting", compact ? "text-2xl" : "text-3xl md:text-[34px]")}>
+                  Hi {firstName}, let's get into it
                 </h2>
-                {!compact && (
-                  <p className="text-sm opacity-70 max-w-md mx-auto px-4">
-                    Your second-brain co-pilot. Ask, create, schedule, search — I'll show my work as I go.
-                  </p>
-                )}
-                <div className={cn("flex flex-wrap justify-center gap-2 pt-2 px-2", compact && "pt-1")}>
+                <div className={cn("flex flex-wrap justify-center gap-2 px-2", compact ? "pt-1" : "pt-2")}>
                   {STARTER_PROMPTS.slice(0, compact ? 2 : 4).map((p) => (
                     <button key={p} className="alice-chip" onClick={() => submit(p)}>
                       {p}
