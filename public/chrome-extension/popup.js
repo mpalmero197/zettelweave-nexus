@@ -505,7 +505,7 @@ function renderCards() {
   c.innerHTML = cardsList.map((card) => `
     <div class="item-row" data-id="${card.id}">
       <div class="item-title">${escapeHtml(card.title || 'Untitled')}</div>
-      <div class="item-snippet">${escapeHtml((card.content || '').slice(0, 280))}</div>
+      <div class="item-snippet">${escapeHtml((card.content || '').slice(0, 280)) || '<span style="opacity:.5">No preview available</span>'}</div>
       <div class="item-meta"><span>${escapeHtml(card.category || 'general')}</span><span>${formatDate(card.created_at)}</span></div>
     </div>
   `).join('');
