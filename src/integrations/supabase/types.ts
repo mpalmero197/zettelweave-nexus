@@ -453,6 +453,39 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_episodic_memory: {
+        Row: {
+          created_at: string
+          embedding: string | null
+          id: string
+          source_id: string | null
+          source_kind: string
+          summary: string
+          tags: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          source_id?: string | null
+          source_kind: string
+          summary: string
+          tags?: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          source_id?: string | null
+          source_kind?: string
+          summary?: string
+          tags?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       alice_memories: {
         Row: {
           created_at: string
@@ -4503,6 +4536,22 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      match_alice_episodic: {
+        Args: {
+          match_count?: number
+          min_similarity?: number
+          query_embedding: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          similarity: number
+          source_id: string
+          source_kind: string
+          summary: string
+          tags: string[]
+        }[]
       }
       report_error: {
         Args: {

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Sparkles, Check, X as XIcon } from "lucide-react";
+import { Sparkles, Check, X as XIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+
 
 type Pulse = {
   id: string;
@@ -17,19 +18,30 @@ type Pulse = {
   payload: any;
 };
 
+type Run = {
+  id: string;
+  goal: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  step_count: number;
+  max_steps: number;
+  result: string | null;
+  created_at: string;
+};
+
 export function AlicePulseFeed() {
   const { user } = useAuth();
   const [pulses, setPulses] = useState<Pulse[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("alice_pulses")
-      .select("id, kind, summary, status, created_at, payload")
-      .order("created_at", { ascending: false })
-      .limit(15);
-    setPulses((data as any) || []);
+    const [{ data: p }, { data: r }] = await Promise.all([
+      supabase.from("alice_pulses").select("id, kind, summary, status, created_at, payload").order("created_at", { ascending: false }).limit(15),
+      supabase.from("alice_runs").select("id, goal, status, step_count, max_steps, result, created_at").order("created_at", { ascending: false }).limit(8),
+    ]);
+    setPulses((p as any) || []);
+    setRuns((r as any) || []);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
@@ -39,11 +51,14 @@ export function AlicePulseFeed() {
     const ch = supabase
       .channel(`alice-pulses-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "alice_pulses", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "alice_runs", filter: `user_id=eq.${user.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, load]);
 
-  const unread = pulses.filter((p) => p.status === "pending").length;
+  const activeRuns = runs.filter((r) => r.status === "pending" || r.status === "running");
+  const unread = pulses.filter((p) => p.status === "pending").length + activeRuns.length;
+
 
   const setStatus = async (id: string, status: "seen" | "acted" | "dismissed") => {
     await supabase.from("alice_pulses").update({ status, acted_at: new Date().toISOString() }).eq("id", id);
@@ -78,7 +93,49 @@ export function AlicePulseFeed() {
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Proactive</span>
         </div>
         <ScrollArea className="max-h-[420px]">
-          {pulses.length === 0 ? (
+          {runs.length > 0 && (
+            <div className="border-b">
+              <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3" /> Background tasks
+              </div>
+              <ul className="divide-y">
+                {runs.slice(0, 5).map((r) => {
+                  const pct = Math.min(100, Math.round((r.step_count / Math.max(1, r.max_steps)) * 100));
+                  const Icon = r.status === "completed" ? CheckCircle2
+                    : r.status === "failed" || r.status === "cancelled" ? AlertCircle
+                    : Loader2;
+                  const iconClass = r.status === "completed" ? "text-emerald-500"
+                    : r.status === "failed" || r.status === "cancelled" ? "text-destructive"
+                    : "text-primary animate-spin";
+                  return (
+                    <li key={r.id} className="p-3 text-sm space-y-1.5">
+                      <div className="flex items-start gap-2">
+                        <Icon className={cn("h-3.5 w-3.5 mt-0.5", iconClass)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="leading-snug line-clamp-2">{r.goal}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{r.status}</span>
+                            <span className="text-[10px] text-muted-foreground">{r.step_count}/{r.max_steps}</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
+                          </div>
+                          {(r.status === "pending" || r.status === "running") && (
+                            <div className="mt-1.5 h-1 w-full bg-muted rounded overflow-hidden">
+                              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                          )}
+                          {r.status === "completed" && r.result && (
+                            <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-3">{r.result}</p>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {pulses.length === 0 && runs.length === 0 ? (
+
             <div className="p-6 text-center text-xs text-muted-foreground">
               ALICE is quietly watching. Nudges will appear here when something useful comes up.
             </div>

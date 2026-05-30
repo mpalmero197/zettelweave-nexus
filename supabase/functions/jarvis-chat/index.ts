@@ -1003,7 +1003,65 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "cancel_background_task",
+      description: "Cancel a queued or in-flight background ALICE run by id.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recall_episodic",
+      description: "Semantically search ALICE's long-term episodic memory of past chats and completed background runs. Use BEFORE answering open-ended or recurring questions — 'what did we decide about X?', 'have I asked this before?', 'what were the conclusions of that research?'. Pass the user's current question or a paraphrase as the query. Returns up to 5 prior episodes with a similarity score.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "The semantic search query (usually the user's current question)." },
+          limit: { type: "number", description: "Max results (default 5, max 10)." },
+        },
+        required: ["query"],
+      },
+    },
+  },
 ];
+
+// HuggingFace all-MiniLM-L6-v2 — same provider used by the rest of PendragonX
+// for 384-dim embeddings. Returns null on any failure (best-effort, never fatal).
+async function embed384(text: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(
+      "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: text.slice(0, 2000), options: { wait_for_model: true } }),
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Model returns either flat [384] or nested [tokens][384] — mean-pool the latter.
+    if (Array.isArray(data) && Array.isArray(data[0])) {
+      const dims = data[0].length;
+      const out = new Array(dims).fill(0);
+      for (const tok of data) for (let i = 0; i < dims; i++) out[i] += tok[i];
+      for (let i = 0; i < dims; i++) out[i] /= data.length;
+      return out;
+    }
+    if (Array.isArray(data) && typeof data[0] === "number") return data;
+    return null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+
 
 
 const VALID_TABS = new Set([
@@ -1980,6 +2038,31 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, runs: data || [] };
       }
+      case "cancel_background_task": {
+        const id = String(args.id || "").trim();
+        if (!id) return { error: "id required" };
+        const { data, error } = await supabase.from("alice_runs")
+          .update({ status: "cancelled", finished_at: new Date().toISOString() })
+          .eq("id", id).eq("user_id", userId).in("status", ["pending","running"])
+          .select("id").maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { error: "Run not found, already finished, or not yours." };
+        return { ok: true, cancelled: id };
+      }
+      case "recall_episodic": {
+        const query = String(args.query || "").trim();
+        if (!query) return { error: "query required" };
+        const limit = Math.min(10, Math.max(1, Number(args.limit) || 5));
+        const vec = await embed384(query);
+        if (!vec) return { ok: true, results: [], note: "Embedding service unavailable; recall skipped." };
+        const { data, error } = await supabase.rpc("match_alice_episodic", {
+          query_embedding: vec, match_count: limit, min_similarity: 0.5,
+        });
+        if (error) return { error: error.message };
+        return { ok: true, results: data || [] };
+      }
+
+
 
       case "get_open_browser_tabs": {
         const { data, error } = await supabase
@@ -2490,6 +2573,19 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     await supabase.from("jarvis_messages").insert({
       thread_id: threadId, user_id: user.id, role: "assistant", parts: assistantParts,
     });
+
+    // Episodic memory: summarize this turn into a compact, embeddable line and
+    // store it for future semantic recall. Best-effort; never blocks the reply.
+    if (userMessage && finalText) {
+      const summary = `Q: ${userMessage.slice(0, 240)}\nA: ${finalText.slice(0, 360)}`;
+      embed384(summary).then((vec) => {
+        if (!vec) return;
+        return supabase.from("alice_episodic_memory").insert({
+          user_id: user.id, summary, source_kind: "chat", source_id: threadId, embedding: vec as any,
+        });
+      }).catch(() => {});
+    }
+
 
     return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
