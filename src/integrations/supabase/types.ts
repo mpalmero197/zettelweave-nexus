@@ -525,6 +525,63 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          goal: string
+          id: string
+          instructions: string | null
+          max_steps: number
+          next_run_at: string
+          plan: Json
+          result: string | null
+          started_at: string | null
+          status: string
+          step_count: number
+          steps: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          goal: string
+          id?: string
+          instructions?: string | null
+          max_steps?: number
+          next_run_at?: string
+          plan?: Json
+          result?: string | null
+          started_at?: string | null
+          status?: string
+          step_count?: number
+          steps?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          goal?: string
+          id?: string
+          instructions?: string | null
+          max_steps?: number
+          next_run_at?: string
+          plan?: Json
+          result?: string | null
+          started_at?: string | null
+          status?: string
+          step_count?: number
+          steps?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alice_scheduled_triggers: {
         Row: {
           created_at: string

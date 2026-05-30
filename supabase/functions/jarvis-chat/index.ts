@@ -974,7 +974,37 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "start_background_task",
+      description: "Hand off a long, durable, multi-step job to a background agent so it keeps running even after the chat closes. Use this for 'work on this overnight', 'research X over the next hour', 'draft chapter 3 in the background', 'monitor topic Y and report back', or anything the user explicitly says is fire-and-forget. The run is queued, progresses one step per minute, and the user can see status with list_background_tasks. Do NOT use for things the user expects answered right now in chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          goal: { type: "string", description: "Concise one-sentence objective, e.g. 'Draft a 2k-word essay comparing stoicism and existentialism using my notes'." },
+          instructions: { type: "string", description: "Optional extra constraints, tone, sources to prefer, or success criteria." },
+          max_steps: { type: "number", description: "Upper bound on planner/executor iterations (default 12, max 30)." },
+        },
+        required: ["goal"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_background_tasks",
+      description: "Show the user's recent background ALICE runs (status, goal, last step). Use when they ask 'what's ALICE working on?', 'is that done?', 'what background tasks do I have?'.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["pending","running","completed","failed","cancelled","all"], description: "Filter (default 'all', shows last 10)." },
+        },
+      },
+    },
+  },
 ];
+
 
 const VALID_TABS = new Set([
   "dashboard","cards","graph","notes","files","canvas","calendar","journal",
@@ -1931,6 +1961,26 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, deleted: id };
       }
+      case "start_background_task": {
+        const goal = String(args.goal || "").trim();
+        if (!goal) return { error: "goal required" };
+        const instructions = args.instructions ? String(args.instructions) : null;
+        const max_steps = Math.min(30, Math.max(1, Number(args.max_steps) || 12));
+        const { data, error } = await supabase.from("alice_runs").insert({
+          user_id: userId, goal, instructions, max_steps, status: "pending", next_run_at: new Date().toISOString(),
+        }).select("id, goal, status, max_steps").single();
+        if (error) return { error: error.message };
+        return { ok: true, run: data, note: "Queued — advances ~once per minute. Ask 'what is ALICE working on?' to check." };
+      }
+      case "list_background_tasks": {
+        const status = String(args.status || "all");
+        let q = supabase.from("alice_runs").select("id, goal, status, step_count, max_steps, result, error, created_at, finished_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+        if (status !== "all") q = q.eq("status", status);
+        const { data, error } = await q;
+        if (error) return { error: error.message };
+        return { ok: true, runs: data || [] };
+      }
+
       case "get_open_browser_tabs": {
         const { data, error } = await supabase
           .from("browser_tab_snapshots")
@@ -2388,10 +2438,20 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
 
       if (choice.tool_calls?.length) {
         messages.push({ role: "assistant", content: choice.content || "", tool_calls: choice.tool_calls });
-        for (const tc of choice.tool_calls) {
+        // Parallel tool execution — ALICE can now fan out independent tool calls (e.g.
+        // weather + agenda + web_search) in one round-trip instead of serializing them.
+        const parsedCalls = choice.tool_calls.map((tc: any) => {
           let parsed: any = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch {}
-          const result = await executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader, userCoords);
+          return { tc, parsed };
+        });
+        const results = await Promise.all(parsedCalls.map(({ tc, parsed }) =>
+          executeTool(tc.function.name, parsed, supabase, serviceClient, user.id, isAdmin, authHeader, userCoords)
+            .catch((err: any) => ({ error: err?.message || String(err) }))
+        ));
+        for (let i = 0; i < parsedCalls.length; i++) {
+          const { tc, parsed } = parsedCalls[i];
+          const result = results[i];
           if (result && (result as any).navigate_to && !navigateTo) navigateTo = (result as any).navigate_to;
           if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });

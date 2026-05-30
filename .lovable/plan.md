@@ -1,76 +1,71 @@
-# ALICE Spark Overhaul — Phased Plan
+# Game Plan: ALICE → Agentic Powerhouse
 
-Big scope. I'll ship this in three reviewable phases so we don't get lost. Each phase is independently shippable.
+ALICE today is a single-turn assistant with ~55 well-scoped tools in `jarvis-chat`. She executes one tool at a time, has limited working memory beyond `save_memory`/`recall_memory`, and cannot run jobs that outlive the chat request. This plan upgrades her along five axes — **Planning, Execution, Memory, Perception, Autonomy** — in shippable phases.
 
----
+## Phase 1 — Planner / Executor Loop (foundation)
 
-## Phase 1 — Rich Media Chat UI (Gemini-style)
+Move from "one tool per turn" to a true agent loop using the AI SDK.
 
-**Goal:** Replace the text-only Jarvis chat with an "expressive" renderer that turns tool results into rich cards instead of raw text.
+- Refactor `supabase/functions/jarvis-chat` to use `streamText` + `stopWhen: stepCountIs(50)` instead of the current manual loop.
+- Split the model call: a **planner step** that emits a structured `plan` (Output.object: goal, steps[], success_criteria), then an **executor step** that runs tools, then a **critic step** that checks success_criteria and decides "done / retry / replan".
+- Surface the live plan in the chat as a collapsible "ALICE is thinking…" card with per-step status (pending → running → done → failed). Reuses `AliceActionPlan.tsx`.
+- Enable **parallel tool calls** when the model emits multiple in one step (already supported by the gateway; current code serializes them).
 
-**New components** (`src/components/jarvis/cards/`):
-- `ImageCard.tsx` — image with caption + lightbox
-- `MapCard.tsx` — embedded OpenStreetMap iframe (no API key) with pin + "Open in Google Maps" link
-- `PdfCard.tsx` — title, page count badge, "Open PDF" CTA, inline preview thumb
-- `VideoCard.tsx` — YouTube/MP4 embed with poster, lazy-loaded
-- `SpreadsheetCard.tsx` — first ~10 rows of a CSV/XLSX in a table, "Open full" link
-- `LinkCard.tsx` — OG-style preview (favicon, title, snippet, domain)
-- `QuoteCard.tsx` — large pull-quote with source attribution
-- `FileCard.tsx` — generic uploaded file (icon by mime, size, download)
+## Phase 2 — Durable Background Agents
 
-**Renderer:** `JarvisRichMessage.tsx` parses assistant `parts` for new part types (`image`, `map`, `pdf`, `video`, `link`, `quote`, `spreadsheet`, `file`) plus a fenced markdown convention `[[ALICE_CARD type=link]]{...json...}[[/ALICE_CARD]]` so the model can emit cards inline (mirrors existing `[[ALICE_PLAN]]` pattern in `useJarvis.ts`).
+Right now, closing the chat kills the work. Make long tasks survive.
 
-**Typography & color refresh** (chat-scoped, not site-wide):
-- Heading font: **Sora** (display) paired with existing Inter body
-- New accent gradient token `--alice-gradient` (electric indigo → cyan)
-- Cards: 1px border + subtle gradient hover, framer-motion stagger fade-in
-- Streaming token cursor (blinking caret)
+- New table `alice_runs` (id, user_id, goal, plan jsonb, status, steps jsonb, result, created_at). GRANT + RLS per project conventions.
+- New edge function `alice-run-step` invoked by `run-scheduled-triggers` (already cron'd) to advance pending runs one step at a time, with a max wall-clock per invocation.
+- `start_background_task` tool: ALICE hands off "research X and save a card", "monitor topic Y for a week", or "draft chapter 3 overnight" to a run; user sees it in **AlicePulseFeed** with progress + cancel.
+- Wire completion into the existing engagement-nudges/web-push pipeline so finished runs notify the user.
 
-**Files edited:** `src/components/jarvis/JarvisChat.tsx`, `src/hooks/useJarvis.ts` (add `extractCards` next to `extractPlans`), `src/index.css` (add `--alice-*` tokens), `supabase/functions/jarvis-chat/index.ts` (system prompt: when web search / file lookup returns rich content, emit `[[ALICE_CARD]]` blocks).
+## Phase 3 — Deeper Memory (RAG over everything she's done)
 
----
+Today `save_memory` is keyword-y. Make ALICE remember her own work.
 
-## Phase 2 — Attachments + Search Engine Picker
+- New table `alice_episodic_memory` (user_id, run_id, summary, embedding vector(384), tags, created_at). Reuse the HuggingFace `all-MiniLM-L6-v2` embedding provider already in the project.
+- After every completed run / significant chat turn, summarize → embed → insert.
+- New tool `recall_episodic` that does cosine search before the planner runs, so ALICE always has "what did I do for this user before?" context.
+- Auto-link episodic memories to the relevant Zettel cards / notebooks so the knowledge graph reflects her work.
 
-**Attachments (+ button):**
-- New `JarvisAttachmentMenu.tsx` triggered by `+` button left of input
-- Options: **Image**, **PDF/Doc**, **Audio**, **Camera** (mobile), **From knowledge base**
-- Upload → `card-media` bucket (existing) → attach as `file_url` part on next user message
-- `jarvis-chat` edge function extended to accept `attachments: [{url, mime, name}]`, passes images directly to Gemini vision, extracts text from PDFs via existing `fetch-url-content` pattern
+## Phase 4 — Perception Upgrades
 
-**Search engine picker:**
-- New column `profiles.preferred_search_engine` enum: `google` (default) | `duckduckgo`
-- Settings UI: dropdown in `src/pages/Settings.tsx` → Privacy section
-- `supabase/functions/web-search/index.ts` reads pref from caller's profile; if `duckduckgo`, swaps to DuckDuckGo Instant Answer + HTML fallback (no API key needed). Google path unchanged.
+Make ALICE see what the user sees.
 
-**Migration:** add `preferred_search_engine TEXT DEFAULT 'google'` to `profiles`.
+- Extend `useScreenContext` to optionally capture the visible DOM outline (route, current selection, focused item id) every N seconds and stash it in a ref. Send a compact snapshot with each chat turn.
+- New tool `look_at_screen` returning the snapshot, so the model can ask "what is the user currently doing?" instead of guessing.
+- For voice mode: keep the existing recording overlay; add **interim transcript streaming** into the planner so ALICE can start tool calls before the user finishes speaking.
 
----
+## Phase 5 — Self-Critique & Auto-Improvement
 
-## Phase 3 — Proactive ALICE (Spark-style, level 3/5)
+Close the loop with the existing self-improvement engine.
 
-**Goal:** ALICE wakes up on her own ~2–3×/day to surface useful nudges based on the user's calendar, tasks, recent notes, and stated goals.
+- After each run, the critic step writes a short post-mortem (what worked / what failed / which tool was missing) into `platform_self_improve` queue.
+- Daily 6 AM job (already exists) clusters these into proposed new tools or prompt tweaks — the same pattern Pendragon already uses for SEO/AEO self-improvement, just pointed at ALICE.
+- Add an admin "ALICE Lab" panel in the existing Admin Console that lists proposed prompt/tool changes for one-click apply.
 
-**New edge function:** `alice-proactive-pulse`
-- Cron: every 4 hours via `pg_cron`
-- For each user with `alice_proactive_enabled = true`:
-  1. Pull last 24h of cards/notes, today's calendar events, overdue tasks, active habits
-  2. Send compact context to Gemini with prompt: *"Suggest 1 proactive action ALICE should take or surface. Output JSON {action, rationale, suggested_trigger?}"*
-  3. If action is time-bound → call existing `create_scheduled_trigger` flow (insert into `alice_scheduled_triggers`)
-  4. Else → insert an `in_app_notifications` row tagged `alice_pulse` + optionally a `jarvis_messages` row in a dedicated "ALICE Pulse" thread
+## Phase 6 — Safety Rails
 
-**New table:** `alice_pulses` (id, user_id, kind, summary, payload jsonb, status [pending|seen|acted|dismissed], created_at)
+More power = more guardrails.
 
-**New UI:**
-- `AlicePulseFeed.tsx` — dropdown in top bar (Sparkles icon w/ unread dot) listing recent pulses; tap to act/dismiss
-- Settings toggle: "Proactive ALICE" + frequency slider (1–5, default 3 = every 4h) → stored on `profiles`
+- Mark every mutating tool (`delete_content_item`, `update_content_item`, `create_checkout`, etc.) with `needsApproval` when invoked inside a background run (interactive chat keeps current behavior).
+- Per-run budget: max steps, max tool calls, max tokens. Cancel + notify on overrun.
+- Per-tool rate limits in `_shared` to prevent runaway loops billing the gateway.
 
-**Migration:** add `profiles.alice_proactive_enabled BOOLEAN DEFAULT true`, `profiles.alice_proactive_level INTEGER DEFAULT 3`; create `alice_pulses` table with RLS (user owns rows).
+## Technical Details
 
----
+- **Files touched (Phase 1):** `supabase/functions/jarvis-chat/index.ts` (loop rewrite to AI SDK `streamText`), `src/hooks/useJarvis.ts` (consume `parts[]` stream), `src/components/alice/AliceActionPlan.tsx` (live status), `src/components/jarvis/JarvisChat.tsx` (render plan card).
+- **New edge functions:** `alice-run-step`, `alice-plan`, `alice-critic`.
+- **New tables:** `alice_runs`, `alice_episodic_memory` (with pgvector). Both need explicit `GRANT` + RLS scoped to `auth.uid()`.
+- **Model choices:** keep `google/gemini-3-flash-preview` for executor; use `google/gemini-2.5-pro` for planner + critic where reasoning matters.
+- **No breaking changes** to current tool signatures; the loop just calls them differently.
 
-## Order of ship
+## Suggested Sequencing
 
-I'll start with **Phase 1** end-to-end (it has the most visible payoff and unblocks Phases 2–3 visually), then circle back for 2, then 3. Each phase is one focused turn so you can review and steer between them.
+1. Phase 1 (planner/executor loop + parallel tools) — biggest perceived intelligence jump, ~1 build.
+2. Phase 3 (episodic RAG memory) — compounds value of Phase 1.
+3. Phase 2 (durable background runs) — unlocks "agent that works while you sleep".
+4. Phase 4, 5, 6 in any order after that.
 
-Reply **"go"** to start Phase 1, or tell me to re-order / drop a phase.
+Tell me which phase to start with — I'd recommend Phase 1 + a slice of Phase 3 together.
