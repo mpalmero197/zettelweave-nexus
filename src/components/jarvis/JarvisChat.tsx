@@ -422,11 +422,12 @@ export function JarvisChat({ compact = false }: Props) {
                   ) : (
                     <>
                       <div className="flex gap-2 md:gap-3 w-full">
-                        <div
-                          className="alice-orb h-6 w-6 md:h-7 md:w-7 shrink-0 mt-0.5"
-                          data-state={isLast && sending ? "streaming" : undefined}
-                          aria-hidden
-                        />
+                        <div className="shrink-0 mt-1">
+                          <GeminiStar
+                            size={compact ? 22 : 26}
+                            state={isLast && sending ? "streaming" : "idle"}
+                          />
+                        </div>
                         <div className={cn(
                           "alice-assistant-bubble flex-1 min-w-0",
                           compact ? "text-[13px]" : "text-[14px] md:text-[15px] leading-relaxed",
