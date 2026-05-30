@@ -505,7 +505,7 @@ function renderCards() {
   c.innerHTML = cardsList.map((card) => `
     <div class="item-row" data-id="${card.id}">
       <div class="item-title">${escapeHtml(card.title || 'Untitled')}</div>
-      <div class="item-snippet">${escapeHtml((card.content || '').slice(0, 140))}</div>
+      <div class="item-snippet">${escapeHtml((card.content || '').slice(0, 280))}</div>
       <div class="item-meta"><span>${escapeHtml(card.category || 'general')}</span><span>${formatDate(card.created_at)}</span></div>
     </div>
   `).join('');
@@ -557,7 +557,7 @@ function renderNotes() {
   }
   c.innerHTML = notesList.map((n) => `
     <div class="note-card" data-id="${n.id}">
-      <p><strong>${escapeHtml(n.title || 'Untitled')}</strong>\n${escapeHtml((n.content || '').slice(0, 200))}</p>
+      <p><strong>${escapeHtml(n.title || 'Untitled')}</strong>\n${escapeHtml((n.content || '').slice(0, 380))}</p>
       <div class="note-meta">
         <span>${formatDate(n.created_at)} ☁️</span>
       </div>
