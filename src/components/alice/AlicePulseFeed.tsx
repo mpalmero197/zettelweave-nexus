@@ -158,9 +158,17 @@ export function AlicePulseFeed() {
                             <span className="ml-auto text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
                           </div>
                           {(r.status === "pending" || r.status === "running") && (
-                            <div className="mt-1.5 h-1 w-full bg-muted rounded overflow-hidden">
-                              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-                            </div>
+                            <>
+                              <div className="mt-1.5 h-1 w-full bg-muted rounded overflow-hidden">
+                                <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                              </div>
+                              <button
+                                onClick={() => cancelRun(r.id)}
+                                className="mt-1 text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2"
+                              >
+                                Cancel
+                              </button>
+                            </>
                           )}
                           {r.status === "completed" && r.result && (
                             <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-3">{r.result}</p>
