@@ -35,6 +35,8 @@ export function AlicePulseFeed() {
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [open, setOpen] = useState(false);
+  const [newGoal, setNewGoal] = useState("");
+  const [launching, setLaunching] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
