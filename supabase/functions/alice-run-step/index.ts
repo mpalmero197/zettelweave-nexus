@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
           status: isDone ? "completed" : "running",
           result: isDone ? (parsed.result || stepRecord.result || run.result) : run.result,
           finished_at: isDone ? new Date().toISOString() : null,
-          next_run_at: isDone ? new Date().toISOString() : new Date(Date.now() + 30_000).toISOString(),
+          next_run_at: isDone ? new Date().toISOString() : new Date(Date.now() + (toolName ? 5_000 : 30_000)).toISOString(),
         }).eq("id", run.id);
 
         // Notify user when a run completes + write episodic memory.
