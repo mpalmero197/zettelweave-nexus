@@ -252,3 +252,113 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// ============================================================================
+// Tool dispatcher — a focused subset of jarvis-chat's tool catalog so a
+// background run can actually DO things, not just draft text. Keep this list
+// intentionally small and safe; mutating tools always scope to run.user_id.
+// ============================================================================
+type ToolCtx = {
+  svc: any;
+  apiKey: string;
+  userId: string;
+  runId: string;
+  baseUrl: string;
+};
+
+async function embed384(text: string): Promise<number[] | null> {
+  try {
+    const r = await fetch(
+      "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: text.slice(0, 2000), options: { wait_for_model: true } }) },
+    );
+    if (!r.ok) return null;
+    const ed = await r.json();
+    if (Array.isArray(ed) && Array.isArray(ed[0])) {
+      const dims = ed[0].length; const out = new Array(dims).fill(0);
+      for (const tok of ed) for (let i = 0; i < dims; i++) out[i] += tok[i];
+      for (let i = 0; i < dims; i++) out[i] /= ed.length;
+      return out;
+    }
+    if (Array.isArray(ed) && typeof ed[0] === "number") return ed as number[];
+    return null;
+  } catch { return null; }
+}
+
+async function runTool(name: string, args: any, ctx: ToolCtx): Promise<any> {
+  switch (name) {
+    case "web_search": {
+      const query = String(args?.query || "").trim();
+      if (!query) return { error: "query required" };
+      const res = await fetch(`${ctx.baseUrl}/functions/v1/web-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) return { error: `web-search ${res.status}` };
+      const j = await res.json();
+      return { answer: (j.answer || j.summary || "").slice(0, 1200), sources: (j.sources || j.citations || []).slice(0, 5) };
+    }
+    case "search_my_content": {
+      const query = String(args?.query || "").trim();
+      const limit = Math.min(Number(args?.limit || 5), 10);
+      if (!query) return { error: "query required" };
+      const vec = await embed384(query);
+      const out: any = { cards: [], notes: [] };
+      // Fallback to ILIKE if embedding unavailable.
+      if (!vec) {
+        const { data: cards } = await ctx.svc.from("zettel_cards")
+          .select("id,title,content").eq("user_id", ctx.userId).is("deleted_at", null)
+          .or(`title.ilike.%${query}%,content.ilike.%${query}%`).limit(limit);
+        const { data: notes } = await ctx.svc.from("notes")
+          .select("id,title,content").eq("user_id", ctx.userId).is("deleted_at", null)
+          .or(`title.ilike.%${query}%,content.ilike.%${query}%`).limit(limit);
+        out.cards = (cards || []).map((c: any) => ({ id: c.id, title: c.title, snippet: (c.content || "").slice(0, 200) }));
+        out.notes = (notes || []).map((n: any) => ({ id: n.id, title: n.title, snippet: (n.content || "").slice(0, 200) }));
+        return out;
+      }
+      // Lightweight: do ILIKE for now even with vec; full RPC pgvector match
+      // would need 384-dim columns on cards/notes which they don't have today.
+      const { data: cards } = await ctx.svc.from("zettel_cards")
+        .select("id,title,content").eq("user_id", ctx.userId).is("deleted_at", null)
+        .or(`title.ilike.%${query}%,content.ilike.%${query}%`).limit(limit);
+      out.cards = (cards || []).map((c: any) => ({ id: c.id, title: c.title, snippet: (c.content || "").slice(0, 200) }));
+      return out;
+    }
+    case "recall_episodic": {
+      const query = String(args?.query || "").trim();
+      if (!query) return { error: "query required" };
+      const vec = await embed384(query);
+      if (!vec) return { matches: [] };
+      // Service role bypasses RLS; scope manually to this user.
+      const { data, error } = await ctx.svc.rpc("match_alice_episodic_for_user", {
+        target_user: ctx.userId, query_embedding: vec, match_count: 5, min_similarity: 0.5,
+      });
+      if (error) return { matches: [], note: error.message };
+      return { matches: (data || []).map((m: any) => ({ summary: m.summary, similarity: m.similarity })) };
+    }
+    case "create_card": {
+      const title = String(args?.title || "Untitled").slice(0, 200);
+      const content = String(args?.content || "").slice(0, 20000);
+      const tags = Array.isArray(args?.tags) ? args.tags.map(String).slice(0, 10) : [];
+      const { data, error } = await ctx.svc.from("zettel_cards")
+        .insert({ user_id: ctx.userId, title, content, tags, source: "alice_background" })
+        .select("id").single();
+      if (error) return { error: error.message };
+      return { id: data.id, kind: "card", url: `/app/cards?card=${data.id}` };
+    }
+    case "create_note": {
+      const title = String(args?.title || "Untitled").slice(0, 200);
+      const content = String(args?.content || "").slice(0, 50000);
+      const tags = Array.isArray(args?.tags) ? args.tags.map(String).slice(0, 10) : [];
+      const { data, error } = await ctx.svc.from("notes")
+        .insert({ user_id: ctx.userId, title, content, tags })
+        .select("id").single();
+      if (error) return { error: error.message };
+      return { id: data.id, kind: "note", url: `/app/notes?note=${data.id}` };
+    }
+    default:
+      return { error: `unknown tool "${name}"` };
+  }
+}
