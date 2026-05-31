@@ -4553,6 +4553,21 @@ export type Database = {
           tags: string[]
         }[]
       }
+      match_alice_episodic_for_user: {
+        Args: {
+          match_count?: number
+          min_similarity?: number
+          query_embedding: string
+          target_user: string
+        }
+        Returns: {
+          id: string
+          similarity: number
+          source_id: string
+          source_kind: string
+          summary: string
+        }[]
+      }
       report_error: {
         Args: {
           p_column_number?: number
