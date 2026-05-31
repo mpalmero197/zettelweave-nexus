@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { Sparkles, Check, X as XIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Check, X as XIcon, Loader2, CheckCircle2, AlertCircle, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 
 type Pulse = {
