@@ -122,15 +122,36 @@ Deno.serve(async (req) => {
         let parsed: any = {};
         try { parsed = JSON.parse(raw); } catch { parsed = { action: "done", step: "(unparseable model reply)", result: raw }; }
 
+        // If model asked for a tool, execute it server-side and fold the
+        // tool's output into this step's result. Tool errors are captured
+        // verbatim so the model sees them next turn.
+        let toolName: string | null = parsed.tool || null;
+        let toolResult: any = null;
+        if (toolName) {
+          try {
+            toolResult = await runTool(toolName, parsed.tool_args || {}, {
+              svc, apiKey, userId: run.user_id, runId: run.id, baseUrl: url,
+            });
+          } catch (te: any) {
+            toolResult = { error: te?.message || String(te) };
+          }
+        }
+
         const stepRecord = {
           n: run.step_count + 1,
           at: new Date().toISOString(),
           thought: parsed.thought || null,
           step: parsed.step || "(unspecified)",
-          result: parsed.result || null,
+          tool: toolName,
+          tool_args: toolName ? (parsed.tool_args || null) : null,
+          tool_result: toolResult,
+          result: toolName
+            ? (typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult)).slice(0, 1500)
+            : (parsed.result || null),
         };
         const newSteps = [...prevSteps, stepRecord];
-        const isDone = parsed.action === "done" || newSteps.length >= run.max_steps;
+        // Never auto-finish on a tool call — give ALICE the next turn to react.
+        const isDone = !toolName && (parsed.action === "done" || newSteps.length >= run.max_steps);
 
         await svc.from("alice_runs").update({
           steps: newSteps,
