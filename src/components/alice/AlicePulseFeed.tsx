@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { Sparkles, Check, X as XIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Check, X as XIcon, Loader2, CheckCircle2, AlertCircle, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 
 type Pulse = {
@@ -33,6 +35,8 @@ export function AlicePulseFeed() {
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [open, setOpen] = useState(false);
+  const [newGoal, setNewGoal] = useState("");
+  const [launching, setLaunching] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -64,6 +68,26 @@ export function AlicePulseFeed() {
     await supabase.from("alice_pulses").update({ status, acted_at: new Date().toISOString() }).eq("id", id);
   };
 
+  const cancelRun = async (id: string) => {
+    await supabase.from("alice_runs").update({ status: "cancelled", finished_at: new Date().toISOString() }).eq("id", id);
+    load();
+  };
+
+  const launchTask = async () => {
+    const goal = newGoal.trim();
+    if (!goal || !user) return;
+    setLaunching(true);
+    const { error } = await supabase.from("alice_runs").insert({
+      user_id: user.id, goal, status: "pending", max_steps: 10, step_count: 0, steps: [],
+      next_run_at: new Date().toISOString(),
+    });
+    setLaunching(false);
+    if (error) { toast.error(error.message); return; }
+    setNewGoal("");
+    toast.success("Background task queued");
+    load();
+  };
+
   const onOpenChange = (v: boolean) => {
     setOpen(v);
     if (v && unread > 0) {
@@ -92,6 +116,21 @@ export function AlicePulseFeed() {
           </div>
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Proactive</span>
         </div>
+        <div className="px-3 py-2 border-b bg-muted/30">
+          <div className="flex gap-1.5">
+            <Input
+              value={newGoal}
+              onChange={(e) => setNewGoal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); launchTask(); } }}
+              placeholder="Give ALICE a background task…"
+              className="h-8 text-xs"
+              disabled={launching}
+            />
+            <Button size="sm" className="h-8 px-2" onClick={launchTask} disabled={launching || !newGoal.trim()}>
+              {launching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        </div>
         <ScrollArea className="max-h-[420px]">
           {runs.length > 0 && (
             <div className="border-b">
@@ -119,9 +158,17 @@ export function AlicePulseFeed() {
                             <span className="ml-auto text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
                           </div>
                           {(r.status === "pending" || r.status === "running") && (
-                            <div className="mt-1.5 h-1 w-full bg-muted rounded overflow-hidden">
-                              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-                            </div>
+                            <>
+                              <div className="mt-1.5 h-1 w-full bg-muted rounded overflow-hidden">
+                                <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                              </div>
+                              <button
+                                onClick={() => cancelRun(r.id)}
+                                className="mt-1 text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2"
+                              >
+                                Cancel
+                              </button>
+                            </>
                           )}
                           {r.status === "completed" && r.result && (
                             <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-3">{r.result}</p>

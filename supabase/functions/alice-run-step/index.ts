@@ -166,6 +166,41 @@ Deno.serve(async (req) => {
               });
             }
           } catch (_e) { /* best-effort */ }
+
+          // Phase 5 — Self-critique post-mortem. Ask a cheap model to grade the
+          // run and surface a single concrete improvement idea into the same
+          // platform_insights queue the rest of the self-improvement engine
+          // already feeds from. Failures here are non-fatal.
+          try {
+            const critiqueRes = await fetch(GATEWAY_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [
+                  { role: "system", content: `You are ALICE's critic. Given a completed background run, output ONE compact JSON object: { "verdict": "good"|"mixed"|"poor", "what_worked": string, "what_failed": string, "missing_capability": string, "improvement": string }. Be terse — each field under 200 chars. "improvement" is a concrete, shippable idea for ALICE (e.g. "add tool X", "tighten planner prompt to do Y"). No prose, no fences.` },
+                  { role: "user", content: `GOAL: ${run.goal}\nSTEPS: ${newSteps.length}/${run.max_steps}\nSTEPS_LOG:\n${newSteps.map((s: any) => `- ${s.step} -> ${(s.result || "").slice(0, 200)}`).join("\n")}\nFINAL_RESULT: ${(parsed.result || "").slice(0, 600)}` },
+                ],
+                response_format: { type: "json_object" },
+              }),
+            });
+            if (critiqueRes.ok) {
+              const cd = await critiqueRes.json();
+              const critique = JSON.parse(cd.choices?.[0]?.message?.content || "{}");
+              if (critique?.improvement) {
+                await svc.from("platform_insights").insert({
+                  category: "alice_self_improvement",
+                  title: `ALICE run ${critique.verdict || "review"}: ${run.goal.slice(0, 80)}`,
+                  description: critique.improvement,
+                  priority: critique.verdict === "poor" ? "high" : critique.verdict === "mixed" ? "medium" : "low",
+                  status: "pending",
+                  source_reference: `alice_run:${run.id}`,
+                  recommendation: critique.missing_capability || null,
+                  metadata: { run_id: run.id, goal: run.goal, critique },
+                });
+              }
+            }
+          } catch (_e) { /* best-effort */ }
         }
 
 
