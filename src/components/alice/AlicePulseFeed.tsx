@@ -116,6 +116,21 @@ export function AlicePulseFeed() {
           </div>
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Proactive</span>
         </div>
+        <div className="px-3 py-2 border-b bg-muted/30">
+          <div className="flex gap-1.5">
+            <Input
+              value={newGoal}
+              onChange={(e) => setNewGoal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); launchTask(); } }}
+              placeholder="Give ALICE a background task…"
+              className="h-8 text-xs"
+              disabled={launching}
+            />
+            <Button size="sm" className="h-8 px-2" onClick={launchTask} disabled={launching || !newGoal.trim()}>
+              {launching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        </div>
         <ScrollArea className="max-h-[420px]">
           {runs.length > 0 && (
             <div className="border-b">
