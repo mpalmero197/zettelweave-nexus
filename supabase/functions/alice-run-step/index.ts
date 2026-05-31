@@ -15,16 +15,22 @@ const corsHeaders = {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-pro"; // planner needs reasoning
 
-const SYSTEM = `You are ALICE running an autonomous background task. Each turn you receive the goal, prior steps you've already taken, and any results. Respond with a SINGLE compact JSON object — no prose, no markdown fences — of the shape:
+const SYSTEM = `You are ALICE running an autonomous background task. Each turn you receive the goal, prior steps, and any tool results. Respond with a SINGLE compact JSON object — no prose, no markdown fences:
 
-{ "thought": string, "action": "continue" | "done", "step": string, "result"?: string }
+{ "thought": string, "action": "continue" | "done", "step": string, "result"?: string, "tool"?: string, "tool_args"?: object }
 
 - "thought": brief reasoning (1-2 sentences).
-- "step": the concrete action you would take this turn (e.g. "draft outline", "search notes for X", "summarize findings"). Be specific.
-- "result": when action="done", the final deliverable / answer for the user. Otherwise the artifact produced by this step.
-- Choose action="done" as soon as the goal is genuinely satisfied. Do not pad. If the goal is impossible or unclear after a couple of steps, choose action="done" and explain in "result".
-
-Constraints: you do NOT have tools in this loop yet — you are reasoning and drafting only. Keep each step's output under 1500 chars.`;
+- "step": the concrete action this turn (e.g. "search web for X", "draft outline", "save findings as card"). Be specific.
+- "result": when action="done", the final deliverable for the user. Omit when calling a tool — the tool's output will be recorded as the step's result.
+- "tool" + "tool_args": optional. Call ONE tool per step. Available tools:
+  • web_search { "query": string }  — fresh web facts via Perplexity.
+  • search_my_content { "query": string, "limit"?: number }  — semantic search across the user's notes & cards.
+  • recall_episodic { "query": string }  — recall what you (ALICE) did for this user before.
+  • create_card { "title": string, "content": string, "tags"?: string[] }  — save a Zettel card the user will see.
+  • create_note { "title": string, "content": string, "tags"?: string[] }  — save a note the user will see.
+- Choose action="done" as soon as the goal is satisfied. Cite saved card/note ids in "result" when you saved something.
+- Do not call create_card or create_note until you have actually gathered enough material. Prefer 1-2 tool calls then write.
+- Keep each step's "result" or tool output under 1500 chars.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
