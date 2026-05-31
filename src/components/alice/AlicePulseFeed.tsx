@@ -68,6 +68,26 @@ export function AlicePulseFeed() {
     await supabase.from("alice_pulses").update({ status, acted_at: new Date().toISOString() }).eq("id", id);
   };
 
+  const cancelRun = async (id: string) => {
+    await supabase.from("alice_runs").update({ status: "cancelled", finished_at: new Date().toISOString() }).eq("id", id);
+    load();
+  };
+
+  const launchTask = async () => {
+    const goal = newGoal.trim();
+    if (!goal || !user) return;
+    setLaunching(true);
+    const { error } = await supabase.from("alice_runs").insert({
+      user_id: user.id, goal, status: "pending", max_steps: 10, step_count: 0, steps: [],
+      next_run_at: new Date().toISOString(),
+    });
+    setLaunching(false);
+    if (error) { toast.error(error.message); return; }
+    setNewGoal("");
+    toast.success("Background task queued");
+    load();
+  };
+
   const onOpenChange = (v: boolean) => {
     setOpen(v);
     if (v && unread > 0) {
