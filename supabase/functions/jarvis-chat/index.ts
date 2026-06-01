@@ -1485,12 +1485,22 @@ async function executeTool(
         const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/web-search`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: authHeader },
-          body: JSON.stringify({ query: String(args.query || "") }),
+          body: JSON.stringify({ query: String(args.query || ""), includeContext: false }),
         });
         const j = await r.json().catch(() => ({}));
-        return j?.results
-          ? { results: (j.results || []).slice(0, 8) }
-          : (j?.summary ? { summary: j.summary } : { results: [] });
+        if (j?.error) return { error: String(j.error) };
+        // web-search returns { result, citations, images, videoDetails, shopping, news, relatedQuestions }
+        const summary = typeof j?.result === "string" ? j.result : (typeof j?.summary === "string" ? j.summary : "");
+        return {
+          summary: summary.slice(0, 6000),
+          citations: Array.isArray(j?.citations) ? j.citations.slice(0, 8) : [],
+          images: Array.isArray(j?.images) ? j.images.slice(0, 6) : [],
+          videos: Array.isArray(j?.videoDetails) ? j.videoDetails.slice(0, 4) : [],
+          related_questions: Array.isArray(j?.relatedQuestions) ? j.relatedQuestions.slice(0, 5) : [],
+          hint: summary
+            ? "Use this summary + citations to answer the user with concrete facts. Cite sources inline."
+            : "Search returned no usable content; tell the user honestly and offer to try a refined query.",
+        };
       }
       case "get_weather": {
         try {
