@@ -24,12 +24,16 @@ const SYSTEM = `You are ALICE running an autonomous background task. Each turn y
 - "result": when action="done", the final deliverable for the user. Omit when calling a tool — the tool's output will be recorded as the step's result.
 - "tool" + "tool_args": optional. Call ONE tool per step. Available tools:
   • web_search { "query": string }  — fresh web facts via Perplexity.
+  • fetch_url { "url": string }  — fetch and extract clean text from a webpage.
   • search_my_content { "query": string, "limit"?: number }  — semantic search across the user's notes & cards.
   • recall_episodic { "query": string }  — recall what you (ALICE) did for this user before.
-  • create_card { "title": string, "content": string, "tags"?: string[] }  — save a Zettel card the user will see.
-  • create_note { "title": string, "content": string, "tags"?: string[] }  — save a note the user will see.
-- Choose action="done" as soon as the goal is satisfied. Cite saved card/note ids in "result" when you saved something.
-- Do not call create_card or create_note until you have actually gathered enough material. Prefer 1-2 tool calls then write.
+  • create_card { "title": string, "content": string, "tags"?: string[] }  — save a Zettel card.
+  • create_note { "title": string, "content": string, "tags"?: string[] }  — save a note.
+  • update_card { "id": string, "title"?: string, "content"?: string, "tags"?: string[] }  — edit an existing Zettel card you own.
+  • create_task { "name": string, "due_date"?: "YYYY-MM-DD", "priority"?: "low"|"medium"|"high", "notes"?: string }  — add a task to the user's list.
+  • schedule_followup { "goal": string, "delay_minutes": number, "instructions"?: string }  — queue a new ALICE background run for later (e.g. "monitor X weekly").
+- Choose action="done" as soon as the goal is satisfied. Cite saved ids in "result".
+- Do not save (create_*/update_*) until you have gathered enough material. Prefer 1-3 research tool calls then write.
 - Keep each step's "result" or tool output under 1500 chars.`;
 
 Deno.serve(async (req) => {
@@ -357,6 +361,56 @@ async function runTool(name: string, args: any, ctx: ToolCtx): Promise<any> {
         .select("id").single();
       if (error) return { error: error.message };
       return { id: data.id, kind: "note", url: `/app/notes?note=${data.id}` };
+    }
+    case "update_card": {
+      const id = String(args?.id || "");
+      if (!id) return { error: "id required" };
+      const patch: any = {};
+      if (typeof args?.title === "string") patch.title = args.title.slice(0, 200);
+      if (typeof args?.content === "string") patch.content = args.content.slice(0, 20000);
+      if (Array.isArray(args?.tags)) patch.tags = args.tags.map(String).slice(0, 10);
+      if (!Object.keys(patch).length) return { error: "no fields to update" };
+      const { error } = await ctx.svc.from("zettel_cards")
+        .update(patch).eq("id", id).eq("user_id", ctx.userId).is("deleted_at", null);
+      if (error) return { error: error.message };
+      return { id, updated: Object.keys(patch) };
+    }
+    case "fetch_url": {
+      const url = String(args?.url || "").trim();
+      if (!/^https?:\/\//.test(url)) return { error: "valid http(s) url required" };
+      const res = await fetch(`${ctx.baseUrl}/functions/v1/fetch-url-content`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) return { error: `fetch-url ${res.status}` };
+      const j = await res.json();
+      return { title: j.title || null, text: (j.content || j.text || "").toString().slice(0, 2000) };
+    }
+    case "create_task": {
+      const name = String(args?.name || "").trim().slice(0, 200);
+      if (!name) return { error: "name required" };
+      const due = typeof args?.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.due_date) ? args.due_date : null;
+      const priority = ["low", "medium", "high"].includes(args?.priority) ? args.priority : "medium";
+      const { data, error } = await ctx.svc.from("project_tasks")
+        .insert({ user_id: ctx.userId, name, due_date: due, priority, status: "todo", notes: args?.notes || null })
+        .select("id").single();
+      if (error) return { error: error.message };
+      return { id: data.id, kind: "task" };
+    }
+    case "schedule_followup": {
+      const goal = String(args?.goal || "").trim().slice(0, 500);
+      const delay = Math.max(1, Math.min(Number(args?.delay_minutes || 60), 60 * 24 * 14)); // 1 min – 14 days
+      if (!goal) return { error: "goal required" };
+      const nextAt = new Date(Date.now() + delay * 60_000).toISOString();
+      const { data, error } = await ctx.svc.from("alice_runs")
+        .insert({
+          user_id: ctx.userId, goal, instructions: args?.instructions || null,
+          status: "pending", next_run_at: nextAt, max_steps: 12, step_count: 0, steps: [],
+          parent_run_id: ctx.runId,
+        }).select("id").single();
+      if (error) return { error: error.message };
+      return { id: data.id, scheduled_for: nextAt };
     }
     default:
       return { error: `unknown tool "${name}"` };
