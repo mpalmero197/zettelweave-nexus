@@ -568,6 +568,7 @@ export type Database = {
           instructions: string | null
           max_steps: number
           next_run_at: string
+          parent_run_id: string | null
           plan: Json
           result: string | null
           started_at: string | null
@@ -586,6 +587,7 @@ export type Database = {
           instructions?: string | null
           max_steps?: number
           next_run_at?: string
+          parent_run_id?: string | null
           plan?: Json
           result?: string | null
           started_at?: string | null
@@ -604,6 +606,7 @@ export type Database = {
           instructions?: string | null
           max_steps?: number
           next_run_at?: string
+          parent_run_id?: string | null
           plan?: Json
           result?: string | null
           started_at?: string | null
@@ -613,7 +616,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alice_runs_parent_run_id_fkey"
+            columns: ["parent_run_id"]
+            isOneToOne: false
+            referencedRelation: "alice_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       alice_scheduled_triggers: {
         Row: {

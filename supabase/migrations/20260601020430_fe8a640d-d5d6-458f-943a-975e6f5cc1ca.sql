@@ -1,0 +1,2 @@
+ALTER TABLE public.alice_runs ADD COLUMN IF NOT EXISTS parent_run_id UUID REFERENCES public.alice_runs(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_alice_runs_parent ON public.alice_runs(parent_run_id);
