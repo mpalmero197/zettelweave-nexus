@@ -24,12 +24,16 @@ const SYSTEM = `You are ALICE running an autonomous background task. Each turn y
 - "result": when action="done", the final deliverable for the user. Omit when calling a tool — the tool's output will be recorded as the step's result.
 - "tool" + "tool_args": optional. Call ONE tool per step. Available tools:
   • web_search { "query": string }  — fresh web facts via Perplexity.
+  • fetch_url { "url": string }  — fetch and extract clean text from a webpage.
   • search_my_content { "query": string, "limit"?: number }  — semantic search across the user's notes & cards.
   • recall_episodic { "query": string }  — recall what you (ALICE) did for this user before.
-  • create_card { "title": string, "content": string, "tags"?: string[] }  — save a Zettel card the user will see.
-  • create_note { "title": string, "content": string, "tags"?: string[] }  — save a note the user will see.
-- Choose action="done" as soon as the goal is satisfied. Cite saved card/note ids in "result" when you saved something.
-- Do not call create_card or create_note until you have actually gathered enough material. Prefer 1-2 tool calls then write.
+  • create_card { "title": string, "content": string, "tags"?: string[] }  — save a Zettel card.
+  • create_note { "title": string, "content": string, "tags"?: string[] }  — save a note.
+  • update_card { "id": string, "title"?: string, "content"?: string, "tags"?: string[] }  — edit an existing Zettel card you own.
+  • create_task { "name": string, "due_date"?: "YYYY-MM-DD", "priority"?: "low"|"medium"|"high", "notes"?: string }  — add a task to the user's list.
+  • schedule_followup { "goal": string, "delay_minutes": number, "instructions"?: string }  — queue a new ALICE background run for later (e.g. "monitor X weekly").
+- Choose action="done" as soon as the goal is satisfied. Cite saved ids in "result".
+- Do not save (create_*/update_*) until you have gathered enough material. Prefer 1-3 research tool calls then write.
 - Keep each step's "result" or tool output under 1500 chars.`;
 
 Deno.serve(async (req) => {
