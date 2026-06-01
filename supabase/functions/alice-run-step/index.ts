@@ -362,6 +362,56 @@ async function runTool(name: string, args: any, ctx: ToolCtx): Promise<any> {
       if (error) return { error: error.message };
       return { id: data.id, kind: "note", url: `/app/notes?note=${data.id}` };
     }
+    case "update_card": {
+      const id = String(args?.id || "");
+      if (!id) return { error: "id required" };
+      const patch: any = {};
+      if (typeof args?.title === "string") patch.title = args.title.slice(0, 200);
+      if (typeof args?.content === "string") patch.content = args.content.slice(0, 20000);
+      if (Array.isArray(args?.tags)) patch.tags = args.tags.map(String).slice(0, 10);
+      if (!Object.keys(patch).length) return { error: "no fields to update" };
+      const { error } = await ctx.svc.from("zettel_cards")
+        .update(patch).eq("id", id).eq("user_id", ctx.userId).is("deleted_at", null);
+      if (error) return { error: error.message };
+      return { id, updated: Object.keys(patch) };
+    }
+    case "fetch_url": {
+      const url = String(args?.url || "").trim();
+      if (!/^https?:\/\//.test(url)) return { error: "valid http(s) url required" };
+      const res = await fetch(`${ctx.baseUrl}/functions/v1/fetch-url-content`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) return { error: `fetch-url ${res.status}` };
+      const j = await res.json();
+      return { title: j.title || null, text: (j.content || j.text || "").toString().slice(0, 2000) };
+    }
+    case "create_task": {
+      const name = String(args?.name || "").trim().slice(0, 200);
+      if (!name) return { error: "name required" };
+      const due = typeof args?.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.due_date) ? args.due_date : null;
+      const priority = ["low", "medium", "high"].includes(args?.priority) ? args.priority : "medium";
+      const { data, error } = await ctx.svc.from("project_tasks")
+        .insert({ user_id: ctx.userId, name, due_date: due, priority, status: "todo", notes: args?.notes || null })
+        .select("id").single();
+      if (error) return { error: error.message };
+      return { id: data.id, kind: "task" };
+    }
+    case "schedule_followup": {
+      const goal = String(args?.goal || "").trim().slice(0, 500);
+      const delay = Math.max(1, Math.min(Number(args?.delay_minutes || 60), 60 * 24 * 14)); // 1 min – 14 days
+      if (!goal) return { error: "goal required" };
+      const nextAt = new Date(Date.now() + delay * 60_000).toISOString();
+      const { data, error } = await ctx.svc.from("alice_runs")
+        .insert({
+          user_id: ctx.userId, goal, instructions: args?.instructions || null,
+          status: "pending", next_run_at: nextAt, max_steps: 12, step_count: 0, steps: [],
+          parent_run_id: ctx.runId,
+        }).select("id").single();
+      if (error) return { error: error.message };
+      return { id: data.id, scheduled_for: nextAt };
+    }
     default:
       return { error: `unknown tool "${name}"` };
   }
