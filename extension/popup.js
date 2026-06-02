@@ -1128,6 +1128,147 @@ function deriveAliceFollowups(lastAssistant, lastUser) {
   return ["Tell me more", "Summarize that in 3 bullets", "What should I do next?"];
 }
 
+// ── Rich-card rendering for assistant messages ──
+// ALICE may embed `[[ALICE_CARD type=...]]{json}[[/ALICE_CARD]]` blocks in
+// her text. Parse them out so we can render lightweight inline cards
+// (link, image, video, weather, map, file) instead of dumping raw JSON.
+function parseAliceCardBlocks(text) {
+  const out = [];
+  const RX = /\[\[?ALICE_CARD(?:\s+type=([a-z]+))?\]\]?([\s\S]*?)\[\[?\/ALICE_CARD\]\]?/g;
+  let last = 0;
+  let m;
+  while ((m = RX.exec(text)) !== null) {
+    const before = text.slice(last, m.index);
+    if (before.trim()) out.push({ kind: 'text', text: before });
+    try {
+      const payload = JSON.parse(m[2].trim());
+      const card = m[1] ? Object.assign({ type: m[1] }, payload) : payload;
+      if (card && typeof card === 'object' && card.type) out.push({ kind: 'card', card });
+    } catch (_) { /* skip */ }
+    last = m.index + m[0].length;
+  }
+  const tail = text.slice(last);
+  if (tail.trim()) out.push({ kind: 'text', text: tail });
+  if (out.length === 0) out.push({ kind: 'text', text });
+  // Also strip any leftover plan-execute markers from text chunks.
+  return out.map((c) =>
+    c.kind === 'text'
+      ? { kind: 'text', text: c.text.replace(/\[\[ALICE_PLAN_EXECUTE\]\][\s\S]*?\[\[\/ALICE_PLAN_EXECUTE\]\]/g, '').trim() }
+      : c
+  ).filter((c) => c.kind === 'card' || (c.text && c.text.length));
+}
+
+function ytIdFrom(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split(/[/?#]/)[0] || null;
+    if (u.hostname.includes('youtube.com')) {
+      if (u.pathname.startsWith('/watch')) return u.searchParams.get('v');
+      const m = u.pathname.match(/^\/(?:embed|shorts|v)\/([^/?#]+)/);
+      if (m) return m[1];
+    }
+  } catch (_) { /* noop */ }
+  return null;
+}
+function domainFrom(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return ''; }
+}
+
+function renderAliceCardEl(card) {
+  const box = document.createElement('div');
+  box.className = 'alice-rcard';
+  const t = card.type;
+  if (t === 'link') {
+    const a = document.createElement('a');
+    a.href = card.url; a.target = '_blank'; a.rel = 'noreferrer';
+    a.className = 'alice-rcard-link';
+    const dom = card.domain || domainFrom(card.url);
+    a.innerHTML = `
+      ${card.image ? `<div class="rcard-thumb"><img src="${escapeHtml(card.image)}" alt=""></div>` : ''}
+      <div class="rcard-body">
+        <div class="rcard-meta">${escapeHtml(dom)}</div>
+        <div class="rcard-title">${escapeHtml(card.title || card.url)}</div>
+        ${card.description ? `<div class="rcard-desc">${escapeHtml(card.description)}</div>` : ''}
+      </div>`;
+    box.appendChild(a);
+  } else if (t === 'image') {
+    box.innerHTML = `<img class="rcard-image" src="${escapeHtml(card.url)}" alt="${escapeHtml(card.alt || card.caption || '')}">
+      ${card.caption ? `<div class="rcard-caption">${escapeHtml(card.caption)}</div>` : ''}`;
+  } else if (t === 'video') {
+    const yt = ytIdFrom(card.url || '');
+    const thumb = card.thumbnail || card.poster || (yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : '');
+    const dom = domainFrom(card.url || '');
+    const href = card.url || '#';
+    box.innerHTML = `
+      <a class="rcard-video" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
+        ${thumb ? `<img src="${escapeHtml(thumb)}" alt="">` : '<div class="rcard-video-fallback"></div>'}
+        <span class="rcard-play">▶</span>
+        ${dom ? `<span class="rcard-badge">Watch on ${escapeHtml(dom)}</span>` : ''}
+      </a>
+      ${card.title ? `<div class="rcard-title">${escapeHtml(card.title)}</div>` : ''}
+      ${card.channel ? `<div class="rcard-meta">${escapeHtml(card.channel)}</div>` : ''}`;
+  } else if (t === 'weather') {
+    const cur = card.current || {};
+    const fc = Array.isArray(card.forecast) ? card.forecast.slice(0, 5) : [];
+    box.innerHTML = `
+      <div class="rcard-weather">
+        <div class="rw-head">
+          <div class="rw-loc">${escapeHtml(card.location || 'Weather')}</div>
+          <div class="rw-temp">${escapeHtml(cur.temperature || '')}</div>
+        </div>
+        <div class="rw-cond">${escapeHtml(cur.condition || '')}</div>
+        ${cur.feels_like || cur.humidity || cur.wind ? `<div class="rw-meta">
+          ${cur.feels_like ? `Feels ${escapeHtml(cur.feels_like)}` : ''}
+          ${cur.humidity ? ` · ${escapeHtml(cur.humidity)} hum` : ''}
+          ${cur.wind ? ` · ${escapeHtml(cur.wind)}` : ''}
+        </div>` : ''}
+        ${fc.length ? `<div class="rw-fc">${fc.map((d) => `
+          <div class="rw-day">
+            <div>${escapeHtml(d.date || '')}</div>
+            <div>${escapeHtml(d.condition || '')}</div>
+            <div>${escapeHtml(d.high || '')}° / ${escapeHtml(d.low || '')}°</div>
+          </div>`).join('')}</div>` : ''}
+      </div>`;
+  } else if (t === 'map') {
+    const url = `https://www.google.com/maps/search/?api=1&query=${card.lat},${card.lng}`;
+    box.innerHTML = `<a class="alice-rcard-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">
+      <div class="rcard-body">
+        <div class="rcard-meta">Map</div>
+        <div class="rcard-title">${escapeHtml(card.label || `${card.lat}, ${card.lng}`)}</div>
+        <div class="rcard-desc">Open in Google Maps →</div>
+      </div></a>`;
+  } else if (t === 'file' || t === 'pdf') {
+    box.innerHTML = `<a class="alice-rcard-link" href="${escapeHtml(card.url)}" target="_blank" rel="noreferrer">
+      <div class="rcard-body">
+        <div class="rcard-meta">${t === 'pdf' ? 'PDF' : escapeHtml(card.mime || 'File')}</div>
+        <div class="rcard-title">${escapeHtml(card.title || card.name || card.url)}</div>
+      </div></a>`;
+  } else if (t === 'quote') {
+    box.innerHTML = `<blockquote class="rcard-quote">${escapeHtml(card.text || '')}
+      ${card.author || card.source ? `<footer>— ${escapeHtml(card.author || '')}${card.source ? `, ${escapeHtml(card.source)}` : ''}</footer>` : ''}
+    </blockquote>`;
+  } else {
+    // Unknown card type — render compactly instead of as raw JSON
+    box.innerHTML = `<div class="rcard-meta">${escapeHtml(card.type || 'card')}</div>`;
+  }
+  return box;
+}
+
+function renderAssistantContent(container, content) {
+  const chunks = parseAliceCardBlocks(content || '');
+  for (const ch of chunks) {
+    if (ch.kind === 'text') {
+      const p = document.createElement('div');
+      p.className = 'ai-msg-text';
+      p.textContent = ch.text;
+      container.appendChild(p);
+    } else {
+      container.appendChild(renderAliceCardEl(ch.card));
+    }
+  }
+  if (!container.childNodes.length) container.textContent = content || '';
+}
+
 function renderAIMessages() {
   const c = document.getElementById('ai-messages');
   if (!c) return;
@@ -1157,7 +1298,11 @@ function renderAIMessages() {
     }
     const d = document.createElement('div');
     d.className = `ai-msg ${m.role}`;
-    d.textContent = m.content;
+    if (m.role === 'assistant') {
+      renderAssistantContent(d, m.content);
+    } else {
+      d.textContent = m.content;
+    }
     row.appendChild(d);
     c.appendChild(row);
   });

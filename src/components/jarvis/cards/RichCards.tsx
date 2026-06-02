@@ -38,10 +38,27 @@ const shellClass =
 function youtubeId(url: string): string | null {
   try {
     const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
-    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1).split(/[/?#]/)[0] || null;
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname.startsWith("/watch")) return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(?:embed|shorts|v)\/([^/?#]+)/);
+      if (m) return m[1];
+    }
   } catch { /* noop */ }
   return null;
+}
+
+function vimeoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("vimeo.com")) return null;
+    const m = u.pathname.match(/\/(\d+)/);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+
+function isDirectMedia(url: string): boolean {
+  return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
 }
 
 function domainOf(url: string): string {
@@ -102,24 +119,69 @@ function PdfCard({ card }: { card: Extract<AliceCard, { type: "pdf" }> }) {
 
 function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
   const ytId = youtubeId(card.url);
+  const vmId = !ytId ? vimeoId(card.url) : null;
+  const direct = !ytId && !vmId && isDirectMedia(card.url);
+  const embeddable = Boolean(ytId || vmId || direct);
   const [playing, setPlaying] = useState(false);
-  const thumb = card.thumbnail || card.poster || (ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : "");
+  const thumb =
+    card.thumbnail ||
+    card.poster ||
+    (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : "");
+  const domain = domainOf(card.url);
+
   return (
     <motion.div {...cardMotion} className={shellClass}>
       <div className="relative aspect-video bg-black">
-        {playing || !thumb ? (
+        {embeddable && playing ? (
           ytId ? (
-            <iframe src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`} title={card.title || "Video"} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : vmId ? (
+            <iframe
+              src={`https://player.vimeo.com/video/${vmId}?autoplay=1`}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
           ) : (
             <video src={card.url} poster={card.poster} controls autoPlay className="w-full h-full" />
           )
         ) : (
-          <button onClick={() => setPlaying(true)} className="group w-full h-full relative">
-            <img src={thumb} alt={card.title || ""} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-              <div className="h-14 w-14 rounded-full bg-primary/95 flex items-center justify-center shadow-lg"><Play className="h-6 w-6 text-primary-foreground fill-current ml-0.5" /></div>
+          <a
+            href={embeddable ? undefined : card.url}
+            target={embeddable ? undefined : "_blank"}
+            rel="noreferrer"
+            onClick={(e) => {
+              if (embeddable) { e.preventDefault(); setPlaying(true); }
+            }}
+            className="group w-full h-full relative block"
+          >
+            {thumb ? (
+              <img src={thumb} alt={card.title || ""} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-background" />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/55 transition-colors">
+              <div className="h-14 w-14 rounded-full bg-primary/95 flex items-center justify-center shadow-lg">
+                {embeddable ? (
+                  <Play className="h-6 w-6 text-primary-foreground fill-current ml-0.5" />
+                ) : (
+                  <ExternalLink className="h-6 w-6 text-primary-foreground" />
+                )}
+              </div>
             </div>
-          </button>
+            {!embeddable && domain && (
+              <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/65 text-white text-[11px]">
+                Watch on {domain}
+              </div>
+            )}
+          </a>
         )}
       </div>
       {(card.title || card.channel) && (
