@@ -38,10 +38,27 @@ const shellClass =
 function youtubeId(url: string): string | null {
   try {
     const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
-    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1).split(/[/?#]/)[0] || null;
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname.startsWith("/watch")) return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(?:embed|shorts|v)\/([^/?#]+)/);
+      if (m) return m[1];
+    }
   } catch { /* noop */ }
   return null;
+}
+
+function vimeoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("vimeo.com")) return null;
+    const m = u.pathname.match(/\/(\d+)/);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+
+function isDirectMedia(url: string): boolean {
+  return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
 }
 
 function domainOf(url: string): string {
