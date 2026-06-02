@@ -1157,7 +1157,11 @@ function renderAIMessages() {
     }
     const d = document.createElement('div');
     d.className = `ai-msg ${m.role}`;
-    d.textContent = m.content;
+    if (m.role === 'assistant') {
+      renderAssistantContent(d, m.content);
+    } else {
+      d.textContent = m.content;
+    }
     row.appendChild(d);
     c.appendChild(row);
   });
