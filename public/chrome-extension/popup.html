@@ -684,6 +684,60 @@
       padding-left: 10px; margin: 6px 0;
     }
 
+    /* ── ALICE rich inline cards (link / image / video / weather / map) ── */
+    #ai-tab .alice-rcard {
+      margin: 6px 0;
+      border-radius: 10px;
+      border: 1px solid hsl(var(--border));
+      background: hsl(var(--bg-card) / .65);
+      overflow: hidden;
+    }
+    #ai-tab .alice-rcard-link {
+      display: flex; gap: 10px; padding: 8px 10px;
+      text-decoration: none; color: inherit; align-items: flex-start;
+    }
+    #ai-tab .alice-rcard-link:hover { background: hsl(var(--violet) / .08); }
+    #ai-tab .rcard-thumb { flex: 0 0 56px; height: 56px; border-radius: 6px; overflow: hidden; background: hsl(var(--bg-2)); }
+    #ai-tab .rcard-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    #ai-tab .rcard-body { flex: 1; min-width: 0; }
+    #ai-tab .rcard-meta { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: hsl(var(--fg-muted)); }
+    #ai-tab .rcard-title { font-size: 13px; font-weight: 600; margin-top: 2px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    #ai-tab .rcard-desc { font-size: 11px; color: hsl(var(--fg-muted)); margin-top: 3px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    #ai-tab .rcard-image { width: 100%; max-height: 240px; object-fit: cover; display: block; }
+    #ai-tab .rcard-caption { font-size: 11px; padding: 6px 10px; color: hsl(var(--fg-muted)); }
+    #ai-tab .rcard-video { position: relative; display: block; aspect-ratio: 16/9; background: #000; text-decoration: none; }
+    #ai-tab .rcard-video img { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+    #ai-tab .rcard-video-fallback { position: absolute; inset: 0; background: linear-gradient(135deg, hsl(var(--violet) / .35), hsl(var(--blue) / .25)); }
+    #ai-tab .rcard-play {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 42px; height: 42px; border-radius: 9999px;
+      background: hsl(var(--violet) / .95); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; box-shadow: 0 6px 20px hsl(var(--violet) / .6);
+    }
+    #ai-tab .rcard-badge {
+      position: absolute; left: 8px; bottom: 8px;
+      background: rgba(0,0,0,.6); color: #fff; font-size: 10px;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    #ai-tab .alice-rcard .rcard-title,
+    #ai-tab .alice-rcard .rcard-meta { padding-left: 10px; padding-right: 10px; }
+    #ai-tab .alice-rcard .rcard-video + .rcard-title { padding-top: 6px; }
+    #ai-tab .alice-rcard .rcard-meta:last-child { padding-bottom: 8px; }
+    #ai-tab .rcard-weather { padding: 10px 12px; }
+    #ai-tab .rw-head { display: flex; justify-content: space-between; align-items: baseline; }
+    #ai-tab .rw-loc { font-size: 13px; font-weight: 600; }
+    #ai-tab .rw-temp { font-size: 22px; font-weight: 600; color: hsl(var(--cyan)); }
+    #ai-tab .rw-cond { font-size: 12px; color: hsl(var(--fg-muted)); margin-top: 2px; }
+    #ai-tab .rw-meta { font-size: 11px; color: hsl(var(--fg-muted)); margin-top: 4px; }
+    #ai-tab .rw-fc { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid hsl(var(--border)); }
+    #ai-tab .rw-day { font-size: 10px; text-align: center; color: hsl(var(--fg-muted)); line-height: 1.4; }
+    #ai-tab .rcard-quote { font-style: italic; padding: 10px 12px; border-left: 3px solid hsl(var(--violet)); margin: 0; }
+    #ai-tab .rcard-quote footer { margin-top: 6px; font-size: 11px; color: hsl(var(--fg-muted)); font-style: normal; }
+    #ai-tab .ai-msg-text { white-space: pre-wrap; }
+    #ai-tab .ai-msg-text + .alice-rcard { margin-top: 8px; }
+
+
     /* Empty state */
     #ai-tab .ai-empty { padding: 28px 12px 12px; text-align: center; color: hsl(var(--fg-muted)); font-size: 12px; }
     #ai-tab .ai-empty .ai-hero {
