@@ -55,6 +55,7 @@ let aliceThreadId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
+  chrome.runtime?.sendMessage?.({ type: 'PENDRAGONX_REGISTER_CONTEXT_MENUS' }, () => void chrome.runtime.lastError);
   setupTabs();
   setupAuth();
   setupPomodoro();
