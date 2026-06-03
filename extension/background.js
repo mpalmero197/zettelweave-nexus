@@ -155,6 +155,31 @@ async function ensureFreshSession(token, refreshToken, expiresAt) {
   }
 }
 
+async function getUserId(token) {
+  if (!token) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return null;
+    const user = await r.json().catch(() => ({}));
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function responseError(res) {
+  const text = await res.text().catch(() => "");
+  if (!text) return `HTTP ${res.status}`;
+  try {
+    const json = JSON.parse(text);
+    return json.message || json.error || json.msg || `HTTP ${res.status}`;
+  } catch {
+    return text.slice(0, 180) || `HTTP ${res.status}`;
+  }
+}
+
 async function syncOpenTabs() {
   const stored = await chrome.storage.local.get(["pendragonx_auth_token", "pendragonx_refresh_token", "pendragonx_session_expires_at", "pendragonx_tab_share_enabled"]);
   const token = await ensureFreshSession(stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at);
