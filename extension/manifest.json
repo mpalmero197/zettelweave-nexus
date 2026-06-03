@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "PendragonX Toolbox",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "description": "PendragonX Toolbox",
-  "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting"],
+  "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting", "contextMenus", "notifications"],
   "host_permissions": [
     "https://sckglgjydlbztxjupbsk.supabase.co/*",
     "<all_urls>"
