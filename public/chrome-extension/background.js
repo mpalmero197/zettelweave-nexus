@@ -8,17 +8,32 @@ const SUPABASE_URL = "https://sckglgjydlbztxjupbsk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNja2dsZ2p5ZGxienR4anVwYnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzYzMjUsImV4cCI6MjA3MTkxMjMyNX0.3uZ0NUIN3yJsUgsCWdTKAhWf_DdLDiDske83hBpK3Yw";
 const TAB_INGEST_URL = `${SUPABASE_URL}/functions/v1/ingest-browser-tabs`;
+const SUMMARIZE_URL = `${SUPABASE_URL}/functions/v1/summarize-page-to-card`;
 const TAB_ALARM = "pendragonx_tab_sync";
+const APP_URL = "https://pendragonx.com";
+
+function registerContextMenus() {
+  if (!chrome.contextMenus) return;
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({ id: "pendragonx_root", title: "PendragonX", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_summarize_page", parentId: "pendragonx_root", title: "Summarize page to card", contexts: ["page", "selection", "link"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_selection_card", parentId: "pendragonx_root", title: "Save selection as card", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_scratchpad", parentId: "pendragonx_root", title: "Save selection to scratchpad", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_image_card", parentId: "pendragonx_root", title: "Save image as card", contexts: ["image"] });
+    chrome.contextMenus.create({ id: "pendragonx_sep", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_open_panel", parentId: "pendragonx_root", title: "Open Toolbox side panel", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_open_app", parentId: "pendragonx_root", title: "Open PendragonX app", contexts: ["page", "selection", "link", "image"] });
+  });
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
   }
-  // Sync browser tabs every 1 minute (Chrome's minimum alarm period).
-  if (chrome.alarms) {
-    chrome.alarms.create(TAB_ALARM, { periodInMinutes: 1 });
-  }
+  if (chrome.alarms) chrome.alarms.create(TAB_ALARM, { periodInMinutes: 1 });
+  registerContextMenus();
 });
+chrome.runtime.onStartup?.addListener(() => registerContextMenus());
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {
@@ -143,4 +158,142 @@ async function syncOpenTabs() {
     },
     body: JSON.stringify({ tabs: payload }),
   });
+}
+
+// ───── Context menu click handler ─────
+chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
+  try {
+    if (info.menuItemId === "pendragonx_open_panel") {
+      if (chrome.sidePanel?.open && tab?.windowId != null) {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+      }
+      return;
+    }
+    if (info.menuItemId === "pendragonx_open_app") {
+      await chrome.tabs.create({ url: APP_URL });
+      return;
+    }
+
+    const stored = await chrome.storage.local.get([
+      "pendragonx_auth_token", "pendragonx_refresh_token", "pendragonx_session_expires_at",
+    ]);
+    const token = await ensureFreshSession(
+      stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at
+    );
+    if (!token) {
+      await toast(tab?.id, "Sign in to PendragonX first", false);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_summarize_page") {
+      await toast(tab?.id, "Summarizing page…", true);
+      const page = await extractPage(tab?.id);
+      if (!page) { await toast(tab?.id, "Couldn't read this page", false); return; }
+      const res = await fetch(SUMMARIZE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: page.text, url: page.url, title: page.title }),
+      });
+      const d = await res.json().catch(() => ({}));
+      await toast(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Summary"}` : `Failed: ${d.error || res.status}`, res.ok);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_save_selection_card") {
+      const text = String(info.selectionText || "").trim();
+      if (text.length < 8) { await toast(tab?.id, "Select more text first", false); return; }
+      const res = await fetch(SUMMARIZE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text, url: tab?.url || "", title: tab?.title || "Selection" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      await toast(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Selection"}` : `Failed: ${d.error || res.status}`, res.ok);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_save_scratchpad") {
+      const text = String(info.selectionText || "").slice(0, 500);
+      if (text.length < 1) { await toast(tab?.id, "Nothing selected", false); return; }
+      const body = `${text}\n\n— from ${tab?.title || tab?.url || ""}\n${tab?.url || ""}`.trim();
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`, Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ content: body }),
+      });
+      await toast(tab?.id, res.ok ? "✓ Saved to Scratchpad" : `Failed: HTTP ${res.status}`, res.ok);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_save_image_card") {
+      const imgUrl = info.srcUrl || "";
+      if (!imgUrl) { await toast(tab?.id, "No image URL", false); return; }
+      const body = `![image](${imgUrl})\n\nFrom: [${tab?.title || tab?.url}](${tab?.url})`;
+      // Use direct insert with a tiny placeholder card via summarize-page-to-card path skipped; insert via PostgREST scratchpad fallback won't make a card. Instead post to summarize with the image markdown so it stays a card.
+      const res = await fetch(SUMMARIZE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: body, url: tab?.url || "", title: `Image from ${tab?.title || "page"}` }),
+      });
+      const d = await res.json().catch(() => ({}));
+      await toast(tab?.id, res.ok ? `✓ Saved image card` : `Failed: ${d.error || res.status}`, res.ok);
+      return;
+    }
+  } catch (e) {
+    console.warn("[pendragonx] menu click failed", e);
+    await toast(tab?.id, `Error: ${String(e?.message || e)}`, false);
+  }
+});
+
+async function extractPage(tabId) {
+  if (!tabId || !chrome.scripting?.executeScript) return null;
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const title = document.title || "";
+        const url = location.href;
+        // Prefer <article>/<main>, else body text
+        const root = document.querySelector("article") || document.querySelector("main") || document.body;
+        const clone = root.cloneNode(true);
+        clone.querySelectorAll("script,style,noscript,nav,footer,aside,header").forEach((n) => n.remove());
+        const text = (clone.innerText || "").replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 18000);
+        return { title, url, text };
+      },
+    });
+    return res?.result || null;
+  } catch (e) {
+    console.warn("extractPage failed", e);
+    return null;
+  }
+}
+
+async function toast(tabId, message, ok) {
+  if (!tabId || !chrome.scripting?.executeScript) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (msg, isOk) => {
+        const id = "__pendragonx_toast";
+        document.getElementById(id)?.remove();
+        const el = document.createElement("div");
+        el.id = id;
+        el.textContent = msg;
+        el.style.cssText = [
+          "all:initial", "position:fixed", "right:16px", "bottom:16px", "z-index:2147483647",
+          "background:" + (isOk ? "#0f0f12" : "#3b0a0a"),
+          "color:#fff", "font:600 13px/1.3 'Inter',-apple-system,system-ui,sans-serif",
+          "padding:10px 14px", "border-radius:9999px",
+          "box-shadow:0 8px 28px rgba(0,0,0,.4), 0 0 0 1px " + (isOk ? "rgba(167,139,250,.45)" : "rgba(220,38,38,.55)"),
+          "max-width:340px",
+        ].join(";");
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+      },
+      args: [String(message), !!ok],
+    });
+  } catch { /* ignore */ }
 }
