@@ -250,14 +250,14 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
 
     if (info.menuItemId === "pendragonx_save_selection_card") {
       const text = String(info.selectionText || "").trim();
-      if (text.length < 8) { await toast(tab?.id, "Select more text first", false); return; }
+      if (text.length < 8) { await notify(tab?.id, "Select more text first", false); return; }
       const res = await fetch(SUMMARIZE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text, url: tab?.url || "", title: tab?.title || "Selection" }),
       });
       const d = await res.json().catch(() => ({}));
-      await toast(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Selection"}` : `Failed: ${d.error || res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Selection"}` : `Failed: ${d.error || res.status}`, res.ok);
       return;
     }
 
@@ -281,7 +281,7 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
 
     if (info.menuItemId === "pendragonx_save_image_card") {
       const imgUrl = info.srcUrl || "";
-      if (!imgUrl) { await toast(tab?.id, "No image URL", false); return; }
+      if (!imgUrl) { await notify(tab?.id, "No image URL", false); return; }
       const body = `![image](${imgUrl})\n\nFrom: [${tab?.title || tab?.url}](${tab?.url})`;
       // Use direct insert with a tiny placeholder card via summarize-page-to-card path skipped; insert via PostgREST scratchpad fallback won't make a card. Instead post to summarize with the image markdown so it stays a card.
       const res = await fetch(SUMMARIZE_URL, {
@@ -290,12 +290,12 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
         body: JSON.stringify({ text: body, url: tab?.url || "", title: `Image from ${tab?.title || "page"}` }),
       });
       const d = await res.json().catch(() => ({}));
-      await toast(tab?.id, res.ok ? `✓ Saved image card` : `Failed: ${d.error || res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? `✓ Saved image card` : `Failed: ${d.error || res.status}`, res.ok);
       return;
     }
   } catch (e) {
     console.warn("[pendragonx] menu click failed", e);
-    await toast(tab?.id, `Error: ${String(e?.message || e)}`, false);
+    await notify(tab?.id, `Error: ${String(e?.message || e)}`, false);
   }
 });
 
@@ -323,7 +323,7 @@ async function extractPage(tabId) {
 }
 
 async function toast(tabId, message, ok) {
-  if (!tabId || !chrome.scripting?.executeScript) return;
+  if (!tabId || !chrome.scripting?.executeScript) return false;
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
@@ -346,5 +346,8 @@ async function toast(tabId, message, ok) {
       },
       args: [String(message), !!ok],
     });
-  } catch { /* ignore */ }
+    return true;
+  } catch {
+    return false;
+  }
 }
