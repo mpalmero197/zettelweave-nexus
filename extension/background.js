@@ -46,6 +46,7 @@ chrome.runtime.onInstalled.addListener(() => {
   registerContextMenus();
 });
 chrome.runtime.onStartup?.addListener(() => registerContextMenus());
+registerContextMenus();
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {
@@ -229,21 +230,21 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
       stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at
     );
     if (!token) {
-      await toast(tab?.id, "Sign in to PendragonX first", false);
+      await notify(tab?.id, "Sign in to PendragonX first", false);
       return;
     }
 
     if (info.menuItemId === "pendragonx_summarize_page") {
-      await toast(tab?.id, "Summarizing page…", true);
+      await notify(tab?.id, "Summarizing page…", true);
       const page = await extractPage(tab?.id);
-      if (!page) { await toast(tab?.id, "Couldn't read this page", false); return; }
+      if (!page) { await notify(tab?.id, "Couldn't read this page", false); return; }
       const res = await fetch(SUMMARIZE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text: page.text, url: page.url, title: page.title }),
       });
       const d = await res.json().catch(() => ({}));
-      await toast(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Summary"}` : `Failed: ${d.error || res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Summary"}` : `Failed: ${d.error || res.status}`, res.ok);
       return;
     }
 
@@ -262,17 +263,19 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
 
     if (info.menuItemId === "pendragonx_save_scratchpad") {
       const text = String(info.selectionText || "").slice(0, 500);
-      if (text.length < 1) { await toast(tab?.id, "Nothing selected", false); return; }
+      if (text.length < 1) { await notify(tab?.id, "Nothing selected", false); return; }
       const body = `${text}\n\n— from ${tab?.title || tab?.url || ""}\n${tab?.url || ""}`.trim();
+      const userId = await getUserId(token);
+      if (!userId) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
       const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${token}`, Prefer: "return=minimal",
         },
-        body: JSON.stringify({ content: body }),
+        body: JSON.stringify({ content: body, user_id: userId }),
       });
-      await toast(tab?.id, res.ok ? "✓ Saved to Scratchpad" : `Failed: HTTP ${res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? "✓ Saved to Scratchpad" : `Failed: ${await responseError(res)}`, res.ok);
       return;
     }
 
