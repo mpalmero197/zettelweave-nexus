@@ -26,6 +26,18 @@ function registerContextMenus() {
   });
 }
 
+async function notify(tabId, message, ok = true) {
+  const shownOnPage = await toast(tabId, message, ok);
+  if (shownOnPage) return;
+  if (!chrome.notifications?.create) return;
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: "icon-128.png",
+    title: ok ? "PendragonX" : "PendragonX needs attention",
+    message: String(message).slice(0, 240),
+  });
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -55,9 +67,14 @@ chrome.tabs?.onActivated.addListener(() => debouncedSync());
 chrome.tabs?.onUpdated.addListener((_id, info) => { if (info.status === "complete") debouncedSync(); });
 chrome.tabs?.onRemoved.addListener(() => debouncedSync());
 
-// ───── Highlight → Scratchpad capture (from content.js) ─────
+// ───── Extension messages ─────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return;
+  if (msg?.type === "PENDRAGONX_REGISTER_CONTEXT_MENUS") {
+    registerContextMenus();
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return false;
   (async () => {
     try {
       const stored = await chrome.storage.local.get([
@@ -80,6 +97,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const body = sourceUrl
         ? `${content}\n\n— from ${sourceTitle || sourceUrl}\n${sourceUrl}`
         : content;
+      const userId = await getUserId(token);
+      if (!userId) {
+        sendResponse({ ok: false, error: "sign in" });
+        return;
+      }
       const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
         method: "POST",
         headers: {
@@ -88,9 +110,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           Authorization: `Bearer ${token}`,
           Prefer: "return=minimal",
         },
-        body: JSON.stringify({ content: body }),
+        body: JSON.stringify({ content: body, user_id: userId }),
       });
-      sendResponse({ ok: res.ok, error: res.ok ? undefined : `HTTP ${res.status}` });
+      const errorText = res.ok ? undefined : await responseError(res);
+      sendResponse({ ok: res.ok, error: errorText });
     } catch (e) {
       sendResponse({ ok: false, error: String(e?.message || e) });
     }
