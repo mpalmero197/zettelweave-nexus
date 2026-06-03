@@ -26,6 +26,18 @@ function registerContextMenus() {
   });
 }
 
+async function notify(tabId, message, ok = true) {
+  const shownOnPage = await toast(tabId, message, ok);
+  if (shownOnPage) return;
+  if (!chrome.notifications?.create) return;
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: "icon-128.png",
+    title: ok ? "PendragonX" : "PendragonX needs attention",
+    message: String(message).slice(0, 240),
+  });
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -34,6 +46,7 @@ chrome.runtime.onInstalled.addListener(() => {
   registerContextMenus();
 });
 chrome.runtime.onStartup?.addListener(() => registerContextMenus());
+registerContextMenus();
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {
@@ -55,9 +68,14 @@ chrome.tabs?.onActivated.addListener(() => debouncedSync());
 chrome.tabs?.onUpdated.addListener((_id, info) => { if (info.status === "complete") debouncedSync(); });
 chrome.tabs?.onRemoved.addListener(() => debouncedSync());
 
-// ───── Highlight → Scratchpad capture (from content.js) ─────
+// ───── Extension messages ─────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return;
+  if (msg?.type === "PENDRAGONX_REGISTER_CONTEXT_MENUS") {
+    registerContextMenus();
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return false;
   (async () => {
     try {
       const stored = await chrome.storage.local.get([
@@ -80,6 +98,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const body = sourceUrl
         ? `${content}\n\n— from ${sourceTitle || sourceUrl}\n${sourceUrl}`
         : content;
+      const userId = await getUserId(token);
+      if (!userId) {
+        sendResponse({ ok: false, error: "sign in" });
+        return;
+      }
       const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
         method: "POST",
         headers: {
@@ -88,9 +111,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           Authorization: `Bearer ${token}`,
           Prefer: "return=minimal",
         },
-        body: JSON.stringify({ content: body }),
+        body: JSON.stringify({ content: body, user_id: userId }),
       });
-      sendResponse({ ok: res.ok, error: res.ok ? undefined : `HTTP ${res.status}` });
+      const errorText = res.ok ? undefined : await responseError(res);
+      sendResponse({ ok: res.ok, error: errorText });
     } catch (e) {
       sendResponse({ ok: false, error: String(e?.message || e) });
     }
@@ -129,6 +153,31 @@ async function ensureFreshSession(token, refreshToken, expiresAt) {
     return d.access_token;
   } catch {
     return token;
+  }
+}
+
+async function getUserId(token) {
+  if (!token) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return null;
+    const user = await r.json().catch(() => ({}));
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function responseError(res) {
+  const text = await res.text().catch(() => "");
+  if (!text) return `HTTP ${res.status}`;
+  try {
+    const json = JSON.parse(text);
+    return json.message || json.error || json.msg || `HTTP ${res.status}`;
+  } catch {
+    return text.slice(0, 180) || `HTTP ${res.status}`;
   }
 }
 
@@ -181,56 +230,58 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
       stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at
     );
     if (!token) {
-      await toast(tab?.id, "Sign in to PendragonX first", false);
+      await notify(tab?.id, "Sign in to PendragonX first", false);
       return;
     }
 
     if (info.menuItemId === "pendragonx_summarize_page") {
-      await toast(tab?.id, "Summarizing page…", true);
+      await notify(tab?.id, "Summarizing page…", true);
       const page = await extractPage(tab?.id);
-      if (!page) { await toast(tab?.id, "Couldn't read this page", false); return; }
+      if (!page) { await notify(tab?.id, "Couldn't read this page", false); return; }
       const res = await fetch(SUMMARIZE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text: page.text, url: page.url, title: page.title }),
       });
       const d = await res.json().catch(() => ({}));
-      await toast(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Summary"}` : `Failed: ${d.error || res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Summary"}` : `Failed: ${d.error || res.status}`, res.ok);
       return;
     }
 
     if (info.menuItemId === "pendragonx_save_selection_card") {
       const text = String(info.selectionText || "").trim();
-      if (text.length < 8) { await toast(tab?.id, "Select more text first", false); return; }
+      if (text.length < 8) { await notify(tab?.id, "Select more text first", false); return; }
       const res = await fetch(SUMMARIZE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text, url: tab?.url || "", title: tab?.title || "Selection" }),
       });
       const d = await res.json().catch(() => ({}));
-      await toast(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Selection"}` : `Failed: ${d.error || res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Selection"}` : `Failed: ${d.error || res.status}`, res.ok);
       return;
     }
 
     if (info.menuItemId === "pendragonx_save_scratchpad") {
       const text = String(info.selectionText || "").slice(0, 500);
-      if (text.length < 1) { await toast(tab?.id, "Nothing selected", false); return; }
+      if (text.length < 1) { await notify(tab?.id, "Nothing selected", false); return; }
       const body = `${text}\n\n— from ${tab?.title || tab?.url || ""}\n${tab?.url || ""}`.trim();
+      const userId = await getUserId(token);
+      if (!userId) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
       const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${token}`, Prefer: "return=minimal",
         },
-        body: JSON.stringify({ content: body }),
+        body: JSON.stringify({ content: body, user_id: userId }),
       });
-      await toast(tab?.id, res.ok ? "✓ Saved to Scratchpad" : `Failed: HTTP ${res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? "✓ Saved to Scratchpad" : `Failed: ${await responseError(res)}`, res.ok);
       return;
     }
 
     if (info.menuItemId === "pendragonx_save_image_card") {
       const imgUrl = info.srcUrl || "";
-      if (!imgUrl) { await toast(tab?.id, "No image URL", false); return; }
+      if (!imgUrl) { await notify(tab?.id, "No image URL", false); return; }
       const body = `![image](${imgUrl})\n\nFrom: [${tab?.title || tab?.url}](${tab?.url})`;
       // Use direct insert with a tiny placeholder card via summarize-page-to-card path skipped; insert via PostgREST scratchpad fallback won't make a card. Instead post to summarize with the image markdown so it stays a card.
       const res = await fetch(SUMMARIZE_URL, {
@@ -239,12 +290,12 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
         body: JSON.stringify({ text: body, url: tab?.url || "", title: `Image from ${tab?.title || "page"}` }),
       });
       const d = await res.json().catch(() => ({}));
-      await toast(tab?.id, res.ok ? `✓ Saved image card` : `Failed: ${d.error || res.status}`, res.ok);
+      await notify(tab?.id, res.ok ? `✓ Saved image card` : `Failed: ${d.error || res.status}`, res.ok);
       return;
     }
   } catch (e) {
     console.warn("[pendragonx] menu click failed", e);
-    await toast(tab?.id, `Error: ${String(e?.message || e)}`, false);
+    await notify(tab?.id, `Error: ${String(e?.message || e)}`, false);
   }
 });
 
@@ -272,7 +323,7 @@ async function extractPage(tabId) {
 }
 
 async function toast(tabId, message, ok) {
-  if (!tabId || !chrome.scripting?.executeScript) return;
+  if (!tabId || !chrome.scripting?.executeScript) return false;
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
@@ -295,5 +346,8 @@ async function toast(tabId, message, ok) {
       },
       args: [String(message), !!ok],
     });
-  } catch { /* ignore */ }
+    return true;
+  } catch {
+    return false;
+  }
 }
