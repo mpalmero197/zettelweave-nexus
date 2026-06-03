@@ -8,17 +8,32 @@ const SUPABASE_URL = "https://sckglgjydlbztxjupbsk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNja2dsZ2p5ZGxienR4anVwYnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzYzMjUsImV4cCI6MjA3MTkxMjMyNX0.3uZ0NUIN3yJsUgsCWdTKAhWf_DdLDiDske83hBpK3Yw";
 const TAB_INGEST_URL = `${SUPABASE_URL}/functions/v1/ingest-browser-tabs`;
+const SUMMARIZE_URL = `${SUPABASE_URL}/functions/v1/summarize-page-to-card`;
 const TAB_ALARM = "pendragonx_tab_sync";
+const APP_URL = "https://pendragonx.com";
+
+function registerContextMenus() {
+  if (!chrome.contextMenus) return;
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({ id: "pendragonx_root", title: "PendragonX", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_summarize_page", parentId: "pendragonx_root", title: "Summarize page to card", contexts: ["page", "selection", "link"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_selection_card", parentId: "pendragonx_root", title: "Save selection as card", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_scratchpad", parentId: "pendragonx_root", title: "Save selection to scratchpad", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_image_card", parentId: "pendragonx_root", title: "Save image as card", contexts: ["image"] });
+    chrome.contextMenus.create({ id: "pendragonx_sep", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_open_panel", parentId: "pendragonx_root", title: "Open Toolbox side panel", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_open_app", parentId: "pendragonx_root", title: "Open PendragonX app", contexts: ["page", "selection", "link", "image"] });
+  });
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
   }
-  // Sync browser tabs every 1 minute (Chrome's minimum alarm period).
-  if (chrome.alarms) {
-    chrome.alarms.create(TAB_ALARM, { periodInMinutes: 1 });
-  }
+  if (chrome.alarms) chrome.alarms.create(TAB_ALARM, { periodInMinutes: 1 });
+  registerContextMenus();
 });
+chrome.runtime.onStartup?.addListener(() => registerContextMenus());
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {
