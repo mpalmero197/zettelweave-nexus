@@ -62,8 +62,6 @@ Allow: /
 # Default rule for all other bots
 User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /admin
 Disallow: /app
 Disallow: /settings
 Disallow: /subscription

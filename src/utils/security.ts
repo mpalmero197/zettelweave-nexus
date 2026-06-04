@@ -110,22 +110,16 @@ export const createCardLimiter = new RateLimiter(20, 60000); // 20 card creation
 /**
  * Content Security Policy helpers
  */
+/**
+ * Security headers are configured via <meta> tags in index.html (CSP, Permissions-Policy,
+ * Referrer-Policy, X-Content-Type-Options) and at the Cloudflare edge (HSTS, X-Frame-Options).
+ * This function is intentionally a no-op — do not inject duplicate/conflicting CSPs at runtime.
+ * @deprecated kept for backward compatibility; safe to remove.
+ */
 export function setSecurityHeaders() {
-  // These would typically be set by the server, but we can add some client-side protections
-  const meta = document.createElement('meta');
-  meta.httpEquiv = 'Content-Security-Policy';
-  meta.content = `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: blob: https:;
-    font-src 'self';
-    connect-src 'self' https://*.supabase.co https://api.openai.com;
-    media-src 'self' blob:;
-  `.replace(/\s+/g, ' ').trim();
-  
-  document.head.appendChild(meta);
+  // no-op: see index.html for the single source of truth
 }
+
 
 /**
  * Prevents common timing attacks by adding consistent delays

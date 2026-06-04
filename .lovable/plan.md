@@ -1,71 +1,57 @@
-# Game Plan: ALICE → Agentic Powerhouse
 
-ALICE today is a single-turn assistant with ~55 well-scoped tools in `jarvis-chat`. She executes one tool at a time, has limited working memory beyond `save_memory`/`recall_memory`, and cannot run jobs that outlive the chat request. This plan upgrades her along five axes — **Planning, Execution, Memory, Perception, Autonomy** — in shippable phases.
+## Context
 
-## Phase 1 — Planner / Executor Loop (foundation)
+This is a Vite/React SPA hosted on Lovable (Cloudflare edge), with Supabase as the backend. Most of the pasted findings come from a generic web scanner and **do not apply** to this stack:
 
-Move from "one tool per turn" to a true agent loop using the AI SDK.
+- No Nginx/Apache to configure (Lovable hosting is managed).
+- `/admin`, `/api`, `/wp-admin`, `/phpmyadmin`, `/graphql`, `/swagger`, `/actuator`, `.git`, `.aws/credentials`, `/server-status` — the scanner reports these as "accessible" because the SPA returns `index.html` (HTTP 200) for **every** unknown path (SPA fallback). They are not real endpoints. `/admin` is a client-side React route already gated by Supabase auth + `has_role('admin')` RLS.
+- HTTP `PUT/DELETE/PATCH` on `/` "succeed" for the same reason — static hosting returns the SPA shell. There is no server route to mutate.
+- TLS, HSTS, SPF, CAA, WAF, rate limiting — handled by Cloudflare/Lovable infrastructure, not editable from the repo.
+- Auth/session/MFA/password policy — already provided by Supabase Auth (this project uses it).
 
-- Refactor `supabase/functions/jarvis-chat` to use `streamText` + `stopWhen: stepCountIs(50)` instead of the current manual loop.
-- Split the model call: a **planner step** that emits a structured `plan` (Output.object: goal, steps[], success_criteria), then an **executor step** that runs tools, then a **critic step** that checks success_criteria and decides "done / retry / replan".
-- Surface the live plan in the chat as a collapsible "ALICE is thinking…" card with per-step status (pending → running → done → failed). Reuses `AliceActionPlan.tsx`.
-- Enable **parallel tool calls** when the model emits multiple in one step (already supported by the gateway; current code serializes them).
+What we **can** meaningfully improve from this codebase:
 
-## Phase 2 — Durable Background Agents
+## Plan
 
-Right now, closing the chat kills the work. Make long tasks survive.
+### 1. Add real security response headers via `index.html` meta + edge
 
-- New table `alice_runs` (id, user_id, goal, plan jsonb, status, steps jsonb, result, created_at). GRANT + RLS per project conventions.
-- New edge function `alice-run-step` invoked by `run-scheduled-triggers` (already cron'd) to advance pending runs one step at a time, with a max wall-clock per invocation.
-- `start_background_task` tool: ALICE hands off "research X and save a card", "monitor topic Y for a week", or "draft chapter 3 overnight" to a run; user sees it in **AlicePulseFeed** with progress + cancel.
-- Wire completion into the existing engagement-nudges/web-push pipeline so finished runs notify the user.
+Add the following via `<meta http-equiv>` in `index.html` (the only mechanism available without server config):
+- `Content-Security-Policy` — scoped to actually-used origins: `self`, Supabase (`*.supabase.co`), Lovable Cloud, Google Fonts, Stripe, YouTube/Vimeo embeds, ipapi/Open-Meteo/Nominatim, HuggingFace, Open Library/Gutenberg. Start with `Content-Security-Policy-Report-Only` so we can verify nothing breaks before enforcing.
+- `Referrer-Policy: strict-origin-when-cross-origin` (confirm/keep).
+- `X-Content-Type-Options: nosniff`.
+- `Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), interest-cohort=(), payment=(self), usb=()` — note we keep `camera/mic` as `self` because Recorder Studio uses them, and `payment=self` for Stripe.
 
-## Phase 3 — Deeper Memory (RAG over everything she's done)
+Note: `X-Frame-Options`, `HSTS`, and `frame-ancestors` cannot be set via `<meta>` — those must remain on Cloudflare. I'll document this in `SECURITY_ARCHITECTURE.md`.
 
-Today `save_memory` is keyword-y. Make ALICE remember her own work.
+### 2. Tighten `public/robots.txt`
 
-- New table `alice_episodic_memory` (user_id, run_id, summary, embedding vector(384), tags, created_at). Reuse the HuggingFace `all-MiniLM-L6-v2` embedding provider already in the project.
-- After every completed run / significant chat turn, summarize → embed → insert.
-- New tool `recall_episodic` that does cosine search before the planner runs, so ALICE always has "what did I do for this user before?" context.
-- Auto-link episodic memories to the relevant Zettel cards / notebooks so the knowledge graph reflects her work.
+Remove the `Disallow: /api/` and `Disallow: /admin` lines (they leak the existence of those client routes without providing security). Keep crawler allow/deny logic for legitimate SPA routes.
 
-## Phase 4 — Perception Upgrades
+### 3. Sanitize CSP in `src/utils/security.ts`
 
-Make ALICE see what the user sees.
+The existing `setSecurityHeaders()` injects an outdated, overly permissive CSP at runtime (allows `'unsafe-eval'`, no `frame-ancestors`, etc.) and is never called. Either remove it or replace its body with a no-op + comment pointing to the meta tag (single source of truth).
 
-- Extend `useScreenContext` to optionally capture the visible DOM outline (route, current selection, focused item id) every N seconds and stash it in a ref. Send a compact snapshot with each chat turn.
-- New tool `look_at_screen` returning the snapshot, so the model can ask "what is the user currently doing?" instead of guessing.
-- For voice mode: keep the existing recording overlay; add **interim transcript streaming** into the planner so ALICE can start tool calls before the user finishes speaking.
+### 4. Document the real model in `SECURITY_ARCHITECTURE.md`
 
-## Phase 5 — Self-Critique & Auto-Improvement
+Add a "Why scanner findings don't apply" section explaining SPA fallback behavior, where headers actually come from (Cloudflare), how Supabase Auth + RLS provides the real authorization boundary, and which findings are accepted-risk vs. mitigated.
 
-Close the loop with the existing self-improvement engine.
+### 5. Supabase-side checks (read-only verification)
 
-- After each run, the critic step writes a short post-mortem (what worked / what failed / which tool was missing) into `platform_self_improve` queue.
-- Daily 6 AM job (already exists) clusters these into proposed new tools or prompt tweaks — the same pattern Pendragon already uses for SEO/AEO self-improvement, just pointed at ALICE.
-- Add an admin "ALICE Lab" panel in the existing Admin Console that lists proposed prompt/tool changes for one-click apply.
+Run `supabase--linter` and `security--run_security_scan` to confirm no real RLS/grant gaps. Address only what they flag — no speculative migrations.
 
-## Phase 6 — Safety Rails
+### Out of scope (explicitly not doing)
 
-More power = more guardrails.
+- Nginx/Apache snippets — no such server exists.
+- Blocking `/admin`, `/api`, etc. — these are SPA client routes, not server endpoints; the meaningful protection is Supabase RLS, which is already in place.
+- HSTS/CAA/SPF/WAF/TLS — infrastructure-level, configured outside this repo.
+- MFA/password policy changes — already enforced via `useAuth.ts` (8+ chars, complexity) and Supabase; tightening further is a separate UX decision.
 
-- Mark every mutating tool (`delete_content_item`, `update_content_item`, `create_checkout`, etc.) with `needsApproval` when invoked inside a background run (interactive chat keeps current behavior).
-- Per-run budget: max steps, max tool calls, max tokens. Cancel + notify on overrun.
-- Per-tool rate limits in `_shared` to prevent runaway loops billing the gateway.
+### Technical details
 
-## Technical Details
+Files to edit:
+- `index.html` — add `<meta http-equiv="Content-Security-Policy-Report-Only" content="...">` and `<meta http-equiv="Permissions-Policy" ...>`.
+- `public/robots.txt` — drop `Disallow: /api/` and `Disallow: /admin`.
+- `src/utils/security.ts` — neutralize `setSecurityHeaders()`.
+- `SECURITY_ARCHITECTURE.md` — append scanner-findings + headers section.
 
-- **Files touched (Phase 1):** `supabase/functions/jarvis-chat/index.ts` (loop rewrite to AI SDK `streamText`), `src/hooks/useJarvis.ts` (consume `parts[]` stream), `src/components/alice/AliceActionPlan.tsx` (live status), `src/components/jarvis/JarvisChat.tsx` (render plan card).
-- **New edge functions:** `alice-run-step`, `alice-plan`, `alice-critic`.
-- **New tables:** `alice_runs`, `alice_episodic_memory` (with pgvector). Both need explicit `GRANT` + RLS scoped to `auth.uid()`.
-- **Model choices:** keep `google/gemini-3-flash-preview` for executor; use `google/gemini-2.5-pro` for planner + critic where reasoning matters.
-- **No breaking changes** to current tool signatures; the loop just calls them differently.
-
-## Suggested Sequencing
-
-1. Phase 1 (planner/executor loop + parallel tools) — biggest perceived intelligence jump, ~1 build.
-2. Phase 3 (episodic RAG memory) — compounds value of Phase 1.
-3. Phase 2 (durable background runs) — unlocks "agent that works while you sleep".
-4. Phase 4, 5, 6 in any order after that.
-
-Tell me which phase to start with — I'd recommend Phase 1 + a slice of Phase 3 together.
+After ~1 week of monitoring CSP report-only violations, flip to enforcing `Content-Security-Policy` in a follow-up change.
