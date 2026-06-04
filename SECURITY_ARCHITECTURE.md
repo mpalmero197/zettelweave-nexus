@@ -150,3 +150,35 @@ Potential security improvements:
 3. **IP-based rate limiting** (server-side)
 4. **Content Security Policy** (CSP) headers
 5. **Subresource Integrity** (SRI) for CDN resources
+
+---
+
+## Scanner Findings — What Applies, What Doesn't
+
+PendragonX is a Vite/React SPA on Lovable hosting (Cloudflare edge) with Supabase backend. Generic web scanners often report false positives against SPAs.
+
+### Not applicable (false positives)
+
+- **`/admin`, `/api`, `/wp-admin`, `/phpmyadmin`, `/graphql`, `/swagger`, `/actuator`, `/console`, `/debug`** — SPA fallback returns `index.html` (HTTP 200) for any unknown path. These are not server endpoints. `/admin` is a client React route gated by Supabase Auth + the `has_role('admin')` SECURITY DEFINER function.
+- **`.git/`, `.aws/credentials`, `/server-status`** — not present in the build output; Cloudflare returns the SPA shell for unknown paths.
+- **Arbitrary `PUT`/`DELETE`/`PATCH` on `/`** — static hosting; no mutation occurs. All mutations go through Supabase PostgREST/Edge Functions, gated by RLS.
+- **Nginx/Apache hardening snippets** — no such servers; hosting is managed by Lovable/Cloudflare.
+
+### Mitigated in this repo
+
+- **CSP, Permissions-Policy, Referrer-Policy, X-Content-Type-Options** — set via `<meta>` in `index.html`. CSP currently runs in `Report-Only` mode; flip the meta tag to `Content-Security-Policy` to enforce once the violation log is clean.
+- **`robots.txt`** — no longer leaks `/api/` or `/admin` paths.
+- **Input sanitization** — DOMPurify on all user input (`src/utils/security.ts`).
+- **Auth** — Supabase enforces 8+ char complex passwords (`src/hooks/useAuth.ts`), email confirmation, session rotation, MFA support.
+- **Authorization** — RLS on every public table, roles in `public.user_roles` checked via `has_role()` SECURITY DEFINER.
+
+### Managed at the edge (Cloudflare/Lovable, not in repo)
+
+- HSTS (`max-age=31536000; includeSubDomains`)
+- TLS 1.2/1.3 enforcement, CAA records
+- WAF, DDoS, edge rate limiting
+- `X-Frame-Options` (also enforced by CSP `frame-ancestors 'none'`)
+
+### Accepted risk
+
+- CSP includes `'unsafe-inline'` and `'unsafe-eval'` for `script-src` because Vite, GA, and Stripe require them. Nonce-based CSP would require SSR.
