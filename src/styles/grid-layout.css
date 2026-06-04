@@ -50,9 +50,10 @@
 }
 
 .widget-card:hover {
-  background: hsl(var(--accent));
-  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+  border-color: hsl(var(--primary) / 0.4);
 }
+
 
 /* ===== Hero Banner ===== */
 .hero-banner {
