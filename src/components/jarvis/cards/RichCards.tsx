@@ -135,10 +135,11 @@ function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
         {embeddable && playing ? (
           ytId ? (
             <iframe
-              src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`}
+              src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
               title={card.title || "Video"}
               className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
           ) : vmId ? (
