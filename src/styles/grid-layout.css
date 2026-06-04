@@ -79,9 +79,10 @@
 }
 
 .stat-pill:hover {
-  background: hsl(var(--accent));
-  border-color: hsl(var(--accent-foreground) / 0.2);
+  background: hsl(var(--accent) / 0.15);
+  border-color: hsl(var(--primary) / 0.4);
 }
+
 
 .stat-pill:focus-visible {
   outline: 2px solid hsl(var(--ring));
