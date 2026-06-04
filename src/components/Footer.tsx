@@ -4,7 +4,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-card" role="contentinfo">
+    <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card" role="contentinfo">
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-2 text-center">
         <p className="text-xs text-muted-foreground">
           &copy; {currentYear} Halcyon Systems Group. All rights reserved.
