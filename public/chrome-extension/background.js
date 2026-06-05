@@ -1,28 +1,60 @@
 // PendragonX extension service worker.
 // - Opens the side panel on toolbar click.
-// - Periodically sends an open-tabs snapshot to the ALICE backend so the
-//   `get_open_browser_tabs` tool can ground answers in the user's real
-//   browsing session.
+// - Periodically sends an open-tabs snapshot to the ALICE backend.
+// - Rich right-click context menu: smart-route selection by length,
+//   save page as PDF, summarize, save as note/card/task, send to ALICE,
+//   define/translate selection, save image/link.
 
 const SUPABASE_URL = "https://sckglgjydlbztxjupbsk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNja2dsZ2p5ZGxienR4anVwYnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzYzMjUsImV4cCI6MjA3MTkxMjMyNX0.3uZ0NUIN3yJsUgsCWdTKAhWf_DdLDiDske83hBpK3Yw";
 const TAB_INGEST_URL = `${SUPABASE_URL}/functions/v1/ingest-browser-tabs`;
 const SUMMARIZE_URL = `${SUPABASE_URL}/functions/v1/summarize-page-to-card`;
+const DICTIONARY_URL = `${SUPABASE_URL}/functions/v1/dictionary-lookup`;
+const MODIFY_URL = `${SUPABASE_URL}/functions/v1/ai-modify-content`;
+const FETCH_URL_URL = `${SUPABASE_URL}/functions/v1/fetch-url-content`;
 const TAB_ALARM = "pendragonx_tab_sync";
 const APP_URL = "https://pendragonx.com";
+
+// Smart-routing thresholds for the unified "Save selection" item.
+const SCRATCHPAD_MAX = 500;   // < 500 chars → scratchpad
+const CARD_MAX       = 1500;  // 500–1500 → card; > 1500 → note
 
 function registerContextMenus() {
   if (!chrome.contextMenus) return;
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({ id: "pendragonx_root", title: "PendragonX", contexts: ["page", "selection", "link", "image"] });
-    chrome.contextMenus.create({ id: "pendragonx_summarize_page", parentId: "pendragonx_root", title: "Summarize page to card", contexts: ["page", "selection", "link"] });
-    chrome.contextMenus.create({ id: "pendragonx_save_selection_card", parentId: "pendragonx_root", title: "Save selection as card", contexts: ["selection"] });
-    chrome.contextMenus.create({ id: "pendragonx_save_scratchpad", parentId: "pendragonx_root", title: "Save selection to scratchpad", contexts: ["selection"] });
-    chrome.contextMenus.create({ id: "pendragonx_save_image_card", parentId: "pendragonx_root", title: "Save image as card", contexts: ["image"] });
-    chrome.contextMenus.create({ id: "pendragonx_sep", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link", "image"] });
+
+    // Selection: smart save + explicit overrides + lookups
+    chrome.contextMenus.create({ id: "pendragonx_save_smart", parentId: "pendragonx_root", title: "Save selection (auto-route)", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_as", parentId: "pendragonx_root", title: "Save selection as…", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_as_scratch", parentId: "pendragonx_save_as", title: "Scratchpad note", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_as_card",    parentId: "pendragonx_save_as", title: "ZettelCard (AI-summarized)", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_as_note",    parentId: "pendragonx_save_as", title: "Note", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_save_as_task",    parentId: "pendragonx_save_as", title: "Task", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_define",          parentId: "pendragonx_root", title: "Define selection", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_translate",       parentId: "pendragonx_root", title: "Translate selection to English", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_sep_sel", parentId: "pendragonx_root", type: "separator", contexts: ["selection"] });
+
+    // Page-level
+    chrome.contextMenus.create({ id: "pendragonx_summarize_page",  parentId: "pendragonx_root", title: "Summarize page to card", contexts: ["page", "selection", "link"] });
+    chrome.contextMenus.create({ id: "pendragonx_page_to_note",    parentId: "pendragonx_root", title: "Save page as Note (full text)", contexts: ["page", "selection", "link"] });
+    chrome.contextMenus.create({ id: "pendragonx_page_to_pdf",     parentId: "pendragonx_root", title: "Save page as PDF", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_page_to_task",    parentId: "pendragonx_root", title: "Save page as read-later task", contexts: ["page", "selection"] });
+    chrome.contextMenus.create({ id: "pendragonx_send_to_alice",   parentId: "pendragonx_root", title: "Ask ALICE about this page", contexts: ["page", "selection", "link"] });
+
+    // Link items
+    chrome.contextMenus.create({ id: "pendragonx_sep_link", parentId: "pendragonx_root", type: "separator", contexts: ["link"] });
+    chrome.contextMenus.create({ id: "pendragonx_link_to_task",      parentId: "pendragonx_root", title: "Save link as read-later task", contexts: ["link"] });
+    chrome.contextMenus.create({ id: "pendragonx_summarize_link",    parentId: "pendragonx_root", title: "Summarize linked page", contexts: ["link"] });
+
+    // Image items
+    chrome.contextMenus.create({ id: "pendragonx_save_image_card",   parentId: "pendragonx_root", title: "Save image as card", contexts: ["image"] });
+
+    // Footer
+    chrome.contextMenus.create({ id: "pendragonx_sep_foot", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link", "image"] });
     chrome.contextMenus.create({ id: "pendragonx_open_panel", parentId: "pendragonx_root", title: "Open Toolbox side panel", contexts: ["page", "selection", "link", "image"] });
-    chrome.contextMenus.create({ id: "pendragonx_open_app", parentId: "pendragonx_root", title: "Open PendragonX app", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_open_app",   parentId: "pendragonx_root", title: "Open PendragonX app", contexts: ["page", "selection", "link", "image"] });
   });
 }
 
@@ -63,12 +95,11 @@ chrome.alarms?.onAlarm.addListener(async (alarm) => {
   await syncOpenTabs().catch((e) => console.warn("[pendragonx] tab sync failed", e));
 });
 
-// Also sync when tabs change so ALICE has near-real-time context.
 chrome.tabs?.onActivated.addListener(() => debouncedSync());
 chrome.tabs?.onUpdated.addListener((_id, info) => { if (info.status === "complete") debouncedSync(); });
 chrome.tabs?.onRemoved.addListener(() => debouncedSync());
 
-// ───── Extension messages ─────
+// ───── Extension messages (from popup) ─────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "PENDRAGONX_REGISTER_CONTEXT_MENUS") {
     registerContextMenus();
@@ -78,38 +109,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return false;
   (async () => {
     try {
-      const stored = await chrome.storage.local.get([
-        "pendragonx_auth_token",
-        "pendragonx_refresh_token",
-        "pendragonx_session_expires_at",
-      ]);
-      const token = await ensureFreshSession(
-        stored.pendragonx_auth_token,
-        stored.pendragonx_refresh_token,
-        stored.pendragonx_session_expires_at
-      );
-      if (!token) {
-        sendResponse({ ok: false, error: "sign in" });
-        return;
-      }
+      const token = await getValidToken();
+      if (!token) { sendResponse({ ok: false, error: "sign in" }); return; }
+      const userId = await getUserId(token);
+      if (!userId) { sendResponse({ ok: false, error: "sign in" }); return; }
       const content = String(msg.content || "").slice(0, 500);
       const sourceUrl = String(msg.source_url || "");
       const sourceTitle = String(msg.source_title || "");
-      const body = sourceUrl
-        ? `${content}\n\n— from ${sourceTitle || sourceUrl}\n${sourceUrl}`
-        : content;
-      const userId = await getUserId(token);
-      if (!userId) {
-        sendResponse({ ok: false, error: "sign in" });
-        return;
-      }
+      const body = sourceUrl ? `${content}\n\n— from ${sourceTitle || sourceUrl}\n${sourceUrl}` : content;
       const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${token}`,
-          Prefer: "return=minimal",
+          "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`, Prefer: "return=minimal",
         },
         body: JSON.stringify({ content: body, user_id: userId }),
       });
@@ -119,7 +131,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       sendResponse({ ok: false, error: String(e?.message || e) });
     }
   })();
-  return true; // async sendResponse
+  return true;
 });
 
 
@@ -130,6 +142,13 @@ function debouncedSync() {
     _syncTimer = null;
     syncOpenTabs().catch(() => {});
   }, 1500);
+}
+
+async function getValidToken() {
+  const stored = await chrome.storage.local.get([
+    "pendragonx_auth_token", "pendragonx_refresh_token", "pendragonx_session_expires_at",
+  ]);
+  return ensureFreshSession(stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at);
 }
 
 async function ensureFreshSession(token, refreshToken, expiresAt) {
@@ -165,9 +184,7 @@ async function getUserId(token) {
     if (!r.ok) return null;
     const user = await r.json().catch(() => ({}));
     return user?.id || null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function responseError(res) {
@@ -185,97 +202,247 @@ async function syncOpenTabs() {
   const stored = await chrome.storage.local.get(["pendragonx_auth_token", "pendragonx_refresh_token", "pendragonx_session_expires_at", "pendragonx_tab_share_enabled"]);
   const token = await ensureFreshSession(stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at);
   const enabled = stored.pendragonx_tab_share_enabled;
-  if (!token) return; // not signed in
-  if (enabled === false) return; // user explicitly disabled
-
+  if (!token) return;
+  if (enabled === false) return;
   const tabs = await chrome.tabs.query({});
   const payload = tabs
     .filter((t) => t.url && /^https?:/i.test(t.url))
-    .map((t) => ({
-      url: t.url,
-      title: t.title || "",
-      active: !!t.active,
-      windowId: t.windowId ?? null,
-    }));
-
+    .map((t) => ({ url: t.url, title: t.title || "", active: !!t.active, windowId: t.windowId ?? null }));
   await fetch(TAB_INGEST_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
     body: JSON.stringify({ tabs: payload }),
   });
+}
+
+// ───── Save helpers ─────
+
+function authJson(token) {
+  return { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` };
+}
+
+async function saveScratchpad(token, userId, text, tab) {
+  const body = `${text}\n\n— from ${tab?.title || tab?.url || ""}\n${tab?.url || ""}`.trim();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
+    method: "POST",
+    headers: { ...authJson(token), Prefer: "return=minimal" },
+    body: JSON.stringify({ content: body, user_id: userId }),
+  });
+  return res.ok ? { ok: true } : { ok: false, error: await responseError(res) };
+}
+
+async function saveAsCard(token, text, tab) {
+  const res = await fetch(SUMMARIZE_URL, {
+    method: "POST",
+    headers: authJson(token),
+    body: JSON.stringify({ text, url: tab?.url || "", title: tab?.title || "Selection" }),
+  });
+  const d = await res.json().catch(() => ({}));
+  return res.ok ? { ok: true, label: d.card?.title || "Card" } : { ok: false, error: d.error || `HTTP ${res.status}` };
+}
+
+async function saveAsNote(token, userId, text, tab, kind = "selection") {
+  const title = (tab?.title || "Saved page").slice(0, 180);
+  const source = tab?.url ? `\n\n---\nSource: [${tab?.title || tab.url}](${tab.url})` : "";
+  const content = `${text}${source}`;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/notes`, {
+    method: "POST",
+    headers: { ...authJson(token), Prefer: "return=minimal" },
+    body: JSON.stringify({ user_id: userId, title, content, tags: ["clipped", kind] }),
+  });
+  return res.ok ? { ok: true } : { ok: false, error: await responseError(res) };
+}
+
+async function saveAsTask(token, userId, title, tab) {
+  const taskNotes = tab?.url ? `Source: ${tab.url}` : "";
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tasks`, {
+    method: "POST",
+    headers: { ...authJson(token), Prefer: "return=minimal" },
+    body: JSON.stringify({ user_id: userId, title: title.slice(0, 200), notes: taskNotes, list: "read-later", priority: "low" }),
+  });
+  return res.ok ? { ok: true } : { ok: false, error: await responseError(res) };
+}
+
+async function routeSelectionSmart(token, userId, text, tab) {
+  const len = text.length;
+  if (len < SCRATCHPAD_MAX) {
+    const r = await saveScratchpad(token, userId, text, tab);
+    return { ...r, dest: `Scratchpad (${len} chars)` };
+  }
+  if (len <= CARD_MAX) {
+    const r = await saveAsCard(token, text, tab);
+    return { ...r, dest: `Card (${len} chars)` };
+  }
+  const r = await saveAsNote(token, userId, text, tab, "selection");
+  return { ...r, dest: `Note (${len} chars)` };
 }
 
 // ───── Context menu click handler ─────
 chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
   try {
+    // No-auth-required items first
     if (info.menuItemId === "pendragonx_open_panel") {
-      if (chrome.sidePanel?.open && tab?.windowId != null) {
-        await chrome.sidePanel.open({ windowId: tab.windowId });
-      }
+      if (chrome.sidePanel?.open && tab?.windowId != null) await chrome.sidePanel.open({ windowId: tab.windowId });
       return;
     }
     if (info.menuItemId === "pendragonx_open_app") {
       await chrome.tabs.create({ url: APP_URL });
       return;
     }
-
-    const stored = await chrome.storage.local.get([
-      "pendragonx_auth_token", "pendragonx_refresh_token", "pendragonx_session_expires_at",
-    ]);
-    const token = await ensureFreshSession(
-      stored.pendragonx_auth_token, stored.pendragonx_refresh_token, stored.pendragonx_session_expires_at
-    );
-    if (!token) {
-      await notify(tab?.id, "Sign in to PendragonX first", false);
+    if (info.menuItemId === "pendragonx_page_to_pdf") {
+      if (!tab?.id) { await notify(tab?.id, "No active tab", false); return; }
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => window.print() });
+        await notify(tab.id, "Print dialog opened — choose 'Save as PDF'", true);
+      } catch (e) {
+        await notify(tab.id, `Couldn't open print dialog: ${e?.message || e}`, false);
+      }
       return;
     }
+    if (info.menuItemId === "pendragonx_send_to_alice") {
+      await chrome.storage.local.set({
+        pendragonx_alice_seed: {
+          url: tab?.url || "",
+          title: tab?.title || "",
+          selection: String(info.selectionText || "").slice(0, 2000),
+          at: Date.now(),
+        },
+      });
+      if (chrome.sidePanel?.open && tab?.windowId != null) {
+        await chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
+      }
+      await notify(tab?.id, "Opened ALICE with this page attached", true);
+      return;
+    }
+
+    // Auth required for the rest
+    const token = await getValidToken();
+    if (!token) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
+    const userId = await getUserId(token);
+    if (!userId) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
 
     if (info.menuItemId === "pendragonx_summarize_page") {
       await notify(tab?.id, "Summarizing page…", true);
       const page = await extractPage(tab?.id);
       if (!page) { await notify(tab?.id, "Couldn't read this page", false); return; }
-      const res = await fetch(SUMMARIZE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: page.text, url: page.url, title: page.title }),
-      });
-      const d = await res.json().catch(() => ({}));
-      await notify(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Summary"}` : `Failed: ${d.error || res.status}`, res.ok);
+      const r = await saveAsCard(token, page.text, { url: page.url, title: page.title });
+      await notify(tab?.id, r.ok ? `✓ Saved card: ${r.label}` : `Failed: ${r.error}`, r.ok);
       return;
     }
 
-    if (info.menuItemId === "pendragonx_save_selection_card") {
-      const text = String(info.selectionText || "").trim();
-      if (text.length < 8) { await notify(tab?.id, "Select more text first", false); return; }
-      const res = await fetch(SUMMARIZE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text, url: tab?.url || "", title: tab?.title || "Selection" }),
-      });
-      const d = await res.json().catch(() => ({}));
-      await notify(tab?.id, res.ok ? `✓ Saved card: ${d.card?.title || "Selection"}` : `Failed: ${d.error || res.status}`, res.ok);
+    if (info.menuItemId === "pendragonx_page_to_note") {
+      await notify(tab?.id, "Saving full page as note…", true);
+      const page = await extractPage(tab?.id);
+      if (!page) { await notify(tab?.id, "Couldn't read this page", false); return; }
+      const r = await saveAsNote(token, userId, page.text, { url: page.url, title: page.title }, "page");
+      await notify(tab?.id, r.ok ? `✓ Saved to Notes` : `Failed: ${r.error}`, r.ok);
       return;
     }
 
-    if (info.menuItemId === "pendragonx_save_scratchpad") {
-      const text = String(info.selectionText || "").slice(0, 500);
-      if (text.length < 1) { await notify(tab?.id, "Nothing selected", false); return; }
-      const body = `${text}\n\n— from ${tab?.title || tab?.url || ""}\n${tab?.url || ""}`.trim();
-      const userId = await getUserId(token);
-      if (!userId) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/scratchpad_notes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${token}`, Prefer: "return=minimal",
-        },
-        body: JSON.stringify({ content: body, user_id: userId }),
-      });
-      await notify(tab?.id, res.ok ? "✓ Saved to Scratchpad" : `Failed: ${await responseError(res)}`, res.ok);
+    if (info.menuItemId === "pendragonx_page_to_task") {
+      const r = await saveAsTask(token, userId, tab?.title || tab?.url || "Read later", tab);
+      await notify(tab?.id, r.ok ? `✓ Added to read-later tasks` : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_link_to_task") {
+      const linkUrl = info.linkUrl || "";
+      const title = (info.selectionText || info.linkUrl || "Read later").slice(0, 200);
+      const r = await saveAsTask(token, userId, title, { url: linkUrl, title });
+      await notify(tab?.id, r.ok ? `✓ Link saved to read-later` : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_summarize_link") {
+      const linkUrl = info.linkUrl || "";
+      if (!linkUrl) { await notify(tab?.id, "No link URL", false); return; }
+      await notify(tab?.id, "Fetching linked page…", true);
+      try {
+        const f = await fetch(FETCH_URL_URL, {
+          method: "POST", headers: authJson(token),
+          body: JSON.stringify({ url: linkUrl }),
+        });
+        const fd = await f.json().catch(() => ({}));
+        const text = fd?.content || fd?.text || "";
+        if (!text) { await notify(tab?.id, `Couldn't fetch link: ${fd?.error || f.status}`, false); return; }
+        const r = await saveAsCard(token, text, { url: linkUrl, title: fd?.title || linkUrl });
+        await notify(tab?.id, r.ok ? `✓ Saved card: ${r.label}` : `Failed: ${r.error}`, r.ok);
+      } catch (e) {
+        await notify(tab?.id, `Failed: ${e?.message || e}`, false);
+      }
+      return;
+    }
+
+    // Selection-based actions
+    const selection = String(info.selectionText || "").trim();
+
+    if (info.menuItemId === "pendragonx_save_smart") {
+      if (selection.length < 1) { await notify(tab?.id, "Nothing selected", false); return; }
+      const r = await routeSelectionSmart(token, userId, selection, tab);
+      await notify(tab?.id, r.ok ? `✓ Saved to ${r.dest}${r.label ? `: ${r.label}` : ""}` : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+    if (info.menuItemId === "pendragonx_save_as_scratch") {
+      const text = selection.slice(0, 500);
+      if (!text) { await notify(tab?.id, "Nothing selected", false); return; }
+      const r = await saveScratchpad(token, userId, text, tab);
+      await notify(tab?.id, r.ok ? "✓ Saved to Scratchpad" : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+    if (info.menuItemId === "pendragonx_save_as_card") {
+      if (selection.length < 8) { await notify(tab?.id, "Select more text first", false); return; }
+      const r = await saveAsCard(token, selection, tab);
+      await notify(tab?.id, r.ok ? `✓ Saved card: ${r.label}` : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+    if (info.menuItemId === "pendragonx_save_as_note") {
+      if (!selection) { await notify(tab?.id, "Nothing selected", false); return; }
+      const r = await saveAsNote(token, userId, selection, tab, "selection");
+      await notify(tab?.id, r.ok ? "✓ Saved to Notes" : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+    if (info.menuItemId === "pendragonx_save_as_task") {
+      if (!selection) { await notify(tab?.id, "Nothing selected", false); return; }
+      const r = await saveAsTask(token, userId, selection.slice(0, 200), tab);
+      await notify(tab?.id, r.ok ? "✓ Saved as task" : `Failed: ${r.error}`, r.ok);
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_define") {
+      const term = selection.split(/\s+/).slice(0, 6).join(" ");
+      if (!term) { await notify(tab?.id, "Nothing selected", false); return; }
+      try {
+        const r = await fetch(DICTIONARY_URL, {
+          method: "POST", headers: authJson(token),
+          body: JSON.stringify({ word: term }),
+        });
+        const d = await r.json().catch(() => ({}));
+        const def = d?.definition || d?.meaning || d?.result || (Array.isArray(d?.meanings) ? d.meanings[0]?.definitions?.[0]?.definition : "");
+        await notify(tab?.id, r.ok && def ? `${term}: ${String(def).slice(0, 220)}` : `No definition for "${term}"`, r.ok && !!def);
+      } catch (e) {
+        await notify(tab?.id, `Define failed: ${e?.message || e}`, false);
+      }
+      return;
+    }
+
+    if (info.menuItemId === "pendragonx_translate") {
+      if (!selection) { await notify(tab?.id, "Nothing selected", false); return; }
+      try {
+        const r = await fetch(MODIFY_URL, {
+          method: "POST", headers: authJson(token),
+          body: JSON.stringify({ content: selection, instruction: "Translate the following text to English. Return only the translation, no commentary." }),
+        });
+        const d = await r.json().catch(() => ({}));
+        const out = d?.modified || d?.content || d?.result || "";
+        if (r.ok && out) {
+          await copyToClipboard(tab?.id, out);
+          await notify(tab?.id, `✓ Translated & copied: ${String(out).slice(0, 180)}`, true);
+        } else {
+          await notify(tab?.id, `Translate failed: ${d?.error || r.status}`, false);
+        }
+      } catch (e) {
+        await notify(tab?.id, `Translate failed: ${e?.message || e}`, false);
+      }
       return;
     }
 
@@ -283,14 +450,8 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
       const imgUrl = info.srcUrl || "";
       if (!imgUrl) { await notify(tab?.id, "No image URL", false); return; }
       const body = `![image](${imgUrl})\n\nFrom: [${tab?.title || tab?.url}](${tab?.url})`;
-      // Use direct insert with a tiny placeholder card via summarize-page-to-card path skipped; insert via PostgREST scratchpad fallback won't make a card. Instead post to summarize with the image markdown so it stays a card.
-      const res = await fetch(SUMMARIZE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: body, url: tab?.url || "", title: `Image from ${tab?.title || "page"}` }),
-      });
-      const d = await res.json().catch(() => ({}));
-      await notify(tab?.id, res.ok ? `✓ Saved image card` : `Failed: ${d.error || res.status}`, res.ok);
+      const r = await saveAsCard(token, body, { url: tab?.url || "", title: `Image from ${tab?.title || "page"}` });
+      await notify(tab?.id, r.ok ? `✓ Saved image card` : `Failed: ${r.error}`, r.ok);
       return;
     }
   } catch (e) {
@@ -307,7 +468,6 @@ async function extractPage(tabId) {
       func: () => {
         const title = document.title || "";
         const url = location.href;
-        // Prefer <article>/<main>, else body text
         const root = document.querySelector("article") || document.querySelector("main") || document.body;
         const clone = root.cloneNode(true);
         clone.querySelectorAll("script,style,noscript,nav,footer,aside,header").forEach((n) => n.remove());
@@ -320,6 +480,17 @@ async function extractPage(tabId) {
     console.warn("extractPage failed", e);
     return null;
   }
+}
+
+async function copyToClipboard(tabId, text) {
+  if (!tabId || !chrome.scripting?.executeScript) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (t) => { navigator.clipboard?.writeText(t).catch(() => {}); },
+      args: [String(text)],
+    });
+  } catch { /* ignore */ }
 }
 
 async function toast(tabId, message, ok) {
@@ -342,7 +513,7 @@ async function toast(tabId, message, ok) {
           "max-width:340px",
         ].join(";");
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 3500);
+        setTimeout(() => el.remove(), 4500);
       },
       args: [String(message), !!ok],
     });
