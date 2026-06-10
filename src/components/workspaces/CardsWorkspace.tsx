@@ -15,7 +15,13 @@ import { CreateCardDialog } from '@/components/CreateCardDialog';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TwoPaneShell } from '@/components/workspace/TwoPaneShell';
-import { getCategoryColor } from '@/utils/categoryUtils';
+
+const CATEGORY_PALETTE = ['hsl(252 100% 72%)', 'hsl(224 100% 68%)', 'hsl(330 85% 65%)', 'hsl(160 75% 55%)', 'hsl(25 95% 60%)', 'hsl(48 96% 60%)', 'hsl(180 70% 55%)', 'hsl(280 80% 70%)'];
+const getCategoryColor = (cat?: string) => {
+  if (!cat) return 'hsl(var(--primary))';
+  let h = 0; for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) >>> 0;
+  return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
+};
 
 const isHtml = (s: string) => /<[a-z][\s\S]*>/i.test(s);
 const relTime = (d: string) => formatDistanceToNow(new Date(d), { addSuffix: false });
