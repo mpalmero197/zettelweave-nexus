@@ -4353,6 +4353,7 @@ export type Database = {
       zettel_cards: {
         Row: {
           attachments: string[] | null
+          auto_linked_at: string | null
           category: string
           content: string
           content_embedding: string | null
@@ -4366,6 +4367,7 @@ export type Database = {
           is_encrypted: boolean | null
           is_favorite: boolean | null
           linked_cards: string[] | null
+          links_locked: boolean
           notebook_id: string | null
           number: string
           permanent_delete_at: string | null
@@ -4377,6 +4379,7 @@ export type Database = {
         }
         Insert: {
           attachments?: string[] | null
+          auto_linked_at?: string | null
           category: string
           content: string
           content_embedding?: string | null
@@ -4390,6 +4393,7 @@ export type Database = {
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           linked_cards?: string[] | null
+          links_locked?: boolean
           notebook_id?: string | null
           number: string
           permanent_delete_at?: string | null
@@ -4401,6 +4405,7 @@ export type Database = {
         }
         Update: {
           attachments?: string[] | null
+          auto_linked_at?: string | null
           category?: string
           content?: string
           content_embedding?: string | null
@@ -4414,6 +4419,7 @@ export type Database = {
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           linked_cards?: string[] | null
+          links_locked?: boolean
           notebook_id?: string | null
           number?: string
           permanent_delete_at?: string | null
@@ -4438,6 +4444,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alice_set_auto_links: {
+        Args: { _card_id: string; _link_ids: string[] }
+        Returns: undefined
+      }
       are_friends: {
         Args: { _user_id_1: string; _user_id_2: string }
         Returns: boolean
@@ -4608,6 +4618,7 @@ export type Database = {
         }[]
       }
       toggle_feature_vote: { Args: { _feature_id: string }; Returns: boolean }
+      unlock_card_auto_links: { Args: { _card_id: string }; Returns: undefined }
       update_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
