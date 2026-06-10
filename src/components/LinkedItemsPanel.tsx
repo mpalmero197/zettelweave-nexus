@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Link2, ArrowDownLeft, ArrowUpRight, Layers, Hash, FileText, StickyNote } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link2, ArrowDownLeft, ArrowUpRight, Layers, Hash, FileText, StickyNote, Sparkles, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface LinkedItem {
   id: string;
@@ -55,6 +57,7 @@ export function LinkedItemsPanel({
 }: LinkedItemsPanelProps) {
   const [buckets, setBuckets] = useState<Buckets>({ backlinks: [], outgoing: [], siblings: [], related: [] });
   const [loading, setLoading] = useState(true);
+  const [autoLinkMeta, setAutoLinkMeta] = useState<{ locked: boolean; autoLinkedAt: string | null } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,9 +116,16 @@ export function LinkedItemsPanel({
               .then(r => r)
           : Promise.resolve({ data: [] as any[] });
 
-        const [notesBL, cardsBL, outgoing, siblings, related] = await Promise.all([
-          notesBLP, cardsBLP, outgoingP, siblingsP, relatedP,
+        const metaP = itemType === "card"
+          ? supabase.from("zettel_cards").select("links_locked, auto_linked_at").eq("id", itemId).maybeSingle().then(r => r)
+          : Promise.resolve({ data: null as any });
+
+        const [notesBL, cardsBL, outgoing, siblings, related, meta] = await Promise.all([
+          notesBLP, cardsBLP, outgoingP, siblingsP, relatedP, metaP,
         ]);
+        if (!cancelled && meta?.data) {
+          setAutoLinkMeta({ locked: !!meta.data.links_locked, autoLinkedAt: meta.data.auto_linked_at });
+        }
 
         (notesBL.data || []).forEach((n: any) => {
           next.backlinks.push({
@@ -171,6 +181,40 @@ export function LinkedItemsPanel({
 
   return (
     <div className={cn("space-y-5", className)}>
+      {itemType === "card" && autoLinkMeta && (
+        <div className="flex items-center justify-between text-xs px-1">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            {autoLinkMeta.locked ? (
+              <>
+                <Link2 className="h-3 w-3" />
+                <span>Links managed by you</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3 text-primary/70" />
+                <span>Auto-linked by ALICE{autoLinkMeta.autoLinkedAt ? ` · ${new Date(autoLinkMeta.autoLinkedAt).toLocaleDateString()}` : ""}</span>
+              </>
+            )}
+          </div>
+          {autoLinkMeta.locked && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={async () => {
+                const { error } = await supabase.rpc("unlock_card_auto_links", { _card_id: itemId });
+                if (error) { toast.error("Could not reset links"); return; }
+                toast.success("ALICE will re-link this card on the next pass");
+                setAutoLinkMeta({ locked: false, autoLinkedAt: autoLinkMeta.autoLinkedAt });
+                supabase.functions.invoke("alice-auto-link", { body: {} }).catch(() => {});
+              }}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reset to auto
+            </Button>
+          )}
+        </div>
+      )}
       <Section icon={<ArrowDownLeft className="h-4 w-4" />} title="Backlinks" items={buckets.backlinks} onNavigate={onNavigate} showSnippet />
       <Section icon={<ArrowUpRight className="h-4 w-4" />} title="Outgoing" items={buckets.outgoing} onNavigate={onNavigate} />
       <Section icon={<Layers className="h-4 w-4" />} title="Same category" items={buckets.siblings} onNavigate={onNavigate} />
