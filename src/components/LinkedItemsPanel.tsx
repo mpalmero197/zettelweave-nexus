@@ -116,9 +116,16 @@ export function LinkedItemsPanel({
               .then(r => r)
           : Promise.resolve({ data: [] as any[] });
 
-        const [notesBL, cardsBL, outgoing, siblings, related] = await Promise.all([
-          notesBLP, cardsBLP, outgoingP, siblingsP, relatedP,
+        const metaP = itemType === "card"
+          ? supabase.from("zettel_cards").select("links_locked, auto_linked_at").eq("id", itemId).maybeSingle().then(r => r)
+          : Promise.resolve({ data: null as any });
+
+        const [notesBL, cardsBL, outgoing, siblings, related, meta] = await Promise.all([
+          notesBLP, cardsBLP, outgoingP, siblingsP, relatedP, metaP,
         ]);
+        if (!cancelled && meta?.data) {
+          setAutoLinkMeta({ locked: !!meta.data.links_locked, autoLinkedAt: meta.data.auto_linked_at });
+        }
 
         (notesBL.data || []).forEach((n: any) => {
           next.backlinks.push({
