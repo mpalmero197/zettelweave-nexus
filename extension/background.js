@@ -254,6 +254,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     (async () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const res = await startRecording(tab);
+      syncRecorderMenuVisibility();
       sendResponse(res);
     })();
     return true;
@@ -261,6 +262,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "PENDRAGONX_REC_STOP_AND_SAVE") {
     (async () => {
       const state = await stopRecording();
+      syncRecorderMenuVisibility();
       if (!state || !state.steps?.length) {
         sendResponse({ ok: false, error: "No steps recorded" });
         return;
@@ -286,7 +288,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.type === "PENDRAGONX_REC_CANCEL") {
-    stopRecording().then(() => sendResponse({ ok: true }));
+    stopRecording().then(() => {
+      syncRecorderMenuVisibility();
+      sendResponse({ ok: true });
+    });
     return true;
   }
 
