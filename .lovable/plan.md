@@ -1,68 +1,113 @@
-## Goal
+# Two-Pane Polish + Rich-Text Upgrade
 
-Make the PendragonX browser extension's right-click menu a real productivity hub: route selections to the best destination by length, add Save-as-PDF, and ship a small but useful set of additional capture/lookup tools.
+Refine the existing Notes, ZettelCards, and Catalyst split layouts (keep the Gemini dark aesthetic — just tighter, cleaner, more legible) and upgrade the shared note editor with a proper rich-text toolset including highlights, colors, links, images, tables, and a slash command menu.
 
-## New context menu structure
+## 1. Shared two-pane shell
 
-Right-click → **PendragonX** submenu shows items based on what's clicked (page / selection / link / image):
+Create `src/components/workspace/TwoPaneShell.tsx` so Notes, Cards, and Catalyst share one consistent frame:
 
-**Selection items (visible only when text is selected):**
-1. **Save selection** (smart) — auto-routes by length:
-   - `< 500` chars → **Scratchpad note** (fast jot, no AI)
-   - `500–1500` chars → **ZettelCard** (via `summarize-page-to-card` so it gets title + tags + Dewey category)
-   - `> 1500` chars → **Note** in the user's Notes (full markdown with source citation footer)
-   - Toast confirms which destination was used, e.g. "✓ Saved to Cards (842 chars)"
-2. **Save selection as… ▸** explicit override submenu: Scratchpad / Card / Note / Task — for when the user disagrees with the auto-route
-3. **Define selection** — looks up the highlighted term via the existing `dictionary-lookup` edge function and shows result in the toast
-4. **Translate selection to English** — quick `ai-modify-content` call with a translate prompt, result copied to clipboard + toast
+- Outer container: `rounded-xl border border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden shadow-[0_1px_0_hsl(var(--border)/0.4),0_20px_60px_-30px_hsl(var(--primary)/0.25)]`
+- Sticky pane headers with `h-11` height, uppercase tracking-wider 11px labels, divider line below
+- Resizable divider styled as a 1px hairline with a subtle 3-dot grab handle that fades in on hover
+- Standard pane paddings: list pane `px-2 py-2`, detail pane `px-6 py-5` (responsive: `md:px-8 md:py-6`)
+- Empty-state slot and loading skeleton baked in
 
-**Page items (always visible):**
-5. **Summarize page to card** (existing — keep)
-6. **Save page as PDF** — injects `window.print()` into the active tab so Chrome's native "Save as PDF" dialog opens with the rendered page. Zero server cost, works on any site, user picks where to save. (Server-side PDF rendering rejected for v1 — slower, breaks paywalled/auth'd pages, costs tokens.)
-7. **Save page as Note** — sends extracted readable text (same extractor used for summarize) straight into Notes as full markdown, no AI summarization. Useful for archiving full articles.
-8. **Save page as read-later task** — creates a task with title = page title, description = URL, due = none. Wires into the existing task system.
-9. **Send page to ALICE** — opens side panel with the page URL + title prefilled as a chat seed so the user can ask questions about it.
+Refactor `NotesWorkspace.tsx`, `CardsWorkspace.tsx`, and `CatalystSplitEditor.tsx` to render through this shell.
 
-**Link items (right-click on an `<a>`):**
-10. **Save link as read-later task** — same as #8 but uses `info.linkUrl` instead of the current page.
-11. **Summarize linked page** — fetches the linked URL server-side via `fetch-url-content` then runs summarize.
+## 2. List pane polish (Notes + Cards)
 
-**Image items (right-click on an image):**
-12. **Save image as card** (existing — keep)
-13. **Save image to Files** — uploads via signed Supabase storage URL to the user's `files` bucket.
+- Replace dense buttons with airy 12px-radius rows: title (14px medium), 2-line preview (12px muted), bottom meta row with notebook chip + relative date ("2d ago")
+- Active row: left 2px primary accent bar + `bg-primary/8` (not the full pastel wash that's there now)
+- Hover: `bg-foreground/4` only — no full-bleed selection look
+- Favorite star moves to a hover-revealed right-edge action with quick-actions (star, share, delete) instead of inline icons
+- Search input: pill style, `h-9 rounded-full bg-muted/40` with leading icon, focus ring in primary
+- Sticky section dividers when grouped by notebook/date
 
-**Footer (always):**
-- Open Toolbox side panel (existing)
-- Open PendragonX app (existing)
+## 3. Reader pane polish
 
-## Auth & error UX
+- Title: 28px (`text-2xl md:text-3xl`) Google Sans Text, tight tracking, generous 24px bottom margin
+- Meta strip: small-caps notebook chip + relative date + tag pills, separated by a hairline below
+- Content max-width `max-w-[68ch]` centered, line-height 1.7, paragraph spacing 1em
+- Prose tokens: tuned dark prose (h2/h3 with subtle primary underline accent, blockquote with left primary bar, inline code in `bg-muted/60`)
+- Mark/highlight rendered with `bg-yellow-400/25 text-foreground rounded px-0.5`
+- Floating "Edit" button replaces the header button — bottom-right pill with backdrop blur
+- Reading progress bar across top of reader pane (1px primary)
 
-- All actions go through the existing `ensureFreshSession` flow.
-- When unauthenticated, toast: **"Sign in to PendragonX, then retry"** with a one-tap "Open app" action on the Chrome notification fallback.
-- All failures show the actual server error (already done for scratchpad/card paths).
+## 4. Card detail pane
 
-## Settings (in popup.html)
+- Magazine-style: category color as 4px top border + matching small-caps eyebrow label
+- Title, then summary, then body, then linked-cards strip at bottom
+- Same prose tokens as Notes
 
-Add a "Context menu" section with toggles so power users can hide items they don't want:
-- Smart save (master switch)
-- Save as PDF
-- Translate / Define
-- Send to ALICE
+## 5. Rich-text editor upgrade (`RichTextEditor.tsx`)
 
-Stored in `chrome.storage.local` under `pendragonx_menu_prefs`; `registerContextMenus()` reads it and skips disabled items.
+Add TipTap extensions:
+- `@tiptap/extension-highlight` (multicolor) → highlighter button with 6 swatches (yellow/green/blue/pink/purple/orange) + clear
+- `@tiptap/extension-color` + `@tiptap/extension-text-style` → text color picker (same swatches + default)
+- `@tiptap/extension-link` → link button with inline URL popover, auto-linkify on paste
+- `@tiptap/extension-image` → image insert (URL or paste/drag upload to Supabase storage `note-images` bucket)
+- `@tiptap/extension-table` + `Row`/`Cell`/`Header` → insert table button (3x3 default) with row/col context menu
+- `@tiptap/extension-code-block-lowlight` with `lowlight` for syntax-highlighted code blocks
+- `@tiptap/extension-horizontal-rule`, `@tiptap/extension-typography` (smart quotes/dashes)
 
-## Technical details
+### Toolbar redesign
+Grouped, scrollable on mobile:
+1. Undo/Redo
+2. Headings dropdown (H1/H2/H3/Paragraph)
+3. Bold, Italic, Underline, Strike, Inline code
+4. **Highlight popover** (6 colors + remove)
+5. **Text color popover** (6 colors + default)
+6. Bulleted, Numbered, Task list
+7. Quote, Code block, Horizontal rule
+8. Link, Image, Table
 
-- **Files touched:** `extension/background.js`, `extension/popup.html`, `extension/popup.js`, `extension/manifest.json` (bump version + add `downloads` permission only if we end up server-rendering PDFs — not needed for window.print path), and mirror all changes into `public/chrome-extension/*`. Repack `public/pendragonx-toolbox.zip` and `public/pendragonx-chrome-extension.zip`.
-- **Smart routing logic** lives in one helper `routeSelection(text, tab, token)` that picks endpoint and posts. Length thresholds are constants at top of file so they're easy to tune.
-- **Notes insert** uses `POST /rest/v1/notes` (same pattern as the existing scratchpad insert). I'll verify the `notes` table columns (likely `title`, `content`, `user_id`, `source_url`) before writing the insert; if a notebook is required, default to the user's "Inbox" notebook or create one on first use.
-- **Tasks insert** uses `POST /rest/v1/tasks` with `title`, `user_id`, `due_at: null`, `metadata: { source_url }`.
-- **PDF:** `chrome.scripting.executeScript({ target:{tabId}, func: () => window.print() })`. No new permissions needed — `scripting` + `activeTab` already cover it.
-- **Translate / Define:** call existing edge functions; show result in the page toast (already a nice pill). For Translate, also `navigator.clipboard.writeText` via injected script so the user can paste anywhere.
-- **Send to ALICE:** store `{ seed_url, seed_title }` in `chrome.storage.local` under `pendragonx_alice_seed`, then open the side panel. The side panel `popup.js` reads & clears that key on load and pre-fills the chat input.
+Dividers between groups, all buttons `h-8 w-8`, active state uses `bg-primary/15 text-primary`.
 
-## Open questions before I build
+### Slash command menu
+New `SlashCommand.tsx` extension using TipTap Suggestion API. Typing `/` on empty line opens a floating command palette (`Popover` + `Command` from shadcn) with: Heading 1/2/3, Bulleted/Numbered/Task list, Quote, Code, Divider, Image, Table, Link. Arrow keys + Enter to insert.
 
-1. Are the **length thresholds** (500 / 1500) good, or do you want different cutoffs?
-2. For **Save page as PDF**, is the native `window.print()` → "Save as PDF" flow OK, or do you want a server-rendered PDF saved into the Files tab automatically (heavier, but no user dialog)?
-3. For **Send to ALICE**, should it seed a Q&A turn ("Summarize this page for me") automatically, or just open ALICE with the URL attached and let the user type?
+### Bubble menu
+`@tiptap/extension-bubble-menu` on text selection: Bold / Italic / Underline / Highlight / Link — quick formatting without traveling to the toolbar.
+
+## 6. Image upload backend
+
+Add Supabase storage bucket `note-images` (public read, authenticated write) and a tiny `uploadNoteImage(file)` helper in `src/utils/imageUpload.ts` that returns the public URL for the Image extension's drop/paste handler.
+
+## 7. Catalyst split editor
+
+- Apply shared TwoPaneShell with new headers
+- Reference pane gains a small toolbar: "Sync with editor" toggle (live mirror vs. frozen snapshot) + zoom in/out for font size
+- Same prose tokens used in Notes reader
+
+## Files to add
+- `src/components/workspace/TwoPaneShell.tsx`
+- `src/components/workspace/editor/SlashCommand.tsx`
+- `src/components/workspace/editor/HighlightPopover.tsx`
+- `src/components/workspace/editor/ColorPopover.tsx`
+- `src/components/workspace/editor/LinkPopover.tsx`
+- `src/components/workspace/editor/TablePopover.tsx`
+- `src/utils/imageUpload.ts`
+- Supabase migration: `note-images` storage bucket + RLS
+
+## Files to modify
+- `src/components/workspace/RichTextEditor.tsx` (toolbar + extensions + bubble menu + slash)
+- `src/components/workspaces/NotesWorkspace.tsx` (use shell, new row/reader styling)
+- `src/components/workspaces/CardsWorkspace.tsx` (use shell, new card detail)
+- `src/components/NotesSplitView.tsx` (use shell + new prose tokens)
+- `src/components/catalyst/CatalystSplitEditor.tsx` (use shell, reference toolbar)
+- `src/index.css` (tuned `.prose` dark tokens, highlight mark styling)
+
+## Dependencies
+```
+@tiptap/extension-highlight @tiptap/extension-color @tiptap/extension-text-style
+@tiptap/extension-link @tiptap/extension-image @tiptap/extension-table
+@tiptap/extension-table-row @tiptap/extension-table-cell @tiptap/extension-table-header
+@tiptap/extension-code-block-lowlight @tiptap/extension-horizontal-rule
+@tiptap/extension-typography @tiptap/extension-bubble-menu @tiptap/suggestion
+lowlight
+```
+
+## Out of scope
+- Real-time collaborative cursors
+- Comments / suggestions mode
+- Versioning UI changes

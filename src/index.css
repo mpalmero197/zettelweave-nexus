@@ -217,6 +217,84 @@
     font-weight: 600;
   }
 
+  /* Refined reader/prose tokens shared across Notes, Cards, Catalyst */
+  .reader-prose {
+    font-family: 'Google Sans Text', 'Inter', system-ui, sans-serif;
+    line-height: 1.72;
+    letter-spacing: -0.005em;
+    color: hsl(var(--foreground) / 0.92);
+  }
+  .reader-prose p { margin: 0 0 1.05em; }
+  .reader-prose h1, .reader-prose h2, .reader-prose h3 {
+    color: hsl(var(--foreground));
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin-top: 1.6em;
+    margin-bottom: 0.6em;
+  }
+  .reader-prose h2 { font-size: 1.4em; padding-bottom: 0.25em; border-bottom: 1px solid hsl(var(--border) / 0.5); }
+  .reader-prose h3 { font-size: 1.15em; }
+  .reader-prose blockquote {
+    border-left: 3px solid hsl(var(--primary) / 0.7);
+    padding: 0.1em 0 0.1em 1em;
+    margin: 1.2em 0;
+    color: hsl(var(--foreground) / 0.8);
+    font-style: italic;
+  }
+  .reader-prose code:not(pre code) {
+    background: hsl(var(--muted) / 0.6);
+    padding: 0.12em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.88em;
+  }
+  .reader-prose pre {
+    background: hsl(240 22% 5%);
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 0.5rem;
+    padding: 0.9em 1em;
+    overflow-x: auto;
+    font-size: 0.85em;
+    line-height: 1.55;
+  }
+  .reader-prose mark, .reader-prose [data-color] {
+    background: hsl(48 96% 60% / 0.28);
+    color: inherit;
+    padding: 0.05em 0.2em;
+    border-radius: 0.2rem;
+  }
+  .reader-prose a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  .reader-prose ul, .reader-prose ol { padding-left: 1.4em; margin: 0.8em 0; }
+  .reader-prose li { margin: 0.3em 0; }
+  .reader-prose hr { border: 0; border-top: 1px solid hsl(var(--border) / 0.6); margin: 2em 0; }
+  .reader-prose img { border-radius: 0.5rem; margin: 1em 0; }
+  .reader-prose table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  .reader-prose th, .reader-prose td { border: 1px solid hsl(var(--border) / 0.6); padding: 0.5em 0.75em; }
+  .reader-prose th { background: hsl(var(--muted) / 0.5); font-weight: 600; text-align: left; }
+
+  /* TipTap table styling inside editor */
+  .ProseMirror table.rte-table { border-collapse: collapse; margin: 0.5em 0; width: 100%; }
+  .ProseMirror table.rte-table td,
+  .ProseMirror table.rte-table th {
+    border: 1px solid hsl(var(--border) / 0.6);
+    padding: 0.4em 0.6em;
+    min-width: 60px;
+    position: relative;
+  }
+  .ProseMirror table.rte-table th { background: hsl(var(--muted) / 0.5); font-weight: 600; }
+  .ProseMirror .selectedCell:after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--primary) / 0.15);
+    pointer-events: none;
+  }
+  .ProseMirror mark { padding: 0.05em 0.2em; border-radius: 0.2rem; }
+
   /* Glass effect - Minimal */
   .glass-subtle {
     background: hsl(var(--background) / 0.9);
