@@ -8,6 +8,7 @@ import { Calendar, Edit3, Link2, Tag, Share2, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { AttachmentDisplay } from "./AttachmentDisplay";
 import { EditCardDialog } from "./EditCardDialog";
+import { LinkedItemsPanel } from "./LinkedItemsPanel";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LinkedCardInfo {
@@ -193,54 +194,24 @@ export function CardViewer({ card, isOpen, onClose, onEdit, onUpdate, onDelete, 
                 </div>
               )}
 
-              {/* Linked Cards */}
-              {card.linkedCards.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                    <Link2 className="h-5 w-5" />
-                    Linked Cards ({card.linkedCards.length})
-                  </h3>
-                  {loadingLinks ? (
-                    <div className="text-sm text-muted-foreground">Loading linked cards...</div>
-                  ) : linkedCardsInfo.length > 0 ? (
-                    <div className="grid gap-3">
-                      {linkedCardsInfo.map((linkedCard) => {
-                        const linkedCategoryInfo = getCategoryInfo(linkedCard.category);
-                        return (
-                          <button
-                            key={linkedCard.id}
-                            onClick={() => onNavigateToCard?.(linkedCard.id)}
-                            className="flex items-start gap-3 p-4 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 text-left group"
-                            aria-label={`Navigate to linked card: ${linkedCard.title}`}
-                          >
-                            <Badge 
-                              variant="outline" 
-                              className="text-xs font-mono mt-0.5 group-hover:border-primary/70"
-                              style={{ 
-                                borderColor: `hsl(var(--category-${linkedCategoryInfo.color}))`,
-                                color: `hsl(var(--category-${linkedCategoryInfo.color}))`
-                              }}
-                            >
-                              {linkedCard.number}
-                            </Badge>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                                {linkedCard.title}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {linkedCategoryInfo.name}
-                              </div>
-                            </div>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">No linked cards found</div>
-                  )}
-                </div>
-              )}
+              {/* Linked Items (backlinks + outgoing + siblings + related) */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  Linked Items
+                </h3>
+                <LinkedItemsPanel
+                  itemId={card.id}
+                  itemType="card"
+                  itemTitle={card.title}
+                  category={card.category}
+                  tags={card.tags}
+                  outgoingIds={card.linkedCards}
+                  onNavigate={(id, type) => {
+                    if (type === "card") onNavigateToCard?.(id);
+                  }}
+                />
+              </div>
 
               {/* Metadata */}
               <div className="border-t border-border/20 pt-6 space-y-4">
