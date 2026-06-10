@@ -11,8 +11,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -20,17 +19,45 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    sourcemap: true,
+    sourcemap: false,
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],
+          'ui-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-tabs',
+          ],
           'supabase-vendor': ['@supabase/supabase-js'],
           'toast-vendor': ['sonner', '@radix-ui/react-toast'],
+          'editor-vendor': [
+            '@tiptap/core',
+            '@tiptap/react',
+            '@tiptap/pm',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-highlight',
+            '@tiptap/extension-color',
+            '@tiptap/extension-text-style',
+            '@tiptap/extension-link',
+            '@tiptap/extension-image',
+            '@tiptap/extension-table',
+            '@tiptap/extension-table-row',
+            '@tiptap/extension-table-cell',
+            '@tiptap/extension-table-header',
+            '@tiptap/extension-typography',
+            '@tiptap/extension-underline',
+            'lowlight',
+          ],
+          'pdf-vendor': ['jspdf', 'html2canvas'],
+          'chart-vendor': ['recharts'],
+          'graph-vendor': ['react-force-graph-2d', 'd3-force', 'd3-quadtree'],
         },
       },
     },
   },
-
 }));
