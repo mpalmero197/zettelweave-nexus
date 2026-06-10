@@ -37,7 +37,7 @@ const SECTIONS: Section[] = [
     features: [
       { tab: "cards", label: "ZettelCards", desc: "Atomic, linkable knowledge cards organized by Dewey or your own system.", icon: Layers },
       { tab: "notes", label: "Notes & Notebooks", desc: "Long-form, networked notes with backlinks, encryption and spatial layout.", icon: NotebookPen },
-      { tab: "graph", label: "Knowledge Graph", desc: "2D and 3D orbital graph of your second brain — see how ideas connect.", icon: Network },
+      { tab: "graph", label: "Knowledge Graph", desc: "Interactive 2D star-schema graph of your second brain — see how ideas connect.", icon: Network },
       { tab: "knowledge-chat", label: "Knowledge Chat", desc: "NotebookLM-style grounded chat across cards, notes and documents.", icon: MessageSquare },
       { tab: "knowledge-gaps", label: "Knowledge Gaps", desc: "AI scans your library to find conceptual holes and suggests resources.", icon: Compass },
       { tab: "spaces", label: "Spaces", desc: "Top-level workspaces that group related notebooks, projects and cards.", icon: Folder },
@@ -120,7 +120,7 @@ const CONNECTIONS: { from: string; to: string; how: string }[] = [
   { from: "Sticky Notes", to: "ZettelCards", how: "Convert a sticky note into a fully tagged card." },
   { from: "Notes", to: "Catalyst Writer", how: "Pull selected notes into a Catalyst document as source material." },
   { from: "ZettelCards", to: "Catalyst Writer", how: "Synthesize multiple cards into a master document automatically." },
-  { from: "ZettelCards", to: "Knowledge Graph", how: "Every card becomes an orbital node; hubs gravitate toward the center." },
+  { from: "ZettelCards", to: "Knowledge Graph", how: "Every card becomes a node clustered around its Dewey category hub." },
   { from: "Notes", to: "Knowledge Graph", how: "Notes appear alongside cards with backlink-driven edges." },
   { from: "Knowledge Chat", to: "Cards / Notes / Files", how: "Grounded answers cite the exact source items used." },
   { from: "Recorder", to: "Notes", how: "Transcribed recordings can be saved directly as notes or summarized." },

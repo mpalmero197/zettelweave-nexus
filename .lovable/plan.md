@@ -1,113 +1,93 @@
-# Two-Pane Polish + Rich-Text Upgrade
 
-Refine the existing Notes, ZettelCards, and Catalyst split layouts (keep the Gemini dark aesthetic — just tighter, cleaner, more legible) and upgrade the shared note editor with a proper rich-text toolset including highlights, colors, links, images, tables, and a slash command menu.
+# Feature Trim + Speed Overhaul
 
-## 1. Shared two-pane shell
+## Part 1 — Feature removals & merges
 
-Create `src/components/workspace/TwoPaneShell.tsx` so Notes, Cards, and Catalyst share one consistent frame:
+### Knowledge Graph
+- **Remove**: 3D graph view, orbital model, mobile-optimized graph variant. Delete `three`, `three-stdlib`, `@react-three/fiber`, `@react-three/drei`, `3d-force-graph` from bundle.
+- **Keep**: 2D star-schema graph only, lazy-loaded behind explicit "Open Graph" button (no eager mount).
+- **Files**: delete `KnowledgeGraph3D.tsx`, `OrbitalGraph.tsx`, `MobileGraph*.tsx`, related hooks. Strip graph routes/tabs that auto-mount.
 
-- Outer container: `rounded-xl border border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden shadow-[0_1px_0_hsl(var(--border)/0.4),0_20px_60px_-30px_hsl(var(--primary)/0.25)]`
-- Sticky pane headers with `h-11` height, uppercase tracking-wider 11px labels, divider line below
-- Resizable divider styled as a 1px hairline with a subtle 3-dot grab handle that fades in on hover
-- Standard pane paddings: list pane `px-2 py-2`, detail pane `px-6 py-5` (responsive: `md:px-8 md:py-6`)
-- Empty-state slot and loading skeleton baked in
+### Linked Items panel (new)
+- New `LinkedItemsPanel.tsx` rendered in NoteViewer, CardViewer, and Catalyst sidebar.
+- Sections: **Backlinks** (notes/cards linking here, with ~100-char snippet), **Outgoing links** (wikilinks resolved), **Sibling cards** (same Dewey category), **Related by tag**.
+- Single batched RPC `get_linked_items(item_id, item_type)` returning all four buckets in one round-trip.
 
-Refactor `NotesWorkspace.tsx`, `CardsWorkspace.tsx`, and `CatalystSplitEditor.tsx` to render through this shell.
+### Notifier consolidation
+- Merge `alice-proactive-notifier`, `alice-proactive-pulse`, `generate-daily-briefing`, `daily-report`, `send-engagement-nudges` into **one** scheduled edge function `unified-notifier` running once at 6 PM CT.
+- Single `in_app_notifications` write path; drop `alice_pulses` + `daily_briefings` cron triggers.
+- Keep tables for history; remove duplicate widgets from dashboard.
 
-## 2. List pane polish (Notes + Cards)
+### Mind Map Generator
+- Remove standalone tool/route. Move "Generate Mind Map" as a button inside Canvas Studio (already unified per memory).
+- Delete `MindMapGenerator.tsx` page; keep `generate-mindmap` edge fn (called from Canvas).
 
-- Replace dense buttons with airy 12px-radius rows: title (14px medium), 2-line preview (12px muted), bottom meta row with notebook chip + relative date ("2d ago")
-- Active row: left 2px primary accent bar + `bg-primary/8` (not the full pastel wash that's there now)
-- Hover: `bg-foreground/4` only — no full-bleed selection look
-- Favorite star moves to a hover-revealed right-edge action with quick-actions (star, share, delete) instead of inline icons
-- Search input: pill style, `h-9 rounded-full bg-muted/40` with leading icon, focus ring in primary
-- Sticky section dividers when grouped by notebook/date
+### Marketing Funnel Quiz
+- Remove from Landing page entirely. Delete `MarketingQuiz.tsx`, route, `quiz_funnel_leads` writes (keep table for historical data).
 
-## 3. Reader pane polish
+## Part 2 — Speed overhaul
 
-- Title: 28px (`text-2xl md:text-3xl`) Google Sans Text, tight tracking, generous 24px bottom margin
-- Meta strip: small-caps notebook chip + relative date + tag pills, separated by a hairline below
-- Content max-width `max-w-[68ch]` centered, line-height 1.7, paragraph spacing 1em
-- Prose tokens: tuned dark prose (h2/h3 with subtle primary underline accent, blockquote with left primary bar, inline code in `bg-muted/60`)
-- Mark/highlight rendered with `bg-yellow-400/25 text-foreground rounded px-0.5`
-- Floating "Edit" button replaces the header button — bottom-right pill with backdrop blur
-- Reading progress bar across top of reader pane (1px primary)
+### Bundle splitting
+- Route-level: every page already lazy via `React.lazy` — audit and add `prefetch` hints only for likely-next routes.
+- Feature-level lazy chunks:
+  - `editor` chunk: all `@tiptap/*` extensions, `lowlight`, `RichTextEditor` — only loaded when editor mounts.
+  - `pdf` chunk: `jspdf`, `html2canvas`, `pdf-lib` — only on export.
+  - `graph` chunk: 2D graph + `react-force-graph-2d`.
+  - `canvas` chunk: `fabric`, canvas drawing tools.
+  - `media` chunk: recorder/transcribe UI.
+- Update `vite.config.ts` `manualChunks` to add: `editor-vendor`, `pdf-vendor`, `graph-vendor`, `canvas-vendor`, `chart-vendor` (recharts).
 
-## 4. Card detail pane
+### AppLayout slimming
+- Defer ALICE floating button, presence subscription, item-sharing realtime, focus sidebar, cookie consent, push notifications until after first interaction (`requestIdleCallback`).
+- Move `CosmicBackground` to CSS-only gradient by default; animated aurora only when Low Power Mode is OFF *and* user has been idle past first paint.
+- Remove duplicate `MobileDetector` wrapping (currently nested twice in App.tsx).
 
-- Magazine-style: category color as 4px top border + matching small-caps eyebrow label
-- Title, then summary, then body, then linked-cards strip at bottom
-- Same prose tokens as Notes
+### Query batching
+- New RPC `get_workspace_bootstrap(user_id)` returning in one round-trip: profile, subscription, dashboard_layout, user_preferences, unread notification count, recent items (top 10 per type). Replaces 6+ parallel queries on app mount.
+- Drop the 3s extension polling on web app (only run inside extension context — web app already has realtime).
+- Realtime: subscribe to a single multiplexed channel, not one per table.
 
-## 5. Rich-text editor upgrade (`RichTextEditor.tsx`)
+### Virtualized lists
+- Add `@tanstack/react-virtual` to NotesWorkspace list, CardsWorkspace list, Search results, Notifications, ALICE chat history.
+- Threshold: virtualize when list > 50 items.
 
-Add TipTap extensions:
-- `@tiptap/extension-highlight` (multicolor) → highlighter button with 6 swatches (yellow/green/blue/pink/purple/orange) + clear
-- `@tiptap/extension-color` + `@tiptap/extension-text-style` → text color picker (same swatches + default)
-- `@tiptap/extension-link` → link button with inline URL popover, auto-linkify on paste
-- `@tiptap/extension-image` → image insert (URL or paste/drag upload to Supabase storage `note-images` bucket)
-- `@tiptap/extension-table` + `Row`/`Cell`/`Header` → insert table button (3x3 default) with row/col context menu
-- `@tiptap/extension-code-block-lowlight` with `lowlight` for syntax-highlighted code blocks
-- `@tiptap/extension-horizontal-rule`, `@tiptap/extension-typography` (smart quotes/dashes)
+### Image optimization
+- Add `vite-imagetools` plugin.
+- Convert hero/landing images to AVIF + WebP with `<picture>` fallbacks.
+- Add `loading="lazy"` + explicit `width`/`height` to all `<img>` (CLS fix).
+- Preload only the LCP hero image with `fetchpriority="high"`.
 
-### Toolbar redesign
-Grouped, scrollable on mobile:
-1. Undo/Redo
-2. Headings dropdown (H1/H2/H3/Paragraph)
-3. Bold, Italic, Underline, Strike, Inline code
-4. **Highlight popover** (6 colors + remove)
-5. **Text color popover** (6 colors + default)
-6. Bulleted, Numbered, Task list
-7. Quote, Code block, Horizontal rule
-8. Link, Image, Table
+### Misc speed wins
+- Drop `next-themes` system check on every page (read once at bootstrap).
+- Replace heavy `recharts` charts on admin with `chartist`-style SVG mini-charts where possible (or keep lazy).
+- Add `<link rel="preconnect">` for Supabase + Lovable AI gateway in `index.html`.
+- Service worker: cache `/assets/*` immutable, network-first for HTML.
+- Tree-shake `lucide-react` icon imports already named imports — verify, no barrel.
 
-Dividers between groups, all buttons `h-8 w-8`, active state uses `bg-primary/15 text-primary`.
+## Part 3 — Execution order (so preview never breaks)
 
-### Slash command menu
-New `SlashCommand.tsx` extension using TipTap Suggestion API. Typing `/` on empty line opens a floating command palette (`Popover` + `Command` from shadcn) with: Heading 1/2/3, Bulleted/Numbered/Task list, Quote, Code, Divider, Image, Table, Link. Arrow keys + Enter to insert.
-
-### Bubble menu
-`@tiptap/extension-bubble-menu` on text selection: Bold / Italic / Underline / Highlight / Link — quick formatting without traveling to the toolbar.
-
-## 6. Image upload backend
-
-Add Supabase storage bucket `note-images` (public read, authenticated write) and a tiny `uploadNoteImage(file)` helper in `src/utils/imageUpload.ts` that returns the public URL for the Image extension's drop/paste handler.
-
-## 7. Catalyst split editor
-
-- Apply shared TwoPaneShell with new headers
-- Reference pane gains a small toolbar: "Sync with editor" toggle (live mirror vs. frozen snapshot) + zoom in/out for font size
-- Same prose tokens used in Notes reader
-
-## Files to add
-- `src/components/workspace/TwoPaneShell.tsx`
-- `src/components/workspace/editor/SlashCommand.tsx`
-- `src/components/workspace/editor/HighlightPopover.tsx`
-- `src/components/workspace/editor/ColorPopover.tsx`
-- `src/components/workspace/editor/LinkPopover.tsx`
-- `src/components/workspace/editor/TablePopover.tsx`
-- `src/utils/imageUpload.ts`
-- Supabase migration: `note-images` storage bucket + RLS
-
-## Files to modify
-- `src/components/workspace/RichTextEditor.tsx` (toolbar + extensions + bubble menu + slash)
-- `src/components/workspaces/NotesWorkspace.tsx` (use shell, new row/reader styling)
-- `src/components/workspaces/CardsWorkspace.tsx` (use shell, new card detail)
-- `src/components/NotesSplitView.tsx` (use shell + new prose tokens)
-- `src/components/catalyst/CatalystSplitEditor.tsx` (use shell, reference toolbar)
-- `src/index.css` (tuned `.prose` dark tokens, highlight mark styling)
-
-## Dependencies
-```
-@tiptap/extension-highlight @tiptap/extension-color @tiptap/extension-text-style
-@tiptap/extension-link @tiptap/extension-image @tiptap/extension-table
-@tiptap/extension-table-row @tiptap/extension-table-cell @tiptap/extension-table-header
-@tiptap/extension-code-block-lowlight @tiptap/extension-horizontal-rule
-@tiptap/extension-typography @tiptap/extension-bubble-menu @tiptap/suggestion
-lowlight
+```text
+1. vite.config.ts manualChunks + preconnects
+2. AppLayout slimming + dedupe MobileDetector
+3. Delete 3D graph + orbital + mobile graph files; strip routes
+4. Remove Mind Map Generator route; remove Marketing Quiz
+5. Build Linked Items panel + RPC migration
+6. Wire Linked Items into Note/Card viewers
+7. Consolidate notifiers (new unified-notifier fn, disable old crons)
+8. Add workspace-bootstrap RPC + replace parallel queries
+9. Editor lazy-chunk: dynamic-import RichTextEditor in viewers
+10. Virtualize Notes/Cards/Search lists
+11. vite-imagetools + landing image conversion
+12. Remove dead deps: three, @react-three/*, 3d-force-graph
+13. Update memory index (remove deprecated features)
 ```
 
 ## Out of scope
-- Real-time collaborative cursors
-- Comments / suggestions mode
-- Versioning UI changes
+- No data deletion (quiz_funnel_leads, alice_pulses tables remain for history).
+- No changes to writing/editor UX, ALICE personality, or visual design.
+- No subscription/pricing changes.
+
+## Estimated impact
+- Initial JS bundle: ~−40% (three.js + extra graphs + quiz removed, editor lazy).
+- TTI on `/app/hub`: ~50% faster after bootstrap RPC + AppLayout defer.
+- Tab switches inside app: near-instant after virtualization + chunk split.

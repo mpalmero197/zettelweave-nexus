@@ -30,7 +30,7 @@ import { Footer } from "@/components/Footer";
 const CreateCardDialog = lazy(() => import("@/components/CreateCardDialog").then(m => ({ default: m.CreateCardDialog })));
 const ImportStudio = lazy(() => import("@/components/ImportStudio").then(m => ({ default: m.ImportStudio })));
 const GraphView = lazy(() => import("@/components/GraphViewNew").then(m => ({ default: m.GraphView })));
-const Graph3D = lazy(() => import("@/components/Graph3D").then(m => ({ default: m.Graph3D })));
+
 const CardViewer = lazy(() => import("@/components/CardViewer").then(m => ({ default: m.CardViewer })));
 const Notes = lazy(() => import("@/components/Notes").then(m => ({ default: m.Notes })));
 const NotesWorkspace = lazy(() => import("@/components/workspaces/NotesWorkspace").then(m => ({ default: m.NotesWorkspace })));
@@ -134,7 +134,7 @@ const Index = () => {
   const [showOrganizationMethodDialog, setShowOrganizationMethodDialog] = useState(false);
   const [showNewCardsOnly, setShowNewCardsOnly] = useState(false);
   const [showImportStudio, setShowImportStudio] = useState(false);
-  const [graphMode, setGraphMode] = useState<'2d' | '3d'>('2d');
+  
 
   // Helper to check if a card is "new" (created within last 24 hours)
   const isNewCard = (card: ZettelCardType) => {
@@ -661,40 +661,12 @@ const Index = () => {
                 <TabsContent value="graph" className="mt-0">
                   <PremiumGate featureName="Knowledge Graph" hasAccess={hasPremium}>
                     <div className="h-[calc(100dvh-7rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4.5rem)] relative">
-                      {/* 2D/3D toggle */}
-                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1">
-                        <Button
-                          size="sm"
-                          variant={graphMode === '2d' ? 'default' : 'ghost'}
-                          className="h-7 px-3 text-xs"
-                          onClick={() => setGraphMode('2d')}
-                        >
-                          2D
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={graphMode === '3d' ? 'default' : 'ghost'}
-                          className="h-7 px-3 text-xs"
-                          onClick={() => setGraphMode('3d')}
-                        >
-                          3D
-                        </Button>
-                      </div>
-                      
-                      {graphMode === '2d' ? (
-                        <GraphView 
-                          cards={filteredCards} 
-                          onCardSelect={setViewingCard}
-                          onCardUpdate={handleUpdateCard}
-                          className="h-full"
-                        />
-                      ) : (
-                        <Graph3D
-                          cards={filteredCards}
-                          onCardSelect={setViewingCard}
-                          className="h-full"
-                        />
-                      )}
+                      <GraphView 
+                        cards={filteredCards} 
+                        onCardSelect={setViewingCard}
+                        onCardUpdate={handleUpdateCard}
+                        className="h-full"
+                      />
                     </div>
                   </PremiumGate>
                 </TabsContent>
