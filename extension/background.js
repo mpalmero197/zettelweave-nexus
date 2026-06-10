@@ -597,6 +597,25 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
       await chrome.tabs.create({ url: APP_URL });
       return;
     }
+    if (info.menuItemId === "pendragonx_rec_start") {
+      const res = await startRecording(tab);
+      if (res.ok) {
+        await notify(tab?.id, "Recording — interact with the page, then right-click → Stop recording", true);
+        syncRecorderMenuVisibility();
+      } else {
+        await notify(tab?.id, res.error || "Couldn't start recording", false);
+      }
+      return;
+    }
+    if (info.menuItemId === "pendragonx_rec_stop") {
+      // Open side panel so the save-name prompt is visible, then ask it to prompt.
+      if (chrome.sidePanel?.open && tab?.windowId != null) {
+        await chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
+      }
+      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_PROMPT" }); } catch {}
+      await notify(tab?.id, "Name your macro in the side panel to finish saving", true);
+      return;
+    }
     if (info.menuItemId === "pendragonx_page_to_pdf") {
       if (!tab?.id) { await notify(tab?.id, "No active tab", false); return; }
       try {
