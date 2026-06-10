@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { CatalystEditor } from '@/components/CatalystEditor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Columns2, X } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
+import { Columns2, X, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { TwoPaneShell } from '@/components/workspace/TwoPaneShell';
+import { cn } from '@/lib/utils';
 
 interface CatalystSplitEditorProps {
   content: string;
@@ -19,88 +21,92 @@ interface CatalystSplitEditorProps {
 }
 
 export function CatalystSplitEditor({
-  content,
-  onChange,
-  onWordCountChange,
-  focusMode,
-  onToggleFocusMode,
-  isFullscreen,
-  onToggleFullscreen,
-  documentTheme,
-  onThemeChange,
+  content, onChange, onWordCountChange,
+  focusMode, onToggleFocusMode, isFullscreen, onToggleFullscreen,
+  documentTheme, onThemeChange,
 }: CatalystSplitEditorProps) {
   const [splitMode, setSplitMode] = useState(false);
   const [referenceContent, setReferenceContent] = useState(content);
+  const [liveMirror, setLiveMirror] = useState(false);
+  const [zoom, setZoom] = useState(1);
+
+  const editorEl = (
+    <CatalystEditor
+      content={content}
+      onChange={onChange}
+      onWordCountChange={onWordCountChange}
+      focusMode={focusMode}
+      onToggleFocusMode={onToggleFocusMode}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={onToggleFullscreen}
+      documentTheme={documentTheme}
+      onThemeChange={onThemeChange}
+    />
+  );
 
   if (!splitMode) {
     return (
       <div className="relative">
-        <CatalystEditor
-          content={content}
-          onChange={onChange}
-          onWordCountChange={onWordCountChange}
-          focusMode={focusMode}
-          onToggleFocusMode={onToggleFocusMode}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={onToggleFullscreen}
-          documentTheme={documentTheme}
-          onThemeChange={onThemeChange}
-        />
+        {editorEl}
         <Button
-          variant="outline"
-          size="sm"
-          className="absolute bottom-2 right-2 z-10 opacity-60 hover:opacity-100"
-          onClick={() => {
-            setReferenceContent(content);
-            setSplitMode(true);
-          }}
-          title="Split view"
+          variant="outline" size="sm"
+          className="absolute bottom-3 right-3 z-10 h-9 rounded-full px-3 shadow-md opacity-70 hover:opacity-100"
+          onClick={() => { setReferenceContent(content); setSplitMode(true); }}
+          title="Open split view"
         >
-          <Columns2 className="h-4 w-4" />
+          <Columns2 className="h-3.5 w-3.5 mr-1.5" /> Split
         </Button>
       </div>
     );
   }
 
-  return (
-    <div className="relative">
-      <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border">
-        <ResizablePanel defaultSize={50} minSize={30}>
-          <CatalystEditor
-            content={content}
-            onChange={onChange}
-            onWordCountChange={onWordCountChange}
-            focusMode={focusMode}
-            onToggleFocusMode={onToggleFocusMode}
-            isFullscreen={isFullscreen}
-            onToggleFullscreen={onToggleFullscreen}
-            documentTheme={documentTheme}
-            onThemeChange={onThemeChange}
-          />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={50} minSize={20}>
-          <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-              <span className="text-xs font-medium text-muted-foreground">Reference View</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setSplitMode(false)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <ScrollArea className="flex-1">
-              <div
-                className="prose prose-sm max-w-none p-6 text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(referenceContent) }}
-              />
-            </ScrollArea>
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+  const displayedRef = liveMirror ? content : referenceContent;
+
+  const referencePane = (
+    <div className="h-full flex flex-col bg-card/20">
+      <div className="flex items-center justify-between px-3 h-11 border-b border-border/30">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Reference
+        </span>
+        <div className="flex items-center gap-0.5">
+          <Toggle
+            size="sm" pressed={liveMirror}
+            onPressedChange={setLiveMirror}
+            className="h-7 px-2 text-[11px] data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            title="Mirror editor live"
+          >
+            <RefreshCw className={cn('h-3 w-3 mr-1', liveMirror && 'animate-spin')} style={{ animationDuration: '3s' }} />
+            Live
+          </Toggle>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.max(0.7, z - 0.1))} title="Smaller">
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.min(1.6, z + 0.1))} title="Larger">
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSplitMode(false)} title="Close split">
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      <ScrollArea className="flex-1">
+        <div
+          className="reader-prose max-w-[68ch] mx-auto px-6 md:px-8 py-8"
+          style={{ fontSize: `${15 * zoom}px` }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayedRef) }}
+        />
+      </ScrollArea>
     </div>
+  );
+
+  return (
+    <TwoPaneShell
+      list={editorEl}
+      detail={referencePane}
+      defaultListSize={55}
+      minListSize={30}
+      maxListSize={75}
+      heightClassName="min-h-[600px] h-[calc(100dvh-7rem)]"
+    />
   );
 }
