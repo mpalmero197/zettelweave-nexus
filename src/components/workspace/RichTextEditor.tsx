@@ -294,7 +294,7 @@ export function RichTextEditor({
     <div className={cn('rounded-lg border border-input bg-background overflow-hidden flex flex-col', className)}>
       {editable && <Toolbar editor={editor} />}
       {editable && (
-        <BubbleMenu editor={editor} tippyOptions={{ duration: 100, placement: 'top' }}>
+        <BubbleMenu editor={editor} options={{ placement: 'top' }}>
           <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-popover/95 backdrop-blur-xl shadow-lg p-1">
             <ToolBtn label="Bold" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-3.5 w-3.5" /></ToolBtn>
             <ToolBtn label="Italic" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-3.5 w-3.5" /></ToolBtn>
