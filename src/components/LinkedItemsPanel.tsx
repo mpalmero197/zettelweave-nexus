@@ -65,41 +65,33 @@ export function LinkedItemsPanel({
       try {
         const wikiNeedle = `[[${itemTitle}]]`;
 
-        // Run all queries in parallel
-        const promises: Promise<any>[] = [
-          // Backlinks from notes
-          supabase
-            .from("notes")
-            .select("id, title, content")
-            .ilike("content", `%${wikiNeedle}%`)
-            .is("deleted_at", null)
-            .limit(20),
-          // Backlinks from cards (linked_cards array contains this id)
-          supabase
-            .from("zettel_cards")
-            .select("id, title, number, category, content")
-            .contains("linked_cards", [itemId])
-            .is("deleted_at", null)
-            .limit(20),
-        ];
+        const notesBLP = supabase
+          .from("notes")
+          .select("id, title, content")
+          .ilike("content", `%${wikiNeedle}%`)
+          .is("deleted_at", null)
+          .limit(20)
+          .then(r => r);
 
-        // Outgoing
-        if (outgoingIds.length > 0) {
-          promises.push(
-            supabase
+        const cardsBLP = supabase
+          .from("zettel_cards")
+          .select("id, title, number, category, content")
+          .contains("linked_cards", [itemId])
+          .is("deleted_at", null)
+          .limit(20)
+          .then(r => r);
+
+        const outgoingP = outgoingIds.length > 0
+          ? supabase
               .from("zettel_cards")
               .select("id, title, number, category")
               .in("id", outgoingIds)
               .is("deleted_at", null)
-          );
-        } else {
-          promises.push(Promise.resolve({ data: [] }));
-        }
+              .then(r => r)
+          : Promise.resolve({ data: [] as any[] });
 
-        // Siblings (same dewey category, cards only)
-        if (category) {
-          promises.push(
-            supabase
+        const siblingsP = category
+          ? supabase
               .from("zettel_cards")
               .select("id, title, number, category")
               .eq("category", category)
@@ -107,27 +99,23 @@ export function LinkedItemsPanel({
               .is("deleted_at", null)
               .order("updated_at", { ascending: false })
               .limit(8)
-          );
-        } else {
-          promises.push(Promise.resolve({ data: [] }));
-        }
+              .then(r => r)
+          : Promise.resolve({ data: [] as any[] });
 
-        // Related by tag
-        if (tags.length > 0) {
-          promises.push(
-            supabase
+        const relatedP = tags.length > 0
+          ? supabase
               .from("zettel_cards")
               .select("id, title, number, category, tags")
               .overlaps("tags", tags)
               .neq("id", itemId)
               .is("deleted_at", null)
               .limit(8)
-          );
-        } else {
-          promises.push(Promise.resolve({ data: [] }));
-        }
+              .then(r => r)
+          : Promise.resolve({ data: [] as any[] });
 
-        const [notesBL, cardsBL, outgoing, siblings, related] = await Promise.all(promises);
+        const [notesBL, cardsBL, outgoing, siblings, related] = await Promise.all([
+          notesBLP, cardsBLP, outgoingP, siblingsP, relatedP,
+        ]);
 
         (notesBL.data || []).forEach((n: any) => {
           next.backlinks.push({
