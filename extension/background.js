@@ -51,11 +51,28 @@ function registerContextMenus() {
     // Image items
     chrome.contextMenus.create({ id: "pendragonx_save_image_card",   parentId: "pendragonx_root", title: "Save image as card", contexts: ["image"] });
 
+    // Macro recorder — visibility toggled by syncRecorderMenuVisibility()
+    chrome.contextMenus.create({ id: "pendragonx_sep_rec", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link"] });
+    chrome.contextMenus.create({ id: "pendragonx_rec_start", parentId: "pendragonx_root", title: "Teach ALICE this task", contexts: ["page", "selection", "link"] });
+    chrome.contextMenus.create({ id: "pendragonx_rec_stop",  parentId: "pendragonx_root", title: "Stop recording & save macro", contexts: ["page", "selection", "link"], visible: false });
+
     // Footer
     chrome.contextMenus.create({ id: "pendragonx_sep_foot", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link", "image"] });
     chrome.contextMenus.create({ id: "pendragonx_open_panel", parentId: "pendragonx_root", title: "Open Toolbox side panel", contexts: ["page", "selection", "link", "image"] });
     chrome.contextMenus.create({ id: "pendragonx_open_app",   parentId: "pendragonx_root", title: "Open PendragonX app", contexts: ["page", "selection", "link", "image"] });
+
+    syncRecorderMenuVisibility();
   });
+}
+
+async function syncRecorderMenuVisibility() {
+  if (!chrome.contextMenus?.update) return;
+  try {
+    const state = await getRecState();
+    const recording = !!state?.active;
+    chrome.contextMenus.update("pendragonx_rec_start", { visible: !recording });
+    chrome.contextMenus.update("pendragonx_rec_stop",  { visible: recording });
+  } catch {}
 }
 
 async function notify(tabId, message, ok = true) {
