@@ -64,7 +64,7 @@ function InlineNoteView({ note, notebooks }: { note: Note; notebooks: Notebook[]
         )}
       </div>
       <ScrollArea className="flex-1">
-        <div className="p-4 prose prose-sm max-w-none dark:prose-invert">
+        <div className="reader-prose max-w-[68ch] mx-auto p-6 text-[15px]">
           {hasHtml ? (
             <div dangerouslySetInnerHTML={{ __html: sanitized }} />
           ) : note.content.trim() ? (
