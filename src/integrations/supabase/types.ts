@@ -486,6 +486,101 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_macro_runs: {
+        Row: {
+          current_step: number
+          ended_at: string | null
+          error: string | null
+          id: string
+          initiated_by: string
+          macro_id: string
+          screenshot_path: string | null
+          started_at: string
+          status: string
+          total_steps: number
+          user_id: string
+        }
+        Insert: {
+          current_step?: number
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          initiated_by?: string
+          macro_id: string
+          screenshot_path?: string | null
+          started_at?: string
+          status?: string
+          total_steps?: number
+          user_id: string
+        }
+        Update: {
+          current_step?: number
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          initiated_by?: string
+          macro_id?: string
+          screenshot_path?: string | null
+          started_at?: string
+          status?: string
+          total_steps?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alice_macro_runs_macro_id_fkey"
+            columns: ["macro_id"]
+            isOneToOne: false
+            referencedRelation: "alice_macros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alice_macros: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          last_run_status: string | null
+          name: string
+          run_count: number
+          start_url: string
+          steps: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          last_run_status?: string | null
+          name: string
+          run_count?: number
+          start_url: string
+          steps?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          last_run_status?: string | null
+          name?: string
+          run_count?: number
+          start_url?: string
+          steps?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alice_memories: {
         Row: {
           created_at: string
@@ -663,6 +758,48 @@ export type Database = {
           next_run_at?: string | null
           tool_name?: string
           tool_params?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      alice_workflows: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          name: string
+          run_count: number
+          steps: Json
+          trigger_phrase: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name: string
+          run_count?: number
+          steps?: Json
+          trigger_phrase?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          run_count?: number
+          steps?: Json
+          trigger_phrase?: string | null
           updated_at?: string
           user_id?: string
         }

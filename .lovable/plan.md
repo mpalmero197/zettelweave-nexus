@@ -1,93 +1,132 @@
 
-# Feature Trim + Speed Overhaul
+# ALICE Automation Expansion
 
-## Part 1 — Feature removals & merges
+Two-part build: **(A) ALICE as a real tool-calling agent inside the app**, **(B) Web Macro recorder & replayer via the existing Toolbox extension**. Both gated by an explicit "Approve before any write or external action" policy.
 
-### Knowledge Graph
-- **Remove**: 3D graph view, orbital model, mobile-optimized graph variant. Delete `three`, `three-stdlib`, `@react-three/fiber`, `@react-three/drei`, `3d-force-graph` from bundle.
-- **Keep**: 2D star-schema graph only, lazy-loaded behind explicit "Open Graph" button (no eager mount).
-- **Files**: delete `KnowledgeGraph3D.tsx`, `OrbitalGraph.tsx`, `MobileGraph*.tsx`, related hooks. Strip graph routes/tabs that auto-mount.
+---
 
-### Linked Items panel (new)
-- New `LinkedItemsPanel.tsx` rendered in NoteViewer, CardViewer, and Catalyst sidebar.
-- Sections: **Backlinks** (notes/cards linking here, with ~100-char snippet), **Outgoing links** (wikilinks resolved), **Sibling cards** (same Dewey category), **Related by tag**.
-- Single batched RPC `get_linked_items(item_id, item_type)` returning all four buckets in one round-trip.
+## Part A — ALICE Tool-Calling Agent (in-app)
 
-### Notifier consolidation
-- Merge `alice-proactive-notifier`, `alice-proactive-pulse`, `generate-daily-briefing`, `daily-report`, `send-engagement-nudges` into **one** scheduled edge function `unified-notifier` running once at 6 PM CT.
-- Single `in_app_notifications` write path; drop `alice_pulses` + `daily_briefings` cron triggers.
-- Keep tables for history; remove duplicate widgets from dashboard.
+### A1. Agent core
+- New edge function `alice-agent` using AI SDK `streamText` + Gemini 3 Flash, with `stopWhen: stepCountIs(50)` for multi-step loops.
+- The existing ALICE chat UI calls this function instead of any single-shot prompt.
+- Server-side system prompt teaches ALICE: who the user is, what tools exist, the approval policy, and that risky actions must be proposed via `propose_action` rather than executed.
 
-### Mind Map Generator
-- Remove standalone tool/route. Move "Generate Mind Map" as a button inside Canvas Studio (already unified per memory).
-- Delete `MindMapGenerator.tsx` page; keep `generate-mindmap` edge fn (called from Canvas).
+### A2. Tools (AI SDK `tool({ inputSchema, execute })` registered per category)
 
-### Marketing Funnel Quiz
-- Remove from Landing page entirely. Delete `MarketingQuiz.tsx`, route, `quiz_funnel_leads` writes (keep table for historical data).
+**Content CRUD** (all scoped to `auth.uid()`):
+- `create_card`, `update_card`, `delete_card`, `link_cards`
+- `create_note`, `update_note`, `delete_note`, `move_note_to_notebook`, `create_notebook`
+- `create_sticky_note`, `update_sticky_note`
+- `create_task`, `update_task`, `complete_task`, `create_subtask`
+- `create_calendar_event`, `update_event`, `delete_event`
+- `create_reminder`, `create_habit`, `log_habit_completion`
 
-## Part 2 — Speed overhaul
+**Research & synthesis**:
+- `web_search` (Firecrawl), `scrape_url` (Firecrawl markdown), `summarize_url` (scrape → Gemini summary → save as card/note), `generate_study_guide` (existing edge fn), `generate_mock_exam` (existing), `draft_catalyst_chapter` (existing).
 
-### Bundle splitting
-- Route-level: every page already lazy via `React.lazy` — audit and add `prefetch` hints only for likely-next routes.
-- Feature-level lazy chunks:
-  - `editor` chunk: all `@tiptap/*` extensions, `lowlight`, `RichTextEditor` — only loaded when editor mounts.
-  - `pdf` chunk: `jspdf`, `html2canvas`, `pdf-lib` — only on export.
-  - `graph` chunk: 2D graph + `react-force-graph-2d`.
-  - `canvas` chunk: `fabric`, canvas drawing tools.
-  - `media` chunk: recorder/transcribe UI.
-- Update `vite.config.ts` `manualChunks` to add: `editor-vendor`, `pdf-vendor`, `graph-vendor`, `canvas-vendor`, `chart-vendor` (recharts).
+**Discovery / read tools** (no approval needed):
+- `search_my_content` (cards/notes/tasks via Postgres ILIKE + embedding RPC), `get_item`, `list_today_agenda`, `list_overdue_tasks`, `find_similar` (uses `find_similar_zettel_cards`).
 
-### AppLayout slimming
-- Defer ALICE floating button, presence subscription, item-sharing realtime, focus sidebar, cookie consent, push notifications until after first interaction (`requestIdleCallback`).
-- Move `CosmicBackground` to CSS-only gradient by default; animated aurora only when Low Power Mode is OFF *and* user has been idle past first paint.
-- Remove duplicate `MobileDetector` wrapping (currently nested twice in App.tsx).
+**Scheduling & triggers**:
+- `schedule_task` — stores in new `alice_scheduled_tasks` table (cron expression or one-shot); cron job dispatches due rows to `alice-agent` with a saved prompt.
+- `create_trigger` — event-based ("when a card with tag X is created, do Y"); evaluated by lightweight pg trigger that inserts into `alice_task_queue`.
 
-### Query batching
-- New RPC `get_workspace_bootstrap(user_id)` returning in one round-trip: profile, subscription, dashboard_layout, user_preferences, unread notification count, recent items (top 10 per type). Replaces 6+ parallel queries on app mount.
-- Drop the 3s extension polling on web app (only run inside extension context — web app already has realtime).
-- Realtime: subscribe to a single multiplexed channel, not one per table.
+**Multi-step workflows**:
+- `save_workflow` — captures the current tool-call sequence as a reusable named workflow in `alice_workflows`.
+- `run_workflow` — replays a saved workflow with new parameters; the agent fills `{{slots}}` from the user's request.
 
-### Virtualized lists
-- Add `@tanstack/react-virtual` to NotesWorkspace list, CardsWorkspace list, Search results, Notifications, ALICE chat history.
-- Threshold: virtualize when list > 50 items.
+**Meta / control**:
+- `propose_action` — for any destructive or external tool, ALICE calls this first. It writes a row to `alice_pending_actions` and returns a token. The UI shows an Approve/Reject card. On approve, server re-invokes the agent with `approved_action_token` and executes.
+- `report_progress` — streams milestone text to the UI without ending the turn.
 
-### Image optimization
-- Add `vite-imagetools` plugin.
-- Convert hero/landing images to AVIF + WebP with `<picture>` fallbacks.
-- Add `loading="lazy"` + explicit `width`/`height` to all `<img>` (CLS fix).
-- Preload only the LCP hero image with `fetchpriority="high"`.
+### A3. Approval flow (ties to your "ask before any write or external action" choice)
+- Tools are tagged `safety: "read" | "write" | "external"`.
+- `write` and `external` tools never `execute` directly — their `execute` returns a `proposal` object. ALICE surfaces them through `propose_action`. UI renders an inline approval card in the chat (compact diff: title, target item, new values).
+- One-click **Approve** triggers `alice-confirm-action` edge fn, which validates the token, runs the action, returns the result to the agent loop.
+- "Approve all in this run" toggle per session for power use.
 
-### Misc speed wins
-- Drop `next-themes` system check on every page (read once at bootstrap).
-- Replace heavy `recharts` charts on admin with `chartist`-style SVG mini-charts where possible (or keep lazy).
-- Add `<link rel="preconnect">` for Supabase + Lovable AI gateway in `index.html`.
-- Service worker: cache `/assets/*` immutable, network-first for HTML.
-- Tree-shake `lucide-react` icon imports already named imports — verify, no barrel.
+### A4. Background runs
+- Extends the existing `alice_runs` table: a run can be **scheduled**, **triggered**, or **manual**.
+- `alice-run-step` already exists — repurpose it as the worker that pulls from `alice_task_queue` (already partially modeled by `alice_scheduled_triggers`) and invokes `alice-agent`.
 
-## Part 3 — Execution order (so preview never breaks)
+### A5. Tables
+- `alice_pending_actions` — token, user_id, tool_name, args (jsonb), proposal_summary, status (pending/approved/rejected/expired), expires_at.
+- `alice_workflows` — name, description, steps (jsonb array of tool calls with slot placeholders), created_by, last_run_at.
+- `alice_scheduled_tasks` — name, prompt, cron_expr or run_at, enabled, last_run_at, owner.
+- Indexes on (user_id, status), (user_id, run_at).
+- RLS: owner-only; `service_role` for the agent function.
 
-```text
-1. vite.config.ts manualChunks + preconnects
-2. AppLayout slimming + dedupe MobileDetector
-3. Delete 3D graph + orbital + mobile graph files; strip routes
-4. Remove Mind Map Generator route; remove Marketing Quiz
-5. Build Linked Items panel + RPC migration
-6. Wire Linked Items into Note/Card viewers
-7. Consolidate notifiers (new unified-notifier fn, disable old crons)
-8. Add workspace-bootstrap RPC + replace parallel queries
-9. Editor lazy-chunk: dynamic-import RichTextEditor in viewers
-10. Virtualize Notes/Cards/Search lists
-11. vite-imagetools + landing image conversion
-12. Remove dead deps: three, @react-three/*, 3d-force-graph
-13. Update memory index (remove deprecated features)
-```
+### A6. UI additions in the existing ALICE panel
+- **Action cards** in chat: Approve / Reject / Edit-then-approve.
+- **Workflows tab**: list saved workflows, run/edit/delete, "Record from this conversation" button (saves the current run's tool sequence).
+- **Schedule tab**: simple list of scheduled prompts with next-run time.
 
-## Out of scope
-- No data deletion (quiz_funnel_leads, alice_pulses tables remain for history).
-- No changes to writing/editor UX, ALICE personality, or visual design.
-- No subscription/pricing changes.
+---
 
-## Estimated impact
-- Initial JS bundle: ~−40% (three.js + extra graphs + quiz removed, editor lazy).
-- TTI on `/app/hub`: ~50% faster after bootstrap RPC + AppLayout defer.
-- Tab switches inside app: near-instant after virtualization + chunk split.
+## Part B — Web Macro Recorder & Replayer (Toolbox extension)
+
+### B1. Recorder (content.js + side panel)
+- Add a **"Teach ALICE"** button in the extension side panel: starts recording on the active tab.
+- Content script attaches listeners for `click`, `input`, `change`, `submit`, `keydown` (Enter only), `scroll` (throttled), and `beforeunload`.
+- For each event, capture: timestamp, URL, a **resilient selector** (priority order: `data-testid` → unique `id` → `aria-label` + role → CSS path with `:nth-of-type` → text-content fallback for buttons/links), element role, and value if input. Store in `chrome.storage.session` while recording.
+- A floating in-page badge ("Recording — N steps") with **Pause / Stop**.
+- On Stop: prompt user for **task name** and optional description; POST steps to Supabase `alice_macros` (jsonb steps array) via the extension's existing Supabase client.
+
+### B2. Replayer
+- Side panel lists saved macros for the signed-in user. Each has Run / Edit / Delete.
+- "Run" sends a message to background → background opens the macro's start URL → injects a runner content script that walks the steps, with per-step wait-for-selector (default 8s timeout), human-ish delays (50-200ms), and a small overlay showing progress ("Step 3/12 — clicking 'Submit'").
+- If a selector misses, runner falls back to text-match; if that fails, it pauses and shows a "Selector broke — click the element you meant" recovery UI that patches the step in place.
+
+### B3. ALICE integration
+- New tool `run_web_macro({ name })` in the agent. Because it's an **external** action, it goes through `propose_action`. On approval, the web app pushes a `run_macro` realtime message on `user:{id}:macros`; the extension subscribes and triggers the run.
+- New tool `list_web_macros()` (read) so ALICE can answer "what can you do for me?".
+- When a macro completes (or fails), the extension writes a row to `alice_macro_runs` with status + screenshot (optional `captureVisibleTab`). ALICE reads the result and reports back in chat.
+
+### B4. Tables
+- `alice_macros` — name, description, start_url, steps (jsonb), owner, created_at.
+- `alice_macro_runs` — macro_id, status, started_at, ended_at, error, screenshot_path (storage).
+- Storage bucket `alice-macros` (private) for optional screenshots.
+- RLS: owner-only; extension authenticates as the user (already does for sync).
+
+### B5. Safety
+- Macros never store typed values for fields marked `type="password"` or with `autocomplete="current-password"`.
+- A blocklist of always-skip domains (banking by default, user-editable).
+- First replay of a macro always requires explicit approval (per the policy), even after a session "approve all".
+
+---
+
+## Part C — Out of scope (deliberately)
+- Server-side Playwright / headless replay (you chose extension-only).
+- Cross-device macro replay (lives in your browser).
+- ALICE writing prose into your notes without permission.
+
+## Technical details
+
+**Files added (estimated):**
+- `supabase/functions/alice-agent/index.ts` + `_shared/tools/*.ts` per category
+- `supabase/functions/alice-confirm-action/index.ts`
+- `supabase/functions/alice-dispatch-scheduled/index.ts` (cron-invoked)
+- `src/components/alice/ApprovalCard.tsx`, `AliceWorkflowsTab.tsx`, `AliceScheduleTab.tsx`
+- `extension/recorder.js`, `extension/runner.js`, `extension/macros-ui.html/.js`
+- Migrations for the 5 new tables + RLS + grants
+
+**Reused:**
+- `alice_runs`, `alice_episodic_memory`, `alice_actions`, `find_similar_zettel_cards`, Firecrawl connector, Lovable AI gateway, pg_cron, existing extension Supabase session.
+
+**Build order:**
+1. Migrations (5 tables, indexes, RLS, grants)
+2. `alice-agent` edge fn with read-only tools + `propose_action` skeleton
+3. Wire ALICE chat UI to new agent + Approval Card component
+4. Add write tools (CRUD) behind the proposal flow
+5. Research tools (Firecrawl + summarize) behind the proposal flow
+6. Workflows save/run + Workflows tab
+7. Scheduling + dispatch cron + Schedule tab
+8. Extension recorder + Teach ALICE button
+9. Extension replayer + macros list UI
+10. `run_web_macro` tool + realtime channel + result reporting
+
+**Risks called out:**
+- Long agent loops can burn AI credits. Cap at 50 steps + per-user daily token budget.
+- Selector fragility on macros — mitigated by the resilient selector strategy + interactive recovery.
+- Approval fatigue — mitigated by "approve all in this run" and a per-tool always-allow list in Settings.

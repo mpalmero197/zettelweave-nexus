@@ -134,6 +134,297 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true;
 });
 
+// ════════════════════════════════════════════════════════════════════
+// ALICE Macro Recorder + Replayer
+// ════════════════════════════════════════════════════════════════════
+
+const REC_STATE_KEY = "pendragonx_rec_state";  // { active, macroId?, steps, startUrl, startTabId }
+const RUN_QUEUE_KEY = "pendragonx_run_queue";  // { [tabId]: { runId, steps, macroId } }
+
+async function getRecState() {
+  const { [REC_STATE_KEY]: s } = await chrome.storage.session.get(REC_STATE_KEY);
+  return s || null;
+}
+async function setRecState(state) {
+  if (state) await chrome.storage.session.set({ [REC_STATE_KEY]: state });
+  else await chrome.storage.session.remove(REC_STATE_KEY);
+}
+
+async function startRecording(tab) {
+  if (!tab?.id || !tab?.url || !/^https?:/i.test(tab.url)) {
+    return { ok: false, error: "Open a regular web page first." };
+  }
+  await setRecState({
+    active: true,
+    steps: [],
+    startUrl: tab.url,
+    startTitle: tab.title || "",
+    startTabId: tab.id,
+    pausedAt: null,
+  });
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id, allFrames: false },
+      files: ["recorder.js"],
+    });
+  } catch (e) {
+    console.warn("recorder inject failed", e);
+  }
+  return { ok: true };
+}
+
+async function stopRecording() {
+  const state = await getRecState();
+  await setRecState(null);
+  // Hide badge on the start tab
+  if (state?.startTabId) {
+    try {
+      await chrome.tabs.sendMessage(state.startTabId, { type: "PENDRAGONX_REC_HIDE" });
+    } catch {}
+  }
+  return state;
+}
+
+// Re-inject recorder after navigation while recording (so the badge + capture survive)
+chrome.webNavigation?.onCommitted.addListener(async (details) => {
+  if (details.frameId !== 0) return;
+  const state = await getRecState();
+  if (!state?.active) return;
+  if (state.startTabId && details.tabId !== state.startTabId) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, allFrames: false },
+      files: ["recorder.js"],
+    });
+  } catch {}
+});
+
+// Recorder + runner messages
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || typeof msg !== "object") return false;
+
+  // ── Recorder ────────────────────────────────────────────────────
+  if (msg.type === "PENDRAGONX_REC_STEP") {
+    (async () => {
+      const state = await getRecState();
+      if (!state?.active) return;
+      state.steps.push(msg.step);
+      await setRecState(state);
+      // broadcast count to active tab
+      if (state.startTabId) {
+        try { chrome.tabs.sendMessage(state.startTabId, { type: "PENDRAGONX_REC_COUNT", count: state.steps.length }); } catch {}
+      }
+      // also notify the side panel
+      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_COUNT_PANEL", count: state.steps.length }); } catch {}
+    })();
+    return false;
+  }
+  if (msg.type === "PENDRAGONX_REC_STATE") {
+    (async () => {
+      const state = await getRecState();
+      sendResponse({ active: !!state?.active, count: state?.steps?.length || 0, startUrl: state?.startUrl });
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_REC_STOP_REQUEST") {
+    (async () => {
+      // The side panel listens for this and will prompt the user for a name.
+      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_PROMPT" }); } catch {}
+    })();
+    return false;
+  }
+  if (msg.type === "PENDRAGONX_REC_START") {
+    (async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const res = await startRecording(tab);
+      sendResponse(res);
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_REC_STOP_AND_SAVE") {
+    (async () => {
+      const state = await stopRecording();
+      if (!state || !state.steps?.length) {
+        sendResponse({ ok: false, error: "No steps recorded" });
+        return;
+      }
+      const token = await getValidToken();
+      const userId = await getUserId(token);
+      if (!token || !userId) { sendResponse({ ok: false, error: "Sign in to PendragonX first" }); return; }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/alice_macros`, {
+        method: "POST",
+        headers: { ...authJson(token), Prefer: "return=representation" },
+        body: JSON.stringify({
+          user_id: userId,
+          name: String(msg.name || "Untitled macro").slice(0, 120),
+          description: msg.description ? String(msg.description).slice(0, 500) : null,
+          start_url: state.startUrl,
+          steps: state.steps,
+        }),
+      });
+      if (!res.ok) { sendResponse({ ok: false, error: await responseError(res) }); return; }
+      const rows = await res.json().catch(() => []);
+      sendResponse({ ok: true, macro: rows[0] || null });
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_REC_CANCEL") {
+    stopRecording().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
+  // ── Runner ──────────────────────────────────────────────────────
+  if (msg.type === "PENDRAGONX_RUN_MACRO") {
+    (async () => {
+      const token = await getValidToken();
+      const userId = await getUserId(token);
+      if (!token || !userId) { sendResponse({ ok: false, error: "Sign in first" }); return; }
+      const macroId = String(msg.macroId || "");
+      if (!macroId) { sendResponse({ ok: false, error: "Missing macro id" }); return; }
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/alice_macros?id=eq.${macroId}&select=*`, {
+        headers: authJson(token),
+      });
+      const rows = await r.json().catch(() => []);
+      const macro = rows?.[0];
+      if (!macro) { sendResponse({ ok: false, error: "Macro not found" }); return; }
+      // Create run row
+      const runRes = await fetch(`${SUPABASE_URL}/rest/v1/alice_macro_runs`, {
+        method: "POST",
+        headers: { ...authJson(token), Prefer: "return=representation" },
+        body: JSON.stringify({
+          user_id: userId,
+          macro_id: macroId,
+          status: "running",
+          total_steps: (macro.steps || []).length,
+          initiated_by: msg.initiatedBy || "user",
+        }),
+      });
+      const runRows = await runRes.json().catch(() => []);
+      const run = runRows?.[0];
+      if (!run) { sendResponse({ ok: false, error: "Could not create run" }); return; }
+      // Open start url in a new tab and queue the steps for the runner
+      const tab = await chrome.tabs.create({ url: macro.start_url, active: true });
+      const queue = (await chrome.storage.session.get(RUN_QUEUE_KEY))[RUN_QUEUE_KEY] || {};
+      queue[tab.id] = { runId: run.id, steps: macro.steps, macroId };
+      await chrome.storage.session.set({ [RUN_QUEUE_KEY]: queue });
+      // Wait until tab finishes loading, then inject runner
+      const onUpdated = (tabId, info) => {
+        if (tabId === tab.id && info.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+          chrome.scripting.executeScript({
+            target: { tabId, allFrames: false },
+            files: ["runner.js"],
+          }).catch((e) => console.warn("runner inject failed", e));
+        }
+      };
+      chrome.tabs.onUpdated.addListener(onUpdated);
+      sendResponse({ ok: true, runId: run.id });
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_RUN_READY") {
+    (async () => {
+      const tabId = sender.tab?.id;
+      if (!tabId) { sendResponse({}); return; }
+      const all = (await chrome.storage.session.get(RUN_QUEUE_KEY))[RUN_QUEUE_KEY] || {};
+      const queued = all[tabId];
+      if (!queued) { sendResponse({}); return; }
+      delete all[tabId];
+      await chrome.storage.session.set({ [RUN_QUEUE_KEY]: all });
+      sendResponse({ steps: queued.steps, runId: queued.runId });
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_RUN_PROGRESS") {
+    (async () => {
+      const token = await getValidToken();
+      if (!token) return;
+      await fetch(`${SUPABASE_URL}/rest/v1/alice_macro_runs?id=eq.${msg.runId}`, {
+        method: "PATCH",
+        headers: { ...authJson(token), Prefer: "return=minimal" },
+        body: JSON.stringify({ current_step: msg.currentStep, total_steps: msg.total }),
+      });
+    })();
+    return false;
+  }
+  if (msg.type === "PENDRAGONX_RUN_DONE") {
+    (async () => {
+      const token = await getValidToken();
+      if (!token) return;
+      await fetch(`${SUPABASE_URL}/rest/v1/alice_macro_runs?id=eq.${msg.runId}`, {
+        method: "PATCH",
+        headers: { ...authJson(token), Prefer: "return=minimal" },
+        body: JSON.stringify({
+          status: msg.status,
+          error: msg.error || null,
+          ended_at: new Date().toISOString(),
+        }),
+      });
+      // Bump macro stats
+      if (msg.status === "succeeded" || msg.status === "failed") {
+        try {
+          const macroId = (await chrome.storage.session.get(RUN_QUEUE_KEY));
+          // No-op: stats handled on app side
+        } catch {}
+      }
+    })();
+    return false;
+  }
+
+  // ── Web app → extension bridge (via Realtime fallback / direct call) ─
+  if (msg.type === "PENDRAGONX_PING") {
+    sendResponse({ ok: true, version: chrome.runtime.getManifest().version });
+    return false;
+  }
+
+  return false;
+});
+
+// Subscribe to Realtime channel for run requests from the web app.
+// We poll alice_macro_runs every 4s with `status=pending&initiated_by=alice`
+// since SDK-less realtime in MV3 is heavy. Polling keeps the worker simple.
+async function pollAlicePendingRuns() {
+  try {
+    const token = await getValidToken();
+    if (!token) return;
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/alice_macro_runs?status=eq.pending&initiated_by=eq.alice&select=id,macro_id&order=started_at.desc&limit=5`, {
+      headers: authJson(token),
+    });
+    if (!r.ok) return;
+    const rows = await r.json().catch(() => []);
+    for (const row of rows) {
+      // Claim by flipping to running first
+      const claim = await fetch(`${SUPABASE_URL}/rest/v1/alice_macro_runs?id=eq.${row.id}&status=eq.pending`, {
+        method: "PATCH",
+        headers: { ...authJson(token), Prefer: "return=representation" },
+        body: JSON.stringify({ status: "running" }),
+      });
+      const claimed = await claim.json().catch(() => []);
+      if (!claimed?.length) continue;
+      // Look up macro, then open + run
+      const macroRes = await fetch(`${SUPABASE_URL}/rest/v1/alice_macros?id=eq.${row.macro_id}&select=*`, { headers: authJson(token) });
+      const m = (await macroRes.json().catch(() => []))?.[0];
+      if (!m) continue;
+      const tab = await chrome.tabs.create({ url: m.start_url, active: true });
+      const queue = (await chrome.storage.session.get(RUN_QUEUE_KEY))[RUN_QUEUE_KEY] || {};
+      queue[tab.id] = { runId: row.id, steps: m.steps, macroId: row.macro_id };
+      await chrome.storage.session.set({ [RUN_QUEUE_KEY]: queue });
+      const onUpdated = (tabId, info) => {
+        if (tabId === tab.id && info.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+          chrome.scripting.executeScript({ target: { tabId }, files: ["runner.js"] }).catch(() => {});
+        }
+      };
+      chrome.tabs.onUpdated.addListener(onUpdated);
+    }
+  } catch (e) {
+    console.debug("[Macros] poll error", e);
+  }
+}
+chrome.alarms?.create("pendragonx_macro_poll", { periodInMinutes: 0.1 });
+chrome.alarms?.onAlarm.addListener((a) => {
+  if (a.name === "pendragonx_macro_poll") pollAlicePendingRuns();
+});
 
 let _syncTimer = null;
 function debouncedSync() {
