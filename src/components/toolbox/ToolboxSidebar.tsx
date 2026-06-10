@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2, Bot } from 'lucide-react';
 import { useFocusState } from '@/components/focus-sidebar/useFocusState';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FocusPanel } from './FocusPanel';
 import { TasksPanel } from './TasksPanel';
 import { AIModifyPanel } from './AIModifyPanel';
+import { MacrosPanel } from './MacrosPanel';
 import { cn } from '@/lib/utils';
 
-export type ToolboxTab = 'focus' | 'tasks' | 'ai-modify';
+export type ToolboxTab = 'focus' | 'tasks' | 'ai-modify' | 'macros';
 
 interface ToolboxSidebarProps {
   open: boolean;
