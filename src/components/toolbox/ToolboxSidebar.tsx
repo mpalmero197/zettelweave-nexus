@@ -73,6 +73,7 @@ function ToolboxMobileSheet({ open, onOpenChange, initialTab }: ToolboxSidebarPr
           {activeTab === 'focus' && <FocusPanel />}
           {activeTab === 'tasks' && <TasksPanel />}
           {activeTab === 'ai-modify' && <AIModifyPanel />}
+          {activeTab === 'macros' && <MacrosPanel />}
         </div>
       </SheetContent>
     </Sheet>
