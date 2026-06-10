@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Link2, ArrowDownLeft, ArrowUpRight, Layers, Hash, FileText, StickyNote } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link2, ArrowDownLeft, ArrowUpRight, Layers, Hash, FileText, StickyNote, Sparkles, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface LinkedItem {
   id: string;
