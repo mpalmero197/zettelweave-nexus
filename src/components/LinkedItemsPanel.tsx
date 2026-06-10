@@ -57,6 +57,7 @@ export function LinkedItemsPanel({
 }: LinkedItemsPanelProps) {
   const [buckets, setBuckets] = useState<Buckets>({ backlinks: [], outgoing: [], siblings: [], related: [] });
   const [loading, setLoading] = useState(true);
+  const [autoLinkMeta, setAutoLinkMeta] = useState<{ locked: boolean; autoLinkedAt: string | null } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
