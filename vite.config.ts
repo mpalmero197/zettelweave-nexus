@@ -38,7 +38,6 @@ export default defineConfig(({ mode }) => ({
           'editor-vendor': [
             '@tiptap/core',
             '@tiptap/react',
-            '@tiptap/pm',
             '@tiptap/starter-kit',
             '@tiptap/extension-highlight',
             '@tiptap/extension-color',
