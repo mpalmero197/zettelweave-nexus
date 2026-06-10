@@ -22,6 +22,7 @@ const TABS: { id: ToolboxTab; label: string; icon: React.ComponentType<{ classNa
   { id: 'focus', label: 'Focus', icon: Timer },
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'ai-modify', label: 'AI Modify', icon: Wand2 },
+  { id: 'macros', label: 'Macros', icon: Bot },
 ];
 
 export function ToolboxSidebar({ open, onOpenChange, initialTab = 'focus' }: ToolboxSidebarProps) {
