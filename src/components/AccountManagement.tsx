@@ -1174,7 +1174,61 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                     </ul>
                    </Card>
 
+                  <Card className="p-6 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <LinkIcon className="h-5 w-5 text-primary" />
+                        <h4 className="font-medium">Card Auto-Linking</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        ALICE connects cards by content similarity and matching Dewey numbers. Pick how aggressively links are applied. Manual edits always win — user-made links override AI links.
+                      </p>
+                      <div className="grid gap-2 pt-2">
+                        {([
+                          { v: 'auto', t: 'Auto-link', d: 'Apply links automatically (locked once you edit)' },
+                          { v: 'suggest', t: 'Auto-suggest', d: 'Show dotted lines on the graph for suggested links only' },
+                          { v: 'manual', t: 'Manual only', d: 'Never auto-link; you control every connection' },
+                        ] as const).map(opt => (
+                          <label key={opt.v} className={cn(
+                            "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                            autoLinkMode === opt.v ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                          )}>
+                            <input
+                              type="radio"
+                              name="auto_link_mode"
+                              className="mt-1 accent-primary"
+                              checked={autoLinkMode === opt.v}
+                              onChange={async () => {
+                                if (!user) return;
+                                const prev = autoLinkMode;
+                                setAutoLinkMode(opt.v);
+                                const { error } = await supabase
+                                  .from('profiles')
+                                  .update({ auto_link_mode: opt.v } as any)
+                                  .eq('user_id', user.id);
+                                if (error) {
+                                  setAutoLinkMode(prev);
+                                  toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
+                                } else {
+                                  toast({ title: 'Updated', description: `Auto-linking set to ${opt.t}.` });
+                                  if (opt.v !== 'manual') {
+                                    supabase.functions.invoke('alice-auto-link', { body: { user_id: user.id } }).catch(() => {});
+                                  }
+                                }
+                              }}
+                            />
+                            <div>
+                              <div className="text-sm font-medium">{opt.t}</div>
+                              <div className="text-xs text-muted-foreground">{opt.d}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+
                   <Separator className="my-6" />
+
 
                   <h3 className="text-lg font-medium mb-4">Notifications</h3>
 
