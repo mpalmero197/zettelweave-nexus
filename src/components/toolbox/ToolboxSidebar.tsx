@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2, Bot } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2, Bot, Sparkles } from 'lucide-react';
 import { useFocusState } from '@/components/focus-sidebar/useFocusState';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FocusPanel } from './FocusPanel';
 import { TasksPanel } from './TasksPanel';
 import { AIModifyPanel } from './AIModifyPanel';
 import { MacrosPanel } from './MacrosPanel';
+import { AgentPanel } from './AgentPanel';
 import { cn } from '@/lib/utils';
 
-export type ToolboxTab = 'focus' | 'tasks' | 'ai-modify' | 'macros';
+export type ToolboxTab = 'focus' | 'tasks' | 'ai-modify' | 'macros' | 'agent';
 
 interface ToolboxSidebarProps {
   open: boolean;
@@ -22,6 +23,7 @@ const TABS: { id: ToolboxTab; label: string; icon: React.ComponentType<{ classNa
   { id: 'focus', label: 'Focus', icon: Timer },
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'ai-modify', label: 'AI Modify', icon: Wand2 },
+  { id: 'agent', label: 'Agent', icon: Sparkles },
   { id: 'macros', label: 'Macros', icon: Bot },
 ];
 
@@ -73,6 +75,7 @@ function ToolboxMobileSheet({ open, onOpenChange, initialTab }: ToolboxSidebarPr
           {activeTab === 'focus' && <FocusPanel />}
           {activeTab === 'tasks' && <TasksPanel />}
           {activeTab === 'ai-modify' && <AIModifyPanel />}
+          {activeTab === 'agent' && <AgentPanel />}
           {activeTab === 'macros' && <MacrosPanel />}
         </div>
       </SheetContent>
@@ -262,6 +265,7 @@ function ToolboxSidebarInner({ open, onOpenChange, initialTab }: ToolboxSidebarP
         {activeTab === 'focus' && <FocusPanel />}
         {activeTab === 'tasks' && <TasksPanel />}
         {activeTab === 'ai-modify' && <AIModifyPanel />}
+        {activeTab === 'agent' && <AgentPanel />}
         {activeTab === 'macros' && <MacrosPanel />}
       </div>
     </div>

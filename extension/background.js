@@ -13,8 +13,11 @@ const SUMMARIZE_URL = `${SUPABASE_URL}/functions/v1/summarize-page-to-card`;
 const DICTIONARY_URL = `${SUPABASE_URL}/functions/v1/dictionary-lookup`;
 const MODIFY_URL = `${SUPABASE_URL}/functions/v1/ai-modify-content`;
 const FETCH_URL_URL = `${SUPABASE_URL}/functions/v1/fetch-url-content`;
+const AGENT_STEP_URL = `${SUPABASE_URL}/functions/v1/alice-agent-step`;
 const TAB_ALARM = "pendragonx_tab_sync";
+const AGENT_POLL = "pendragonx_agent_poll";
 const APP_URL = "https://pendragonx.com";
+const AGENT_QUEUE_KEY = "pendragonx_agent_queue";
 
 // Smart-routing thresholds for the unified "Save selection" item.
 const SCRATCHPAD_MAX = 500;   // < 500 chars → scratchpad
@@ -393,7 +396,58 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return false;
   }
 
-  // ── Web app → extension bridge (via Realtime fallback / direct call) ─
+  // ── Autonomous Agent ────────────────────────────────────────────
+  if (msg.type === "PENDRAGONX_AGENT_READY") {
+    (async () => {
+      const tabId = sender.tab?.id;
+      if (!tabId) { sendResponse({}); return; }
+      const all = (await chrome.storage.session.get(AGENT_QUEUE_KEY))[AGENT_QUEUE_KEY] || {};
+      const queued = all[tabId];
+      if (!queued) { sendResponse({}); return; }
+      sendResponse({ runId: queued.runId });
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_AGENT_DECIDE") {
+    (async () => {
+      const token = await getValidToken();
+      if (!token) { sendResponse({ ok: false, error: "Sign in to PendragonX first" }); return; }
+      try {
+        const r = await fetch(AGENT_STEP_URL, {
+          method: "POST",
+          headers: authJson(token),
+          body: JSON.stringify({ run_id: msg.runId, snapshot: msg.snapshot }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { sendResponse({ ok: false, error: d?.error || `HTTP ${r.status}` }); return; }
+        sendResponse({ ok: true, action: d.action });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e?.message || e) });
+      }
+    })();
+    return true;
+  }
+  if (msg.type === "PENDRAGONX_AGENT_PAUSED" || msg.type === "PENDRAGONX_AGENT_ERROR" || msg.type === "PENDRAGONX_AGENT_CANCEL") {
+    (async () => {
+      const token = await getValidToken();
+      if (!token) return;
+      const patch = msg.type === "PENDRAGONX_AGENT_CANCEL" ? { status: "cancelled" }
+                   : msg.type === "PENDRAGONX_AGENT_ERROR" ? { status: "failed", error: msg.error || "Failed" }
+                   : { status: "paused_for_user", paused_reason: msg.reason || "Waiting for you" };
+      await fetch(`${SUPABASE_URL}/rest/v1/alice_agent_runs?id=eq.${msg.runId}`, {
+        method: "PATCH",
+        headers: { ...authJson(token), Prefer: "return=minimal" },
+        body: JSON.stringify(patch),
+      });
+      // Clear queue
+      const all = (await chrome.storage.session.get(AGENT_QUEUE_KEY))[AGENT_QUEUE_KEY] || {};
+      const tabId = sender.tab?.id;
+      if (tabId && all[tabId]) { delete all[tabId]; await chrome.storage.session.set({ [AGENT_QUEUE_KEY]: all }); }
+    })();
+    return false;
+  }
+
+  // ── Web app → extension bridge ──────────────────────────────────
   if (msg.type === "PENDRAGONX_PING") {
     sendResponse({ ok: true, version: chrome.runtime.getManifest().version });
     return false;
@@ -401,6 +455,51 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   return false;
 });
+
+// ════════════════════════════════════════════════════════════════════
+// Agent run poller — picks up rows the user just approved in chat
+// ════════════════════════════════════════════════════════════════════
+async function pollAgentRuns() {
+  try {
+    const token = await getValidToken();
+    if (!token) return;
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/alice_agent_runs?status=eq.running&select=id,current_url&order=updated_at.desc&limit=3`, {
+      headers: authJson(token),
+    });
+    if (!r.ok) return;
+    const rows = await r.json().catch(() => []);
+    const all = (await chrome.storage.session.get(AGENT_QUEUE_KEY))[AGENT_QUEUE_KEY] || {};
+    const inFlight = new Set(Object.values(all).map((q) => q.runId));
+    for (const row of rows) {
+      if (inFlight.has(row.id)) continue;
+      const startUrl = row.current_url || "https://www.google.com";
+      const tab = await chrome.tabs.create({ url: startUrl, active: true });
+      all[tab.id] = { runId: row.id };
+      await chrome.storage.session.set({ [AGENT_QUEUE_KEY]: all });
+      const onUpdated = (tabId, info) => {
+        if (tabId === tab.id && info.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+          chrome.scripting.executeScript({ target: { tabId }, files: ["agent.js"] }).catch((e) => console.warn("agent inject failed", e));
+        }
+      };
+      chrome.tabs.onUpdated.addListener(onUpdated);
+    }
+  } catch (e) {
+    console.debug("[Agent] poll error", e);
+  }
+}
+
+// Re-inject agent.js on cross-page navigation while a run is in flight
+chrome.webNavigation?.onCommitted.addListener(async (details) => {
+  if (details.frameId !== 0) return;
+  const all = (await chrome.storage.session.get(AGENT_QUEUE_KEY))[AGENT_QUEUE_KEY] || {};
+  if (!all[details.tabId]) return;
+  setTimeout(() => {
+    chrome.scripting.executeScript({ target: { tabId: details.tabId }, files: ["agent.js"] }).catch(() => {});
+  }, 800);
+});
+
+chrome.alarms?.create(AGENT_POLL, { periodInMinutes: 0.1 });
 
 // Subscribe to Realtime channel for run requests from the web app.
 // We poll alice_macro_runs every 4s with `status=pending&initiated_by=alice`
@@ -446,6 +545,7 @@ async function pollAlicePendingRuns() {
 chrome.alarms?.create("pendragonx_macro_poll", { periodInMinutes: 0.1 });
 chrome.alarms?.onAlarm.addListener((a) => {
   if (a.name === "pendragonx_macro_poll") pollAlicePendingRuns();
+  if (a.name === AGENT_POLL) pollAgentRuns();
 });
 
 let _syncTimer = null;

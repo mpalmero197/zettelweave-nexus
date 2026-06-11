@@ -420,6 +420,57 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_agent_runs: {
+        Row: {
+          created_at: string
+          current_tab_id: number | null
+          current_url: string | null
+          error: string | null
+          goal: string
+          history: Json
+          id: string
+          max_steps: number
+          paused_reason: string | null
+          plan: Json
+          status: string
+          step_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_tab_id?: number | null
+          current_url?: string | null
+          error?: string | null
+          goal: string
+          history?: Json
+          id?: string
+          max_steps?: number
+          paused_reason?: string | null
+          plan?: Json
+          status?: string
+          step_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_tab_id?: number | null
+          current_url?: string | null
+          error?: string | null
+          goal?: string
+          history?: Json
+          id?: string
+          max_steps?: number
+          paused_reason?: string | null
+          plan?: Json
+          status?: string
+          step_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alice_briefings: {
         Row: {
           created_at: string
