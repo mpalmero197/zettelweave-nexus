@@ -47,10 +47,40 @@ Deno.serve(async (req) => {
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const cronSecret = Deno.env.get("CRON_SECRET");
     const vapidPriv = Deno.env.get("VAPID_PRIVATE_KEY");
     const supabase = createClient(url, key);
 
-    // Optional: caller can force a specific user (manual trigger from UI)
+    // Identify caller. Either cron (service-role bearer or x-cron-secret) or an authenticated user.
+    const authHeader = req.headers.get("Authorization") || "";
+    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    const callerSecret = req.headers.get("x-cron-secret") || "";
+    const isCron =
+      (bearer && bearer === key) ||
+      (cronSecret && callerSecret === cronSecret);
+
+    let authedUserId: string | null = null;
+    if (!isCron) {
+      if (!bearer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const userClient = createClient(url, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      authedUserId = userData.user.id;
+    }
+
+    // Optional: caller can force a specific user (manual trigger from UI).
+    // Authenticated users can only force themselves; cron callers can force any user.
     let forceUserId: string | null = null;
     if (req.method === "POST") {
       try {
@@ -58,6 +88,10 @@ Deno.serve(async (req) => {
         if (typeof body?.user_id === "string") forceUserId = body.user_id;
       } catch { /* ignore */ }
     }
+    if (!isCron) {
+      forceUserId = authedUserId;
+    }
+
 
     // Pull all users with briefing prefs
     const { data: profiles } = await supabase
