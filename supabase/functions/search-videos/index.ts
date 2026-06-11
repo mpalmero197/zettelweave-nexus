@@ -26,25 +26,46 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
+function extractDailymotionId(url: string): string | null {
+  const m = url.match(/dailymotion\.com\/(?:video|embed\/video)\/([a-zA-Z0-9]+)/) ||
+            url.match(/dai\.ly\/([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function extractArchiveId(url: string): string | null {
+  const m = url.match(/archive\.org\/(?:details|embed)\/([^\/?#]+)/);
+  return m ? m[1] : null;
+}
+
 function detectProvider(url: string): string {
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
-  if (url.includes('odysee.com') || url.includes('lbry.tv')) return 'Odysee';
-  if (url.includes('khanacademy.org')) return 'Khan Academy';
-  if (url.includes('peertube') || url.includes('videos.')) return 'PeerTube';
-  if (url.includes('ted.com')) return 'TED';
   if (url.includes('vimeo.com')) return 'Vimeo';
+  if (url.includes('dailymotion.com') || url.includes('dai.ly')) return 'Dailymotion';
+  if (url.includes('odysee.com') || url.includes('lbry.tv')) return 'Odysee';
+  if (url.includes('archive.org')) return 'Internet Archive';
+  if (url.includes('peertube') || url.includes('framatube.org')) return 'PeerTube';
+  if (url.includes('ted.com')) return 'TED';
+  if (url.includes('khanacademy.org')) return 'Khan Academy';
   return 'Web';
 }
 
 function buildThumbnail(url: string): string {
   const ytId = extractYouTubeId(url);
   if (ytId) return `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`;
+  const dmId = extractDailymotionId(url);
+  if (dmId) return `https://www.dailymotion.com/thumbnail/video/${dmId}`;
+  const arId = extractArchiveId(url);
+  if (arId) return `https://archive.org/services/img/${arId}`;
   return '';
 }
 
 function extractChannel(url: string, title: string): string {
   if (url.includes('khanacademy.org')) return 'Khan Academy';
   if (url.includes('ted.com')) return 'TED';
+  if (url.includes('archive.org')) return 'Internet Archive';
+  if (url.includes('odysee.com') || url.includes('lbry.tv')) return 'Odysee';
+  if (url.includes('dailymotion.com') || url.includes('dai.ly')) return 'Dailymotion';
+  if (url.includes('vimeo.com')) return 'Vimeo';
   const dash = title.lastIndexOf(' - ');
   if (dash > 0 && dash < title.length - 3) return title.substring(dash + 3).trim();
   const pipe = title.lastIndexOf(' | ');
@@ -106,7 +127,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const searchQuery = `site:youtube.com OR site:odysee.com OR site:khanacademy.org OR site:ted.com "${query.trim()}" tutorial OR course OR lecture OR lesson`;
+    const searchQuery = `(site:youtube.com OR site:vimeo.com OR site:dailymotion.com OR site:odysee.com OR site:archive.org/details OR site:ted.com OR site:khanacademy.org) "${query.trim()}"`;
 
     console.log('Searching videos:', searchQuery);
 

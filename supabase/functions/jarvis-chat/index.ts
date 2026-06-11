@@ -533,7 +533,7 @@ const tools = [
     type: "function",
     function: {
       name: "find_video",
-      description: "Search the public web for videos (YouTube, Khan Academy, TED, Vimeo, etc.) matching a query. Use whenever the user asks for a video, tutorial, lecture, or 'show me a video of X'. After calling this, you MUST render 1–3 [[ALICE_CARD type=video]] blocks.",
+      description: "Search the public web for videos across YouTube, Vimeo, Dailymotion, Odysee/LBRY, Internet Archive, TED, Khan Academy, and PeerTube. Use whenever the user asks for a video, tutorial, lecture, documentary, archived broadcast, or 'show me a video of X'. After calling this, you MUST render 1–3 [[ALICE_CARD type=video]] blocks — they play inline in chat.",
       parameters: {
         type: "object",
         properties: { query: { type: "string" }, limit: { type: "number", description: "Max videos to surface, default 3, max 6." } },

@@ -57,6 +57,26 @@ function vimeoId(url: string): string | null {
   } catch { return null; }
 }
 
+function dailymotionId(url: string): string | null {
+  const m = url.match(/dailymotion\.com\/(?:video|embed\/video)\/([a-zA-Z0-9]+)/) ||
+            url.match(/dai\.ly\/([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function odyseeEmbed(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("odysee.com") && !u.hostname.includes("lbry.tv")) return null;
+    // Odysee mirrors watch URLs at /$/embed/<path>
+    return `https://odysee.com/$/embed${u.pathname}`;
+  } catch { return null; }
+}
+
+function archiveId(url: string): string | null {
+  const m = url.match(/archive\.org\/(?:details|embed)\/([^\/?#]+)/);
+  return m ? m[1] : null;
+}
+
 function isDirectMedia(url: string): boolean {
   return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
 }
@@ -120,13 +140,18 @@ function PdfCard({ card }: { card: Extract<AliceCard, { type: "pdf" }> }) {
 function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
   const ytId = youtubeId(card.url);
   const vmId = !ytId ? vimeoId(card.url) : null;
-  const direct = !ytId && !vmId && isDirectMedia(card.url);
-  const embeddable = Boolean(ytId || vmId || direct);
+  const dmId = !ytId && !vmId ? dailymotionId(card.url) : null;
+  const odEmbed = !ytId && !vmId && !dmId ? odyseeEmbed(card.url) : null;
+  const arId = !ytId && !vmId && !dmId && !odEmbed ? archiveId(card.url) : null;
+  const direct = !ytId && !vmId && !dmId && !odEmbed && !arId && isDirectMedia(card.url);
+  const embeddable = Boolean(ytId || vmId || dmId || odEmbed || arId || direct);
   const [playing, setPlaying] = useState(false);
   const thumb =
     card.thumbnail ||
     card.poster ||
-    (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : "");
+    (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` :
+     dmId ? `https://www.dailymotion.com/thumbnail/video/${dmId}` :
+     arId ? `https://archive.org/services/img/${arId}` : "");
   const domain = domainOf(card.url);
 
   return (
@@ -148,6 +173,30 @@ function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
               title={card.title || "Video"}
               className="w-full h-full"
               allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          ) : dmId ? (
+            <iframe
+              src={`https://www.dailymotion.com/embed/video/${dmId}?autoplay=1`}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          ) : odEmbed ? (
+            <iframe
+              src={odEmbed}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
+          ) : arId ? (
+            <iframe
+              src={`https://archive.org/embed/${arId}?autoplay=1`}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
             />
           ) : (
