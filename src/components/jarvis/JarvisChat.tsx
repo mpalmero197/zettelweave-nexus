@@ -17,6 +17,7 @@ import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionP
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
 import { AliceFollowupChips } from "@/components/jarvis/AliceFollowupChips";
+import { AliceAgendaBanner } from "@/components/jarvis/AliceAgendaBanner";
 import { GeminiStar } from "@/components/jarvis/GeminiStar";
 import { cn } from "@/lib/utils";
 import "./alice-theme.css";
@@ -31,6 +32,7 @@ const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string 
   get_weather: { icon: CloudSun, label: "Checked the weather" },
   find_video: { icon: Play, label: "Found videos" },
   generate_image: { icon: ImageIcon, label: "Generated an image" },
+  image_search: { icon: ImageIcon, label: "Found photos" },
   navigate: { icon: Navigation, label: "Navigated" },
 };
 
