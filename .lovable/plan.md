@@ -1,77 +1,88 @@
-# Autonomous Browser Agent for ALICE
+# PendragonX Scholar
 
-Turn ALICE from a record-and-replay macro player into a real browser agent that can be told "set up OAuth for Notion" and will research it, draft a plan, get your one-time approval, then drive the browser herself.
+A comprehensive in-app learning center that teaches every part of PendragonX through a safe sandbox, guided walkthroughs, videos, ALICE-led lessons, and written docs — with cosmetic badges as rewards and a fully automated curriculum sync engine so lessons never drift from the real product.
 
-## What changes for you
+## 1. Surface & navigation
 
-1. You type a goal in chat: *"Connect my Notion workspace for OAuth"* or *"Click through the GitHub repo settings and enable Issues"*.
-2. ALICE researches it (web search + reading the live page) and shows a plain-English action plan with Approve / Modify / Cancel buttons.
-3. After approval, the extension drives the page: scrolling, clicking, typing, navigating across tabs. A small overlay shows the current step and a Stop button.
-4. When she reaches a **password field** she stops and hands control to you. When she reaches an **OAuth "Allow / Authorize" consent button** she clicks it herself.
-5. She reports back in chat with what she did, any errors, and what she learned for next time.
+- New route `/scholar` with sub-routes:
+  - `/scholar` — Scholar home (dashboard: progress, recommended next lesson, badges, leaderboard-of-self).
+  - `/scholar/curriculum` — Browsable lesson catalog grouped by module (Capture, Notes, Cards, Catalyst, Canvas, ALICE, Toolbox, Vault, Integrations, Calendar, etc.).
+  - `/scholar/lesson/:slug` — Single lesson player (mixes any of: walkthrough, video, ALICE chat, written docs).
+  - `/scholar/alice` — ALICE Deep Dive (features/benefits/advantages explorer + live demo chat).
+  - `/scholar/sandbox` — Free-play sandbox shell.
+  - `/scholar/badges` — Badge case + Scholar rank.
+- Entry points: User menu item, Dashboard "Learn PendragonX" widget, contextual "Learn this" buttons on every major feature header, first-run onboarding modal.
 
-## How it works
+## 2. Fully isolated sandbox
 
-```text
-Chat goal ──► alice-plan-task (edge fn)
-              ├─ web_search for provider docs
-              ├─ reads live DOM snapshot from extension
-              └─ outputs ALICE_PLAN block (existing approval UI)
-                          │
-                  You click Approve
-                          │
-                          ▼
-              alice-agent-step (edge fn, loop)
-              ├─ receives current page snapshot
-              ├─ picks next action: click / fill / scroll / navigate / wait / done
-              ├─ flags password fields → pause + notify
-              └─ returns action to extension runner
-                          │
-                          ▼
-              extension/runner.js executes,
-              snapshots new page, posts back
-              (loop until done or paused)
-```
+- New `sandbox_*` namespace tables mirroring the real ones used in lessons: `sandbox_notebooks`, `sandbox_notes`, `sandbox_zettel_cards`, `sandbox_cards_links`, `sandbox_calendar_events`, `sandbox_tasks`, `sandbox_catalyst_documents`, `sandbox_mind_maps`, `sandbox_chat_messages` (for ALICE-in-sandbox).
+- Strict RLS: owner-only. Nothing in sandbox ever writes to real tables.
+- `SandboxProvider` React context exposes `useSandbox()` that returns sandbox-scoped CRUD hooks; every real feature component receives an optional `dataSource: "live" | "sandbox"` prop OR is rendered inside `<SandboxProvider>` which monkey-patches its Supabase queries to the sandbox tables. We will refactor existing feature hooks (e.g. `useNotes`, `useCards`, `useCatalyst`) to read the active source from context so the SAME UI is reused — no duplicate screens.
+- Seeded demo content: `seed_sandbox(user_id)` SQL function loads a curated fictional knowledge base (a fantasy-author persona with sample notebooks, cards, calendar, draft chapter). "Reset sandbox" wipes and reseeds in one click.
+- Sandbox banner stays pinned ("You are in the Scholar sandbox. Nothing here affects your real knowledge base.") in primary/violet.
 
-### Pieces being built / changed
+## 3. Four tutorial formats per lesson
 
-**Edge functions (new):**
-- `alice-plan-task` — takes a goal + optional page snapshot, calls Lovable AI (gemini-3-flash) with web_search tool, returns an `ALICE_PLAN` the existing approval UI already renders.
-- `alice-agent-step` — the per-step "decide next action" loop. Given the goal, plan, history, and current DOM snapshot, returns one structured action `{action, selector, value, reasoning, sensitive?}`. Uses gemini-2.5-pro for reasoning.
+Each lesson is one record with optional payloads for each format the user picks:
 
-**Extension (`extension/`):**
-- `agent.js` (new) — content script that snapshots a compact, LLM-friendly view of the page (visible text + interactive elements with stable selectors), executes one action, snapshots again, posts back. Detects `input[type=password]` and stops the loop with a "needs you" signal.
-- `background.js` — adds an "agent run" message channel separate from macros, plus a context-menu entry "Ask ALICE to do this here".
-- `runner.js` — reused for the actual click/fill/scroll primitives.
-- Mirror updates copied into `public/chrome-extension/` and manifest bumped to 1.13.0.
+1. **Guided interactive walkthrough** — `react-joyride`-style coach marks driving the real sandbox UI. Steps are declared as JSON: `{ target, content, action?, validate? }`. Steps can require the user to actually perform a click/type before advancing.
+2. **Video tutorial** — embedded via the existing ALICE video card system (YouTube/Vimeo/etc.). Stored as URL on the lesson.
+3. **ALICE-led lesson** — opens a scoped ALICE thread with a lesson-specific system prompt; ALICE explains, asks check-questions, and can drive demos in the sandbox via existing alice-agent tools.
+4. **Written docs + screenshots** — Markdown body rendered with `react-markdown`, screenshots stored in `documents` bucket under `scholar/`.
 
-**App UI:**
-- `src/components/alice/AliceAgentRun.tsx` — live progress card in chat: current step, page title, "Resume after I log in" button, "Stop" button.
-- `useJarvis` already routes `client_actions`; add `alice:agent_start` and `alice:agent_paused` handlers.
-- The existing `AliceActionPlan` Approve/Modify/Cancel UI is reused — no new approval pattern.
+A tab switcher inside the lesson player lets the user move between formats; progress on any one counts toward completion.
 
-**Database (one new table):**
-- `alice_agent_runs` — `id, user_id, goal, plan jsonb, status (planning|awaiting_approval|running|paused_for_user|succeeded|failed|cancelled), history jsonb[], current_url, paused_reason, created_at, updated_at`. RLS scoped to `auth.uid()`. GRANTs to `authenticated` + `service_role`.
+## 4. ALICE Deep Dive
 
-### Safety rules baked in
+- Dedicated page presenting ALICE's capability map (chat, agent runs, macros, workflows, memory, vault OTP autofill, video search, web research, etc.) as a grid of capability cards.
+- Each card opens a focused demo: a sandbox ALICE thread pre-loaded with example prompts, and a "Try it" composer that runs against sandbox data only.
+- "Features / Benefits / Advantages" tabs on each capability, content auto-generated by the sync engine from the capability registry.
 
-- **Never types into `input[type=password]`** — always pauses and notifies you, regardless of what the plan says.
-- **Stops before any payment form field** (`autocomplete*="cc-"`, Stripe iframes) and asks for explicit re-approval.
-- **Single-tab scope per run** unless the plan explicitly opens a new tab; cross-origin nav requires re-snapshot before next action.
-- **Hard cap**: 40 steps per run, 8s timeout per action, user can hit Stop at any time.
-- **Audit log**: every action stored in `alice_agent_runs.history` so you can replay or review what she did.
+## 5. Points, badges, ranks (cosmetic only)
 
-### Out of scope for this pass
+- New tables: `scholar_progress` (user_id, lesson_slug, status, completed_at, score), `scholar_badges` (user_id, badge_slug, earned_at), `scholar_points` (user_id, total, breakdown jsonb).
+- Points granted for: completing a lesson format, completing a full lesson (all formats), finishing a module, perfect score on lesson check-questions, daily streak.
+- Badges: per-module ("Cards Cartographer", "Canvas Cartwright"), milestone ("First Lesson", "10 Lessons", "All Modules"), ALICE Deep Dive completion, streak badges.
+- Scholar Rank derived from total points (Apprentice → Scribe → Adept → Loremaster → Grand Pendragon). Shown on profile.
+- No functional perks; no leaderboards across users (privacy).
 
-- No autonomous *purchases* or *form submissions involving money* — those will always re-prompt.
-- No headless/background runs — the agent only acts in a tab you can see, so you can intervene.
-- No re-running OAuth flows after consent — once tokens are issued, the existing `oauth-callback` flow takes over.
+## 6. Curriculum sync engine (fully automated)
+
+- **Capability registry** at `src/lib/scholar/registry.ts`: a typed manifest of every PendragonX feature/module with `{ slug, title, route, surfaceFiles[], aliceTools[], lastReviewed }`. This file is the single source of truth.
+- **Edge function `scholar-curriculum-sync`** (scheduled nightly, also triggered after any merged feature change via existing self-improvement engine):
+  1. Walks the capability registry.
+  2. For each entry, reads its `surfaceFiles[]` from the repo (via GitHub PAT already configured) and the latest changelog/commit messages.
+  3. Calls Gemini-3-flash to regenerate: written doc body, walkthrough step JSON, ALICE lesson system prompt, and ALICE Deep Dive copy.
+  4. Calls Gemini-2.5-pro for a verification pass that the walkthrough selectors still exist (greps against current source).
+  5. Writes results to `scholar_lessons` table with `version`, `generated_at`, `model`, `source_commit`.
+- Video URLs are NOT auto-generated; admin can attach them in an admin panel tab `Admin → Scholar`. Same panel shows last sync status, drift warnings, and a "Force resync" button per lesson.
+- Because curriculum is fully automated, a developer-side rule is added to `mem://` Core: any new feature must add its entry to the capability registry; CI lint fails the build otherwise.
+
+## 7. Data model (new tables)
+
+- `scholar_lessons` — slug PK, module, title, summary, written_md, walkthrough_json, alice_system_prompt, video_url, version, generated_at, source_commit. Public read for authenticated users.
+- `scholar_modules` — slug PK, title, order, icon, description.
+- `scholar_progress` — user_id+lesson_slug PK, status, formats_completed[], score, completed_at.
+- `scholar_badges` — user_id+badge_slug PK, earned_at, metadata.
+- `scholar_points` — user_id PK, total, breakdown.
+- All sandbox_* tables (mirrors of live tables, reduced columns).
+- All get `GRANT` statements, RLS enabled, owner-only policies. `scholar_lessons` / `scholar_modules` granted SELECT to authenticated.
+
+## 8. Implementation phases
+
+1. Tables + RLS + grants + seed function + capability registry skeleton + `Scholar` route shell.
+2. Sandbox provider + refactor 3 pilot feature hooks (Notes, Cards, Catalyst) to honor data source; sandbox banner; reset.
+3. Lesson player UI with all 4 format tabs; written + video formats first.
+4. Walkthrough engine (react-joyride wrapper bound to sandbox).
+5. ALICE-led lesson mode + ALICE Deep Dive page.
+6. Points/badges/rank + Scholar home dashboard + admin Scholar tab.
+7. `scholar-curriculum-sync` edge function + nightly cron + hook into self-improvement engine + initial generation of all lessons.
+8. Dashboard widget, user menu entry, contextual "Learn this" buttons, first-run onboarding.
 
 ## Technical notes
 
-- DOM snapshot format: array of `{idx, tag, role, text, name, selector, visible, type?}` capped at ~120 interactive nodes; full visible text truncated to ~6k chars. This keeps each LLM call cheap and fast.
-- Selectors prefer `data-testid` → `id` → role+name → stable CSS path; never raw nth-child chains.
-- The "research" tool ALICE uses for OAuth setup is `web_search` already available in `supabase/functions/web-search` — wired in as a tool call inside `alice-plan-task`.
-- Mirrors the existing `alice_macros` / `alice_macro_runs` shape so the Macros panel can later show agent runs in a unified history view.
-
-Approve to build, or tell me what to change (e.g. tighter safety, different model, also support running while you're away).
+- Reuse existing chat infra for ALICE-led lessons (`jarvis-chat` edge function with a `scholar_lesson_slug` param that swaps the system prompt and forces sandbox data source).
+- Walkthrough selectors use `data-scholar-id` attributes added to feature components so the sync verifier can grep them deterministically; this is safer than CSS class selectors.
+- Sandbox seed data is generated once per user on first sandbox entry, then cached; reset re-runs the seed.
+- No new AI providers; uses existing Lovable Gateway (gemini-3-flash + gemini-2.5-pro) and existing HuggingFace embeddings if lessons get vectorized for semantic search across the curriculum.
+- Memory entry to add on build: `mem://features/pendragonx-scholar` describing the registry contract and the rule that new features must register themselves.
