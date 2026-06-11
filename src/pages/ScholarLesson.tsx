@@ -74,8 +74,8 @@ export default function ScholarLesson() {
                 <FlaskConical className="h-3 w-3" />Interactive
               </Badge>
             )}
-            {lesson.estimated_minutes && (
-              <span className="text-xs text-muted-foreground">~{lesson.estimated_minutes} min</span>
+            {(lesson as any).estimated_minutes && (
+              <span className="text-xs text-muted-foreground">~{(lesson as any).estimated_minutes} min</span>
             )}
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">{lesson.title}</h1>
