@@ -2625,6 +2625,12 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
         const r: any = p.result;
         if (r.url) injected.push(`[[ALICE_CARD type=image]]${JSON.stringify({ url: r.url, caption: r.prompt })}[[/ALICE_CARD]]`);
       }
+      if (p.name === "image_search" && !/ALICE_CARD\s+type=image/.test(finalText)) {
+        const results = ((p.result as any).results || []).slice(0, 3);
+        for (const im of results) {
+          injected.push(`[[ALICE_CARD type=image]]${JSON.stringify({ url: im.url, caption: im.caption })}[[/ALICE_CARD]]`);
+        }
+      }
       if (p.name === "get_weather" && !/ALICE_CARD\s+type=weather/.test(finalText)) {
         injected.push(`[[ALICE_CARD type=weather]]${JSON.stringify(p.result)}[[/ALICE_CARD]]`);
       }
