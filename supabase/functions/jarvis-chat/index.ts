@@ -230,6 +230,8 @@ Rules:
 - After get_weather → ALWAYS emit a [[ALICE_CARD type=weather]] from the returned JSON, then 1 short sentence. Do NOT just describe weather in prose.
 - After find_video → ALWAYS emit 1–3 [[ALICE_CARD type=video]] blocks (one per top result, include thumbnail+channel+provider+url). One short sentence intro.
 - After generate_image → ALWAYS emit [[ALICE_CARD type=image]] with the returned url. One sentence.
+- After image_search → emit 1–3 [[ALICE_CARD type=image]] blocks (one per result, use the returned url + a short caption naming the subject). One short sentence intro.
+- When the user mentions a real place, landmark, person, animal, dish, artwork, or any concrete topic where a photo would help understanding — PROACTIVELY call image_search yourself, even if they didn't ask for a picture. Real photos > generated images for real subjects. Use generate_image only for imagined/fictional things.
 - After web_search → emit one link card per top result (max 4).
 - For a book from find_book → use a link card with image=cover_url.
 - Card JSON must be valid on a SINGLE line. No trailing commas, no comments.
