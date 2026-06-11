@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Settings, CreditCard, Download, Shield, LogOut, Inbox, KeyRound } from "lucide-react";
+import { Settings, CreditCard, Download, Shield, LogOut, Inbox, KeyRound, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UserMenuProps {
@@ -32,6 +32,10 @@ export function UserMenu({ isAdmin, onSignOut }: UserMenuProps) {
         <DropdownMenuItem onClick={() => navigate("/vault")} className="gap-2 cursor-pointer">
           <KeyRound className="h-4 w-4" />
           Secure Vault
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/scholar")} className="gap-2 cursor-pointer">
+          <GraduationCap className="h-4 w-4" />
+          Scholar
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
