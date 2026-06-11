@@ -111,6 +111,18 @@ export function GraphViewPremium() {
             });
           });
         }
+        // Suggested links (dotted) — ALICE proposals not yet applied
+        const suggested: string[] = (card as any).suggested_links || [];
+        const applied = new Set<string>(card.linked_cards || []);
+        suggested.forEach((linkedId: string) => {
+          if (applied.has(linkedId)) return;
+          graphLinks.push({
+            source: card.id,
+            target: linkedId,
+            value: 1,
+            suggested: true,
+          });
+        });
       });
 
       // Add links for shared tags
