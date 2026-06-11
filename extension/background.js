@@ -408,6 +408,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
+  if (msg.type === "PENDRAGONX_AGENT_GET_OTP") {
+    (async () => {
+      try {
+        const tabs = await chrome.tabs.query({
+          url: ["https://pendragonx.com/*", "https://*.pendragonx.com/*", "https://*.lovable.app/*"],
+        });
+        for (const t of tabs) {
+          try {
+            const r = await chrome.tabs.sendMessage(t.id, {
+              type: "PENDRAGONX_VAULT_GET_OTP",
+              host: msg.host || "",
+            });
+            if (r && r.code) { sendResponse({ ok: true, code: r.code }); return; }
+          } catch (_) { /* tab not ready */ }
+        }
+        sendResponse({ ok: false, error: "Vault not unlocked. Open PendragonX → /vault and unlock with your passkey." });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e?.message || e) });
+      }
+    })();
+    return true;
+  }
   if (msg.type === "PENDRAGONX_AGENT_DECIDE") {
     (async () => {
       const token = await getValidToken();
