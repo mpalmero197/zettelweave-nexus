@@ -145,6 +145,17 @@
       nativeSet(el, action.value ?? "");
       return { ok: true };
     }
+    if (action.action === "fill_otp") {
+      const host = location.hostname.replace(/^www\./, "");
+      const resp = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_GET_OTP", host }, resolve);
+      });
+      if (!resp?.ok || !resp.code) {
+        return { ok: false, error: resp?.error || "No OTP available in vault" };
+      }
+      nativeSet(el, resp.code);
+      return { ok: true };
+    }
     return { ok: false, error: `Unknown action ${action.action}` };
   }
 
