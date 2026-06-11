@@ -931,26 +931,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 </Button>
                 <div className="w-px h-5 bg-border" />
                 <Button
-                  variant="ghost"
+                  variant={linkMode === 'auto' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => runAutoLink('auto')}
                   disabled={isAutoLinking}
                   className="h-7 px-2 text-xs"
-                  title="Auto-link cards by similarity"
+                  title={linkMode === 'auto' ? 'Auto-Link ON — click to turn off' : 'Auto-link cards by similarity'}
                 >
                   <Link2 className="h-3.5 w-3.5 mr-1" />
-                  {isAutoLinking ? 'Linking…' : 'Link'}
+                  {isAutoLinking && linkMode !== 'suggest' ? 'Linking…' : linkMode === 'auto' ? 'Link · ON' : 'Link'}
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant={linkMode === 'suggest' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => runAutoLink('suggest')}
                   disabled={isAutoLinking}
                   className="h-7 px-2 text-xs"
-                  title="Suggest links as dotted lines"
+                  title={linkMode === 'suggest' ? 'Suggest ON — click to turn off' : 'Suggest links as dotted lines'}
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
-                  {isAutoLinking ? '…' : 'Suggest'}
+                  {isAutoLinking && linkMode !== 'auto' ? '…' : linkMode === 'suggest' ? 'Suggest · ON' : 'Suggest'}
                 </Button>
               </div>
             </Panel>
