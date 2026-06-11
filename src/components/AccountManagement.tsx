@@ -10,7 +10,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain, Bell } from 'lucide-react';
+import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain, Bell, Link as LinkIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { AliceMemoryPanel } from '@/components/alice/AliceMemoryPanel';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -52,6 +53,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [searchEngine, setSearchEngine] = useState<'google' | 'duckduckgo'>('google');
   const [aliceProactive, setAliceProactive] = useState(true);
   const [aliceProactiveLevel, setAliceProactiveLevel] = useState(3);
+  const [autoLinkMode, setAutoLinkMode] = useState<'auto' | 'suggest' | 'manual'>('auto');
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
@@ -77,7 +79,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Load profile data
       supabase
         .from('profiles')
-        .select('display_name, about_me, avatar_url, auto_master_docs, preferred_search_engine, alice_proactive_enabled, alice_proactive_level')
+        .select('display_name, about_me, avatar_url, auto_master_docs, preferred_search_engine, alice_proactive_enabled, alice_proactive_level, auto_link_mode')
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data, error }) => {
@@ -95,6 +97,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setSearchEngine(((data as any).preferred_search_engine as any) || 'google');
             setAliceProactive((data as any).alice_proactive_enabled !== false);
             setAliceProactiveLevel((data as any).alice_proactive_level ?? 3);
+            setAutoLinkMode(((data as any).auto_link_mode as any) || 'auto');
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
@@ -1172,7 +1175,61 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                     </ul>
                    </Card>
 
+                  <Card className="p-6 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <LinkIcon className="h-5 w-5 text-primary" />
+                        <h4 className="font-medium">Card Auto-Linking</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        ALICE connects cards by content similarity and matching Dewey numbers. Pick how aggressively links are applied. Manual edits always win — user-made links override AI links.
+                      </p>
+                      <div className="grid gap-2 pt-2">
+                        {([
+                          { v: 'auto', t: 'Auto-link', d: 'Apply links automatically (locked once you edit)' },
+                          { v: 'suggest', t: 'Auto-suggest', d: 'Show dotted lines on the graph for suggested links only' },
+                          { v: 'manual', t: 'Manual only', d: 'Never auto-link; you control every connection' },
+                        ] as const).map(opt => (
+                          <label key={opt.v} className={cn(
+                            "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                            autoLinkMode === opt.v ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                          )}>
+                            <input
+                              type="radio"
+                              name="auto_link_mode"
+                              className="mt-1 accent-primary"
+                              checked={autoLinkMode === opt.v}
+                              onChange={async () => {
+                                if (!user) return;
+                                const prev = autoLinkMode;
+                                setAutoLinkMode(opt.v);
+                                const { error } = await supabase
+                                  .from('profiles')
+                                  .update({ auto_link_mode: opt.v } as any)
+                                  .eq('user_id', user.id);
+                                if (error) {
+                                  setAutoLinkMode(prev);
+                                  toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
+                                } else {
+                                  toast({ title: 'Updated', description: `Auto-linking set to ${opt.t}.` });
+                                  if (opt.v !== 'manual') {
+                                    supabase.functions.invoke('alice-auto-link', { body: { user_id: user.id } }).catch(() => {});
+                                  }
+                                }
+                              }}
+                            />
+                            <div>
+                              <div className="text-sm font-medium">{opt.t}</div>
+                              <div className="text-xs text-muted-foreground">{opt.d}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+
                   <Separator className="my-6" />
+
 
                   <h3 className="text-lg font-medium mb-4">Notifications</h3>
 

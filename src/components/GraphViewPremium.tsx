@@ -41,6 +41,7 @@ interface GraphLink {
   source: string | GraphNode;
   target: string | GraphNode;
   value: number;
+  suggested?: boolean;
 }
 
 export function GraphViewPremium() {
@@ -110,6 +111,18 @@ export function GraphViewPremium() {
             });
           });
         }
+        // Suggested links (dotted) — ALICE proposals not yet applied
+        const suggested: string[] = (card as any).suggested_links || [];
+        const applied = new Set<string>(card.linked_cards || []);
+        suggested.forEach((linkedId: string) => {
+          if (applied.has(linkedId)) return;
+          graphLinks.push({
+            source: card.id,
+            target: linkedId,
+            value: 1,
+            suggested: true,
+          });
+        });
       });
 
       // Add links for shared tags
@@ -198,7 +211,8 @@ export function GraphViewPremium() {
       .attr('stroke', 'url(#link-gradient)')
       .attr('stroke-width', d => Math.sqrt(d.value) * 2)
       .attr('stroke-linecap', 'round')
-      .style('opacity', 0.3)
+      .attr('stroke-dasharray', d => d.suggested ? '4 4' : null)
+      .style('opacity', d => d.suggested ? 0.5 : 0.3)
       .style('transition', 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)');
 
     // Create node groups

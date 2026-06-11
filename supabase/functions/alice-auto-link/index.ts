@@ -1,6 +1,11 @@
-// ALICE auto-link: for each user's cards that aren't user-locked,
-// find top-K similar cards via embedding cosine and update linked_cards.
-// Skips cards whose links are user-modified (links_locked=true).
+// ALICE auto-link: for each user's cards, propose connections.
+// Mode (profiles.auto_link_mode):
+//   - 'auto'    : write to linked_cards (skipping user-locked cards)
+//   - 'suggest' : write to suggested_links (dotted lines in graph)
+//   - 'manual'  : no-op
+// Sources of links:
+//   1. Embedding cosine similarity (>= SIM_THRESHOLD)
+//   2. Dewey number prefix match (first 3 chars / category bucket)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
@@ -18,23 +23,30 @@ Deno.serve(async (req) => {
   );
 
   try {
-    // Optional: a specific user can be requested (manual trigger from UI)
     let targetUserId: string | null = null;
     try {
       const body = await req.json();
       targetUserId = body?.user_id ?? null;
-    } catch { /* empty body ok */ }
+    } catch { /* empty */ }
 
-    // Pull candidate cards: not locked, has embedding, recently changed or never auto-linked
+    // Resolve mode per user (default 'auto')
+    const modeByUser = new Map<string, string>();
+    async function getMode(uid: string): Promise<string> {
+      if (modeByUser.has(uid)) return modeByUser.get(uid)!;
+      const { data } = await supabase
+        .from("profiles").select("auto_link_mode").eq("user_id", uid).maybeSingle();
+      const m = (data as any)?.auto_link_mode ?? "auto";
+      modeByUser.set(uid, m);
+      return m;
+    }
+
     let q = supabase
       .from("zettel_cards")
-      .select("id, user_id, content_embedding, auto_linked_at, updated_at")
-      .eq("links_locked", false)
+      .select("id, user_id, number, content_embedding, auto_linked_at, updated_at, links_locked")
       .not("content_embedding", "is", null)
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .limit(MAX_CARDS_PER_RUN);
-
     if (targetUserId) q = q.eq("user_id", targetUserId);
 
     const { data: cards, error } = await q;
@@ -44,32 +56,54 @@ Deno.serve(async (req) => {
     const errors: string[] = [];
 
     for (const card of cards ?? []) {
-      // Skip if auto_linked_at >= updated_at (already in sync)
+      const mode = await getMode(card.user_id);
+      if (mode === "manual") continue;
+
+      // For 'auto' we skip already-in-sync, locked cards stay locked.
       if (
+        mode === "auto" &&
         !targetUserId &&
         card.auto_linked_at &&
         new Date(card.auto_linked_at).getTime() >= new Date(card.updated_at).getTime()
       ) continue;
 
-      // Use the existing similarity RPC
+      // 1) Embedding similarity
       const { data: similar, error: simErr } = await supabase.rpc(
         "find_similar_zettel_cards",
-        {
-          target_id: card.id,
-          similarity_threshold: SIM_THRESHOLD,
-          max_results: MAX_LINKS_PER_CARD,
-        },
+        { target_id: card.id, similarity_threshold: SIM_THRESHOLD, max_results: MAX_LINKS_PER_CARD },
       );
       if (simErr) { errors.push(`sim ${card.id}: ${simErr.message}`); continue; }
+      const ids = new Set<string>((similar ?? []).map((s: any) => s.id));
 
-      const linkIds = (similar ?? []).map((s: any) => s.id);
+      // 2) Dewey number prefix (first 3 chars) within same user
+      if (card.number) {
+        const prefix = String(card.number).slice(0, 3);
+        const { data: byNum } = await supabase
+          .from("zettel_cards")
+          .select("id")
+          .eq("user_id", card.user_id)
+          .is("deleted_at", null)
+          .neq("id", card.id)
+          .like("number", `${prefix}%`)
+          .limit(MAX_LINKS_PER_CARD);
+        for (const r of byNum ?? []) ids.add((r as any).id);
+      }
 
-      const { error: setErr } = await supabase.rpc("alice_set_auto_links", {
-        _card_id: card.id,
-        _link_ids: linkIds,
-      });
-      if (setErr) { errors.push(`set ${card.id}: ${setErr.message}`); continue; }
+      const linkIds = Array.from(ids).slice(0, MAX_LINKS_PER_CARD);
 
+      if (mode === "auto") {
+        if (card.links_locked) continue;
+        const { error: setErr } = await supabase.rpc("alice_set_auto_links", {
+          _card_id: card.id, _link_ids: linkIds,
+        });
+        if (setErr) { errors.push(`set ${card.id}: ${setErr.message}`); continue; }
+      } else {
+        // suggest
+        const { error: setErr } = await supabase.rpc("alice_set_suggested_links", {
+          _card_id: card.id, _link_ids: linkIds,
+        });
+        if (setErr) { errors.push(`suggest ${card.id}: ${setErr.message}`); continue; }
+      }
       updated++;
     }
 
@@ -80,8 +114,7 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     console.error("alice-auto-link failed:", e);
     return new Response(JSON.stringify({ ok: false, error: e.message ?? String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
