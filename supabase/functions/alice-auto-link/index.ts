@@ -69,13 +69,16 @@ Deno.serve(async (req) => {
         new Date(card.auto_linked_at).getTime() >= new Date(card.updated_at).getTime()
       ) continue;
 
-      // 1) Embedding similarity
-      const { data: similar, error: simErr } = await supabase.rpc(
-        "find_similar_zettel_cards",
-        { target_id: card.id, similarity_threshold: SIM_THRESHOLD, max_results: MAX_LINKS_PER_CARD },
-      );
-      if (simErr) { errors.push(`sim ${card.id}: ${simErr.message}`); continue; }
-      const ids = new Set<string>((similar ?? []).map((s: any) => s.id));
+      // 1) Embedding similarity (only if this card has an embedding)
+      const ids = new Set<string>();
+      if (card.content_embedding) {
+        const { data: similar, error: simErr } = await supabase.rpc(
+          "find_similar_zettel_cards",
+          { target_id: card.id, similarity_threshold: SIM_THRESHOLD, max_results: MAX_LINKS_PER_CARD },
+        );
+        if (simErr) { errors.push(`sim ${card.id}: ${simErr.message}`); }
+        else for (const s of (similar ?? [])) ids.add((s as any).id);
+      }
 
       // 2) Dewey number prefix (first 3 chars) within same user
       if (card.number) {
