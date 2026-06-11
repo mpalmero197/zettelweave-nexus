@@ -26,8 +26,7 @@ export function SandboxProvider({ children, initialSource = "live" }: { children
   const reseed = async () => {
     setReseeding(true);
     try {
-      // @ts-expect-error rpc is dynamic
-      await supabase.rpc("seed_sandbox");
+      await (supabase as any).rpc("seed_sandbox");
     } finally {
       setReseeding(false);
     }
