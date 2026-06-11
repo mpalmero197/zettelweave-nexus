@@ -837,24 +837,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
+                      variant={linkMode === 'auto' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => runAutoLink('auto')}
                       disabled={isAutoLinking}
                       className="flex-1 h-10"
+                      title={linkMode === 'auto' ? 'Auto-Link is ON — tap to turn off' : 'Tap to turn Auto-Link on'}
                     >
                       <Link2 className="h-4 w-4 mr-1" />
-                      {isAutoLinking ? 'Linking…' : 'Auto-Link'}
+                      {isAutoLinking && linkMode !== 'suggest' ? 'Linking…' : linkMode === 'auto' ? 'Auto-Link · ON' : 'Auto-Link'}
                     </Button>
                     <Button
-                      variant="outline"
+                      variant={linkMode === 'suggest' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => runAutoLink('suggest')}
                       disabled={isAutoLinking}
                       className="flex-1 h-10"
+                      title={linkMode === 'suggest' ? 'Suggest is ON — tap to turn off' : 'Tap to turn Suggest on'}
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
-                      {isAutoLinking ? 'Suggesting…' : 'Suggest'}
+                      {isAutoLinking && linkMode !== 'auto' ? 'Suggesting…' : linkMode === 'suggest' ? 'Suggest · ON' : 'Suggest'}
                     </Button>
                   </div>
                   <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
