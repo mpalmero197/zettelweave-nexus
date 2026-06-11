@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => ({
           ],
           'pdf-vendor': ['jspdf', 'html2canvas'],
           'chart-vendor': ['recharts'],
-          'graph-vendor': ['react-force-graph-2d', 'd3-force', 'd3-quadtree'],
+          'graph-vendor': ['d3-force', 'd3-quadtree'],
         },
       },
     },
