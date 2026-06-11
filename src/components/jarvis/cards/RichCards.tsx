@@ -140,13 +140,18 @@ function PdfCard({ card }: { card: Extract<AliceCard, { type: "pdf" }> }) {
 function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
   const ytId = youtubeId(card.url);
   const vmId = !ytId ? vimeoId(card.url) : null;
-  const direct = !ytId && !vmId && isDirectMedia(card.url);
-  const embeddable = Boolean(ytId || vmId || direct);
+  const dmId = !ytId && !vmId ? dailymotionId(card.url) : null;
+  const odEmbed = !ytId && !vmId && !dmId ? odyseeEmbed(card.url) : null;
+  const arId = !ytId && !vmId && !dmId && !odEmbed ? archiveId(card.url) : null;
+  const direct = !ytId && !vmId && !dmId && !odEmbed && !arId && isDirectMedia(card.url);
+  const embeddable = Boolean(ytId || vmId || dmId || odEmbed || arId || direct);
   const [playing, setPlaying] = useState(false);
   const thumb =
     card.thumbnail ||
     card.poster ||
-    (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : "");
+    (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` :
+     dmId ? `https://www.dailymotion.com/thumbnail/video/${dmId}` :
+     arId ? `https://archive.org/services/img/${arId}` : "");
   const domain = domainOf(card.url);
 
   return (
@@ -168,6 +173,30 @@ function VideoCard({ card }: { card: Extract<AliceCard, { type: "video" }> }) {
               title={card.title || "Video"}
               className="w-full h-full"
               allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          ) : dmId ? (
+            <iframe
+              src={`https://www.dailymotion.com/embed/video/${dmId}?autoplay=1`}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          ) : odEmbed ? (
+            <iframe
+              src={odEmbed}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
+          ) : arId ? (
+            <iframe
+              src={`https://archive.org/embed/${arId}?autoplay=1`}
+              title={card.title || "Video"}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
             />
           ) : (
