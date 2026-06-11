@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import * as d3Force from 'd3-force';
 
 // Category color map - HSL values for each Dewey category
