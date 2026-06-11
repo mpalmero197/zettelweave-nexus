@@ -82,9 +82,25 @@ function nextRunAfter(cron: string, after: Date): Date {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Auth: only allow the platform cron caller (uses the service-role key as bearer)
+  // or a request carrying the matching x-cron-secret header.
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const authHeader = req.headers.get("Authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const callerSecret = req.headers.get("x-cron-secret") || "";
+  const authorized =
+    (bearer && bearer === serviceKey) ||
+    (cronSecret && callerSecret === cronSecret);
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    serviceKey,
   );
 
   const now = new Date();
