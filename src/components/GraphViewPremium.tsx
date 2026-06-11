@@ -41,6 +41,7 @@ interface GraphLink {
   source: string | GraphNode;
   target: string | GraphNode;
   value: number;
+  suggested?: boolean;
 }
 
 export function GraphViewPremium() {
