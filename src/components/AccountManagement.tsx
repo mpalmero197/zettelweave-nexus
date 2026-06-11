@@ -96,6 +96,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
             setSearchEngine(((data as any).preferred_search_engine as any) || 'google');
             setAliceProactive((data as any).alice_proactive_enabled !== false);
             setAliceProactiveLevel((data as any).alice_proactive_level ?? 3);
+            setAutoLinkMode(((data as any).auto_link_mode as any) || 'auto');
             setOriginalDisplayName(data.display_name || '');
             setOriginalAboutMe(data.about_me || '');
             setOriginalAvatarUrl(data.avatar_url || '');
