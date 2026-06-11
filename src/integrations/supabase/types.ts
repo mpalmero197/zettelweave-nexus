@@ -4392,6 +4392,78 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_items: {
+        Row: {
+          ciphertext: string
+          created_at: string
+          host: string | null
+          id: string
+          item_type: string
+          iv: string
+          label: string | null
+          passkey_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ciphertext: string
+          created_at?: string
+          host?: string | null
+          id?: string
+          item_type: string
+          iv: string
+          label?: string | null
+          passkey_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ciphertext?: string
+          created_at?: string
+          host?: string | null
+          id?: string
+          item_type?: string
+          iv?: string
+          label?: string | null
+          passkey_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_passkeys: {
+        Row: {
+          created_at: string
+          credential_id: string
+          id: string
+          label: string | null
+          last_used_at: string | null
+          prf_salt: string
+          public_key: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          prf_salt: string
+          public_key?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          prf_salt?: string
+          public_key?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       workflow_executions: {
         Row: {
           completed_at: string | null
