@@ -545,6 +545,7 @@ async function pollAlicePendingRuns() {
 chrome.alarms?.create("pendragonx_macro_poll", { periodInMinutes: 0.1 });
 chrome.alarms?.onAlarm.addListener((a) => {
   if (a.name === "pendragonx_macro_poll") pollAlicePendingRuns();
+  if (a.name === AGENT_POLL) pollAgentRuns();
 });
 
 let _syncTimer = null;
