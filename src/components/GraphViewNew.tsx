@@ -65,6 +65,17 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const [showControls, setShowControls] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [isAutoLinking, setIsAutoLinking] = useState(false);
+  const [linkMode, setLinkMode] = useState<'auto' | 'suggest' | 'manual'>('manual');
+
+  // Load current auto_link_mode from profile
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('auto_link_mode').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => {
+        const m = (data as any)?.auto_link_mode;
+        if (m === 'auto' || m === 'suggest' || m === 'manual') setLinkMode(m);
+      });
+  }, [user]);
   const simulationRef = useRef<d3Force.Simulation<any, any> | null>(null);
   const nodesDataRef = useRef<any[]>([]);
   const edgeHashRef = useRef<string>('');
