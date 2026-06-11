@@ -556,6 +556,21 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "image_search",
+      description: "Find real photographs/illustrations of places, people, landmarks, animals, objects, or topics from Wikipedia/Wikimedia Commons. Use this — not generate_image — whenever the user asks 'show me a picture of', 'what does X look like', mentions a real place/landmark/historical figure, or discusses a topic where a real photo would help. After calling this, you MUST render 1–3 [[ALICE_CARD type=image]] blocks with the returned urls and brief captions.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "What to find a photo of, e.g. 'Eiffel Tower', 'Kyoto in autumn', 'humpback whale'." },
+          limit: { type: "number", description: "Max images, default 2, max 4." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "admin_summary",
       description: "ADMIN ONLY (read-only). Returns top-level platform stats: user count, recent error count, pending feature requests. Use to advise the admin — never to take action.",
       parameters: { type: "object", properties: {} },
