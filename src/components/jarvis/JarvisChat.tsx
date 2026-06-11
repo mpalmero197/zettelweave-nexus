@@ -165,6 +165,31 @@ export function JarvisChat({ compact = false }: Props) {
     return () => window.removeEventListener("alice-focus-input", onFocus);
   }, []);
 
+  // Scholar handoff: if another page parked a prompt in sessionStorage,
+  // pre-fill the composer and (optionally) auto-send it. Runs once per mount.
+  const autoPromptHandledRef = useRef(false);
+  useEffect(() => {
+    if (autoPromptHandledRef.current) return;
+    try {
+      const raw = sessionStorage.getItem("alice:auto-prompt");
+      if (!raw) return;
+      autoPromptHandledRef.current = true;
+      sessionStorage.removeItem("alice:auto-prompt");
+      const { text, autoSend } = JSON.parse(raw) as { text: string; autoSend?: boolean };
+      if (!text) return;
+      newThread();
+      if (autoSend) {
+        // Defer so newThread state settles, then submit.
+        setTimeout(() => { submit(text); }, 80);
+      } else {
+        setInput(text);
+        setTimeout(() => taRef.current?.focus(), 80);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const submit = async (override?: string) => {
     const text = (override ?? input).trim();
     if (!text && attachments.length === 0) return;
