@@ -46,7 +46,6 @@ Deno.serve(async (req) => {
     let q = supabase
       .from("zettel_cards")
       .select("id, user_id, number, content_embedding, auto_linked_at, updated_at, links_locked")
-      .not("content_embedding", "is", null)
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .limit(MAX_CARDS_PER_RUN);
