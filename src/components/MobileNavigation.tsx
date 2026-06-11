@@ -272,6 +272,47 @@ export function MobileNavigation({
               </div>
             </div>
 
+            {/* Learn & Security */}
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                Learn & Security
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                <Link
+                  to="/scholar"
+                  onClick={() => setOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
+                >
+                  <GraduationCap className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Scholar</span>
+                </Link>
+                <Link
+                  to="/scholar/sandbox"
+                  onClick={() => setOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
+                >
+                  <Box className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Sandbox</span>
+                </Link>
+                <Link
+                  to="/scholar/alice"
+                  onClick={() => setOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
+                >
+                  <Sparkles className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">ALICE</span>
+                </Link>
+                <Link
+                  to="/vault"
+                  onClick={() => setOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
+                >
+                  <Lock className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Vault</span>
+                </Link>
+              </div>
+            </div>
+
             {/* Footer actions */}
             <div className="border-t border-border pt-3 mt-2">
               <div className="grid grid-cols-4 gap-2">
