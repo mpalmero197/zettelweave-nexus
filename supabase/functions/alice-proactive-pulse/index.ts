@@ -68,9 +68,42 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const CRON_SECRET = Deno.env.get("CRON_SECRET");
+
+  // Authorize the caller. Either:
+  //  - the platform cron caller (Authorization: Bearer <service-role-key>), or
+  //  - a matching x-cron-secret header, or
+  //  - an authenticated end-user (request will be scoped to their own id).
+  const authHeader = req.headers.get("Authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const callerSecret = req.headers.get("x-cron-secret") || "";
+  const isCron =
+    (bearer && bearer === SERVICE_KEY) ||
+    (CRON_SECRET && callerSecret === CRON_SECRET);
+
+  let authedUserId: string | null = null;
+  if (!isCron) {
+    if (!bearer) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    authedUserId = userData.user.id;
+  }
+
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // Optional: per-user run via {userId} body. Otherwise iterates all opted-in users.
+  // Optional: per-user run via {userId} body. For non-cron callers, force to the authed user.
   let targetUserId: string | null = null;
   try {
     if (req.method === "POST") {
@@ -78,6 +111,10 @@ Deno.serve(async (req) => {
       if (b?.userId) targetUserId = String(b.userId);
     }
   } catch { /* ignore */ }
+  if (!isCron) {
+    // End users can only target their own account.
+    targetUserId = authedUserId;
+  }
 
   const profilesQuery = admin
     .from("profiles")

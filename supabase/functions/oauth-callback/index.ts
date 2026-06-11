@@ -6,7 +6,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PROVIDERS, verifyState, redirectUri } from "../_shared/oauth-providers.ts";
 import { getProviderCreds, getStateSecret } from "../_shared/oauth-config-store.ts";
 
-const html = (status: "ok" | "error", message: string, provider?: string) => `<!doctype html>
+const escapeHtml = (s: string) =>
+  String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const html = (status: "ok" | "error", message: string, provider?: string) => {
+  const safeMessage = escapeHtml(message);
+  const safeProvider = provider ? escapeHtml(provider) : "service";
+  return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${status === "ok" ? "Connected" : "Connection failed"}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; background: hsl(220 13% 98%); color: hsl(220 13% 18%); margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
@@ -19,8 +30,8 @@ const html = (status: "ok" | "error", message: string, provider?: string) => `<!
 <body>
 <div class="card">
   <div class="icon">${status === "ok" ? "✅" : "⚠️"}</div>
-  <h1>${status === "ok" ? `Connected to ${provider ?? "service"}` : "Connection failed"}</h1>
-  <p>${message}</p>
+  <h1>${status === "ok" ? `Connected to ${safeProvider}` : "Connection failed"}</h1>
+  <p>${safeMessage}</p>
   <button onclick="window.close()">Close window</button>
 </div>
 <script>
@@ -32,6 +43,7 @@ const html = (status: "ok" | "error", message: string, provider?: string) => `<!
   } catch (e) {}
 </script>
 </body></html>`;
+};
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
