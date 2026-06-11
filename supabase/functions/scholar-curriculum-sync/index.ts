@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
   const forceSlugs: string[] | undefined = body.slugs;
 
   // Read lessons that need (re)generation: missing written_md, or specific slugs.
-  const query = supabase.from("scholar_lessons").select("slug, module_slug, title, summary, written_md, walkthrough_json");
+  const query = supabase.from("scholar_lessons").select("slug, module_slug, title, summary, written_md, walkthrough_json, version");
   const { data: lessons, error } = forceSlugs?.length
     ? await query.in("slug", forceSlugs)
     : await query;
