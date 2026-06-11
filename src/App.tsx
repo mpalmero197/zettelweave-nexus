@@ -79,6 +79,7 @@ const Subscription = lazy(() => import("./pages/Subscription"));
 const Settings = lazy(() => import("./pages/Settings"));
 
 const Jarvis = lazy(() => import("./pages/Jarvis"));
+const Vault = lazy(() => import("./pages/Vault"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -178,6 +179,11 @@ const App = () => (
                   <Route path="/shared" element={
                     <Suspense fallback={<LoadingFallback message="Loading shared items..." />}>
                       <SharedWithMe />
+                    </Suspense>
+                  } />
+                  <Route path="/vault" element={
+                    <Suspense fallback={<LoadingFallback message="Opening vault..." />}>
+                      <Vault />
                     </Suspense>
                   } />
                 </Route>
