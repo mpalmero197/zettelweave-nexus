@@ -52,6 +52,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
   const [searchEngine, setSearchEngine] = useState<'google' | 'duckduckgo'>('google');
   const [aliceProactive, setAliceProactive] = useState(true);
   const [aliceProactiveLevel, setAliceProactiveLevel] = useState(3);
+  const [autoLinkMode, setAutoLinkMode] = useState<'auto' | 'suggest' | 'manual'>('auto');
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showDebugLogger, setShowDebugLogger] = useState(false);
