@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PendragonX Toolbox",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "PendragonX Toolbox",
   "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting", "contextMenus", "notifications", "webNavigation"],
   "host_permissions": [
@@ -27,11 +27,20 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://pendragonx.com/*",
+        "https://*.pendragonx.com/*",
+        "https://*.lovable.app/*"
+      ],
+      "js": ["vault-bridge.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["recorder.js", "runner.js", "agent.js"],
+      "resources": ["recorder.js", "runner.js", "agent.js", "vault-bridge.js"],
       "matches": ["<all_urls>"]
     }
   ],
