@@ -687,14 +687,23 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 600);
   }, [filteredCards, getTargetPositions, physicsEnabled, layoutType, fitView, animateToPositions]);
 
-  // Auto-link handlers
+  // Auto-link / suggest toggle
   const runAutoLink = useCallback(async (mode: 'auto' | 'suggest') => {
     if (!user) {
       toast.error('Sign in to use auto-linking');
       return;
     }
+    // If clicking the active mode, turn it off (set to 'manual') without running
+    if (linkMode === mode) {
+      await supabase.from('profiles').update({ auto_link_mode: 'manual' }).eq('user_id', user.id);
+      setLinkMode('manual');
+      toast.success(mode === 'auto' ? 'Auto-Link turned off' : 'Auto-Suggest turned off');
+      return;
+    }
     setIsAutoLinking(true);
     try {
+      await supabase.from('profiles').update({ auto_link_mode: mode }).eq('user_id', user.id);
+      setLinkMode(mode);
       const { data, error } = await supabase.functions.invoke('alice-auto-link', {
         body: { user_id: user.id, mode },
       });
@@ -702,8 +711,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       if (data?.ok) {
         toast.success(
           mode === 'auto'
-            ? `Auto-linked ${data.updated} cards (${data.scanned} scanned)`
-            : `Suggested links for ${data.updated} cards (${data.scanned} scanned)`
+            ? `Auto-linked ${data.updated} of ${data.scanned} cards`
+            : `Suggested links for ${data.updated} of ${data.scanned} cards`
         );
       } else {
         toast.error(data?.error || 'Auto-link failed');
@@ -713,7 +722,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     } finally {
       setIsAutoLinking(false);
     }
-  }, [user]);
+  }, [user, linkMode]);
 
   return (
     <div className={cn("relative w-full h-full bg-background overflow-hidden", className)}>
