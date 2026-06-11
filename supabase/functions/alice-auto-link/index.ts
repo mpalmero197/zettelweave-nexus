@@ -24,14 +24,17 @@ Deno.serve(async (req) => {
 
   try {
     let targetUserId: string | null = null;
+    let forceMode: string | null = null;
     try {
       const body = await req.json();
       targetUserId = body?.user_id ?? null;
+      forceMode = body?.mode ?? null;
     } catch { /* empty */ }
 
     // Resolve mode per user (default 'auto')
     const modeByUser = new Map<string, string>();
     async function getMode(uid: string): Promise<string> {
+      if (forceMode) return forceMode;
       if (modeByUser.has(uid)) return modeByUser.get(uid)!;
       const { data } = await supabase
         .from("profiles").select("auto_link_mode").eq("user_id", uid).maybeSingle();
