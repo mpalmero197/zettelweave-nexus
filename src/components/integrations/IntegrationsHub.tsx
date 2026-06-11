@@ -14,9 +14,21 @@ import { GoogleCalendarDialog } from "./dialogs/GoogleCalendarDialog";
 import { GoogleDriveDialog } from "./dialogs/GoogleDriveDialog";
 import { GenericImportDialog, type GenericImportConfig } from "./dialogs/GenericImportDialog";
 import { useUserConnections } from "@/hooks/useUserConnections";
+import { useEnabledOAuthProviders } from "@/hooks/useEnabledOAuthProviders";
 
-// OAuth backbone exists but is temporarily disabled — all connectors use file import for now.
-const OAUTH_PROVIDERS: Record<string, { provider: string; label: string }> = {};
+// Maps each connector card to the underlying OAuth provider.
+// When an admin enables the provider in Admin Panel → OAuth Providers, these cards
+// switch from "file-import" to one-click "Connect with…" automatically.
+const OAUTH_PROVIDERS: Record<string, { provider: string; label: string }> = {
+  notion:            { provider: "notion",    label: "Notion" },
+  "google-drive":    { provider: "google",    label: "Google" },
+  "google-calendar": { provider: "google",    label: "Google" },
+  "google-keep":     { provider: "google",    label: "Google" },
+  outlook:           { provider: "microsoft", label: "Microsoft 365" },
+  "outlook-cal":     { provider: "microsoft", label: "Microsoft 365" },
+  onedrive:          { provider: "microsoft", label: "Microsoft 365" },
+  onenote:           { provider: "microsoft", label: "Microsoft 365" },
+};
 
 // File-based connectors share a unified import dialog so adding new ones is trivial.
 const FILE_IMPORT_CONFIGS: Record<string, GenericImportConfig> = {
@@ -90,6 +102,7 @@ export function IntegrationsHub() {
   const [category, setCategory] = useState<IntegrationCategory | "all">("all");
   const { connectedIds: legacyConnectedIds, connect, disconnect, getMeta, runHealthChecks, meta } = useIntegrationStatus();
   const oauth = useUserConnections();
+  const { enabled: enabledOAuth } = useEnabledOAuthProviders();
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
@@ -107,9 +120,9 @@ export function IntegrationsHub() {
   const isConnected = useCallback((id: string) => {
     if (legacyConnectedIds.has(id)) return true;
     const oauthMap = OAUTH_PROVIDERS[id];
-    if (oauthMap && oauth.isConnected(oauthMap.provider)) return true;
+    if (oauthMap && enabledOAuth.has(oauthMap.provider) && oauth.isConnected(oauthMap.provider)) return true;
     return false;
-  }, [legacyConnectedIds, oauth]);
+  }, [legacyConnectedIds, oauth, enabledOAuth]);
 
   const connectedCount = useMemo(
     () => INTEGRATIONS.filter((i) => isConnected(i.id)).length,
@@ -124,22 +137,23 @@ export function IntegrationsHub() {
 
   const handleConnect = useCallback((id: string) => {
     const oauthMap = OAUTH_PROVIDERS[id];
-    if (oauthMap) {
+    // Only use OAuth flow when the admin has actually enabled that provider.
+    if (oauthMap && enabledOAuth.has(oauthMap.provider)) {
       oauth.connect(oauthMap.provider);
       return;
     }
     openDialog(id);
-  }, [openDialog, oauth]);
+  }, [openDialog, oauth, enabledOAuth]);
 
   const handleDisconnect = useCallback((id: string) => {
     const oauthMap = OAUTH_PROVIDERS[id];
-    if (oauthMap && oauth.isConnected(oauthMap.provider)) {
+    if (oauthMap && enabledOAuth.has(oauthMap.provider) && oauth.isConnected(oauthMap.provider)) {
       oauth.disconnect(oauthMap.provider);
       return;
     }
     disconnect(id);
     toast.success("Disconnected successfully");
-  }, [disconnect, oauth]);
+  }, [disconnect, oauth, enabledOAuth]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
