@@ -395,6 +395,7 @@ export function JarvisChat({ compact = false }: Props) {
             transcriptMaxW,
             compact ? "px-3 py-4" : "px-3 py-5 md:px-6 md:py-8",
           )}>
+            <AliceAgendaBanner onAsk={(p) => submit(p)} compact={compact} />
             {messages.length === 0 && (
               <div className={cn(
                 "flex flex-col items-center justify-center text-center",
