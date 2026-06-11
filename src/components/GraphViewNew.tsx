@@ -57,12 +57,14 @@ interface GraphViewProps {
 
 function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphViewProps) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'force' | 'circular' | 'hierarchical' | 'category'>('force');
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [isAutoLinking, setIsAutoLinking] = useState(false);
   const simulationRef = useRef<d3Force.Simulation<any, any> | null>(null);
   const nodesDataRef = useRef<any[]>([]);
   const edgeHashRef = useRef<string>('');
