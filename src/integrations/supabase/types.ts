@@ -2607,6 +2607,7 @@ export type Database = {
           alice_proactive_enabled: boolean
           alice_proactive_level: number
           author_style_mimicry_enabled: boolean | null
+          auto_link_mode: string
           auto_master_docs: boolean | null
           avatar_url: string | null
           created_at: string
@@ -2631,6 +2632,7 @@ export type Database = {
           alice_proactive_enabled?: boolean
           alice_proactive_level?: number
           author_style_mimicry_enabled?: boolean | null
+          auto_link_mode?: string
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
@@ -2655,6 +2657,7 @@ export type Database = {
           alice_proactive_enabled?: boolean
           alice_proactive_level?: number
           author_style_mimicry_enabled?: boolean | null
+          auto_link_mode?: string
           auto_master_docs?: boolean | null
           avatar_url?: string | null
           created_at?: string
@@ -4931,6 +4934,7 @@ export type Database = {
           notebook_id: string | null
           number: string
           permanent_delete_at: string | null
+          suggested_links: string[]
           tags: string[] | null
           title: string
           updated_at: string
@@ -4957,6 +4961,7 @@ export type Database = {
           notebook_id?: string | null
           number: string
           permanent_delete_at?: string | null
+          suggested_links?: string[]
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -4983,6 +4988,7 @@ export type Database = {
           notebook_id?: string | null
           number?: string
           permanent_delete_at?: string | null
+          suggested_links?: string[]
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -5005,6 +5011,10 @@ export type Database = {
     }
     Functions: {
       alice_set_auto_links: {
+        Args: { _card_id: string; _link_ids: string[] }
+        Returns: undefined
+      }
+      alice_set_suggested_links: {
         Args: { _card_id: string; _link_ids: string[] }
         Returns: undefined
       }
