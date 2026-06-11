@@ -13,8 +13,11 @@ const SUMMARIZE_URL = `${SUPABASE_URL}/functions/v1/summarize-page-to-card`;
 const DICTIONARY_URL = `${SUPABASE_URL}/functions/v1/dictionary-lookup`;
 const MODIFY_URL = `${SUPABASE_URL}/functions/v1/ai-modify-content`;
 const FETCH_URL_URL = `${SUPABASE_URL}/functions/v1/fetch-url-content`;
+const AGENT_STEP_URL = `${SUPABASE_URL}/functions/v1/alice-agent-step`;
 const TAB_ALARM = "pendragonx_tab_sync";
+const AGENT_POLL = "pendragonx_agent_poll";
 const APP_URL = "https://pendragonx.com";
+const AGENT_QUEUE_KEY = "pendragonx_agent_queue";
 
 // Smart-routing thresholds for the unified "Save selection" item.
 const SCRATCHPAD_MAX = 500;   // < 500 chars → scratchpad
