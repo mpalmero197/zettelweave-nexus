@@ -17,7 +17,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
-import { Search, RotateCcw, Zap, ZapOff, Menu, X, ZoomIn, ZoomOut, Locate } from 'lucide-react';
+import { Search, RotateCcw, Zap, ZapOff, Menu, X, ZoomIn, ZoomOut, Locate, Link2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { useZettelCards } from '@/hooks/useZettelCards';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import * as d3Force from 'd3-force';
 
 // Category color map - HSL values for each Dewey category
@@ -56,12 +57,14 @@ interface GraphViewProps {
 
 function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphViewProps) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
   const [layoutType, setLayoutType] = useState<'force' | 'circular' | 'hierarchical' | 'category'>('force');
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [isAutoLinking, setIsAutoLinking] = useState(false);
   const simulationRef = useRef<d3Force.Simulation<any, any> | null>(null);
   const nodesDataRef = useRef<any[]>([]);
   const edgeHashRef = useRef<string>('');
@@ -673,6 +676,34 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 600);
   }, [filteredCards, getTargetPositions, physicsEnabled, layoutType, fitView, animateToPositions]);
 
+  // Auto-link handlers
+  const runAutoLink = useCallback(async (mode: 'auto' | 'suggest') => {
+    if (!user) {
+      toast.error('Sign in to use auto-linking');
+      return;
+    }
+    setIsAutoLinking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('alice-auto-link', {
+        body: { user_id: user.id, mode },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        toast.success(
+          mode === 'auto'
+            ? `Auto-linked ${data.updated} cards (${data.scanned} scanned)`
+            : `Suggested links for ${data.updated} cards (${data.scanned} scanned)`
+        );
+      } else {
+        toast.error(data?.error || 'Auto-link failed');
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Auto-link request failed');
+    } finally {
+      setIsAutoLinking(false);
+    }
+  }, [user]);
+
   return (
     <div className={cn("relative w-full h-full bg-background overflow-hidden", className)}>
       <ReactFlow
@@ -784,6 +815,28 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                       </Button>
                     )}
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => runAutoLink('auto')}
+                      disabled={isAutoLinking}
+                      className="flex-1 h-10"
+                    >
+                      <Link2 className="h-4 w-4 mr-1" />
+                      {isAutoLinking ? 'Linking…' : 'Auto-Link'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => runAutoLink('suggest')}
+                      disabled={isAutoLinking}
+                      className="flex-1 h-10"
+                    >
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      {isAutoLinking ? 'Suggesting…' : 'Suggest'}
+                    </Button>
+                  </div>
                   <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
                     {filteredCards.length} nodes · {graphEdges.length} edges
                   </div>
@@ -853,6 +906,29 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 )}
                 <Button variant="ghost" size="sm" onClick={resetLayout} className="h-7 w-7 p-0">
                   <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+                <div className="w-px h-5 bg-border" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => runAutoLink('auto')}
+                  disabled={isAutoLinking}
+                  className="h-7 px-2 text-xs"
+                  title="Auto-link cards by similarity"
+                >
+                  <Link2 className="h-3.5 w-3.5 mr-1" />
+                  {isAutoLinking ? 'Linking…' : 'Link'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => runAutoLink('suggest')}
+                  disabled={isAutoLinking}
+                  className="h-7 px-2 text-xs"
+                  title="Suggest links as dotted lines"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  {isAutoLinking ? '…' : 'Suggest'}
                 </Button>
               </div>
             </Panel>
