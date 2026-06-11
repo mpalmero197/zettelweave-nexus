@@ -21,6 +21,7 @@ import { AdminAIChat } from '@/components/admin/AdminAIChat';
 import { AIFixesPanel } from '@/components/admin/AIFixesPanel';
 import { SeoEnginePanel } from '@/components/admin/SeoEnginePanel';
 import { ChromeExtensionPanel } from '@/components/admin/ChromeExtensionPanel';
+import { OAuthProvidersPanel } from '@/components/admin/OAuthProvidersPanel';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -221,6 +222,8 @@ export default function Admin() {
         return <SecurityMonitor />;
       case 'security-domains':
         return <DomainManagement />;
+      case 'security-oauth':
+        return <OAuthProvidersPanel />;
       case 'feedback-features':
         return <FeatureRequestsPanel />;
       case 'feedback-errors':
