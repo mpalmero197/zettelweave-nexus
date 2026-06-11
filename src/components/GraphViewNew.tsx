@@ -676,6 +676,34 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 600);
   }, [filteredCards, getTargetPositions, physicsEnabled, layoutType, fitView, animateToPositions]);
 
+  // Auto-link handlers
+  const runAutoLink = useCallback(async (mode: 'auto' | 'suggest') => {
+    if (!user) {
+      toast.error('Sign in to use auto-linking');
+      return;
+    }
+    setIsAutoLinking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('alice-auto-link', {
+        body: { user_id: user.id, mode },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        toast.success(
+          mode === 'auto'
+            ? `Auto-linked ${data.updated} cards (${data.scanned} scanned)`
+            : `Suggested links for ${data.updated} cards (${data.scanned} scanned)`
+        );
+      } else {
+        toast.error(data?.error || 'Auto-link failed');
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Auto-link request failed');
+    } finally {
+      setIsAutoLinking(false);
+    }
+  }, [user]);
+
   return (
     <div className={cn("relative w-full h-full bg-background overflow-hidden", className)}>
       <ReactFlow
