@@ -17,7 +17,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ZettelCard } from '@/types/zettel';
 import { getCategoryInfo } from '@/utils/deweySystem';
-import { Search, RotateCcw, Zap, ZapOff, Menu, X, ZoomIn, ZoomOut, Locate } from 'lucide-react';
+import { Search, RotateCcw, Zap, ZapOff, Menu, X, ZoomIn, ZoomOut, Locate, Link2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
