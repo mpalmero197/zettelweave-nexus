@@ -2361,6 +2361,36 @@ export type Database = {
           },
         ]
       }
+      oauth_provider_configs: {
+        Row: {
+          client_id: string | null
+          client_secret: string | null
+          created_at: string
+          enabled: boolean
+          provider: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string
+          enabled?: boolean
+          provider: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string
+          enabled?: boolean
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       object_relation_values: {
         Row: {
           id: string

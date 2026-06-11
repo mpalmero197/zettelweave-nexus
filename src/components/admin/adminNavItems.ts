@@ -17,6 +17,7 @@ import {
   Bot,
   Sparkles,
   Chrome,
+  KeyRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -55,6 +56,7 @@ export const adminNavItems: AdminNavItem[] = [
       { id: 'audit', label: 'Audit Log', icon: Lock },
       { id: 'monitor', label: 'Security Monitor', icon: Shield },
       { id: 'domains', label: 'Domain Management', icon: Globe },
+      { id: 'oauth', label: 'OAuth Providers', icon: KeyRound },
     ],
   },
   {

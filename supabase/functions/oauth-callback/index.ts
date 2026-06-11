@@ -4,6 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PROVIDERS, verifyState, redirectUri } from "../_shared/oauth-providers.ts";
+import { getProviderCreds, getStateSecret } from "../_shared/oauth-config-store.ts";
 
 const html = (status: "ok" | "error", message: string, provider?: string) => `<!doctype html>
 <html><head><meta charset="utf-8"><title>${status === "ok" ? "Connected" : "Connection failed"}</title>
@@ -48,9 +49,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  const stateSecret = Deno.env.get("OAUTH_STATE_SECRET");
+  const stateSecret = await getStateSecret();
   if (!stateSecret) {
-    return new Response(html("error", "Server is missing OAUTH_STATE_SECRET."), {
+    return new Response(html("error", "Server is missing the OAuth state signing secret."), {
       status: 500,
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
@@ -72,11 +73,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  const clientId = Deno.env.get(cfg.clientIdEnv);
-  const clientSecret = Deno.env.get(cfg.clientSecretEnv);
+  const creds = await getProviderCreds(payload.p, cfg.clientIdEnv, cfg.clientSecretEnv);
+  const clientId = creds.clientId;
+  const clientSecret = creds.clientSecret;
   if (!clientId || !clientSecret) {
     return new Response(
-      html("error", `${cfg.label} is not configured on the server (missing ${cfg.clientIdEnv} / ${cfg.clientSecretEnv}).`),
+      html("error", `${cfg.label} is not configured. Ask an admin to set it up in Admin Panel → OAuth Providers.`),
       { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
   }
