@@ -907,6 +907,29 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 <Button variant="ghost" size="sm" onClick={resetLayout} className="h-7 w-7 p-0">
                   <RotateCcw className="h-3.5 w-3.5" />
                 </Button>
+                <div className="w-px h-5 bg-border" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => runAutoLink('auto')}
+                  disabled={isAutoLinking}
+                  className="h-7 px-2 text-xs"
+                  title="Auto-link cards by similarity"
+                >
+                  <Link2 className="h-3.5 w-3.5 mr-1" />
+                  {isAutoLinking ? 'Linking…' : 'Link'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => runAutoLink('suggest')}
+                  disabled={isAutoLinking}
+                  className="h-7 px-2 text-xs"
+                  title="Suggest links as dotted lines"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  {isAutoLinking ? '…' : 'Suggest'}
+                </Button>
               </div>
             </Panel>
 
