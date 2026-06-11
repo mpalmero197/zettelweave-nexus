@@ -80,6 +80,10 @@ const Settings = lazy(() => import("./pages/Settings"));
 
 const Jarvis = lazy(() => import("./pages/Jarvis"));
 const Vault = lazy(() => import("./pages/Vault"));
+const Scholar = lazy(() => import("./pages/Scholar"));
+const ScholarLesson = lazy(() => import("./pages/ScholarLesson"));
+const ScholarSandbox = lazy(() => import("./pages/ScholarSandbox"));
+const ScholarAlice = lazy(() => import("./pages/ScholarAlice"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -185,6 +189,18 @@ const App = () => (
                     <Suspense fallback={<LoadingFallback message="Opening vault..." />}>
                       <Vault />
                     </Suspense>
+                  } />
+                  <Route path="/scholar" element={
+                    <Suspense fallback={<LoadingFallback message="Loading Scholar..." />}><Scholar /></Suspense>
+                  } />
+                  <Route path="/scholar/sandbox" element={
+                    <Suspense fallback={<LoadingFallback message="Loading sandbox..." />}><ScholarSandbox /></Suspense>
+                  } />
+                  <Route path="/scholar/alice" element={
+                    <Suspense fallback={<LoadingFallback />}><ScholarAlice /></Suspense>
+                  } />
+                  <Route path="/scholar/lesson/:slug" element={
+                    <Suspense fallback={<LoadingFallback message="Opening lesson..." />}><ScholarLesson /></Suspense>
                   } />
                 </Route>
                 <Route path="/" element={

@@ -3177,6 +3177,101 @@ export type Database = {
         }
         Relationships: []
       }
+      sandbox_notebooks: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sandbox_notes: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          notebook_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          notebook_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          notebook_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sandbox_notes_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "sandbox_notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sandbox_zettel_cards: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string
+          id: string
+          linked_cards: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          linked_cards?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          linked_cards?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_courses: {
         Row: {
           certificate_earned: boolean
@@ -3233,6 +3328,181 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      scholar_badges: {
+        Row: {
+          badge_slug: string
+          earned_at: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          badge_slug: string
+          earned_at?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          badge_slug?: string
+          earned_at?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scholar_lessons: {
+        Row: {
+          alice_system_prompt: string | null
+          created_at: string
+          generated_at: string | null
+          model: string | null
+          module_slug: string
+          slug: string
+          sort_order: number
+          source_commit: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          version: number
+          video_url: string | null
+          walkthrough_json: Json
+          written_md: string | null
+        }
+        Insert: {
+          alice_system_prompt?: string | null
+          created_at?: string
+          generated_at?: string | null
+          model?: string | null
+          module_slug: string
+          slug: string
+          sort_order?: number
+          source_commit?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+          video_url?: string | null
+          walkthrough_json?: Json
+          written_md?: string | null
+        }
+        Update: {
+          alice_system_prompt?: string | null
+          created_at?: string
+          generated_at?: string | null
+          model?: string | null
+          module_slug?: string
+          slug?: string
+          sort_order?: number
+          source_commit?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+          video_url?: string | null
+          walkthrough_json?: Json
+          written_md?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholar_lessons_module_slug_fkey"
+            columns: ["module_slug"]
+            isOneToOne: false
+            referencedRelation: "scholar_modules"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      scholar_modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scholar_points: {
+        Row: {
+          breakdown: Json
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          breakdown?: Json
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          breakdown?: Json
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scholar_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          formats_completed: string[]
+          lesson_slug: string
+          score: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          formats_completed?: string[]
+          lesson_slug: string
+          score?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          formats_completed?: string[]
+          lesson_slug?: string
+          score?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholar_progress_lesson_slug_fkey"
+            columns: ["lesson_slug"]
+            isOneToOne: false
+            referencedRelation: "scholar_lessons"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       scratchpad_notes: {
         Row: {
@@ -4907,6 +5177,7 @@ export type Database = {
           user_status: Database["public"]["Enums"]["user_status"]
         }[]
       }
+      seed_sandbox: { Args: never; Returns: undefined }
       toggle_feature_vote: { Args: { _feature_id: string }; Returns: boolean }
       unlock_card_auto_links: { Args: { _card_id: string }; Returns: undefined }
       update_user_role: {
