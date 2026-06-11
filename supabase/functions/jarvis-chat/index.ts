@@ -1640,6 +1640,42 @@ async function executeTool(
           return { error: e?.message || "image generation failed" };
         }
       }
+      case "image_search": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "query required" };
+        const limit = Math.min(Math.max(Number(args.limit) || 2, 1), 4);
+        try {
+          // Wikipedia REST search → page summaries → thumbnail/originalimage.
+          // No API key, attribution-friendly (Wikimedia Commons).
+          const searchUrl = `https://en.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(q)}&limit=${limit * 2}`;
+          const s = await fetch(searchUrl, { headers: { "User-Agent": "PendragonX-ALICE/1.0" } });
+          const sj = await s.json().catch(() => ({}));
+          const pages = Array.isArray(sj?.pages) ? sj.pages : [];
+          const results: { url: string; caption: string; source: string }[] = [];
+          for (const p of pages) {
+            if (results.length >= limit) break;
+            const title = p?.key || p?.title;
+            if (!title) continue;
+            try {
+              const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+              const r = await fetch(sumUrl, { headers: { "User-Agent": "PendragonX-ALICE/1.0" } });
+              const j = await r.json().catch(() => ({}));
+              const img = j?.originalimage?.source || j?.thumbnail?.source;
+              if (img) {
+                results.push({
+                  url: img,
+                  caption: j?.title || title,
+                  source: j?.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+                });
+              }
+            } catch { /* skip page */ }
+          }
+          if (results.length === 0) return { error: "No images found." };
+          return { results };
+        } catch (e: any) {
+          return { error: e?.message || "image search failed" };
+        }
+      }
       case "admin_summary": {
         if (!isAdmin) return { error: "Not authorized — admin only." };
         const [users, errors, features] = await Promise.all([
