@@ -65,6 +65,17 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
   const [showControls, setShowControls] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [isAutoLinking, setIsAutoLinking] = useState(false);
+  const [linkMode, setLinkMode] = useState<'auto' | 'suggest' | 'manual'>('manual');
+
+  // Load current auto_link_mode from profile
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('auto_link_mode').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => {
+        const m = (data as any)?.auto_link_mode;
+        if (m === 'auto' || m === 'suggest' || m === 'manual') setLinkMode(m);
+      });
+  }, [user]);
   const simulationRef = useRef<d3Force.Simulation<any, any> | null>(null);
   const nodesDataRef = useRef<any[]>([]);
   const edgeHashRef = useRef<string>('');
@@ -676,14 +687,23 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 600);
   }, [filteredCards, getTargetPositions, physicsEnabled, layoutType, fitView, animateToPositions]);
 
-  // Auto-link handlers
+  // Auto-link / suggest toggle
   const runAutoLink = useCallback(async (mode: 'auto' | 'suggest') => {
     if (!user) {
       toast.error('Sign in to use auto-linking');
       return;
     }
+    // If clicking the active mode, turn it off (set to 'manual') without running
+    if (linkMode === mode) {
+      await supabase.from('profiles').update({ auto_link_mode: 'manual' }).eq('user_id', user.id);
+      setLinkMode('manual');
+      toast.success(mode === 'auto' ? 'Auto-Link turned off' : 'Auto-Suggest turned off');
+      return;
+    }
     setIsAutoLinking(true);
     try {
+      await supabase.from('profiles').update({ auto_link_mode: mode }).eq('user_id', user.id);
+      setLinkMode(mode);
       const { data, error } = await supabase.functions.invoke('alice-auto-link', {
         body: { user_id: user.id, mode },
       });
@@ -691,8 +711,8 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
       if (data?.ok) {
         toast.success(
           mode === 'auto'
-            ? `Auto-linked ${data.updated} cards (${data.scanned} scanned)`
-            : `Suggested links for ${data.updated} cards (${data.scanned} scanned)`
+            ? `Auto-linked ${data.updated} of ${data.scanned} cards`
+            : `Suggested links for ${data.updated} of ${data.scanned} cards`
         );
       } else {
         toast.error(data?.error || 'Auto-link failed');
@@ -702,7 +722,7 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
     } finally {
       setIsAutoLinking(false);
     }
-  }, [user]);
+  }, [user, linkMode]);
 
   return (
     <div className={cn("relative w-full h-full bg-background overflow-hidden", className)}>
@@ -817,24 +837,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
+                      variant={linkMode === 'auto' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => runAutoLink('auto')}
                       disabled={isAutoLinking}
                       className="flex-1 h-10"
+                      title={linkMode === 'auto' ? 'Auto-Link is ON — tap to turn off' : 'Tap to turn Auto-Link on'}
                     >
                       <Link2 className="h-4 w-4 mr-1" />
-                      {isAutoLinking ? 'Linking…' : 'Auto-Link'}
+                      {isAutoLinking && linkMode !== 'suggest' ? 'Linking…' : linkMode === 'auto' ? 'Auto-Link · ON' : 'Auto-Link'}
                     </Button>
                     <Button
-                      variant="outline"
+                      variant={linkMode === 'suggest' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => runAutoLink('suggest')}
                       disabled={isAutoLinking}
                       className="flex-1 h-10"
+                      title={linkMode === 'suggest' ? 'Suggest is ON — tap to turn off' : 'Tap to turn Suggest on'}
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
-                      {isAutoLinking ? 'Suggesting…' : 'Suggest'}
+                      {isAutoLinking && linkMode !== 'auto' ? 'Suggesting…' : linkMode === 'suggest' ? 'Suggest · ON' : 'Suggest'}
                     </Button>
                   </div>
                   <div className="text-xs text-muted-foreground text-center pt-1 border-t border-border">
@@ -909,26 +931,26 @@ function GraphViewInner({ cards, onCardSelect, onCardUpdate, className }: GraphV
                 </Button>
                 <div className="w-px h-5 bg-border" />
                 <Button
-                  variant="ghost"
+                  variant={linkMode === 'auto' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => runAutoLink('auto')}
                   disabled={isAutoLinking}
                   className="h-7 px-2 text-xs"
-                  title="Auto-link cards by similarity"
+                  title={linkMode === 'auto' ? 'Auto-Link ON — click to turn off' : 'Auto-link cards by similarity'}
                 >
                   <Link2 className="h-3.5 w-3.5 mr-1" />
-                  {isAutoLinking ? 'Linking…' : 'Link'}
+                  {isAutoLinking && linkMode !== 'suggest' ? 'Linking…' : linkMode === 'auto' ? 'Link · ON' : 'Link'}
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant={linkMode === 'suggest' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => runAutoLink('suggest')}
                   disabled={isAutoLinking}
                   className="h-7 px-2 text-xs"
-                  title="Suggest links as dotted lines"
+                  title={linkMode === 'suggest' ? 'Suggest ON — click to turn off' : 'Suggest links as dotted lines'}
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
-                  {isAutoLinking ? '…' : 'Suggest'}
+                  {isAutoLinking && linkMode !== 'auto' ? '…' : linkMode === 'suggest' ? 'Suggest · ON' : 'Suggest'}
                 </Button>
               </div>
             </Panel>
