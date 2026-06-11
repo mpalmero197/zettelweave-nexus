@@ -230,6 +230,8 @@ Rules:
 - After get_weather → ALWAYS emit a [[ALICE_CARD type=weather]] from the returned JSON, then 1 short sentence. Do NOT just describe weather in prose.
 - After find_video → ALWAYS emit 1–3 [[ALICE_CARD type=video]] blocks (one per top result, include thumbnail+channel+provider+url). One short sentence intro.
 - After generate_image → ALWAYS emit [[ALICE_CARD type=image]] with the returned url. One sentence.
+- After image_search → emit 1–3 [[ALICE_CARD type=image]] blocks (one per result, use the returned url + a short caption naming the subject). One short sentence intro.
+- When the user mentions a real place, landmark, person, animal, dish, artwork, or any concrete topic where a photo would help understanding — PROACTIVELY call image_search yourself, even if they didn't ask for a picture. Real photos > generated images for real subjects. Use generate_image only for imagined/fictional things.
 - After web_search → emit one link card per top result (max 4).
 - For a book from find_book → use a link card with image=cover_url.
 - Card JSON must be valid on a SINGLE line. No trailing commas, no comments.
@@ -550,6 +552,21 @@ const tools = [
         type: "object",
         properties: { prompt: { type: "string", description: "Vivid description of the image to generate." } },
         required: ["prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "image_search",
+      description: "Find real photographs/illustrations of places, people, landmarks, animals, objects, or topics from Wikipedia/Wikimedia Commons. Use this — not generate_image — whenever the user asks 'show me a picture of', 'what does X look like', mentions a real place/landmark/historical figure, or discusses a topic where a real photo would help. After calling this, you MUST render 1–3 [[ALICE_CARD type=image]] blocks with the returned urls and brief captions.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "What to find a photo of, e.g. 'Eiffel Tower', 'Kyoto in autumn', 'humpback whale'." },
+          limit: { type: "number", description: "Max images, default 2, max 4." },
+        },
+        required: ["query"],
       },
     },
   },
@@ -1625,6 +1642,42 @@ async function executeTool(
           return { error: e?.message || "image generation failed" };
         }
       }
+      case "image_search": {
+        const q = String(args.query || "").trim();
+        if (!q) return { error: "query required" };
+        const limit = Math.min(Math.max(Number(args.limit) || 2, 1), 4);
+        try {
+          // Wikipedia REST search → page summaries → thumbnail/originalimage.
+          // No API key, attribution-friendly (Wikimedia Commons).
+          const searchUrl = `https://en.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(q)}&limit=${limit * 2}`;
+          const s = await fetch(searchUrl, { headers: { "User-Agent": "PendragonX-ALICE/1.0" } });
+          const sj = await s.json().catch(() => ({}));
+          const pages = Array.isArray(sj?.pages) ? sj.pages : [];
+          const results: { url: string; caption: string; source: string }[] = [];
+          for (const p of pages) {
+            if (results.length >= limit) break;
+            const title = p?.key || p?.title;
+            if (!title) continue;
+            try {
+              const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+              const r = await fetch(sumUrl, { headers: { "User-Agent": "PendragonX-ALICE/1.0" } });
+              const j = await r.json().catch(() => ({}));
+              const img = j?.originalimage?.source || j?.thumbnail?.source;
+              if (img) {
+                results.push({
+                  url: img,
+                  caption: j?.title || title,
+                  source: j?.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+                });
+              }
+            } catch { /* skip page */ }
+          }
+          if (results.length === 0) return { error: "No images found." };
+          return { results };
+        } catch (e: any) {
+          return { error: e?.message || "image search failed" };
+        }
+      }
       case "admin_summary": {
         if (!isAdmin) return { error: "Not authorized — admin only." };
         const [users, errors, features] = await Promise.all([
@@ -2571,6 +2624,12 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       if (p.name === "generate_image" && !/ALICE_CARD\s+type=image/.test(finalText)) {
         const r: any = p.result;
         if (r.url) injected.push(`[[ALICE_CARD type=image]]${JSON.stringify({ url: r.url, caption: r.prompt })}[[/ALICE_CARD]]`);
+      }
+      if (p.name === "image_search" && !/ALICE_CARD\s+type=image/.test(finalText)) {
+        const results = ((p.result as any).results || []).slice(0, 3);
+        for (const im of results) {
+          injected.push(`[[ALICE_CARD type=image]]${JSON.stringify({ url: im.url, caption: im.caption })}[[/ALICE_CARD]]`);
+        }
       }
       if (p.name === "get_weather" && !/ALICE_CARD\s+type=weather/.test(finalText)) {
         injected.push(`[[ALICE_CARD type=weather]]${JSON.stringify(p.result)}[[/ALICE_CARD]]`);
