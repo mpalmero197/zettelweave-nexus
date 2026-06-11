@@ -57,6 +57,26 @@ function vimeoId(url: string): string | null {
   } catch { return null; }
 }
 
+function dailymotionId(url: string): string | null {
+  const m = url.match(/dailymotion\.com\/(?:video|embed\/video)\/([a-zA-Z0-9]+)/) ||
+            url.match(/dai\.ly\/([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function odyseeEmbed(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("odysee.com") && !u.hostname.includes("lbry.tv")) return null;
+    // Odysee mirrors watch URLs at /$/embed/<path>
+    return `https://odysee.com/$/embed${u.pathname}`;
+  } catch { return null; }
+}
+
+function archiveId(url: string): string | null {
+  const m = url.match(/archive\.org\/(?:details|embed)\/([^\/?#]+)/);
+  return m ? m[1] : null;
+}
+
 function isDirectMedia(url: string): boolean {
   return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
 }
