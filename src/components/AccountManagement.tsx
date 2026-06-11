@@ -78,7 +78,7 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
       // Load profile data
       supabase
         .from('profiles')
-        .select('display_name, about_me, avatar_url, auto_master_docs, preferred_search_engine, alice_proactive_enabled, alice_proactive_level')
+        .select('display_name, about_me, avatar_url, auto_master_docs, preferred_search_engine, alice_proactive_enabled, alice_proactive_level, auto_link_mode')
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data, error }) => {
