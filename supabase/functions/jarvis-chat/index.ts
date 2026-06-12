@@ -1047,6 +1047,39 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_macro",
+      description: "Create a browser-automation macro for the Pendragon extension to replay later. Use whenever the user describes a repeatable web task ('every morning open Gmail and star unread from X', 'log into our CRM and export today's leads', 'navigate my Pixel 10 XL Pro's web console and toggle dark mode'). Steps run in order in the user's browser via the extension. Always verify the start_url is real (web_search if unsure) and never invent product/site URLs.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Short human title, e.g. 'Star new client emails'." },
+          description: { type: "string", description: "One-sentence summary of what the macro does." },
+          start_url: { type: "string", description: "Absolute URL the macro opens first. Must be a real, current URL." },
+          steps: {
+            type: "array",
+            description: "Ordered list of automation steps. Each step is an object with action and the fields that action needs.",
+            items: {
+              type: "object",
+              properties: {
+                action: { type: "string", enum: ["navigate", "click", "type", "wait", "select", "scroll", "press_key", "extract"], description: "What to do." },
+                selector: { type: "string", description: "CSS selector or accessible name for click/type/select/extract." },
+                url: { type: "string", description: "For action=navigate." },
+                value: { type: "string", description: "Text to type, option to select, key to press, or label for extract." },
+                ms: { type: "number", description: "Milliseconds to wait (action=wait) or after step." },
+                note: { type: "string", description: "Optional human comment for this step." },
+              },
+              required: ["action"],
+            },
+          },
+          enabled: { type: "boolean", description: "Whether the macro is immediately runnable. Default true." },
+        },
+        required: ["name", "start_url", "steps"],
+      },
+    },
+  },
 ];
 
 // HuggingFace all-MiniLM-L6-v2 — same provider used by the rest of PendragonX
@@ -2279,6 +2312,24 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, id };
       }
+      case "create_macro": {
+        const macroName = String(args.name || "").trim();
+        const startUrl = String(args.start_url || "").trim();
+        const steps = Array.isArray(args.steps) ? args.steps : [];
+        if (!macroName) return { error: "name is required" };
+        if (!startUrl || !/^https?:\/\//i.test(startUrl)) return { error: "start_url must be an absolute http(s) URL" };
+        if (steps.length === 0) return { error: "steps must contain at least one action" };
+        const { data, error } = await supabase.from("alice_macros").insert({
+          user_id: userId,
+          name: macroName.slice(0, 200),
+          description: args.description ? String(args.description).slice(0, 500) : null,
+          start_url: startUrl,
+          steps,
+          enabled: args.enabled !== false,
+        }).select("id,name,start_url").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, start_url: data.start_url, step_count: steps.length, note: "Saved to Toolbox → Macros. The Pendragon extension will run it on demand." };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
@@ -2414,19 +2465,22 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(40);
 
-    const nowIso = new Date().toISOString();
+    const nowDate = new Date();
+    const nowIso = nowDate.toISOString();
+    const currentYear = nowDate.getUTCFullYear();
     let localStr = "";
     if (userTimeZone) {
       try {
         localStr = new Intl.DateTimeFormat(userLocale, {
           timeZone: userTimeZone, weekday: "long", year: "numeric", month: "long",
           day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
-        }).format(new Date());
+        }).format(nowDate);
       } catch { /* invalid tz, ignore */ }
     }
+    const stalenessBlock = `\n\n═══ TRAINING DATA IS STALE — TODAY IS ${localStr || nowIso} (YEAR ${currentYear}) ═══\nYour internal training data was frozen well before ${currentYear}. Anything you "remember" about product releases, phone models, software versions, prices, people in office, sports results, company news, world events, or pop culture from ${currentYear} or the last ~18 months IS WRONG OR INCOMPLETE by default. If the user mentions a product, person, event, or date that you don't recognize or that you think "hasn't been released" — DO NOT contradict them. The default assumption is that YOU are out of date, not them. CALL web_search FIRST to verify before claiming anything doesn't exist, hasn't shipped, or is in the future. Examples of things that have happened since your training: new phone generations (Google Pixel 10 series, iPhone 17, Samsung Galaxy S26, etc.), new OS versions, new AI models, new political administrations, new sports champions, new movies/games. When in doubt → web_search.`;
     const dateBlock = userTimeZone
-      ? `\n\nCURRENT TIME — User's local time zone is ${userTimeZone} (auto-detected from their browser). It is currently ${localStr || nowIso} for them. UTC reference: ${nowIso}. Use this for any date/time question by default; only call get_current_datetime if you need a different time zone.`
-      : `\n\nCURRENT TIME — UTC: ${nowIso}. The user has NOT shared a time zone. If they ask for the current date/time and don't specify a city/region, ASK them where they are (city is enough), then call get_current_datetime with the resolved IANA time zone before answering. Do NOT answer with UTC for a personal question.`;
+      ? `\n\nCURRENT TIME — User's local time zone is ${userTimeZone} (auto-detected from their browser). It is currently ${localStr || nowIso} for them. UTC reference: ${nowIso}. Use this for any date/time question by default; only call get_current_datetime if you need a different time zone.` + stalenessBlock
+      : `\n\nCURRENT TIME — UTC: ${nowIso}. The user has NOT shared a time zone. If they ask for the current date/time and don't specify a city/region, ASK them where they are (city is enough), then call get_current_datetime with the resolved IANA time zone before answering. Do NOT answer with UTC for a personal question.` + stalenessBlock;
     const adminBlock = isAdmin
       ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
       : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
