@@ -2414,19 +2414,22 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(40);
 
-    const nowIso = new Date().toISOString();
+    const nowDate = new Date();
+    const nowIso = nowDate.toISOString();
+    const currentYear = nowDate.getUTCFullYear();
     let localStr = "";
     if (userTimeZone) {
       try {
         localStr = new Intl.DateTimeFormat(userLocale, {
           timeZone: userTimeZone, weekday: "long", year: "numeric", month: "long",
           day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
-        }).format(new Date());
+        }).format(nowDate);
       } catch { /* invalid tz, ignore */ }
     }
+    const stalenessBlock = `\n\n═══ TRAINING DATA IS STALE — TODAY IS ${localStr || nowIso} (YEAR ${currentYear}) ═══\nYour internal training data was frozen well before ${currentYear}. Anything you "remember" about product releases, phone models, software versions, prices, people in office, sports results, company news, world events, or pop culture from ${currentYear} or the last ~18 months IS WRONG OR INCOMPLETE by default. If the user mentions a product, person, event, or date that you don't recognize or that you think "hasn't been released" — DO NOT contradict them. The default assumption is that YOU are out of date, not them. CALL web_search FIRST to verify before claiming anything doesn't exist, hasn't shipped, or is in the future. Examples of things that have happened since your training: new phone generations (Google Pixel 10 series, iPhone 17, Samsung Galaxy S26, etc.), new OS versions, new AI models, new political administrations, new sports champions, new movies/games. When in doubt → web_search.`;
     const dateBlock = userTimeZone
-      ? `\n\nCURRENT TIME — User's local time zone is ${userTimeZone} (auto-detected from their browser). It is currently ${localStr || nowIso} for them. UTC reference: ${nowIso}. Use this for any date/time question by default; only call get_current_datetime if you need a different time zone.`
-      : `\n\nCURRENT TIME — UTC: ${nowIso}. The user has NOT shared a time zone. If they ask for the current date/time and don't specify a city/region, ASK them where they are (city is enough), then call get_current_datetime with the resolved IANA time zone before answering. Do NOT answer with UTC for a personal question.`;
+      ? `\n\nCURRENT TIME — User's local time zone is ${userTimeZone} (auto-detected from their browser). It is currently ${localStr || nowIso} for them. UTC reference: ${nowIso}. Use this for any date/time question by default; only call get_current_datetime if you need a different time zone.` + stalenessBlock
+      : `\n\nCURRENT TIME — UTC: ${nowIso}. The user has NOT shared a time zone. If they ask for the current date/time and don't specify a city/region, ASK them where they are (city is enough), then call get_current_datetime with the resolved IANA time zone before answering. Do NOT answer with UTC for a personal question.` + stalenessBlock;
     const adminBlock = isAdmin
       ? "\n\nNOTE: Current user IS an admin. admin_summary is available."
       : "\n\nNOTE: Current user is NOT an admin. Refuse admin queries.";
