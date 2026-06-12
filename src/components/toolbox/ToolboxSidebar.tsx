@@ -263,7 +263,7 @@ function ToolboxSidebarInner({ open, onOpenChange, initialTab }: ToolboxSidebarP
         {activeTab === 'tasks' && <TasksPanel />}
         {activeTab === 'ai-modify' && <AIModifyPanel />}
         {activeTab === 'agent' && <AgentPanel />}
-        {activeTab === 'macros' && <MacrosPanel />}
+        
       </div>
     </div>
   );
