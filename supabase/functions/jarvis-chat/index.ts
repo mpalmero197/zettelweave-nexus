@@ -1047,6 +1047,39 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_macro",
+      description: "Create a browser-automation macro for the Pendragon extension to replay later. Use whenever the user describes a repeatable web task ('every morning open Gmail and star unread from X', 'log into our CRM and export today's leads', 'navigate my Pixel 10 XL Pro's web console and toggle dark mode'). Steps run in order in the user's browser via the extension. Always verify the start_url is real (web_search if unsure) and never invent product/site URLs.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Short human title, e.g. 'Star new client emails'." },
+          description: { type: "string", description: "One-sentence summary of what the macro does." },
+          start_url: { type: "string", description: "Absolute URL the macro opens first. Must be a real, current URL." },
+          steps: {
+            type: "array",
+            description: "Ordered list of automation steps. Each step is an object with action and the fields that action needs.",
+            items: {
+              type: "object",
+              properties: {
+                action: { type: "string", enum: ["navigate", "click", "type", "wait", "select", "scroll", "press_key", "extract"], description: "What to do." },
+                selector: { type: "string", description: "CSS selector or accessible name for click/type/select/extract." },
+                url: { type: "string", description: "For action=navigate." },
+                value: { type: "string", description: "Text to type, option to select, key to press, or label for extract." },
+                ms: { type: "number", description: "Milliseconds to wait (action=wait) or after step." },
+                note: { type: "string", description: "Optional human comment for this step." },
+              },
+              required: ["action"],
+            },
+          },
+          enabled: { type: "boolean", description: "Whether the macro is immediately runnable. Default true." },
+        },
+        required: ["name", "start_url", "steps"],
+      },
+    },
+  },
 ];
 
 // HuggingFace all-MiniLM-L6-v2 — same provider used by the rest of PendragonX
