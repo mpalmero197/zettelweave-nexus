@@ -1,17 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2, Bot, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Timer, ListTodo, Wand2, Sparkles } from 'lucide-react';
 import { useFocusState } from '@/components/focus-sidebar/useFocusState';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FocusPanel } from './FocusPanel';
 import { TasksPanel } from './TasksPanel';
 import { AIModifyPanel } from './AIModifyPanel';
-import { MacrosPanel } from './MacrosPanel';
 import { AgentPanel } from './AgentPanel';
 import { cn } from '@/lib/utils';
 
-export type ToolboxTab = 'focus' | 'tasks' | 'ai-modify' | 'macros' | 'agent';
+export type ToolboxTab = 'focus' | 'tasks' | 'ai-modify' | 'agent';
 
 interface ToolboxSidebarProps {
   open: boolean;
@@ -24,7 +23,6 @@ const TABS: { id: ToolboxTab; label: string; icon: React.ComponentType<{ classNa
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'ai-modify', label: 'AI Modify', icon: Wand2 },
   { id: 'agent', label: 'Agent', icon: Sparkles },
-  { id: 'macros', label: 'Macros', icon: Bot },
 ];
 
 export function ToolboxSidebar({ open, onOpenChange, initialTab = 'focus' }: ToolboxSidebarProps) {
