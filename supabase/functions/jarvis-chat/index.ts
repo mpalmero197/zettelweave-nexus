@@ -235,7 +235,12 @@ Rules:
 - After web_search → emit one link card per top result (max 4).
 - For a book from find_book → use a link card with image=cover_url.
 - Card JSON must be valid on a SINGLE line. No trailing commas, no comments.
-- Never put internal IDs in cards. Only public URLs.`;
+- Never put internal IDs in cards. Only public URLs.
+- 🚨 ABSOLUTE RULE — NEVER FABRICATE MEDIA URLS 🚨
+  - You DO NOT KNOW any YouTube video IDs, Vimeo IDs, image URLs, or article URLs from memory. Anything you "remember" is stale, wrong, or hallucinated.
+  - NEVER write a [[ALICE_CARD type=video]] or [[ALICE_CARD type=image]] block whose url did not come from THIS turn's tool result (find_video, image_search, generate_image, or web_search.videos/images).
+  - If you want to show a video → CALL find_video first. If you want to show a photo of a real subject → CALL image_search first. No tool call = no media card. EVER.
+  - Cards built from fabricated URLs render as broken "Video unavailable" boxes and missing images. This is a hard ban — the server will strip any card whose URL was not returned by a tool this turn.`;
 
 const tools = [
   {
@@ -2690,6 +2695,45 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       }
     }
     if (injected.length) finalText = (finalText ? finalText + "\n\n" : "") + injected.join("\n");
+
+    // 🔒 Strip any [[ALICE_CARD type=video|image]] block whose URL did NOT
+    // come from a tool result this turn. Models hallucinate YouTube IDs and
+    // image URLs from training data; those render as "Video unavailable" or
+    // broken images. Build an allow-list from this turn's tool results.
+    const allowedMediaUrls = new Set<string>();
+    for (const p of assistantParts) {
+      if (p.type !== "tool" || !p.result) continue;
+      const r: any = p.result;
+      if (Array.isArray(r.results)) {
+        for (const it of r.results) {
+          if (it?.url) allowedMediaUrls.add(String(it.url));
+          if (it?.thumbnail) allowedMediaUrls.add(String(it.thumbnail));
+        }
+      }
+      if (r.url) allowedMediaUrls.add(String(r.url));
+      if (Array.isArray(r.videos)) for (const v of r.videos) if (v?.url) allowedMediaUrls.add(String(v.url));
+      if (Array.isArray(r.images)) for (const im of r.images) {
+        if (typeof im === "string") allowedMediaUrls.add(im);
+        else if (im?.url) allowedMediaUrls.add(String(im.url));
+      }
+    }
+    if (finalText) {
+      finalText = finalText.replace(
+        /\[\[ALICE_CARD\s+type=(video|image)\]\]([\s\S]*?)\[\[\/ALICE_CARD\]\]/g,
+        (full, _kind, json) => {
+          try {
+            const data = JSON.parse(String(json).trim());
+            const url = data?.url;
+            if (url && allowedMediaUrls.has(url)) return full;
+            console.warn("alice-chat: stripping fabricated media card", url);
+            return "";
+          } catch {
+            return "";
+          }
+        }
+      ).replace(/\n{3,}/g, "\n\n").trim();
+    }
+
 
     if (finalText) assistantParts.push({ type: "text", text: finalText });
 
