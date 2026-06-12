@@ -2312,6 +2312,24 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, id };
       }
+      case "create_macro": {
+        const macroName = String(args.name || "").trim();
+        const startUrl = String(args.start_url || "").trim();
+        const steps = Array.isArray(args.steps) ? args.steps : [];
+        if (!macroName) return { error: "name is required" };
+        if (!startUrl || !/^https?:\/\//i.test(startUrl)) return { error: "start_url must be an absolute http(s) URL" };
+        if (steps.length === 0) return { error: "steps must contain at least one action" };
+        const { data, error } = await supabase.from("alice_macros").insert({
+          user_id: userId,
+          name: macroName.slice(0, 200),
+          description: args.description ? String(args.description).slice(0, 500) : null,
+          start_url: startUrl,
+          steps,
+          enabled: args.enabled !== false,
+        }).select("id,name,start_url").single();
+        if (error) return { error: error.message };
+        return { ok: true, id: data.id, name: data.name, start_url: data.start_url, step_count: steps.length, note: "Saved to Toolbox → Macros. The Pendragon extension will run it on demand." };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
