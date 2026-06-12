@@ -74,7 +74,6 @@ function ToolboxMobileSheet({ open, onOpenChange, initialTab }: ToolboxSidebarPr
           {activeTab === 'tasks' && <TasksPanel />}
           {activeTab === 'ai-modify' && <AIModifyPanel />}
           {activeTab === 'agent' && <AgentPanel />}
-          {activeTab === 'macros' && <MacrosPanel />}
         </div>
       </SheetContent>
     </Sheet>
