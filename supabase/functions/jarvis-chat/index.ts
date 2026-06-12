@@ -235,7 +235,12 @@ Rules:
 - After web_search → emit one link card per top result (max 4).
 - For a book from find_book → use a link card with image=cover_url.
 - Card JSON must be valid on a SINGLE line. No trailing commas, no comments.
-- Never put internal IDs in cards. Only public URLs.`;
+- Never put internal IDs in cards. Only public URLs.
+- 🚨 ABSOLUTE RULE — NEVER FABRICATE MEDIA URLS 🚨
+  - You DO NOT KNOW any YouTube video IDs, Vimeo IDs, image URLs, or article URLs from memory. Anything you "remember" is stale, wrong, or hallucinated.
+  - NEVER write a [[ALICE_CARD type=video]] or [[ALICE_CARD type=image]] block whose url did not come from THIS turn's tool result (find_video, image_search, generate_image, or web_search.videos/images).
+  - If you want to show a video → CALL find_video first. If you want to show a photo of a real subject → CALL image_search first. No tool call = no media card. EVER.
+  - Cards built from fabricated URLs render as broken "Video unavailable" boxes and missing images. This is a hard ban — the server will strip any card whose URL was not returned by a tool this turn.`;
 
 const tools = [
   {
