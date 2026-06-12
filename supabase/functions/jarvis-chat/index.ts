@@ -2696,6 +2696,45 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     }
     if (injected.length) finalText = (finalText ? finalText + "\n\n" : "") + injected.join("\n");
 
+    // 🔒 Strip any [[ALICE_CARD type=video|image]] block whose URL did NOT
+    // come from a tool result this turn. Models hallucinate YouTube IDs and
+    // image URLs from training data; those render as "Video unavailable" or
+    // broken images. Build an allow-list from this turn's tool results.
+    const allowedMediaUrls = new Set<string>();
+    for (const p of assistantParts) {
+      if (p.type !== "tool" || !p.result) continue;
+      const r: any = p.result;
+      if (Array.isArray(r.results)) {
+        for (const it of r.results) {
+          if (it?.url) allowedMediaUrls.add(String(it.url));
+          if (it?.thumbnail) allowedMediaUrls.add(String(it.thumbnail));
+        }
+      }
+      if (r.url) allowedMediaUrls.add(String(r.url));
+      if (Array.isArray(r.videos)) for (const v of r.videos) if (v?.url) allowedMediaUrls.add(String(v.url));
+      if (Array.isArray(r.images)) for (const im of r.images) {
+        if (typeof im === "string") allowedMediaUrls.add(im);
+        else if (im?.url) allowedMediaUrls.add(String(im.url));
+      }
+    }
+    if (finalText) {
+      finalText = finalText.replace(
+        /\[\[ALICE_CARD\s+type=(video|image)\]\]([\s\S]*?)\[\[\/ALICE_CARD\]\]/g,
+        (full, _kind, json) => {
+          try {
+            const data = JSON.parse(String(json).trim());
+            const url = data?.url;
+            if (url && allowedMediaUrls.has(url)) return full;
+            console.warn("alice-chat: stripping fabricated media card", url);
+            return "";
+          } catch {
+            return "";
+          }
+        }
+      ).replace(/\n{3,}/g, "\n\n").trim();
+    }
+
+
     if (finalText) assistantParts.push({ type: "text", text: finalText });
 
     await supabase.from("jarvis_messages").insert({
