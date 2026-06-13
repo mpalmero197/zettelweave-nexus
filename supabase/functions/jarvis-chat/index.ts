@@ -11,8 +11,10 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL_DEFAULT = "google/gemini-3-flash-preview";
-const MODEL_DEEP = "google/gemini-2.5-pro";
+// Upgraded models: Gemini 3.5 Flash for fast agentic/navigation/macro work,
+// Gemini 3.1 Pro Preview for deep reasoning tasks.
+const MODEL_DEFAULT = "google/gemini-3.5-flash";
+const MODEL_DEEP = "google/gemini-3.1-pro-preview";
 
 // Heuristic: pick Deep Think when the prompt is long, multi-step, analytical,
 // or the caller explicitly requests it (forceDeepThink). Pure greetings / quick
@@ -2515,7 +2517,7 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     } else {
       memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n(No memories yet. As you learn stable preferences, people, projects, or rules, call save_memory to remember them.)`;
     }
-    const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-2.5-pro)" : "Fast (gemini-3-flash-preview)"} for this turn.`;
+    const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-3.1-pro-preview)" : "Fast (gemini-3.5-flash)"} for this turn. You have agentic page-navigation and macro-learning abilities — use the create_macro tool to record reusable navigation flows when the user asks you to learn or automate a task.`;
 
     // Real-time snapshot of what's on the user's screen right now. Use this
     // to ground answers to questions like "what document do I have open?"
