@@ -7,8 +7,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/co
 import {
   Plus, Send, Trash2, ChevronDown, ChevronRight, Sparkles, Search, FileText,
   StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun, Play,
-  ImageIcon, Navigation, Menu,
+  ImageIcon, Navigation, Menu, Volume2, VolumeX,
 } from "lucide-react";
+import { speakAlice, isAliceVoiceEnabled, setAliceVoiceEnabled, onAliceVoicePrefChanged, resetAliceTts } from "@/lib/aliceTts";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
@@ -259,6 +260,27 @@ export function JarvisChat({ compact = false }: Props) {
   };
 
   useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* ignore */ } }, []);
+
+  // ── Voice output (Web Speech API, no external API) ─────────────────────
+  const [voiceOn, setVoiceOn] = useState<boolean>(() => isAliceVoiceEnabled());
+  useEffect(() => onAliceVoicePrefChanged(setVoiceOn), []);
+  const spokenIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!voiceOn || sending) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    if (spokenIdsRef.current.has(last.id)) return;
+    const text = last.parts
+      .filter((p) => p.type === "text")
+      .map((p: any) => p.text)
+      .join(" ")
+      .trim();
+    if (!text) return;
+    spokenIdsRef.current.add(last.id);
+    speakAlice(text);
+  }, [messages, sending, voiceOn]);
+  // Stop speaking if the user starts a new turn.
+  useEffect(() => { if (sending) resetAliceTts(); }, [sending]);
 
   // Dynamic transcript width: widen when assistant cards are present
   const hasRichCards = useMemo(
@@ -537,6 +559,17 @@ export function JarvisChat({ compact = false }: Props) {
                   className={cn("resize-none flex-1 shadow-none focus-visible:ring-0", compact ? "min-h-[36px] max-h-28 text-[13px]" : "min-h-[44px] max-h-40 text-[15px]")}
                   disabled={sending}
                 />
+                <Button
+                  type="button"
+                  onClick={() => setAliceVoiceEnabled(!voiceOn)}
+                  size="icon"
+                  variant="ghost"
+                  className={cn("shrink-0 rounded-full hover:bg-white/10", voiceOn && "text-primary", compact && "h-9 w-9")}
+                  aria-label={voiceOn ? "Mute ALICE voice" : "Let ALICE speak"}
+                  title={voiceOn ? "Mute ALICE voice" : "Let ALICE speak"}
+                >
+                  {voiceOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </Button>
                 <Button
                   type="button"
                   onClick={toggleDictation}
