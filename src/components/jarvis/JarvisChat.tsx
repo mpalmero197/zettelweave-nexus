@@ -561,6 +561,17 @@ export function JarvisChat({ compact = false }: Props) {
                 />
                 <Button
                   type="button"
+                  onClick={() => setAliceVoiceEnabled(!voiceOn)}
+                  size="icon"
+                  variant="ghost"
+                  className={cn("shrink-0 rounded-full hover:bg-white/10", voiceOn && "text-primary", compact && "h-9 w-9")}
+                  aria-label={voiceOn ? "Mute ALICE voice" : "Let ALICE speak"}
+                  title={voiceOn ? "Mute ALICE voice" : "Let ALICE speak"}
+                >
+                  {voiceOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </Button>
+                <Button
+                  type="button"
                   onClick={toggleDictation}
                   size="icon"
                   variant="ghost"
