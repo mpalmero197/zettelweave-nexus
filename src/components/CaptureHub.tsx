@@ -2,16 +2,15 @@ import { lazy, Suspense, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { PenLine, FileText, BookOpen, StickyNote, HelpCircle } from "lucide-react";
+import { PenLine, Layers, StickyNote, HelpCircle } from "lucide-react";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import type { ZettelCard as ZettelCardType } from "@/types/zettel";
 
 const ScratchPad = lazy(() => import("@/components/ScratchPad").then(m => ({ default: m.ScratchPad })));
-const CardsWorkspace = lazy(() => import("@/components/workspaces/CardsWorkspace").then(m => ({ default: m.CardsWorkspace })));
-const NotesWorkspace = lazy(() => import("@/components/workspaces/NotesWorkspace").then(m => ({ default: m.NotesWorkspace })));
+const CardsNotesWorkspace = lazy(() => import("@/components/workspaces/CardsNotesWorkspace").then(m => ({ default: m.CardsNotesWorkspace })));
 const StickyNotesSimple = lazy(() => import("@/components/StickyNotesSimple").then(m => ({ default: m.StickyNotesSimple })));
 
-type HubTab = "scratchpad" | "cards" | "notes" | "stickynotes";
+type HubTab = "scratchpad" | "workspace" | "stickynotes";
 
 const TAXONOMY: Array<{
   id: HubTab;
@@ -27,34 +26,25 @@ const TAXONOMY: Array<{
     label: "Scratchpad",
     icon: PenLine,
     tagline: "Napkin scribbles",
-    when: "Quick ideas, web snippets, brain dumps you don't want to lose. Use the Toolbox to capture highlights from any page.",
+    when: "Quick ideas, web snippets, brain dumps you don't want to lose.",
     limit: "≤ 500 characters",
     accent: "text-amber-600",
   },
   {
-    id: "cards",
-    label: "Cards",
-    icon: FileText,
-    tagline: "Atomic ideas",
-    when: "Anything explainable in a paragraph or two — a quote, a definition, a half-formed thesis. Link cards with [[wikilinks]] to grow your second brain.",
-    limit: "≤ 1,500 characters",
+    id: "workspace",
+    label: "Cards & Notes",
+    icon: Layers,
+    tagline: "Atomic ideas → long-form",
+    when: "Unified split-pane workspace. Atomic cards (≤1,500 chars) live alongside long-form notes. Type [[ to link, drop cards into notes to cite, and promote cards to notes when they outgrow the card limit.",
+    limit: "Cards ≤ 1,500 · Notes unlimited",
     accent: "text-sky-600",
-  },
-  {
-    id: "notes",
-    label: "Notes",
-    icon: BookOpen,
-    tagline: "Long-form thinking",
-    when: "Meeting notes, lecture transcripts, multi-section drafts. Group them into notebooks. For books/essays/theses, graduate to Catalyst.",
-    limit: "Unlimited",
-    accent: "text-emerald-600",
   },
   {
     id: "stickynotes",
     label: "Sticky Notes",
     icon: StickyNote,
     tagline: "Reminders & tasks",
-    when: "Quick reminders, follow-ups, and short to-dos. Convert any sticky into a Task or Reminder with one click — ALICE handles the rest.",
+    when: "Quick reminders, follow-ups, and short to-dos.",
     limit: "Short",
     accent: "text-rose-600",
   },
@@ -62,7 +52,10 @@ const TAXONOMY: Array<{
 
 export function CaptureHub() {
   const [params, setParams] = useSearchParams();
-  const initial = (params.get("hub") as HubTab) || "scratchpad";
+  const raw = params.get("hub");
+  const initial: HubTab = raw === "cards" || raw === "notes" || raw === "workspace"
+    ? "workspace"
+    : raw === "stickynotes" ? "stickynotes" : "scratchpad";
   const [tab, setTab] = useState<HubTab>(initial);
   const { createCard } = useZettelCards();
 
@@ -81,7 +74,6 @@ export function CaptureHub() {
 
   return (
     <div className="px-2 sm:px-4 py-2 space-y-2">
-      {/* Compact segmented picker — single row, fits in ~52px */}
       <div className="flex items-center gap-1.5">
         <div
           role="tablist"
@@ -111,7 +103,6 @@ export function CaptureHub() {
           })}
         </div>
 
-        {/* Info popover — full taxonomy on demand */}
         <Popover>
           <PopoverTrigger asChild>
             <button
@@ -125,7 +116,7 @@ export function CaptureHub() {
             <div className="text-xs">
               <p className="font-semibold text-foreground mb-1">One place to capture everything.</p>
               <p className="text-muted-foreground leading-relaxed">
-                Pick the shape that fits — short to long. ALICE suggests a promotion (Scratchpad → Card) when content outgrows its home.
+                Pick the shape that fits. Cards & Notes share one split-pane workspace — promote a card to a note the moment it outgrows 1,500 characters.
               </p>
             </div>
             <div className="border-t border-border/60 pt-2 space-y-2">
@@ -147,7 +138,6 @@ export function CaptureHub() {
         </Popover>
       </div>
 
-      {/* Active workspace */}
       <Tabs value={tab} onValueChange={handleChange} className="w-full">
         <TabsList className="sr-only">
           {TAXONOMY.map((t) => (
@@ -159,11 +149,8 @@ export function CaptureHub() {
           <TabsContent value="scratchpad" className="mt-0">
             <ScratchPad onCreateCard={handleCreateCard} />
           </TabsContent>
-          <TabsContent value="cards" className="mt-0">
-            <CardsWorkspace />
-          </TabsContent>
-          <TabsContent value="notes" className="mt-0">
-            <NotesWorkspace />
+          <TabsContent value="workspace" className="mt-0">
+            <CardsNotesWorkspace />
           </TabsContent>
           <TabsContent value="stickynotes" className="mt-0">
             <StickyNotesSimple />
@@ -173,3 +160,4 @@ export function CaptureHub() {
     </div>
   );
 }
+
