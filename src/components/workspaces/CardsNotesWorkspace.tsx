@@ -418,7 +418,8 @@ export function CardsNotesWorkspace() {
                 placeholder={selected.type === 'card'
                   ? 'Capture one atomic idea. Type [[ to link…'
                   : 'Write freely. Type [[ to link to a card or note…'}
-                className="w-full min-h-[60vh] bg-transparent text-slate-100 text-[15px] leading-relaxed resize-none outline-none placeholder:text-slate-600 font-[\"Google_Sans_Text\",Inter,sans-serif]"
+                className="w-full min-h-[60vh] bg-transparent text-slate-100 text-[15px] leading-relaxed resize-none outline-none placeholder:text-slate-600"
+                style={{ fontFamily: '"Google Sans Text", Inter, sans-serif' }}
               />
             </div>
           </div>
