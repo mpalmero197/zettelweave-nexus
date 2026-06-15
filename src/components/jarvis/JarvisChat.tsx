@@ -265,25 +265,71 @@ export function JarvisChat({ compact = false }: Props) {
   useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* ignore */ } }, []);
 
   // ── Voice output (Web Speech API, no external API) ─────────────────────
+  // Streaming TTS: speak each sentence as it appears so ALICE talks in real
+  // time, not after the whole reply finishes.
   const [voiceOn, setVoiceOn] = useState<boolean>(() => isAliceVoiceEnabled());
   useEffect(() => onAliceVoicePrefChanged(setVoiceOn), []);
-  const spokenIdsRef = useRef<Set<string>>(new Set());
+  const spokenLenRef = useRef<Map<string, number>>(new Map());
   useEffect(() => {
-    if (!voiceOn || sending) return;
+    if (!voiceOn) return;
     const last = messages[messages.length - 1];
     if (!last || last.role !== "assistant") return;
-    if (spokenIdsRef.current.has(last.id)) return;
-    const text = last.parts
+    const fullText = last.parts
       .filter((p) => p.type === "text")
       .map((p: any) => p.text)
-      .join(" ")
-      .trim();
-    if (!text) return;
-    spokenIdsRef.current.add(last.id);
-    speakAlice(text);
+      .join(" ");
+    if (!fullText) return;
+    const already = spokenLenRef.current.get(last.id) ?? 0;
+    const pending = fullText.slice(already);
+    if (!pending) return;
+    // While streaming, only flush completed sentences (ends with . ? ! or newline).
+    // When sending finished, flush whatever remains.
+    if (sending) {
+      const m = pending.match(/^([\s\S]*[.?!\n])\s*/);
+      if (!m) return;
+      const chunk = m[1];
+      spokenLenRef.current.set(last.id, already + chunk.length);
+      enqueueAliceSpeech(chunk);
+    } else {
+      spokenLenRef.current.set(last.id, fullText.length);
+      enqueueAliceSpeech(pending);
+    }
   }, [messages, sending, voiceOn]);
-  // Stop speaking if the user starts a new turn.
-  useEffect(() => { if (sending) resetAliceTts(); }, [sending]);
+  // Stop speaking when the user starts a new turn (barge-in).
+  useEffect(() => { if (sending) {/* let streaming proceed */} }, [sending]);
+
+  // ── Morning brief: speak today's headline once per day on first open ───
+  const briefSpokenRef = useRef(false);
+  useEffect(() => {
+    if (briefSpokenRef.current) return;
+    if (!user || !voiceOn) return;
+    briefSpokenRef.current = true;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `alice:morning-brief-spoken:${today}`;
+    try { if (localStorage.getItem(key) === "1") return; } catch { /* ignore */ }
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("daily_briefings")
+          .select("headline, items")
+          .eq("user_id", user.id)
+          .eq("briefing_date", today)
+          .maybeSingle();
+        if (!data) return;
+        const items = Array.isArray(data.items) ? (data.items as any[]) : [];
+        const lead = items.slice(0, 2).map((i) => i?.title || i?.text).filter(Boolean).join(". ");
+        const spoken = `${data.headline}. ${lead}`.trim();
+        if (spoken) {
+          speakAlice(spoken);
+          try { localStorage.setItem(key, "1"); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [user, voiceOn]);
+
+  // Stop voice when user starts dictation (true barge-in)
+  useEffect(() => { if (listening) resetAliceTts(); }, [listening]);
+
 
   // Dynamic transcript width: widen when assistant cards are present
   const hasRichCards = useMemo(
