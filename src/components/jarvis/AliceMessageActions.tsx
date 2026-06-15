@@ -47,9 +47,11 @@ export function AliceMessageActions({ text, lastUserText, onRegenerate, compact 
         user_id: user.id,
         title: titleFromText(text),
         content: text,
-        category: "idea",
         tags: ["alice"],
+        category: "general",
+        number: "000.0",
       });
+
       if (error) throw error;
       toast.success("Saved as card");
     } catch (e: any) {
