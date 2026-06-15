@@ -546,12 +546,21 @@ export function JarvisChat({ compact = false }: Props) {
                         </div>
                       </div>
                       {isLastAssistantDone && assistantText.trim().length > 0 && (
-                        <AliceFollowupChips
-                          lastAssistant={assistantText}
-                          lastUser={lastUserText}
-                          onPick={(prompt) => submit(prompt)}
-                        />
+                        <>
+                          <AliceMessageActions
+                            text={assistantText}
+                            lastUserText={lastUserText}
+                            onRegenerate={() => lastUserText && submit(lastUserText)}
+                            compact={compact}
+                          />
+                          <AliceFollowupChips
+                            lastAssistant={assistantText}
+                            lastUser={lastUserText}
+                            onPick={(prompt) => submit(prompt)}
+                          />
+                        </>
                       )}
+
                     </>
                   )}
                 </div>
