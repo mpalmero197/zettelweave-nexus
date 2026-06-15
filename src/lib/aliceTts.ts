@@ -94,6 +94,22 @@ export function speakAlice(text: string, opts: Partial<SpeechSynthesisUtterance>
   // what stops double-utterance bugs on iOS Safari when several callers
   // queue in quick succession.
   try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
+  _enqueue(clean, opts);
+}
+
+/**
+ * Append a sentence/chunk to the speech queue WITHOUT cancelling prior
+ * utterances. Used for streaming TTS — sentences are spoken as they arrive.
+ */
+export function enqueueAliceSpeech(text: string, opts: Partial<SpeechSynthesisUtterance> = {}) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (!isAliceVoiceEnabled()) return;
+  const clean = cleanForSpeech(text);
+  if (!clean) return;
+  _enqueue(clean, opts);
+}
+
+function _enqueue(clean: string, opts: Partial<SpeechSynthesisUtterance>) {
   const u = new SpeechSynthesisUtterance(clean);
   const voice = pickAliceVoice();
   if (voice) u.voice = voice;
@@ -101,8 +117,6 @@ export function speakAlice(text: string, opts: Partial<SpeechSynthesisUtterance>
   u.pitch = 1.05;
   u.volume = 1.0;
   Object.assign(u, opts);
-  // Some browsers need voices to load asynchronously — if none picked yet,
-  // wait for voiceschanged once and retry.
   if (!voice && window.speechSynthesis.onvoiceschanged === null) {
     window.speechSynthesis.onvoiceschanged = () => {
       const v = pickAliceVoice();
@@ -114,6 +128,7 @@ export function speakAlice(text: string, opts: Partial<SpeechSynthesisUtterance>
   }
   window.speechSynthesis.speak(u);
 }
+
 
 export function resetAliceTts() {
   if (typeof window === "undefined") return;
