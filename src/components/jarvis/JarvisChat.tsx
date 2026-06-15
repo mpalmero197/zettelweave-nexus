@@ -9,18 +9,21 @@ import {
   StickyNote, CheckSquare, Calendar, Globe, Mic, MicOff, X, CloudSun, Play,
   ImageIcon, Navigation, Menu, Volume2, VolumeX,
 } from "lucide-react";
-import { speakAlice, isAliceVoiceEnabled, setAliceVoiceEnabled, onAliceVoicePrefChanged, resetAliceTts } from "@/lib/aliceTts";
+import { speakAlice, enqueueAliceSpeech, isAliceVoiceEnabled, setAliceVoiceEnabled, onAliceVoicePrefChanged, resetAliceTts } from "@/lib/aliceTts";
 import { useJarvis, type JarvisPart } from "@/hooks/useJarvis";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AliceActionPlan, type AlicePlan } from "@/components/alice/AliceActionPlan";
 import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
 import { AliceFollowupChips } from "@/components/jarvis/AliceFollowupChips";
+import { AliceMessageActions } from "@/components/jarvis/AliceMessageActions";
 import { AliceAgendaBanner } from "@/components/jarvis/AliceAgendaBanner";
 import { GeminiStar } from "@/components/jarvis/GeminiStar";
 import { cn } from "@/lib/utils";
+
 import "./alice-theme.css";
 
 const TOOL_META: Record<string, { icon: React.ComponentType<any>; label: string }> = {
