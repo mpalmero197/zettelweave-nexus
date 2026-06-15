@@ -1,88 +1,53 @@
-# PendragonX Scholar
+# ALICE Enhancement Plan
 
-A comprehensive in-app learning center that teaches every part of PendragonX through a safe sandbox, guided walkthroughs, videos, ALICE-led lessons, and written docs — with cosmetic badges as rewards and a fully automated curriculum sync engine so lessons never drift from the real product.
+A focused set of upgrades that build on what ALICE already does (chat, plans, auto-linking, page navigation, macro learning, TTS speech) and push her toward a true always-on assistant. Pick any subset.
 
-## 1. Surface & navigation
+## 1. Voice & Conversation
+- **Voice input (wake-word free push-to-talk)**: hold-to-talk mic button in JarvisChat using the browser SpeechRecognition API (no API cost). Live transcript preview, auto-send on release.
+- **Streaming TTS**: speak ALICE's reply as it streams (chunk on sentence boundaries) instead of after completion. Toggle in settings.
+- **Voice profile picker**: let user choose voice + rate/pitch from `speechSynthesis.getVoices()`; persist on `profiles`.
+- **Barge-in**: clicking the mic or typing cancels current TTS.
 
-- New route `/scholar` with sub-routes:
-  - `/scholar` — Scholar home (dashboard: progress, recommended next lesson, badges, leaderboard-of-self).
-  - `/scholar/curriculum` — Browsable lesson catalog grouped by module (Capture, Notes, Cards, Catalyst, Canvas, ALICE, Toolbox, Vault, Integrations, Calendar, etc.).
-  - `/scholar/lesson/:slug` — Single lesson player (mixes any of: walkthrough, video, ALICE chat, written docs).
-  - `/scholar/alice` — ALICE Deep Dive (features/benefits/advantages explorer + live demo chat).
-  - `/scholar/sandbox` — Free-play sandbox shell.
-  - `/scholar/badges` — Badge case + Scholar rank.
-- Entry points: User menu item, Dashboard "Learn PendragonX" widget, contextual "Learn this" buttons on every major feature header, first-run onboarding modal.
+## 2. Proactive Intelligence
+- **Smart morning brief**: extend `alice-proactive-pulse` to deliver a spoken+chat brief (overdue tasks, today's calendar, writing streak, 1 suggested card to revisit). Triggered on first session of the day.
+- **Context-aware nudges**: when user lingers on a card/note > 60s, ALICE offers inline "Want me to find related cards / summarize / expand?" chips. Uses existing `useScreenContext`.
+- **Idle suggestions**: after 90s idle on Cards & Notes workspace, ALICE proposes the next likely action based on recent macros.
 
-## 2. Fully isolated sandbox
+## 3. Persistent Memory
+- **Episodic memory upgrade**: store conversation summaries + user preferences in a new `alice_memories` table with embeddings; retrieve top-k on each chat call (already partially scaffolded via auto-linking infra — reuse HuggingFace embeddings).
+- **"Remember this"/"Forget this" commands**: explicit tools ALICE can call to write/delete memories.
+- **Memory inspector**: settings page listing memories with delete buttons.
 
-- New `sandbox_*` namespace tables mirroring the real ones used in lessons: `sandbox_notebooks`, `sandbox_notes`, `sandbox_zettel_cards`, `sandbox_cards_links`, `sandbox_calendar_events`, `sandbox_tasks`, `sandbox_catalyst_documents`, `sandbox_mind_maps`, `sandbox_chat_messages` (for ALICE-in-sandbox).
-- Strict RLS: owner-only. Nothing in sandbox ever writes to real tables.
-- `SandboxProvider` React context exposes `useSandbox()` that returns sandbox-scoped CRUD hooks; every real feature component receives an optional `dataSource: "live" | "sandbox"` prop OR is rendered inside `<SandboxProvider>` which monkey-patches its Supabase queries to the sandbox tables. We will refactor existing feature hooks (e.g. `useNotes`, `useCards`, `useCatalyst`) to read the active source from context so the SAME UI is reused — no duplicate screens.
-- Seeded demo content: `seed_sandbox(user_id)` SQL function loads a curated fictional knowledge base (a fantasy-author persona with sample notebooks, cards, calendar, draft chapter). "Reset sandbox" wipes and reseeds in one click.
-- Sandbox banner stays pinned ("You are in the Scholar sandbox. Nothing here affects your real knowledge base.") in primary/violet.
+## 4. Skills & Macros
+- **Macro library UI**: surface learned macros from page-navigation feature as named, editable, re-runnable workflows ("Open Catalyst → new chapter → insert outline").
+- **Macro sharing**: export/import macros as JSON.
+- **Slash commands in chat**: `/run <macro>`, `/find <query>`, `/summarize`, `/card`, `/plan`.
 
-## 3. Four tutorial formats per lesson
+## 5. Multimodal
+- **Screenshot understanding**: paste/drop an image into chat → ALICE describes & extracts text (Gemini vision via existing gateway).
+- **Audio note transcription shortcut**: drag-drop audio → transcribe + summarize into a card.
 
-Each lesson is one record with optional payloads for each format the user picks:
+## 6. Quality-of-Life
+- **Reply actions**: per-message buttons: Copy, Save as card, Save as note, Speak, Regenerate, Continue.
+- **Conversation pinning + search**: pin important threads; full-text search across past Jarvis conversations.
+- **Token/cost meter**: tiny indicator in chat footer showing today's ALICE usage.
+- **Error transparency**: surface 429/402 gateway errors with the "Add credits" CTA pattern.
 
-1. **Guided interactive walkthrough** — `react-joyride`-style coach marks driving the real sandbox UI. Steps are declared as JSON: `{ target, content, action?, validate? }`. Steps can require the user to actually perform a click/type before advancing.
-2. **Video tutorial** — embedded via the existing ALICE video card system (YouTube/Vimeo/etc.). Stored as URL on the lesson.
-3. **ALICE-led lesson** — opens a scoped ALICE thread with a lesson-specific system prompt; ALICE explains, asks check-questions, and can drive demos in the sandbox via existing alice-agent tools.
-4. **Written docs + screenshots** — Markdown body rendered with `react-markdown`, screenshots stored in `documents` bucket under `scholar/`.
+## Suggested first slice (recommended)
+If we ship just one round, do:
+1. Voice input (push-to-talk)
+2. Streaming TTS + voice picker
+3. Per-message reply actions (Copy / Save card / Speak / Regenerate)
+4. Smart morning brief (spoken on first daily open)
 
-A tab switcher inside the lesson player lets the user move between formats; progress on any one counts toward completion.
-
-## 4. ALICE Deep Dive
-
-- Dedicated page presenting ALICE's capability map (chat, agent runs, macros, workflows, memory, vault OTP autofill, video search, web research, etc.) as a grid of capability cards.
-- Each card opens a focused demo: a sandbox ALICE thread pre-loaded with example prompts, and a "Try it" composer that runs against sandbox data only.
-- "Features / Benefits / Advantages" tabs on each capability, content auto-generated by the sync engine from the capability registry.
-
-## 5. Points, badges, ranks (cosmetic only)
-
-- New tables: `scholar_progress` (user_id, lesson_slug, status, completed_at, score), `scholar_badges` (user_id, badge_slug, earned_at), `scholar_points` (user_id, total, breakdown jsonb).
-- Points granted for: completing a lesson format, completing a full lesson (all formats), finishing a module, perfect score on lesson check-questions, daily streak.
-- Badges: per-module ("Cards Cartographer", "Canvas Cartwright"), milestone ("First Lesson", "10 Lessons", "All Modules"), ALICE Deep Dive completion, streak badges.
-- Scholar Rank derived from total points (Apprentice → Scribe → Adept → Loremaster → Grand Pendragon). Shown on profile.
-- No functional perks; no leaderboards across users (privacy).
-
-## 6. Curriculum sync engine (fully automated)
-
-- **Capability registry** at `src/lib/scholar/registry.ts`: a typed manifest of every PendragonX feature/module with `{ slug, title, route, surfaceFiles[], aliceTools[], lastReviewed }`. This file is the single source of truth.
-- **Edge function `scholar-curriculum-sync`** (scheduled nightly, also triggered after any merged feature change via existing self-improvement engine):
-  1. Walks the capability registry.
-  2. For each entry, reads its `surfaceFiles[]` from the repo (via GitHub PAT already configured) and the latest changelog/commit messages.
-  3. Calls Gemini-3-flash to regenerate: written doc body, walkthrough step JSON, ALICE lesson system prompt, and ALICE Deep Dive copy.
-  4. Calls Gemini-2.5-pro for a verification pass that the walkthrough selectors still exist (greps against current source).
-  5. Writes results to `scholar_lessons` table with `version`, `generated_at`, `model`, `source_commit`.
-- Video URLs are NOT auto-generated; admin can attach them in an admin panel tab `Admin → Scholar`. Same panel shows last sync status, drift warnings, and a "Force resync" button per lesson.
-- Because curriculum is fully automated, a developer-side rule is added to `mem://` Core: any new feature must add its entry to the capability registry; CI lint fails the build otherwise.
-
-## 7. Data model (new tables)
-
-- `scholar_lessons` — slug PK, module, title, summary, written_md, walkthrough_json, alice_system_prompt, video_url, version, generated_at, source_commit. Public read for authenticated users.
-- `scholar_modules` — slug PK, title, order, icon, description.
-- `scholar_progress` — user_id+lesson_slug PK, status, formats_completed[], score, completed_at.
-- `scholar_badges` — user_id+badge_slug PK, earned_at, metadata.
-- `scholar_points` — user_id PK, total, breakdown.
-- All sandbox_* tables (mirrors of live tables, reduced columns).
-- All get `GRANT` statements, RLS enabled, owner-only policies. `scholar_lessons` / `scholar_modules` granted SELECT to authenticated.
-
-## 8. Implementation phases
-
-1. Tables + RLS + grants + seed function + capability registry skeleton + `Scholar` route shell.
-2. Sandbox provider + refactor 3 pilot feature hooks (Notes, Cards, Catalyst) to honor data source; sandbox banner; reset.
-3. Lesson player UI with all 4 format tabs; written + video formats first.
-4. Walkthrough engine (react-joyride wrapper bound to sandbox).
-5. ALICE-led lesson mode + ALICE Deep Dive page.
-6. Points/badges/rank + Scholar home dashboard + admin Scholar tab.
-7. `scholar-curriculum-sync` edge function + nightly cron + hook into self-improvement engine + initial generation of all lessons.
-8. Dashboard widget, user menu entry, contextual "Learn this" buttons, first-run onboarding.
+This gives an immediately tangible "she talks back and listens" upgrade plus one proactive moment.
 
 ## Technical notes
+- Voice in/out: Web Speech APIs only — no new secrets, no cost.
+- Memory: new table `alice_memories(id, user_id, content, embedding vector(384), kind, created_at)` with RLS + GRANTs per project rules; reuse `generate-embedding` edge function.
+- Streaming TTS: chunk on `.?!` while assistant text streams in `useJarvis`, push to `aliceTts.ts` queue.
+- Macros: already captured by the toolbox; expose via new `src/components/alice/MacroLibrary.tsx` reading existing macro store.
+- No changes to auth, RLS model, or pricing tiers.
 
-- Reuse existing chat infra for ALICE-led lessons (`jarvis-chat` edge function with a `scholar_lesson_slug` param that swaps the system prompt and forces sandbox data source).
-- Walkthrough selectors use `data-scholar-id` attributes added to feature components so the sync verifier can grep them deterministically; this is safer than CSS class selectors.
-- Sandbox seed data is generated once per user on first sandbox entry, then cached; reset re-runs the seed.
-- No new AI providers; uses existing Lovable Gateway (gemini-3-flash + gemini-2.5-pro) and existing HuggingFace embeddings if lessons get vectorized for semantic search across the curriculum.
-- Memory entry to add on build: `mem://features/pendragonx-scholar` describing the registry contract and the rule that new features must register themselves.
+## Question for you
+Want me to build the **recommended first slice** (voice in + streaming TTS + reply actions + morning brief), or pick a different combination from sections 1–6?
