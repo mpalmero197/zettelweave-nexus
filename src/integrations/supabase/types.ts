@@ -592,13 +592,17 @@ export type Database = {
           created_at: string
           description: string | null
           enabled: boolean
+          goal: string | null
           id: string
           last_run_at: string | null
           last_run_status: string | null
           name: string
           run_count: number
+          source: string
           start_url: string
           steps: Json
+          tags: string[]
+          target_domain: string | null
           updated_at: string
           user_id: string
         }
@@ -606,13 +610,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           enabled?: boolean
+          goal?: string | null
           id?: string
           last_run_at?: string | null
           last_run_status?: string | null
           name: string
           run_count?: number
+          source?: string
           start_url: string
           steps?: Json
+          tags?: string[]
+          target_domain?: string | null
           updated_at?: string
           user_id: string
         }
@@ -620,13 +628,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           enabled?: boolean
+          goal?: string | null
           id?: string
           last_run_at?: string | null
           last_run_status?: string | null
           name?: string
           run_count?: number
+          source?: string
           start_url?: string
           steps?: Json
+          tags?: string[]
+          target_domain?: string | null
           updated_at?: string
           user_id?: string
         }
