@@ -2360,7 +2360,7 @@ async function executeTool(
           const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/alice-research-macro`, {
             method: "POST",
             headers: {
-              Authorization: req.headers.get("Authorization") || "",
+              Authorization: authHeader,
               "Content-Type": "application/json",
               apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
             },
