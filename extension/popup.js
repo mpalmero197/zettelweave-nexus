@@ -320,8 +320,9 @@ function setupTabs() {
     notes: document.getElementById('notes-tab'),
     calendar: document.getElementById('calendar-tab'),
     focus: document.getElementById('focus-tab'),
+    macros: document.getElementById('macros-tab'),
   };
-  const display = { ai: 'flex', cards: 'block', notes: 'flex', calendar: 'block', focus: 'block' };
+  const display = { ai: 'flex', cards: 'block', notes: 'flex', calendar: 'block', focus: 'block', macros: 'block' };
   tabs.forEach((t) => {
     t.addEventListener('click', () => {
       tabs.forEach((x) => x.classList.remove('active'));
@@ -331,8 +332,99 @@ function setupTabs() {
         if (el) el.style.display = key === k ? display[key] : 'none';
       });
       if (k === 'notes') refreshCurrentTabUrl();
+      if (k === 'macros') loadMacros();
     });
   });
+  setupMacros();
+}
+
+// ── Macros ──
+let macrosList = [];
+function setupMacros() {
+  document.getElementById('macro-research-btn')?.addEventListener('click', researchMacro);
+}
+
+async function loadMacros() {
+  const list = document.getElementById('macros-list');
+  if (!authToken) { if (list) list.innerHTML = '<div class="empty">Sign in to view macros.</div>'; return; }
+  const data = await rest(`alice_macros?select=id,name,description,start_url,target_domain,steps,source,tags,run_count,last_run_at&order=updated_at.desc&limit=50`);
+  macrosList = Array.isArray(data) ? data : [];
+  renderMacros();
+}
+
+function renderMacros() {
+  const el = document.getElementById('macros-list');
+  if (!el) return;
+  if (!macrosList.length) {
+    el.innerHTML = '<div class="empty">No macros yet. Ask ALICE to research one above.</div>';
+    return;
+  }
+  el.innerHTML = macrosList.map((m) => {
+    const steps = Array.isArray(m.steps) ? m.steps : [];
+    const pauses = steps.filter((s) => s?.action === 'pause').length;
+    const tagsHtml = (m.tags || []).slice(0, 3).map((t) => `<span style="background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 6px;border-radius:6px;font-size:10px;margin-right:4px">${escapeHtml(t)}</span>`).join('');
+    return `<div class="item" style="display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:#e9e9ef;font-size:13px">${escapeHtml(m.name || 'Untitled')}</div>
+          <div style="font-size:11px;color:#9aa0aa;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.description || m.start_url || '')}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-primary" data-run="${m.id}" style="font-size:11px;padding:4px 10px">▶ Run</button>
+          <button class="btn btn-secondary" data-del="${m.id}" style="font-size:11px;padding:4px 8px" title="Delete">✕</button>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#6b7280">${steps.length} step${steps.length === 1 ? '' : 's'}${pauses ? ` · ${pauses} pause${pauses === 1 ? '' : 's'}` : ''}${m.run_count ? ` · ran ${m.run_count}×` : ''} · ${escapeHtml(m.source || 'manual')}</div>
+      ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-run]').forEach((b) => b.addEventListener('click', () => runMacro(b.dataset.run)));
+  el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => deleteMacro(b.dataset.del)));
+}
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function runMacro(id) {
+  chrome.runtime.sendMessage({ type: 'PENDRAGONX_RUN_MACRO', macroId: id, initiatedBy: 'user' }, (resp) => {
+    if (resp?.ok) toast('Macro started — watch the new tab');
+    else toast(resp?.error || 'Failed to start macro');
+  });
+}
+
+async function deleteMacro(id) {
+  if (!confirm('Delete this macro?')) return;
+  await rest(`alice_macros?id=eq.${id}`, { method: 'DELETE' });
+  macrosList = macrosList.filter((m) => m.id !== id);
+  renderMacros();
+}
+
+async function researchMacro() {
+  const goal = document.getElementById('macro-research-goal').value.trim();
+  const targetUrl = document.getElementById('macro-research-url').value.trim();
+  const status = document.getElementById('macro-research-status');
+  const btn = document.getElementById('macro-research-btn');
+  if (!goal) { toast('Describe what you want ALICE to learn'); return; }
+  if (!authToken) { toast('Sign in first'); return; }
+  status.style.display = 'block';
+  status.textContent = '🔎 Researching steps with ALICE…';
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/alice-research-macro`, {
+      method: 'POST',
+      headers: { ...authHeaders(), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ goal, target_url: targetUrl || undefined }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+    status.textContent = `✓ Saved "${j.macro?.name}" with ${(j.macro?.steps || []).length} steps.`;
+    document.getElementById('macro-research-goal').value = '';
+    document.getElementById('macro-research-url').value = '';
+    await loadMacros();
+  } catch (e) {
+    status.textContent = `✗ ${e.message || e}`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ── REST helpers ──

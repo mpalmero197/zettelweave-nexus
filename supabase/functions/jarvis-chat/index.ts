@@ -1071,11 +1071,12 @@ const tools = [
             items: {
               type: "object",
               properties: {
-                action: { type: "string", enum: ["navigate", "click", "type", "wait", "select", "scroll", "press_key", "extract"], description: "What to do." },
+                action: { type: "string", enum: ["navigate", "click", "type", "fill", "wait", "select", "scroll", "press_key", "press_enter", "submit", "pause", "extract"], description: "What to do. Use 'pause' (with a 'prompt') for any step requiring sensitive or user-specific input (SSN, password, OTP, address, payment, ID upload)." },
                 selector: { type: "string", description: "CSS selector or accessible name for click/type/select/extract." },
                 url: { type: "string", description: "For action=navigate." },
                 value: { type: "string", description: "Text to type, option to select, key to press, or label for extract." },
                 ms: { type: "number", description: "Milliseconds to wait (action=wait) or after step." },
+                prompt: { type: "string", description: "User-facing message shown when action=pause." },
                 note: { type: "string", description: "Optional human comment for this step." },
               },
               required: ["action"],
@@ -1084,6 +1085,21 @@ const tools = [
           enabled: { type: "boolean", description: "Whether the macro is immediately runnable. Default true." },
         },
         required: ["name", "start_url", "steps"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "research_macro",
+      description: "Research a how-to flow on the open web and build a reusable browser-automation macro that pauses for the user at any step requiring personal info. Use whenever the user asks ALICE to 'show me how to', 'walk me through', or automate a task on a third-party site she hasn't done before (open a bank account, file a tax form, set up a 401k, change DNS, submit a passport renewal). Pulls live steps from Firecrawl + an LLM planner, saves the macro to the Toolbox, and the extension runs it in the user's real browser.",
+      parameters: {
+        type: "object",
+        properties: {
+          goal: { type: "string", description: "Plain-English task description, e.g. 'open a Chase checking account'." },
+          target_url: { type: "string", description: "Optional preferred starting URL. If omitted, ALICE searches for the best official source." },
+        },
+        required: ["goal"],
       },
     },
   },
@@ -2336,6 +2352,34 @@ async function executeTool(
         }).select("id,name,start_url").single();
         if (error) return { error: error.message };
         return { ok: true, id: data.id, name: data.name, start_url: data.start_url, step_count: steps.length, note: "Saved to Toolbox → Macros. The Pendragon extension will run it on demand." };
+      }
+      case "research_macro": {
+        const goal = String(args.goal || "").trim();
+        if (!goal) return { error: "goal is required" };
+        try {
+          const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/alice-research-macro`, {
+            method: "POST",
+            headers: {
+              Authorization: authHeader,
+              "Content-Type": "application/json",
+              apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+            },
+            body: JSON.stringify({ goal, target_url: args.target_url }),
+          });
+          const j = await r.json();
+          if (!r.ok) return { error: j?.error || `Research failed (${r.status})` };
+          return {
+            ok: true,
+            macro_id: j.macro?.id,
+            name: j.macro?.name,
+            start_url: j.macro?.start_url,
+            step_count: (j.macro?.steps || []).length,
+            sources: j.sources || [],
+            note: "Macro researched & saved. Run it from Toolbox → Macros (extension will drive the page and pause for any personal info).",
+          };
+        } catch (e: any) {
+          return { error: e?.message || String(e) };
+        }
       }
       default:
         return { error: `Unknown tool ${name}` };

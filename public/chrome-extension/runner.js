@@ -98,7 +98,43 @@
     el.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  function highlightEl(el) {
+    const prev = el.style.cssText;
+    el.style.cssText = prev + ";outline:3px solid #a78bfa !important;outline-offset:2px;box-shadow:0 0 0 6px rgba(167,139,250,.25) !important;transition:outline .2s";
+    return () => { try { el.style.cssText = prev; } catch {} };
+  }
+
+  function pauseOverlay(prompt) {
+    return new Promise((resolve, reject) => {
+      const el = document.createElement("div");
+      el.style.cssText = "all:initial;position:fixed;left:50%;top:24px;transform:translateX(-50%);z-index:2147483647;background:#0f0f12;color:#fff;font:600 13px/1.4 'Inter',-apple-system,sans-serif;padding:14px 16px;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.6),0 0 0 1px rgba(167,139,250,.6);max-width:380px;display:flex;flex-direction:column;gap:10px";
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px #a78bfa"></span><strong style="font-weight:700">ALICE paused</strong></div>
+        <div data-msg style="font-weight:500;color:#e9e9ef"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button data-cancel style="all:initial;cursor:pointer;background:transparent;color:#9aa0aa;padding:6px 10px;border-radius:8px;font:600 12px/1 'Inter',sans-serif">Cancel</button>
+          <button data-continue style="all:initial;cursor:pointer;background:#a78bfa;color:#0f0f12;padding:8px 14px;border-radius:10px;font:700 12px/1 'Inter',sans-serif">Continue ▶</button>
+        </div>`;
+      el.querySelector("[data-msg]").textContent = prompt || "Fill in the highlighted field, then continue.";
+      el.querySelector("[data-continue]").addEventListener("click", () => { el.remove(); resolve(); });
+      el.querySelector("[data-cancel]").addEventListener("click", () => { el.remove(); reject(new Error("Paused step cancelled by user")); });
+      document.body.appendChild(el);
+    });
+  }
+
   async function runStep(step) {
+    if (step.action === "wait") { await sleep(Math.max(50, Number(step.ms) || 500)); return; }
+    if (step.action === "navigate" && step.url) { window.location.href = step.url; return; }
+    if (step.action === "pause") {
+      let cleanup = null;
+      if (step.selector) {
+        const el = await waitForSelector(step.selector, 3000);
+        if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); cleanup = highlightEl(el); el.focus?.(); }
+      }
+      try { await pauseOverlay(step.prompt || step.note); } finally { cleanup?.(); }
+      return;
+    }
+
     const el = await resolveElement(step);
     if (!el) throw new Error(`Could not find element for step '${step.action}' (${step.selector || step.text || "?"})`);
     el.scrollIntoView({ block: "center", behavior: "instant" });
@@ -108,9 +144,9 @@
         el.click();
         break;
       case "fill":
+      case "type":
         if (step.sensitive) {
-          // Skip filling sensitive fields; surface a clear notice.
-          throw new Error("Step requires a sensitive value (e.g. password). Macros never store these.");
+          throw new Error("Step requires a sensitive value. Use a pause step instead.");
         }
         nativeSet(el, step.value ?? "");
         break;
@@ -120,17 +156,21 @@
           el.dispatchEvent(new Event("change", { bubbles: true }));
         }
         break;
-      case "press_enter": {
-        const ev = new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true });
+      case "press_enter":
+      case "press_key": {
+        const key = step.value || "Enter";
+        const ev = new KeyboardEvent("keydown", { key, code: key, bubbles: true });
         el.dispatchEvent(ev);
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-          // Also try form submit shortcut
+        if (key === "Enter" && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
           el.form?.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
         }
         break;
       }
       case "submit":
         if (el instanceof HTMLFormElement) el.requestSubmit?.() ?? el.submit?.();
+        break;
+      case "scroll":
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
         break;
       default:
         throw new Error(`Unknown step action: ${step.action}`);
