@@ -1088,6 +1088,21 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "research_macro",
+      description: "Research a how-to flow on the open web and build a reusable browser-automation macro that pauses for the user at any step requiring personal info. Use whenever the user asks ALICE to 'show me how to', 'walk me through', or automate a task on a third-party site she hasn't done before (open a bank account, file a tax form, set up a 401k, change DNS, submit a passport renewal). Pulls live steps from Firecrawl + an LLM planner, saves the macro to the Toolbox, and the extension runs it in the user's real browser.",
+      parameters: {
+        type: "object",
+        properties: {
+          goal: { type: "string", description: "Plain-English task description, e.g. 'open a Chase checking account'." },
+          target_url: { type: "string", description: "Optional preferred starting URL. If omitted, ALICE searches for the best official source." },
+        },
+        required: ["goal"],
+      },
+    },
+  },
 ];
 
 // HuggingFace all-MiniLM-L6-v2 — same provider used by the rest of PendragonX
