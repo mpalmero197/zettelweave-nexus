@@ -1071,11 +1071,12 @@ const tools = [
             items: {
               type: "object",
               properties: {
-                action: { type: "string", enum: ["navigate", "click", "type", "wait", "select", "scroll", "press_key", "extract"], description: "What to do." },
+                action: { type: "string", enum: ["navigate", "click", "type", "fill", "wait", "select", "scroll", "press_key", "press_enter", "submit", "pause", "extract"], description: "What to do. Use 'pause' (with a 'prompt') for any step requiring sensitive or user-specific input (SSN, password, OTP, address, payment, ID upload)." },
                 selector: { type: "string", description: "CSS selector or accessible name for click/type/select/extract." },
                 url: { type: "string", description: "For action=navigate." },
                 value: { type: "string", description: "Text to type, option to select, key to press, or label for extract." },
                 ms: { type: "number", description: "Milliseconds to wait (action=wait) or after step." },
+                prompt: { type: "string", description: "User-facing message shown when action=pause." },
                 note: { type: "string", description: "Optional human comment for this step." },
               },
               required: ["action"],
