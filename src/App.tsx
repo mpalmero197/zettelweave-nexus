@@ -261,6 +261,7 @@ const App = () => (
                   </Suspense>
                 } />
               </Routes>
+              <MacroCoach />
             </BrowserRouter>
           </DeferredShell>
         </MobileTouchHandler>
