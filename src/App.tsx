@@ -8,6 +8,7 @@ import { MobileTouchHandler } from "@/components/MobileTouchHandler";
 import { CosmicBackground } from "@/components/CosmicBackground";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
+import { MacroCoach } from "@/components/alice/MacroCoach";
 
 // Lazy load heavy UI shell components not needed for initial render
 const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
