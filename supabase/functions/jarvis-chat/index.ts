@@ -2353,6 +2353,34 @@ async function executeTool(
         if (error) return { error: error.message };
         return { ok: true, id: data.id, name: data.name, start_url: data.start_url, step_count: steps.length, note: "Saved to Toolbox → Macros. The Pendragon extension will run it on demand." };
       }
+      case "research_macro": {
+        const goal = String(args.goal || "").trim();
+        if (!goal) return { error: "goal is required" };
+        try {
+          const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/alice-research-macro`, {
+            method: "POST",
+            headers: {
+              Authorization: req.headers.get("Authorization") || "",
+              "Content-Type": "application/json",
+              apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+            },
+            body: JSON.stringify({ goal, target_url: args.target_url }),
+          });
+          const j = await r.json();
+          if (!r.ok) return { error: j?.error || `Research failed (${r.status})` };
+          return {
+            ok: true,
+            macro_id: j.macro?.id,
+            name: j.macro?.name,
+            start_url: j.macro?.start_url,
+            step_count: (j.macro?.steps || []).length,
+            sources: j.sources || [],
+            note: "Macro researched & saved. Run it from Toolbox → Macros (extension will drive the page and pause for any personal info).",
+          };
+        } catch (e: any) {
+          return { error: e?.message || String(e) };
+        }
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
