@@ -594,10 +594,14 @@ export type Database = {
           enabled: boolean
           goal: string | null
           id: string
+          last_error: string | null
+          last_error_step: number | null
           last_run_at: string | null
           last_run_status: string | null
           name: string
+          repair_count: number
           run_count: number
+          run_vars: Json
           source: string
           start_url: string
           steps: Json
@@ -612,10 +616,14 @@ export type Database = {
           enabled?: boolean
           goal?: string | null
           id?: string
+          last_error?: string | null
+          last_error_step?: number | null
           last_run_at?: string | null
           last_run_status?: string | null
           name: string
+          repair_count?: number
           run_count?: number
+          run_vars?: Json
           source?: string
           start_url: string
           steps?: Json
@@ -630,10 +638,14 @@ export type Database = {
           enabled?: boolean
           goal?: string | null
           id?: string
+          last_error?: string | null
+          last_error_step?: number | null
           last_run_at?: string | null
           last_run_status?: string | null
           name?: string
+          repair_count?: number
           run_count?: number
+          run_vars?: Json
           source?: string
           start_url?: string
           steps?: Json
