@@ -356,7 +356,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (!queued) { sendResponse({}); return; }
       delete all[tabId];
       await chrome.storage.session.set({ [RUN_QUEUE_KEY]: all });
-      sendResponse({ steps: queued.steps, runId: queued.runId });
+      sendResponse({ steps: queued.steps, runId: queued.runId, macroId: queued.macroId });
     })();
     return true;
   }
@@ -385,15 +385,68 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           ended_at: new Date().toISOString(),
         }),
       });
-      // Bump macro stats
-      if (msg.status === "succeeded" || msg.status === "failed") {
-        try {
-          const macroId = (await chrome.storage.session.get(RUN_QUEUE_KEY));
-          // No-op: stats handled on app side
-        } catch {}
+      // Mirror last_error onto the macro row so the Macros panel can show it.
+      if (msg.macroId) {
+        await fetch(`${SUPABASE_URL}/rest/v1/alice_macros?id=eq.${msg.macroId}`, {
+          method: "PATCH",
+          headers: { ...authJson(token), Prefer: "return=minimal" },
+          body: JSON.stringify({
+            last_error: msg.status === "failed" ? (msg.error || "Failed").slice(0, 500) : null,
+            last_error_step: msg.status === "failed" ? (msg.atStep || null) : null,
+            run_vars: msg.runVars || {},
+            last_run_at: new Date().toISOString(),
+          }),
+        }).catch(() => {});
       }
     })();
     return false;
+  }
+
+  // ── Repair (live DOM → corrected step via edge function) ───────────────
+  if (msg.type === "PENDRAGONX_REPAIR_STEP") {
+    (async () => {
+      try {
+        const token = await getValidToken();
+        if (!token) { sendResponse({ ok: false, error: "Not signed in" }); return; }
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/alice-repair-macro-step`, {
+          method: "POST",
+          headers: { ...authJson(token) },
+          body: JSON.stringify(msg.payload || {}),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) { sendResponse({ ok: false, error: j?.error || `HTTP ${r.status}` }); return; }
+        sendResponse({ ok: true, step: j.step });
+      } catch (e) { sendResponse({ ok: false, error: String(e?.message || e) }); }
+    })();
+    return true;
+  }
+
+  // ── Vault credential bridge: extension → PendragonX tab → in-page vault ─
+  if (msg.type === "PENDRAGONX_VAULT_REQUEST_CREDENTIAL") {
+    (async () => {
+      try {
+        const tabs = await chrome.tabs.query({ url: ["https://pendragonx.com/*", "https://*.pendragonx.com/*", "https://*.lovable.app/*"] });
+        if (!tabs.length) { sendResponse({ ok: false, error: "Open PendragonX in another tab to use the vault." }); return; }
+        let lastErr = null;
+        for (const t of tabs) {
+          const resp = await new Promise((resolve) => {
+            try {
+              chrome.tabs.sendMessage(t.id, {
+                type: "PENDRAGONX_VAULT_GET_CREDENTIAL",
+                host: msg.host || "",
+                itemTitle: msg.itemTitle || null,
+                itemId: msg.itemId || null,
+              }, (r) => resolve(r));
+              setTimeout(() => resolve(null), 9000);
+            } catch { resolve(null); }
+          });
+          if (resp && (resp.ok || resp.locked || resp.needsPick)) { sendResponse(resp); return; }
+          lastErr = resp?.error || lastErr;
+        }
+        sendResponse({ ok: false, error: lastErr || "PendragonX tab did not answer. Make sure the vault is unlocked." });
+      } catch (e) { sendResponse({ ok: false, error: String(e?.message || e) }); }
+    })();
+    return true;
   }
 
   // ── Autonomous Agent ────────────────────────────────────────────
