@@ -1,53 +1,73 @@
-# ALICE Enhancement Plan
+# ALICE Macros v2 — Vault tokens, DOM-aware repair, richer pauses
 
-A focused set of upgrades that build on what ALICE already does (chat, plans, auto-linking, page navigation, macro learning, TTS speech) and push her toward a true always-on assistant. Pick any subset.
+## Problems being fixed
+1. Macro runs fail on a step (overlay shows "✗ Failed: …").
+2. Planner emits literal strings like `{{vault.username.login}}` that get typed verbatim because the extension has no token resolver.
+3. Planner picks selectors from documentation pages, not the actual live page, so selectors miss.
+4. Pauses are dumb — no way for ALICE to ask the user a question mid-flow (e.g. "which Google account?").
 
-## 1. Voice & Conversation
-- **Voice input (wake-word free push-to-talk)**: hold-to-talk mic button in JarvisChat using the browser SpeechRecognition API (no API cost). Live transcript preview, auto-send on release.
-- **Streaming TTS**: speak ALICE's reply as it streams (chunk on sentence boundaries) instead of after completion. Toggle in settings.
-- **Voice profile picker**: let user choose voice + rate/pitch from `speechSynthesis.getVoices()`; persist on `profiles`.
-- **Barge-in**: clicking the mic or typing cancels current TTS.
+## Plan
 
-## 2. Proactive Intelligence
-- **Smart morning brief**: extend `alice-proactive-pulse` to deliver a spoken+chat brief (overdue tasks, today's calendar, writing streak, 1 suggested card to revisit). Triggered on first session of the day.
-- **Context-aware nudges**: when user lingers on a card/note > 60s, ALICE offers inline "Want me to find related cards / summarize / expand?" chips. Uses existing `useScreenContext`.
-- **Idle suggestions**: after 90s idle on Cards & Notes workspace, ALICE proposes the next likely action based on recent macros.
+### 1. Vault token resolver (extension side)
+- Define a canonical token grammar the planner must use:
+  - `{{vault.username}}` / `{{vault.password}}` / `{{vault.otp}}` → auto-match the vault item whose `url`/`domain` matches the current tab's host.
+  - `{{vault:"Item Title".username}}` → explicit by title.
+- New `extension/vault-resolver.js`, injected on every macro tab:
+  - Listens on the existing `pendragonx-vault` BroadcastChannel for `get-credential` (already used for OTP).
+  - In-page web app handler (added to `useVault`/`Vault.tsx` mount or a small global subscriber in `src/App.tsx`) decrypts requested item locally and posts back `{ username, password, otp? }`.
+- `runner.js` before each `fill`/`type`:
+  - Scans `step.value` for `{{vault…}}` tokens.
+  - Asks the resolver for the matching item by host.
+  - If 0 matches → falls through to a new "vault-pick" pause overlay listing available titles (radio buttons) so the user picks; the chosen title is cached for the rest of the run.
+  - If ≥1 match → uses it silently; substitutes the real value into `step.value` and continues with `nativeSet`.
+- `sensitive: true` no longer throws when the value is a resolvable vault token.
 
-## 3. Persistent Memory
-- **Episodic memory upgrade**: store conversation summaries + user preferences in a new `alice_memories` table with embeddings; retrieve top-k on each chat call (already partially scaffolded via auto-linking infra — reuse HuggingFace embeddings).
-- **"Remember this"/"Forget this" commands**: explicit tools ALICE can call to write/delete memories.
-- **Memory inspector**: settings page listing memories with delete buttons.
+### 2. DOM-aware repair (hybrid re-plan on failure)
+- New edge function `alice-repair-macro-step`:
+  - Inputs: `macro_id`, `step_index`, current step JSON, page snapshot (URL, title, list of `{tag, id, name, ariaLabel, placeholder, text, type, role, selector}` for visible inputs/buttons/links — capped at 80).
+  - Calls Gemini-2.5-flash with the snapshot + the original step intent; returns a single corrected step (selector + action).
+  - Persists the corrected step back into `alice_macros.steps` so future runs don't need repair.
+- `runner.js` failure path:
+  - On second failure of a non-pause step, snapshots the live DOM (≤80 candidate elements) and POSTs to `alice-repair-macro-step` via the extension's existing authed `rest()` helper.
+  - Applies the returned step, retries once, then falls back to a pause with `prompt: "I couldn't find <intent>. Please do it manually, then continue."`
 
-## 4. Skills & Macros
-- **Macro library UI**: surface learned macros from page-navigation feature as named, editable, re-runnable workflows ("Open Catalyst → new chapter → insert outline").
-- **Macro sharing**: export/import macros as JSON.
-- **Slash commands in chat**: `/run <macro>`, `/find <query>`, `/summarize`, `/card`, `/plan`.
+### 3. Smarter initial planner (`alice-research-macro`)
+- Update the system prompt to:
+  - Document the vault token grammar and **require** it for credential fields.
+  - Add new step action `ask` (`prompt`, `options[]`, `var`) — pauses and shows a chooser; selection is stored under `runVars[var]` and substitutable as `{{var.<name>}}` in later steps. Example: "Which Google account?" with the accounts ALICE detected on the page.
+  - Encourage `pause` with a `selector` (already supported) so the field is highlighted while the user types.
+- After Firecrawl research, do an optional second pass: scrape `start_url` and feed the first-page DOM summary to the planner so initial selectors match the real page.
 
-## 5. Multimodal
-- **Screenshot understanding**: paste/drop an image into chat → ALICE describes & extracts text (Gemini vision via existing gateway).
-- **Audio note transcription shortcut**: drag-drop audio → transcribe + summarize into a card.
+### 4. Runner enhancements
+- Add `ask` action handler in `runner.js`: builds an overlay with radio choices, stores result in `window.__pendragonxRunVars`.
+- Generic `{{var.X}}` substitution alongside vault tokens.
+- Element highlight stays visible during every `pause`/`ask` (already partly done).
+- Persist `current_step` to `alice_macro_runs` between steps so the Macros tab can show progress.
 
-## 6. Quality-of-Life
-- **Reply actions**: per-message buttons: Copy, Save as card, Save as note, Speak, Regenerate, Continue.
-- **Conversation pinning + search**: pin important threads; full-text search across past Jarvis conversations.
-- **Token/cost meter**: tiny indicator in chat footer showing today's ALICE usage.
-- **Error transparency**: surface 429/402 gateway errors with the "Add credits" CTA pattern.
+### 5. Toolbox Macros tab error
+- `popup.js#renderMacros` currently crashes if `steps` is null. Guard with `Array.isArray(m.steps) ? m.steps.length : 0`.
+- Surface the last `alice_macro_runs.error` under each macro card so the failure (e.g. "Step requires a sensitive value") is visible without opening DevTools.
+- Add a "Repair with ALICE" button that re-invokes `alice-repair-macro-step` against the failed step.
 
-## Suggested first slice (recommended)
-If we ship just one round, do:
-1. Voice input (push-to-talk)
-2. Streaming TTS + voice picker
-3. Per-message reply actions (Copy / Save card / Speak / Regenerate)
-4. Smart morning brief (spoken on first daily open)
+### 6. Schema
+No new tables. Add columns to `alice_macros`:
+- `run_vars jsonb default '{}'::jsonb` (last run's collected `ask` answers, for re-runs)
+- `last_error text`, `last_error_step int` (for the popup display)
 
-This gives an immediately tangible "she talks back and listens" upgrade plus one proactive moment.
+### 7. Toolbox version bump → 1.17.0, repackage zips.
 
-## Technical notes
-- Voice in/out: Web Speech APIs only — no new secrets, no cost.
-- Memory: new table `alice_memories(id, user_id, content, embedding vector(384), kind, created_at)` with RLS + GRANTs per project rules; reuse `generate-embedding` edge function.
-- Streaming TTS: chunk on `.?!` while assistant text streams in `useJarvis`, push to `aliceTts.ts` queue.
-- Macros: already captured by the toolbox; expose via new `src/components/alice/MacroLibrary.tsx` reading existing macro store.
-- No changes to auth, RLS model, or pricing tiers.
+## Files changed
+- `extension/runner.js` — vault/var substitution, `ask` action, repair-on-failure path, vault-pick overlay
+- `extension/vault-resolver.js` (new) + manifest entry
+- `extension/popup.js`, `popup.html` — null-safe rendering, last-error display, Repair button
+- `extension/manifest.json` + `public/chrome-extension/*` mirror + zips
+- `src/App.tsx` or new `src/components/alice/VaultBridge.tsx` — in-page BroadcastChannel listener that decrypts vault items on request
+- `supabase/functions/alice-research-macro/index.ts` — token grammar, `ask` action, optional live-page DOM pass
+- `supabase/functions/alice-repair-macro-step/index.ts` (new)
+- `supabase/functions/jarvis-chat/index.ts` — extend `create_macro` schema with `ask` + token docs
+- Migration: add `run_vars`, `last_error`, `last_error_step` columns to `alice_macros`
 
-## Question for you
-Want me to build the **recommended first slice** (voice in + streaming TTS + reply actions + morning brief), or pick a different combination from sections 1–6?
+## Technical notes (for reference)
+- Vault items are AES-GCM encrypted with the user's master passphrase; decryption must stay in the web app (the extension never sees the key). The BroadcastChannel pattern already used for OTP extends cleanly to `get-credential`.
+- DOM snapshot uses `IntersectionObserverEntry`-style filtering: only elements whose bounding rect is in viewport and that are interactive.
+- Repair function is rate-limited to 3 calls per macro run to cap cost.
