@@ -90,10 +90,15 @@ Given a user goal and research sources, produce a single JSON object describing 
 
 CRITICAL RULES:
 - start_url MUST be a real, verifiable URL drawn from the research (or the provided target_url). NEVER invent URLs.
-- For any step requiring the USER's personal info (name, SSN, password, address, email, payment, photo upload, identity verification, CAPTCHAs, OTP codes), emit a step with action="pause" and a short "prompt" telling the user what to enter, plus an optional "selector" that highlights the field. DO NOT use action="fill" for personal data.
+- For credential fields (username, password, OTP) when the user has a saved login for this site, emit a fill step with one of these EXACT token values — the extension's vault resolver will substitute the real value at runtime:
+    {{vault.username}} / {{vault.password}} / {{vault.otp}}        (auto-match by site host)
+    {{vault:"Item Title".username}} / .password / .otp              (explicit by saved item title)
+  NEVER hardcode invented placeholders like {{vault.username.login}} or example values.
+- For any OTHER step requiring the USER's personal info (name, SSN, address, payment, photo upload, identity verification, CAPTCHA), emit action="pause" with a short "prompt" and a "selector" that highlights the field. DO NOT use action="fill" for personal data.
+- When a screen could offer multiple paths the user must choose (e.g. "which Google account?", "personal vs business"), emit action="ask" with "prompt", "options" (string[]), and "var" (variable name). The user's choice is saved as runVars[var] and may be referenced later as {{var.<name>}}.
 - Use action="click" for buttons/links, "fill" for non-sensitive defaults, "navigate" only to change URL.
 - Prefer simple, stable CSS selectors (id, name, [aria-label], role, text). Provide "text" as a fallback for clicks.
-- Keep steps under 20. Be conservative — pause whenever in doubt.
+- Keep steps under 24. Be conservative — pause whenever in doubt.
 - Output ONLY valid JSON, no prose. Shape:
 {
   "name": "string (<= 80 chars)",
