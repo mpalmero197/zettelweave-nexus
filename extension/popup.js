@@ -375,6 +375,7 @@ function renderMacros() {
         </div>
       </div>
       <div style="font-size:10px;color:#6b7280">${steps.length} step${steps.length === 1 ? '' : 's'}${pauses ? ` · ${pauses} pause${pauses === 1 ? '' : 's'}` : ''}${m.run_count ? ` · ran ${m.run_count}×` : ''} · ${escapeHtml(m.source || 'manual')}</div>
+      ${m.last_error ? `<div style="font-size:11px;color:#ef4444;background:rgba(239,68,68,.08);padding:6px 8px;border-radius:6px">⚠ ${escapeHtml(m.last_error)}${m.last_error_step ? ` (step ${m.last_error_step})` : ''}</div>` : ''}
       ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
     </div>`;
   }).join('');
