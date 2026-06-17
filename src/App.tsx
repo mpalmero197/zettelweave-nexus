@@ -264,6 +264,7 @@ const App = () => (
                 } />
               </Routes>
               <MacroCoach />
+              <VaultBridge />
             </BrowserRouter>
           </DeferredShell>
         </MobileTouchHandler>
