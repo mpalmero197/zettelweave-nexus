@@ -347,7 +347,7 @@ function setupMacros() {
 async function loadMacros() {
   const list = document.getElementById('macros-list');
   if (!authToken) { if (list) list.innerHTML = '<div class="empty">Sign in to view macros.</div>'; return; }
-  const data = await rest(`alice_macros?select=id,name,description,start_url,target_domain,steps,source,tags,run_count,last_run_at&order=updated_at.desc&limit=50`);
+  const data = await rest(`alice_macros?select=id,name,description,start_url,target_domain,steps,source,tags,run_count,last_run_at,last_error,last_error_step&order=updated_at.desc&limit=50`);
   macrosList = Array.isArray(data) ? data : [];
   renderMacros();
 }
