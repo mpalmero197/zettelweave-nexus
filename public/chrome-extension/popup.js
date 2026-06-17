@@ -347,7 +347,7 @@ function setupMacros() {
 async function loadMacros() {
   const list = document.getElementById('macros-list');
   if (!authToken) { if (list) list.innerHTML = '<div class="empty">Sign in to view macros.</div>'; return; }
-  const data = await rest(`alice_macros?select=id,name,description,start_url,target_domain,steps,source,tags,run_count,last_run_at&order=updated_at.desc&limit=50`);
+  const data = await rest(`alice_macros?select=id,name,description,start_url,target_domain,steps,source,tags,run_count,last_run_at,last_error,last_error_step&order=updated_at.desc&limit=50`);
   macrosList = Array.isArray(data) ? data : [];
   renderMacros();
 }
@@ -375,6 +375,7 @@ function renderMacros() {
         </div>
       </div>
       <div style="font-size:10px;color:#6b7280">${steps.length} step${steps.length === 1 ? '' : 's'}${pauses ? ` · ${pauses} pause${pauses === 1 ? '' : 's'}` : ''}${m.run_count ? ` · ran ${m.run_count}×` : ''} · ${escapeHtml(m.source || 'manual')}</div>
+      ${m.last_error ? `<div style="font-size:11px;color:#ef4444;background:rgba(239,68,68,.08);padding:6px 8px;border-radius:6px">⚠ ${escapeHtml(m.last_error)}${m.last_error_step ? ` (step ${m.last_error_step})` : ''}</div>` : ''}
       ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
     </div>`;
   }).join('');

@@ -1058,7 +1058,7 @@ const tools = [
     type: "function",
     function: {
       name: "create_macro",
-      description: "Create a browser-automation macro for the Pendragon extension to replay later. Use whenever the user describes a repeatable web task ('every morning open Gmail and star unread from X', 'log into our CRM and export today's leads', 'navigate my Pixel 10 XL Pro's web console and toggle dark mode'). Steps run in order in the user's browser via the extension. Always verify the start_url is real (web_search if unsure) and never invent product/site URLs.",
+      description: "Create a browser-automation macro for the Pendragon extension to replay later. Use whenever the user describes a repeatable web task ('every morning open Gmail and star unread from X', 'log into our CRM and export today's leads', 'navigate my Pixel 10 XL Pro's web console and toggle dark mode'). Steps run in order in the user's browser via the extension. Always verify the start_url is real (web_search if unsure) and never invent product/site URLs. For saved credentials, use EXACT vault tokens: {{vault.username}}, {{vault.password}}, {{vault.otp}} (auto-match by site host) or {{vault:\"Item Title\".username}} (explicit). NEVER write literal placeholders like {{vault.username.login}} — the extension will type them verbatim.",
       parameters: {
         type: "object",
         properties: {
@@ -1071,12 +1071,14 @@ const tools = [
             items: {
               type: "object",
               properties: {
-                action: { type: "string", enum: ["navigate", "click", "type", "fill", "wait", "select", "scroll", "press_key", "press_enter", "submit", "pause", "extract"], description: "What to do. Use 'pause' (with a 'prompt') for any step requiring sensitive or user-specific input (SSN, password, OTP, address, payment, ID upload)." },
-                selector: { type: "string", description: "CSS selector or accessible name for click/type/select/extract." },
+                action: { type: "string", enum: ["navigate", "click", "type", "fill", "wait", "select", "scroll", "press_key", "press_enter", "submit", "pause", "ask", "extract"], description: "What to do. Use 'pause' (with a 'prompt') for any step requiring sensitive or user-specific input the vault can't fill (SSN, address, payment, ID upload). Use 'ask' (with 'prompt', 'options', 'var') when the user must pick between paths the page presents (which account, which plan)." },
+                selector: { type: "string", description: "CSS selector or accessible name for click/type/select/extract/pause-highlight." },
                 url: { type: "string", description: "For action=navigate." },
-                value: { type: "string", description: "Text to type, option to select, key to press, or label for extract." },
+                value: { type: "string", description: "Text to type, option to select, key to press, or vault token like {{vault.username}}." },
                 ms: { type: "number", description: "Milliseconds to wait (action=wait) or after step." },
-                prompt: { type: "string", description: "User-facing message shown when action=pause." },
+                prompt: { type: "string", description: "User-facing message shown when action=pause or action=ask." },
+                options: { type: "array", items: { type: "string" }, description: "For action=ask — choices the user picks from." },
+                var: { type: "string", description: "For action=ask — variable name to store the choice (referencable later as {{var.NAME}})." },
                 note: { type: "string", description: "Optional human comment for this step." },
               },
               required: ["action"],
