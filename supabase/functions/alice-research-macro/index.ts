@@ -20,13 +20,15 @@ const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 const MODEL = "google/gemini-2.5-flash";
 
 interface Step {
-  action: "navigate" | "click" | "fill" | "select" | "press_enter" | "submit" | "wait" | "pause";
+  action: "navigate" | "click" | "fill" | "select" | "press_enter" | "submit" | "wait" | "pause" | "ask" | "scroll";
   selector?: string;
   text?: string;
   value?: string;
   url?: string;
   ms?: number;
-  prompt?: string; // for pause
+  prompt?: string;       // for pause / ask
+  options?: string[];    // for ask: chooser options
+  var?: string;          // for ask: variable name to store the picked option
   sensitive?: boolean;
   note?: string;
 }
