@@ -176,6 +176,40 @@ export function CatalystEditor({
         'aria-multiline': 'true',
         'aria-label': 'Document editor',
       },
+      handlePaste: (_view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+              event.preventDefault();
+              const reader = new FileReader();
+              reader.onload = () => {
+                const url = String(reader.result || '');
+                if (url && editor) editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+              };
+              reader.readAsDataURL(file);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      handleDrop: (_view, event) => {
+        const files = (event as DragEvent).dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const file = Array.from(files).find((f) => f.type.startsWith('image/'));
+        if (!file) return false;
+        event.preventDefault();
+        const reader = new FileReader();
+        reader.onload = () => {
+          const url = String(reader.result || '');
+          if (url && editor) editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+        };
+        reader.readAsDataURL(file);
+        return true;
+      },
     },
   });
 
