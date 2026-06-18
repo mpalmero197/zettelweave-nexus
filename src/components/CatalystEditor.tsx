@@ -57,7 +57,9 @@ import {
   Table as TableIcon,
   Palette,
   Unlink,
+  ImagePlus,
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface CatalystEditorProps {
   content: string;
