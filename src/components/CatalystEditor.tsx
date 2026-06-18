@@ -244,6 +244,32 @@ export function CatalystEditor({
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }, [editor]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!editor) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Not an image', description: 'Please pick an image file.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast({ title: 'Image too large', description: 'Max 8 MB per image.', variant: 'destructive' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result || '');
+      if (url) editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+    };
+    reader.readAsDataURL(file);
+  }, [editor]);
+
+  const insertImageFromUrl = useCallback(() => {
+    if (!editor) return;
+    const url = window.prompt('Image URL');
+    if (!url) return;
+    editor.chain().focus().setImage({ src: url }).run();
+  }, [editor]);
+
   if (!editor) return null;
 
   const layoutClass =
