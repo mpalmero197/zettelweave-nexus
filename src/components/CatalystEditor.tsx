@@ -485,7 +485,7 @@ export function CatalystEditor({
 
         <Separator orientation="vertical" className="mx-1 h-6" />
 
-        {/* Table & HR */}
+        {/* Table & HR & Image */}
         <div role="group" aria-label="Insert">
           <Toggle size="sm" pressed={false} onPressedChange={insertTable} aria-label="Insert table">
             <TableIcon className="h-4 w-4" />
@@ -493,7 +493,40 @@ export function CatalystEditor({
           <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().setHorizontalRule().run()} aria-label="Horizontal rule">
             <Minus className="h-4 w-4" />
           </Toggle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Toggle size="sm" pressed={false} aria-label="Insert image">
+                <ImagePlus className="h-4 w-4" />
+              </Toggle>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2 flex flex-col gap-1" align="start">
+              <button
+                className="text-xs px-2 py-1.5 rounded hover:bg-muted text-left"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Upload from device
+              </button>
+              <button
+                className="text-xs px-2 py-1.5 rounded hover:bg-muted text-left"
+                onClick={insertImageFromUrl}
+              >
+                Insert from URL…
+              </button>
+            </PopoverContent>
+          </Popover>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImageUpload(f);
+              e.currentTarget.value = '';
+            }}
+          />
         </div>
+
 
         {/* Spacer */}
         <div className="flex-1" />
