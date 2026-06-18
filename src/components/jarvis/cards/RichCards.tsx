@@ -15,6 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { WeatherCard } from "./WeatherCard";
 
+export type DocPickerItem = { id: string; title: string; content_type: "note" | "card" | "catalyst_document"; snippet?: string; updated_at?: string };
+
 export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
   | { type: "map"; lat: number; lng: number; label?: string; zoom?: number }
@@ -24,7 +26,8 @@ export type AliceCard =
   | { type: "spreadsheet"; title?: string; headers: string[]; rows: (string | number)[][]; sourceUrl?: string }
   | { type: "link"; url: string; title: string; description?: string; image?: string; favicon?: string; domain?: string }
   | { type: "quote"; text: string; author?: string; source?: string; sourceUrl?: string }
-  | { type: "file"; url: string; name: string; mime?: string; size?: number };
+  | { type: "file"; url: string; name: string; mime?: string; size?: number }
+  | { type: "doc_picker"; prompt?: string; action?: "combine" | "edit" | "summarize"; items: DocPickerItem[] };
 
 const cardMotion = {
   initial: { opacity: 0, y: 8 },
