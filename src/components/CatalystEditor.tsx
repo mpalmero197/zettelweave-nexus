@@ -176,7 +176,7 @@ export function CatalystEditor({
         'aria-multiline': 'true',
         'aria-label': 'Document editor',
       },
-      handlePaste: (_view, event) => {
+      handlePaste: (view, event) => {
         const items = event.clipboardData?.items;
         if (!items) return false;
         for (const item of Array.from(items)) {
@@ -187,7 +187,9 @@ export function CatalystEditor({
               const reader = new FileReader();
               reader.onload = () => {
                 const url = String(reader.result || '');
-                if (url && editor) editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+                if (!url) return;
+                const node = view.state.schema.nodes.image?.create({ src: url, alt: file.name });
+                if (node) view.dispatch(view.state.tr.replaceSelectionWith(node));
               };
               reader.readAsDataURL(file);
               return true;
@@ -196,7 +198,7 @@ export function CatalystEditor({
         }
         return false;
       },
-      handleDrop: (_view, event) => {
+      handleDrop: (view, event) => {
         const files = (event as DragEvent).dataTransfer?.files;
         if (!files || files.length === 0) return false;
         const file = Array.from(files).find((f) => f.type.startsWith('image/'));
@@ -205,7 +207,9 @@ export function CatalystEditor({
         const reader = new FileReader();
         reader.onload = () => {
           const url = String(reader.result || '');
-          if (url && editor) editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+          if (!url) return;
+          const node = view.state.schema.nodes.image?.create({ src: url, alt: file.name });
+          if (node) view.dispatch(view.state.tr.replaceSelectionWith(node));
         };
         reader.readAsDataURL(file);
         return true;
