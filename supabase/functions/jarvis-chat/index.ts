@@ -227,6 +227,7 @@ When your reply contains web results, files, locations, videos, images, weather,
 [[ALICE_CARD type=spreadsheet]]{"title":"…","headers":["A","B"],"rows":[["x",1]]}[[/ALICE_CARD]]
 [[ALICE_CARD type=quote]]{"text":"…","author":"…","source":"…","sourceUrl":"https://…"}[[/ALICE_CARD]]
 [[ALICE_CARD type=file]]{"url":"https://…","name":"…","mime":"application/pdf"}[[/ALICE_CARD]]
+[[ALICE_CARD type=doc_picker]]{"prompt":"Which documents should I combine?","action":"combine","items":[{"id":"<uuid>","title":"…","content_type":"catalyst_document","snippet":"…"}]}[[/ALICE_CARD]]
 
 Rules:
 - After get_weather → ALWAYS emit a [[ALICE_CARD type=weather]] from the returned JSON, then 1 short sentence. Do NOT just describe weather in prose.
