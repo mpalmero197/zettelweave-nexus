@@ -57,7 +57,9 @@ import {
   Table as TableIcon,
   Palette,
   Unlink,
+  ImagePlus,
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface CatalystEditorProps {
   content: string;
@@ -174,6 +176,44 @@ export function CatalystEditor({
         'aria-multiline': 'true',
         'aria-label': 'Document editor',
       },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+              event.preventDefault();
+              const reader = new FileReader();
+              reader.onload = () => {
+                const url = String(reader.result || '');
+                if (!url) return;
+                const node = view.state.schema.nodes.image?.create({ src: url, alt: file.name });
+                if (node) view.dispatch(view.state.tr.replaceSelectionWith(node));
+              };
+              reader.readAsDataURL(file);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      handleDrop: (view, event) => {
+        const files = (event as DragEvent).dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const file = Array.from(files).find((f) => f.type.startsWith('image/'));
+        if (!file) return false;
+        event.preventDefault();
+        const reader = new FileReader();
+        reader.onload = () => {
+          const url = String(reader.result || '');
+          if (!url) return;
+          const node = view.state.schema.nodes.image?.create({ src: url, alt: file.name });
+          if (node) view.dispatch(view.state.tr.replaceSelectionWith(node));
+        };
+        reader.readAsDataURL(file);
+        return true;
+      },
     },
   });
 
@@ -240,6 +280,32 @@ export function CatalystEditor({
   const insertTable = useCallback(() => {
     if (!editor) return;
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  }, [editor]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!editor) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Not an image', description: 'Please pick an image file.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast({ title: 'Image too large', description: 'Max 8 MB per image.', variant: 'destructive' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result || '');
+      if (url) editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+    };
+    reader.readAsDataURL(file);
+  }, [editor]);
+
+  const insertImageFromUrl = useCallback(() => {
+    if (!editor) return;
+    const url = window.prompt('Image URL');
+    if (!url) return;
+    editor.chain().focus().setImage({ src: url }).run();
   }, [editor]);
 
   if (!editor) return null;
@@ -457,7 +523,7 @@ export function CatalystEditor({
 
         <Separator orientation="vertical" className="mx-1 h-6" />
 
-        {/* Table & HR */}
+        {/* Table & HR & Image */}
         <div role="group" aria-label="Insert">
           <Toggle size="sm" pressed={false} onPressedChange={insertTable} aria-label="Insert table">
             <TableIcon className="h-4 w-4" />
@@ -465,7 +531,40 @@ export function CatalystEditor({
           <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().setHorizontalRule().run()} aria-label="Horizontal rule">
             <Minus className="h-4 w-4" />
           </Toggle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Toggle size="sm" pressed={false} aria-label="Insert image">
+                <ImagePlus className="h-4 w-4" />
+              </Toggle>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2 flex flex-col gap-1" align="start">
+              <button
+                className="text-xs px-2 py-1.5 rounded hover:bg-muted text-left"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Upload from device
+              </button>
+              <button
+                className="text-xs px-2 py-1.5 rounded hover:bg-muted text-left"
+                onClick={insertImageFromUrl}
+              >
+                Insert from URL…
+              </button>
+            </PopoverContent>
+          </Popover>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImageUpload(f);
+              e.currentTarget.value = '';
+            }}
+          />
         </div>
+
 
         {/* Spacer */}
         <div className="flex-1" />

@@ -15,6 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { WeatherCard } from "./WeatherCard";
 
+export type DocPickerItem = { id: string; title: string; content_type: "note" | "card" | "catalyst_document"; snippet?: string; updated_at?: string };
+
 export type AliceCard =
   | { type: "image"; url: string; alt?: string; caption?: string }
   | { type: "map"; lat: number; lng: number; label?: string; zoom?: number }
@@ -24,7 +26,8 @@ export type AliceCard =
   | { type: "spreadsheet"; title?: string; headers: string[]; rows: (string | number)[][]; sourceUrl?: string }
   | { type: "link"; url: string; title: string; description?: string; image?: string; favicon?: string; domain?: string }
   | { type: "quote"; text: string; author?: string; source?: string; sourceUrl?: string }
-  | { type: "file"; url: string; name: string; mime?: string; size?: number };
+  | { type: "file"; url: string; name: string; mime?: string; size?: number }
+  | { type: "doc_picker"; prompt?: string; action?: "combine" | "edit" | "summarize"; items: DocPickerItem[] };
 
 const cardMotion = {
   initial: { opacity: 0, y: 8 },
@@ -324,6 +327,48 @@ function FileCard({ card }: { card: Extract<AliceCard, { type: "file" }> }) {
   );
 }
 
+function DocPickerCard({ card }: { card: Extract<AliceCard, { type: "doc_picker" }> }) {
+  const [selected, setSelected] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(card.items.map((i) => [i.id, true]))
+  );
+  const action = card.action || "combine";
+  const toggle = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const chosen = card.items.filter((i) => selected[i.id]);
+  const submit = () => {
+    if (chosen.length === 0) return;
+    const list = chosen.map((i) => `- ${i.title} (${i.content_type}:${i.id})`).join("\n");
+    const verb = action === "combine" ? "Combine" : action === "summarize" ? "Summarize" : "Edit";
+    const text = `${verb} these documents:\n${list}`;
+    window.dispatchEvent(new CustomEvent("alice:doc-picker-submit", { detail: { text } }));
+  };
+  return (
+    <motion.div {...cardMotion} className="rounded-lg border border-border bg-card p-3 max-w-md">
+      <div className="text-xs text-muted-foreground mb-2">{card.prompt || `Pick documents to ${action}:`}</div>
+      <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+        {card.items.map((i) => (
+          <label key={i.id} className="flex items-start gap-2 text-xs p-1.5 rounded hover:bg-muted cursor-pointer">
+            <input type="checkbox" className="mt-0.5" checked={!!selected[i.id]} onChange={() => toggle(i.id)} />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium truncate">{i.title}</div>
+              {i.snippet && <div className="text-muted-foreground line-clamp-2">{i.snippet}</div>}
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70">{i.content_type.replace("_", " ")}</div>
+            </div>
+          </label>
+        ))}
+      </div>
+      <div className="flex justify-end gap-2 mt-2">
+        <button
+          onClick={submit}
+          disabled={chosen.length === 0}
+          className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90"
+        >
+          {action === "combine" ? "Combine selected" : action === "summarize" ? "Summarize selected" : "Edit selected"} ({chosen.length})
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 export function AliceCardRenderer({ card }: { card: AliceCard }) {
   switch (card.type) {
     case "image": return <ImageCard card={card} />;
@@ -335,6 +380,7 @@ export function AliceCardRenderer({ card }: { card: AliceCard }) {
     case "link": return <LinkCard card={card} />;
     case "quote": return <QuoteCard card={card} />;
     case "file": return <FileCard card={card} />;
+    case "doc_picker": return <DocPickerCard card={card} />;
     default: return null;
   }
 }
