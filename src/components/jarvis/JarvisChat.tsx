@@ -171,6 +171,16 @@ export function JarvisChat({ compact = false }: Props) {
     return () => window.removeEventListener("alice-focus-input", onFocus);
   }, []);
 
+  // Listen for doc-picker submissions from rich cards
+  useEffect(() => {
+    const onPick = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { text?: string } | undefined;
+      if (detail?.text) sendMessage(detail.text);
+    };
+    window.addEventListener("alice:doc-picker-submit", onPick);
+    return () => window.removeEventListener("alice:doc-picker-submit", onPick);
+  }, [sendMessage]);
+
   // Scholar handoff: if another page parked a prompt in sessionStorage,
   // pre-fill the composer and (optionally) auto-send it. Runs once per mount.
   const autoPromptHandledRef = useRef(false);
