@@ -1,73 +1,72 @@
-# ALICE Macros v2 — Vault tokens, DOM-aware repair, richer pauses
+# Macros v3 — Routine Builder
 
-## Problems being fixed
-1. Macro runs fail on a step (overlay shows "✗ Failed: …").
-2. Planner emits literal strings like `{{vault.username.login}}` that get typed verbatim because the extension has no token resolver.
-3. Planner picks selectors from documentation pages, not the actual live page, so selectors miss.
-4. Pauses are dumb — no way for ALICE to ask the user a question mid-flow (e.g. "which Google account?").
+Add a guided, form-driven macro builder modeled on Google Routines, alongside the existing ALICE-generated macros. Users assemble a macro from labeled dropdowns instead of writing prompts.
 
-## Plan
+## UX — Routine Builder modal
 
-### 1. Vault token resolver (extension side)
-- Define a canonical token grammar the planner must use:
-  - `{{vault.username}}` / `{{vault.password}}` / `{{vault.otp}}` → auto-match the vault item whose `url`/`domain` matches the current tab's host.
-  - `{{vault:"Item Title".username}}` → explicit by title.
-- New `extension/vault-resolver.js`, injected on every macro tab:
-  - Listens on the existing `pendragonx-vault` BroadcastChannel for `get-credential` (already used for OTP).
-  - In-page web app handler (added to `useVault`/`Vault.tsx` mount or a small global subscriber in `src/App.tsx`) decrypts requested item locally and posts back `{ username, password, otp? }`.
-- `runner.js` before each `fill`/`type`:
-  - Scans `step.value` for `{{vault…}}` tokens.
-  - Asks the resolver for the matching item by host.
-  - If 0 matches → falls through to a new "vault-pick" pause overlay listing available titles (radio buttons) so the user picks; the chosen title is cached for the rest of the run.
-  - If ≥1 match → uses it silently; substitutes the real value into `step.value` and continues with `nativeSet`.
-- `sensitive: true` no longer throws when the value is a resolvable vault token.
+Opened from the Macros panel (web app + extension popup) via "+ New Routine". Single scrollable form with these sections, each a labeled dropdown plus an optional "Custom…" entry that reveals a text/JSON field:
 
-### 2. DOM-aware repair (hybrid re-plan on failure)
-- New edge function `alice-repair-macro-step`:
-  - Inputs: `macro_id`, `step_index`, current step JSON, page snapshot (URL, title, list of `{tag, id, name, ariaLabel, placeholder, text, type, role, selector}` for visible inputs/buttons/links — capped at 80).
-  - Calls Gemini-2.5-flash with the snapshot + the original step intent; returns a single corrected step (selector + action).
-  - Persists the corrected step back into `alice_macros.steps` so future runs don't need repair.
-- `runner.js` failure path:
-  - On second failure of a non-pause step, snapshots the live DOM (≤80 candidate elements) and POSTs to `alice-repair-macro-step` via the extension's existing authed `rest()` helper.
-  - Applies the returned step, retries once, then falls back to a pause with `prompt: "I couldn't find <intent>. Please do it manually, then continue."`
+1. **Name the routine** — text input.
+2. **What starts it? (Trigger)** — dropdown:
+   - Manual ("Run from menu")
+   - On schedule (cron / time-of-day picker)
+   - When I visit a site (host pattern)
+   - When ALICE detects a topic (keyword list)
+   - When a workflow fires (pick from `alice_workflows`)
+   - Hotkey (key combo capture)
+   - Custom…
+3. **What is the action? (Steps)** — repeatable rows; each row is a dropdown of pre-built abilities:
+   - Open URL
+   - Log in with vault credential (host autodetected)
+   - Fill form field (selector + value, value can be `{{vault.*}}` or `{{var.*}}`)
+   - Click element
+   - Wait for element / wait N seconds
+   - Ask the user (prompt + options → stored in `run_vars`)
+   - Extract text → save to Zettel card / notebook
+   - Summarize current page → save to notebook
+   - Send to ALICE chat (prompt template)
+   - Run another macro (chain)
+   - Custom step (raw JSON, advanced)
+   - "Let ALICE plan the rest" (hands off to `alice-research-macro` from this point)
+4. **Notification?** — dropdown: None / Toast on completion / Push notification / Email. Custom message field.
+5. **Reminder?** — dropdown: None / One-time at… / Recurring (reuses existing `ReminderPicker` presets: 15m, 1h, 1d, 1w, custom).
+6. **Run mode** — Foreground (show overlay) / Background (silent, extension only).
+7. **Who can run it** — Just me / Shared with collaborators (future-proof toggle, default Just me).
 
-### 3. Smarter initial planner (`alice-research-macro`)
-- Update the system prompt to:
-  - Document the vault token grammar and **require** it for credential fields.
-  - Add new step action `ask` (`prompt`, `options[]`, `var`) — pauses and shows a chooser; selection is stored under `runVars[var]` and substitutable as `{{var.<name>}}` in later steps. Example: "Which Google account?" with the accounts ALICE detected on the page.
-  - Encourage `pause` with a `selector` (already supported) so the field is highlighted while the user types.
-- After Firecrawl research, do an optional second pass: scrape `start_url` and feed the first-page DOM summary to the planner so initial selectors match the real page.
+Save writes a normalized `steps[]` array into `alice_macros` (existing table) so the same runner executes both routine-builder macros and ALICE-generated ones. Trigger/notification/reminder metadata go into new columns.
 
-### 4. Runner enhancements
-- Add `ask` action handler in `runner.js`: builds an overlay with radio choices, stores result in `window.__pendragonxRunVars`.
-- Generic `{{var.X}}` substitution alongside vault tokens.
-- Element highlight stays visible during every `pause`/`ask` (already partly done).
-- Persist `current_step` to `alice_macro_runs` between steps so the Macros tab can show progress.
+## Data model
 
-### 5. Toolbox Macros tab error
-- `popup.js#renderMacros` currently crashes if `steps` is null. Guard with `Array.isArray(m.steps) ? m.steps.length : 0`.
-- Surface the last `alice_macro_runs.error` under each macro card so the failure (e.g. "Step requires a sensitive value") is visible without opening DevTools.
-- Add a "Repair with ALICE" button that re-invokes `alice-repair-macro-step` against the failed step.
+Migration adds to `alice_macros`:
+- `trigger jsonb default '{"type":"manual"}'::jsonb` — `{type, schedule?, host?, keywords?, workflow_id?, hotkey?}`
+- `notification jsonb default '{"type":"none"}'::jsonb` — `{type, message?}`
+- `reminder_offsets int[] default '{}'::int[]` — minutes-before list, reusing reminder pipeline
+- `run_mode text default 'foreground'`
+- `source text default 'alice'` — `'alice' | 'routine_builder'` (lets the UI badge them differently)
 
-### 6. Schema
-No new tables. Add columns to `alice_macros`:
-- `run_vars jsonb default '{}'::jsonb` (last run's collected `ask` answers, for re-runs)
-- `last_error text`, `last_error_step int` (for the popup display)
+Routine reminders are inserted into existing `reminders` table on save via `useNotifications.addReminders` so the existing `send-reminders` cron handles them — no new scheduler.
 
-### 7. Toolbox version bump → 1.17.0, repackage zips.
+Site-visit and hotkey triggers are handled by the extension (`background.js` listens to `chrome.tabs.onUpdated` + `chrome.commands`); schedule triggers are handled by the existing `run-scheduled-triggers` edge function (extend it to read `alice_macros.trigger` when `type='schedule'`).
 
-## Files changed
-- `extension/runner.js` — vault/var substitution, `ask` action, repair-on-failure path, vault-pick overlay
-- `extension/vault-resolver.js` (new) + manifest entry
-- `extension/popup.js`, `popup.html` — null-safe rendering, last-error display, Repair button
-- `extension/manifest.json` + `public/chrome-extension/*` mirror + zips
-- `src/App.tsx` or new `src/components/alice/VaultBridge.tsx` — in-page BroadcastChannel listener that decrypts vault items on request
-- `supabase/functions/alice-research-macro/index.ts` — token grammar, `ask` action, optional live-page DOM pass
-- `supabase/functions/alice-repair-macro-step/index.ts` (new)
-- `supabase/functions/jarvis-chat/index.ts` — extend `create_macro` schema with `ask` + token docs
-- Migration: add `run_vars`, `last_error`, `last_error_step` columns to `alice_macros`
+## Files
 
-## Technical notes (for reference)
-- Vault items are AES-GCM encrypted with the user's master passphrase; decryption must stay in the web app (the extension never sees the key). The BroadcastChannel pattern already used for OTP extends cleanly to `get-credential`.
-- DOM snapshot uses `IntersectionObserverEntry`-style filtering: only elements whose bounding rect is in viewport and that are interactive.
-- Repair function is rate-limited to 3 calls per macro run to cap cost.
+**New**
+- `src/components/alice/RoutineBuilder.tsx` — the modal form described above. Uses existing `Select`, `Input`, `Button`, `Popover`, `ReminderPicker`.
+- `src/components/alice/RoutineStepRow.tsx` — single step row with ability dropdown + dynamic fields.
+- `src/lib/macros/abilities.ts` — registry of pre-built abilities (label, icon, fields schema, → normalized step JSON).
+- `src/lib/macros/triggers.ts` — trigger type registry (label, fields, → normalized trigger JSON).
+- `supabase/migrations/<ts>_macros_routine_builder.sql` — column additions.
+
+**Modified**
+- `src/components/alice/MacroCoach.tsx` — add "+ New Routine" button that opens `RoutineBuilder`; list shows a "Routine" badge when `source='routine_builder'`.
+- `extension/popup.js` + `popup.html` — same "+ New Routine" entry point; reuses ability registry via a small mirrored JS module (`extension/abilities.js`) so popup and web app stay in sync. Bump toolbox to 1.18.0 and repackage both zips.
+- `extension/background.js` — handle `tabs.onUpdated` host-match and `chrome.commands` hotkey triggers; run matching macros via existing runner.
+- `extension/runner.js` — no logic change; already supports the step actions we expose. Add small shims for new ability types that map 1:1 to existing actions (`open_url` → `navigate`, `login_with_vault` → `fill` pair with `{{vault.*}}`).
+- `supabase/functions/run-scheduled-triggers/index.ts` — also scan `alice_macros` for `trigger.type='schedule'` and enqueue runs.
+- `supabase/functions/jarvis-chat/index.ts` — extend `create_macro` tool schema with optional `trigger`, `notification`, `reminder_offsets` so ALICE can also produce routine-style macros when asked.
+
+## Technical notes
+- The ability registry is the single source of truth: each entry defines `{ id, label, icon, fields: [{name,type,placeholder,optional}], toStep(values) }`. Adding a new pre-built ability is one entry; no UI changes.
+- "Custom…" in every dropdown surfaces a raw JSON editor so power users keep full control.
+- Routine reminders are decoupled from macro execution: the macro can run at trigger time, and reminders are independent rows in `reminders` pointing at the macro by `item_type='alice_macro'`, `item_id=macro.id`.
+- Backwards compatible: existing ALICE-created macros keep working (defaults satisfy new columns).
