@@ -88,8 +88,12 @@ export function RoutineBuilder() {
       const normalizedSteps = steps.map((s) => ABILITY_BY_ID[s.abilityId].toStep(s.values));
       const notification = notifyType === "none" ? { type: "none" } : { type: notifyType, message: notifyMessage || undefined };
 
-      const inferredHost = (trigger as { host?: string }).host
-        || (() => { try { return new URL(startUrl).hostname; } catch { return null; } })();
+      const triggerHost = (trigger as { host?: string }).host;
+      const resolvedStartUrl = startUrl.trim() || (triggerHost ? `https://${triggerHost}` : "about:blank");
+      let inferredHost: string | null = triggerHost || null;
+      if (!inferredHost) {
+        try { inferredHost = new URL(resolvedStartUrl).hostname; } catch { inferredHost = null; }
+      }
 
       const { data, error } = await supabase
         .from("alice_macros")
@@ -97,11 +101,11 @@ export function RoutineBuilder() {
           user_id: user.id,
           name: name.trim(),
           description: description.trim() || null,
-          start_url: startUrl.trim() || (trigger as { host?: string }).host ? `https://${(trigger as { host?: string }).host}` : startUrl.trim(),
+          start_url: resolvedStartUrl,
           target_domain: inferredHost,
-          steps: normalizedSteps,
-          trigger,
-          notification,
+          steps: normalizedSteps as unknown as never,
+          trigger: trigger as unknown as never,
+          notification: notification as unknown as never,
           reminder_offsets: reminderOffsets,
           run_mode: runMode,
           source: "routine_builder",
