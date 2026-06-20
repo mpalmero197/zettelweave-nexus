@@ -10,6 +10,7 @@ import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
 import { MacroCoach } from "@/components/alice/MacroCoach";
 import { VaultBridge } from "@/components/alice/VaultBridge";
+import { RoutineBuilder } from "@/components/alice/RoutineBuilder";
 
 // Lazy load heavy UI shell components not needed for initial render
 const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
@@ -265,6 +266,7 @@ const App = () => (
               </Routes>
               <MacroCoach />
               <VaultBridge />
+              <RoutineBuilder />
             </BrowserRouter>
           </DeferredShell>
         </MobileTouchHandler>
