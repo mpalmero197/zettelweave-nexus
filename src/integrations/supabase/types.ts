@@ -599,14 +599,18 @@ export type Database = {
           last_run_at: string | null
           last_run_status: string | null
           name: string
+          notification: Json
+          reminder_offsets: number[]
           repair_count: number
           run_count: number
+          run_mode: string
           run_vars: Json
           source: string
           start_url: string
           steps: Json
           tags: string[]
           target_domain: string | null
+          trigger: Json
           updated_at: string
           user_id: string
         }
@@ -621,14 +625,18 @@ export type Database = {
           last_run_at?: string | null
           last_run_status?: string | null
           name: string
+          notification?: Json
+          reminder_offsets?: number[]
           repair_count?: number
           run_count?: number
+          run_mode?: string
           run_vars?: Json
           source?: string
           start_url: string
           steps?: Json
           tags?: string[]
           target_domain?: string | null
+          trigger?: Json
           updated_at?: string
           user_id: string
         }
@@ -643,14 +651,18 @@ export type Database = {
           last_run_at?: string | null
           last_run_status?: string | null
           name?: string
+          notification?: Json
+          reminder_offsets?: number[]
           repair_count?: number
           run_count?: number
+          run_mode?: string
           run_vars?: Json
           source?: string
           start_url?: string
           steps?: Json
           tags?: string[]
           target_domain?: string | null
+          trigger?: Json
           updated_at?: string
           user_id?: string
         }
