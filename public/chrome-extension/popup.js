@@ -342,6 +342,9 @@ function setupTabs() {
 let macrosList = [];
 function setupMacros() {
   document.getElementById('macro-research-btn')?.addEventListener('click', researchMacro);
+  document.getElementById('macro-routine-btn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://pendragonx.com/?routine=builder' });
+  });
 }
 
 async function loadMacros() {
