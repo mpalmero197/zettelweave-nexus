@@ -265,12 +265,46 @@ export default function Admin() {
               title="Export & Backup"
               description="Download your complete site codebase with full deployment instructions"
               actions={
-                <Button onClick={handleExportCodebase} disabled={isExporting} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  {isExporting ? 'Exporting...' : 'Export Site'}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={handleExportCodebase} disabled={isExporting} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Site'}
+                  </Button>
+                  <Button
+                    onClick={handleExportPlayPackage}
+                    disabled={isExportingPlay}
+                    variant="secondary"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExportingPlay ? 'Building...' : 'Download Play Package'}
+                  </Button>
+                </div>
               }
             />
+
+            {/* Play package progress */}
+            {isExportingPlay && (
+              <Card className="border-primary/20">
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{playStage}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{playProgress}%</span>
+                  </div>
+                  <Progress value={playProgress} className="h-2" />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Play package info */}
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Google Play Store Package</CardTitle>
+                <CardDescription>
+                  Everything you need to build and submit PendragonX to the Play Store — Capacitor config, AndroidManifest, signing scripts, listing copy, data safety answers, content rating, and screenshot specs.
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
             {/* Progress bar */}
             {isExporting && (
