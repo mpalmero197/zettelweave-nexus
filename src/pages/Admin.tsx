@@ -28,6 +28,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Shield, AlertTriangle, Download, Cookie, Wrench, Menu, Search, RefreshCw, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase, type ExportResult } from '@/utils/codebaseExport';
+import { exportPlayPackage } from '@/utils/playPackageExport';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIsMobile } from '@/hooks/use-mobile';
