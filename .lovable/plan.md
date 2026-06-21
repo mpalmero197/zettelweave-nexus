@@ -1,72 +1,70 @@
-# Macros v3 — Routine Builder
+# Google Play Store Launch — Native Android Wrapper
 
-Add a guided, form-driven macro builder modeled on Google Routines, alongside the existing ALICE-generated macros. Users assemble a macro from labeled dropdowns instead of writing prompts.
+To publish PendragonX on the Google Play Store, the app must be a real native Android binary (an `.aab` Android App Bundle). A PWA alone cannot be uploaded to Play. The standard, Lovable-supported path is **Capacitor**, which wraps the existing React/Vite app in a native Android shell.
 
-## UX — Routine Builder modal
+## What gets added
 
-Opened from the Macros panel (web app + extension popup) via "+ New Routine". Single scrollable form with these sections, each a labeled dropdown plus an optional "Custom…" entry that reveals a text/JSON field:
+### 1. NPM packages (the "specific set" Play requires indirectly)
 
-1. **Name the routine** — text input.
-2. **What starts it? (Trigger)** — dropdown:
-   - Manual ("Run from menu")
-   - On schedule (cron / time-of-day picker)
-   - When I visit a site (host pattern)
-   - When ALICE detects a topic (keyword list)
-   - When a workflow fires (pick from `alice_workflows`)
-   - Hotkey (key combo capture)
-   - Custom…
-3. **What is the action? (Steps)** — repeatable rows; each row is a dropdown of pre-built abilities:
-   - Open URL
-   - Log in with vault credential (host autodetected)
-   - Fill form field (selector + value, value can be `{{vault.*}}` or `{{var.*}}`)
-   - Click element
-   - Wait for element / wait N seconds
-   - Ask the user (prompt + options → stored in `run_vars`)
-   - Extract text → save to Zettel card / notebook
-   - Summarize current page → save to notebook
-   - Send to ALICE chat (prompt template)
-   - Run another macro (chain)
-   - Custom step (raw JSON, advanced)
-   - "Let ALICE plan the rest" (hands off to `alice-research-macro` from this point)
-4. **Notification?** — dropdown: None / Toast on completion / Push notification / Email. Custom message field.
-5. **Reminder?** — dropdown: None / One-time at… / Recurring (reuses existing `ReminderPicker` presets: 15m, 1h, 1d, 1w, custom).
-6. **Run mode** — Foreground (show overlay) / Background (silent, extension only).
-7. **Who can run it** — Just me / Shared with collaborators (future-proof toggle, default Just me).
+Core wrapper:
+- `@capacitor/core`
+- `@capacitor/cli` (dev)
+- `@capacitor/android`
 
-Save writes a normalized `steps[]` array into `alice_macros` (existing table) so the same runner executes both routine-builder macros and ALICE-generated ones. Trigger/notification/reminder metadata go into new columns.
+Plugins needed to satisfy Play policies and match features you already use in-app:
+- `@capacitor/app` — back-button + lifecycle (required for proper Android UX)
+- `@capacitor/splash-screen` — Play requires a branded splash
+- `@capacitor/status-bar` — theme the status bar to match the dark canvas
+- `@capacitor/preferences` — native key/value storage
+- `@capacitor/network` — used by your offline mode
+- `@capacitor/share` — share sheet (used by export/share flows)
+- `@capacitor/filesystem` — needed for downloads/exports on Android
+- `@capacitor/browser` — in-app browser for OAuth + external links (Play prefers Custom Tabs over WebView for OAuth)
+- `@capacitor/push-notifications` — your engagement nudges already use web push; this is the Android equivalent via FCM
+- `@capacitor/local-notifications` — reminders/routines
+- `@capacitor/clipboard` — copy buttons in chat/cards
+- `@capacitor/haptics` — small UX polish, expected on Android
+- `@capacitor/device` — needed for crash/error reporting metadata
+- `@capacitor/keyboard` — fix viewport jumps on mobile inputs
 
-## Data model
+### 2. Capacitor config (`capacitor.config.ts`)
+- `appId`: `app.lovable.4eb34d34fd9d491db4fe83f99b554cfb`
+- `appName`: `pendragonx`
+- Dev `server.url` pointing at the Lovable sandbox for hot reload (commented note that it must be removed before producing the release `.aab`)
+- Splash + status bar themed to the deep ink canvas (`#0A0A14`)
 
-Migration adds to `alice_macros`:
-- `trigger jsonb default '{"type":"manual"}'::jsonb` — `{type, schedule?, host?, keywords?, workflow_id?, hotkey?}`
-- `notification jsonb default '{"type":"none"}'::jsonb` — `{type, message?}`
-- `reminder_offsets int[] default '{}'::int[]` — minutes-before list, reusing reminder pipeline
-- `run_mode text default 'foreground'`
-- `source text default 'alice'` — `'alice' | 'routine_builder'` (lets the UI badge them differently)
+### 3. Android project scaffolding
+- Run `npx cap add android` (user runs locally — sandbox can't)
+- `android/app/src/main/AndroidManifest.xml` permissions matching the plugins above (INTERNET, POST_NOTIFICATIONS, VIBRATE, ACCESS_NETWORK_STATE)
+- App icon + adaptive icon + splash assets generated from the existing PendragonX iridescent orb
 
-Routine reminders are inserted into existing `reminders` table on save via `useNotifications.addReminders` so the existing `send-reminders` cron handles them — no new scheduler.
+### 4. Play Console requirements doc (`PLAY_STORE_LAUNCH.md`)
+Step-by-step for the user covering what only they can do:
+- Create Play Console account ($25 one-time)
+- Generate upload keystore + signing
+- Privacy policy URL (already at `/privacy-policy`)
+- Data safety form answers (matches your existing privacy memory)
+- Content rating questionnaire
+- Screenshots + feature graphic spec
+- How to run `npm run build && npx cap sync android && cd android && ./gradlew bundleRelease` to produce the uploadable `.aab`
 
-Site-visit and hotkey triggers are handled by the extension (`background.js` listens to `chrome.tabs.onUpdated` + `chrome.commands`); schedule triggers are handled by the existing `run-scheduled-triggers` edge function (extend it to read `alice_macros.trigger` when `type='schedule'`).
+## What I will NOT do
+- I won't run `npx cap add android` — that has to happen on your local machine after you `git pull`, because the sandbox has no Android SDK.
+- I won't generate or store the upload keystore — that must stay on your machine for security.
+- I won't change any existing web behavior; the React app is unchanged.
 
-## Files
+## Files to create/modify
+- **Create**: `capacitor.config.ts`, `PLAY_STORE_LAUNCH.md`
+- **Modify**: `package.json` (add the Capacitor deps), `src/main.tsx` (tiny guarded init for StatusBar + SplashScreen.hide() when running natively), `index.html` (viewport-fit=cover for Android notch)
 
-**New**
-- `src/components/alice/RoutineBuilder.tsx` — the modal form described above. Uses existing `Select`, `Input`, `Button`, `Popover`, `ReminderPicker`.
-- `src/components/alice/RoutineStepRow.tsx` — single step row with ability dropdown + dynamic fields.
-- `src/lib/macros/abilities.ts` — registry of pre-built abilities (label, icon, fields schema, → normalized step JSON).
-- `src/lib/macros/triggers.ts` — trigger type registry (label, fields, → normalized trigger JSON).
-- `supabase/migrations/<ts>_macros_routine_builder.sql` — column additions.
+## After approval, your local steps
+1. Export to GitHub → `git pull`
+2. `npm install`
+3. `npx cap add android`
+4. `npm run build && npx cap sync android`
+5. `npx cap run android` (emulator/device) or `cd android && ./gradlew bundleRelease` for the Play upload
+6. Follow `PLAY_STORE_LAUNCH.md` for the Console submission
 
-**Modified**
-- `src/components/alice/MacroCoach.tsx` — add "+ New Routine" button that opens `RoutineBuilder`; list shows a "Routine" badge when `source='routine_builder'`.
-- `extension/popup.js` + `popup.html` — same "+ New Routine" entry point; reuses ability registry via a small mirrored JS module (`extension/abilities.js`) so popup and web app stay in sync. Bump toolbox to 1.18.0 and repackage both zips.
-- `extension/background.js` — handle `tabs.onUpdated` host-match and `chrome.commands` hotkey triggers; run matching macros via existing runner.
-- `extension/runner.js` — no logic change; already supports the step actions we expose. Add small shims for new ability types that map 1:1 to existing actions (`open_url` → `navigate`, `login_with_vault` → `fill` pair with `{{vault.*}}`).
-- `supabase/functions/run-scheduled-triggers/index.ts` — also scan `alice_macros` for `trigger.type='schedule'` and enqueue runs.
-- `supabase/functions/jarvis-chat/index.ts` — extend `create_macro` tool schema with optional `trigger`, `notification`, `reminder_offsets` so ALICE can also produce routine-style macros when asked.
+Read more: https://lovable.dev/blog/mobile-development-with-capacitor
 
-## Technical notes
-- The ability registry is the single source of truth: each entry defines `{ id, label, icon, fields: [{name,type,placeholder,optional}], toStep(values) }`. Adding a new pre-built ability is one entry; no UI changes.
-- "Custom…" in every dropdown surfaces a raw JSON editor so power users keep full control.
-- Routine reminders are decoupled from macro execution: the macro can run at trigger time, and reminders are independent rows in `reminders` pointing at the macro by `item_type='alice_macro'`, `item_id=macro.id`.
-- Backwards compatible: existing ALICE-created macros keep working (defaults satisfy new columns).
+Want me to proceed, or also include iOS (App Store) wiring in the same pass?
