@@ -47,6 +47,9 @@ export default function Admin() {
   const [exportIncludeDocker, setExportIncludeDocker] = useState(true);
   const [exportIncludeDeployScripts, setExportIncludeDeployScripts] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isExportingPlay, setIsExportingPlay] = useState(false);
+  const [playProgress, setPlayProgress] = useState(0);
+  const [playStage, setPlayStage] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [badges, setBadges] = useState<Record<string, number>>({});
