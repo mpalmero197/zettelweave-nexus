@@ -128,6 +128,29 @@ export default function Admin() {
     }
   };
 
+  const handleExportPlayPackage = async () => {
+    setIsExportingPlay(true);
+    setPlayProgress(0);
+    setPlayStage('Starting...');
+    try {
+      const result = await exportPlayPackage({
+        onProgress: (stage, percent) => {
+          setPlayStage(stage);
+          setPlayProgress(percent);
+        },
+      });
+      toast({
+        title: 'Play Package Ready',
+        description: `Bundled ${result.filesIncluded} files (${(result.totalSize / 1024).toFixed(1)} KB). Check your downloads.`,
+      });
+    } catch (error) {
+      console.error('Play export error:', error);
+      toast({ title: 'Export Failed', description: 'Failed to build Play package.', variant: 'destructive' });
+    } finally {
+      setIsExportingPlay(false);
+    }
+  };
+
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (!user) { setCheckingAccess(false); return; }
