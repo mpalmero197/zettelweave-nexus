@@ -28,6 +28,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Shield, AlertTriangle, Download, Cookie, Wrench, Menu, Search, RefreshCw, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportCodebase, type ExportResult } from '@/utils/codebaseExport';
+import { exportPlayPackage } from '@/utils/playPackageExport';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -46,6 +47,9 @@ export default function Admin() {
   const [exportIncludeDocker, setExportIncludeDocker] = useState(true);
   const [exportIncludeDeployScripts, setExportIncludeDeployScripts] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isExportingPlay, setIsExportingPlay] = useState(false);
+  const [playProgress, setPlayProgress] = useState(0);
+  const [playStage, setPlayStage] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [badges, setBadges] = useState<Record<string, number>>({});
@@ -121,6 +125,29 @@ export default function Admin() {
       toast({ title: "Export Failed", description: "Failed to export codebase.", variant: "destructive" });
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportPlayPackage = async () => {
+    setIsExportingPlay(true);
+    setPlayProgress(0);
+    setPlayStage('Starting...');
+    try {
+      const result = await exportPlayPackage({
+        onProgress: (stage, percent) => {
+          setPlayStage(stage);
+          setPlayProgress(percent);
+        },
+      });
+      toast({
+        title: 'Play Package Ready',
+        description: `Bundled ${result.filesIncluded} files (${(result.totalSize / 1024).toFixed(1)} KB). Check your downloads.`,
+      });
+    } catch (error) {
+      console.error('Play export error:', error);
+      toast({ title: 'Export Failed', description: 'Failed to build Play package.', variant: 'destructive' });
+    } finally {
+      setIsExportingPlay(false);
     }
   };
 
@@ -238,12 +265,46 @@ export default function Admin() {
               title="Export & Backup"
               description="Download your complete site codebase with full deployment instructions"
               actions={
-                <Button onClick={handleExportCodebase} disabled={isExporting} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  {isExporting ? 'Exporting...' : 'Export Site'}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={handleExportCodebase} disabled={isExporting} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Site'}
+                  </Button>
+                  <Button
+                    onClick={handleExportPlayPackage}
+                    disabled={isExportingPlay}
+                    variant="secondary"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExportingPlay ? 'Building...' : 'Download Play Package'}
+                  </Button>
+                </div>
               }
             />
+
+            {/* Play package progress */}
+            {isExportingPlay && (
+              <Card className="border-primary/20">
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{playStage}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{playProgress}%</span>
+                  </div>
+                  <Progress value={playProgress} className="h-2" />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Play package info */}
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Google Play Store Package</CardTitle>
+                <CardDescription>
+                  Everything you need to build and submit PendragonX to the Play Store — Capacitor config, AndroidManifest, signing scripts, listing copy, data safety answers, content rating, and screenshot specs.
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
             {/* Progress bar */}
             {isExporting && (
