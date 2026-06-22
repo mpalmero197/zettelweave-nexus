@@ -2640,8 +2640,10 @@ export type Database = {
       profiles: {
         Row: {
           about_me: string | null
+          alice_auto_reminders_enabled: boolean
           alice_proactive_enabled: boolean
           alice_proactive_level: number
+          alice_reminder_offsets: number[]
           author_style_mimicry_enabled: boolean | null
           auto_link_mode: string
           auto_master_docs: boolean | null
@@ -2665,8 +2667,10 @@ export type Database = {
         }
         Insert: {
           about_me?: string | null
+          alice_auto_reminders_enabled?: boolean
           alice_proactive_enabled?: boolean
           alice_proactive_level?: number
+          alice_reminder_offsets?: number[]
           author_style_mimicry_enabled?: boolean | null
           auto_link_mode?: string
           auto_master_docs?: boolean | null
@@ -2690,8 +2694,10 @@ export type Database = {
         }
         Update: {
           about_me?: string | null
+          alice_auto_reminders_enabled?: boolean
           alice_proactive_enabled?: boolean
           alice_proactive_level?: number
+          alice_reminder_offsets?: number[]
           author_style_mimicry_enabled?: boolean | null
           auto_link_mode?: string
           auto_master_docs?: boolean | null
