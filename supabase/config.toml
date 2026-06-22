@@ -17,6 +17,8 @@ project_id = "sckglgjydlbztxjupbsk"
     verify_jwt = true
   [functions.alice-proactive-notifier]
     verify_jwt = false
+  [functions.alice-calendar-watch]
+    verify_jwt = false
   [functions.alice-proactive-pulse]
     verify_jwt = false
   [functions.analyze-cache-patterns]
