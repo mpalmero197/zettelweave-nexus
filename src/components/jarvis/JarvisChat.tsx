@@ -163,9 +163,16 @@ export function JarvisChat({ compact = false }: Props) {
   }, [messages, sending]);
   // Allow the FAB shell to re-focus the input after it expands from minimized.
   useEffect(() => {
-    const onFocus = () => {
+    const onFocus = (e: Event) => {
+      const command = (e as CustomEvent).detail?.command as string | undefined;
       // Small delay so the height transition has begun before keyboard pops up.
-      setTimeout(() => taRef.current?.focus(), 60);
+      setTimeout(() => {
+        taRef.current?.focus();
+        if (command && command.trim()) {
+          // Wake-word follow-up — send straight through so ALICE responds.
+          sendMessage(command.trim());
+        }
+      }, 60);
     };
     window.addEventListener("alice-focus-input", onFocus);
     return () => window.removeEventListener("alice-focus-input", onFocus);
