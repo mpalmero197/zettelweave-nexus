@@ -1192,6 +1192,32 @@ function setupAIChat() {
     document.getElementById('ai-input')?.focus();
     toast('New chat started');
   });
+
+  // "Hey ALICE" wake-word toggle
+  const wakeBox = document.getElementById('ai-wake-word');
+  const wakeStatus = document.getElementById('ai-wake-status');
+  const renderWakeStatus = (enabled, listening) => {
+    if (!wakeStatus) return;
+    wakeStatus.textContent = !enabled ? '' : (listening ? '• listening' : '• starting…');
+  };
+  chrome.storage.local.get(['pendragonx_wake_enabled', 'pendragonx_wake_listening'], (res) => {
+    if (wakeBox) wakeBox.checked = !!res.pendragonx_wake_enabled;
+    renderWakeStatus(!!res.pendragonx_wake_enabled, !!res.pendragonx_wake_listening);
+  });
+  wakeBox?.addEventListener('change', () => {
+    const enabled = !!wakeBox.checked;
+    renderWakeStatus(enabled, false);
+    chrome.runtime.sendMessage({ type: 'PENDRAGONX_SET_WAKE', enabled }, () => void chrome.runtime.lastError);
+    toast(enabled ? "Hey ALICE is listening" : "Wake word off");
+  });
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.pendragonx_wake_enabled && wakeBox) wakeBox.checked = !!changes.pendragonx_wake_enabled.newValue;
+    if (changes.pendragonx_wake_enabled || changes.pendragonx_wake_listening) {
+      chrome.storage.local.get(['pendragonx_wake_enabled', 'pendragonx_wake_listening'], (res) => {
+        renderWakeStatus(!!res.pendragonx_wake_enabled, !!res.pendragonx_wake_listening);
+      });
+    }
+  });
   const inp = document.getElementById('ai-input');
   inp?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); }

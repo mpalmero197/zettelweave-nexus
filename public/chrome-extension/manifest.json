@@ -1,19 +1,9 @@
 {
   "manifest_version": 3,
   "name": "PendragonX Toolbox",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "description": "PendragonX Toolbox",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "sidePanel",
-    "tabs",
-    "alarms",
-    "scripting",
-    "contextMenus",
-    "notifications",
-    "webNavigation"
-  ],
+  "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting", "contextMenus", "notifications", "webNavigation", "offscreen"],
   "host_permissions": [
     "https://sckglgjydlbztxjupbsk.supabase.co/*",
     "<all_urls>"
@@ -34,12 +24,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     },
     {
@@ -48,23 +34,14 @@
         "https://*.pendragonx.com/*",
         "https://*.lovable.app/*"
       ],
-      "js": [
-        "vault-bridge.js"
-      ],
+      "js": ["vault-bridge.js"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "recorder.js",
-        "runner.js",
-        "agent.js",
-        "vault-bridge.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["recorder.js", "runner.js", "agent.js", "vault-bridge.js"],
+      "matches": ["<all_urls>"]
     }
   ],
   "icons": {
