@@ -1357,6 +1357,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       </div>
                     )}
                   </Card>
+
+                  <AliceWakeWordSettings />
                 </div>
               </div>
             )}
