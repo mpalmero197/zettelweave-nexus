@@ -311,6 +311,7 @@ export function AppLayout() {
       {!isPopout && <AliceUndoBanner />}
       {!isPopout && <AliceFollowupPrompt />}
       <AliceRecordingOverlay />
+      {!isPopout && <AliceWakeIndicator />}
     </>
   );
 }
