@@ -1029,3 +1029,135 @@ async function toast(tabId, message, ok) {
     return false;
   }
 }
+
+// ============================================================================
+// "Hey ALICE" wake-word — offscreen Web Speech listener
+// ============================================================================
+
+const WAKE_OFFSCREEN_URL = "offscreen.html";
+const APP_BASE = "https://pendragonx.com";
+
+async function hasOffscreen() {
+  if (!chrome.offscreen?.hasDocument) return false;
+  try { return await chrome.offscreen.hasDocument(); } catch { return false; }
+}
+
+async function ensureWakeOffscreen() {
+  if (!chrome.offscreen?.createDocument) return false;
+  if (await hasOffscreen()) return true;
+  try {
+    await chrome.offscreen.createDocument({
+      url: WAKE_OFFSCREEN_URL,
+      reasons: ["USER_MEDIA"],
+      justification: "Listen for the 'Hey ALICE' wake phrase in the background.",
+    });
+    return true;
+  } catch (e) {
+    console.warn("[pendragonx] offscreen creation failed", e);
+    return false;
+  }
+}
+
+async function closeWakeOffscreen() {
+  if (!chrome.offscreen?.closeDocument) return;
+  if (await hasOffscreen()) { try { await chrome.offscreen.closeDocument(); } catch {} }
+}
+
+async function startWakeListener() {
+  const ok = await ensureWakeOffscreen();
+  if (!ok) return;
+  try { chrome.runtime.sendMessage({ target: "offscreen", type: "WAKE_START" }); } catch {}
+}
+
+async function stopWakeListener() {
+  try { chrome.runtime.sendMessage({ target: "offscreen", type: "WAKE_STOP" }); } catch {}
+  await closeWakeOffscreen();
+}
+
+async function focusPendragonAndDeliverWake(command) {
+  // Try to focus an open PendragonX tab. If none exists, open one. Then
+  // either open the side panel or pass the command via storage so the web
+  // app's `alice-wake` handler can pick it up on load.
+  try {
+    if (command) {
+      await chrome.storage.local.set({
+        pendragonx_pending_wake: { command, ts: Date.now() },
+      });
+    }
+    const tabs = await chrome.tabs.query({});
+    const match = tabs.find((t) =>
+      t.url && (t.url.startsWith(APP_BASE) || /\/\/[^/]*pendragonx\.com/.test(t.url) || /lovable\.app/.test(t.url))
+    );
+    let targetTab = match;
+    if (!targetTab) {
+      targetTab = await chrome.tabs.create({ url: APP_BASE + "/app", active: true });
+    } else {
+      await chrome.tabs.update(targetTab.id, { active: true });
+      if (targetTab.windowId) {
+        try { await chrome.windows.update(targetTab.windowId, { focused: true }); } catch {}
+      }
+    }
+    // Open the side panel as a fallback surface (works even off-domain).
+    try {
+      if (chrome.sidePanel?.open && targetTab?.windowId) {
+        await chrome.sidePanel.open({ windowId: targetTab.windowId });
+      }
+    } catch {}
+    // Notify the page to wake ALICE immediately.
+    if (targetTab?.id && chrome.scripting?.executeScript) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: targetTab.id },
+          func: (cmd) => {
+            window.dispatchEvent(new CustomEvent("alice-wake", { detail: { command: cmd, source: "extension" } }));
+          },
+          args: [command || null],
+        });
+      } catch {}
+    }
+  } catch (e) { console.warn("[pendragonx] wake delivery failed", e); }
+}
+
+// React to wake messages from the offscreen document.
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (!msg) return;
+  if (msg.type === "PENDRAGONX_WAKE") {
+    focusPendragonAndDeliverWake(msg.command);
+    try {
+      chrome.notifications?.create({
+        type: "basic",
+        iconUrl: "icon-128.png",
+        title: "ALICE is listening",
+        message: msg.command ? `Heard: "${msg.command}"` : "Wake phrase detected.",
+        priority: 1,
+      });
+    } catch {}
+  }
+  if (msg.type === "PENDRAGONX_WAKE_ERROR" && msg.error === "not-allowed") {
+    chrome.storage.local.set({ pendragonx_wake_enabled: false });
+  }
+  if (msg.type === "PENDRAGONX_WAKE_STATE") {
+    chrome.storage.local.set({ pendragonx_wake_listening: !!msg.listening });
+  }
+  // Popup ↔ background control channel.
+  if (msg.type === "PENDRAGONX_SET_WAKE") {
+    (async () => {
+      await chrome.storage.local.set({ pendragonx_wake_enabled: !!msg.enabled });
+      if (msg.enabled) await startWakeListener();
+      else await stopWakeListener();
+      sendResponse?.({ ok: true });
+    })();
+    return true;
+  }
+});
+
+// Resume the listener on browser startup / extension reload if the user had it on.
+async function bootWakeFromStorage() {
+  try {
+    const { pendragonx_wake_enabled } = await chrome.storage.local.get(["pendragonx_wake_enabled"]);
+    if (pendragonx_wake_enabled) await startWakeListener();
+  } catch {}
+}
+chrome.runtime.onStartup?.addListener(bootWakeFromStorage);
+chrome.runtime.onInstalled?.addListener(bootWakeFromStorage);
+bootWakeFromStorage();
