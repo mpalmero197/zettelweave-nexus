@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, BookOpen, Brain, Bell, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AliceMemoryPanel } from '@/components/alice/AliceMemoryPanel';
+import { AliceWakeWordSettings } from '@/components/alice/AliceWakeWordSettings';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -1356,6 +1357,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                       </div>
                     )}
                   </Card>
+
+                  <AliceWakeWordSettings />
                 </div>
               </div>
             )}

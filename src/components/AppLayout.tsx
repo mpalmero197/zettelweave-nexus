@@ -32,6 +32,7 @@ import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
 import { AliceUndoBanner } from "./alice/AliceUndoBanner";
 import { AliceFollowupPrompt } from "./alice/AliceFollowupPrompt";
 import { AliceRecordingOverlay } from "./alice/AliceRecordingOverlay";
+import { AliceWakeIndicator } from "./alice/AliceWakeIndicator";
 import { installAliceTtsResetListener } from "@/lib/aliceTts";
 
 export function AppLayout() {
@@ -310,6 +311,7 @@ export function AppLayout() {
       {!isPopout && <AliceUndoBanner />}
       {!isPopout && <AliceFollowupPrompt />}
       <AliceRecordingOverlay />
+      {!isPopout && <AliceWakeIndicator />}
     </>
   );
 }

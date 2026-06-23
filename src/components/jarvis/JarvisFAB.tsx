@@ -39,6 +39,21 @@ export function JarvisFAB() {
     return () => actionTypes.forEach((t) => window.removeEventListener(t, collapse));
   }, [isMobile, open]);
 
+  // Wake-word — "Hey ALICE" opens the panel and focuses the input. If the
+  // user spoke a follow-up command after the wake phrase, prefill it.
+  useEffect(() => {
+    const onWake = (e: Event) => {
+      const command = (e as CustomEvent).detail?.command as string | null;
+      setOpen(true);
+      setMinimized(false);
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent("alice-focus-input", { detail: { command } }));
+      });
+    };
+    window.addEventListener("alice-wake", onWake);
+    return () => window.removeEventListener("alice-wake", onWake);
+  }, []);
+
   const expand = () => {
     setMinimized(false);
     requestAnimationFrame(() => {
