@@ -1,0 +1,53 @@
+{
+  "name": "ALICE — Your PendragonX Companion",
+  "short_name": "ALICE",
+  "description": "Talk and create with ALICE, your PendragonX AI companion. Signs in with your PendragonX account and reads your entire knowledge base — without needing to open the main app.",
+  "id": "/alice-app",
+  "start_url": "/alice-app",
+  "scope": "/alice-app",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait",
+  "theme_color": "#0a0a1a",
+  "background_color": "#0a0a1a",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New conversation",
+      "short_name": "New chat",
+      "url": "/alice-app?new=1",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Open PendragonX",
+      "short_name": "PendragonX",
+      "url": "/app"
+    }
+  ]
+}
