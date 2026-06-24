@@ -14,6 +14,7 @@ import { User, Settings, Lock, Palette, Upload, Save, Check, Download, Bug, Book
 import { cn } from '@/lib/utils';
 import { AliceMemoryPanel } from '@/components/alice/AliceMemoryPanel';
 import { AliceWakeWordSettings } from '@/components/alice/AliceWakeWordSettings';
+import { AliceStandaloneAppCard } from '@/components/alice/AliceStandaloneAppCard';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { exportCodebase } from '@/utils/codebaseExport';
@@ -1359,6 +1360,8 @@ export function AccountManagement({ onClose }: AccountManagementProps) {
                   </Card>
 
                   <AliceWakeWordSettings />
+
+                  <AliceStandaloneAppCard />
                 </div>
               </div>
             )}

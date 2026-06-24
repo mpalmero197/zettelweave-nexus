@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,15 @@ export default function Auth() {
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: "" });
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  // Honor ?redirect=… so the standalone ALICE app (and other deep links)
+  // return the user to where they came from. Restricted to same-origin
+  // relative paths to avoid open-redirect abuse.
+  const rawRedirect = searchParams.get("redirect");
+  const safeRedirect =
+    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/app";
 
   // Set security headers on component mount
   useEffect(() => {
@@ -67,7 +76,7 @@ export default function Auth() {
 
   // Redirect if already authenticated
   if (user) {
-    return <Navigate to="/app" replace />;
+    return <Navigate to={safeRedirect} replace />;
   }
 
   const handleSignIn = async (e: React.FormEvent) => {

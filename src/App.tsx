@@ -98,6 +98,7 @@ const Contact = lazy(() => import("./pages/Contact"));
 const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
+const AliceStandalone = lazy(() => import("./pages/AliceStandalone"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -254,6 +255,12 @@ const App = () => (
                 <Route path="/sso" element={
                   <Suspense fallback={<LoadingFallback message="Signing in from Toolbox..." />}>
                     <SsoHandoff />
+                  </Suspense>
+                } />
+                {/* Standalone ALICE shell — installable as its own PWA, outside AppLayout */}
+                <Route path="/alice-app" element={
+                  <Suspense fallback={<LoadingFallback message="Waking ALICE..." />}>
+                    <AliceStandalone />
                   </Suspense>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
