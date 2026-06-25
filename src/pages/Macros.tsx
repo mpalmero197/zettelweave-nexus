@@ -81,7 +81,7 @@ export default function Macros() {
       .select("*")
       .order("install_count", { ascending: false })
       .limit(100);
-    setMarket((data as PublicMacro[]) || []);
+    setMarket(((data as unknown) as PublicMacro[]) || []);
     setLoadingMarket(false);
   };
 
