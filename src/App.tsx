@@ -99,6 +99,7 @@ const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
 const AliceStandalone = lazy(() => import("./pages/AliceStandalone"));
+const Macros = lazy(() => import("./pages/Macros"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -179,6 +180,11 @@ const App = () => (
                     </Suspense>
                   } />
                   <Route path="/jarvis" element={<Navigate to="/alice" replace />} />
+                  <Route path="/macros" element={
+                    <Suspense fallback={<LoadingFallback message="Loading macros..." />}>
+                      <Macros />
+                    </Suspense>
+                  } />
                   <Route path="/install" element={
                     <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
                       <Install />

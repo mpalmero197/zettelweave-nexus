@@ -1,70 +1,84 @@
-# Google Play Store Launch — Native Android Wrapper
+# ALICE Wake Word + Teach-a-Macro + Macro Marketplace
 
-To publish PendragonX on the Google Play Store, the app must be a real native Android binary (an `.aab` Android App Bundle). A PWA alone cannot be uploaded to Play. The standard, Lovable-supported path is **Capacitor**, which wraps the existing React/Vite app in a native Android shell.
+Three coordinated workstreams shipped together.
 
-## What gets added
+---
 
-### 1. NPM packages (the "specific set" Play requires indirectly)
+## 1. Fix "Hey ALICE" wake word in the Toolbox extension
 
-Core wrapper:
-- `@capacitor/core`
-- `@capacitor/cli` (dev)
-- `@capacitor/android`
+The current offscreen wake-word loop never triggers a conversation start. Plan:
 
-Plugins needed to satisfy Play policies and match features you already use in-app:
-- `@capacitor/app` — back-button + lifecycle (required for proper Android UX)
-- `@capacitor/splash-screen` — Play requires a branded splash
-- `@capacitor/status-bar` — theme the status bar to match the dark canvas
-- `@capacitor/preferences` — native key/value storage
-- `@capacitor/network` — used by your offline mode
-- `@capacitor/share` — share sheet (used by export/share flows)
-- `@capacitor/filesystem` — needed for downloads/exports on Android
-- `@capacitor/browser` — in-app browser for OAuth + external links (Play prefers Custom Tabs over WebView for OAuth)
-- `@capacitor/push-notifications` — your engagement nudges already use web push; this is the Android equivalent via FCM
-- `@capacitor/local-notifications` — reminders/routines
-- `@capacitor/clipboard` — copy buttons in chat/cards
-- `@capacitor/haptics` — small UX polish, expected on Android
-- `@capacitor/device` — needed for crash/error reporting metadata
-- `@capacitor/keyboard` — fix viewport jumps on mobile inputs
+- Audit `extension/background.js`, `extension/offscreen.js`, `extension/offscreen.html` and the mirrored `public/chrome-extension/*` copies.
+- Confirm `offscreen` document is being created with the right reasons (`USER_MEDIA` + `AUDIO_PLAYBACK`) and that `chrome.runtime.sendMessage` from offscreen → background is wired.
+- Replace fragile keyword spotting with a robust loop:
+  - Continuous `MediaRecorder` 3‑second rolling chunks → Whisper via existing `transcribe-audio` edge function.
+  - If transcript matches `/\bhey,?\s*(alice|allie)\b/i` → background opens the side panel / popup and posts `alice:wake` to it.
+- Add a visible mic indicator + on/off toggle in `popup.html` writing to `chrome.storage.local.wakeWord = true|false`.
+- Re-zip both `public/pendragonx-toolbox.zip` and `public/pendragonx-chrome-extension.zip`.
 
-### 2. Capacitor config (`capacitor.config.ts`)
-- `appId`: `app.lovable.4eb34d34fd9d491db4fe83f99b554cfb`
-- `appName`: `pendragonx`
-- Dev `server.url` pointing at the Lovable sandbox for hot reload (commented note that it must be removed before producing the release `.aab`)
-- Splash + status bar themed to the deep ink canvas (`#0A0A14`)
+Acceptance: open extension popup → enable Wake Word → say "Hey ALICE" → ALICE side panel opens with mic already hot.
 
-### 3. Android project scaffolding
-- Run `npx cap add android` (user runs locally — sandbox can't)
-- `android/app/src/main/AndroidManifest.xml` permissions matching the plugins above (INTERNET, POST_NOTIFICATIONS, VIBRATE, ACCESS_NETWORK_STATE)
-- App icon + adaptive icon + splash assets generated from the existing PendragonX iridescent orb
+---
 
-### 4. Play Console requirements doc (`PLAY_STORE_LAUNCH.md`)
-Step-by-step for the user covering what only they can do:
-- Create Play Console account ($25 one-time)
-- Generate upload keystore + signing
-- Privacy policy URL (already at `/privacy-policy`)
-- Data safety form answers (matches your existing privacy memory)
-- Content rating questionnaire
-- Screenshots + feature graphic spec
-- How to run `npm run build && npx cap sync android && cd android && ./gradlew bundleRelease` to produce the uploadable `.aab`
+## 2. Teach-a-Macro (record-by-demonstration)
 
-## What I will NOT do
-- I won't run `npx cap add android` — that has to happen on your local machine after you `git pull`, because the sandbox has no Android SDK.
-- I won't generate or store the upload keystore — that must stay on your machine for security.
-- I won't change any existing web behavior; the React app is unchanged.
+Let users demo a workflow once and save it as an `alice_macros` row with pause/ask steps.
 
-## Files to create/modify
-- **Create**: `capacitor.config.ts`, `PLAY_STORE_LAUNCH.md`
-- **Modify**: `package.json` (add the Capacitor deps), `src/main.tsx` (tiny guarded init for StatusBar + SplashScreen.hide() when running natively), `index.html` (viewport-fit=cover for Android notch)
+### Extension recorder
+- Reuse existing `extension/recorder.js`. Add a floating "Teach ALICE" pill the user clicks to start.
+- Capture: `click` (with stable selector + visible text), `fill` (value redacted if `input[type=password]` → emitted as `pause` prompt "Enter your password"), `select`, `navigate`, explicit user-tagged `pause` ("ALICE, wait here").
+- On stop → POST normalized steps to new edge function `alice-save-taught-macro` which:
+  1. Calls Gemini to clean step list, name the macro, suggest tags, mark sensitive fields as `pause`.
+  2. Inserts row into `alice_macros` with `source = 'taught'`.
 
-## After approval, your local steps
-1. Export to GitHub → `git pull`
-2. `npm install`
-3. `npx cap add android`
-4. `npm run build && npx cap sync android`
-5. `npx cap run android` (emulator/device) or `cd android && ./gradlew bundleRelease` for the Play upload
-6. Follow `PLAY_STORE_LAUNCH.md` for the Console submission
+### In-app builder
+- New page `/alice/macros/teach` that opens the start URL in a new tab, instructs the user to install the extension if missing, and shows live captured steps.
+- Existing `MacroCoach` already plays steps back — verify by loading the saved macro.
 
-Read more: https://lovable.dev/blog/mobile-development-with-capacitor
+---
 
-Want me to proceed, or also include iOS (App Store) wiring in the same pass?
+## 3. Macro Marketplace (admin-approved)
+
+### Schema (new tables, all with GRANTs)
+- `macro_marketplace_submissions` — `id, macro_id, user_id, status (pending|approved|rejected|removed), title, description, tags[], steps_snapshot jsonb, start_url, submitted_at, reviewed_at, reviewer_id, rejection_reason`.
+- `macro_marketplace_ratings` — `id, submission_id, user_id (unique pair), stars 1-5, review text, created_at`.
+- `macro_marketplace_installs` — `id, submission_id, user_id, installed_macro_id, created_at` (for download counts).
+- View `macro_marketplace_public` exposing only `approved` rows + aggregated `avg_rating`, `rating_count`, `install_count`.
+
+RLS:
+- Anyone authenticated can `SELECT` from the public view.
+- Owner can update their own pending submission.
+- Admins (via `has_role`) can update status.
+- Ratings: insert/update only own row; everyone reads.
+
+### UI
+- `src/pages/MacroMarketplace.tsx` — browse grid, filter by tag, sort by rating / installs / newest, search.
+- `src/pages/MacroMarketplaceDetail.tsx` — full step list (rendered with `describeStep` shared with `MacroCoach`), screenshots-style step cards, ratings & reviews, **Install to my ALICE** button (clones into the user's `alice_macros` via edge function `install-marketplace-macro`), Report button.
+- "Publish to Marketplace" action on each user macro in the existing macros list → opens dialog (title, description, tags) → inserts pending submission.
+- Admin Panel tab `Macro Reviews`: pending queue, step preview, Approve / Reject (with reason) / Remove buttons.
+
+### Edge functions
+- `submit-macro-to-marketplace` — owner-only, snapshots steps so later edits don't change the public version.
+- `install-marketplace-macro` — clones snapshot into caller's `alice_macros` (resets vault tokens, marks `source='marketplace'`, increments install count).
+- `moderate-marketplace-macro` — admin-only status changes.
+
+---
+
+## Implementation order
+
+1. DB migration for marketplace tables + view + RLS + grants.
+2. Edge functions (submit / install / moderate / save-taught-macro).
+3. Extension wake-word fix + repackage zips.
+4. Teach-a-Macro recorder flow.
+5. Marketplace browse, detail, ratings, install.
+6. Admin moderation queue.
+7. Smoke test end-to-end with Playwright.
+
+---
+
+## Technical notes (for reference)
+
+- Snapshot pattern keeps marketplace versions immutable so ratings stay meaningful even if the author edits their local copy.
+- Vault tokens (`{{vault.*}}`) survive cloning — they resolve at runtime against the installer's vault, so no secrets leak.
+- Wake-word stays client-side (browser mic → offscreen Whisper). No always-on streaming to the server.
+- All new tables get explicit `GRANT` blocks per project rules.

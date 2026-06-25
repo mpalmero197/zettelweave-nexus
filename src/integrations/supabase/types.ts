@@ -2193,6 +2193,147 @@ export type Database = {
         }
         Relationships: []
       }
+      macro_marketplace_installs: {
+        Row: {
+          created_at: string
+          id: string
+          installed_macro_id: string | null
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          installed_macro_id?: string | null
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          installed_macro_id?: string | null
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "macro_marketplace_installs_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "macro_marketplace_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "macro_marketplace_installs_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "macro_marketplace_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      macro_marketplace_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          review: string | null
+          stars: number
+          submission_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          review?: string | null
+          stars: number
+          submission_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          review?: string | null
+          stars?: number
+          submission_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "macro_marketplace_ratings_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "macro_marketplace_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "macro_marketplace_ratings_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "macro_marketplace_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      macro_marketplace_submissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          macro_id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          start_url: string
+          status: string
+          steps_snapshot: Json
+          submitted_at: string
+          tags: string[]
+          target_domain: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          macro_id: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          start_url: string
+          status?: string
+          steps_snapshot: Json
+          submitted_at?: string
+          tags?: string[]
+          target_domain?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          macro_id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          start_url?: string
+          status?: string
+          steps_snapshot?: Json
+          submitted_at?: string
+          tags?: string[]
+          target_domain?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       master_document_subjects: {
         Row: {
           catalyst_document_id: string | null
@@ -5049,7 +5190,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      macro_marketplace_public: {
+        Row: {
+          author_id: string | null
+          avg_rating: number | null
+          description: string | null
+          id: string | null
+          install_count: number | null
+          macro_id: string | null
+          rating_count: number | null
+          reviewed_at: string | null
+          start_url: string | null
+          step_count: number | null
+          steps_snapshot: Json | null
+          submitted_at: string | null
+          tags: string[] | null
+          target_domain: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       alice_set_auto_links: {

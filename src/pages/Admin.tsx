@@ -23,6 +23,7 @@ import { SeoEnginePanel } from '@/components/admin/SeoEnginePanel';
 import { ChromeExtensionPanel } from '@/components/admin/ChromeExtensionPanel';
 import { OAuthProvidersPanel } from '@/components/admin/OAuthProvidersPanel';
 import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
+import { MacroMarketplaceModeration } from '@/components/admin/MacroMarketplaceModeration';
 import { AdminSectionHeader } from '@/components/admin/AdminSectionHeader';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Shield, AlertTriangle, Download, Cookie, Wrench, Menu, Search, RefreshCw, ChevronRight, CheckCircle2 } from 'lucide-react';
@@ -243,6 +244,8 @@ export default function Admin() {
         return <UserManagement />;
       case 'content':
         return <ContentModeration />;
+      case 'macros':
+        return <MacroMarketplaceModeration />;
       case 'security-audit':
         return <AdminAuditLog />;
       case 'security-monitor':
