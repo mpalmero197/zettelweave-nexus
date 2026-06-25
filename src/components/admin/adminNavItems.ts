@@ -49,6 +49,11 @@ export const adminNavItems: AdminNavItem[] = [
     icon: FileText,
   },
   {
+    id: 'macros',
+    label: 'Macro Marketplace',
+    icon: Sparkles,
+  },
+  {
     id: 'security',
     label: 'Security',
     icon: Shield,
