@@ -345,6 +345,15 @@ function setupMacros() {
   document.getElementById('macro-routine-btn')?.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://pendragonx.com/?routine=builder' });
   });
+  document.getElementById('macro-market-btn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://pendragonx.com/macros' });
+  });
+  document.getElementById('macro-teach-btn')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START' }, (resp) => {
+      if (resp?.ok) toast('Recording started — do the task in the active tab, then come back to save.');
+      else toast(resp?.error || 'Could not start recording');
+    });
+  });
 }
 
 async function loadMacros() {
