@@ -1240,6 +1240,38 @@ function setupAIChat() {
     const btn = e.target.closest('.ai-suggestion');
     if (btn?.dataset.q) sendAIMessage(btn.dataset.q);
   });
+
+  // ── "Hey ALICE" wake event → switch to ALICE tab and (optionally) auto-send ──
+  // The background broadcasts PENDRAGONX_WAKE when the offscreen recognizer
+  // matches the wake phrase. If the side panel is open we want the user to
+  // start chatting immediately — no extra clicks.
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (!msg) return;
+    if (msg.type === 'PENDRAGONX_WAKE') {
+      const aiTab = document.querySelector('.tab[data-tab="ai"]');
+      if (aiTab && !aiTab.classList.contains('active')) aiTab.click();
+      const inp = document.getElementById('ai-input');
+      if (msg.command && String(msg.command).trim()) {
+        sendAIMessage(String(msg.command).trim());
+      } else {
+        inp?.focus();
+        toast('Hey ALICE — what can I help with?');
+      }
+    }
+    // After the user stops recording from the page, ask for a name here.
+    if (msg.type === 'PENDRAGONX_REC_STOP_PROMPT') {
+      const name = prompt('Name this macro:');
+      if (!name) {
+        chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_CANCEL' });
+        return;
+      }
+      const description = prompt('Short description (optional):') || '';
+      chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_STOP_AND_SAVE', name, description }, (resp) => {
+        if (resp?.ok) { toast(`Saved "${resp.macro?.name || name}"`); loadMacros?.(); }
+        else toast(resp?.error || 'Could not save macro');
+      });
+    }
+  });
 }
 
 function deriveAliceFollowups(lastAssistant, lastUser) {
