@@ -383,6 +383,7 @@ function renderMacros() {
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn btn-primary" data-run="${m.id}" style="font-size:11px;padding:4px 10px">▶ Run</button>
+          <button class="btn btn-secondary" data-share="${m.id}" style="font-size:11px;padding:4px 8px" title="Submit to marketplace">⇪</button>
           <button class="btn btn-secondary" data-del="${m.id}" style="font-size:11px;padding:4px 8px" title="Delete">✕</button>
         </div>
       </div>
@@ -392,7 +393,28 @@ function renderMacros() {
     </div>`;
   }).join('');
   el.querySelectorAll('[data-run]').forEach((b) => b.addEventListener('click', () => runMacro(b.dataset.run)));
+  el.querySelectorAll('[data-share]').forEach((b) => b.addEventListener('click', () => shareMacro(b.dataset.share)));
   el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => deleteMacro(b.dataset.del)));
+}
+
+async function shareMacro(id) {
+  const m = macrosList.find((x) => x.id === id);
+  if (!m) return;
+  const title = prompt('Marketplace title:', m.name);
+  if (!title) return;
+  const description = prompt('Description (what does this do?):', m.description || '') || '';
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/macro-marketplace-submit`, {
+      method: 'POST',
+      headers: { ...authHeaders(), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ macro_id: id, title, description, tags: m.tags || [] }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+    toast('Submitted! An admin will review it before publishing.');
+  } catch (e) {
+    toast(e.message || 'Submit failed');
+  }
 }
 
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
