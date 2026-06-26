@@ -354,6 +354,11 @@ function setupMacros() {
       else toast(resp?.error || 'Could not start recording');
     });
   });
+  document.getElementById('me-close')?.addEventListener('click', closeMacroEditor);
+  document.getElementById('me-save')?.addEventListener('click', saveMacroEditor);
+  document.getElementById('macro-edit-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'macro-edit-modal') closeMacroEditor();
+  });
 }
 
 async function loadMacros() {
