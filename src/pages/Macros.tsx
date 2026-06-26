@@ -196,7 +196,20 @@ export default function Macros() {
           <h1 className="text-3xl font-bold">ALICE Macros</h1>
           <p className="text-muted-foreground">Teach ALICE repeatable browser tasks, then share or borrow them.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("alice:start-teach"));
+              toast({
+                title: "Recording mode",
+                description:
+                  "Open the PendragonX Toolbox on the page you want to teach, then click '🎓 Teach ALICE' in the Macros tab. Steps you take in that tab are saved into a new macro.",
+              });
+            }}
+          >
+            <GraduationCap className="h-4 w-4 mr-2" /> Teach ALICE
+          </Button>
           <Button variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("alice:open-routine-builder"))}>
             <Sparkles className="h-4 w-4 mr-2" /> New Routine
           </Button>
