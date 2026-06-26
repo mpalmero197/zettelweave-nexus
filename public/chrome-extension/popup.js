@@ -345,6 +345,20 @@ function setupMacros() {
   document.getElementById('macro-routine-btn')?.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://pendragonx.com/?routine=builder' });
   });
+  document.getElementById('macro-market-btn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://pendragonx.com/macros' });
+  });
+  document.getElementById('macro-teach-btn')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START' }, (resp) => {
+      if (resp?.ok) toast('Recording started — do the task in the active tab, then come back to save.');
+      else toast(resp?.error || 'Could not start recording');
+    });
+  });
+  document.getElementById('me-close')?.addEventListener('click', closeMacroEditor);
+  document.getElementById('me-save')?.addEventListener('click', saveMacroEditor);
+  document.getElementById('macro-edit-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'macro-edit-modal') closeMacroEditor();
+  });
 }
 
 async function loadMacros() {
@@ -374,6 +388,8 @@ function renderMacros() {
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn btn-primary" data-run="${m.id}" style="font-size:11px;padding:4px 10px">▶ Run</button>
+          <button class="btn btn-secondary" data-edit="${m.id}" style="font-size:11px;padding:4px 8px" title="Edit">✎</button>
+          <button class="btn btn-secondary" data-share="${m.id}" style="font-size:11px;padding:4px 8px" title="Submit to marketplace">⇪</button>
           <button class="btn btn-secondary" data-del="${m.id}" style="font-size:11px;padding:4px 8px" title="Delete">✕</button>
         </div>
       </div>
@@ -383,7 +399,78 @@ function renderMacros() {
     </div>`;
   }).join('');
   el.querySelectorAll('[data-run]').forEach((b) => b.addEventListener('click', () => runMacro(b.dataset.run)));
+  el.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openMacroEditor(b.dataset.edit)));
+  el.querySelectorAll('[data-share]').forEach((b) => b.addEventListener('click', () => shareMacro(b.dataset.share)));
   el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => deleteMacro(b.dataset.del)));
+}
+
+let editingMacroId = null;
+function openMacroEditor(id) {
+  const m = macrosList.find((x) => x.id === id);
+  if (!m) return;
+  editingMacroId = id;
+  document.getElementById('me-name').value = m.name || '';
+  document.getElementById('me-desc').value = m.description || '';
+  document.getElementById('me-url').value = m.start_url || '';
+  document.getElementById('me-tags').value = (m.tags || []).join(', ');
+  document.getElementById('me-steps').value = JSON.stringify(m.steps || [], null, 2);
+  document.getElementById('me-error').style.display = 'none';
+  document.getElementById('macro-edit-modal').classList.add('visible');
+}
+function closeMacroEditor() {
+  editingMacroId = null;
+  document.getElementById('macro-edit-modal').classList.remove('visible');
+}
+async function saveMacroEditor() {
+  if (!editingMacroId) return;
+  const errEl = document.getElementById('me-error');
+  errEl.style.display = 'none';
+  let steps;
+  try { steps = JSON.parse(document.getElementById('me-steps').value); }
+  catch (e) { errEl.textContent = 'Steps must be valid JSON: ' + e.message; errEl.style.display = 'block'; return; }
+  if (!Array.isArray(steps)) { errEl.textContent = 'Steps must be a JSON array'; errEl.style.display = 'block'; return; }
+  const patch = {
+    name: document.getElementById('me-name').value.trim() || 'Untitled',
+    description: document.getElementById('me-desc').value.trim() || null,
+    start_url: document.getElementById('me-url').value.trim() || null,
+    tags: document.getElementById('me-tags').value.split(',').map((t) => t.trim()).filter(Boolean),
+    steps,
+    last_error: null,
+    last_error_step: null,
+  };
+  try {
+    await rest(`alice_macros?id=eq.${editingMacroId}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    });
+    toast('Macro saved');
+    closeMacroEditor();
+    await loadMacros();
+  } catch (e) {
+    errEl.textContent = e.message || 'Save failed';
+    errEl.style.display = 'block';
+  }
+}
+
+async function shareMacro(id) {
+  const m = macrosList.find((x) => x.id === id);
+  if (!m) return;
+  const title = prompt('Marketplace title:', m.name);
+  if (!title) return;
+  const description = prompt('Description (what does this do?):', m.description || '') || '';
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/macro-marketplace-submit`, {
+      method: 'POST',
+      headers: { ...authHeaders(), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ macro_id: id, title, description, tags: m.tags || [] }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+    toast('Submitted! An admin will review it before publishing.');
+  } catch (e) {
+    toast(e.message || 'Submit failed');
+  }
 }
 
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1230,6 +1317,38 @@ function setupAIChat() {
   document.getElementById('ai-messages')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.ai-suggestion');
     if (btn?.dataset.q) sendAIMessage(btn.dataset.q);
+  });
+
+  // ── "Hey ALICE" wake event → switch to ALICE tab and (optionally) auto-send ──
+  // The background broadcasts PENDRAGONX_WAKE when the offscreen recognizer
+  // matches the wake phrase. If the side panel is open we want the user to
+  // start chatting immediately — no extra clicks.
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (!msg) return;
+    if (msg.type === 'PENDRAGONX_WAKE') {
+      const aiTab = document.querySelector('.tab[data-tab="ai"]');
+      if (aiTab && !aiTab.classList.contains('active')) aiTab.click();
+      const inp = document.getElementById('ai-input');
+      if (msg.command && String(msg.command).trim()) {
+        sendAIMessage(String(msg.command).trim());
+      } else {
+        inp?.focus();
+        toast('Hey ALICE — what can I help with?');
+      }
+    }
+    // After the user stops recording from the page, ask for a name here.
+    if (msg.type === 'PENDRAGONX_REC_STOP_PROMPT') {
+      const name = prompt('Name this macro:');
+      if (!name) {
+        chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_CANCEL' });
+        return;
+      }
+      const description = prompt('Short description (optional):') || '';
+      chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_STOP_AND_SAVE', name, description }, (resp) => {
+        if (resp?.ok) { toast(`Saved "${resp.macro?.name || name}"`); loadMacros?.(); }
+        else toast(resp?.error || 'Could not save macro');
+      });
+    }
   });
 }
 
