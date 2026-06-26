@@ -415,11 +415,11 @@ function openMacroEditor(id) {
   document.getElementById('me-tags').value = (m.tags || []).join(', ');
   document.getElementById('me-steps').value = JSON.stringify(m.steps || [], null, 2);
   document.getElementById('me-error').style.display = 'none';
-  document.getElementById('macro-edit-modal').classList.add('open');
+  document.getElementById('macro-edit-modal').classList.add('visible');
 }
 function closeMacroEditor() {
   editingMacroId = null;
-  document.getElementById('macro-edit-modal').classList.remove('open');
+  document.getElementById('macro-edit-modal').classList.remove('visible');
 }
 async function saveMacroEditor() {
   if (!editingMacroId) return;
