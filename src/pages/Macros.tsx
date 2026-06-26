@@ -251,8 +251,9 @@ export default function Macros() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 flex-shrink-0 flex-wrap">
                     <Button size="sm" variant="outline" onClick={() => runMacro(m)}><Play className="h-4 w-4 mr-1" />Run</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditTarget(m as MacroEditable)}><Pencil className="h-4 w-4 mr-1" />Edit</Button>
                     <Button size="sm" variant="outline" onClick={() => openShare(m)}><Share2 className="h-4 w-4 mr-1" />Share</Button>
                     <Button size="sm" variant="ghost" onClick={() => deleteMacro(m)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
