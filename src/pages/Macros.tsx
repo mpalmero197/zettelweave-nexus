@@ -54,6 +54,7 @@ export default function Macros() {
   const [shareDesc, setShareDesc] = useState("");
   const [shareTags, setShareTags] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editTarget, setEditTarget] = useState<MacroEditable | null>(null);
 
   // Marketplace
   const [market, setMarket] = useState<PublicMacro[]>([]);
