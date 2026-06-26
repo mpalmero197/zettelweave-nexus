@@ -9,7 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Star, Download, Share2, Trash2, Play, ChevronRight, Sparkles, Search } from "lucide-react";
+import { Loader2, Star, Download, Share2, Trash2, Play, ChevronRight, Sparkles, Search, Pencil, GraduationCap } from "lucide-react";
+import MacroEditor, { type MacroEditable } from "@/components/macros/MacroEditor";
 
 interface Macro {
   id: string;
