@@ -9,7 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Star, Download, Share2, Trash2, Play, ChevronRight, Sparkles, Search } from "lucide-react";
+import { Loader2, Star, Download, Share2, Trash2, Play, ChevronRight, Sparkles, Search, Pencil, GraduationCap } from "lucide-react";
+import MacroEditor, { type MacroEditable } from "@/components/macros/MacroEditor";
 
 interface Macro {
   id: string;
@@ -53,6 +54,7 @@ export default function Macros() {
   const [shareDesc, setShareDesc] = useState("");
   const [shareTags, setShareTags] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editTarget, setEditTarget] = useState<MacroEditable | null>(null);
 
   // Marketplace
   const [market, setMarket] = useState<PublicMacro[]>([]);
@@ -194,7 +196,20 @@ export default function Macros() {
           <h1 className="text-3xl font-bold">ALICE Macros</h1>
           <p className="text-muted-foreground">Teach ALICE repeatable browser tasks, then share or borrow them.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("alice:start-teach"));
+              toast({
+                title: "Recording mode",
+                description:
+                  "Open the PendragonX Toolbox on the page you want to teach, then click '🎓 Teach ALICE' in the Macros tab. Steps you take in that tab are saved into a new macro.",
+              });
+            }}
+          >
+            <GraduationCap className="h-4 w-4 mr-2" /> Teach ALICE
+          </Button>
           <Button variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("alice:open-routine-builder"))}>
             <Sparkles className="h-4 w-4 mr-2" /> New Routine
           </Button>
@@ -236,8 +251,9 @@ export default function Macros() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 flex-shrink-0 flex-wrap">
                     <Button size="sm" variant="outline" onClick={() => runMacro(m)}><Play className="h-4 w-4 mr-1" />Run</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditTarget(m as MacroEditable)}><Pencil className="h-4 w-4 mr-1" />Edit</Button>
                     <Button size="sm" variant="outline" onClick={() => openShare(m)}><Share2 className="h-4 w-4 mr-1" />Share</Button>
                     <Button size="sm" variant="ghost" onClick={() => deleteMacro(m)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
@@ -390,6 +406,8 @@ export default function Macros() {
           )}
         </DialogContent>
       </Dialog>
+
+      <MacroEditor macro={editTarget} onClose={() => setEditTarget(null)} onSaved={loadMine} />
     </div>
   );
 }
