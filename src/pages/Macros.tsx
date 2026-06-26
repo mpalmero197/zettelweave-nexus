@@ -406,6 +406,8 @@ export default function Macros() {
           )}
         </DialogContent>
       </Dialog>
+
+      <MacroEditor macro={editTarget} onClose={() => setEditTarget(null)} onSaved={loadMine} />
     </div>
   );
 }
