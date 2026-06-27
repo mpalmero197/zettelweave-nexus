@@ -1491,14 +1491,24 @@
 
   <!-- Macro edit modal -->
   <div id="macro-edit-modal" class="modal-backdrop">
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width:600px;max-height:90vh;display:flex;flex-direction:column">
       <h3>Edit macro</h3>
       <input type="text" id="me-name" placeholder="Name">
       <textarea id="me-desc" placeholder="Description" style="min-height:48px"></textarea>
       <input type="text" id="me-url" placeholder="Start URL">
       <input type="text" id="me-tags" placeholder="Tags (comma-separated)">
-      <label style="font-size:11px;color:#9aa0aa;margin-top:6px;display:block">Steps (JSON array)</label>
-      <textarea id="me-steps" placeholder='[{"action":"navigate","url":"https://…"}]' style="min-height:200px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px"></textarea>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px">
+        <label style="font-size:11px;color:#9aa0aa">Steps</label>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary" id="me-add-step" style="font-size:11px;padding:4px 10px">+ Add step</button>
+          <button class="btn btn-secondary" id="me-toggle-json" style="font-size:11px;padding:4px 10px" title="Edit raw JSON">{ }</button>
+        </div>
+      </div>
+
+      <div id="me-builder" style="overflow-y:auto;max-height:45vh;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-right:4px"></div>
+      <textarea id="me-steps" placeholder='[{"action":"navigate","url":"https://…"}]' style="display:none;min-height:200px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-top:4px"></textarea>
+
       <div id="me-error" style="display:none;color:#ef4444;font-size:11px;margin-top:4px"></div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="me-close">Cancel</button>
