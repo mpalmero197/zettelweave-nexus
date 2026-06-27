@@ -422,6 +422,10 @@ function recordMoreSteps(id) {
 }
 
 let editingMacroId = null;
+// In-memory step rows for the builder (each row: { abilityId, values })
+let editorRows = [];
+let editorJsonMode = false;
+
 function openMacroEditor(id) {
   const m = macrosList.find((x) => x.id === id);
   if (!m) return;
@@ -430,22 +434,123 @@ function openMacroEditor(id) {
   document.getElementById('me-desc').value = m.description || '';
   document.getElementById('me-url').value = m.start_url || '';
   document.getElementById('me-tags').value = (m.tags || []).join(', ');
-  document.getElementById('me-steps').value = JSON.stringify(m.steps || [], null, 2);
+  const steps = Array.isArray(m.steps) ? m.steps : [];
+  editorRows = steps.map((s) => window.macroParseStep(s));
+  editorJsonMode = false;
+  document.getElementById('me-steps').value = JSON.stringify(steps, null, 2);
+  document.getElementById('me-steps').style.display = 'none';
+  document.getElementById('me-builder').style.display = 'flex';
   document.getElementById('me-error').style.display = 'none';
+  renderEditorBuilder();
   document.getElementById('macro-edit-modal').classList.add('visible');
 }
 function closeMacroEditor() {
   editingMacroId = null;
+  editorRows = [];
   document.getElementById('macro-edit-modal').classList.remove('visible');
 }
+
+function renderEditorBuilder() {
+  const el = document.getElementById('me-builder');
+  if (!el) return;
+  if (!editorRows.length) {
+    el.innerHTML = '<div style="font-size:11px;color:#6b7280;padding:12px;border:1px dashed rgba(255,255,255,.1);border-radius:8px;text-align:center">No steps yet — click "+ Add step" or record some.</div>';
+    return;
+  }
+  el.innerHTML = editorRows.map((row, i) => {
+    const ab = window.MACRO_ABILITY_BY_ID[row.abilityId] || window.MACRO_ABILITY_BY_ID.custom;
+    const options = window.MACRO_ABILITIES.map((a) =>
+      `<option value="${a.id}"${a.id === row.abilityId ? ' selected' : ''}>${escapeHtml(a.label)}</option>`).join('');
+    const fields = ab.fields.map((f) => {
+      const v = row.values[f.name] || '';
+      const ph = f.placeholder ? ` placeholder="${escapeHtml(f.placeholder)}"` : '';
+      if (f.type === 'textarea') {
+        return `<label style="font-size:10px;color:#9aa0aa;display:block;margin-top:4px">${escapeHtml(f.label)}</label>
+          <textarea data-row="${i}" data-field="${f.name}"${ph} style="min-height:50px;font-size:11px;width:100%">${escapeHtml(v)}</textarea>`;
+      }
+      return `<label style="font-size:10px;color:#9aa0aa;display:block;margin-top:4px">${escapeHtml(f.label)}</label>
+        <input type="${f.type === 'number' ? 'number' : 'text'}" data-row="${i}" data-field="${f.name}" value="${escapeHtml(v)}"${ph} style="font-size:11px;width:100%">`;
+    }).join('');
+    return `<div style="border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;background:rgba(255,255,255,.02)">
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:10px;color:#6b7280;width:18px;text-align:center">${i + 1}</span>
+        <select data-row-ability="${i}" style="flex:1;font-size:11px">${options}</select>
+        <button class="btn btn-secondary" data-row-up="${i}" style="font-size:10px;padding:2px 6px" title="Move up">↑</button>
+        <button class="btn btn-secondary" data-row-down="${i}" style="font-size:10px;padding:2px 6px" title="Move down">↓</button>
+        <button class="btn btn-secondary" data-row-del="${i}" style="font-size:10px;padding:2px 6px" title="Remove">✕</button>
+      </div>
+      <div style="margin-top:4px">${fields}</div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-row-ability]').forEach((s) => s.addEventListener('change', (e) => {
+    const i = Number(e.target.dataset.rowAbility);
+    editorRows[i] = { abilityId: e.target.value, values: {} };
+    renderEditorBuilder();
+  }));
+  el.querySelectorAll('[data-row-up]').forEach((b) => b.addEventListener('click', () => {
+    const i = Number(b.dataset.rowUp); if (i <= 0) return;
+    [editorRows[i - 1], editorRows[i]] = [editorRows[i], editorRows[i - 1]]; renderEditorBuilder();
+  }));
+  el.querySelectorAll('[data-row-down]').forEach((b) => b.addEventListener('click', () => {
+    const i = Number(b.dataset.rowDown); if (i >= editorRows.length - 1) return;
+    [editorRows[i + 1], editorRows[i]] = [editorRows[i], editorRows[i + 1]]; renderEditorBuilder();
+  }));
+  el.querySelectorAll('[data-row-del]').forEach((b) => b.addEventListener('click', () => {
+    const i = Number(b.dataset.rowDel);
+    editorRows.splice(i, 1); renderEditorBuilder();
+  }));
+  el.querySelectorAll('[data-row][data-field]').forEach((inp) => inp.addEventListener('input', (e) => {
+    const i = Number(e.target.dataset.row);
+    const f = e.target.dataset.field;
+    editorRows[i].values[f] = e.target.value;
+  }));
+}
+
+function addEditorStep() {
+  editorRows.push({ abilityId: 'navigate', values: {} });
+  renderEditorBuilder();
+}
+
+function toggleEditorJson() {
+  const ta = document.getElementById('me-steps');
+  const builder = document.getElementById('me-builder');
+  if (!editorJsonMode) {
+    // Builder -> JSON: serialize current rows.
+    ta.value = JSON.stringify(editorRows.map((r) => window.macroBuildStep(r.abilityId, r.values)), null, 2);
+    ta.style.display = 'block';
+    builder.style.display = 'none';
+    editorJsonMode = true;
+  } else {
+    // JSON -> Builder: try to parse.
+    try {
+      const arr = JSON.parse(ta.value);
+      if (!Array.isArray(arr)) throw new Error('Steps must be an array');
+      editorRows = arr.map((s) => window.macroParseStep(s));
+      ta.style.display = 'none';
+      builder.style.display = 'flex';
+      editorJsonMode = false;
+      renderEditorBuilder();
+    } catch (e) {
+      const errEl = document.getElementById('me-error');
+      errEl.textContent = 'Cannot switch — invalid JSON: ' + e.message;
+      errEl.style.display = 'block';
+    }
+  }
+}
+
 async function saveMacroEditor() {
   if (!editingMacroId) return;
   const errEl = document.getElementById('me-error');
   errEl.style.display = 'none';
   let steps;
-  try { steps = JSON.parse(document.getElementById('me-steps').value); }
-  catch (e) { errEl.textContent = 'Steps must be valid JSON: ' + e.message; errEl.style.display = 'block'; return; }
-  if (!Array.isArray(steps)) { errEl.textContent = 'Steps must be a JSON array'; errEl.style.display = 'block'; return; }
+  if (editorJsonMode) {
+    try { steps = JSON.parse(document.getElementById('me-steps').value); }
+    catch (e) { errEl.textContent = 'Steps must be valid JSON: ' + e.message; errEl.style.display = 'block'; return; }
+    if (!Array.isArray(steps)) { errEl.textContent = 'Steps must be a JSON array'; errEl.style.display = 'block'; return; }
+  } else {
+    steps = editorRows.map((r) => window.macroBuildStep(r.abilityId, r.values));
+  }
   const patch = {
     name: document.getElementById('me-name').value.trim() || 'Untitled',
     description: document.getElementById('me-desc').value.trim() || null,
