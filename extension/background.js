@@ -250,15 +250,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === "PENDRAGONX_REC_STOP_REQUEST") {
     (async () => {
-      // The side panel listens for this and will prompt the user for a name.
-      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_PROMPT" }); } catch {}
+      // The side panel listens for this and will prompt the user for a name (or auto-save if appending).
+      const state = await getRecState();
+      try {
+        chrome.runtime.sendMessage({
+          type: "PENDRAGONX_REC_STOP_PROMPT",
+          appendMacroId: state?.appendMacroId || null,
+          appendName: state?.appendName || null,
+        });
+      } catch {}
     })();
     return false;
   }
   if (msg.type === "PENDRAGONX_REC_START") {
     (async () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const res = await startRecording(tab);
+      const res = await startRecording(tab, {
+        appendMacroId: msg.appendMacroId || null,
+        appendName: msg.appendName || null,
+      });
       syncRecorderMenuVisibility();
       sendResponse(res);
     })();
@@ -275,6 +285,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const token = await getValidToken();
       const userId = await getUserId(token);
       if (!token || !userId) { sendResponse({ ok: false, error: "Sign in to PendragonX first" }); return; }
+
+      // Append mode: fetch existing macro and concat steps.
+      if (state.appendMacroId) {
+        try {
+          const cur = await fetch(`${SUPABASE_URL}/rest/v1/alice_macros?id=eq.${state.appendMacroId}&select=steps`, {
+            headers: authJson(token),
+          });
+          if (!cur.ok) { sendResponse({ ok: false, error: await responseError(cur) }); return; }
+          const rows = await cur.json().catch(() => []);
+          const existing = Array.isArray(rows?.[0]?.steps) ? rows[0].steps : [];
+          const combined = existing.concat(state.steps);
+          const patch = await fetch(`${SUPABASE_URL}/rest/v1/alice_macros?id=eq.${state.appendMacroId}`, {
+            method: "PATCH",
+            headers: { ...authJson(token), Prefer: "return=representation" },
+            body: JSON.stringify({ steps: combined, last_error: null, last_error_step: null }),
+          });
+          if (!patch.ok) { sendResponse({ ok: false, error: await responseError(patch) }); return; }
+          const out = await patch.json().catch(() => []);
+          sendResponse({ ok: true, macro: out[0] || null, appended: state.steps.length });
+        } catch (e) {
+          sendResponse({ ok: false, error: String(e?.message || e) });
+        }
+        return;
+      }
+
       const res = await fetch(`${SUPABASE_URL}/rest/v1/alice_macros`, {
         method: "POST",
         headers: { ...authJson(token), Prefer: "return=representation" },
