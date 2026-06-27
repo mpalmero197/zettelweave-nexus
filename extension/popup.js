@@ -348,6 +348,12 @@ function setupMacros() {
   document.getElementById('macro-market-btn')?.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://pendragonx.com/macros' });
   });
+  document.getElementById('macro-prebuilt-btn')?.addEventListener('click', openPrebuiltModal);
+  document.getElementById('pb-close')?.addEventListener('click', closePrebuiltModal);
+  document.getElementById('prebuilt-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'prebuilt-modal') closePrebuiltModal();
+  });
+  document.getElementById('pb-filter')?.addEventListener('input', renderPrebuilt);
   document.getElementById('macro-teach-btn')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START' }, (resp) => {
       if (resp?.ok) toast('Recording started — do the task in the active tab, then come back to save.');
