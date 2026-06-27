@@ -392,8 +392,9 @@ function renderMacros() {
           <div style="font-weight:600;color:#e9e9ef;font-size:13px">${escapeHtml(m.name || 'Untitled')}</div>
           <div style="font-size:11px;color:#9aa0aa;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.description || m.start_url || '')}</div>
         </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
+        <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
           <button class="btn btn-primary" data-run="${m.id}" style="font-size:11px;padding:4px 10px">▶ Run</button>
+          <button class="btn btn-secondary" data-record="${m.id}" style="font-size:11px;padding:4px 8px" title="Record more steps and append">🎙</button>
           <button class="btn btn-secondary" data-edit="${m.id}" style="font-size:11px;padding:4px 8px" title="Edit">✎</button>
           <button class="btn btn-secondary" data-share="${m.id}" style="font-size:11px;padding:4px 8px" title="Submit to marketplace">⇪</button>
           <button class="btn btn-secondary" data-del="${m.id}" style="font-size:11px;padding:4px 8px" title="Delete">✕</button>
