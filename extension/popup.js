@@ -362,6 +362,8 @@ function setupMacros() {
   });
   document.getElementById('me-close')?.addEventListener('click', closeMacroEditor);
   document.getElementById('me-save')?.addEventListener('click', saveMacroEditor);
+  document.getElementById('me-add-step')?.addEventListener('click', addEditorStep);
+  document.getElementById('me-toggle-json')?.addEventListener('click', toggleEditorJson);
   document.getElementById('macro-edit-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'macro-edit-modal') closeMacroEditor();
   });
