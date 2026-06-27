@@ -1413,6 +1413,7 @@
             <button class="btn btn-primary" id="macro-research-btn">🔍 Research &amp; build macro</button>
             <button class="btn btn-secondary" id="macro-routine-btn" title="Open the visual routine builder">✨ New Routine</button>
             <button class="btn btn-secondary" id="macro-teach-btn" title="Record yourself doing the task in this tab">🎓 Teach ALICE</button>
+            <button class="btn btn-secondary" id="macro-prebuilt-btn" title="Install a ready-made macro">🧰 Prebuilt</button>
             <button class="btn btn-secondary" id="macro-market-btn" title="Browse community macros">📚 Marketplace</button>
           </div>
           <div id="macro-research-status" style="font-size:11px;color:#9aa0aa;margin-top:6px;display:none"></div>
@@ -1507,7 +1508,21 @@
   </div>
 
 
+  <!-- Prebuilt macros modal -->
+  <div id="prebuilt-modal" class="modal-backdrop">
+    <div class="modal" style="max-width:560px">
+      <h3>Prebuilt macros</h3>
+      <p style="font-size:11px;color:#9aa0aa;margin:0 0 8px 0">One-click install. You can edit any of them after.</p>
+      <input type="text" id="pb-filter" placeholder="Filter…" style="margin-bottom:8px">
+      <div id="pb-list" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="pb-close">Close</button>
+      </div>
+    </div>
+  </div>
+
 <script src="preview-shim.js"></script>
+<script src="prebuilt-macros.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
