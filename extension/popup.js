@@ -1421,6 +1421,14 @@ function setupAIChat() {
     }
     // After the user stops recording from the page, ask for a name here.
     if (msg.type === 'PENDRAGONX_REC_STOP_PROMPT') {
+      // If recording was started in "append" mode, skip the name prompt and just save.
+      if (msg.appendMacroId) {
+        chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_STOP_AND_SAVE' }, (resp) => {
+          if (resp?.ok) { toast(`Appended ${resp.appended || 0} steps to "${msg.appendName || 'macro'}"`); loadMacros?.(); }
+          else toast(resp?.error || 'Could not append steps');
+        });
+        return;
+      }
       const name = prompt('Name this macro:');
       if (!name) {
         chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_CANCEL' });
