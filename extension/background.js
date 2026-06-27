@@ -829,7 +829,8 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
       if (chrome.sidePanel?.open && tab?.windowId != null) {
         await chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
       }
-      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_PROMPT" }); } catch {}
+      const recSt = await getRecState();
+      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_PROMPT", appendMacroId: recSt?.appendMacroId || null, appendName: recSt?.appendName || null }); } catch {}
       await notify(tab?.id, "Name your macro in the side panel to finish saving", true);
       return;
     }
