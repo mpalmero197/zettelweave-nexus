@@ -348,6 +348,12 @@ function setupMacros() {
   document.getElementById('macro-market-btn')?.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://pendragonx.com/macros' });
   });
+  document.getElementById('macro-prebuilt-btn')?.addEventListener('click', openPrebuiltModal);
+  document.getElementById('pb-close')?.addEventListener('click', closePrebuiltModal);
+  document.getElementById('prebuilt-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'prebuilt-modal') closePrebuiltModal();
+  });
+  document.getElementById('pb-filter')?.addEventListener('input', renderPrebuilt);
   document.getElementById('macro-teach-btn')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START' }, (resp) => {
       if (resp?.ok) toast('Recording started — do the task in the active tab, then come back to save.');
@@ -517,6 +523,72 @@ async function researchMacro() {
     btn.disabled = false;
   }
 }
+
+// ── Prebuilt macros ──
+function openPrebuiltModal() {
+  document.getElementById('pb-filter').value = '';
+  renderPrebuilt();
+  document.getElementById('prebuilt-modal').classList.add('visible');
+}
+function closePrebuiltModal() {
+  document.getElementById('prebuilt-modal').classList.remove('visible');
+}
+function renderPrebuilt() {
+  const list = window.PREBUILT_MACROS || [];
+  const q = (document.getElementById('pb-filter')?.value || '').toLowerCase().trim();
+  const filtered = q
+    ? list.filter((m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.description.toLowerCase().includes(q) ||
+        (m.category || '').toLowerCase().includes(q) ||
+        (m.tags || []).some((t) => t.toLowerCase().includes(q)))
+    : list;
+  const el = document.getElementById('pb-list');
+  if (!filtered.length) { el.innerHTML = '<div class="empty">No matches.</div>'; return; }
+  // group by category
+  const groups = {};
+  filtered.forEach((m) => { (groups[m.category || 'Other'] ||= []).push(m); });
+  el.innerHTML = Object.entries(groups).map(([cat, items]) => `
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin:6px 0 2px">${escapeHtml(cat)}</div>
+    ${items.map((m) => `
+      <div style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px">
+        <div style="font-size:18px;flex-shrink:0">${m.icon || '⚙️'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:#e9e9ef;font-size:12px">${escapeHtml(m.name)}</div>
+          <div style="font-size:11px;color:#9aa0aa;overflow:hidden;text-overflow:ellipsis">${escapeHtml(m.description)}</div>
+        </div>
+        <button class="btn btn-primary" data-pb-install="${m.slug}" style="font-size:11px;padding:4px 10px;flex-shrink:0">Install</button>
+      </div>`).join('')}
+  `).join('');
+  el.querySelectorAll('[data-pb-install]').forEach((b) =>
+    b.addEventListener('click', () => installPrebuilt(b.dataset.pbInstall)));
+}
+async function installPrebuilt(slug) {
+  if (!authToken) { toast('Sign in first'); return; }
+  const m = (window.PREBUILT_MACROS || []).find((x) => x.slug === slug);
+  if (!m) return;
+  try {
+    await rest('alice_macros', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        name: m.name,
+        description: m.description,
+        start_url: m.start_url || null,
+        target_domain: m.target_domain || null,
+        steps: m.steps,
+        tags: [...(m.tags || []), 'prebuilt'],
+        source: 'prebuilt',
+      }),
+    });
+    toast(`Installed "${m.name}"`);
+    closePrebuiltModal();
+    await loadMacros();
+  } catch (e) {
+    toast(e.message || 'Install failed');
+  }
+}
+
 
 // ── REST helpers ──
 function authHeaders(extra = {}) {
