@@ -407,8 +407,18 @@ function renderMacros() {
   }).join('');
   el.querySelectorAll('[data-run]').forEach((b) => b.addEventListener('click', () => runMacro(b.dataset.run)));
   el.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openMacroEditor(b.dataset.edit)));
+  el.querySelectorAll('[data-record]').forEach((b) => b.addEventListener('click', () => recordMoreSteps(b.dataset.record)));
   el.querySelectorAll('[data-share]').forEach((b) => b.addEventListener('click', () => shareMacro(b.dataset.share)));
   el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => deleteMacro(b.dataset.del)));
+}
+
+function recordMoreSteps(id) {
+  const m = macrosList.find((x) => x.id === id);
+  if (!m) return;
+  chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START', appendMacroId: id, appendName: m.name }, (resp) => {
+    if (resp?.ok) toast(`Recording into "${m.name}" — do the new steps, then stop to append.`);
+    else toast(resp?.error || 'Could not start recording');
+  });
 }
 
 let editingMacroId = null;
