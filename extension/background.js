@@ -170,7 +170,7 @@ async function setRecState(state) {
   else await chrome.storage.session.remove(REC_STATE_KEY);
 }
 
-async function startRecording(tab) {
+async function startRecording(tab, opts = {}) {
   if (!tab?.id || !tab?.url || !/^https?:/i.test(tab.url)) {
     return { ok: false, error: "Open a regular web page first." };
   }
@@ -181,6 +181,8 @@ async function startRecording(tab) {
     startTitle: tab.title || "",
     startTabId: tab.id,
     pausedAt: null,
+    appendMacroId: opts.appendMacroId || null,
+    appendName: opts.appendName || null,
   });
   try {
     await chrome.scripting.executeScript({
