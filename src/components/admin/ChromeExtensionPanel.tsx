@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Chrome, Download, Loader2, ExternalLink, CheckCircle2 } from 'lucide-react';
@@ -8,6 +8,14 @@ import { ChromeExtensionPreview } from './ChromeExtensionPreview';
 
 export function ChromeExtensionPanel() {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/chrome-extension/manifest.json?t=${Date.now()}`)
+      .then((r) => r.json())
+      .then((m) => setVersion(m?.version || null))
+      .catch(() => setVersion(null));
+  }, []);
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -45,7 +53,7 @@ export function ChromeExtensionPanel() {
       <AdminSectionHeader
         icon={Chrome}
         title="Chrome Extension"
-        description="Package and distribute the PendragonX Toolbox extension"
+        description={version ? `Preview build v${version} · Package and distribute the PendragonX Toolbox` : 'Package and distribute the PendragonX Toolbox extension'}
         actions={
           <Button onClick={handleDownload} disabled={isDownloading} className="gap-2">
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}

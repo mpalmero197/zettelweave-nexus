@@ -15,6 +15,14 @@ export function ChromeExtensionPreview() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/chrome-extension/manifest.json?n=${nonce}`)
+      .then((r) => r.json())
+      .then((m) => setVersion(m?.version || null))
+      .catch(() => setVersion(null));
+  }, [nonce]);
 
   const dims = mode === 'desktop'
     ? { w: 400, h: 600, label: '400 × 600 — Chrome popup' }
@@ -68,7 +76,14 @@ export function ChromeExtensionPreview() {
       <CardHeader className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle>Live Preview</CardTitle>
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              Live Preview
+              {version && (
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  v{version}
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
               Auto-signed-in with your current account. The preview is isolated — signing out here will <strong>not</strong> sign you out of PendragonX.
             </CardDescription>

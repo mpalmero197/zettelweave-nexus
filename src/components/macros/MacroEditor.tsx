@@ -43,12 +43,21 @@ const ACTION_OPTIONS = [
   "navigate",
   "click",
   "fill",
+  "hover",
+  "select_option",
   "wait",
   "wait_for",
   "press_key",
   "scroll",
+  "scroll_window",
   "ask",
   "pause",
+  "set_var",
+  "extract_text",
+  "copy_to_clipboard",
+  "notify",
+  "navigate_back",
+  "reload",
   "login_vault",
   "extract_to_card",
   "summarize_page",
@@ -105,31 +114,39 @@ export default function MacroEditor({ macro, onClose, onSaved }: Props) {
     setSaving(true);
     try {
       const cleaned = steps.map((s) => {
-        // For custom action stored as JSON string, parse it
         if (s.action === "custom" && typeof s.json === "string") {
-          try {
-            return JSON.parse(s.json);
-          } catch {
-            return s;
-          }
+          try { return JSON.parse(s.json); } catch { return s; }
         }
         return s;
       });
-      const { error } = await supabase
-        .from("alice_macros")
-        .update({
-          name: name.trim() || "Untitled",
-          description: description.trim() || null,
-          start_url: startUrl.trim() || null,
-          target_domain: targetDomain.trim() || null,
-          tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-          steps: cleaned,
-          last_error: null,
-          last_error_step: null,
-        } as any)
-        .eq("id", macro.id);
-      if (error) throw error;
-      toast({ title: "Macro saved" });
+      const payload = {
+        name: name.trim() || "Untitled",
+        description: description.trim() || null,
+        start_url: startUrl.trim() || null,
+        target_domain: targetDomain.trim() || null,
+        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        steps: cleaned,
+        last_error: null,
+        last_error_step: null,
+      } as any;
+
+      const isNew = !macro.id || macro.id === "__new__";
+      if (isNew) {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) throw new Error("Sign in required");
+        const { error } = await supabase
+          .from("alice_macros")
+          .insert({ ...payload, user_id: u.user.id, source: "builder" } as any);
+        if (error) throw error;
+        toast({ title: "Macro created" });
+      } else {
+        const { error } = await supabase
+          .from("alice_macros")
+          .update(payload)
+          .eq("id", macro.id);
+        if (error) throw error;
+        toast({ title: "Macro saved" });
+      }
       onSaved();
       onClose();
     } catch (e: any) {
@@ -139,11 +156,12 @@ export default function MacroEditor({ macro, onClose, onSaved }: Props) {
     }
   };
 
+  const isNew = !macro.id || macro.id === "__new__";
   return (
     <Dialog open={!!macro} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit macro</DialogTitle>
+          <DialogTitle>{isNew ? "Build a new macro" : "Edit macro"}</DialogTitle>
           <DialogDescription>
             Tweak the metadata, reorder steps, or update selectors and values. Use{" "}
             <code>{`{{vault.username}}`}</code>, <code>{`{{vault.password}}`}</code> or{" "}
@@ -327,6 +345,48 @@ function StepFields({
       return <FieldArea label="Goal" value={step.goal || ""} onChange={(v) => onChange({ goal: v })} />;
     case "run_macro":
       return <FieldRow label="Macro ID" value={step.macro_id || ""} onChange={(v) => onChange({ macro_id: v })} />;
+    case "hover":
+      return <FieldRow label="Selector" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} />;
+    case "select_option":
+      return (
+        <>
+          <FieldRow label="Select element" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} placeholder="select[name='country']" />
+          <FieldRow label="Option value" value={String(step.value ?? "")} onChange={(v) => onChange({ value: v })} />
+        </>
+      );
+    case "set_var":
+      return (
+        <>
+          <FieldRow label="Variable" value={step.var || ""} onChange={(v) => onChange({ var: v })} placeholder="topic" />
+          <FieldRow label="Value" value={String(step.value ?? "")} onChange={(v) => onChange({ value: v })} />
+        </>
+      );
+    case "extract_text":
+      return (
+        <>
+          <FieldRow label="Selector" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} />
+          <FieldRow label="Variable" value={step.var || ""} onChange={(v) => onChange({ var: v })} placeholder="value" />
+        </>
+      );
+    case "copy_to_clipboard":
+      return (
+        <>
+          <FieldRow label="Selector (optional)" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} />
+          <FieldRow label="Literal text (if no selector)" value={String(step.value ?? "")} onChange={(v) => onChange({ value: v })} />
+        </>
+      );
+    case "notify":
+      return (
+        <>
+          <FieldRow label="Title" value={step.title || ""} onChange={(v) => onChange({ title: v })} placeholder="Done!" />
+          <FieldRow label="Message" value={step.message || ""} onChange={(v) => onChange({ message: v })} />
+        </>
+      );
+    case "scroll_window":
+      return <FieldRow label="top or bottom" value={step.target || "bottom"} onChange={(v) => onChange({ target: v })} />;
+    case "navigate_back":
+    case "reload":
+      return <p className="text-xs text-muted-foreground">No parameters.</p>;
     default:
       return (
         <FieldArea

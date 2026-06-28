@@ -76,6 +76,34 @@ window.MACRO_ABILITIES = [
   { id: 'scroll', label: '🔽 Scroll to element', fields: [
       { name: 'selector', label: 'CSS selector', type: 'text' },
     ] },
+  { id: 'scroll_window', label: '🔽 Scroll window (top/bottom)', fields: [
+      { name: 'target', label: 'top or bottom', type: 'text', placeholder: 'bottom' },
+    ] },
+  { id: 'hover', label: '🖐️ Hover element', fields: [
+      { name: 'selector', label: 'CSS selector', type: 'text' },
+    ] },
+  { id: 'select_option', label: '🎛️ Pick dropdown option', fields: [
+      { name: 'selector', label: 'Select element', type: 'text', placeholder: "select[name='country']" },
+      { name: 'value', label: 'Option value', type: 'text' },
+    ] },
+  { id: 'set_var', label: '🏷️ Set a variable', fields: [
+      { name: 'var', label: 'Variable name', type: 'text', placeholder: 'topic' },
+      { name: 'value', label: 'Value', type: 'text' },
+    ] },
+  { id: 'extract_text', label: '📋 Save text to variable', fields: [
+      { name: 'selector', label: 'CSS selector', type: 'text' },
+      { name: 'var', label: 'Variable name', type: 'text', placeholder: 'value' },
+    ] },
+  { id: 'copy_to_clipboard', label: '📎 Copy to clipboard', fields: [
+      { name: 'selector', label: 'Selector (optional)', type: 'text' },
+      { name: 'value', label: 'Literal text (if no selector)', type: 'text' },
+    ] },
+  { id: 'notify', label: '🔔 Show notification', fields: [
+      { name: 'title', label: 'Title', type: 'text', placeholder: 'Done!' },
+      { name: 'message', label: 'Message', type: 'text' },
+    ] },
+  { id: 'navigate_back', label: '↩️ Go back', fields: [] },
+  { id: 'reload', label: '🔄 Reload page', fields: [] },
   { id: 'note', label: '📌 Note / comment', fields: [
       { name: 'note', label: 'Note (won\'t execute anything)', type: 'text' },
     ] },
