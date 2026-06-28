@@ -76,7 +76,14 @@ export function ChromeExtensionPreview() {
       <CardHeader className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle>Live Preview</CardTitle>
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              Live Preview
+              {version && (
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  v{version}
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
               Auto-signed-in with your current account. The preview is isolated — signing out here will <strong>not</strong> sign you out of PendragonX.
             </CardDescription>
