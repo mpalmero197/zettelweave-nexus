@@ -53,7 +53,7 @@ export function ChromeExtensionPanel() {
       <AdminSectionHeader
         icon={Chrome}
         title="Chrome Extension"
-        description="Package and distribute the PendragonX Toolbox extension"
+        description={version ? `Preview build v${version} · Package and distribute the PendragonX Toolbox` : 'Package and distribute the PendragonX Toolbox extension'}
         actions={
           <Button onClick={handleDownload} disabled={isDownloading} className="gap-2">
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
