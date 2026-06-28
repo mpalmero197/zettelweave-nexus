@@ -366,6 +366,21 @@
       case "scroll":
         el.scrollIntoView({ block: "center", behavior: "smooth" });
         break;
+      case "hover":
+        el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+        el.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+        break;
+      case "select_option":
+        if (el instanceof HTMLSelectElement) {
+          el.value = substituteVars(String(step.value ?? ""));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        break;
+      case "extract_text": {
+        const txt = el.innerText || "";
+        if (step.var) runVars[step.var] = txt;
+        break;
+      }
       default:
         throw new Error(`Unknown step action: ${step.action}`);
     }
