@@ -198,6 +198,21 @@ export default function Macros() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button
+            onClick={() =>
+              setEditTarget({
+                id: "__new__",
+                name: "",
+                description: "",
+                start_url: "",
+                target_domain: "",
+                tags: [],
+                steps: [],
+              })
+            }
+          >
+            <Sparkles className="h-4 w-4 mr-2" /> Build Macro
+          </Button>
+          <Button
             variant="outline"
             onClick={() => {
               window.dispatchEvent(new CustomEvent("alice:start-teach"));
