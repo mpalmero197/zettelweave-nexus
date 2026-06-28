@@ -345,6 +345,48 @@ function StepFields({
       return <FieldArea label="Goal" value={step.goal || ""} onChange={(v) => onChange({ goal: v })} />;
     case "run_macro":
       return <FieldRow label="Macro ID" value={step.macro_id || ""} onChange={(v) => onChange({ macro_id: v })} />;
+    case "hover":
+      return <FieldRow label="Selector" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} />;
+    case "select_option":
+      return (
+        <>
+          <FieldRow label="Select element" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} placeholder="select[name='country']" />
+          <FieldRow label="Option value" value={String(step.value ?? "")} onChange={(v) => onChange({ value: v })} />
+        </>
+      );
+    case "set_var":
+      return (
+        <>
+          <FieldRow label="Variable" value={step.var || ""} onChange={(v) => onChange({ var: v })} placeholder="topic" />
+          <FieldRow label="Value" value={String(step.value ?? "")} onChange={(v) => onChange({ value: v })} />
+        </>
+      );
+    case "extract_text":
+      return (
+        <>
+          <FieldRow label="Selector" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} />
+          <FieldRow label="Variable" value={step.var || ""} onChange={(v) => onChange({ var: v })} placeholder="value" />
+        </>
+      );
+    case "copy_to_clipboard":
+      return (
+        <>
+          <FieldRow label="Selector (optional)" value={step.selector || ""} onChange={(v) => onChange({ selector: v })} />
+          <FieldRow label="Literal text (if no selector)" value={String(step.value ?? "")} onChange={(v) => onChange({ value: v })} />
+        </>
+      );
+    case "notify":
+      return (
+        <>
+          <FieldRow label="Title" value={step.title || ""} onChange={(v) => onChange({ title: v })} placeholder="Done!" />
+          <FieldRow label="Message" value={step.message || ""} onChange={(v) => onChange({ message: v })} />
+        </>
+      );
+    case "scroll_window":
+      return <FieldRow label="top or bottom" value={step.target || "bottom"} onChange={(v) => onChange({ target: v })} />;
+    case "navigate_back":
+    case "reload":
+      return <p className="text-xs text-muted-foreground">No parameters.</p>;
     default:
       return (
         <FieldArea
