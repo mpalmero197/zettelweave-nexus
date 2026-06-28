@@ -15,6 +15,14 @@ export function ChromeExtensionPreview() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/chrome-extension/manifest.json?n=${nonce}`)
+      .then((r) => r.json())
+      .then((m) => setVersion(m?.version || null))
+      .catch(() => setVersion(null));
+  }, [nonce]);
 
   const dims = mode === 'desktop'
     ? { w: 400, h: 600, label: '400 × 600 — Chrome popup' }
