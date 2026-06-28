@@ -114,31 +114,39 @@ export default function MacroEditor({ macro, onClose, onSaved }: Props) {
     setSaving(true);
     try {
       const cleaned = steps.map((s) => {
-        // For custom action stored as JSON string, parse it
         if (s.action === "custom" && typeof s.json === "string") {
-          try {
-            return JSON.parse(s.json);
-          } catch {
-            return s;
-          }
+          try { return JSON.parse(s.json); } catch { return s; }
         }
         return s;
       });
-      const { error } = await supabase
-        .from("alice_macros")
-        .update({
-          name: name.trim() || "Untitled",
-          description: description.trim() || null,
-          start_url: startUrl.trim() || null,
-          target_domain: targetDomain.trim() || null,
-          tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-          steps: cleaned,
-          last_error: null,
-          last_error_step: null,
-        } as any)
-        .eq("id", macro.id);
-      if (error) throw error;
-      toast({ title: "Macro saved" });
+      const payload = {
+        name: name.trim() || "Untitled",
+        description: description.trim() || null,
+        start_url: startUrl.trim() || null,
+        target_domain: targetDomain.trim() || null,
+        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        steps: cleaned,
+        last_error: null,
+        last_error_step: null,
+      } as any;
+
+      const isNew = !macro.id || macro.id === "__new__";
+      if (isNew) {
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) throw new Error("Sign in required");
+        const { error } = await supabase
+          .from("alice_macros")
+          .insert({ ...payload, user_id: u.user.id, source: "builder" } as any);
+        if (error) throw error;
+        toast({ title: "Macro created" });
+      } else {
+        const { error } = await supabase
+          .from("alice_macros")
+          .update(payload)
+          .eq("id", macro.id);
+        if (error) throw error;
+        toast({ title: "Macro saved" });
+      }
       onSaved();
       onClose();
     } catch (e: any) {
@@ -148,11 +156,12 @@ export default function MacroEditor({ macro, onClose, onSaved }: Props) {
     }
   };
 
+  const isNew = !macro.id || macro.id === "__new__";
   return (
     <Dialog open={!!macro} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit macro</DialogTitle>
+          <DialogTitle>{isNew ? "Build a new macro" : "Edit macro"}</DialogTitle>
           <DialogDescription>
             Tweak the metadata, reorder steps, or update selectors and values. Use{" "}
             <code>{`{{vault.username}}`}</code>, <code>{`{{vault.password}}`}</code> or{" "}
