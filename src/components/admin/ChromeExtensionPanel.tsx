@@ -8,6 +8,14 @@ import { ChromeExtensionPreview } from './ChromeExtensionPreview';
 
 export function ChromeExtensionPanel() {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/chrome-extension/manifest.json?t=${Date.now()}`)
+      .then((r) => r.json())
+      .then((m) => setVersion(m?.version || null))
+      .catch(() => setVersion(null));
+  }, []);
 
   const handleDownload = async () => {
     setIsDownloading(true);
