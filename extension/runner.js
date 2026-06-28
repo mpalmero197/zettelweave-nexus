@@ -279,6 +279,34 @@
   async function runStep(step) {
     if (step.action === "wait") { await sleep(Math.max(50, Number(step.ms) || 500)); return; }
     if (step.action === "navigate" && step.url) { window.location.href = substituteVars(step.url); return; }
+    if (step.action === "navigate_back") { history.back(); return; }
+    if (step.action === "reload") { location.reload(); return; }
+    if (step.action === "set_var") { if (step.var) runVars[step.var] = substituteVars(String(step.value ?? "")); return; }
+    if (step.action === "notify") {
+      const msg = substituteVars(step.message || step.text || "");
+      try {
+        if (typeof Notification !== "undefined") {
+          if (Notification.permission !== "granted") { try { await Notification.requestPermission(); } catch {} }
+          if (Notification.permission === "granted") new Notification(step.title || "ALICE Macro", { body: msg });
+        }
+      } catch {}
+      try { updateOverlay(msg); } catch {}
+      return;
+    }
+    if (step.action === "copy_to_clipboard") {
+      const txt = step.selector
+        ? (document.querySelector(step.selector)?.innerText || "")
+        : substituteVars(String(step.value ?? ""));
+      try { await navigator.clipboard.writeText(txt); } catch {}
+      if (step.var) runVars[step.var] = txt;
+      return;
+    }
+    if (step.action === "scroll_window") {
+      const target = (step.target || "bottom").toLowerCase();
+      window.scrollTo({ top: target === "top" ? 0 : document.body.scrollHeight, behavior: "smooth" });
+      return;
+    }
+    if (step.action === "note" || step.action === "noop") return;
     if (step.action === "pause") {
       let cleanup = null;
       if (step.selector) {
