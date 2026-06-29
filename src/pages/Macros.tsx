@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Star, Download, Share2, Trash2, Play, ChevronRight, Sparkles, Search, Pencil, GraduationCap } from "lucide-react";
 import MacroEditor, { type MacroEditable } from "@/components/macros/MacroEditor";
+import AskAliceMacro from "@/components/macros/AskAliceMacro";
 
 interface Macro {
   id: string;
