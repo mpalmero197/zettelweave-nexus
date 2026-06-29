@@ -235,7 +235,14 @@ export default function Macros() {
         <TabsList>
           <TabsTrigger value="mine">My Macros ({macros.length})</TabsTrigger>
           <TabsTrigger value="market">Marketplace</TabsTrigger>
+          <TabsTrigger value="ask">Ask ALICE</TabsTrigger>
         </TabsList>
+
+        {/* ──────── Ask ALICE ──────── */}
+        <TabsContent value="ask" className="space-y-3">
+          <AskAliceMacro onCreated={loadMine} onEdit={(m) => setEditTarget(m as MacroEditable)} />
+        </TabsContent>
+
 
         {/* ──────── My Macros ──────── */}
         <TabsContent value="mine" className="space-y-3">
