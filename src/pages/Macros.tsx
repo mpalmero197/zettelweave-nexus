@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Star, Download, Share2, Trash2, Play, ChevronRight, Sparkles, Search, Pencil, GraduationCap } from "lucide-react";
 import MacroEditor, { type MacroEditable } from "@/components/macros/MacroEditor";
+import AskAliceMacro from "@/components/macros/AskAliceMacro";
 
 interface Macro {
   id: string;
@@ -235,7 +236,14 @@ export default function Macros() {
         <TabsList>
           <TabsTrigger value="mine">My Macros ({macros.length})</TabsTrigger>
           <TabsTrigger value="market">Marketplace</TabsTrigger>
+          <TabsTrigger value="ask">Ask ALICE</TabsTrigger>
         </TabsList>
+
+        {/* ──────── Ask ALICE ──────── */}
+        <TabsContent value="ask" className="space-y-3">
+          <AskAliceMacro onCreated={loadMine} onEdit={(m) => setEditTarget(m as MacroEditable)} />
+        </TabsContent>
+
 
         {/* ──────── My Macros ──────── */}
         <TabsContent value="mine" className="space-y-3">
