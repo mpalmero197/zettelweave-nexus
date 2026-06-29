@@ -1,6 +1,22 @@
-// AUTO-GENERATED from src/lib/macros/prebuilt.ts — do not hand-edit.
-// Prebuilt macro library shipped with the toolbox.
-window.PREBUILT_MACROS = [
+// Shared catalog of prebuilt macros for the ALICE Macro Suite.
+// Mirrors the structure of `extension/prebuilt-macros.js` so they can be
+// installed from either the web app or the Toolbox extension.
+
+export type PrebuiltStep = Record<string, any> & { action: string };
+
+export interface PrebuiltMacro {
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  start_url: string;
+  target_domain: string | null;
+  tags: string[];
+  steps: PrebuiltStep[];
+}
+
+export const PREBUILT_MACROS: PrebuiltMacro[] = [
   // ── Email ────────────────────────────────────────────
   {
     slug: "gmail-compose",
@@ -594,3 +610,7 @@ window.PREBUILT_MACROS = [
     ],
   },
 ];
+
+export const PREBUILT_CATEGORIES = Array.from(
+  new Set(PREBUILT_MACROS.map((m) => m.category))
+);
