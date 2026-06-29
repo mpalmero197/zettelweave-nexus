@@ -231,6 +231,14 @@ export function MobileNavigation({
                 Automation
               </p>
               <div className="grid grid-cols-4 gap-2">
+                <Link
+                  to="/macros"
+                  onClick={() => setOpen(false)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 min-h-[68px] bg-muted/50 text-foreground active:scale-95 active:bg-accent touch-manipulation"
+                >
+                  <Wand2 className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] font-medium leading-tight text-center">Macros</span>
+                </Link>
                 {isAdmin && (
                   <>
                     <Link
