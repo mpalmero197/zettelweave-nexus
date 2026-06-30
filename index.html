@@ -414,10 +414,32 @@
           <h1>PendragonX</h1>
         </div>
         <div id="app-loading-spinner"></div>
-        <div id="app-loading-text">Loading your knowledge system...</div>
+        <div id="app-loading-text">PendragonX turns your notes into a living knowledge graph you can question, connect, and build from.</div>
       </div>
     </div>
-    
+
+    <!-- Static, crawler-visible hero (replaced by React on mount). Ensures AI crawlers and
+         non-JS bots see real content instead of a generic loading screen. -->
+    <noscript>
+      <main style="max-width:760px;margin:64px auto;padding:0 24px;font-family:Inter,system-ui,sans-serif;color:#e8eaed;background:#202124;">
+        <h1 style="font-size:42px;line-height:1.1;font-weight:600;margin-bottom:16px;">
+          PendragonX turns your notes into a living knowledge graph you can question, connect, and build from.
+        </h1>
+        <p style="font-size:18px;color:#9aa0a6;margin-bottom:24px;">
+          A visual second brain built for writers — turn scattered notes into essays, books, and arguments. Auto-linked, AI-searchable, end-to-end encrypted.
+        </p>
+        <ul style="font-size:16px;line-height:1.7;list-style:none;padding:0;">
+          <li><a href="/auth?import=obsidian" style="color:#8ab4f8;">Import from Obsidian</a></li>
+          <li><a href="/auth?import=notion" style="color:#8ab4f8;">Import from Notion</a></li>
+          <li><a href="/auth?demo=1" style="color:#8ab4f8;">Try the demo graph</a></li>
+          <li><a href="/auth" style="color:#8ab4f8;">Sign up free</a></li>
+        </ul>
+        <p style="font-size:14px;color:#9aa0a6;margin-top:32px;">
+          PendragonX is an AI-powered knowledge management platform for writers and researchers. It auto-links every note in a 3D knowledge graph, lets you chat with your own notes using private AI, and imports from Obsidian, Notion, Roam, and Evernote.
+        </p>
+      </main>
+    </noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
