@@ -878,7 +878,7 @@ export default function Landing() {
       {/* ────────────────────────── 12. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 hero-glow pointer-events-none" />
-        <div className="floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />
+        <div className="hidden md:block floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />
         <div className={cn(
           "max-w-2xl mx-auto px-4 text-center relative z-10 transition-all duration-700",
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
