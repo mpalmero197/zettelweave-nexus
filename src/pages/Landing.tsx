@@ -234,6 +234,14 @@ export default function Landing() {
   };
 
   const goAuth = () => navigate("/auth");
+  // Demo graph: if already signed in, go straight to the Graph tab.
+  // Otherwise route through /auth and hand off to /app/graph after sign in.
+  const goDemoGraph = () => {
+    navigate("/app/graph?demo=1");
+  };
+  const goImport = (source: "obsidian" | "notion") => {
+    navigate(`/app/import?source=${source}`);
+  };
 
   return (
     <main className="min-h-screen bg-background landing-noise landing-grid-bg relative overflow-hidden">
