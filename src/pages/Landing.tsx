@@ -375,7 +375,7 @@ export default function Landing() {
               <Button
                 size="lg"
                 className="h-12 gap-2 cta-glow"
-                onClick={() => navigate("/auth?demo=1")}
+                onClick={goDemoGraph}
               >
                 <Network className="h-4 w-4" /> Try the demo graph
               </Button>
