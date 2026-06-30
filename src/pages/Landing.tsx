@@ -360,7 +360,7 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 className="h-12 gap-2"
-                onClick={() => navigate("/auth?import=obsidian")}
+                onClick={() => goImport("obsidian")}
               >
                 <FolderOpen className="h-4 w-4" /> Import from Obsidian
               </Button>
