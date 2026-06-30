@@ -234,6 +234,14 @@ export default function Landing() {
   };
 
   const goAuth = () => navigate("/auth");
+  // Demo graph: if already signed in, go straight to the Graph tab.
+  // Otherwise route through /auth and hand off to /app/graph after sign in.
+  const goDemoGraph = () => {
+    navigate("/app/graph?demo=1");
+  };
+  const goImport = (source: "obsidian" | "notion") => {
+    navigate(`/app/import?source=${source}`);
+  };
 
   return (
     <main className="min-h-screen bg-background landing-noise landing-grid-bg relative overflow-hidden">
@@ -352,7 +360,7 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 className="h-12 gap-2"
-                onClick={() => navigate("/auth?import=obsidian")}
+                onClick={() => goImport("obsidian")}
               >
                 <FolderOpen className="h-4 w-4" /> Import from Obsidian
               </Button>
@@ -360,14 +368,14 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 className="h-12 gap-2"
-                onClick={() => navigate("/auth?import=notion")}
+                onClick={() => goImport("notion")}
               >
                 <FileText className="h-4 w-4" /> Import from Notion
               </Button>
               <Button
                 size="lg"
                 className="h-12 gap-2 cta-glow"
-                onClick={() => navigate("/auth?demo=1")}
+                onClick={goDemoGraph}
               >
                 <Network className="h-4 w-4" /> Try the demo graph
               </Button>
@@ -870,7 +878,7 @@ export default function Landing() {
       {/* ────────────────────────── 12. FINAL CTA ────────────────────────── */}
       <section ref={ctaAnimation.ref} className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0 hero-glow pointer-events-none" />
-        <div className="floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />
+        <div className="hidden md:block floating-orb w-[400px] h-[400px] bg-primary bottom-[0%] right-[-10%]" style={{ animationDelay: '-5s' }} />
         <div className={cn(
           "max-w-2xl mx-auto px-4 text-center relative z-10 transition-all duration-700",
           ctaAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
