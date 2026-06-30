@@ -333,41 +333,48 @@ export default function Landing() {
 
             <h1
               id="hero-heading"
-              className="text-[44px] sm:text-6xl md:text-7xl tracking-tight leading-[1.05] text-balance"
+              className="text-[40px] sm:text-5xl md:text-6xl tracking-tight leading-[1.08] text-balance"
               style={{ fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 500 }}
             >
-              Your second brain,
-              <span className="block text-primary">designed for thinking.</span>
+              PendragonX turns your notes into a{" "}
+              <span className="text-primary">living knowledge graph</span>{" "}
+              you can question, connect, and build from.
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance">
-              Automatically links every idea, surfaces hidden patterns, and powers a private AI that
-              knows everything you've ever written.
+              Built for writers. Turn scattered notes into essays, books, and arguments —
+              auto-linked, AI-searchable, and end-to-end encrypted.
             </p>
 
-            {/* Chrome omnibox-styled CTA */}
-            <div className="max-w-xl mx-auto pt-2">
-              <button
-                onClick={goAuth}
-                className="group w-full flex items-center gap-3 h-14 pl-5 pr-2 rounded-full bg-card border border-border shadow-material-2 hover:shadow-material-3 transition-all text-left"
-                aria-label="Try PendragonX free"
+            {/* Three low-friction CTAs */}
+            <div className="max-w-xl mx-auto pt-2 grid sm:grid-cols-3 gap-3">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 gap-2"
+                onClick={() => navigate("/auth?import=obsidian")}
               >
-                <Search className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
-                <span className="flex-1 text-[15px] text-muted-foreground truncate">
-                  Ask anything across your notes…
-                </span>
-                <span className="hidden sm:inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium group-hover:bg-primary-hover transition-colors">
-                  Try it free
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </span>
-                <span className="sm:hidden inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground">
-                  <ArrowRight className="h-4 w-4" />
-                </span>
-              </button>
+                <FolderOpen className="h-4 w-4" /> Import from Obsidian
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 gap-2"
+                onClick={() => navigate("/auth?import=notion")}
+              >
+                <FileText className="h-4 w-4" /> Import from Notion
+              </Button>
+              <Button
+                size="lg"
+                className="h-12 gap-2 cta-glow"
+                onClick={() => navigate("/auth?demo=1")}
+              >
+                <Network className="h-4 w-4" /> Try the demo graph
+              </Button>
             </div>
 
             <div className="pt-1 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {["Free forever", "No credit card", "Imports from Notion & Obsidian", "End-to-end encrypted"].map((t) => (
+              {["Free forever", "No credit card", "Imports in seconds", "End-to-end encrypted"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
                   <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />{t}
                 </span>
