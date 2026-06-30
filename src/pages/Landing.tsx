@@ -740,86 +740,96 @@ export default function Landing() {
         "py-20 md:py-28 transition-all duration-700",
         pricingAnimation.isVisible ? "opacity-100" : "opacity-0"
       )}>
-        <div className="max-w-4xl mx-auto px-4 md:px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-14">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Pricing</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-balance">Start free. Think bigger.</h2>
-            <p className="text-muted-foreground">No surprises. No hidden fees. Upgrade when you're ready.</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Pricing Ladder</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-balance">Start free. Grow into your second brain.</h2>
+            <p className="text-muted-foreground">From free notes to a lifetime founder vault — pick the rung that fits.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
             {/* Free */}
-            <div className={cn(
-              "rounded-xl border border-border bg-card p-7 card-hover-lift transition-all duration-500",
-              pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            )}>
-              <h3 className="text-lg font-semibold">Free</h3>
-              <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-bold">$0</span>
-                <span className="text-sm text-muted-foreground">forever</span>
+            <div className="rounded-xl border border-border bg-card p-6 card-hover-lift">
+              <h3 className="text-base font-semibold">Free</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-3">
+                <span className="text-3xl font-bold">$0</span>
+                <span className="text-xs text-muted-foreground">forever</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">Everything you need to start building your second brain.</p>
-              <ul className="space-y-2.5 mb-8">
-                {["Up to 50 Zettelcards", "Full Note-Taking", "Unlimited Notebooks", "Basic Knowledge Graph", "22+ Built-In Plugins"].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2.5 text-sm">
-                    <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />{f}
-                  </li>
+              <p className="text-xs text-muted-foreground mb-4">Try the system risk-free.</p>
+              <ul className="space-y-2 mb-6 text-xs">
+                {["50 Zettelcards", "Notion / Obsidian import (1 vault)", "Basic graph", "22+ plugins"].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2"><Check className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />{f}</li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full h-11" onClick={goAuth}>Get Started Free</Button>
+              <Button variant="outline" className="w-full h-10 text-sm" onClick={goAuth}>Start free</Button>
             </div>
 
-            {/* Monthly */}
-            <div className={cn(
-              "rounded-xl border border-border bg-card p-7 card-hover-lift transition-all duration-500",
-              pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            )} style={{ transitionDelay: "100ms" }}>
-              <h3 className="text-lg font-semibold">Premium Monthly</h3>
-              <div className="flex items-baseline gap-1 mt-2 mb-4">
-                <span className="text-4xl font-bold">$4.99</span>
-                <span className="text-sm text-muted-foreground">/month</span>
+            {/* Solo */}
+            <div className="rounded-xl border border-border bg-card p-6 card-hover-lift">
+              <h3 className="text-base font-semibold">Solo</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-3">
+                <span className="text-3xl font-bold">$9</span>
+                <span className="text-xs text-muted-foreground">/mo</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">For serious thinkers who want the full power of AI.</p>
-              <ul className="space-y-2.5 mb-8">
-                {["Unlimited Zettelcards", "Advanced 3D Knowledge Graph", "Unlimited Whiteboards", "AI-Powered Everything", "Collaboration Features", "Priority Support"].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2.5 text-sm">
-                    <Check className="h-3.5 w-3.5 shrink-0" />{f}
-                  </li>
+              <p className="text-xs text-muted-foreground mb-4">Local-first sync + full graph for a single writer.</p>
+              <ul className="space-y-2 mb-6 text-xs">
+                {["Unlimited Zettelcards", "Local-first sync", "Full 3D graph", "Unlimited imports", "Offline PWA"].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" />{f}</li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full h-11" onClick={goAuth}>
-                Try 7 Days Free <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
+              <Button variant="outline" className="w-full h-10 text-sm" onClick={goAuth}>Try free 7 days</Button>
             </div>
 
-            {/* Yearly — Best Value */}
-            <div className={cn(
-              "rounded-xl bg-card p-7 relative premium-border transition-all duration-500",
-              pricingAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            )} style={{ transitionDelay: "200ms" }}>
+            {/* Pro — highlighted */}
+            <div className="rounded-xl bg-card p-6 relative premium-border">
               <Badge className="absolute -top-3 left-5 bg-foreground text-background border-0 text-xs gap-1">
-                <Crown className="h-3 w-3" />Best Value
+                <Crown className="h-3 w-3" />Most popular
               </Badge>
-              <h3 className="text-lg font-semibold">Premium Yearly</h3>
-              <div className="flex items-baseline gap-1 mt-2 mb-1">
-                <span className="text-4xl font-bold">$29.99</span>
-                <span className="text-sm text-muted-foreground">/year</span>
+              <h3 className="text-base font-semibold">Pro</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-3">
+                <span className="text-3xl font-bold">$24</span>
+                <span className="text-xs text-muted-foreground">/mo</span>
               </div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm line-through text-muted-foreground">$59.88/yr</span>
-                <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-0">Save 50%</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-6">Same premium features — half the price. Just $2.50/mo.</p>
-              <ul className="space-y-2.5 mb-8">
-                {["Unlimited Zettelcards", "Advanced 3D Knowledge Graph", "Unlimited Whiteboards", "AI-Powered Everything", "Collaboration Features", "Priority Support"].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2.5 text-sm">
-                    <Check className="h-3.5 w-3.5 shrink-0" />{f}
-                  </li>
+              <p className="text-xs text-muted-foreground mb-4">Heavy AI agents, advanced graphing, deep search.</p>
+              <ul className="space-y-2 mb-6 text-xs">
+                {["Everything in Solo", "Heavy AI agent credits", "ALICE autonomous agents", "Deep semantic search", "Catalyst writer suite", "Priority support"].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" />{f}</li>
                 ))}
               </ul>
-              <Button className="w-full h-11 cta-glow" onClick={goAuth}>
-                Try 7 Days Free <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
+              <Button className="w-full h-10 text-sm cta-glow" onClick={goAuth}>Try free 7 days</Button>
+            </div>
+
+            {/* Founder LTD */}
+            <div className="rounded-xl border-2 border-primary/40 bg-card p-6 card-hover-lift relative">
+              <Badge className="absolute -top-3 left-5 bg-primary text-primary-foreground border-0 text-xs">Limited</Badge>
+              <h3 className="text-base font-semibold">Founder LTD</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-3">
+                <span className="text-3xl font-bold">$129</span>
+                <span className="text-xs text-muted-foreground">once</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">Pay once. Pro forever. For early believers.</p>
+              <ul className="space-y-2 mb-6 text-xs">
+                {["Lifetime Pro access", "All future writer features", "Founder badge", "Direct line to the team"].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" />{f}</li>
+                ))}
+              </ul>
+              <Button variant="outline" className="w-full h-10 text-sm" onClick={goAuth}>Claim lifetime</Button>
+            </div>
+
+            {/* Templates */}
+            <div className="rounded-xl border border-border bg-card p-6 card-hover-lift">
+              <h3 className="text-base font-semibold">Templates</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-3">
+                <span className="text-3xl font-bold">$19+</span>
+                <span className="text-xs text-muted-foreground">one-time</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">Standalone writer vaults & research templates.</p>
+              <ul className="space-y-2 mb-6 text-xs">
+                {["Novelist vault", "Researcher vault", "Founder strategy kit", "One-time purchase"].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" />{f}</li>
+                ))}
+              </ul>
+              <Button variant="outline" className="w-full h-10 text-sm" onClick={goAuth}>Browse vaults</Button>
             </div>
           </div>
         </div>
