@@ -8,9 +8,12 @@ import { MobileTouchHandler } from "@/components/MobileTouchHandler";
 import { CosmicBackground } from "@/components/CosmicBackground";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
-import { MacroCoach } from "@/components/alice/MacroCoach";
-import { VaultBridge } from "@/components/alice/VaultBridge";
-import { RoutineBuilder } from "@/components/alice/RoutineBuilder";
+import { DeferredMount } from "@/hooks/useDeferredMount";
+
+// Always-on ALICE bridges — heavy, not needed for first paint. Lazy + deferred.
+const MacroCoach = lazy(() => import("@/components/alice/MacroCoach").then(m => ({ default: m.MacroCoach })));
+const VaultBridge = lazy(() => import("@/components/alice/VaultBridge").then(m => ({ default: m.VaultBridge })));
+const RoutineBuilder = lazy(() => import("@/components/alice/RoutineBuilder").then(m => ({ default: m.RoutineBuilder })));
 
 // Lazy load heavy UI shell components not needed for initial render
 const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
@@ -277,9 +280,13 @@ const App = () => (
                   </Suspense>
                 } />
               </Routes>
-              <MacroCoach />
-              <VaultBridge />
-              <RoutineBuilder />
+              <DeferredMount fallbackMs={1200}>
+                <Suspense fallback={null}>
+                  <MacroCoach />
+                  <VaultBridge />
+                  <RoutineBuilder />
+                </Suspense>
+              </DeferredMount>
             </BrowserRouter>
           </DeferredShell>
         </MobileTouchHandler>
