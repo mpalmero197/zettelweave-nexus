@@ -193,7 +193,9 @@ export function AppLayout() {
   return (
     <>
       <SkipToMain />
-      <OfflineDataManager />
+      <DeferredMount fallbackMs={1500}>
+        <Suspense fallback={null}><OfflineDataManager /></Suspense>
+      </DeferredMount>
       <MobileDetector>
         <MobileOptimizedLayout>
           <div
@@ -303,18 +305,24 @@ export function AppLayout() {
         </MobileOptimizedLayout>
       </MobileDetector>
 
-      <AutoSEOOverrides />
-      <PWAInstallPrompt />
-      {typeof PushNotificationPrompt !== 'undefined' && <PushNotificationPrompt />}
-      <FloatingChatBubble />
       <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
-      {!isPopout && <JarvisFAB />}
-      {!isPopout && <OnboardingTutorial />}
-      {!isPopout && <AliceUndoBanner />}
-      {!isPopout && <AliceFollowupPrompt />}
-      <AliceRecordingOverlay />
-      {!isPopout && <AliceWakeIndicator />}
+
+      {/* Everything below is background/ambient — defer until after first paint. */}
+      <DeferredMount fallbackMs={1200}>
+        <Suspense fallback={null}>
+          <AutoSEOOverrides />
+          <PWAInstallPrompt />
+          <PushNotificationPrompt />
+          <FloatingChatBubble />
+          {!isPopout && <JarvisFAB />}
+          {!isPopout && <OnboardingTutorial />}
+          {!isPopout && <AliceUndoBanner />}
+          {!isPopout && <AliceFollowupPrompt />}
+          <AliceRecordingOverlay />
+          {!isPopout && <AliceWakeIndicator />}
+        </Suspense>
+      </DeferredMount>
     </>
   );
 }
