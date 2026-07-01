@@ -1,13 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { MobileNavigation } from "./MobileNavigation";
-import { FloatingChatBubble } from "./FloatingChatBubble";
-import { PWAInstallPrompt } from "./PWAInstallPrompt";
-import { OfflineDataManager } from "./OfflineDataManager";
 import { SecurityNotice } from "./SecurityNotice";
-import { PushNotificationPrompt } from "./PushNotificationPrompt";
 import { MobileDetector } from "./MobileDetector";
 import { MobileOptimizedLayout } from "./MobileOptimizedLayout";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
@@ -19,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Wrench, Search, ExternalLink } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
-import { JarvisFAB } from "./jarvis/JarvisFAB";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Link } from "react-router-dom";
 import pendragonLogo from "@/assets/pendragon-logo.png";
@@ -27,13 +22,21 @@ import { toast } from "sonner";
 import { usePopoutMode } from "@/hooks/usePopoutMode";
 import { useWindowSync } from "@/hooks/useWindowSync";
 import { useWritingContextDetector } from "@/hooks/useWritingContextDetector";
-import { AutoSEOOverrides } from "./seo/AutoSEOOverrides";
-import { OnboardingTutorial } from "./onboarding/OnboardingTutorial";
-import { AliceUndoBanner } from "./alice/AliceUndoBanner";
-import { AliceFollowupPrompt } from "./alice/AliceFollowupPrompt";
-import { AliceRecordingOverlay } from "./alice/AliceRecordingOverlay";
-import { AliceWakeIndicator } from "./alice/AliceWakeIndicator";
 import { installAliceTtsResetListener } from "@/lib/aliceTts";
+import { DeferredMount } from "@/hooks/useDeferredMount";
+
+// Ambient overlays / background sync — lazy so they don't block first paint.
+const FloatingChatBubble = lazy(() => import("./FloatingChatBubble").then(m => ({ default: m.FloatingChatBubble })));
+const PWAInstallPrompt = lazy(() => import("./PWAInstallPrompt").then(m => ({ default: m.PWAInstallPrompt })));
+const OfflineDataManager = lazy(() => import("./OfflineDataManager").then(m => ({ default: m.OfflineDataManager })));
+const PushNotificationPrompt = lazy(() => import("./PushNotificationPrompt").then(m => ({ default: m.PushNotificationPrompt })));
+const AutoSEOOverrides = lazy(() => import("./seo/AutoSEOOverrides").then(m => ({ default: m.AutoSEOOverrides })));
+const OnboardingTutorial = lazy(() => import("./onboarding/OnboardingTutorial").then(m => ({ default: m.OnboardingTutorial })));
+const AliceUndoBanner = lazy(() => import("./alice/AliceUndoBanner").then(m => ({ default: m.AliceUndoBanner })));
+const AliceFollowupPrompt = lazy(() => import("./alice/AliceFollowupPrompt").then(m => ({ default: m.AliceFollowupPrompt })));
+const AliceRecordingOverlay = lazy(() => import("./alice/AliceRecordingOverlay").then(m => ({ default: m.AliceRecordingOverlay })));
+const AliceWakeIndicator = lazy(() => import("./alice/AliceWakeIndicator").then(m => ({ default: m.AliceWakeIndicator })));
+const JarvisFAB = lazy(() => import("./jarvis/JarvisFAB").then(m => ({ default: m.JarvisFAB })));
 
 export function AppLayout() {
   useWritingContextDetector();
@@ -190,7 +193,9 @@ export function AppLayout() {
   return (
     <>
       <SkipToMain />
-      <OfflineDataManager />
+      <DeferredMount fallbackMs={1500}>
+        <Suspense fallback={null}><OfflineDataManager /></Suspense>
+      </DeferredMount>
       <MobileDetector>
         <MobileOptimizedLayout>
           <div
@@ -300,18 +305,24 @@ export function AppLayout() {
         </MobileOptimizedLayout>
       </MobileDetector>
 
-      <AutoSEOOverrides />
-      <PWAInstallPrompt />
-      {typeof PushNotificationPrompt !== 'undefined' && <PushNotificationPrompt />}
-      <FloatingChatBubble />
       <ToolboxSidebar open={toolboxOpen} onOpenChange={setToolboxOpen} />
       <FocusMiniPill />
-      {!isPopout && <JarvisFAB />}
-      {!isPopout && <OnboardingTutorial />}
-      {!isPopout && <AliceUndoBanner />}
-      {!isPopout && <AliceFollowupPrompt />}
-      <AliceRecordingOverlay />
-      {!isPopout && <AliceWakeIndicator />}
+
+      {/* Everything below is background/ambient — defer until after first paint. */}
+      <DeferredMount fallbackMs={1200}>
+        <Suspense fallback={null}>
+          <AutoSEOOverrides />
+          <PWAInstallPrompt />
+          <PushNotificationPrompt />
+          <FloatingChatBubble />
+          {!isPopout && <JarvisFAB />}
+          {!isPopout && <OnboardingTutorial />}
+          {!isPopout && <AliceUndoBanner />}
+          {!isPopout && <AliceFollowupPrompt />}
+          <AliceRecordingOverlay />
+          {!isPopout && <AliceWakeIndicator />}
+        </Suspense>
+      </DeferredMount>
     </>
   );
 }

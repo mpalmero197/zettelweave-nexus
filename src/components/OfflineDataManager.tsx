@@ -4,74 +4,88 @@ import { useIntelligentCache } from '@/hooks/useIntelligentCache';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+const PRELOAD_LIMIT = 30;
+const PRELOAD_DELAY_MS = 4000;
+
+function shouldSkipPreload(): boolean {
+  const conn: any = (navigator as any).connection;
+  if (!conn) return false;
+  if (conn.saveData) return true;
+  if (conn.effectiveType && /^(slow-2g|2g)$/.test(conn.effectiveType)) return true;
+  return false;
+}
+
 /**
  * Background component that manages offline data synchronization
- * and intelligent pre-loading based on usage patterns
+ * and intelligent pre-loading based on usage patterns.
+ *
+ * Perf: waits until the browser is idle, respects Save-Data / slow
+ * networks, and only fetches after PRELOAD_DELAY_MS so it never
+ * competes with initial page render.
  */
 export const OfflineDataManager = () => {
   const { user } = useAuth();
   const { isOnline, storeOffline } = useOfflineMode();
-  const { getCached, setCacheData } = useIntelligentCache();
+  const { setCacheData } = useIntelligentCache();
 
   useEffect(() => {
-    if (!user || !isOnline) return;
+    if (!user || !isOnline || shouldSkipPreload()) return;
 
-    // Pre-load frequently accessed data when online
+    let cancelled = false;
+    let idleHandle: number | null = null;
+    let timeoutHandle: number | null = null;
+
     const preloadEssentialData = async () => {
+      if (cancelled) return;
       try {
-        // Pre-load recent cards
-        const { data: recentCards } = await supabase
-          .from('zettel_cards')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-          .order('updated_at', { ascending: false })
-          .limit(50);
+        const [cardsRes, notesRes, notebooksRes] = await Promise.all([
+          supabase.from('zettel_cards').select('*')
+            .eq('user_id', user.id).is('deleted_at', null)
+            .order('updated_at', { ascending: false }).limit(PRELOAD_LIMIT),
+          supabase.from('notes').select('*')
+            .eq('user_id', user.id).is('deleted_at', null)
+            .order('updated_at', { ascending: false }).limit(PRELOAD_LIMIT),
+          supabase.from('notebooks').select('*')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false }).limit(PRELOAD_LIMIT),
+        ]);
+        if (cancelled) return;
 
-        if (recentCards) {
-          storeOffline('zettel_cards', recentCards);
-          recentCards.forEach(card => {
-            setCacheData('card', card.id, card);
-          });
+        if (cardsRes.data) {
+          storeOffline('zettel_cards', cardsRes.data);
+          cardsRes.data.forEach((c: any) => setCacheData('card', c.id, c));
         }
-
-        // Pre-load recent notes
-        const { data: recentNotes } = await supabase
-          .from('notes')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-          .order('updated_at', { ascending: false })
-          .limit(50);
-
-        if (recentNotes) {
-          storeOffline('notes', recentNotes);
-          recentNotes.forEach(note => {
-            setCacheData('note', note.id, note);
-          });
+        if (notesRes.data) {
+          storeOffline('notes', notesRes.data);
+          notesRes.data.forEach((n: any) => setCacheData('note', n.id, n));
         }
-
-        // Pre-load notebooks
-        const { data: notebooks } = await supabase
-          .from('notebooks')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false });
-
-        if (notebooks) {
-          storeOffline('notebooks', notebooks);
-          notebooks.forEach(notebook => {
-            setCacheData('notebook', notebook.id, notebook);
-          });
+        if (notebooksRes.data) {
+          storeOffline('notebooks', notebooksRes.data);
+          notebooksRes.data.forEach((nb: any) => setCacheData('notebook', nb.id, nb));
         }
       } catch (error) {
         console.error('Error pre-loading data:', error);
       }
     };
 
-    preloadEssentialData();
-  }, [user, isOnline]);
+    const schedule = () => {
+      const ric: any = (window as any).requestIdleCallback;
+      if (typeof ric === 'function') {
+        idleHandle = ric(preloadEssentialData, { timeout: 6000 });
+      } else {
+        preloadEssentialData();
+      }
+    };
 
-  // This component doesn't render anything
+    timeoutHandle = window.setTimeout(schedule, PRELOAD_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      if (timeoutHandle !== null) clearTimeout(timeoutHandle);
+      const cic: any = (window as any).cancelIdleCallback;
+      if (idleHandle !== null && typeof cic === 'function') cic(idleHandle);
+    };
+  }, [user, isOnline, storeOffline, setCacheData]);
+
   return null;
 };
