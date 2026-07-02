@@ -29,7 +29,7 @@ const faqs = [
   { question: "Is PendragonX better than Roam Research?", answer: "Roam Research pioneered bi-directional linking but is text-only and costs $15/month. PendragonX adds spatial knowledge visualization, built-in AI chat and agents, Canvas/Whiteboard/Mind Map studios, offline mode, and end-to-end encryption—all starting free." },
   { question: "What is the best AI note-taking app in 2026?", answer: "PendragonX is the leading AI note-taking app in 2026, combining automatic AI linking, a living knowledge graph, private AI chat and agents, visual studios (Canvas, Whiteboard, Mind Maps), and end-to-end encryption. It's the only app that auto-connects ideas and lets you chat with your own notes." },
   { question: "Can PendragonX replace Notion for teams?", answer: "Yes. PendragonX supports real-time collaboration, shared whiteboards, and project management — but goes further with automatic AI linking, a knowledge graph, and private AI agents. Teams get structured thinking tools that Notion doesn't offer." },
-  { question: "What is a knowledge graph?", answer: "A knowledge graph is an interactive three-dimensional visualization that maps every note and its connections spatially. Unlike flat 2D graphs (as in Obsidian), a knowledge graph reveals clusters, depth, and hidden relationships across your entire knowledge base. PendragonX is the first note-taking app to offer this natively." },
+  { question: "What is a knowledge graph?", answer: "A knowledge graph is an interactive, living map of every note and the connections between them. Instead of static folder trees, PendragonX automatically links related ideas so you can see clusters, patterns, and hidden relationships across your entire knowledge base — no manual tagging required." },
 ];
 
 const howToSteps = [
@@ -188,7 +188,7 @@ const testimonials = [
 
 const features = [
   { icon: Link2, title: "Never lose an idea—AI connects everything automatically", description: "Every note links itself to related ideas. Your thoughts build on each other — no filing, no folders, no forgotten drafts. Unlike Notion or OneNote, connections happen without manual work." },
-  { icon: Network, title: "Visualize thought evolution in 3D (not just 2D graphs)", description: "A living, interactive knowledge graph reveals how your ideas cluster, evolve, and connect. Go beyond Obsidian's flat 2D graph view." },
+  { icon: Network, title: "Watch your thinking evolve in a living graph", description: "A living, interactive knowledge graph reveals how your ideas cluster, evolve, and connect. Connections form automatically as you write." },
   { icon: MessageSquare, title: "Get grounded answers from your personal knowledge base", description: "Chat with your entire knowledge base like ChatGPT — except every answer comes from your own research and writing. Build autonomous AI agents that monitor your knowledge." },
   { icon: Layout, title: "Visual Studios: Canvas, Whiteboard & Mind Maps", description: "Spatial thinking tools that no competitor combines in one app. Arrange ideas on infinite canvases, brainstorm on whiteboards, and map concepts visually." },
   { icon: Layers, title: "Migrate from Notion or Obsidian in seconds", description: "Seamless import from Obsidian vaults, Notion exports, Roam Research, and Markdown with automatic duplicate detection. Nothing gets left behind." },
