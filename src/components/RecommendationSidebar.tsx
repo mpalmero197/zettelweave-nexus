@@ -116,15 +116,11 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
       }));
 
     onAddCards(cardsToAdd);
-    
-    // Generate next round based on selected cards
-    const selectedRecommendations = recommendations.filter(rec => selectedCards.has(rec.id));
-    if (selectedRecommendations.length > 0) {
-      setGenerationRound(prev => prev + 1);
-      generateRecommendations(selectedRecommendations as any);
-    }
-    
+
+    // Remove added cards from the suggestion list and keep browsing
+    setRecommendations(prev => prev.filter(rec => !selectedCards.has(rec.id)));
     setSelectedCards(new Set());
+    setCurrentPage(0);
   };
 
   const nextPage = () => {
@@ -139,10 +135,15 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
   };
 
   useEffect(() => {
-    if (isOpen && recommendations.length === 0) {
-      generateRecommendations();
+    if (!isOpen) return;
+    // Regenerate when opened with no suggestions, or when the user's cards
+    // have changed since the last generation (fixes stale/static suggestions).
+    const fp = cardsFingerprint(existingCards);
+    if (recommendations.length === 0 || generatedForRef.current !== fp) {
+      generateRecommendations({ fresh: true });
     }
   }, [isOpen]);
+
 
   if (!isOpen) return null;
 
