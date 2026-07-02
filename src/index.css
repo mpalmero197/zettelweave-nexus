@@ -479,7 +479,13 @@
     opacity: 0.07;
     animation: orb-float 20s ease-in-out infinite;
     pointer-events: none;
+    will-change: transform;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .floating-orb { animation: none; }
+  }
+
 
   @keyframes orb-float {
     0%, 100% { transform: translate(0, 0) scale(1); }
