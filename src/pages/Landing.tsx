@@ -17,19 +17,19 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 /* ─── Static Data ─── */
 
 const faqs = [
-  { question: "How is PendragonX different from Notion?", answer: "Notion is great for linear databases and templates, but PendragonX automatically builds a living 3D knowledge graph and lets you chat with your own notes using private AI—no manual tagging or folder organization required. Your ideas connect themselves." },
-  { question: "Does PendragonX work with Obsidian files?", answer: "Yes—drag-and-drop import from Obsidian vaults (plus Notion and Roam) with duplicate detection. Your existing Zettelkasten works instantly inside PendragonX's 3D graph and AI assistant." },
+  { question: "How is PendragonX different from Notion?", answer: "Notion is great for linear databases and templates, but PendragonX automatically builds a living knowledge graph and lets you chat with your own notes using private AI—no manual tagging or folder organization required. Your ideas connect themselves." },
+  { question: "Does PendragonX work with Obsidian files?", answer: "Yes—drag-and-drop import from Obsidian vaults (plus Notion and Roam) with duplicate detection. Your existing Zettelkasten works instantly inside PendragonX's knowledge graph and AI assistant." },
   { question: "What is the Zettelkasten method?", answer: "Zettelkasten (German for 'slip box') is a personal knowledge management system developed by sociologist Niklas Luhmann. It involves creating atomic notes that are interconnected through links, allowing you to build a 'second brain' that surfaces unexpected connections between ideas." },
-  { question: "Is PendragonX free to use?", answer: "Yes! PendragonX offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, unlimited notebooks, and 22+ built-in plugins. Premium features like unlimited cards, AI agents, and advanced 3D knowledge graphs are available for $4.99/month." },
+  { question: "Is PendragonX free to use?", answer: "Yes! PendragonX offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, unlimited notebooks, and 22+ built-in plugins. Premium features like unlimited cards, AI agents, and advanced knowledge graph tools are available for $4.99/month." },
   { question: "How does the private AI assistant work?", answer: "PendragonX's AI assistant is grounded only in your own notes—never the internet. It can answer questions using your knowledge base, suggest connections between ideas, build autonomous agents, and surface relevant insights you may have forgotten." },
-  { question: "Can I import notes from other apps?", answer: "Yes! PendragonX supports importing from Obsidian vaults, Notion exports, Roam Research, Evernote, and standard Markdown files with automatic duplicate detection. Your existing knowledge seamlessly integrates into the 3D knowledge graph." },
+  { question: "Can I import notes from other apps?", answer: "Yes! PendragonX supports importing from Obsidian vaults, Notion exports, Roam Research, Evernote, and standard Markdown files with automatic duplicate detection. Your existing knowledge seamlessly integrates into the knowledge graph." },
   { question: "Is my data secure and private?", answer: "Absolutely. PendragonX uses end-to-end zero-knowledge encryption for sensitive content, and your data is stored securely in enterprise-grade cloud infrastructure. You maintain full ownership of your data and can export it anytime." },
-  { question: "What makes PendragonX better than OneNote or Evernote?", answer: "OneNote and Evernote are purely linear—they store notes but don't help you think. PendragonX automatically links related ideas, visualizes your entire knowledge base in an interactive 3D graph, and includes a private AI assistant, Canvas/Whiteboard/Mind Map studios, real-time collaboration, and offline PWA support." },
+  { question: "What makes PendragonX better than OneNote or Evernote?", answer: "OneNote and Evernote are purely linear—they store notes but don't help you think. PendragonX automatically links related ideas, visualizes your entire knowledge base in an interactive knowledge graph, and includes a private AI assistant, Canvas/Whiteboard/Mind Map studios, real-time collaboration, and offline PWA support." },
   { question: "What devices does PendragonX work on?", answer: "PendragonX is a progressive web app (PWA) that works on any device with a modern web browser. Install it on your desktop, tablet, or phone for offline access, plus use the Chrome extension for web clipping." },
-  { question: "Is PendragonX better than Roam Research?", answer: "Roam Research pioneered bi-directional linking but is text-only and costs $15/month. PendragonX adds 3D spatial visualization, built-in AI chat and agents, Canvas/Whiteboard/Mind Map studios, offline mode, and end-to-end encryption—all starting free." },
-  { question: "What is the best AI note-taking app in 2026?", answer: "PendragonX is the leading AI note-taking app in 2026, combining automatic AI linking, a living 3D knowledge graph, private AI chat and agents, visual studios (Canvas, Whiteboard, Mind Maps), and end-to-end encryption. It's the only app that auto-connects ideas and lets you chat with your own notes." },
-  { question: "Can PendragonX replace Notion for teams?", answer: "Yes. PendragonX supports real-time collaboration, shared whiteboards, and project management — but goes further with automatic AI linking, a 3D knowledge graph, and private AI agents. Teams get structured thinking tools that Notion doesn't offer." },
-  { question: "What is a 3D knowledge graph?", answer: "A 3D knowledge graph is an interactive three-dimensional visualization that maps every note and its connections spatially. Unlike flat 2D graphs (as in Obsidian), a 3D graph reveals clusters, depth, and hidden relationships across your entire knowledge base. PendragonX is the first note-taking app to offer this natively." },
+  { question: "Is PendragonX better than Roam Research?", answer: "Roam Research pioneered bi-directional linking but is text-only and costs $15/month. PendragonX adds spatial knowledge visualization, built-in AI chat and agents, Canvas/Whiteboard/Mind Map studios, offline mode, and end-to-end encryption—all starting free." },
+  { question: "What is the best AI note-taking app in 2026?", answer: "PendragonX is the leading AI note-taking app in 2026, combining automatic AI linking, a living knowledge graph, private AI chat and agents, visual studios (Canvas, Whiteboard, Mind Maps), and end-to-end encryption. It's the only app that auto-connects ideas and lets you chat with your own notes." },
+  { question: "Can PendragonX replace Notion for teams?", answer: "Yes. PendragonX supports real-time collaboration, shared whiteboards, and project management — but goes further with automatic AI linking, a knowledge graph, and private AI agents. Teams get structured thinking tools that Notion doesn't offer." },
+  { question: "What is a knowledge graph?", answer: "A knowledge graph is an interactive three-dimensional visualization that maps every note and its connections spatially. Unlike flat 2D graphs (as in Obsidian), a knowledge graph reveals clusters, depth, and hidden relationships across your entire knowledge base. PendragonX is the first note-taking app to offer this natively." },
 ];
 
 const howToSteps = [
@@ -188,7 +188,7 @@ const testimonials = [
 
 const features = [
   { icon: Link2, title: "Never lose an idea—AI connects everything automatically", description: "Every note links itself to related ideas. Your thoughts build on each other — no filing, no folders, no forgotten drafts. Unlike Notion or OneNote, connections happen without manual work." },
-  { icon: Network, title: "Visualize thought evolution in 3D (not just 2D graphs)", description: "A living, interactive 3D knowledge graph reveals how your ideas cluster, evolve, and connect. Go beyond Obsidian's flat 2D graph view." },
+  { icon: Network, title: "Visualize thought evolution in 3D (not just 2D graphs)", description: "A living, interactive knowledge graph reveals how your ideas cluster, evolve, and connect. Go beyond Obsidian's flat 2D graph view." },
   { icon: MessageSquare, title: "Get grounded answers from your personal knowledge base", description: "Chat with your entire knowledge base like ChatGPT — except every answer comes from your own research and writing. Build autonomous AI agents that monitor your knowledge." },
   { icon: Layout, title: "Visual Studios: Canvas, Whiteboard & Mind Maps", description: "Spatial thinking tools that no competitor combines in one app. Arrange ideas on infinite canvases, brainstorm on whiteboards, and map concepts visually." },
   { icon: Layers, title: "Migrate from Notion or Obsidian in seconds", description: "Seamless import from Obsidian vaults, Notion exports, Roam Research, and Markdown with automatic duplicate detection. Nothing gets left behind." },
@@ -246,9 +246,9 @@ export default function Landing() {
   return (
     <main className="min-h-screen bg-background landing-noise landing-grid-bg relative overflow-hidden">
       <SEOHead
-        title="PendragonX: AI Second Brain with 3D Knowledge Graph & Agents | vs Notion & Obsidian"
-        description="PendragonX is the AI-powered second brain that auto-connects every idea in a living 3D knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
-        keywords="AI second brain, 3D knowledge graph, PendragonX vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with 3D graph 2026, second brain that thinks with you"
+        title="PendragonX: AI Second Brain with Knowledge Graph & Agents | vs Notion & Obsidian"
+        description="PendragonX is the AI-powered second brain that auto-connects every idea in a living knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
+        keywords="AI second brain, knowledge graph, PendragonX vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with knowledge graph 2026, second brain that thinks with you"
         canonicalUrl="https://pendragonx.com/"
         ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
@@ -417,7 +417,7 @@ export default function Landing() {
         <h2>What is PendragonX?</h2>
         <p>
           <dfn>PendragonX</dfn> is an AI-powered second brain and knowledge management platform that
-          automatically connects every idea in a living 3D knowledge graph. It lets users chat with
+          automatically connects every idea in a living knowledge graph. It lets users chat with
           their own notes using a private AI assistant, build autonomous AI agents, and visualize
           thinking with Canvas, Whiteboard, and Mind Map studios. PendragonX supports seamless import
           from Notion, Obsidian, Roam Research, and Evernote with duplicate detection, and features
@@ -475,7 +475,7 @@ export default function Landing() {
           <div className="text-center mb-14">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">The Solution</p>
             <h2 className="text-3xl md:text-4xl font-bold leading-tight max-w-2xl mx-auto text-balance">
-              Living 3D Knowledge Graph — <span className="text-primary">Automatic Connections, No Manual Work</span>
+              Living Knowledge Graph — <span className="text-primary">Automatic Connections, No Manual Work</span>
             </h2>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
               It reads everything you write, finds how ideas connect, and gives you a second brain you can actually talk to.
@@ -781,7 +781,7 @@ export default function Landing() {
               </div>
               <p className="text-xs text-muted-foreground mb-4">Local-first sync + full graph for a single writer.</p>
               <ul className="space-y-2 mb-6 text-xs">
-                {["Unlimited Zettelcards", "Local-first sync", "Full 3D graph", "Unlimited imports", "Offline PWA"].map((f, i) => (
+                {["Unlimited Zettelcards", "Local-first sync", "Full knowledge graph", "Unlimited imports", "Offline PWA"].map((f, i) => (
                   <li key={i} className="flex items-start gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" />{f}</li>
                 ))}
               </ul>
@@ -885,7 +885,7 @@ export default function Landing() {
         )}>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-balance">
             Why linear apps fall short.
-            <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">Start thinking in 3D.</span>
+            <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent mt-1">Start thinking in connections.</span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-lg mx-auto text-balance">
             Join writers, researchers, and founders who've replaced Notion, Obsidian, and OneNote with an AI second brain that actually thinks.

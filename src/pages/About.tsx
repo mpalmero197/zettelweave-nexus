@@ -29,7 +29,7 @@ const About = () => {
       <p className="mb-4 text-lg">
         PendragonX is your AI-powered second brain — a single place to capture every
         idea, note, and source you care about, and watch them connect themselves into
-        a living 3D knowledge graph.
+        a living knowledge graph.
       </p>
 
       <p className="mb-4">
