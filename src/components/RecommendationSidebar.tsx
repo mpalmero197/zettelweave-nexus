@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Lightbulb, ChevronRight, ChevronLeft, Sparkles, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Lightbulb, ChevronRight, ChevronLeft, Sparkles, X, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
 
 interface RecommendedCard {
   id: string;
