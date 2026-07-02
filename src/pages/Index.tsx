@@ -820,13 +820,16 @@ const Index = () => {
           />
         )}
 
-        <SmartLinkingSidebar
-          open={showSmartLinking}
-          onOpenChange={setShowSmartLinking}
-          currentCardId={smartLinkingCardId}
-          allCards={cards}
-          onLinkAccepted={handleAcceptLink}
-        />
+        {showSmartLinking && (
+          <SmartLinkingSidebar
+            open={showSmartLinking}
+            onOpenChange={setShowSmartLinking}
+            currentCardId={smartLinkingCardId}
+            allCards={cards}
+            onLinkAccepted={handleAcceptLink}
+          />
+        )}
+
 
         {showImportStudio && (
           <ImportStudio
