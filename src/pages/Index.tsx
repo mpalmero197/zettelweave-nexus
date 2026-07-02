@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { UnifiedSearchResults } from "@/components/UnifiedSearchResults";
 import { ZettelCard } from "@/components/ZettelCard";
 import { WordDefinitionPopover } from "@/components/WordDefinitionPopover";
-import { RecommendationSidebar } from "@/components/RecommendationSidebar";
-import { SmartLinkingSidebar } from "@/components/SmartLinkingSidebar";
+const RecommendationSidebar = lazy(() => import("@/components/RecommendationSidebar").then(m => ({ default: m.RecommendationSidebar })));
+const SmartLinkingSidebar = lazy(() => import("@/components/SmartLinkingSidebar").then(m => ({ default: m.SmartLinkingSidebar })));
+
 import { RightSidebar } from "@/components/RightSidebar";
 import { FastLoadingFallback } from "@/components/FastLoadingFallback";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
@@ -752,21 +753,24 @@ const Index = () => {
               {/* Right Sidebar - Only show on cards tab and larger screens */}
               {activeTab === "cards" && showRecommendations && (
                 <div className="lg:w-80 lg:fixed lg:right-4 lg:top-20 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto z-40">
-                  <RecommendationSidebar
-                    existingCards={cards}
-                    onAddCards={(newCards) => newCards.forEach(card => {
-                      const cardWithDefaults = {
-                        ...card,
-                        number: "000.1", // Add default number since it's omitted from the type
-                        linkedCards: [] as string[] // Add default linkedCards since it's omitted from the type
-                      };
-                      handleCreateCard(cardWithDefaults);
-                    })}
-                    isOpen={showRecommendations}
-                    onClose={() => setShowRecommendations(false)}
-                  />
+                  <Suspense fallback={null}>
+                    <RecommendationSidebar
+                      existingCards={cards}
+                      onAddCards={(newCards) => newCards.forEach(card => {
+                        const cardWithDefaults = {
+                          ...card,
+                          number: "000.1", // Add default number since it's omitted from the type
+                          linkedCards: [] as string[] // Add default linkedCards since it's omitted from the type
+                        };
+                        handleCreateCard(cardWithDefaults);
+                      })}
+                      isOpen={showRecommendations}
+                      onClose={() => setShowRecommendations(false)}
+                    />
+                  </Suspense>
                 </div>
               )}
+
             </div>
           </div>
         </Tabs>
