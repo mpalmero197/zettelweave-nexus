@@ -6,6 +6,144 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ─── Live result ranking ──────────────────────────────────────────────────────
+interface LiveResult {
+  url: string;
+  title: string;
+  snippet: string;
+  publishedAt: string | null; // ISO date if known
+  source: "web" | "news";
+  position: number;
+  score: number;
+  trustTier: "high" | "medium" | "low";
+}
+
+const HIGH_TRUST_PATTERNS = [
+  /\.gov(\/|$)/, /\.edu(\/|$)/, /\.org(\/|$)/,
+  /(^|\.)reuters\.com/, /(^|\.)apnews\.com/, /(^|\.)bbc\.(com|co\.uk)/, /(^|\.)nature\.com/,
+  /(^|\.)nytimes\.com/, /(^|\.)wsj\.com/, /(^|\.)bloomberg\.com/, /(^|\.)ft\.com/,
+  /(^|\.)theguardian\.com/, /(^|\.)economist\.com/, /(^|\.)wikipedia\.org/,
+  /(^|\.)who\.int/, /(^|\.)nih\.gov/, /(^|\.)sec\.gov/, /(^|\.)arxiv\.org/,
+  /(^|\.)github\.com/, /(^|\.)stackoverflow\.com/, /(^|\.)mozilla\.org/,
+];
+
+const LOW_TRUST_PATTERNS = [
+  /blogspot\./, /wordpress\.com/, /medium\.com/, /quora\.com/, /pinterest\./,
+  /fandom\.com/, /answers\.com/, /ehow\.com/, /buzzfeed\.com/, /tumblr\.com/,
+];
+
+function trustTierFor(url: string): "high" | "medium" | "low" {
+  let host = "";
+  try { host = new URL(url).hostname.toLowerCase(); } catch { return "low"; }
+  const full = host + new URL(url).pathname.toLowerCase();
+  if (HIGH_TRUST_PATTERNS.some((p) => p.test(host) || p.test(full))) return "high";
+  if (LOW_TRUST_PATTERNS.some((p) => p.test(host))) return "low";
+  return "medium";
+}
+
+function parseDate(raw: unknown): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return null;
+  // Reject absurd dates
+  if (d.getFullYear() < 1995 || d.getTime() > Date.now() + 86400000) return null;
+  return d.toISOString();
+}
+
+/** Try to extract a publish date from URL paths like /2026/01/ or snippets like "Jan 12, 2026". */
+function inferDate(url: string, snippet: string): string | null {
+  const urlMatch = url.match(/\/(20\d{2})\/(\d{1,2})(?:\/(\d{1,2}))?\//);
+  if (urlMatch) {
+    const d = new Date(`${urlMatch[1]}-${urlMatch[2].padStart(2, "0")}-${(urlMatch[3] || "1").padStart(2, "0")}`);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+  const snippetMatch = snippet.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+(20\d{2})\b/i)
+    || snippet.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+  if (snippetMatch) {
+    const d = new Date(snippetMatch[0]);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+  return null;
+}
+
+function scoreResult(r: Omit<LiveResult, "score" | "trustTier">, query: string): { score: number; trustTier: "high" | "medium" | "low" } {
+  const trustTier = trustTierFor(r.url);
+
+  // Relevance: engine position + query-term overlap in title/snippet
+  const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
+  const haystack = `${r.title} ${r.snippet}`.toLowerCase();
+  const overlap = terms.length ? terms.filter((t) => haystack.includes(t)).length / terms.length : 0.5;
+  const positionScore = Math.max(0, 1 - r.position * 0.07);
+  const relevance = overlap * 0.6 + positionScore * 0.4;
+
+  // Recency: exponential decay with ~180-day half-life; unknown dates get a mild penalty
+  let recency = 0.35; // unknown date default
+  if (r.publishedAt) {
+    const ageDays = (Date.now() - new Date(r.publishedAt).getTime()) / 86400000;
+    recency = Math.pow(0.5, Math.max(0, ageDays) / 180);
+  }
+
+  const trust = trustTier === "high" ? 1 : trustTier === "medium" ? 0.6 : 0.25;
+
+  // Weighted blend: relevance 45%, recency 30%, trust 25%
+  const score = relevance * 0.45 + recency * 0.3 + trust * 0.25;
+  return { score, trustTier };
+}
+
+async function fetchLiveResults(query: string, firecrawlKey: string): Promise<LiveResult[]> {
+  const res = await fetch("https://api.firecrawl.dev/v2/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, limit: 10, sources: ["web", "news"] }),
+  });
+  if (!res.ok) {
+    console.warn("Firecrawl search failed:", res.status, await res.text().catch(() => ""));
+    return [];
+  }
+  const json = await res.json();
+  const data = json?.data ?? json;
+  const raw: LiveResult[] = [];
+
+  const push = (items: any[], source: "web" | "news") => {
+    if (!Array.isArray(items)) return;
+    items.forEach((it: any, i: number) => {
+      const url = it?.url || it?.link;
+      if (!url || typeof url !== "string") return;
+      const snippet = String(it?.description || it?.snippet || it?.markdown || "").slice(0, 400);
+      const publishedAt = parseDate(it?.date || it?.publishedDate || it?.metadata?.publishedDate) || inferDate(url, snippet);
+      const base = {
+        url,
+        title: String(it?.title || "").slice(0, 200) || url,
+        snippet,
+        publishedAt,
+        source,
+        position: i,
+      };
+      const { score, trustTier } = scoreResult(base, query);
+      raw.push({ ...base, score, trustTier });
+    });
+  };
+
+  push(data?.web, "web");
+  push(data?.news, "news");
+  if (Array.isArray(data) && raw.length === 0) push(data, "web");
+
+  // De-duplicate by URL, rank by blended score
+  const seen = new Set<string>();
+  return raw
+    .filter((r) => {
+      const key = r.url.replace(/[?#].*$/, "");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -76,8 +214,18 @@ serve(async (req) => {
       if (prof?.preferred_search_engine === 'duckduckgo') engine = 'duckduckgo';
     } catch (_) { /* ignore — default to google */ }
 
-    // For DuckDuckGo, fetch their Instant Answer API and feed snippets to
-    // Gemini as grounding context so the synthesizer stays consistent.
+    // ── 1. Fetch REAL live results (Firecrawl) and rank them ────────────────
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    let liveResults: LiveResult[] = [];
+    if (FIRECRAWL_API_KEY) {
+      try {
+        liveResults = await fetchLiveResults(query, FIRECRAWL_API_KEY);
+      } catch (e) {
+        console.warn("Live search failed, degrading to model-only:", e);
+      }
+    }
+
+    // Optional DuckDuckGo instant-answer grounding (user preference)
     let ddgContext = "";
     if (engine === 'duckduckgo') {
       try {
@@ -94,20 +242,82 @@ serve(async (req) => {
           ddgContext = parts.join("\n\n");
         }
       } catch (e) {
-        console.warn("DuckDuckGo fetch failed; falling back to model-only synthesis", e);
+        console.warn("DuckDuckGo fetch failed", e);
       }
     }
+
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    // Build grounding block from ranked live results
+    const groundingBlock = liveResults.length
+      ? liveResults.map((r, i) => {
+          const age = r.publishedAt
+            ? `published ${r.publishedAt.slice(0, 10)} (${Math.round((now.getTime() - new Date(r.publishedAt).getTime()) / 86400000)} days ago)`
+            : "publish date unknown";
+          return `[${i + 1}] ${r.title}\nURL: ${r.url}\nTrust: ${r.trustTier} | ${age} | type: ${r.source}\nSnippet: ${r.snippet}`;
+        }).join("\n\n")
+      : "";
 
     console.log("Search request", {
       engine,
       queryLength: query.length,
+      liveResults: liveResults.length,
       hasContext: includeContext,
       userId: user.id,
-      timestamp: new Date().toISOString()
+      timestamp: now.toISOString(),
     });
 
-    // Use Gemini via Lovable AI Gateway for web search
-    console.log(`Running ${engine} web search for:`, query.length, "chars");
+    const groundedSystemPrompt = `You are a web search synthesizer. TODAY'S DATE IS ${todayStr}. You are given REAL, LIVE search results fetched moments ago, already ranked by a blend of relevance, recency, and source trustworthiness.
+
+STRICT GROUNDING RULES:
+1. Base every factual claim on the provided search results. Cite them inline as [1], [2], etc.
+2. PRIORITIZE recent, high-trust sources. When sources conflict, prefer the newer/higher-trust one and note the disagreement.
+3. If a result's publish date is old relative to the query (e.g., prices, versions, rankings, current events), explicitly flag it: "(as of <date> — may be outdated)".
+4. NEVER invent URLs, statistics, dates, or quotes. If the results don't cover something, say so plainly.
+5. If results are thin or stale, state that clearly rather than filling gaps from memory.
+
+Format your answer in markdown with headers and bullet points. Then append ALL of these sections:
+
+## Images
+Only list direct image URLs that actually appear in the provided results. If none, write "No image results."
+
+## Videos
+Only list video URLs (YouTube/Vimeo/etc.) that appear in the provided results, formatted as - [Title](URL). If none, write "No video results."
+
+## Shopping
+Only list product/retailer URLs that appear in the provided results, formatted as - [Product](URL). If none, write "No shopping results for this query."
+
+## Sources
+List the URLs of the results you actually used, one per line, best first.
+
+## Related Questions
+List 3-5 follow-up questions the user might want to explore.`;
+
+    const ungroundedSystemPrompt = `You are a web search assistant. TODAY'S DATE IS ${todayStr}. Live search is temporarily unavailable, so you must answer from general knowledge. Be explicit that results may be outdated: your training data has a cutoff, so anything time-sensitive (prices, versions, rankings, events) must be labeled "(may be outdated — live search unavailable)". NEVER present remembered information as current, and NEVER invent specific URLs, statistics, or dates.
+
+Format in markdown. Then append these sections:
+
+## Images
+Write "No image results."
+
+## Videos
+Write "No video results."
+
+## Shopping
+Write "No shopping results for this query."
+
+## Sources
+Write "Live sources unavailable for this search."
+
+## Related Questions
+List 3-5 follow-up questions.`;
+
+    const userContent = liveResults.length
+      ? `Query: ${query}\n\n═══ LIVE SEARCH RESULTS (fetched ${now.toISOString()}, ranked best-first) ═══\n${groundingBlock}${ddgContext ? `\n\n═══ DuckDuckGo instant answer ═══\n${ddgContext}` : ""}`
+      : (ddgContext ? `${query}\n\n[DuckDuckGo grounding — prefer these sources]\n${ddgContext}` : query);
+
+    // ── 2. Synthesize with Gemini over the ranked live results ──────────────
     const searchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -117,40 +327,10 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          {
-            role: 'system',
-            content: `You are a comprehensive web search assistant. Answer the user's query with accurate, up-to-date information as if you have access to the internet. 
-Provide detailed, well-structured responses using markdown formatting with headers, bullet points, and emphasis.
-Include facts, statistics, expert perspectives, and multiple viewpoints where relevant.
-
-At the end of your response, always include ALL of these sections:
-
-## Images
-List 4-8 direct image URLs (ending in .jpg, .png, .webp, or from image hosting services) that are relevant to the query. Use real, plausible image URLs from sites like Wikipedia Commons, Unsplash, Pexels, or relevant official sites. One URL per line.
-
-## Videos
-List 3-5 relevant video URLs from YouTube, Vimeo, TED, Khan Academy, or other video platforms. Include the full URL. One URL per line, formatted as:
-- [Video Title](URL)
-
-## Shopping
-If the query relates to a product, tool, book, or purchasable item, list 3-5 shopping links from Amazon, eBay, or relevant retailers. One per line, formatted as:
-- [Product Name - $Price](URL)
-If the query is not shopping-related, write "No shopping results for this query."
-
-## Sources
-List 3-5 plausible authoritative source URLs (formatted as plain URLs, one per line).
-
-## Related Questions
-List 3-5 follow-up questions the user might want to explore.`
-          },
-          {
-            role: 'user',
-            content: ddgContext
-              ? `${query}\n\n[DuckDuckGo grounding — prefer these sources when relevant]\n${ddgContext}`
-              : query
-          }
+          { role: 'system', content: liveResults.length ? groundedSystemPrompt : ungroundedSystemPrompt },
+          { role: 'user', content: userContent },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 4000,
       }),
     });
@@ -209,10 +389,23 @@ List 3-5 follow-up questions the user might want to explore.`
       return links;
     };
 
-    const citations = extractUrls(extractSection('Sources'));
-    const imageUrls = extractUrls(extractSection('Images'));
-    const videoLinks = extractLabeledLinks(extractSection('Videos'));
-    const shoppingLinks = extractLabeledLinks(extractSection('Shopping'));
+    // Citations: prefer the model's used-sources list, but only keep URLs that
+    // exist in the live result set (when we have one) to guarantee no invented links.
+    const liveUrls = new Set(liveResults.map((r) => r.url.replace(/[?#].*$/, "")));
+    let citations = extractUrls(extractSection('Sources'));
+    if (liveResults.length) {
+      citations = citations.filter((u) => liveUrls.has(u.replace(/[?#].*$/, "")));
+      if (citations.length === 0) citations = liveResults.slice(0, 5).map((r) => r.url);
+    }
+
+    const filterLive = (urls: string[]) =>
+      liveResults.length ? urls.filter((u) => liveUrls.has(u.replace(/[?#].*$/, ""))) : urls;
+
+    const imageUrls = filterLive(extractUrls(extractSection('Images')));
+    const videoLinksAll = extractLabeledLinks(extractSection('Videos'));
+    const videoLinks = liveResults.length ? videoLinksAll.filter((v) => liveUrls.has(v.url.replace(/[?#].*$/, ""))) : videoLinksAll;
+    const shoppingAll = extractLabeledLinks(extractSection('Shopping'));
+    const shoppingLinks = liveResults.length ? shoppingAll.filter((s) => liveUrls.has(s.url.replace(/[?#].*$/, ""))) : shoppingAll;
 
     const relatedQuestions: string[] = [];
     const relatedSection = extractSection('Related Questions');
@@ -233,12 +426,15 @@ List 3-5 follow-up questions the user might want to explore.`
       .replace(/## Related Questions[\s\S]*$/, '')
       .trim();
 
-    // Categorise citation URLs for news
-    const newsLinks = citations.filter((url: string) =>
-      url.includes('news') || url.includes('bbc.com') || url.includes('cnn.com') || url.includes('reuters.com')
-    );
+    // Categorise citation URLs for news (live news results first)
+    const newsLinks = [
+      ...liveResults.filter((r) => r.source === "news").map((r) => r.url),
+      ...citations.filter((url: string) =>
+        url.includes('news') || url.includes('bbc.com') || url.includes('cnn.com') || url.includes('reuters.com')
+      ),
+    ].filter((u, i, arr) => arr.indexOf(u) === i);
 
-    console.log(`Results - Images: ${imageUrls.length}, Videos: ${videoLinks.length}, Shopping: ${shoppingLinks.length}, Citations: ${citations.length}, Related: ${relatedQuestions.length}`);
+    console.log(`Results - Live: ${liveResults.length}, Images: ${imageUrls.length}, Videos: ${videoLinks.length}, Shopping: ${shoppingLinks.length}, Citations: ${citations.length}, Related: ${relatedQuestions.length}`);
 
     // Generate contextual insights if requested
     let contextualData = null;
@@ -351,7 +547,15 @@ Be concise, actionable, and insightful.`
         news: newsLinks,
         citations,
         relatedQuestions,
-        contextualData
+        contextualData,
+        liveSources: liveResults.map((r) => ({
+          url: r.url,
+          title: r.title,
+          publishedAt: r.publishedAt,
+          trust: r.trustTier,
+          score: Number(r.score.toFixed(3)),
+        })),
+        grounded: liveResults.length > 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

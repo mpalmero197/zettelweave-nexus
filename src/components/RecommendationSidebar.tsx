@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ZettelCard as ZettelCardType } from "@/types/zettel";
 import { getCategoryInfo } from "@/utils/deweySystem";
-import { Lightbulb, ChevronRight, ChevronLeft, Sparkles, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Lightbulb, ChevronRight, ChevronLeft, Sparkles, X, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
 
 interface RecommendedCard {
   id: string;
@@ -30,7 +32,9 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [generationRound, setGenerationRound] = useState(1);
+  // Fingerprint of the cards the current recommendations were generated from,
+  // so suggestions refresh when the user's actual content changes.
+  const generatedForRef = useRef<string>("");
 
   const cardsPerPage = 9;
   const currentRecommendations = recommendations.slice(
@@ -38,142 +42,57 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
     (currentPage + 1) * cardsPerPage
   );
 
-  const generateRecommendations = async (baseCards: ZettelCardType[] = existingCards) => {
+  const cardsFingerprint = (cards: ZettelCardType[]) =>
+    cards
+      .slice(0, 40)
+      .map(c => `${c.id}:${c.title}:${(c.content || "").length}`)
+      .join("|");
+
+  const generateRecommendations = async (opts: { fresh?: boolean } = {}) => {
     setIsLoading(true);
-    
     try {
-      // Analyze existing cards to generate intelligent recommendations
-      const cardTopics = baseCards.map(card => ({
+      const payloadCards = existingCards.slice(0, 40).map(card => ({
         title: card.title,
-        content: card.content.substring(0, 200),
+        content: (card.content || "").substring(0, 300),
+        description: card.description,
         category: card.category,
-        tags: card.tags
+        tags: card.tags,
       }));
 
-      // Generate recommendations based on content analysis
-      const newRecommendations: RecommendedCard[] = await generateIntelligentRecommendations(cardTopics, generationRound);
-      
-      setRecommendations(prev => [...prev, ...newRecommendations]);
-    } catch (error) {
-      console.error('Failed to generate recommendations:', error);
-      // Fallback to template-based recommendations
-      setRecommendations(prev => [...prev, ...generateFallbackRecommendations(baseCards)]);
+      const excludeTitles = opts.fresh
+        ? []
+        : recommendations.map(r => r.title);
+
+      const { data, error } = await supabase.functions.invoke("recommend-cards", {
+        body: { cards: payloadCards, excludeTitles, count: 9 },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const suggestions: RecommendedCard[] = data?.suggestions || [];
+      if (suggestions.length === 0) {
+        toast.info("No new suggestions right now — try adding more content to your cards.");
+      }
+
+      generatedForRef.current = cardsFingerprint(existingCards);
+      if (opts.fresh) {
+        setRecommendations(suggestions);
+        setCurrentPage(0);
+        setSelectedCards(new Set());
+      } else {
+        setRecommendations(prev => [...prev, ...suggestions]);
+      }
+    } catch (error: any) {
+      console.error("Failed to generate recommendations:", error);
+      toast.error(error?.message || "Couldn't generate recommendations. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateIntelligentRecommendations = async (cardTopics: any[], round: number): Promise<RecommendedCard[]> => {
-    // This would integrate with an AI service - for now, intelligent template generation
-    const themes = extractThemes(cardTopics);
-    const categories = [...new Set(cardTopics.map(c => c.category))];
-    
-    const recommendations: RecommendedCard[] = [];
-    const baseId = Date.now();
-
-    themes.forEach((theme, index) => {
-      // Generate related concepts
-      const relatedConcepts = getRelatedConcepts(theme, round);
-      
-      relatedConcepts.forEach((concept, conceptIndex) => {
-        const category = categories[Math.floor(Math.random() * categories.length)] || "000";
-        const categoryInfo = getCategoryInfo(category);
-        
-        recommendations.push({
-          id: `rec-${baseId}-${index}-${conceptIndex}`,
-          title: concept.title,
-          description: concept.description,
-          content: concept.content,
-          category,
-          tags: [...theme.tags, ...concept.tags],
-          reasoning: `Related to "${theme.topic}" through ${concept.connection}`
-        });
-      });
-    });
-
-    return recommendations.slice(0, 27); // Return enough for 3 pages
-  };
-
-  const extractThemes = (cardTopics: any[]) => {
-    const themes = [];
-    const allTags = cardTopics.flatMap(c => c.tags);
-    const commonTags = allTags.filter((tag, index, arr) => 
-      arr.indexOf(tag) !== index
-    );
-
-    // Extract themes from titles and content
-    cardTopics.forEach(card => {
-      const words = card.title.toLowerCase().split(/\s+/);
-      const contentWords = card.content.toLowerCase().split(/\s+/).slice(0, 20);
-      
-      themes.push({
-        topic: card.title,
-        tags: card.tags,
-        keywords: [...words, ...contentWords].filter(w => w.length > 3),
-        category: card.category
-      });
-    });
-
-    return themes;
-  };
-
-  const getRelatedConcepts = (theme: any, round: number) => {
-    const conceptBanks = {
-      1: { // First round - direct relations
-        philosophy: [
-          { title: "Epistemological Foundations", description: "Exploring knowledge acquisition", content: "How do we know what we know? This fundamental question...", tags: ["epistemology", "knowledge"], connection: "philosophical inquiry" },
-          { title: "Ethical Implications", description: "Moral considerations and frameworks", content: "Every decision carries moral weight...", tags: ["ethics", "morality"], connection: "value systems" }
-        ],
-        science: [
-          { title: "Empirical Validation", description: "Testing theoretical frameworks", content: "The scientific method provides...", tags: ["research", "validation"], connection: "methodology" },
-          { title: "Interdisciplinary Connections", description: "Cross-field applications", content: "Modern science thrives on...", tags: ["interdisciplinary", "synthesis"], connection: "knowledge integration" }
-        ],
-        technology: [
-          { title: "Human-Computer Interaction", description: "Interface design principles", content: "How humans interact with technology...", tags: ["HCI", "design"], connection: "user experience" },
-          { title: "Ethical AI Development", description: "Responsible technology creation", content: "As AI capabilities expand...", tags: ["AI", "ethics"], connection: "technological responsibility" }
-        ]
-      },
-      2: { // Second round - deeper connections
-        philosophy: [
-          { title: "Phenomenological Analysis", description: "Experience and consciousness", content: "The structure of experience reveals...", tags: ["phenomenology", "consciousness"], connection: "lived experience" },
-          { title: "Dialectical Reasoning", description: "Thesis, antithesis, synthesis", content: "Through contradiction comes understanding...", tags: ["dialectics", "logic"], connection: "reasoning process" }
-        ],
-        science: [
-          { title: "Complex Systems Theory", description: "Emergence and self-organization", content: "Complex systems exhibit properties...", tags: ["complexity", "emergence"], connection: "systemic thinking" },
-          { title: "Quantum Implications", description: "Reality at the quantum level", content: "Quantum mechanics challenges...", tags: ["quantum", "reality"], connection: "fundamental nature" }
-        ]
-      }
-    };
-
-    const themeKeywords = theme.keywords.join(' ').toLowerCase();
-    let category = 'philosophy'; // default
-
-    if (themeKeywords.includes('science') || themeKeywords.includes('research') || themeKeywords.includes('study')) {
-      category = 'science';
-    } else if (themeKeywords.includes('technology') || themeKeywords.includes('digital') || themeKeywords.includes('ai')) {
-      category = 'technology';
-    }
-
-    const roundConcepts = conceptBanks[round as keyof typeof conceptBanks] || conceptBanks[1];
-    return roundConcepts[category as keyof typeof roundConcepts] || roundConcepts.philosophy || [];
-  };
-
-  const generateFallbackRecommendations = (baseCards: ZettelCardType[]): RecommendedCard[] => {
-    const categories = ["000", "100", "200", "300", "400", "500", "600", "700", "800", "900"];
-    const baseId = Date.now();
-    
-    return Array.from({ length: 9 }, (_, index) => ({
-      id: `fallback-${baseId}-${index}`,
-      title: `Suggested Topic ${index + 1}`,
-      description: `A recommended exploration based on your existing cards`,
-      content: `This card builds upon themes from your current collection...`,
-      category: categories[index % categories.length],
-      tags: ["suggested", "related"],
-      reasoning: "Generated based on existing card patterns"
-    }));
-  };
-
   const handleCardSelect = (cardId: string, checked: boolean) => {
+
     const newSelected = new Set(selectedCards);
     if (checked) {
       newSelected.add(cardId);
@@ -197,15 +116,11 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
       }));
 
     onAddCards(cardsToAdd);
-    
-    // Generate next round based on selected cards
-    const selectedRecommendations = recommendations.filter(rec => selectedCards.has(rec.id));
-    if (selectedRecommendations.length > 0) {
-      setGenerationRound(prev => prev + 1);
-      generateRecommendations(selectedRecommendations as any);
-    }
-    
+
+    // Remove added cards from the suggestion list and keep browsing
+    setRecommendations(prev => prev.filter(rec => !selectedCards.has(rec.id)));
     setSelectedCards(new Set());
+    setCurrentPage(0);
   };
 
   const nextPage = () => {
@@ -220,10 +135,15 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
   };
 
   useEffect(() => {
-    if (isOpen && recommendations.length === 0) {
-      generateRecommendations();
+    if (!isOpen) return;
+    // Regenerate when opened with no suggestions, or when the user's cards
+    // have changed since the last generation (fixes stale/static suggestions).
+    const fp = cardsFingerprint(existingCards);
+    if (recommendations.length === 0 || generatedForRef.current !== fp) {
+      generateRecommendations({ fresh: true });
     }
   }, [isOpen]);
+
 
   if (!isOpen) return null;
 
@@ -235,10 +155,22 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Recommendations</h2>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => generateRecommendations({ fresh: true })}
+              disabled={isLoading}
+              title="Regenerate suggestions"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {currentRecommendations.map((rec) => {

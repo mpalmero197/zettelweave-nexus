@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 const changelogData = [
   { date: "Sep 2, 2025", title: "Project Launch", description: "Core Zettelkasten card system, notes, notebooks, and authentication" },
   { date: "Sep 7, 2025", title: "Database Foundation", description: "User preferences, profiles, file storage, and RLS security policies" },
-  { date: "Sep 26, 2025", title: "Knowledge Graph", description: "2D/3D graph visualization, card linking, and Dewey/Luhmann organization" },
+  { date: "Sep 26, 2025", title: "Knowledge Graph", description: "Interactive graph visualization, card linking, and Dewey/Luhmann organization" },
   { date: "Sep 27, 2025", title: "Calendar & Events", description: "Calendar integration linked to cards and notes" },
   { date: "Sep 29, 2025", title: "AI Search", description: "Vector embeddings and semantic search across knowledge base" },
   { date: "Oct 1, 2025", title: "File Manager", description: "Document uploads (PDF, DOCX, XLSX) with built-in viewer" },

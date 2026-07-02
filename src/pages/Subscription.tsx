@@ -420,7 +420,7 @@ export default function Subscription() {
                   What's included in Premium vs Free?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  The Free plan includes unlimited notes and notebooks with cloud sync and encryption. Premium adds Zettel cards, 3D Knowledge Graph visualization, Interactive Whiteboard, Catalyst writing suite, AI-powered features, habit tracking, audio/video recording, and advanced analytics. See the comparison table above for full details.
+                  The Free plan includes unlimited notes and notebooks with cloud sync and encryption. Premium adds Zettel cards, Knowledge Graph visualization, Interactive Whiteboard, Catalyst writing suite, AI-powered features, habit tracking, audio/video recording, and advanced analytics. See the comparison table above for full details.
                 </AccordionContent>
               </AccordionItem>
 
