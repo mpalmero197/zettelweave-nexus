@@ -155,10 +155,22 @@ export function RecommendationSidebar({ existingCards, onAddCards, isOpen, onClo
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Recommendations</h2>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => generateRecommendations({ fresh: true })}
+              disabled={isLoading}
+              title="Regenerate suggestions"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {currentRecommendations.map((rec) => {
