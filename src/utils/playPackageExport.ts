@@ -95,8 +95,8 @@ export async function exportPlayPackage(opts: PlayExportOptions = {}): Promise<P
   zip.file('play-store/data-safety.md', DATA_SAFETY);
   zip.file('play-store/content-rating.md', CONTENT_RATING);
   zip.file('play-store/screenshots.md', SCREENSHOT_SPECS);
-  zip.file('play-store/privacy-policy-url.txt', 'https://pendragonx.com/privacy-policy\n');
-  zip.file('play-store/terms-url.txt', 'https://pendragonx.com/terms-of-service\n');
+  zip.file('play-store/privacy-policy-url.txt', 'https://bakuscribe.com/privacy-policy\n');
+  zip.file('play-store/terms-url.txt', 'https://bakuscribe.com/terms-of-service\n');
   files += 6;
 
   onProgress('Writing build scripts...', 80);
@@ -111,7 +111,7 @@ export async function exportPlayPackage(opts: PlayExportOptions = {}): Promise<P
   onProgress('Compressing...', 95);
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  saveAs(blob, `pendragonx-play-package-${ts}.zip`);
+  saveAs(blob, `bakuscribe-play-package-${ts}.zip`);
   onProgress('Done', 100);
 
   return { filesIncluded: files, totalSize: blob.size };
@@ -171,7 +171,7 @@ const ANDROID_MANIFEST = `<?xml version="1.0" encoding="utf-8"?>
 const ANDROID_BUILD_GRADLE = `apply plugin: 'com.android.application'
 
 android {
-    namespace "app.lovable.pendragonx"
+    namespace "app.lovable.bakuscribe"
     compileSdk 34
     defaultConfig {
         applicationId "app.lovable.4eb34d34fd9d491db4fe83f99b554cfb"
@@ -190,9 +190,9 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv("PENDRAGONX_KEYSTORE") ?: "pendragonx-release.keystore")
+            storeFile file(System.getenv("PENDRAGONX_KEYSTORE") ?: "bakuscribe-release.keystore")
             storePassword System.getenv("PENDRAGONX_KEYSTORE_PASS")
-            keyAlias System.getenv("PENDRAGONX_KEY_ALIAS") ?: "pendragonx"
+            keyAlias System.getenv("PENDRAGONX_KEY_ALIAS") ?: "bakuscribe"
             keyPassword System.getenv("PENDRAGONX_KEY_PASS")
         }
     }
@@ -295,10 +295,10 @@ Productivity
 notes, knowledge, AI, writing, study, productivity, research, zettelkasten
 
 ## Contact email
-support@pendragonx.com
+support@bakuscribe.com
 
 ## Website
-https://pendragonx.com
+https://bakuscribe.com
 `;
 
 const DATA_SAFETY = `# Data Safety Form Answers
@@ -319,7 +319,7 @@ const DATA_SAFETY = `# Data Safety Form Answers
 - Data is encrypted at rest by Supabase.
 - Optional client-side E2EE for individual items.
 - Users can request data deletion at any time via Settings → Account.
-- Account deletion URL: https://pendragonx.com/app (Settings → Account → Delete)
+- Account deletion URL: https://bakuscribe.com/app (Settings → Account → Delete)
 
 ## Children
 This app is not directed at children under 13.
@@ -364,8 +364,8 @@ const KEYSTORE_SCRIPT = `#!/usr/bin/env bash
 # means you can never publish updates to this app again.
 set -euo pipefail
 
-KEYSTORE_FILE="pendragonx-release.keystore"
-KEY_ALIAS="pendragonx"
+KEYSTORE_FILE="bakuscribe-release.keystore"
+KEY_ALIAS="bakuscribe"
 
 if [ -f "$KEYSTORE_FILE" ]; then
   echo "Keystore already exists at $KEYSTORE_FILE. Refusing to overwrite."
@@ -462,9 +462,9 @@ npx cap sync android
 
 # One-time: generate your release keystore (store it + passwords in a password manager)
 bash scripts/generate-keystore.sh
-export PENDRAGONX_KEYSTORE=\$(pwd)/pendragonx-release.keystore
+export PENDRAGONX_KEYSTORE=\$(pwd)/bakuscribe-release.keystore
 export PENDRAGONX_KEYSTORE_PASS=...
-export PENDRAGONX_KEY_ALIAS=pendragonx
+export PENDRAGONX_KEY_ALIAS=bakuscribe
 export PENDRAGONX_KEY_PASS=...
 
 # Build the release bundle

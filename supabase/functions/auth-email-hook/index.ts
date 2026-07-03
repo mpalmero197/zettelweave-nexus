@@ -37,9 +37,9 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 // Configuration
 const SITE_NAME = "Baku Scribe"
-const SENDER_DOMAIN = "notify.pendragonx.com"
-const ROOT_DOMAIN = "pendragonx.com"
-const FROM_DOMAIN = "pendragonx.com" // Domain shown in From address (may be root or sender subdomain)
+const SENDER_DOMAIN = "notify.bakuscribe.com"
+const ROOT_DOMAIN = "bakuscribe.com"
+const FROM_DOMAIN = "bakuscribe.com" // Domain shown in From address (may be root or sender subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

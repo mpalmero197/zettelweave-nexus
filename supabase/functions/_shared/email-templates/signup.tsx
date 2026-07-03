@@ -35,7 +35,7 @@ export const SignupEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Section style={logoWrap}>
-          <Img src="https://pendragonx.com/icon-512x512.png" alt="Baku Scribe" width="48" height="48" style={logo} />
+          <Img src="https://bakuscribe.com/icon-512x512.png" alt="Baku Scribe" width="48" height="48" style={logo} />
           <Text style={brand}>Baku Scribe</Text>
         </Section>
         <Heading style={h1}>Confirm your email</Heading>

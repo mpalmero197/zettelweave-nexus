@@ -131,7 +131,7 @@ ${JSON.stringify(platformData.errorReports, null, 2)}
 
 ## SEO Configuration
 - Has sitemap.xml, robots.txt, llms.txt, llms-full.txt, JSON-LD structured data
-- Domain: pendragonx.com
+- Domain: bakuscribe.com
 
 ## Competitor Feature Sets
 **Notion**: Databases, wikis, projects, AI assistant, team workspaces, API, templates marketplace, connected databases, formulas, relations, rollups, synced blocks, web clipper

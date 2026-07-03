@@ -20,7 +20,7 @@ const About = () => {
   useSEO(
     "About Baku Scribe",
     "Baku Scribe is an AI-powered second brain for writers, researchers, and lifelong learners. Learn what we build and why.",
-    "https://pendragonx.com/about"
+    "https://bakuscribe.com/about"
   );
   return (
     <main className="min-h-screen bg-background text-foreground px-6 py-16 max-w-3xl mx-auto">

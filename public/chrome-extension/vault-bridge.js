@@ -2,12 +2,12 @@
 // request OTP codes AND saved credentials from the user's unlocked vault.
 // All decryption happens in-page; only the resolved values cross back.
 (() => {
-  if (window.__pendragonxVaultBridge) return;
-  window.__pendragonxVaultBridge = true;
+  if (window.__bakuscribeVaultBridge) return;
+  window.__bakuscribeVaultBridge = true;
 
   function broadcastAsk(payload, timeoutMs = 8000) {
     return new Promise((resolve) => {
-      const bc = new BroadcastChannel("pendragonx-vault");
+      const bc = new BroadcastChannel("bakuscribe-vault");
       const requestId = String(Math.random()).slice(2);
       let done = false;
       const finish = (resp) => { if (done) return; done = true; bc.removeEventListener("message", onMsg); bc.close(); resolve(resp); };

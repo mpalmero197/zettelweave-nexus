@@ -5,14 +5,14 @@
 // the background script, which buffers them and persists on Stop.
 
 (() => {
-  if (window.__pendragonxRecorderInstalled) {
+  if (window.__bakuscribeRecorderInstalled) {
     // Re-broadcast presence so the badge re-shows after a navigation.
-    try { window.__pendragonxRecorderShowBadge?.(); } catch {}
+    try { window.__bakuscribeRecorderShowBadge?.(); } catch {}
     return;
   }
-  window.__pendragonxRecorderInstalled = true;
+  window.__bakuscribeRecorderInstalled = true;
 
-  const BADGE_ID = "pendragonx-recorder-badge";
+  const BADGE_ID = "bakuscribe-recorder-badge";
   const LOG = (...a) => console.debug("[Baku Scribe Recorder]", ...a);
   let stepCount = 0;
   let paused = false;
@@ -189,22 +189,22 @@
       "gap:10px",
     ].join(";");
     el.innerHTML = `
-      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 10px #ef4444;animation:pendragonx-pulse 1.2s infinite"></span>
-      <span data-pendragonx-rec-label>Teaching ALICE — <b data-pendragonx-rec-count>0</b> steps</span>
-      <button data-pendragonx-rec-pause style="all:initial;cursor:pointer;background:#1f2937;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Pause</button>
-      <button data-pendragonx-rec-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>
+      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 10px #ef4444;animation:bakuscribe-pulse 1.2s infinite"></span>
+      <span data-bakuscribe-rec-label>Teaching ALICE — <b data-bakuscribe-rec-count>0</b> steps</span>
+      <button data-bakuscribe-rec-pause style="all:initial;cursor:pointer;background:#1f2937;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Pause</button>
+      <button data-bakuscribe-rec-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>
     `;
     const style = document.createElement("style");
-    style.textContent = `@keyframes pendragonx-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }`;
+    style.textContent = `@keyframes bakuscribe-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }`;
     document.documentElement.appendChild(style);
-    el.querySelector("[data-pendragonx-rec-pause]")?.addEventListener("click", (ev) => {
+    el.querySelector("[data-bakuscribe-rec-pause]")?.addEventListener("click", (ev) => {
       ev.preventDefault();
       paused = !paused;
       const btn = ev.currentTarget;
       btn.textContent = paused ? "Resume" : "Pause";
       btn.style.background = paused ? "#22c55e" : "#1f2937";
     });
-    el.querySelector("[data-pendragonx-rec-stop]")?.addEventListener("click", (ev) => {
+    el.querySelector("[data-bakuscribe-rec-stop]")?.addEventListener("click", (ev) => {
       ev.preventDefault();
       chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_REQUEST" }, () => {});
     });
@@ -214,7 +214,7 @@
 
   function updateBadge() {
     const el = makeBadge();
-    const count = el.querySelector("[data-pendragonx-rec-count]");
+    const count = el.querySelector("[data-bakuscribe-rec-count]");
     if (count) count.textContent = String(stepCount);
   }
 
@@ -223,7 +223,7 @@
     if (el) el.remove();
   }
 
-  window.__pendragonxRecorderShowBadge = () => {
+  window.__bakuscribeRecorderShowBadge = () => {
     makeBadge();
     chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STATE" }, (resp) => {
       stepCount = resp?.count || 0;
@@ -231,7 +231,7 @@
     });
   };
 
-  window.__pendragonxRecorderHide = () => removeBadge();
+  window.__bakuscribeRecorderHide = () => removeBadge();
 
   // Listen for background-driven badge updates (count, stop)
   chrome.runtime.onMessage.addListener((msg) => {
@@ -242,10 +242,10 @@
     } else if (msg.type === "PENDRAGONX_REC_HIDE") {
       removeBadge();
     } else if (msg.type === "PENDRAGONX_REC_SHOW") {
-      window.__pendragonxRecorderShowBadge();
+      window.__bakuscribeRecorderShowBadge();
     }
   });
 
   // Initial badge as soon as injected (we're only injected when recording)
-  window.__pendragonxRecorderShowBadge();
+  window.__bakuscribeRecorderShowBadge();
 })();

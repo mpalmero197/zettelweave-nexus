@@ -80,7 +80,7 @@ export function MinimalSidebar({
       {/* Product Hunt Featured Badge */}
       <div className="p-3 pt-4 flex justify-center border-b border-border/50">
         <a
-          href="https://www.producthunt.com/products/pendragonx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-pendragonx"
+          href="https://www.producthunt.com/products/bakuscribe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bakuscribe"
           target="_blank"
           rel="noopener noreferrer"
         >

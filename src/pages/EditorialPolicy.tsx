@@ -19,7 +19,7 @@ const EditorialPolicy = () => {
   useSEO(
     "How we write — Editorial standards at Baku Scribe",
     "What you can expect from anything we publish: how we research, who reviews it, and how we handle mistakes.",
-    "https://pendragonx.com/editorial-policy"
+    "https://bakuscribe.com/editorial-policy"
   );
   return (
     <main className="min-h-screen bg-background text-foreground px-6 py-16 max-w-3xl mx-auto">
@@ -47,7 +47,7 @@ const EditorialPolicy = () => {
       <h2 className="text-2xl font-semibold mt-8 mb-3">When we get it wrong</h2>
       <p className="mb-4">
         We will. When you spot it, email us at{" "}
-        <a className="underline" href="mailto:editorial@pendragonx.com">editorial@pendragonx.com</a>{" "}
+        <a className="underline" href="mailto:editorial@bakuscribe.com">editorial@bakuscribe.com</a>{" "}
         and we'll correct the article within 48 hours. Corrected pages keep a
         visible note so you know what changed.
       </p>

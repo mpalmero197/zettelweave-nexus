@@ -208,7 +208,7 @@ function PhoneFrame({ width, height, children }: { width: number; height: number
       <div className="rounded-[1.75rem] overflow-hidden bg-background border border-neutral-800">
         <div className="flex items-center gap-2 px-3 py-2 bg-neutral-800 text-white/80 text-[11px]">
           <div className="flex-1 truncate rounded-full bg-neutral-700 px-3 py-1">
-            pendragonx.com — Toolbox
+            bakuscribe.com — Toolbox
           </div>
         </div>
         <div style={{ width, height }}>{children}</div>

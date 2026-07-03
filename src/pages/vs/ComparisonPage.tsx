@@ -15,14 +15,14 @@ const ComparisonPage = () => {
 
   if (!spec) return <Navigate to="/" replace />;
 
-  const canonical = `https://pendragonx.com/vs/${spec.slug}`;
+  const canonical = `https://bakuscribe.com/vs/${spec.slug}`;
 
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://pendragonx.com/" },
-      { "@type": "ListItem", position: 2, name: "Compare", item: "https://pendragonx.com/vs" },
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://bakuscribe.com/" },
+      { "@type": "ListItem", position: 2, name: "Compare", item: "https://bakuscribe.com/vs" },
       { "@type": "ListItem", position: 3, name: `vs ${spec.competitor}`, item: canonical },
     ],
   };
@@ -114,7 +114,7 @@ const ComparisonPage = () => {
           <div className="rounded-xl border border-primary/40 bg-primary/5 p-5">
             <h2 className="text-lg font-semibold mb-3">Where Baku Scribe wins</h2>
             <ul className="space-y-2 text-sm">
-              {spec.strengths.pendragonx.map((s) => (
+              {spec.strengths.bakuscribe.map((s) => (
                 <li key={s} className="flex gap-2">
                   <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span>{s}</span>

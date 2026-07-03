@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
       <SEOHead 
         title="Privacy Policy - Baku Scribe"
         description="Learn how Baku Scribe protects your privacy. We never sell, trade, or rent your personal information. Your data belongs to you."
-        canonicalUrl="https://pendragonx.com/privacy"
+        canonicalUrl="https://bakuscribe.com/privacy"
         ogImage={ogImages.privacy}
         noIndex={false}
       />

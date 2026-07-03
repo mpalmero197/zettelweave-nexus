@@ -13,7 +13,7 @@ export function VaultBridge() {
 
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
-    const bc = new BroadcastChannel("pendragonx-vault");
+    const bc = new BroadcastChannel("bakuscribe-vault");
 
     const matchByHost = (host: string) =>
       vault.items.filter(

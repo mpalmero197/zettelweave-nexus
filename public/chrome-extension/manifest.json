@@ -30,8 +30,8 @@
     },
     {
       "matches": [
-        "https://pendragonx.com/*",
-        "https://*.pendragonx.com/*",
+        "https://bakuscribe.com/*",
+        "https://*.bakuscribe.com/*",
         "https://*.lovable.app/*"
       ],
       "js": ["vault-bridge.js"],

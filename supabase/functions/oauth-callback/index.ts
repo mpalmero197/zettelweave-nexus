@@ -37,7 +37,7 @@ const html = (status: "ok" | "error", message: string, provider?: string) => {
 <script>
   try {
     if (window.opener) {
-      window.opener.postMessage({ type: 'pendragonx:oauth', status: ${JSON.stringify(status)}, provider: ${JSON.stringify(provider ?? null)}, message: ${JSON.stringify(message)} }, '*');
+      window.opener.postMessage({ type: 'bakuscribe:oauth', status: ${JSON.stringify(status)}, provider: ${JSON.stringify(provider ?? null)}, message: ${JSON.stringify(message)} }, '*');
       setTimeout(() => window.close(), 1200);
     }
   } catch (e) {}

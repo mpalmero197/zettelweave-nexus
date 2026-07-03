@@ -3,17 +3,17 @@ const SUPABASE_URL = 'https://sckglgjydlbztxjupbsk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNja2dsZ2p5ZGxienR4anVwYnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzYzMjUsImV4cCI6MjA3MTkxMjMyNX0.3uZ0NUIN3yJsUgsCWdTKAhWf_DdLDiDske83hBpK3Yw';
 
 const STORAGE_KEYS = {
-  AUTH_TOKEN: 'pendragonx_auth_token',
-  REFRESH_TOKEN: 'pendragonx_refresh_token',
-  SESSION_EXPIRES_AT: 'pendragonx_session_expires_at',
-  USER_EMAIL: 'pendragonx_user_email',
-  POMO_STATE: 'pendragonx_pomo_state',
-  POMO_STATS: 'pendragonx_pomo_stats',
-  HABITS: 'pendragonx_habits',
-  CACHE_CARDS: 'pendragonx_cache_cards',
-  CACHE_NOTES: 'pendragonx_cache_notes',
-  CACHE_CALENDAR: 'pendragonx_cache_calendar',
-  CACHE_TASKS: 'pendragonx_cache_tasks',
+  AUTH_TOKEN: 'bakuscribe_auth_token',
+  REFRESH_TOKEN: 'bakuscribe_refresh_token',
+  SESSION_EXPIRES_AT: 'bakuscribe_session_expires_at',
+  USER_EMAIL: 'bakuscribe_user_email',
+  POMO_STATE: 'bakuscribe_pomo_state',
+  POMO_STATS: 'bakuscribe_pomo_stats',
+  HABITS: 'bakuscribe_habits',
+  CACHE_CARDS: 'bakuscribe_cache_cards',
+  CACHE_NOTES: 'bakuscribe_cache_notes',
+  CACHE_CALENDAR: 'bakuscribe_cache_calendar',
+  CACHE_TASKS: 'bakuscribe_cache_tasks',
 };
 
 let authToken = null;
@@ -76,7 +76,7 @@ window.addEventListener('unload', () => {
 
 // ── Storage / load ──
 function loadData() {
-  chrome.storage.local.get([...Object.values(STORAGE_KEYS), 'pendragonx_alice_thread_id'], (r) => {
+  chrome.storage.local.get([...Object.values(STORAGE_KEYS), 'bakuscribe_alice_thread_id'], (r) => {
     authToken = r[STORAGE_KEYS.AUTH_TOKEN] || null;
     refreshToken = r[STORAGE_KEYS.REFRESH_TOKEN] || null;
     sessionExpiresAt = Number(r[STORAGE_KEYS.SESSION_EXPIRES_AT] || 0);
@@ -87,7 +87,7 @@ function loadData() {
     tasksList = Array.isArray(r[STORAGE_KEYS.CACHE_TASKS]) ? r[STORAGE_KEYS.CACHE_TASKS] : [];
     habits = r[STORAGE_KEYS.HABITS] || [];
     pomoStats = r[STORAGE_KEYS.POMO_STATS] || { sessions: 0, totalMinutes: 0, streak: 0, lastDate: null };
-    aliceThreadId = r.pendragonx_alice_thread_id || null;
+    aliceThreadId = r.bakuscribe_alice_thread_id || null;
 
     const savedPomo = r[STORAGE_KEYS.POMO_STATE];
     if (savedPomo) {
@@ -206,7 +206,7 @@ async function handleAuth() {
         body: JSON.stringify({
           email, password,
           data: { display_name: displayName || email.split('@')[0] },
-          options: { emailRedirectTo: 'https://pendragonx.com' },
+          options: { emailRedirectTo: 'https://bakuscribe.com' },
         }),
       });
       const d = await r.json();
@@ -343,10 +343,10 @@ let macrosList = [];
 function setupMacros() {
   document.getElementById('macro-research-btn')?.addEventListener('click', researchMacro);
   document.getElementById('macro-routine-btn')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://pendragonx.com/?routine=builder' });
+    chrome.tabs.create({ url: 'https://bakuscribe.com/?routine=builder' });
   });
   document.getElementById('macro-market-btn')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://pendragonx.com/macros' });
+    chrome.tabs.create({ url: 'https://bakuscribe.com/macros' });
   });
   document.getElementById('macro-prebuilt-btn')?.addEventListener('click', openPrebuiltModal);
   document.getElementById('pb-close')?.addEventListener('click', closePrebuiltModal);
@@ -1464,7 +1464,7 @@ function setupAIChat() {
     aiMessages = [];
     aliceThreadId = null;
     aiLoading = false;
-    chrome.storage.local.remove(['pendragonx_alice_thread_id']);
+    chrome.storage.local.remove(['bakuscribe_alice_thread_id']);
     renderAIMessages();
     document.getElementById('ai-input')?.focus();
     toast('New chat started');
@@ -1477,9 +1477,9 @@ function setupAIChat() {
     if (!wakeStatus) return;
     wakeStatus.textContent = !enabled ? '' : (listening ? '• listening' : '• starting…');
   };
-  chrome.storage.local.get(['pendragonx_wake_enabled', 'pendragonx_wake_listening'], (res) => {
-    if (wakeBox) wakeBox.checked = !!res.pendragonx_wake_enabled;
-    renderWakeStatus(!!res.pendragonx_wake_enabled, !!res.pendragonx_wake_listening);
+  chrome.storage.local.get(['bakuscribe_wake_enabled', 'bakuscribe_wake_listening'], (res) => {
+    if (wakeBox) wakeBox.checked = !!res.bakuscribe_wake_enabled;
+    renderWakeStatus(!!res.bakuscribe_wake_enabled, !!res.bakuscribe_wake_listening);
   });
   wakeBox?.addEventListener('change', () => {
     const enabled = !!wakeBox.checked;
@@ -1488,10 +1488,10 @@ function setupAIChat() {
     toast(enabled ? "Hey ALICE is listening" : "Wake word off");
   });
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.pendragonx_wake_enabled && wakeBox) wakeBox.checked = !!changes.pendragonx_wake_enabled.newValue;
-    if (changes.pendragonx_wake_enabled || changes.pendragonx_wake_listening) {
-      chrome.storage.local.get(['pendragonx_wake_enabled', 'pendragonx_wake_listening'], (res) => {
-        renderWakeStatus(!!res.pendragonx_wake_enabled, !!res.pendragonx_wake_listening);
+    if (changes.bakuscribe_wake_enabled && wakeBox) wakeBox.checked = !!changes.bakuscribe_wake_enabled.newValue;
+    if (changes.bakuscribe_wake_enabled || changes.bakuscribe_wake_listening) {
+      chrome.storage.local.get(['bakuscribe_wake_enabled', 'bakuscribe_wake_listening'], (res) => {
+        renderWakeStatus(!!res.bakuscribe_wake_enabled, !!res.bakuscribe_wake_listening);
       });
     }
   });
@@ -1821,7 +1821,7 @@ async function sendAIMessage(prefilled) {
     } else if (!r.ok || d.error) throw new Error(d.error || `Request failed (${r.status})`);
     if (d.threadId && d.threadId !== aliceThreadId) {
       aliceThreadId = d.threadId;
-      chrome.storage.local.set({ pendragonx_alice_thread_id: aliceThreadId });
+      chrome.storage.local.set({ bakuscribe_alice_thread_id: aliceThreadId });
     }
     const parts = Array.isArray(d.parts) ? d.parts : [];
     const reply = parts.filter((p) => p?.type === 'text').map((p) => p.text).join('\n').trim() || 'Done.';
@@ -1831,7 +1831,7 @@ async function sendAIMessage(prefilled) {
     // lands signed in — no "please log in" detour.
     if (d.navigate_to && typeof d.navigate_to === 'string') {
       openInWebAppSignedIn(d.navigate_to);
-      aiMessages.push({ role: 'system', content: `Opening ${d.navigate_to} on pendragonx.com…` });
+      aiMessages.push({ role: 'system', content: `Opening ${d.navigate_to} on bakuscribe.com…` });
     }
   } catch (e) {
     aiMessages.push({ role: 'assistant', content: `⚠️ ${e.message || 'Failed to reach ALICE.'}` });
@@ -1853,7 +1853,7 @@ async function openInWebAppSignedIn(path) {
         rt: refreshToken,
         to,
       }).toString();
-      const url = `https://pendragonx.com/sso#${hash}`;
+      const url = `https://bakuscribe.com/sso#${hash}`;
       chrome.tabs.create({ url });
       return;
     }
@@ -1861,7 +1861,7 @@ async function openInWebAppSignedIn(path) {
     console.warn('[Toolbox] SSO handoff failed, opening anonymously', e);
   }
   // Fallback: just open the destination; the site will prompt for login.
-  chrome.tabs.create({ url: `https://pendragonx.com${to}` });
+  chrome.tabs.create({ url: `https://bakuscribe.com${to}` });
 }
 
 // ── In-panel item viewer/editor (notes & cards) ──

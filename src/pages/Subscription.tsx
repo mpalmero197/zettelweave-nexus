@@ -52,7 +52,7 @@ export default function Subscription() {
       <SEOHead 
         title="Subscription - Baku Scribe"
         description="Manage your Baku Scribe subscription and billing. Upgrade to Premium for unlimited cards, AI features, and more."
-        canonicalUrl="https://pendragonx.com/subscription"
+        canonicalUrl="https://bakuscribe.com/subscription"
         ogImage={ogImages.subscription}
         noIndex={true}
       />

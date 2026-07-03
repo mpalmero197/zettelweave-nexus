@@ -85,7 +85,7 @@ export default function Vault() {
   // Broadcast unlocked vault to ALICE agent (extension) when ready
   useEffect(() => {
     if (!vault.unlocked) return;
-    const bc = new BroadcastChannel("pendragonx-vault");
+    const bc = new BroadcastChannel("bakuscribe-vault");
     const handler = async (ev: MessageEvent) => {
       if (ev.data?.type !== "get-otp") return;
       const host = String(ev.data.host || "");

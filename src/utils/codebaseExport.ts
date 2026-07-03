@@ -307,7 +307,7 @@ const NGINX = `server {
 
 const DOCKER_COMPOSE = `version: "3.9"
 services:
-  pendragonx:
+  bakuscribe:
     build: .
     ports: ["8080:80"]
     restart: unless-stopped
@@ -489,7 +489,7 @@ export const exportCodebase = async (
     });
 
     const stamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    saveAs(blob, `pendragonx-complete-${stamp}.zip`);
+    saveAs(blob, `bakuscribe-complete-${stamp}.zip`);
 
     opts.onProgress('Export complete!', 100);
 

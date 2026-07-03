@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FocusTask } from './FocusTaskList';
 import { toast } from 'sonner';
 
-const STORAGE_KEY = 'pendragonx-focus-sidebar';
-const AUTO_IMPORT_KEY = 'pendragonx-focus-auto-imported';
-const HISTORY_KEY = 'pendragonx-focus-history';
-const GOAL_KEY = 'pendragonx-focus-daily-goal';
-const STREAK_KEY = 'pendragonx-focus-streak';
+const STORAGE_KEY = 'bakuscribe-focus-sidebar';
+const AUTO_IMPORT_KEY = 'bakuscribe-focus-auto-imported';
+const HISTORY_KEY = 'bakuscribe-focus-history';
+const GOAL_KEY = 'bakuscribe-focus-daily-goal';
+const STREAK_KEY = 'bakuscribe-focus-streak';
 
 export interface FocusSession {
   id: string;

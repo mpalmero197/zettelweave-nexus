@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.4eb34d34fd9d491db4fe83f99b554cfb',
-  appName: 'pendragonx',
+  appName: 'bakuscribe',
   webDir: 'dist',
   // Hot-reload from the Lovable sandbox during development.
   // IMPORTANT: Remove or comment the `server` block before building the release .aab for Play upload.

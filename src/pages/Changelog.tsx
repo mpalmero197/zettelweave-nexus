@@ -152,8 +152,8 @@ export default function Changelog() {
       <SEOHead
         title="Changelog - Baku Scribe Updates & Release History"
         description="See every update and feature added to Baku Scribe since launch. Follow our journey from a simple Zettelkasten tool to a full AI-powered knowledge management platform."
-        keywords="pendragonx changelog, updates, release notes, version history"
-        canonicalUrl="https://pendragonx.com/changelog"
+        keywords="bakuscribe changelog, updates, release notes, version history"
+        canonicalUrl="https://bakuscribe.com/changelog"
       />
 
       {/* Header */}

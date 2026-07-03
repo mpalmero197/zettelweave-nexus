@@ -16,7 +16,7 @@ export function Footer() {
           <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
         </nav>
         <a
-          href="https://www.producthunt.com/products/pendragonx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-pendragonx"
+          href="https://www.producthunt.com/products/bakuscribe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bakuscribe"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -28,7 +28,7 @@ export function Footer() {
           />
         </a>
         <a
-          href="https://halcyonranker.lovable.app/site/pendragonx.com"
+          href="https://halcyonranker.lovable.app/site/bakuscribe.com"
           target="_blank"
           rel="noopener"
           style={{

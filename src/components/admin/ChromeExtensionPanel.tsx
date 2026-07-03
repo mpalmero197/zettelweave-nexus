@@ -20,12 +20,12 @@ export function ChromeExtensionPanel() {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const res = await fetch(`/pendragonx-chrome-extension.zip?t=${Date.now()}`);
+      const res = await fetch(`/bakuscribe-chrome-extension.zip?t=${Date.now()}`);
       if (!res.ok) throw new Error(`Download failed: ${res.status}`);
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'pendragonx-chrome-extension.zip';
+      a.download = 'bakuscribe-chrome-extension.zip';
       a.click();
       URL.revokeObjectURL(a.href);
       toast.success('Extension downloaded', {
@@ -110,7 +110,7 @@ export function ChromeExtensionPanel() {
         <CardContent className="pt-6 space-y-2">
           <p className="text-sm text-amber-700 dark:text-amber-400">
             <strong>Distribution:</strong> The download is publicly accessible at{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">/pendragonx-chrome-extension.zip</code>.
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">/bakuscribe-chrome-extension.zip</code>.
             For Chrome Web Store publication, upload the same ZIP via the{' '}
             <a
               href="https://chrome.google.com/webstore/devconsole"

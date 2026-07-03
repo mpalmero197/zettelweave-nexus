@@ -249,7 +249,7 @@ export default function Landing() {
         title="Baku Scribe: AI Second Brain with Knowledge Graph & Agents | vs Notion & Obsidian"
         description="Baku Scribe is the AI-powered second brain that auto-connects every idea in a living knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
         keywords="AI second brain, knowledge graph, Baku Scribe vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with knowledge graph 2026, second brain that thinks with you"
-        canonicalUrl="https://pendragonx.com/"
+        canonicalUrl="https://bakuscribe.com/"
         ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
       />
@@ -392,7 +392,7 @@ export default function Landing() {
             {/* Product Hunt Featured Badge */}
             <div className="flex justify-center pt-2">
               <a
-                href="https://www.producthunt.com/products/pendragonx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-pendragonx"
+                href="https://www.producthunt.com/products/bakuscribe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bakuscribe"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -413,7 +413,7 @@ export default function Landing() {
       </section>
 
       {/* ────────────────────────── AEO: ANSWER PARAGRAPH (crawlable, visually hidden) ────────────────────────── */}
-      <article className="sr-only" aria-hidden="false" id="pendragonx-definition">
+      <article className="sr-only" aria-hidden="false" id="bakuscribe-definition">
         <h2>What is Baku Scribe?</h2>
         <p>
           <dfn>Baku Scribe</dfn> is an AI-powered second brain and knowledge management platform that

@@ -20,7 +20,7 @@ Baku Scribe is an AI knowledge management platform that automatically connects i
 
 ## URL
 
-https://pendragonx.com
+https://bakuscribe.com
 
 ## Core Features
 
@@ -64,7 +64,7 @@ Built by Halcyon Systems Group.
 
 ## Documentation
 
-- Full features: https://pendragonx.com/llms-full.txt
-- Changelog: https://pendragonx.com/changelog
-- Privacy Policy: https://pendragonx.com/privacy
-- Terms of Service: https://pendragonx.com/terms
+- Full features: https://bakuscribe.com/llms-full.txt
+- Changelog: https://bakuscribe.com/changelog
+- Privacy Policy: https://bakuscribe.com/privacy
+- Terms of Service: https://bakuscribe.com/terms

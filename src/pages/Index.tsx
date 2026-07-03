@@ -123,7 +123,7 @@ const Index = () => {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationMethod, setOrganizationMethod] = useState<OrganizationMethod>(() => {
-    const stored = localStorage.getItem('pendragonx-organization-method');
+    const stored = localStorage.getItem('bakuscribe-organization-method');
     return (stored as OrganizationMethod) || "dewey";
   });
   const [editingCard, setEditingCard] = useState<ZettelCardType | null>(null);
@@ -254,7 +254,7 @@ const Index = () => {
   }, [cards]);
 
   useEffect(() => {
-    localStorage.setItem('pendragonx-organization-method', organizationMethod);
+    localStorage.setItem('bakuscribe-organization-method', organizationMethod);
   }, [organizationMethod]);
 
   const handleCreateCard = (newCard: Omit<ZettelCardType, 'id' | 'created' | 'modified'>) => {

@@ -9,7 +9,7 @@ export default function TermsOfService() {
       <SEOHead 
         title="Terms of Service - Baku Scribe"
         description="Read the Baku Scribe Terms of Service. Understand your rights and responsibilities when using our AI-powered knowledge management platform."
-        canonicalUrl="https://pendragonx.com/terms"
+        canonicalUrl="https://bakuscribe.com/terms"
         ogImage={ogImages.terms}
         noIndex={false}
       />

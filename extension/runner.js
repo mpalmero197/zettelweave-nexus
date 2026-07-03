@@ -4,16 +4,16 @@
 // alice-repair-macro-step edge function to fix the step using the live DOM.
 
 (() => {
-  if (window.__pendragonxRunnerActive) return;
-  window.__pendragonxRunnerActive = true;
+  if (window.__bakuscribeRunnerActive) return;
+  window.__bakuscribeRunnerActive = true;
 
-  const OVERLAY_ID = "pendragonx-runner-overlay";
+  const OVERLAY_ID = "bakuscribe-runner-overlay";
   const PER_STEP_TIMEOUT_MS = 8000;
   const HUMAN_DELAY_MS = () => 80 + Math.floor(Math.random() * 120);
 
   // Per-run variable bag (populated by ask steps and vault-pick fallback).
-  window.__pendragonxRunVars = window.__pendragonxRunVars || {};
-  const runVars = window.__pendragonxRunVars;
+  window.__bakuscribeRunVars = window.__bakuscribeRunVars || {};
+  const runVars = window.__bakuscribeRunVars;
   let currentMacroId = null;
 
   // ── Overlay ────────────────────────────────────────────────────────────
@@ -31,22 +31,22 @@
       "display:flex","align-items:center","gap:10px",
     ].join(";");
     el.innerHTML = `
-      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px #a78bfa;animation:pendragonx-run-pulse 1.2s infinite"></span>
-      <span data-pendragonx-run-label>ALICE running…</span>
-      <button data-pendragonx-run-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>
+      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px #a78bfa;animation:bakuscribe-run-pulse 1.2s infinite"></span>
+      <span data-bakuscribe-run-label>ALICE running…</span>
+      <button data-bakuscribe-run-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>
     `;
     const style = document.createElement("style");
-    style.textContent = `@keyframes pendragonx-run-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }`;
+    style.textContent = `@keyframes bakuscribe-run-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }`;
     document.documentElement.appendChild(style);
-    el.querySelector("[data-pendragonx-run-stop]")?.addEventListener("click", () => {
-      window.__pendragonxRunnerCancelled = true;
+    el.querySelector("[data-bakuscribe-run-stop]")?.addEventListener("click", () => {
+      window.__bakuscribeRunnerCancelled = true;
     });
     document.body.appendChild(el);
     return el;
   }
   function updateOverlay(text) {
     const el = makeOverlay();
-    const label = el.querySelector("[data-pendragonx-run-label]");
+    const label = el.querySelector("[data-bakuscribe-run-label]");
     if (label) label.textContent = text;
   }
   function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); }
@@ -413,7 +413,7 @@
     let idx = 0;
     try {
       for (const step of steps) {
-        if (window.__pendragonxRunnerCancelled) throw new Error("Cancelled by user");
+        if (window.__bakuscribeRunnerCancelled) throw new Error("Cancelled by user");
         idx += 1;
         updateOverlay(`Step ${idx}/${steps.length} — ${step.action}`);
         chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_PROGRESS", runId, currentStep: idx, total: steps.length }, () => {});
@@ -435,7 +435,7 @@
       }, () => {});
       setTimeout(removeOverlay, 4500);
     } finally {
-      window.__pendragonxRunnerActive = false;
+      window.__bakuscribeRunnerActive = false;
     }
   }
 
@@ -443,13 +443,13 @@
     if (msg?.type === "PENDRAGONX_RUN_START" && Array.isArray(msg.steps)) {
       runAll(msg.steps, msg.runId, msg.macroId);
     } else if (msg?.type === "PENDRAGONX_RUN_CANCEL") {
-      window.__pendragonxRunnerCancelled = true;
+      window.__bakuscribeRunnerCancelled = true;
     }
   });
 
-  if (window.__pendragonxPendingRun) {
-    const { steps, runId, macroId } = window.__pendragonxPendingRun;
-    delete window.__pendragonxPendingRun;
+  if (window.__bakuscribePendingRun) {
+    const { steps, runId, macroId } = window.__bakuscribePendingRun;
+    delete window.__bakuscribePendingRun;
     runAll(steps, runId, macroId);
   } else {
     chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_READY" }, (resp) => {

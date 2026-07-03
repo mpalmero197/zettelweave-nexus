@@ -4,12 +4,12 @@
 // Baku Scribe session held by the background service worker.
 
 (() => {
-  if (window.__pendragonxToolboxHighlight) return;
-  window.__pendragonxToolboxHighlight = true;
+  if (window.__bakuscribeToolboxHighlight) return;
+  window.__bakuscribeToolboxHighlight = true;
 
   const MAX_LEN = 500;
   const MIN_LEN = 8;
-  const PILL_ID = "pendragonx-scratchpad-pill";
+  const PILL_ID = "bakuscribe-scratchpad-pill";
   const LOG = (...a) => console.debug("[Baku Scribe Toolbox]", ...a);
   LOG("highlight-capture loaded on", location.href);
 

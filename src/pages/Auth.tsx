@@ -125,7 +125,7 @@ export default function Auth() {
       <SEOHead 
         title="Sign In - Baku Scribe"
         description="Sign in or create your Baku Scribe account. Start building your personal knowledge management system with AI-powered insights."
-        canonicalUrl="https://pendragonx.com/auth"
+        canonicalUrl="https://bakuscribe.com/auth"
         ogImage={ogImages.auth}
       />
       <div className="w-full max-w-md space-y-6">

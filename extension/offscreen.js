@@ -11,15 +11,15 @@ let phrases = DEFAULT_PHRASES;
 
 function loadPhrases() {
   try {
-    chrome.storage.local.get(["pendragonx_wake_phrases"], (res) => {
-      const p = res && res.pendragonx_wake_phrases;
+    chrome.storage.local.get(["bakuscribe_wake_phrases"], (res) => {
+      const p = res && res.bakuscribe_wake_phrases;
       if (Array.isArray(p) && p.length) phrases = p.map((s) => String(s).toLowerCase().trim()).filter(Boolean);
     });
   } catch (_) { /* ignore */ }
 }
 loadPhrases();
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.pendragonx_wake_phrases) loadPhrases();
+  if (changes.bakuscribe_wake_phrases) loadPhrases();
 });
 
 function notify(type, payload) {

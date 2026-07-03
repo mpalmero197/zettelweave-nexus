@@ -77,15 +77,15 @@ With the dev `server.url` in `capacitor.config.ts`, the app hot-reloads from the
    ```
 3. Generate an **upload keystore** (one time, store safely — losing it = can't update the app):
    ```bash
-   keytool -genkey -v -keystore pendragonx-upload.keystore \
-     -alias pendragonx -keyalg RSA -keysize 2048 -validity 10000
+   keytool -genkey -v -keystore bakuscribe-upload.keystore \
+     -alias bakuscribe -keyalg RSA -keysize 2048 -validity 10000
    ```
 4. Add `android/key.properties`:
    ```
    storePassword=YOUR_PASSWORD
    keyPassword=YOUR_PASSWORD
-   keyAlias=pendragonx
-   storeFile=../../pendragonx-upload.keystore
+   keyAlias=bakuscribe
+   storeFile=../../bakuscribe-upload.keystore
    ```
 5. In `android/app/build.gradle`, add a `signingConfigs.release` block referencing `key.properties` and set `buildTypes.release.signingConfig signingConfigs.release`.
 6. Build the bundle:
@@ -104,8 +104,8 @@ With the dev `server.url` in `capacitor.config.ts`, the app hot-reloads from the
 | Play Developer account ($25 one-time) | Sign up at https://play.google.com/console |
 | App name | `Baku Scribe` |
 | Package name | `app.lovable.4eb34d34fd9d491db4fe83f99b554cfb` |
-| Privacy Policy URL | https://pendragonx.com/privacy-policy ✅ already exists |
-| Terms of Service URL | https://pendragonx.com/terms-of-service ✅ already exists |
+| Privacy Policy URL | https://bakuscribe.com/privacy-policy ✅ already exists |
+| Terms of Service URL | https://bakuscribe.com/terms-of-service ✅ already exists |
 | Data Safety form | Collects: email, name, knowledge content, usage analytics. Encrypted in transit. Users can request deletion. |
 | Content rating | Productivity / Everyone |
 | Target audience | 13+ |

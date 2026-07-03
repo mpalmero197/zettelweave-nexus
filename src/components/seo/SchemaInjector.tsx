@@ -86,7 +86,7 @@ export const buildArticleSchema = (article: {
     name: "Baku Scribe",
     logo: {
       "@type": "ImageObject",
-      url: "https://pendragonx.com/icon-512x512.png",
+      url: "https://bakuscribe.com/icon-512x512.png",
     },
   },
 });

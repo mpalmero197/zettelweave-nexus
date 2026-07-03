@@ -33,7 +33,7 @@ async function createVapidJwt(
   const exp = Math.floor(Date.now() / 1000) + 12 * 3600;
 
   const header = { typ: "JWT", alg: "ES256" };
-  const payload = { aud, exp, sub: "mailto:noreply@pendragonx.lovable.app" };
+  const payload = { aud, exp, sub: "mailto:noreply@bakuscribe.lovable.app" };
 
   const encodeJson = (obj: unknown) =>
     uint8ToUrlBase64(new TextEncoder().encode(JSON.stringify(obj)));

@@ -7,10 +7,10 @@
 //
 // Safety: NEVER fills password or [autocomplete*=cc-] fields.
 (() => {
-  if (window.__pendragonxAgentActive) return;
-  window.__pendragonxAgentActive = true;
+  if (window.__bakuscribeAgentActive) return;
+  window.__bakuscribeAgentActive = true;
 
-  const OVERLAY_ID = "pendragonx-agent-overlay";
+  const OVERLAY_ID = "bakuscribe-agent-overlay";
   const HUMAN_DELAY = () => 200 + Math.floor(Math.random() * 200);
 
   function overlay() {
@@ -24,7 +24,7 @@
       <span data-agent-label style="flex:1">ALICE is thinking…</span>
       <button data-agent-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 10px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>`;
     el.querySelector("[data-agent-stop]")?.addEventListener("click", () => {
-      window.__pendragonxAgentCancelled = true;
+      window.__bakuscribeAgentCancelled = true;
       label("Stopping…");
     });
     document.body.appendChild(el);
@@ -45,14 +45,14 @@
     const txt = (el.innerText || el.value || "").trim().slice(0, 40);
     if (txt && el.tagName) {
       const tag = el.tagName.toLowerCase();
-      return `${tag}::pendragonx-text="${txt}"`; // resolved by findBySelector
+      return `${tag}::bakuscribe-text="${txt}"`; // resolved by findBySelector
     }
     return null;
   }
 
   function findBySelector(sel) {
     if (!sel) return null;
-    const m = sel.match(/^([a-z0-9]+)::pendragonx-text="(.+)"$/);
+    const m = sel.match(/^([a-z0-9]+)::bakuscribe-text="(.+)"$/);
     if (m) {
       const [, tag, txt] = m;
       const els = document.querySelectorAll(tag);
@@ -164,7 +164,7 @@
     let consecutiveSameUrl = 0;
     let lastUrl = "";
     for (let i = 0; i < 50; i++) {
-      if (window.__pendragonxAgentCancelled) {
+      if (window.__bakuscribeAgentCancelled) {
         chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_CANCEL", runId });
         label("✗ Stopped");
         setTimeout(removeOverlay, 1500);
@@ -209,7 +209,7 @@
 
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg?.type === "PENDRAGONX_AGENT_START" && msg.runId) loop(msg.runId);
-    if (msg?.type === "PENDRAGONX_AGENT_STOP") window.__pendragonxAgentCancelled = true;
+    if (msg?.type === "PENDRAGONX_AGENT_STOP") window.__bakuscribeAgentCancelled = true;
   });
 
   // Auto-start if background pre-seeded

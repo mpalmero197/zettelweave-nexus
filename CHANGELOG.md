@@ -51,7 +51,7 @@ All notable changes to Baku Scribe are documented in this file.
   - All Supabase auth emails (signup, invite, magic link, recovery, email change, reauthentication) are now fully branded as **Baku Scribe**.
   - Email subjects prefixed with "Baku Scribe Registration" (or equivalent) for immediate recognition.
   - Emails include the Baku Scribe logo and a consistent dark-themed HTML layout (`#282d39` primary, `#1d2128` brand-gray).
-  - Sender domain configured as `notify.pendragonx.com`.
+  - Sender domain configured as `notify.bakuscribe.com`.
 
 ### Changed
 

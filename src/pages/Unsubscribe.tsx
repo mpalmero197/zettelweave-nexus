@@ -92,7 +92,7 @@ const Unsubscribe = () => {
         {(state === "invalid" || state === "error") && (
           <div className="flex flex-col items-center gap-3">
             <XCircle className="h-10 w-10 text-destructive" />
-            <p>This unsubscribe link is invalid or has expired. If you keep receiving emails, contact <a className="underline" href="mailto:support@pendragonx.com">support@pendragonx.com</a>.</p>
+            <p>This unsubscribe link is invalid or has expired. If you keep receiving emails, contact <a className="underline" href="mailto:support@bakuscribe.com">support@bakuscribe.com</a>.</p>
           </div>
         )}
       </div>

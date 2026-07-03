@@ -9,7 +9,7 @@ export interface ComparisonSpec {
   answerSummary: string;
   verdict: string;
   tableRows: [string, string, string][]; // [feature, Baku Scribe, competitor]
-  strengths: { pendragonx: string[]; competitor: string[] };
+  strengths: { bakuscribe: string[]; competitor: string[] };
   faqs: FAQItem[];
 }
 
@@ -41,7 +41,7 @@ export const comparisons: ComparisonSpec[] = [
       ["Offline mode", "Full PWA", "Read-only, limited"],
     ],
     strengths: {
-      pendragonx: [
+      bakuscribe: [
         "Automatic AI linking with no tagging or backlink syntax",
         "Private AI chat and agents included at $4.99/month",
         "Living knowledge graph, Canvas, Whiteboard, and Mind Map studios",
@@ -100,7 +100,7 @@ export const comparisons: ComparisonSpec[] = [
       ["Paid tier", "$4.99 / month all-in", "$4 Sync + $8 Publish + plugins"],
     ],
     strengths: {
-      pendragonx: [
+      bakuscribe: [
         "No plugin setup — AI, graph, sync, and collaboration work out of the box",
         "Automatic embedding-based linking replaces manual [[wikilinks]]",
         "Canvas, Whiteboard, and Mind Map studios built in",
@@ -158,7 +158,7 @@ export const comparisons: ComparisonSpec[] = [
       ["Paid tier", "$4.99 / month", "$15 / month"],
     ],
     strengths: {
-      pendragonx: [
+      bakuscribe: [
         "One-third the price of Roam Research",
         "AI-driven auto-linking on top of classic bi-directional links",
         "Living knowledge graph plus Canvas and Mind Map studios",
@@ -210,7 +210,7 @@ export const comparisons: ComparisonSpec[] = [
       ["Paid tier", "$4.99 / month", "Bundled with Microsoft 365"],
     ],
     strengths: {
-      pendragonx: [
+      bakuscribe: [
         "Automatic linking and knowledge graph OneNote simply doesn't have",
         "Private AI chat and agents included in Premium",
         "Canvas and Mind Map studios for visual thinking",
@@ -255,7 +255,7 @@ export const comparisons: ComparisonSpec[] = [
       ["Paid tier", "$4.99 / month", "$14.99 / month (Personal)"],
     ],
     strengths: {
-      pendragonx: [
+      bakuscribe: [
         "One-click .enex import that splits notebooks into individual notes",
         "Auto-linking and living knowledge graph Evernote lacks",
         "Private AI chat and agents included",

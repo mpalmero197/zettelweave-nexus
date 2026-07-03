@@ -15,7 +15,7 @@ export type WindowSyncMessage =
   | { type: "tab-change"; tab: string; windowId: string }
   | { type: "ping"; windowId: string };
 
-const CHANNEL_NAME = "pendragonx-sync";
+const CHANNEL_NAME = "bakuscribe-sync";
 
 // Stable per-tab id so we can ignore our own messages
 const WINDOW_ID =
