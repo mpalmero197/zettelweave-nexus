@@ -103,6 +103,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
 const AliceStandalone = lazy(() => import("./pages/AliceStandalone"));
 const Macros = lazy(() => import("./pages/Macros"));
+const ComparisonPage = lazy(() => import("./pages/vs/ComparisonPage"));
 
 // Lazy load persistent layout
 const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -259,6 +260,11 @@ const App = () => (
                 <Route path="/unsubscribe" element={
                   <Suspense fallback={<LoadingFallback />}>
                     <Unsubscribe />
+                  </Suspense>
+                } />
+                <Route path="/vs/:slug" element={
+                  <Suspense fallback={<LoadingFallback message="Loading comparison..." />}>
+                    <ComparisonPage />
                   </Suspense>
                 } />
                 <Route path="/sso" element={

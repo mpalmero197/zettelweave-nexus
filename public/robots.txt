@@ -62,11 +62,15 @@ Allow: /
 # Default rule for all other bots
 User-agent: *
 Allow: /
+Allow: /vs/
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /app
 Disallow: /settings
-Disallow: /subscription
+Disallow: /admin
+Disallow: /vault
+Disallow: /alice-app
 Disallow: /*.json$
-Disallow: /*?*
 
 # LLM knowledge base files
 # These provide structured information for AI answer engines
