@@ -1,84 +1,52 @@
-# ALICE Wake Word + Teach-a-Macro + Macro Marketplace
+## Goal
+Raise PendragonX's ranking signals for both traditional SEO (Google/Bing) and GEO/AEO (ChatGPT, Gemini, Claude, Perplexity) by shipping richer structured content, stronger schema coverage, freshness signals, and a citation-friendly answer layer.
 
-Three coordinated workstreams shipped together.
+## 1. Answer-First Content Layer (GEO)
+- Add `AnswerBlock` (40–60 word TL;DR) to the top of Landing, About, Subscription, Install, Changelog, Scholar, Macros pages using the existing `src/components/seo/AnswerBlock.tsx`.
+- Insert `FAQBlock` on Landing, Subscription, Macros, Install with 6–10 conversational Q&As each (auto-emits FAQPage JSON-LD).
+- Add `HowToBlock` on Install ("How to install PendragonX"), Macros ("How to build a macro"), and Scholar ("How to study with ALICE").
+- Add `LastUpdated` + `CitationBlock` to editorial pages so LLMs see freshness + sourcing.
 
----
+## 2. Structured Data Expansion
+- Sitewide in `index.html`: expand JSON-LD to include `Organization`, `WebSite` (with `SearchAction`), `SoftwareApplication` (with `aggregateRating` if available), and `BreadcrumbList`.
+- Per-route JSON-LD via `SchemaInjector`:
+  - Landing → `SoftwareApplication` + `FAQPage` + `Product` (pricing tiers as `Offer`s).
+  - Subscription → `Product` w/ `PriceSpecification` for each tier.
+  - About → `AboutPage` + `Organization`.
+  - Changelog → `Article` per entry.
+  - Scholar → `Course` / `EducationalOccupationalProgram`.
 
-## 1. Fix "Hey ALICE" wake word in the Toolbox extension
+## 3. Crawler & Freshness Infrastructure
+- Rebuild `public/sitemap.xml` via a `scripts/generate-sitemap.ts` (predev/prebuild) so `lastmod` is always current and every public route ships.
+- `public/robots.txt`: keep AI crawlers allowed, add explicit `Allow` for `/llms.txt`, `/llms-full.txt`, `/sitemap.xml`; remove overbroad `Disallow: /*?*` (blocks legitimate query URLs).
+- Refresh `llms.txt` / `llms-full.txt` with current feature list, positioning as "AI-powered second brain for writers", and canonical answer snippets for common LLM prompts ("best knowledge management software", "Notion alternative", "Obsidian alternative", "AI second brain").
 
-The current offscreen wake-word loop never triggers a conversation start. Plan:
+## 4. Topical Authority Pages (new SEO landing routes)
+Create thin but high-quality comparison/answer pages under `/vs/*` and `/compare/*` (indexable, sitemap-listed):
+- `/vs/notion`, `/vs/obsidian`, `/vs/onenote`, `/vs/roam`, `/vs/mem`
+- `/compare/ai-second-brain`, `/compare/knowledge-graph-tools`, `/compare/writer-tools`
+Each uses `AnswerBlock` + comparison table (`ScannableTable`) + FAQ + `TopicalCluster` linking back to Landing.
 
-- Audit `extension/background.js`, `extension/offscreen.js`, `extension/offscreen.html` and the mirrored `public/chrome-extension/*` copies.
-- Confirm `offscreen` document is being created with the right reasons (`USER_MEDIA` + `AUDIO_PLAYBACK`) and that `chrome.runtime.sendMessage` from offscreen → background is wired.
-- Replace fragile keyword spotting with a robust loop:
-  - Continuous `MediaRecorder` 3‑second rolling chunks → Whisper via existing `transcribe-audio` edge function.
-  - If transcript matches `/\bhey,?\s*(alice|allie)\b/i` → background opens the side panel / popup and posts `alice:wake` to it.
-- Add a visible mic indicator + on/off toggle in `popup.html` writing to `chrome.storage.local.wakeWord = true|false`.
-- Re-zip both `public/pendragonx-toolbox.zip` and `public/pendragonx-chrome-extension.zip`.
+## 5. On-Page SEO Hygiene
+- Audit every route to guarantee: one `<h1>`, meaningful `<title>` (<60 chars), `<meta description>` (<160 chars), self-referencing canonical, matching og:url — via `SEOHead`.
+- Add descriptive `alt` text pass on all `<img>` in Landing / About / Install.
+- Add internal linking blocks (`TopicalCluster`) on Landing → feature deep-dives.
 
-Acceptance: open extension popup → enable Wake Word → say "Hey ALICE" → ALICE side panel opens with mic already hot.
+## 6. Performance = Ranking
+- Verify LCP element on Landing is server-rendered (already in `index.html` crawler HTML). Preload hero font.
+- Add `fetchpriority="high"` to hero image, `loading="lazy"` + explicit width/height on below-fold images.
 
----
+## 7. Verification
+- Run `seo_chat--trigger_scan` after implementation.
+- Validate JSON-LD via schema.org validator (spot-check output).
+- Confirm sitemap builds and includes new `/vs/*` routes.
 
-## 2. Teach-a-Macro (record-by-demonstration)
+## Technical Notes
+- Reuse existing `src/components/seo/*` primitives — no new dependencies.
+- Comparison pages are static React routes registered in `src/App.tsx`, wrapped in `SEOHead` + `SchemaInjector`.
+- Sitemap generator uses `tsx` (already in devDeps via `bunx`).
+- `AutoSEOOverrides` remains authoritative for per-route dynamic tags; new JSON-LD is additive.
 
-Let users demo a workflow once and save it as an `alice_macros` row with pause/ask steps.
-
-### Extension recorder
-- Reuse existing `extension/recorder.js`. Add a floating "Teach ALICE" pill the user clicks to start.
-- Capture: `click` (with stable selector + visible text), `fill` (value redacted if `input[type=password]` → emitted as `pause` prompt "Enter your password"), `select`, `navigate`, explicit user-tagged `pause` ("ALICE, wait here").
-- On stop → POST normalized steps to new edge function `alice-save-taught-macro` which:
-  1. Calls Gemini to clean step list, name the macro, suggest tags, mark sensitive fields as `pause`.
-  2. Inserts row into `alice_macros` with `source = 'taught'`.
-
-### In-app builder
-- New page `/alice/macros/teach` that opens the start URL in a new tab, instructs the user to install the extension if missing, and shows live captured steps.
-- Existing `MacroCoach` already plays steps back — verify by loading the saved macro.
-
----
-
-## 3. Macro Marketplace (admin-approved)
-
-### Schema (new tables, all with GRANTs)
-- `macro_marketplace_submissions` — `id, macro_id, user_id, status (pending|approved|rejected|removed), title, description, tags[], steps_snapshot jsonb, start_url, submitted_at, reviewed_at, reviewer_id, rejection_reason`.
-- `macro_marketplace_ratings` — `id, submission_id, user_id (unique pair), stars 1-5, review text, created_at`.
-- `macro_marketplace_installs` — `id, submission_id, user_id, installed_macro_id, created_at` (for download counts).
-- View `macro_marketplace_public` exposing only `approved` rows + aggregated `avg_rating`, `rating_count`, `install_count`.
-
-RLS:
-- Anyone authenticated can `SELECT` from the public view.
-- Owner can update their own pending submission.
-- Admins (via `has_role`) can update status.
-- Ratings: insert/update only own row; everyone reads.
-
-### UI
-- `src/pages/MacroMarketplace.tsx` — browse grid, filter by tag, sort by rating / installs / newest, search.
-- `src/pages/MacroMarketplaceDetail.tsx` — full step list (rendered with `describeStep` shared with `MacroCoach`), screenshots-style step cards, ratings & reviews, **Install to my ALICE** button (clones into the user's `alice_macros` via edge function `install-marketplace-macro`), Report button.
-- "Publish to Marketplace" action on each user macro in the existing macros list → opens dialog (title, description, tags) → inserts pending submission.
-- Admin Panel tab `Macro Reviews`: pending queue, step preview, Approve / Reject (with reason) / Remove buttons.
-
-### Edge functions
-- `submit-macro-to-marketplace` — owner-only, snapshots steps so later edits don't change the public version.
-- `install-marketplace-macro` — clones snapshot into caller's `alice_macros` (resets vault tokens, marks `source='marketplace'`, increments install count).
-- `moderate-marketplace-macro` — admin-only status changes.
-
----
-
-## Implementation order
-
-1. DB migration for marketplace tables + view + RLS + grants.
-2. Edge functions (submit / install / moderate / save-taught-macro).
-3. Extension wake-word fix + repackage zips.
-4. Teach-a-Macro recorder flow.
-5. Marketplace browse, detail, ratings, install.
-6. Admin moderation queue.
-7. Smoke test end-to-end with Playwright.
-
----
-
-## Technical notes (for reference)
-
-- Snapshot pattern keeps marketplace versions immutable so ratings stay meaningful even if the author edits their local copy.
-- Vault tokens (`{{vault.*}}`) survive cloning — they resolve at runtime against the installer's vault, so no secrets leak.
-- Wake-word stays client-side (browser mic → offscreen Whisper). No always-on streaming to the server.
-- All new tables get explicit `GRANT` blocks per project rules.
+## Out of Scope
+- Backlink acquisition, paid SEO tools, or content writing beyond templated comparison pages.
+- SSR migration (current Vite SPA + static `index.html` crawler HTML is sufficient for the added surface).

@@ -1,82 +1,105 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-  
-  <url><loc>https://pendragonx.com/about</loc><lastmod>2026-05-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://pendragonx.com/contact</loc><lastmod>2026-05-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://pendragonx.com/editorial-policy</loc><lastmod>2026-05-07</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  
-  <!-- Homepage / Landing -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://pendragonx.com/</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  
-  <!-- Landing Page (alternate) -->
   <url>
-    <loc>https://pendragonx.com/landing</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  
-  <!-- Authentication -->
-  <url>
-    <loc>https://pendragonx.com/auth</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <!-- Install / PWA -->
-  <url>
-    <loc>https://pendragonx.com/install</loc>
-    <lastmod>2026-03-30</lastmod>
+    <loc>https://pendragonx.com/about</loc>
+    <lastmod>2026-07-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  
-  <!-- Changelog -->
   <url>
-    <loc>https://pendragonx.com/changelog</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>https://pendragonx.com/contact</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-  
-  <!-- Terms of Service -->
   <url>
-    <loc>https://pendragonx.com/terms</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  
-  <!-- Privacy Policy -->
-  <url>
-    <loc>https://pendragonx.com/privacy</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  
-  <!-- LLM Knowledge Base -->
-  <url>
-    <loc>https://pendragonx.com/llms.txt</loc>
-    <lastmod>2026-03-31</lastmod>
+    <loc>https://pendragonx.com/editorial-policy</loc>
+    <lastmod>2026-07-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
-  
+  <url>
+    <loc>https://pendragonx.com/subscription</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/install</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/changelog</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/auth</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/terms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/privacy</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/vs/notion</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/vs/obsidian</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/vs/roam-research</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/vs/onenote</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/vs/evernote</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pendragonx.com/llms.txt</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
   <url>
     <loc>https://pendragonx.com/llms-full.txt</loc>
-    <lastmod>2026-03-31</lastmod>
+    <lastmod>2026-07-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
-  
 </urlset>
