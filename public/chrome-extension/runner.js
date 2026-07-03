@@ -115,7 +115,7 @@
       const t = setTimeout(() => { if (!done) { done = true; resolve({ ok: false, error: "Vault timed out — open the Baku Scribe app and unlock the vault." }); } }, 12000);
       try {
         chrome.runtime.sendMessage(
-          { type: "PENDRAGONX_VAULT_REQUEST_CREDENTIAL", host, itemTitle: opts.itemTitle || null, itemId: opts.itemId || null },
+          { type: "BAKUSCRIBE_VAULT_REQUEST_CREDENTIAL", host, itemTitle: opts.itemTitle || null, itemId: opts.itemId || null },
           (resp) => {
             if (done) return;
             done = true; clearTimeout(t);
@@ -267,7 +267,7 @@
     };
     return new Promise((resolve) => {
       try {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_REPAIR_STEP", payload }, (resp) => {
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REPAIR_STEP", payload }, (resp) => {
           if (resp?.ok && resp.step) resolve(resp.step);
           else resolve(null);
         });
@@ -416,17 +416,17 @@
         if (window.__bakuscribeRunnerCancelled) throw new Error("Cancelled by user");
         idx += 1;
         updateOverlay(`Step ${idx}/${steps.length} — ${step.action}`);
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_PROGRESS", runId, currentStep: idx, total: steps.length }, () => {});
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_RUN_PROGRESS", runId, currentStep: idx, total: steps.length }, () => {});
         await runStepWithRepair(step, idx);
         await sleep(HUMAN_DELAY_MS());
       }
       updateOverlay("✓ Done");
-      chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_DONE", runId, macroId, status: "succeeded", runVars }, () => {});
+      chrome.runtime.sendMessage({ type: "BAKUSCRIBE_RUN_DONE", runId, macroId, status: "succeeded", runVars }, () => {});
       setTimeout(removeOverlay, 1800);
     } catch (err) {
       updateOverlay(`✗ Failed: ${err?.message || err}`);
       chrome.runtime.sendMessage({
-        type: "PENDRAGONX_RUN_DONE",
+        type: "BAKUSCRIBE_RUN_DONE",
         runId, macroId,
         status: "failed",
         error: String(err?.message || err),
@@ -440,9 +440,9 @@
   }
 
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "PENDRAGONX_RUN_START" && Array.isArray(msg.steps)) {
+    if (msg?.type === "BAKUSCRIBE_RUN_START" && Array.isArray(msg.steps)) {
       runAll(msg.steps, msg.runId, msg.macroId);
-    } else if (msg?.type === "PENDRAGONX_RUN_CANCEL") {
+    } else if (msg?.type === "BAKUSCRIBE_RUN_CANCEL") {
       window.__bakuscribeRunnerCancelled = true;
     }
   });
@@ -452,7 +452,7 @@
     delete window.__bakuscribePendingRun;
     runAll(steps, runId, macroId);
   } else {
-    chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_READY" }, (resp) => {
+    chrome.runtime.sendMessage({ type: "BAKUSCRIBE_RUN_READY" }, (resp) => {
       if (resp?.steps && resp?.runId) runAll(resp.steps, resp.runId, resp.macroId);
     });
   }

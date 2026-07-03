@@ -190,10 +190,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv("PENDRAGONX_KEYSTORE") ?: "bakuscribe-release.keystore")
-            storePassword System.getenv("PENDRAGONX_KEYSTORE_PASS")
-            keyAlias System.getenv("PENDRAGONX_KEY_ALIAS") ?: "bakuscribe"
-            keyPassword System.getenv("PENDRAGONX_KEY_PASS")
+            storeFile file(System.getenv("BAKUSCRIBE_KEYSTORE") ?: "bakuscribe-release.keystore")
+            storePassword System.getenv("BAKUSCRIBE_KEYSTORE_PASS")
+            keyAlias System.getenv("BAKUSCRIBE_KEY_ALIAS") ?: "bakuscribe"
+            keyPassword System.getenv("BAKUSCRIBE_KEY_PASS")
         }
     }
     bundle {
@@ -381,10 +381,10 @@ keytool -genkey -v \\
 echo ""
 echo "Keystore generated: $KEYSTORE_FILE"
 echo "Set these environment variables before running scripts/build-release-aab.sh:"
-echo "  export PENDRAGONX_KEYSTORE=\\\$(pwd)/$KEYSTORE_FILE"
-echo "  export PENDRAGONX_KEYSTORE_PASS=<the store password you just entered>"
-echo "  export PENDRAGONX_KEY_ALIAS=$KEY_ALIAS"
-echo "  export PENDRAGONX_KEY_PASS=<the key password you just entered>"
+echo "  export BAKUSCRIBE_KEYSTORE=\\\$(pwd)/$KEYSTORE_FILE"
+echo "  export BAKUSCRIBE_KEYSTORE_PASS=<the store password you just entered>"
+echo "  export BAKUSCRIBE_KEY_ALIAS=$KEY_ALIAS"
+echo "  export BAKUSCRIBE_KEY_PASS=<the key password you just entered>"
 `;
 
 const BUILD_AAB_SCRIPT = `#!/usr/bin/env bash
@@ -462,10 +462,10 @@ npx cap sync android
 
 # One-time: generate your release keystore (store it + passwords in a password manager)
 bash scripts/generate-keystore.sh
-export PENDRAGONX_KEYSTORE=\$(pwd)/bakuscribe-release.keystore
-export PENDRAGONX_KEYSTORE_PASS=...
-export PENDRAGONX_KEY_ALIAS=bakuscribe
-export PENDRAGONX_KEY_PASS=...
+export BAKUSCRIBE_KEYSTORE=\$(pwd)/bakuscribe-release.keystore
+export BAKUSCRIBE_KEYSTORE_PASS=...
+export BAKUSCRIBE_KEY_ALIAS=bakuscribe
+export BAKUSCRIBE_KEY_PASS=...
 
 # Build the release bundle
 bash scripts/build-release-aab.sh

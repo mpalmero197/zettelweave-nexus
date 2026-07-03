@@ -148,7 +148,7 @@
     if (action.action === "fill_otp") {
       const host = location.hostname.replace(/^www\./, "");
       const resp = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_GET_OTP", host }, resolve);
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_GET_OTP", host }, resolve);
       });
       if (!resp?.ok || !resp.code) {
         return { ok: false, error: resp?.error || "No OTP available in vault" };
@@ -165,7 +165,7 @@
     let lastUrl = "";
     for (let i = 0; i < 50; i++) {
       if (window.__bakuscribeAgentCancelled) {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_CANCEL", runId });
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_CANCEL", runId });
         label("✗ Stopped");
         setTimeout(removeOverlay, 1500);
         return;
@@ -177,7 +177,7 @@
       label(`Thinking… (step ${i + 1})`);
 
       const resp = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_DECIDE", runId, snapshot: snap }, resolve);
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_DECIDE", runId, snapshot: snap }, resolve);
       });
       if (!resp?.ok || !resp.action) {
         label(`✗ ${resp?.error || "Error"}`);
@@ -191,13 +191,13 @@
       if (action.action === "stop") { label(`✗ ${action.reasoning || "Stopped"}`); setTimeout(removeOverlay, 4000); return; }
       if (action.action === "pause_for_user") {
         label(`⏸ ${action.reasoning || "Needs you"} — I'll resume when ready`);
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_PAUSED", runId, reason: action.reasoning });
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_PAUSED", runId, reason: action.reasoning });
         return; // background will re-inject when user resumes
       }
       const result = await execAction(action);
       if (!result.ok) {
         label(`✗ ${result.error}`);
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_ERROR", runId, error: result.error });
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_ERROR", runId, error: result.error });
         setTimeout(removeOverlay, 3000);
         return;
       }
@@ -208,12 +208,12 @@
   }
 
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "PENDRAGONX_AGENT_START" && msg.runId) loop(msg.runId);
-    if (msg?.type === "PENDRAGONX_AGENT_STOP") window.__bakuscribeAgentCancelled = true;
+    if (msg?.type === "BAKUSCRIBE_AGENT_START" && msg.runId) loop(msg.runId);
+    if (msg?.type === "BAKUSCRIBE_AGENT_STOP") window.__bakuscribeAgentCancelled = true;
   });
 
   // Auto-start if background pre-seeded
-  chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_READY" }, (resp) => {
+  chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_READY" }, (resp) => {
     if (resp?.runId) loop(resp.runId);
   });
 })();

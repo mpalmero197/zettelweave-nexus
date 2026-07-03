@@ -121,12 +121,12 @@ chrome.tabs?.onRemoved.addListener(() => debouncedSync());
 
 // ───── Extension messages (from popup) ─────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type === "PENDRAGONX_REGISTER_CONTEXT_MENUS") {
+  if (msg?.type === "BAKUSCRIBE_REGISTER_CONTEXT_MENUS") {
     registerContextMenus();
     sendResponse({ ok: true });
     return false;
   }
-  if (msg?.type !== "PENDRAGONX_SAVE_SCRATCHPAD") return false;
+  if (msg?.type !== "BAKUSCRIBE_SAVE_SCRATCHPAD") return false;
   (async () => {
     try {
       const token = await getValidToken();
@@ -201,7 +201,7 @@ async function stopRecording() {
   // Hide badge on the start tab
   if (state?.startTabId) {
     try {
-      await chrome.tabs.sendMessage(state.startTabId, { type: "PENDRAGONX_REC_HIDE" });
+      await chrome.tabs.sendMessage(state.startTabId, { type: "BAKUSCRIBE_REC_HIDE" });
     } catch {}
   }
   return state;
@@ -226,7 +226,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg !== "object") return false;
 
   // ── Recorder ────────────────────────────────────────────────────
-  if (msg.type === "PENDRAGONX_REC_STEP") {
+  if (msg.type === "BAKUSCRIBE_REC_STEP") {
     (async () => {
       const state = await getRecState();
       if (!state?.active) return;
@@ -234,27 +234,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       await setRecState(state);
       // broadcast count to active tab
       if (state.startTabId) {
-        try { chrome.tabs.sendMessage(state.startTabId, { type: "PENDRAGONX_REC_COUNT", count: state.steps.length }); } catch {}
+        try { chrome.tabs.sendMessage(state.startTabId, { type: "BAKUSCRIBE_REC_COUNT", count: state.steps.length }); } catch {}
       }
       // also notify the side panel
-      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_COUNT_PANEL", count: state.steps.length }); } catch {}
+      try { chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REC_COUNT_PANEL", count: state.steps.length }); } catch {}
     })();
     return false;
   }
-  if (msg.type === "PENDRAGONX_REC_STATE") {
+  if (msg.type === "BAKUSCRIBE_REC_STATE") {
     (async () => {
       const state = await getRecState();
       sendResponse({ active: !!state?.active, count: state?.steps?.length || 0, startUrl: state?.startUrl });
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_REC_STOP_REQUEST") {
+  if (msg.type === "BAKUSCRIBE_REC_STOP_REQUEST") {
     (async () => {
       // The side panel listens for this and will prompt the user for a name (or auto-save if appending).
       const state = await getRecState();
       try {
         chrome.runtime.sendMessage({
-          type: "PENDRAGONX_REC_STOP_PROMPT",
+          type: "BAKUSCRIBE_REC_STOP_PROMPT",
           appendMacroId: state?.appendMacroId || null,
           appendName: state?.appendName || null,
         });
@@ -262,7 +262,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return false;
   }
-  if (msg.type === "PENDRAGONX_REC_START") {
+  if (msg.type === "BAKUSCRIBE_REC_START") {
     (async () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const res = await startRecording(tab, {
@@ -274,7 +274,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_REC_STOP_AND_SAVE") {
+  if (msg.type === "BAKUSCRIBE_REC_STOP_AND_SAVE") {
     (async () => {
       const state = await stopRecording();
       syncRecorderMenuVisibility();
@@ -327,7 +327,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_REC_CANCEL") {
+  if (msg.type === "BAKUSCRIBE_REC_CANCEL") {
     stopRecording().then(() => {
       syncRecorderMenuVisibility();
       sendResponse({ ok: true });
@@ -336,7 +336,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // ── Runner ──────────────────────────────────────────────────────
-  if (msg.type === "PENDRAGONX_RUN_MACRO") {
+  if (msg.type === "BAKUSCRIBE_RUN_MACRO") {
     (async () => {
       const token = await getValidToken();
       const userId = await getUserId(token);
@@ -384,7 +384,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_RUN_READY") {
+  if (msg.type === "BAKUSCRIBE_RUN_READY") {
     (async () => {
       const tabId = sender.tab?.id;
       if (!tabId) { sendResponse({}); return; }
@@ -397,7 +397,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_RUN_PROGRESS") {
+  if (msg.type === "BAKUSCRIBE_RUN_PROGRESS") {
     (async () => {
       const token = await getValidToken();
       if (!token) return;
@@ -409,7 +409,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return false;
   }
-  if (msg.type === "PENDRAGONX_RUN_DONE") {
+  if (msg.type === "BAKUSCRIBE_RUN_DONE") {
     (async () => {
       const token = await getValidToken();
       if (!token) return;
@@ -440,7 +440,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // ── Repair (live DOM → corrected step via edge function) ───────────────
-  if (msg.type === "PENDRAGONX_REPAIR_STEP") {
+  if (msg.type === "BAKUSCRIBE_REPAIR_STEP") {
     (async () => {
       try {
         const token = await getValidToken();
@@ -459,7 +459,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // ── Vault credential bridge: extension → Baku Scribe tab → in-page vault ─
-  if (msg.type === "PENDRAGONX_VAULT_REQUEST_CREDENTIAL") {
+  if (msg.type === "BAKUSCRIBE_VAULT_REQUEST_CREDENTIAL") {
     (async () => {
       try {
         const tabs = await chrome.tabs.query({ url: ["https://bakuscribe.com/*", "https://*.bakuscribe.com/*", "https://*.lovable.app/*"] });
@@ -469,7 +469,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const resp = await new Promise((resolve) => {
             try {
               chrome.tabs.sendMessage(t.id, {
-                type: "PENDRAGONX_VAULT_GET_CREDENTIAL",
+                type: "BAKUSCRIBE_VAULT_GET_CREDENTIAL",
                 host: msg.host || "",
                 itemTitle: msg.itemTitle || null,
                 itemId: msg.itemId || null,
@@ -487,7 +487,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // ── Autonomous Agent ────────────────────────────────────────────
-  if (msg.type === "PENDRAGONX_AGENT_READY") {
+  if (msg.type === "BAKUSCRIBE_AGENT_READY") {
     (async () => {
       const tabId = sender.tab?.id;
       if (!tabId) { sendResponse({}); return; }
@@ -498,7 +498,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_AGENT_GET_OTP") {
+  if (msg.type === "BAKUSCRIBE_AGENT_GET_OTP") {
     (async () => {
       try {
         const tabs = await chrome.tabs.query({
@@ -507,7 +507,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         for (const t of tabs) {
           try {
             const r = await chrome.tabs.sendMessage(t.id, {
-              type: "PENDRAGONX_VAULT_GET_OTP",
+              type: "BAKUSCRIBE_VAULT_GET_OTP",
               host: msg.host || "",
             });
             if (r && r.code) { sendResponse({ ok: true, code: r.code }); return; }
@@ -520,7 +520,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_AGENT_DECIDE") {
+  if (msg.type === "BAKUSCRIBE_AGENT_DECIDE") {
     (async () => {
       const token = await getValidToken();
       if (!token) { sendResponse({ ok: false, error: "Sign in to Baku Scribe first" }); return; }
@@ -539,12 +539,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
-  if (msg.type === "PENDRAGONX_AGENT_PAUSED" || msg.type === "PENDRAGONX_AGENT_ERROR" || msg.type === "PENDRAGONX_AGENT_CANCEL") {
+  if (msg.type === "BAKUSCRIBE_AGENT_PAUSED" || msg.type === "BAKUSCRIBE_AGENT_ERROR" || msg.type === "BAKUSCRIBE_AGENT_CANCEL") {
     (async () => {
       const token = await getValidToken();
       if (!token) return;
-      const patch = msg.type === "PENDRAGONX_AGENT_CANCEL" ? { status: "cancelled" }
-                   : msg.type === "PENDRAGONX_AGENT_ERROR" ? { status: "failed", error: msg.error || "Failed" }
+      const patch = msg.type === "BAKUSCRIBE_AGENT_CANCEL" ? { status: "cancelled" }
+                   : msg.type === "BAKUSCRIBE_AGENT_ERROR" ? { status: "failed", error: msg.error || "Failed" }
                    : { status: "paused_for_user", paused_reason: msg.reason || "Waiting for you" };
       await fetch(`${SUPABASE_URL}/rest/v1/alice_agent_runs?id=eq.${msg.runId}`, {
         method: "PATCH",
@@ -560,7 +560,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // ── Web app → extension bridge ──────────────────────────────────
-  if (msg.type === "PENDRAGONX_PING") {
+  if (msg.type === "BAKUSCRIBE_PING") {
     sendResponse({ ok: true, version: chrome.runtime.getManifest().version });
     return false;
   }
@@ -830,7 +830,7 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
         await chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
       }
       const recSt = await getRecState();
-      try { chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_PROMPT", appendMacroId: recSt?.appendMacroId || null, appendName: recSt?.appendName || null }); } catch {}
+      try { chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REC_STOP_PROMPT", appendMacroId: recSt?.appendMacroId || null, appendName: recSt?.appendName || null }); } catch {}
       await notify(tab?.id, "Name your macro in the side panel to finish saving", true);
       return;
     }
@@ -1159,7 +1159,7 @@ async function focusPendragonAndDeliverWake(command) {
 // React to wake messages from the offscreen document.
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!msg) return;
-  if (msg.type === "PENDRAGONX_WAKE") {
+  if (msg.type === "BAKUSCRIBE_WAKE") {
     focusPendragonAndDeliverWake(msg.command);
     try {
       chrome.notifications?.create({
@@ -1171,14 +1171,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       });
     } catch {}
   }
-  if (msg.type === "PENDRAGONX_WAKE_ERROR" && msg.error === "not-allowed") {
+  if (msg.type === "BAKUSCRIBE_WAKE_ERROR" && msg.error === "not-allowed") {
     chrome.storage.local.set({ bakuscribe_wake_enabled: false });
   }
-  if (msg.type === "PENDRAGONX_WAKE_STATE") {
+  if (msg.type === "BAKUSCRIBE_WAKE_STATE") {
     chrome.storage.local.set({ bakuscribe_wake_listening: !!msg.listening });
   }
   // Popup ↔ background control channel.
-  if (msg.type === "PENDRAGONX_SET_WAKE") {
+  if (msg.type === "BAKUSCRIBE_SET_WAKE") {
     (async () => {
       await chrome.storage.local.set({ bakuscribe_wake_enabled: !!msg.enabled });
       if (msg.enabled) await startWakeListener();

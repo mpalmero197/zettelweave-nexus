@@ -82,7 +82,7 @@
     stepCount += 1;
     updateBadge();
     try {
-      chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STEP", step }, () => {});
+      chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REC_STEP", step }, () => {});
     } catch {}
   }
 
@@ -206,7 +206,7 @@
     });
     el.querySelector("[data-bakuscribe-rec-stop]")?.addEventListener("click", (ev) => {
       ev.preventDefault();
-      chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STOP_REQUEST" }, () => {});
+      chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REC_STOP_REQUEST" }, () => {});
     });
     document.body.appendChild(el);
     return el;
@@ -225,7 +225,7 @@
 
   window.__bakuscribeRecorderShowBadge = () => {
     makeBadge();
-    chrome.runtime.sendMessage({ type: "PENDRAGONX_REC_STATE" }, (resp) => {
+    chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REC_STATE" }, (resp) => {
       stepCount = resp?.count || 0;
       updateBadge();
     });
@@ -236,12 +236,12 @@
   // Listen for background-driven badge updates (count, stop)
   chrome.runtime.onMessage.addListener((msg) => {
     if (!msg || typeof msg !== "object") return;
-    if (msg.type === "PENDRAGONX_REC_COUNT") {
+    if (msg.type === "BAKUSCRIBE_REC_COUNT") {
       stepCount = msg.count || 0;
       updateBadge();
-    } else if (msg.type === "PENDRAGONX_REC_HIDE") {
+    } else if (msg.type === "BAKUSCRIBE_REC_HIDE") {
       removeBadge();
-    } else if (msg.type === "PENDRAGONX_REC_SHOW") {
+    } else if (msg.type === "BAKUSCRIBE_REC_SHOW") {
       window.__bakuscribeRecorderShowBadge();
     }
   });

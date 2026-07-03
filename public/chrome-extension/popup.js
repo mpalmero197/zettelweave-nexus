@@ -55,7 +55,7 @@ let aliceThreadId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
-  chrome.runtime?.sendMessage?.({ type: 'PENDRAGONX_REGISTER_CONTEXT_MENUS' }, () => void chrome.runtime.lastError);
+  chrome.runtime?.sendMessage?.({ type: 'BAKUSCRIBE_REGISTER_CONTEXT_MENUS' }, () => void chrome.runtime.lastError);
   setupTabs();
   setupAuth();
   setupPomodoro();
@@ -355,7 +355,7 @@ function setupMacros() {
   });
   document.getElementById('pb-filter')?.addEventListener('input', renderPrebuilt);
   document.getElementById('macro-teach-btn')?.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START' }, (resp) => {
+    chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_REC_START' }, (resp) => {
       if (resp?.ok) toast('Recording started — do the task in the active tab, then come back to save.');
       else toast(resp?.error || 'Could not start recording');
     });
@@ -417,7 +417,7 @@ function renderMacros() {
 function recordMoreSteps(id) {
   const m = macrosList.find((x) => x.id === id);
   if (!m) return;
-  chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_START', appendMacroId: id, appendName: m.name }, (resp) => {
+  chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_REC_START', appendMacroId: id, appendName: m.name }, (resp) => {
     if (resp?.ok) toast(`Recording into "${m.name}" — do the new steps, then stop to append.`);
     else toast(resp?.error || 'Could not start recording');
   });
@@ -600,7 +600,7 @@ async function shareMacro(id) {
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function runMacro(id) {
-  chrome.runtime.sendMessage({ type: 'PENDRAGONX_RUN_MACRO', macroId: id, initiatedBy: 'user' }, (resp) => {
+  chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_RUN_MACRO', macroId: id, initiatedBy: 'user' }, (resp) => {
     if (resp?.ok) toast('Macro started — watch the new tab');
     else toast(resp?.error || 'Failed to start macro');
   });
@@ -1484,7 +1484,7 @@ function setupAIChat() {
   wakeBox?.addEventListener('change', () => {
     const enabled = !!wakeBox.checked;
     renderWakeStatus(enabled, false);
-    chrome.runtime.sendMessage({ type: 'PENDRAGONX_SET_WAKE', enabled }, () => void chrome.runtime.lastError);
+    chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_SET_WAKE', enabled }, () => void chrome.runtime.lastError);
     toast(enabled ? "Hey ALICE is listening" : "Wake word off");
   });
   chrome.storage.onChanged.addListener((changes) => {
@@ -1510,12 +1510,12 @@ function setupAIChat() {
   });
 
   // ── "Hey ALICE" wake event → switch to ALICE tab and (optionally) auto-send ──
-  // The background broadcasts PENDRAGONX_WAKE when the offscreen recognizer
+  // The background broadcasts BAKUSCRIBE_WAKE when the offscreen recognizer
   // matches the wake phrase. If the side panel is open we want the user to
   // start chatting immediately — no extra clicks.
   chrome.runtime.onMessage.addListener((msg) => {
     if (!msg) return;
-    if (msg.type === 'PENDRAGONX_WAKE') {
+    if (msg.type === 'BAKUSCRIBE_WAKE') {
       const aiTab = document.querySelector('.tab[data-tab="ai"]');
       if (aiTab && !aiTab.classList.contains('active')) aiTab.click();
       const inp = document.getElementById('ai-input');
@@ -1527,10 +1527,10 @@ function setupAIChat() {
       }
     }
     // After the user stops recording from the page, ask for a name here.
-    if (msg.type === 'PENDRAGONX_REC_STOP_PROMPT') {
+    if (msg.type === 'BAKUSCRIBE_REC_STOP_PROMPT') {
       // If recording was started in "append" mode, skip the name prompt and just save.
       if (msg.appendMacroId) {
-        chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_STOP_AND_SAVE' }, (resp) => {
+        chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_REC_STOP_AND_SAVE' }, (resp) => {
           if (resp?.ok) { toast(`Appended ${resp.appended || 0} steps to "${msg.appendName || 'macro'}"`); loadMacros?.(); }
           else toast(resp?.error || 'Could not append steps');
         });
@@ -1538,11 +1538,11 @@ function setupAIChat() {
       }
       const name = prompt('Name this macro:');
       if (!name) {
-        chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_CANCEL' });
+        chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_REC_CANCEL' });
         return;
       }
       const description = prompt('Short description (optional):') || '';
-      chrome.runtime.sendMessage({ type: 'PENDRAGONX_REC_STOP_AND_SAVE', name, description }, (resp) => {
+      chrome.runtime.sendMessage({ type: 'BAKUSCRIBE_REC_STOP_AND_SAVE', name, description }, (resp) => {
         if (resp?.ok) { toast(`Saved "${resp.macro?.name || name}"`); loadMacros?.(); }
         else toast(resp?.error || 'Could not save macro');
       });

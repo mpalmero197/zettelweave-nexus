@@ -63,7 +63,7 @@
       pill.innerHTML = `<span>Saving…</span>`;
       try {
         const res = await chrome.runtime.sendMessage({
-          type: "PENDRAGONX_SAVE_SCRATCHPAD",
+          type: "BAKUSCRIBE_SAVE_SCRATCHPAD",
           content: payload,
           source_url: location.href,
           source_title: document.title,

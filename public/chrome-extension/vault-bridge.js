@@ -23,11 +23,11 @@
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg?.type === "PENDRAGONX_VAULT_GET_OTP") {
+    if (msg?.type === "BAKUSCRIBE_VAULT_GET_OTP") {
       broadcastAsk({ type: "get-otp", host: msg.host }, 4000).then((r) => sendResponse({ code: r?.code || null }));
       return true;
     }
-    if (msg?.type === "PENDRAGONX_VAULT_GET_CREDENTIAL") {
+    if (msg?.type === "BAKUSCRIBE_VAULT_GET_CREDENTIAL") {
       broadcastAsk({ type: "get-credential", host: msg.host, itemTitle: msg.itemTitle, itemId: msg.itemId }, 9000)
         .then((r) => sendResponse(r || { ok: false, error: "Vault did not respond" }));
       return true;

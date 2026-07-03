@@ -28,7 +28,7 @@ function notify(type, payload) {
 
 function start() {
   const Ctor = self.SpeechRecognition || self.webkitSpeechRecognition;
-  if (!Ctor) { notify("PENDRAGONX_WAKE_ERROR", { error: "no-speech-api" }); return; }
+  if (!Ctor) { notify("BAKUSCRIBE_WAKE_ERROR", { error: "no-speech-api" }); return; }
   if (rec) return;
   stopped = false;
   rec = new Ctor();
@@ -37,18 +37,18 @@ function start() {
   rec.maxAlternatives = 1;
   rec.lang = navigator.language || "en-US";
 
-  rec.onstart = () => notify("PENDRAGONX_WAKE_STATE", { listening: true });
+  rec.onstart = () => notify("BAKUSCRIBE_WAKE_STATE", { listening: true });
   rec.onerror = (e) => {
     const err = (e && e.error) || "unknown";
     if (err === "not-allowed" || err === "service-not-allowed") {
       stopped = true;
-      notify("PENDRAGONX_WAKE_ERROR", { error: "not-allowed" });
+      notify("BAKUSCRIBE_WAKE_ERROR", { error: "not-allowed" });
     } else if (err !== "no-speech" && err !== "aborted") {
-      notify("PENDRAGONX_WAKE_ERROR", { error: err });
+      notify("BAKUSCRIBE_WAKE_ERROR", { error: err });
     }
   };
   rec.onend = () => {
-    notify("PENDRAGONX_WAKE_STATE", { listening: false });
+    notify("BAKUSCRIBE_WAKE_STATE", { listening: false });
     const prev = rec;
     rec = null;
     if (!stopped) setTimeout(() => { if (!stopped) start(); }, 500);
@@ -61,13 +61,13 @@ function start() {
       if (match) {
         const idx = transcript.indexOf(match);
         const tail = transcript.slice(idx + match.length).replace(/^[,.\s]+/, "").trim();
-        notify("PENDRAGONX_WAKE", { command: tail || null, transcript });
+        notify("BAKUSCRIBE_WAKE", { command: tail || null, transcript });
       }
     }
   };
 
   try { rec.start(); }
-  catch (e) { notify("PENDRAGONX_WAKE_ERROR", { error: String(e && e.message || e) }); }
+  catch (e) { notify("BAKUSCRIBE_WAKE_ERROR", { error: String(e && e.message || e) }); }
 }
 
 function stop() {
@@ -87,7 +87,7 @@ async function primeMic() {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!msg || msg.target !== "offscreen") return;
-  if (msg.type === "WAKE_START") { primeMic().then((ok) => { if (ok) start(); else notify("PENDRAGONX_WAKE_ERROR", { error: "not-allowed" }); }); sendResponse({ ok: true }); return true; }
+  if (msg.type === "WAKE_START") { primeMic().then((ok) => { if (ok) start(); else notify("BAKUSCRIBE_WAKE_ERROR", { error: "not-allowed" }); }); sendResponse({ ok: true }); return true; }
   if (msg.type === "WAKE_STOP") { stop(); sendResponse({ ok: true }); return; }
 });
 
