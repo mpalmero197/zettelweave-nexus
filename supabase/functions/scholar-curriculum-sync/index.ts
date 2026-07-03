@@ -30,7 +30,7 @@ async function generateLesson(cap: Capability) {
       messages: [
         {
           role: "system",
-          content: "You generate concise, friendly tutorial content for PendragonX users. Output strict JSON only.",
+          content: "You generate concise, friendly tutorial content for Baku Scribe users. Output strict JSON only.",
         },
         {
           role: "user",

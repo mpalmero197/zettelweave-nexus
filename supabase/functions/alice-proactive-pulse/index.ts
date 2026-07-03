@@ -14,7 +14,7 @@ const corsHeaders = {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
 
-const SYSTEM = `You are ALICE, a proactive 24/7 writing & life assistant inside PendragonX.
+const SYSTEM = `You are ALICE, a proactive 24/7 writing & life assistant inside Baku Scribe.
 Given a compact snapshot of the user's last day of activity, decide whether there is ONE genuinely useful proactive nudge worth surfacing right now.
 
 Output STRICT JSON:

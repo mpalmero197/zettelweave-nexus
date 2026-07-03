@@ -1,10 +1,10 @@
 # PWA Configuration
 
-This document explains how the Progressive Web App (PWA) features are configured in PendragonX.
+This document explains how the Progressive Web App (PWA) features are configured in Baku Scribe.
 
 ## Overview
 
-PendragonX is configured as a Progressive Web App, enabling:
+Baku Scribe is configured as a Progressive Web App, enabling:
 - Installation on mobile and desktop devices
 - Offline functionality
 - Native app-like experience
@@ -21,8 +21,8 @@ The PWA is configured using `vite-plugin-pwa` with:
 ### Manifest Settings
 ```json
 {
-  "name": "PendragonX - Zettelkasten System",
-  "short_name": "PendragonX",
+  "name": "Baku Scribe - Zettelkasten System",
+  "short_name": "Baku Scribe",
   "description": "Intelligent knowledge management system with offline support",
   "theme_color": "#1a1a1a",
   "background_color": "#ffffff",
@@ -54,7 +54,7 @@ The PWA is configured using `vite-plugin-pwa` with:
 ## Installation
 
 ### Mobile (iOS/Android)
-Users can install PendragonX via:
+Users can install Baku Scribe via:
 1. **Auto-prompt**: Shows install banner on supported browsers
 2. **Manual**: Browser menu → "Install App" or "Add to Home Screen"
 3. **Install page**: Navigate to `/install` for guided installation

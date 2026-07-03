@@ -1,8 +1,8 @@
 /**
- * PendragonX Complete Codebase Export
+ * Baku Scribe Complete Codebase Export
  * --------------------------------------------------------------
  * Produces a single .zip containing EVERY file that makes up
- * PendragonX (frontend, backend, edge functions, migrations,
+ * Baku Scribe (frontend, backend, edge functions, migrations,
  * config) plus a live Supabase snapshot — fully ready to be
  * redeployed if either Lovable or Supabase becomes unavailable.
  *
@@ -134,7 +134,7 @@ const collectBinaryFiles = async (
 
 const PROJECT_REF = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID ?? 'YOUR_PROJECT_REF';
 
-const ENV_TEMPLATE = `# PendragonX environment configuration
+const ENV_TEMPLATE = `# Baku Scribe environment configuration
 # Get credentials from: https://supabase.com/dashboard/project/${PROJECT_REF}/settings/api
 
 VITE_SUPABASE_URL=https://${PROJECT_REF}.supabase.co
@@ -156,9 +156,9 @@ dist-ssr
 .temp
 `;
 
-const buildRestoreGuide = (meta: any, manifest: any): string => `# Restoring PendragonX from this archive
+const buildRestoreGuide = (meta: any, manifest: any): string => `# Restoring Baku Scribe from this archive
 
-This archive is a complete snapshot of the PendragonX codebase plus
+This archive is a complete snapshot of the Baku Scribe codebase plus
 the live Supabase project metadata required to redeploy from scratch.
 
 > Generated: ${new Date().toISOString()}
@@ -307,7 +307,7 @@ const NGINX = `server {
 
 const DOCKER_COMPOSE = `version: "3.9"
 services:
-  pendragonx:
+  bakuscribe:
     build: .
     ports: ["8080:80"]
     restart: unless-stopped
@@ -489,7 +489,7 @@ export const exportCodebase = async (
     });
 
     const stamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    saveAs(blob, `pendragonx-complete-${stamp}.zip`);
+    saveAs(blob, `bakuscribe-complete-${stamp}.zip`);
 
     opts.onProgress('Export complete!', 100);
 

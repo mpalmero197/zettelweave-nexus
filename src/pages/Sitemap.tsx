@@ -109,7 +109,7 @@ const SECTIONS: Section[] = [
       { to: "/settings", label: "Settings", desc: "Themes, performance, security log and account management.", icon: Settings },
       { to: "/subscription", label: "Subscription", desc: "Free, Monthly and Lifetime plans with a 7-day premium trial.", icon: Crown },
       { tab: "recycle", label: "Recycle Bin", desc: "Restore or permanently delete anything you've removed.", icon: Trash2 },
-      { to: "/install", label: "Install / PWA", desc: "Install PendragonX as a desktop or mobile app with offline support.", icon: Wrench },
+      { to: "/install", label: "Install / PWA", desc: "Install Baku Scribe as a desktop or mobile app with offline support.", icon: Wrench },
     ],
   },
 ];
@@ -144,8 +144,8 @@ export default function Sitemap() {
   return (
     <>
       <SEOHead
-        title="PendragonX Sitemap — Every Feature, Visualized"
-        description="An interactive map of every PendragonX tool, what it does, and how each feature connects to the others."
+        title="Baku Scribe Sitemap — Every Feature, Visualized"
+        description="An interactive map of every Baku Scribe tool, what it does, and how each feature connects to the others."
         canonicalUrl="/sitemap"
       />
       <main className="min-h-screen bg-background text-foreground">
@@ -154,7 +154,7 @@ export default function Sitemap() {
           <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <img src={pendragonLogo} alt="" className="h-6 w-6 object-contain" aria-hidden="true" />
-              <span className="text-sm font-semibold tracking-tight">PendragonX</span>
+              <span className="text-sm font-semibold tracking-tight">Baku Scribe</span>
             </Link>
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)} aria-label="Go back">
               <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
@@ -169,7 +169,7 @@ export default function Sitemap() {
             Every feature, in one map
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-            PendragonX is a connected ecosystem. Use this map to discover every tool,
+            Baku Scribe is a connected ecosystem. Use this map to discover every tool,
             what it does, and how each part talks to the others.
           </p>
         </section>
@@ -234,7 +234,7 @@ export default function Sitemap() {
               Cross-tool connections
             </h2>
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-              PendragonX tools aren't silos. Here's how data flows between them so you
+              Baku Scribe tools aren't silos. Here's how data flows between them so you
               don't lose a thought between capture and publication.
             </p>
           </div>

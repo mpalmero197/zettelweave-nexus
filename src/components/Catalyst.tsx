@@ -1862,7 +1862,7 @@ const DOCUMENT_TEMPLATES = [
                       onInsertKnowledgeGap={(gap, mode) => {
                         const gapTitle = gap.title || 'Untitled Gap';
                         const gapContent = gap.metadata?.suggestion || gap.content || '';
-                        const attribution = '<em>(Added by PendragonX)</em>';
+                        const attribution = '<em>(Added by Baku Scribe)</em>';
 
                         if (mode === 'inline') {
                           // Try to find the section mentioned and insert after it

@@ -20,12 +20,12 @@ export function ChromeExtensionPanel() {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const res = await fetch(`/pendragonx-chrome-extension.zip?t=${Date.now()}`);
+      const res = await fetch(`/bakuscribe-chrome-extension.zip?t=${Date.now()}`);
       if (!res.ok) throw new Error(`Download failed: ${res.status}`);
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'pendragonx-chrome-extension.zip';
+      a.download = 'bakuscribe-chrome-extension.zip';
       a.click();
       URL.revokeObjectURL(a.href);
       toast.success('Extension downloaded', {
@@ -45,7 +45,7 @@ export function ChromeExtensionPanel() {
     'Open chrome://extensions in Chrome (or any Chromium browser)',
     'Enable Developer Mode using the toggle in the top-right',
     'Click "Load unpacked" and select the unzipped folder',
-    'Pin the PendragonX Toolbox to your toolbar and sign in',
+    'Pin the Baku Scribe Toolbox to your toolbar and sign in',
   ];
 
   return (
@@ -53,7 +53,7 @@ export function ChromeExtensionPanel() {
       <AdminSectionHeader
         icon={Chrome}
         title="Chrome Extension"
-        description={version ? `Preview build v${version} · Package and distribute the PendragonX Toolbox` : 'Package and distribute the PendragonX Toolbox extension'}
+        description={version ? `Preview build v${version} · Package and distribute the Baku Scribe Toolbox` : 'Package and distribute the Baku Scribe Toolbox extension'}
         actions={
           <Button onClick={handleDownload} disabled={isDownloading} className="gap-2">
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
@@ -110,7 +110,7 @@ export function ChromeExtensionPanel() {
         <CardContent className="pt-6 space-y-2">
           <p className="text-sm text-amber-700 dark:text-amber-400">
             <strong>Distribution:</strong> The download is publicly accessible at{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">/pendragonx-chrome-extension.zip</code>.
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">/bakuscribe-chrome-extension.zip</code>.
             For Chrome Web Store publication, upload the same ZIP via the{' '}
             <a
               href="https://chrome.google.com/webstore/devconsole"

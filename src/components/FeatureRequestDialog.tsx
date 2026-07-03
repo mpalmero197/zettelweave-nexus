@@ -66,7 +66,7 @@ export function FeatureRequestDialog() {
         <DialogHeader>
           <DialogTitle>Request a Feature</DialogTitle>
           <DialogDescription>
-            Have an idea to improve PendragonX? Share it with us!
+            Have an idea to improve Baku Scribe? Share it with us!
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

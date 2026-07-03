@@ -1,4 +1,4 @@
-// ingest-browser-tabs — receives a tab snapshot from the PendragonX
+// ingest-browser-tabs — receives a tab snapshot from the Baku Scribe
 // Chrome extension, applies the user's privacy preferences, and upserts
 // the latest snapshot row.
 

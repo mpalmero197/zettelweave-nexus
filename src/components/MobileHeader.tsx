@@ -39,9 +39,9 @@ export function MobileHeader() {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-2">
-                <img src={pendragonLogo} alt="PendragonX" className="h-7 w-7 object-contain" />
+                <img src={pendragonLogo} alt="Baku Scribe" className="h-7 w-7 object-contain" />
                 <h1 className="text-xl font-bold text-primary">
-                  PendragonX
+                  Baku Scribe
                 </h1>
                 <div 
                   className={`h-2 w-2 rounded-full ${

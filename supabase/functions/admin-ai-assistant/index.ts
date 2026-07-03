@@ -108,7 +108,7 @@ ${JSON.stringify(topFeatureRequests || [], null, 2)}
 ${JSON.stringify(recentInsights || [], null, 2)}
 
 ## SEO Configuration
-- Domain: pendragonx.com
+- Domain: bakuscribe.com
 - Has sitemap.xml, robots.txt, llms.txt, llms-full.txt for AI crawlers
 - JSON-LD structured data: SoftwareApplication, FAQPage, DefinedTermSet, Speakable
 - Target keywords: "AI second brain", "3D knowledge graph", "thinking second brain"

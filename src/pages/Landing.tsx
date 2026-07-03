@@ -17,19 +17,19 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 /* ─── Static Data ─── */
 
 const faqs = [
-  { question: "How is PendragonX different from Notion?", answer: "Notion is great for linear databases and templates, but PendragonX automatically builds a living knowledge graph and lets you chat with your own notes using private AI—no manual tagging or folder organization required. Your ideas connect themselves." },
-  { question: "Does PendragonX work with Obsidian files?", answer: "Yes—drag-and-drop import from Obsidian vaults (plus Notion and Roam) with duplicate detection. Your existing Zettelkasten works instantly inside PendragonX's knowledge graph and AI assistant." },
+  { question: "How is Baku Scribe different from Notion?", answer: "Notion is great for linear databases and templates, but Baku Scribe automatically builds a living knowledge graph and lets you chat with your own notes using private AI—no manual tagging or folder organization required. Your ideas connect themselves." },
+  { question: "Does Baku Scribe work with Obsidian files?", answer: "Yes—drag-and-drop import from Obsidian vaults (plus Notion and Roam) with duplicate detection. Your existing Zettelkasten works instantly inside Baku Scribe's knowledge graph and AI assistant." },
   { question: "What is the Zettelkasten method?", answer: "Zettelkasten (German for 'slip box') is a personal knowledge management system developed by sociologist Niklas Luhmann. It involves creating atomic notes that are interconnected through links, allowing you to build a 'second brain' that surfaces unexpected connections between ideas." },
-  { question: "Is PendragonX free to use?", answer: "Yes! PendragonX offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, unlimited notebooks, and 22+ built-in plugins. Premium features like unlimited cards, AI agents, and advanced knowledge graph tools are available for $4.99/month." },
-  { question: "How does the private AI assistant work?", answer: "PendragonX's AI assistant is grounded only in your own notes—never the internet. It can answer questions using your knowledge base, suggest connections between ideas, build autonomous agents, and surface relevant insights you may have forgotten." },
-  { question: "Can I import notes from other apps?", answer: "Yes! PendragonX supports importing from Obsidian vaults, Notion exports, Roam Research, Evernote, and standard Markdown files with automatic duplicate detection. Your existing knowledge seamlessly integrates into the knowledge graph." },
-  { question: "Is my data secure and private?", answer: "Absolutely. PendragonX uses end-to-end zero-knowledge encryption for sensitive content, and your data is stored securely in enterprise-grade cloud infrastructure. You maintain full ownership of your data and can export it anytime." },
-  { question: "What makes PendragonX better than OneNote or Evernote?", answer: "OneNote and Evernote are purely linear—they store notes but don't help you think. PendragonX automatically links related ideas, visualizes your entire knowledge base in an interactive knowledge graph, and includes a private AI assistant, Canvas/Whiteboard/Mind Map studios, real-time collaboration, and offline PWA support." },
-  { question: "What devices does PendragonX work on?", answer: "PendragonX is a progressive web app (PWA) that works on any device with a modern web browser. Install it on your desktop, tablet, or phone for offline access, plus use the Chrome extension for web clipping." },
-  { question: "Is PendragonX better than Roam Research?", answer: "Roam Research pioneered bi-directional linking but is text-only and costs $15/month. PendragonX adds spatial knowledge visualization, built-in AI chat and agents, Canvas/Whiteboard/Mind Map studios, offline mode, and end-to-end encryption—all starting free." },
-  { question: "What is the best AI note-taking app in 2026?", answer: "PendragonX is the leading AI note-taking app in 2026, combining automatic AI linking, a living knowledge graph, private AI chat and agents, visual studios (Canvas, Whiteboard, Mind Maps), and end-to-end encryption. It's the only app that auto-connects ideas and lets you chat with your own notes." },
-  { question: "Can PendragonX replace Notion for teams?", answer: "Yes. PendragonX supports real-time collaboration, shared whiteboards, and project management — but goes further with automatic AI linking, a knowledge graph, and private AI agents. Teams get structured thinking tools that Notion doesn't offer." },
-  { question: "What is a knowledge graph?", answer: "A knowledge graph is an interactive, living map of every note and the connections between them. Instead of static folder trees, PendragonX automatically links related ideas so you can see clusters, patterns, and hidden relationships across your entire knowledge base — no manual tagging required." },
+  { question: "Is Baku Scribe free to use?", answer: "Yes! Baku Scribe offers a generous free tier that includes up to 50 Zettelcards, full note-taking capabilities, unlimited notebooks, and 22+ built-in plugins. Premium features like unlimited cards, AI agents, and advanced knowledge graph tools are available for $4.99/month." },
+  { question: "How does the private AI assistant work?", answer: "Baku Scribe's AI assistant is grounded only in your own notes—never the internet. It can answer questions using your knowledge base, suggest connections between ideas, build autonomous agents, and surface relevant insights you may have forgotten." },
+  { question: "Can I import notes from other apps?", answer: "Yes! Baku Scribe supports importing from Obsidian vaults, Notion exports, Roam Research, Evernote, and standard Markdown files with automatic duplicate detection. Your existing knowledge seamlessly integrates into the knowledge graph." },
+  { question: "Is my data secure and private?", answer: "Absolutely. Baku Scribe uses end-to-end zero-knowledge encryption for sensitive content, and your data is stored securely in enterprise-grade cloud infrastructure. You maintain full ownership of your data and can export it anytime." },
+  { question: "What makes Baku Scribe better than OneNote or Evernote?", answer: "OneNote and Evernote are purely linear—they store notes but don't help you think. Baku Scribe automatically links related ideas, visualizes your entire knowledge base in an interactive knowledge graph, and includes a private AI assistant, Canvas/Whiteboard/Mind Map studios, real-time collaboration, and offline PWA support." },
+  { question: "What devices does Baku Scribe work on?", answer: "Baku Scribe is a progressive web app (PWA) that works on any device with a modern web browser. Install it on your desktop, tablet, or phone for offline access, plus use the Chrome extension for web clipping." },
+  { question: "Is Baku Scribe better than Roam Research?", answer: "Roam Research pioneered bi-directional linking but is text-only and costs $15/month. Baku Scribe adds spatial knowledge visualization, built-in AI chat and agents, Canvas/Whiteboard/Mind Map studios, offline mode, and end-to-end encryption—all starting free." },
+  { question: "What is the best AI note-taking app in 2026?", answer: "Baku Scribe is the leading AI note-taking app in 2026, combining automatic AI linking, a living knowledge graph, private AI chat and agents, visual studios (Canvas, Whiteboard, Mind Maps), and end-to-end encryption. It's the only app that auto-connects ideas and lets you chat with your own notes." },
+  { question: "Can Baku Scribe replace Notion for teams?", answer: "Yes. Baku Scribe supports real-time collaboration, shared whiteboards, and project management — but goes further with automatic AI linking, a knowledge graph, and private AI agents. Teams get structured thinking tools that Notion doesn't offer." },
+  { question: "What is a knowledge graph?", answer: "A knowledge graph is an interactive, living map of every note and the connections between them. Instead of static folder trees, Baku Scribe automatically links related ideas so you can see clusters, patterns, and hidden relationships across your entire knowledge base — no manual tagging required." },
 ];
 
 const howToSteps = [
@@ -39,8 +39,8 @@ const howToSteps = [
 ];
 
 const howToSchema = createHowToSchema({
-  name: "How to Build Your Second Brain with PendragonX",
-  description: "Start using PendragonX to capture ideas, connect them with AI, and query your knowledge in 3 simple steps.",
+  name: "How to Build Your Second Brain with Baku Scribe",
+  description: "Start using Baku Scribe to capture ideas, connect them with AI, and query your knowledge in 3 simple steps.",
   steps: howToSteps.map((step) => ({ name: step.name, text: step.text })),
 });
 
@@ -179,7 +179,7 @@ function CountUpStat({ target, suffix, decimals = 0, isVisible }: { target: numb
 }
 
 const testimonials = [
-  { quote: "PendragonX replaced three apps for me. My ideas finally talk to each other.", name: "Sarah M.", role: "Nonfiction Author" },
+  { quote: "Baku Scribe replaced three apps for me. My ideas finally talk to each other.", name: "Sarah M.", role: "Nonfiction Author" },
   { quote: "I found a connection between two papers I'd read a year apart. That's when I knew this was different.", name: "James R.", role: "PhD Researcher" },
   { quote: "The AI search alone is worth it. It's like having a research assistant who's read everything I've ever written.", name: "Priya K.", role: "Content Strategist" },
 ];
@@ -246,10 +246,10 @@ export default function Landing() {
   return (
     <main className="min-h-screen bg-background landing-noise landing-grid-bg relative overflow-hidden">
       <SEOHead
-        title="PendragonX: AI Second Brain with Knowledge Graph & Agents | vs Notion & Obsidian"
-        description="PendragonX is the AI-powered second brain that auto-connects every idea in a living knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
-        keywords="AI second brain, knowledge graph, PendragonX vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with knowledge graph 2026, second brain that thinks with you"
-        canonicalUrl="https://pendragonx.com/"
+        title="Baku Scribe: AI Second Brain with Knowledge Graph & Agents | vs Notion & Obsidian"
+        description="Baku Scribe is the AI-powered second brain that auto-connects every idea in a living knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote."
+        keywords="AI second brain, knowledge graph, Baku Scribe vs Notion, Obsidian alternative, Notion AI alternative, Zettelkasten app, AI knowledge base, automatic note linking, chat with your notes, canvas mind map studio, AI agents for notes, import from Obsidian Notion, private AI assistant, Roam Research alternative, best AI note taking app with knowledge graph 2026, second brain that thinks with you"
+        canonicalUrl="https://bakuscribe.com/"
         ogImage={ogImages.home}
         jsonLd={[createFAQSchema(faqs), howToSchema]}
       />
@@ -270,12 +270,12 @@ export default function Landing() {
       >
         <div className="max-w-6xl mx-auto flex h-14 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2.5">
-            <img src={pendragonLogo} alt="PendragonX logo" className="h-7 w-7 object-contain" aria-hidden="true" />
+            <img src={pendragonLogo} alt="Baku Scribe logo" className="h-7 w-7 object-contain" aria-hidden="true" />
             <span
               className="hidden sm:inline text-[17px] tracking-tight"
               style={{ fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 500 }}
             >
-              PendragonX
+              Baku Scribe
             </span>
           </div>
 
@@ -344,7 +344,7 @@ export default function Landing() {
               className="text-[40px] sm:text-5xl md:text-6xl tracking-tight leading-[1.08] text-balance"
               style={{ fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 500 }}
             >
-              PendragonX turns your notes into a{" "}
+              Baku Scribe turns your notes into a{" "}
               <span className="text-primary">living knowledge graph</span>{" "}
               you can question, connect, and build from.
             </h1>
@@ -392,12 +392,12 @@ export default function Landing() {
             {/* Product Hunt Featured Badge */}
             <div className="flex justify-center pt-2">
               <a
-                href="https://www.producthunt.com/products/pendragonx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-pendragonx"
+                href="https://www.producthunt.com/products/bakuscribe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bakuscribe"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img
-                  alt="PendragonX - Your second brain that actually communicates back to you. | Product Hunt"
+                  alt="Baku Scribe - Your second brain that actually communicates back to you. | Product Hunt"
                   width="250"
                   height="54"
                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1141673&theme=dark&t=1778248257082"
@@ -413,13 +413,13 @@ export default function Landing() {
       </section>
 
       {/* ────────────────────────── AEO: ANSWER PARAGRAPH (crawlable, visually hidden) ────────────────────────── */}
-      <article className="sr-only" aria-hidden="false" id="pendragonx-definition">
-        <h2>What is PendragonX?</h2>
+      <article className="sr-only" aria-hidden="false" id="bakuscribe-definition">
+        <h2>What is Baku Scribe?</h2>
         <p>
-          <dfn>PendragonX</dfn> is an AI-powered second brain and knowledge management platform that
+          <dfn>Baku Scribe</dfn> is an AI-powered second brain and knowledge management platform that
           automatically connects every idea in a living knowledge graph. It lets users chat with
           their own notes using a private AI assistant, build autonomous AI agents, and visualize
-          thinking with Canvas, Whiteboard, and Mind Map studios. PendragonX supports seamless import
+          thinking with Canvas, Whiteboard, and Mind Map studios. Baku Scribe supports seamless import
           from Notion, Obsidian, Roam Research, and Evernote with duplicate detection, and features
           end-to-end zero-knowledge encryption, offline PWA mode, real-time collaboration, a Chrome
           extension, and 22+ built-in plugins. It is the smarter alternative to Notion, Obsidian,
@@ -586,12 +586,12 @@ export default function Landing() {
               <Sparkles className="h-3 w-3" /> Meet ALICE
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-balance">
-              Your AI co-pilot for everything inside PendragonX
+              Your AI co-pilot for everything inside Baku Scribe
             </h2>
             <p className="text-muted-foreground mt-3 max-w-2xl mx-auto leading-relaxed">
-              ALICE is the assistant living inside PendragonX. Ask her in plain English to find a buried note,
+              ALICE is the assistant living inside Baku Scribe. Ask her in plain English to find a buried note,
               remind you of a deadline, or finish a task — and she actually does it. Notion has a chatbot.
-              Obsidian has plugins. PendragonX has a teammate.
+              Obsidian has plugins. Baku Scribe has a teammate.
             </p>
           </div>
 
@@ -631,7 +631,7 @@ export default function Landing() {
             aliceAnimation.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           )} style={{ transitionDelay: "320ms" }}>
             <h3 className="text-base md:text-lg font-semibold mb-4 text-center">
-              Why ALICE makes PendragonX simpler than the competition
+              Why ALICE makes Baku Scribe simpler than the competition
             </h3>
             <div className="grid md:grid-cols-2 gap-x-8 gap-y-3 max-w-3xl mx-auto">
               {[
@@ -687,7 +687,7 @@ export default function Landing() {
           {/* Testimonials */}
           <div className="text-center mb-10">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Loved By</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">PendragonX vs Notion, Obsidian, and OneNote: The Thinking Advantage</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Baku Scribe vs Notion, Obsidian, and OneNote: The Thinking Advantage</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -903,8 +903,8 @@ export default function Landing() {
         <div className="gradient-divider absolute top-0 left-0 right-0" />
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
-            <img src={pendragonLogo} alt="PendragonX logo" className="h-5 w-5 object-contain" aria-hidden="true" />
-            <span className="font-medium" style={{ fontFamily: "'Inter',system-ui,sans-serif" }}>PendragonX</span>
+            <img src={pendragonLogo} alt="Baku Scribe logo" className="h-5 w-5 object-contain" aria-hidden="true" />
+            <span className="font-medium" style={{ fontFamily: "'Inter',system-ui,sans-serif" }}>Baku Scribe</span>
             <span className="text-muted-foreground">© {currentYear}</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground" aria-label="Footer navigation">

@@ -1,7 +1,7 @@
 /* Preview shim: when popup.html is loaded outside a Chrome extension
    (e.g. inside an admin preview <iframe>), provide a chrome.storage.local
    API backed by sessionStorage so it cannot pollute or sign out the parent
-   PendragonX web-app session. Seeded by postMessage from the parent.
+   Baku Scribe web-app session. Seeded by postMessage from the parent.
    Moved to an external file to comply with MV3 CSP (no inline scripts). */
 (function () {
   var isExt = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
@@ -39,10 +39,10 @@
   window.addEventListener('message', function (e) {
     if (!e.data || e.data.__pxpreview !== 'session') return;
     var s = e.data.session || {};
-    mem.pendragonx_auth_token = s.access_token || null;
-    mem.pendragonx_refresh_token = s.refresh_token || null;
-    mem.pendragonx_session_expires_at = s.expires_at ? s.expires_at * 1000 : 0;
-    mem.pendragonx_user_email = s.email || null;
+    mem.bakuscribe_auth_token = s.access_token || null;
+    mem.bakuscribe_refresh_token = s.refresh_token || null;
+    mem.bakuscribe_session_expires_at = s.expires_at ? s.expires_at * 1000 : 0;
+    mem.bakuscribe_user_email = s.email || null;
     persist();
     if (typeof loadData === 'function') loadData();
   });

@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "PendragonX Toolbox",
+  "name": "Baku Scribe Toolbox",
   "version": "1.25.0",
-  "description": "PendragonX Toolbox",
+  "description": "Baku Scribe Toolbox",
   "permissions": ["storage", "activeTab", "sidePanel", "tabs", "alarms", "scripting", "contextMenus", "notifications", "webNavigation", "offscreen"],
   "host_permissions": [
     "https://sckglgjydlbztxjupbsk.supabase.co/*",
     "<all_urls>"
   ],
   "action": {
-    "default_title": "Open PendragonX Toolbox",
+    "default_title": "Open Baku Scribe Toolbox",
     "default_icon": {
       "16": "icon-16.png",
       "48": "icon-48.png",
@@ -30,8 +30,8 @@
     },
     {
       "matches": [
-        "https://pendragonx.com/*",
-        "https://*.pendragonx.com/*",
+        "https://bakuscribe.com/*",
+        "https://*.bakuscribe.com/*",
         "https://*.lovable.app/*"
       ],
       "js": ["vault-bridge.js"],

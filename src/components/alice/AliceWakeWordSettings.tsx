@@ -46,7 +46,7 @@ export function AliceWakeWordSettings() {
     toast({
       title: checked ? "Wake word on" : "Wake word off",
       description: checked
-        ? 'Say "Hey ALICE" while PendragonX is open to summon her.'
+        ? 'Say "Hey ALICE" while Baku Scribe is open to summon her.'
         : "ALICE will no longer listen for the wake phrase.",
     });
   };
@@ -71,7 +71,7 @@ export function AliceWakeWordSettings() {
           <h4 className="font-medium">"Hey ALICE" Wake Word</h4>
           <p className="text-sm text-muted-foreground">
             {supported
-              ? "Summon ALICE hands-free while PendragonX is open in this browser."
+              ? "Summon ALICE hands-free while Baku Scribe is open in this browser."
               : "Voice recognition isn't available in this browser. Try Chrome, Edge, or Brave."}
           </p>
         </div>

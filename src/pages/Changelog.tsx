@@ -55,7 +55,7 @@ const changelogData = [
   { date: "Mar 18, 2026", title: "Focus Mode Sidebar", description: "Distraction-free reading view, focus task list, Pomodoro timer ring, and mobile focus sheet" },
   { date: "Mar 21, 2026", title: "Spaces & Object System", description: "Structured knowledge spaces with custom object types, relation definitions, and configurable set views" },
   { date: "Mar 24, 2026", title: "Learning Hub", description: "Courses, books, video search, topic maps, and mock exam generator for structured learning" },
-  { date: "Mar 26, 2026", title: "Chrome Extension", description: "Browser extension for quick-capturing web content, highlights, and URLs directly into PendragonX" },
+  { date: "Mar 26, 2026", title: "Chrome Extension", description: "Browser extension for quick-capturing web content, highlights, and URLs directly into Baku Scribe" },
   { date: "Mar 28, 2026", title: "Enhanced Import Studio", description: "Drag-and-drop import with duplicate detection, import history tracking, and batch processing for Obsidian, Notion, and Roam" },
   { date: "Mar 29, 2026", title: "Landing Page Rewrite", description: "Conversion-optimized structure with rotating 'Built for' banner, social proof section, outcome-based features, and audience persona cards" },
   { date: "Apr 2, 2026", title: "Domain Blocklist Search", description: "Admins can now search and filter domains within the block list for faster moderation" },
@@ -150,10 +150,10 @@ export default function Changelog() {
   return (
     <main className="min-h-screen bg-background">
       <SEOHead
-        title="Changelog - PendragonX Updates & Release History"
-        description="See every update and feature added to PendragonX since launch. Follow our journey from a simple Zettelkasten tool to a full AI-powered knowledge management platform."
-        keywords="pendragonx changelog, updates, release notes, version history"
-        canonicalUrl="https://pendragonx.com/changelog"
+        title="Changelog - Baku Scribe Updates & Release History"
+        description="See every update and feature added to Baku Scribe since launch. Follow our journey from a simple Zettelkasten tool to a full AI-powered knowledge management platform."
+        keywords="bakuscribe changelog, updates, release notes, version history"
+        canonicalUrl="https://bakuscribe.com/changelog"
       />
 
       {/* Header */}
@@ -162,7 +162,7 @@ export default function Changelog() {
           <div className="flex items-center gap-2.5">
             <button onClick={() => navigate("/")} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
               <img src={pendragonLogo} alt="" className="h-7 w-7 object-contain" aria-hidden="true" />
-              <span className="hidden sm:inline text-lg font-semibold tracking-tight">PendragonX</span>
+              <span className="hidden sm:inline text-lg font-semibold tracking-tight">Baku Scribe</span>
             </button>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
@@ -180,7 +180,7 @@ export default function Changelog() {
         )}>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Release History</p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            What's New in <span className="text-primary">PendragonX</span>
+            What's New in <span className="text-primary">Baku Scribe</span>
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
             Every feature, improvement, and milestone since day one. Follow our journey of building the ultimate knowledge platform.
@@ -209,7 +209,7 @@ export default function Changelog() {
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
             <img src={pendragonLogo} alt="" className="h-5 w-5 object-contain" aria-hidden="true" />
-            <span className="font-medium">PendragonX</span>
+            <span className="font-medium">Baku Scribe</span>
             <span className="text-muted-foreground">© {currentYear}</span>
           </div>
           <nav className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground" aria-label="Footer navigation">

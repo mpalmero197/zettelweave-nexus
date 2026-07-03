@@ -44,7 +44,7 @@ export function TodoistDialog({ open, onOpenChange, onConnected }: TodoistDialog
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">✅ Connect Todoist</DialogTitle>
           <DialogDescription>
-            Enter your Todoist API token to sync tasks between PendragonX and Todoist.
+            Enter your Todoist API token to sync tasks between Baku Scribe and Todoist.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

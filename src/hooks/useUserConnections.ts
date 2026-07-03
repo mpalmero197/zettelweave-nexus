@@ -59,17 +59,17 @@ export function useUserConnections() {
 
       const popup = window.open(
         data.url,
-        "pendragonx-oauth",
+        "bakuscribe-oauth",
         "width=600,height=720,menubar=no,toolbar=no,location=no,status=no",
       );
       if (!popup) {
-        toast.error("Popup blocked — please allow popups for PendragonX.");
+        toast.error("Popup blocked — please allow popups for Baku Scribe.");
         return;
       }
 
       await new Promise<void>((resolve) => {
         const onMessage = (e: MessageEvent) => {
-          if (e.data?.type !== "pendragonx:oauth") return;
+          if (e.data?.type !== "bakuscribe:oauth") return;
           window.removeEventListener("message", onMessage);
           clearInterval(poll);
           if (e.data.status === "ok") {

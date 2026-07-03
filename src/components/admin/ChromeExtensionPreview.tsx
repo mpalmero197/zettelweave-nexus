@@ -85,7 +85,7 @@ export function ChromeExtensionPreview() {
               )}
             </CardTitle>
             <CardDescription>
-              Auto-signed-in with your current account. The preview is isolated — signing out here will <strong>not</strong> sign you out of PendragonX.
+              Auto-signed-in with your current account. The preview is isolated — signing out here will <strong>not</strong> sign you out of Baku Scribe.
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -187,7 +187,7 @@ function ChromeWindowFrame({ width, height, children }: { width: number; height:
     >
       <div className="flex items-center gap-2 px-3 py-2 bg-[hsl(220_13%_18%)] text-white/90 text-xs border-b border-black/20">
         <img src="/icon-192.png" alt="" className="h-4 w-4 rounded-sm" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
-        <span className="font-medium truncate flex-1">PendragonX Toolbox</span>
+        <span className="font-medium truncate flex-1">Baku Scribe Toolbox</span>
         <div className="flex gap-1">
           <span className="h-2.5 w-2.5 rounded-full bg-white/30" />
           <span className="h-2.5 w-2.5 rounded-full bg-white/30" />
@@ -208,7 +208,7 @@ function PhoneFrame({ width, height, children }: { width: number; height: number
       <div className="rounded-[1.75rem] overflow-hidden bg-background border border-neutral-800">
         <div className="flex items-center gap-2 px-3 py-2 bg-neutral-800 text-white/80 text-[11px]">
           <div className="flex-1 truncate rounded-full bg-neutral-700 px-3 py-1">
-            pendragonx.com — Toolbox
+            bakuscribe.com — Toolbox
           </div>
         </div>
         <div style={{ width, height }}>{children}</div>

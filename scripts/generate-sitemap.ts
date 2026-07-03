@@ -2,7 +2,7 @@
 import { writeFileSync } from "fs";
 import { resolve } from "path";
 
-const BASE_URL = "https://pendragonx.com";
+const BASE_URL = "https://bakuscribe.com";
 const today = new Date().toISOString().slice(0, 10);
 
 interface SitemapEntry {

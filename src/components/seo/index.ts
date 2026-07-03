@@ -3,7 +3,7 @@
  * building blocks designed for both traditional crawlers and LLM citation.
  *
  * Usage:
- *   <AnswerBlock heading="What is PendragonX?" summary="...40-60 words...">
+ *   <AnswerBlock heading="What is Baku Scribe?" summary="...40-60 words...">
  *     ...long-form analysis...
  *   </AnswerBlock>
  *   <FAQBlock items={[...]} />  // auto-injects FAQPage JSON-LD

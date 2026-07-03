@@ -1,19 +1,19 @@
-// PendragonX Toolbox — Macro Runner v2
+// Baku Scribe Toolbox — Macro Runner v2
 // Walks the macro step list, resolves {{vault.*}} and {{var.*}} tokens at
 // runtime, handles ask/pause overlays, and on a hard failure calls the
 // alice-repair-macro-step edge function to fix the step using the live DOM.
 
 (() => {
-  if (window.__pendragonxRunnerActive) return;
-  window.__pendragonxRunnerActive = true;
+  if (window.__bakuscribeRunnerActive) return;
+  window.__bakuscribeRunnerActive = true;
 
-  const OVERLAY_ID = "pendragonx-runner-overlay";
+  const OVERLAY_ID = "bakuscribe-runner-overlay";
   const PER_STEP_TIMEOUT_MS = 8000;
   const HUMAN_DELAY_MS = () => 80 + Math.floor(Math.random() * 120);
 
   // Per-run variable bag (populated by ask steps and vault-pick fallback).
-  window.__pendragonxRunVars = window.__pendragonxRunVars || {};
-  const runVars = window.__pendragonxRunVars;
+  window.__bakuscribeRunVars = window.__bakuscribeRunVars || {};
+  const runVars = window.__bakuscribeRunVars;
   let currentMacroId = null;
 
   // ── Overlay ────────────────────────────────────────────────────────────
@@ -31,22 +31,22 @@
       "display:flex","align-items:center","gap:10px",
     ].join(";");
     el.innerHTML = `
-      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px #a78bfa;animation:pendragonx-run-pulse 1.2s infinite"></span>
-      <span data-pendragonx-run-label>ALICE running…</span>
-      <button data-pendragonx-run-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>
+      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px #a78bfa;animation:bakuscribe-run-pulse 1.2s infinite"></span>
+      <span data-bakuscribe-run-label>ALICE running…</span>
+      <button data-bakuscribe-run-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 8px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>
     `;
     const style = document.createElement("style");
-    style.textContent = `@keyframes pendragonx-run-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }`;
+    style.textContent = `@keyframes bakuscribe-run-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }`;
     document.documentElement.appendChild(style);
-    el.querySelector("[data-pendragonx-run-stop]")?.addEventListener("click", () => {
-      window.__pendragonxRunnerCancelled = true;
+    el.querySelector("[data-bakuscribe-run-stop]")?.addEventListener("click", () => {
+      window.__bakuscribeRunnerCancelled = true;
     });
     document.body.appendChild(el);
     return el;
   }
   function updateOverlay(text) {
     const el = makeOverlay();
-    const label = el.querySelector("[data-pendragonx-run-label]");
+    const label = el.querySelector("[data-bakuscribe-run-label]");
     if (label) label.textContent = text;
   }
   function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); }
@@ -107,15 +107,15 @@
     return s.replace(VAR_RE, (_m, name) => (runVars[name] != null ? String(runVars[name]) : _m));
   }
 
-  // Ask background → PendragonX tab → in-page vault for a credential.
+  // Ask background → Baku Scribe tab → in-page vault for a credential.
   // Returns { ok, fields?: {username,password,otp,email}, locked?, options?: [{id,label,host}] }
   async function requestVaultCredential(host, opts = {}) {
     return new Promise((resolve) => {
       let done = false;
-      const t = setTimeout(() => { if (!done) { done = true; resolve({ ok: false, error: "Vault timed out — open the PendragonX app and unlock the vault." }); } }, 12000);
+      const t = setTimeout(() => { if (!done) { done = true; resolve({ ok: false, error: "Vault timed out — open the Baku Scribe app and unlock the vault." }); } }, 12000);
       try {
         chrome.runtime.sendMessage(
-          { type: "PENDRAGONX_VAULT_REQUEST_CREDENTIAL", host, itemTitle: opts.itemTitle || null, itemId: opts.itemId || null },
+          { type: "BAKUSCRIBE_VAULT_REQUEST_CREDENTIAL", host, itemTitle: opts.itemTitle || null, itemId: opts.itemId || null },
           (resp) => {
             if (done) return;
             done = true; clearTimeout(t);
@@ -154,12 +154,12 @@
     const out = await replaceAsync(rawValue, VAULT_RE, async (_m, itemTitle, field) => {
       if (!cache) {
         let resp = await requestVaultCredential(host, { itemTitle });
-        if (resp?.locked) throw new Error("Vault is locked. Open PendragonX → Vault, unlock it, then click Continue.");
+        if (resp?.locked) throw new Error("Vault is locked. Open Baku Scribe → Vault, unlock it, then click Continue.");
         if (resp?.needsPick && Array.isArray(resp.options)) {
           const pick = await vaultPickOverlay(resp.options);
           resp = await requestVaultCredential(host, { itemId: pick.id });
         }
-        if (!resp?.ok || !resp.fields) throw new Error(resp?.error || "No vault item matches this site. Save a login in PendragonX → Vault first.");
+        if (!resp?.ok || !resp.fields) throw new Error(resp?.error || "No vault item matches this site. Save a login in Baku Scribe → Vault first.");
         cache = resp.fields;
       }
       const v = cache[field];
@@ -267,7 +267,7 @@
     };
     return new Promise((resolve) => {
       try {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_REPAIR_STEP", payload }, (resp) => {
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_REPAIR_STEP", payload }, (resp) => {
           if (resp?.ok && resp.step) resolve(resp.step);
           else resolve(null);
         });
@@ -413,20 +413,20 @@
     let idx = 0;
     try {
       for (const step of steps) {
-        if (window.__pendragonxRunnerCancelled) throw new Error("Cancelled by user");
+        if (window.__bakuscribeRunnerCancelled) throw new Error("Cancelled by user");
         idx += 1;
         updateOverlay(`Step ${idx}/${steps.length} — ${step.action}`);
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_PROGRESS", runId, currentStep: idx, total: steps.length }, () => {});
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_RUN_PROGRESS", runId, currentStep: idx, total: steps.length }, () => {});
         await runStepWithRepair(step, idx);
         await sleep(HUMAN_DELAY_MS());
       }
       updateOverlay("✓ Done");
-      chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_DONE", runId, macroId, status: "succeeded", runVars }, () => {});
+      chrome.runtime.sendMessage({ type: "BAKUSCRIBE_RUN_DONE", runId, macroId, status: "succeeded", runVars }, () => {});
       setTimeout(removeOverlay, 1800);
     } catch (err) {
       updateOverlay(`✗ Failed: ${err?.message || err}`);
       chrome.runtime.sendMessage({
-        type: "PENDRAGONX_RUN_DONE",
+        type: "BAKUSCRIBE_RUN_DONE",
         runId, macroId,
         status: "failed",
         error: String(err?.message || err),
@@ -435,24 +435,24 @@
       }, () => {});
       setTimeout(removeOverlay, 4500);
     } finally {
-      window.__pendragonxRunnerActive = false;
+      window.__bakuscribeRunnerActive = false;
     }
   }
 
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "PENDRAGONX_RUN_START" && Array.isArray(msg.steps)) {
+    if (msg?.type === "BAKUSCRIBE_RUN_START" && Array.isArray(msg.steps)) {
       runAll(msg.steps, msg.runId, msg.macroId);
-    } else if (msg?.type === "PENDRAGONX_RUN_CANCEL") {
-      window.__pendragonxRunnerCancelled = true;
+    } else if (msg?.type === "BAKUSCRIBE_RUN_CANCEL") {
+      window.__bakuscribeRunnerCancelled = true;
     }
   });
 
-  if (window.__pendragonxPendingRun) {
-    const { steps, runId, macroId } = window.__pendragonxPendingRun;
-    delete window.__pendragonxPendingRun;
+  if (window.__bakuscribePendingRun) {
+    const { steps, runId, macroId } = window.__bakuscribePendingRun;
+    delete window.__bakuscribePendingRun;
     runAll(steps, runId, macroId);
   } else {
-    chrome.runtime.sendMessage({ type: "PENDRAGONX_RUN_READY" }, (resp) => {
+    chrome.runtime.sendMessage({ type: "BAKUSCRIBE_RUN_READY" }, (resp) => {
       if (resp?.steps && resp?.runId) runAll(resp.steps, resp.runId, resp.macroId);
     });
   }

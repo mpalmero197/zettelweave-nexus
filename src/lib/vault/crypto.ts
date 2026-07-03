@@ -3,8 +3,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const RP_NAME = "PendragonX Vault";
-const KEY_INFO = "pendragonx-vault-v1";
+const RP_NAME = "Baku Scribe Vault";
+const KEY_INFO = "bakuscribe-vault-v1";
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -42,7 +42,7 @@ async function deriveKeyFromPRF(prfOutput: ArrayBuffer): Promise<CryptoKey> {
     {
       name: "HKDF",
       hash: "SHA-256",
-      salt: enc.encode("pendragonx-vault-salt"),
+      salt: enc.encode("bakuscribe-vault-salt"),
       info: enc.encode(KEY_INFO),
     },
     baseKey,

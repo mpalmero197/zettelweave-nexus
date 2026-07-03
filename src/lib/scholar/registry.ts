@@ -1,4 +1,4 @@
-// PendragonX Scholar — Capability Registry
+// Baku Scribe Scholar — Capability Registry
 // Single source of truth for what Scholar teaches. Every new feature MUST add an entry here.
 // The `scholar-curriculum-sync` edge function reads this manifest, regenerates lessons
 // from the listed surface files, and writes them to the scholar_lessons table.
@@ -26,7 +26,7 @@ export type ScholarModule = {
 };
 
 export const SCHOLAR_MODULES: ScholarModule[] = [
-  { slug: "getting-started", title: "Getting Started", description: "The grand tour of PendragonX.", icon: "Compass", sortOrder: 0 },
+  { slug: "getting-started", title: "Getting Started", description: "The grand tour of Baku Scribe.", icon: "Compass", sortOrder: 0 },
   { slug: "capture", title: "Capture", description: "Quick capture, clipper, recorder.", icon: "Inbox", sortOrder: 10 },
   { slug: "notes", title: "Notes & Notebooks", description: "Spatial notes, wikilinks, backlinks.", icon: "NotebookPen", sortOrder: 20 },
   { slug: "cards", title: "Zettel Cards", description: "Atomic ideas, auto-linking, the knowledge graph.", icon: "LayoutGrid", sortOrder: 30 },
@@ -42,22 +42,22 @@ export const SCHOLAR_CAPABILITIES: ScholarCapability[] = [
   {
     slug: "welcome",
     moduleSlug: "getting-started",
-    title: "Welcome to PendragonX",
-    summary: "What PendragonX is, who it's for, and how the pieces fit together.",
+    title: "Welcome to Baku Scribe",
+    summary: "What Baku Scribe is, who it's for, and how the pieces fit together.",
     surfaceFiles: ["src/pages/Index.tsx", "src/components/AppLayout.tsx"],
   },
   {
     slug: "sandbox-tour",
     moduleSlug: "getting-started",
     title: "The Scholar Sandbox",
-    summary: "Practice anywhere in PendragonX without touching your real knowledge base.",
+    summary: "Practice anywhere in Baku Scribe without touching your real knowledge base.",
     surfaceFiles: ["src/pages/Scholar.tsx"],
   },
   {
     slug: "quick-capture",
     moduleSlug: "capture",
     title: "Quick Capture",
-    summary: "Drop a thought into PendragonX in under a second.",
+    summary: "Drop a thought into Baku Scribe in under a second.",
     surfaceFiles: ["src/components/QuickCapture.tsx"],
   },
   {

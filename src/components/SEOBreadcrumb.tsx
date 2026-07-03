@@ -20,7 +20,7 @@ interface SEOBreadcrumbProps {
   className?: string;
 }
 
-const baseUrl = "https://pendragonx.com";
+const baseUrl = "https://bakuscribe.com";
 
 // Route label mapping for automatic breadcrumb generation
 const routeLabels: Record<string, string> = {

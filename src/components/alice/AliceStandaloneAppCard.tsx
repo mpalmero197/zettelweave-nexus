@@ -14,7 +14,7 @@ import { toast } from "sonner";
  *  - Add to Home Screen instructions (iOS Safari — no programmatic API)
  *  - Direct link the user can pop open anytime
  *
- * The standalone app reuses the user's PendragonX session, so ALICE has
+ * The standalone app reuses the user's Baku Scribe session, so ALICE has
  * full RAG access to their cards/notes/calendar without the main app
  * ever needing to be opened.
  */
@@ -48,7 +48,7 @@ export function AliceStandaloneAppCard() {
             <div>
               <CardTitle className="text-base">Get ALICE as her own app</CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                Talk and create with ALICE without ever opening PendragonX
+                Talk and create with ALICE without ever opening Baku Scribe
               </CardDescription>
             </div>
           </div>
@@ -57,7 +57,7 @@ export function AliceStandaloneAppCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          A focused ALICE-only shell that signs in with your PendragonX account
+          A focused ALICE-only shell that signs in with your Baku Scribe account
           and reads your entire knowledge base — cards, notes, calendar, tasks.
           Voice in/out, "Hey ALICE" wake word, and proactive notifications all
           work in the background once installed.
@@ -68,7 +68,7 @@ export function AliceStandaloneAppCard() {
           <Button
             onClick={async () => {
               // Visit /alice-app first so the install prompt registers
-              // against the ALICE manifest, not the main PendragonX one.
+              // against the ALICE manifest, not the main Baku Scribe one.
               window.open("/alice-app", "_blank", "noopener");
               if (isInstallable) {
                 await promptInstall();

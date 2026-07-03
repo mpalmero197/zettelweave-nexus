@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       return `'${String(val).replace(/'/g, "''")}'`;
     };
 
-    let sql = `-- PendragonX data export\n-- Generated: ${new Date().toISOString()}\n-- Mode: ${adminMode ? 'admin-all-rows' : 'single-user'}\n\n`;
+    let sql = `-- Baku Scribe data export\n-- Generated: ${new Date().toISOString()}\n-- Mode: ${adminMode ? 'admin-all-rows' : 'single-user'}\n\n`;
     sql += `BEGIN;\n\n`;
     for (const [table, rows] of Object.entries(exportData)) {
       if (!rows.length) continue;

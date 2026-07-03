@@ -1,6 +1,6 @@
-# PendragonX Changelog
+# Baku Scribe Changelog
 
-All notable changes to PendragonX are documented in this file.
+All notable changes to Baku Scribe are documented in this file.
 
 ---
 
@@ -17,11 +17,11 @@ All notable changes to PendragonX are documented in this file.
   - Step 4 now introduces the Capture Hub and the four content shapes with their limits.
   - Step 5 teaches `[[wikilinks]]` for cross-linking Cards and Notes inside the Hub.
   - The "final checklist" updated to point users at the Hub first.
-- **PendragonX Toolbox v1.9.1 — Reliable Highlight → Scratchpad**
+- **Baku Scribe Toolbox v1.9.1 — Reliable Highlight → Scratchpad**
   - Rebuilt the highlight-capture pill: now triggers on mouse-up, keyboard selection (Shift+Arrow, Ctrl+A), and `selectionchange` — so it appears on virtually every selection across every site.
-  - Stronger visual styling (glow, larger hit target) and clearer status messages (`Saving…`, `✓ Saved to PendragonX Scratchpad`, `Sign in to PendragonX first`).
+  - Stronger visual styling (glow, larger hit target) and clearer status messages (`Saving…`, `✓ Saved to Baku Scribe Scratchpad`, `Sign in to Baku Scribe first`).
   - Better positioning logic and full `all:initial` reset so host page CSS can't hide the pill.
-  - Added debug logging under `[PendragonX Toolbox]` so users can confirm the script loaded on a given page.
+  - Added debug logging under `[Baku Scribe Toolbox]` so users can confirm the script loaded on a given page.
 
 
 
@@ -39,19 +39,19 @@ All notable changes to PendragonX are documented in this file.
   - Added a **Use My Writing Style** toggle; when enabled, the agent analyzes the user’s existing notes to infer tone, vocabulary, and phrasing and applies it to generated documents.
 
 - **Alice / ALICE — SSO Handoff & Website Navigation**
-  - Alice can now open external PendragonX pages (e.g., Catalyst) and automatically sign the user in using the Toolbox session.
+  - Alice can now open external Baku Scribe pages (e.g., Catalyst) and automatically sign the user in using the Toolbox session.
   - If the user is not yet signed in on the web app, Alice redirects them through the SSO handoff flow before landing them on the requested page.
   - New `SsoHandoff` page handles token exchange and redirects securely.
 
-- **PendragonX Toolbox — Visual Overhaul**
+- **Baku Scribe Toolbox — Visual Overhaul**
   - Integrated Alice’s updated design language throughout the Toolbox for a cohesive look.
   - Improved layout density, spacing, and typography across the full-window and popup views.
 
 - **Authentication — Branded Transactional Emails**
-  - All Supabase auth emails (signup, invite, magic link, recovery, email change, reauthentication) are now fully branded as **PendragonX**.
-  - Email subjects prefixed with "PendragonX Registration" (or equivalent) for immediate recognition.
-  - Emails include the PendragonX logo and a consistent dark-themed HTML layout (`#282d39` primary, `#1d2128` brand-gray).
-  - Sender domain configured as `notify.pendragonx.com`.
+  - All Supabase auth emails (signup, invite, magic link, recovery, email change, reauthentication) are now fully branded as **Baku Scribe**.
+  - Email subjects prefixed with "Baku Scribe Registration" (or equivalent) for immediate recognition.
+  - Emails include the Baku Scribe logo and a consistent dark-themed HTML layout (`#282d39` primary, `#1d2128` brand-gray).
+  - Sender domain configured as `notify.bakuscribe.com`.
 
 ### Changed
 

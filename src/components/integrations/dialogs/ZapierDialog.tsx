@@ -29,7 +29,7 @@ export function ZapierDialog({ open, onOpenChange, onConnected }: ZapierDialogPr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timestamp: new Date().toISOString(),
-          source: "PendragonX",
+          source: "Baku Scribe",
           event: "test_connection",
         }),
       });

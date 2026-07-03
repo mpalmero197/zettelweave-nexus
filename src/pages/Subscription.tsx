@@ -50,9 +50,9 @@ export default function Subscription() {
   return (
     <div className="bg-background p-6">
       <SEOHead 
-        title="Subscription - PendragonX"
-        description="Manage your PendragonX subscription and billing. Upgrade to Premium for unlimited cards, AI features, and more."
-        canonicalUrl="https://pendragonx.com/subscription"
+        title="Subscription - Baku Scribe"
+        description="Manage your Baku Scribe subscription and billing. Upgrade to Premium for unlimited cards, AI features, and more."
+        canonicalUrl="https://bakuscribe.com/subscription"
         ogImage={ogImages.subscription}
         noIndex={true}
       />
@@ -68,7 +68,7 @@ export default function Subscription() {
             Subscription Management
           </h1>
           <p className="text-muted-foreground">
-            Manage your PendragonX subscription and billing
+            Manage your Baku Scribe subscription and billing
           </p>
         </div>
 
@@ -453,7 +453,7 @@ export default function Subscription() {
 
               <AccordionItem value="item-9">
                 <AccordionTrigger className="text-left">
-                  Can I use PendragonX on multiple devices?
+                  Can I use Baku Scribe on multiple devices?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Yes! Your subscription covers all your devices. Sign in with the same account on your phone, tablet, and computer, and your data syncs automatically across all devices. There's no limit to the number of devices you can use.

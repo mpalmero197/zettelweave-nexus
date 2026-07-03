@@ -1,5 +1,5 @@
-# PendragonX Robots.txt
-# https://pendragonx.com
+# Baku Scribe Robots.txt
+# https://bakuscribe.com
 
 # Allow all major search engines
 User-agent: Googlebot
@@ -78,7 +78,7 @@ Allow: /llms.txt
 Allow: /llms-full.txt
 
 # Sitemap location
-Sitemap: https://pendragonx.com/sitemap.xml
+Sitemap: https://bakuscribe.com/sitemap.xml
 
 # Host
-Host: https://pendragonx.com
+Host: https://bakuscribe.com

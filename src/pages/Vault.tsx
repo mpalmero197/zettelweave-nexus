@@ -85,7 +85,7 @@ export default function Vault() {
   // Broadcast unlocked vault to ALICE agent (extension) when ready
   useEffect(() => {
     if (!vault.unlocked) return;
-    const bc = new BroadcastChannel("pendragonx-vault");
+    const bc = new BroadcastChannel("bakuscribe-vault");
     const handler = async (ev: MessageEvent) => {
       if (ev.data?.type !== "get-otp") return;
       const host = String(ev.data.host || "");
@@ -168,7 +168,7 @@ export default function Vault() {
         </div>
         <h1 className="text-2xl font-semibold">Hyper-secure vault</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          End-to-end encrypted with your device passkey. Even PendragonX
+          End-to-end encrypted with your device passkey. Even Baku Scribe
           administrators cannot read what's inside.
         </p>
         <div className="mt-8 w-full space-y-3">

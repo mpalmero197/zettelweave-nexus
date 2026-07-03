@@ -1,7 +1,7 @@
 /**
- * PendragonX — Google Play Store Package Export
+ * Baku Scribe — Google Play Store Package Export
  * --------------------------------------------------------------
- * Bundles every file required to build and submit the PendragonX
+ * Bundles every file required to build and submit the Baku Scribe
  * Android app to the Google Play Store into a single .zip:
  *
  *   - capacitor.config.ts
@@ -16,7 +16,7 @@
  *   - README.md with the local commands the user must run
  *
  * The output zip is self-contained — the user unpacks it into the
- * exported PendragonX repo, runs the scripts, and uploads the
+ * exported Baku Scribe repo, runs the scripts, and uploads the
  * generated .aab to Play Console.
  */
 
@@ -95,8 +95,8 @@ export async function exportPlayPackage(opts: PlayExportOptions = {}): Promise<P
   zip.file('play-store/data-safety.md', DATA_SAFETY);
   zip.file('play-store/content-rating.md', CONTENT_RATING);
   zip.file('play-store/screenshots.md', SCREENSHOT_SPECS);
-  zip.file('play-store/privacy-policy-url.txt', 'https://pendragonx.com/privacy-policy\n');
-  zip.file('play-store/terms-url.txt', 'https://pendragonx.com/terms-of-service\n');
+  zip.file('play-store/privacy-policy-url.txt', 'https://bakuscribe.com/privacy-policy\n');
+  zip.file('play-store/terms-url.txt', 'https://bakuscribe.com/terms-of-service\n');
   files += 6;
 
   onProgress('Writing build scripts...', 80);
@@ -111,7 +111,7 @@ export async function exportPlayPackage(opts: PlayExportOptions = {}): Promise<P
   onProgress('Compressing...', 95);
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  saveAs(blob, `pendragonx-play-package-${ts}.zip`);
+  saveAs(blob, `bakuscribe-play-package-${ts}.zip`);
   onProgress('Done', 100);
 
   return { filesIncluded: files, totalSize: blob.size };
@@ -171,7 +171,7 @@ const ANDROID_MANIFEST = `<?xml version="1.0" encoding="utf-8"?>
 const ANDROID_BUILD_GRADLE = `apply plugin: 'com.android.application'
 
 android {
-    namespace "app.lovable.pendragonx"
+    namespace "app.lovable.bakuscribe"
     compileSdk 34
     defaultConfig {
         applicationId "app.lovable.4eb34d34fd9d491db4fe83f99b554cfb"
@@ -190,10 +190,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv("PENDRAGONX_KEYSTORE") ?: "pendragonx-release.keystore")
-            storePassword System.getenv("PENDRAGONX_KEYSTORE_PASS")
-            keyAlias System.getenv("PENDRAGONX_KEY_ALIAS") ?: "pendragonx"
-            keyPassword System.getenv("PENDRAGONX_KEY_PASS")
+            storeFile file(System.getenv("BAKUSCRIBE_KEYSTORE") ?: "bakuscribe-release.keystore")
+            storePassword System.getenv("BAKUSCRIBE_KEYSTORE_PASS")
+            keyAlias System.getenv("BAKUSCRIBE_KEY_ALIAS") ?: "bakuscribe"
+            keyPassword System.getenv("BAKUSCRIBE_KEY_PASS")
         }
     }
     bundle {
@@ -229,8 +229,8 @@ try {
 
 const ANDROID_STRINGS = `<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PendragonX</string>
-    <string name="title_activity_main">PendragonX</string>
+    <string name="app_name">Baku Scribe</string>
+    <string name="title_activity_main">Baku Scribe</string>
     <string name="package_name">app.lovable.4eb34d34fd9d491db4fe83f99b554cfb</string>
     <string name="custom_url_scheme">app.lovable.4eb34d34fd9d491db4fe83f99b554cfb</string>
 </resources>
@@ -260,13 +260,13 @@ const PROGUARD = `# Capacitor
 const LISTING_COPY = `# Play Store Listing Copy
 
 ## App name (30 chars max)
-PendragonX
+Baku Scribe
 
 ## Short description (80 chars max)
 Your AI-powered knowledge OS — notes, writing, research, and intelligent linking.
 
 ## Full description (4000 chars max)
-PendragonX is an intelligent knowledge management system for writers, researchers, and lifelong learners.
+Baku Scribe is an intelligent knowledge management system for writers, researchers, and lifelong learners.
 
 KEY FEATURES
 - ZettelCards: Atomic note-taking with auto-categorization via the Dewey system
@@ -295,10 +295,10 @@ Productivity
 notes, knowledge, AI, writing, study, productivity, research, zettelkasten
 
 ## Contact email
-support@pendragonx.com
+support@bakuscribe.com
 
 ## Website
-https://pendragonx.com
+https://bakuscribe.com
 `;
 
 const DATA_SAFETY = `# Data Safety Form Answers
@@ -319,7 +319,7 @@ const DATA_SAFETY = `# Data Safety Form Answers
 - Data is encrypted at rest by Supabase.
 - Optional client-side E2EE for individual items.
 - Users can request data deletion at any time via Settings → Account.
-- Account deletion URL: https://pendragonx.com/app (Settings → Account → Delete)
+- Account deletion URL: https://bakuscribe.com/app (Settings → Account → Delete)
 
 ## Children
 This app is not directed at children under 13.
@@ -344,7 +344,7 @@ const SCREENSHOT_SPECS = `# Required Screenshots
 Google Play requires:
 - At least 2 phone screenshots (min 320px, max 3840px, 16:9 or 9:16)
 - 1 hi-res icon: 512x512 PNG (use /public/icon-512x512.png)
-- 1 feature graphic: 1024x500 JPG/PNG (create one showing the PendragonX orb + tagline)
+- 1 feature graphic: 1024x500 JPG/PNG (create one showing the Baku Scribe orb + tagline)
 
 Recommended screenshots to capture (run the app, use phone viewport 1080x1920):
 1. Dashboard with widgets
@@ -359,13 +359,13 @@ Place captured PNGs in this folder before uploading to Play Console.
 `;
 
 const KEYSTORE_SCRIPT = `#!/usr/bin/env bash
-# Generate a release signing keystore for PendragonX.
+# Generate a release signing keystore for Baku Scribe.
 # Store the resulting file and passwords in a SECURE password manager — losing them
 # means you can never publish updates to this app again.
 set -euo pipefail
 
-KEYSTORE_FILE="pendragonx-release.keystore"
-KEY_ALIAS="pendragonx"
+KEYSTORE_FILE="bakuscribe-release.keystore"
+KEY_ALIAS="bakuscribe"
 
 if [ -f "$KEYSTORE_FILE" ]; then
   echo "Keystore already exists at $KEYSTORE_FILE. Refusing to overwrite."
@@ -381,10 +381,10 @@ keytool -genkey -v \\
 echo ""
 echo "Keystore generated: $KEYSTORE_FILE"
 echo "Set these environment variables before running scripts/build-release-aab.sh:"
-echo "  export PENDRAGONX_KEYSTORE=\\\$(pwd)/$KEYSTORE_FILE"
-echo "  export PENDRAGONX_KEYSTORE_PASS=<the store password you just entered>"
-echo "  export PENDRAGONX_KEY_ALIAS=$KEY_ALIAS"
-echo "  export PENDRAGONX_KEY_PASS=<the key password you just entered>"
+echo "  export BAKUSCRIBE_KEYSTORE=\\\$(pwd)/$KEYSTORE_FILE"
+echo "  export BAKUSCRIBE_KEYSTORE_PASS=<the store password you just entered>"
+echo "  export BAKUSCRIBE_KEY_ALIAS=$KEY_ALIAS"
+echo "  export BAKUSCRIBE_KEY_PASS=<the key password you just entered>"
 `;
 
 const BUILD_AAB_SCRIPT = `#!/usr/bin/env bash
@@ -436,9 +436,9 @@ if (Test-Path $aab) {
 }
 `;
 
-const README = `# PendragonX — Google Play Package
+const README = `# Baku Scribe — Google Play Package
 
-This zip contains every file required to build and submit PendragonX to the Google Play Store.
+This zip contains every file required to build and submit Baku Scribe to the Google Play Store.
 
 ## What's inside
 
@@ -462,10 +462,10 @@ npx cap sync android
 
 # One-time: generate your release keystore (store it + passwords in a password manager)
 bash scripts/generate-keystore.sh
-export PENDRAGONX_KEYSTORE=\$(pwd)/pendragonx-release.keystore
-export PENDRAGONX_KEYSTORE_PASS=...
-export PENDRAGONX_KEY_ALIAS=pendragonx
-export PENDRAGONX_KEY_PASS=...
+export BAKUSCRIBE_KEYSTORE=\$(pwd)/bakuscribe-release.keystore
+export BAKUSCRIBE_KEYSTORE_PASS=...
+export BAKUSCRIBE_KEY_ALIAS=bakuscribe
+export BAKUSCRIBE_KEY_PASS=...
 
 # Build the release bundle
 bash scripts/build-release-aab.sh
@@ -475,7 +475,7 @@ bash scripts/build-release-aab.sh
 ## Play Console submission
 
 1. Create a Google Play Console account ($25 one-time fee)
-2. Create a new app: PendragonX, Productivity, English (United States)
+2. Create a new app: Baku Scribe, Productivity, English (United States)
 3. Fill in the listing using \`play-store/listing.md\`
 4. Fill in Data Safety using \`play-store/data-safety.md\`
 5. Fill in Content Rating using \`play-store/content-rating.md\`

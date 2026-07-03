@@ -1,7 +1,7 @@
 {
-  "name": "ALICE — Your PendragonX Companion",
+  "name": "ALICE — Your Baku Scribe Companion",
   "short_name": "ALICE",
-  "description": "Talk and create with ALICE, your PendragonX AI companion. Signs in with your PendragonX account and reads your entire knowledge base — without needing to open the main app.",
+  "description": "Talk and create with ALICE, your Baku Scribe AI companion. Signs in with your Baku Scribe account and reads your entire knowledge base — without needing to open the main app.",
   "id": "/alice-app",
   "start_url": "/alice-app",
   "scope": "/alice-app",
@@ -45,8 +45,8 @@
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Open PendragonX",
-      "short_name": "PendragonX",
+      "name": "Open Baku Scribe",
+      "short_name": "Baku Scribe",
       "url": "/app"
     }
   ]

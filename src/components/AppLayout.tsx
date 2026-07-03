@@ -187,7 +187,7 @@ export function AppLayout() {
     const target = tab && APP_TABS.has(tab) ? tab : (APP_TABS.has(activeTab) ? activeTab : "dashboard");
     const url = `${window.location.origin}/app/${target}?popout=1`;
     const features = "noopener=yes,popup=yes,width=1200,height=800";
-    window.open(url, `pendragonx-${target}`, features);
+    window.open(url, `bakuscribe-${target}`, features);
   };
 
   return (
@@ -219,11 +219,11 @@ export function AppLayout() {
                 <Link to="/app" className="flex items-center gap-2 rounded-full hover:bg-accent px-2 py-1 transition-colors">
                   <img
                     src={pendragonLogo}
-                    alt="PendragonX"
+                    alt="Baku Scribe"
                     className="h-6 w-6 object-contain"
                   />
                   <span className="text-[15px] font-medium tracking-tight text-foreground" style={{ fontFamily: "'Inter',sans-serif" }}>
-                    PendragonX
+                    Baku Scribe
                   </span>
                   <div className="relative ml-0.5">
                     <div

@@ -17,9 +17,9 @@ const useSEO = (title: string, description: string, canonical: string) => {
 
 const Contact = () => {
   useSEO(
-    "Contact PendragonX",
+    "Contact Baku Scribe",
     "Get help, report a bug, request a feature, or reach out about press and security. We read every message.",
-    "https://pendragonx.com/contact"
+    "https://bakuscribe.com/contact"
   );
   return (
     <main className="min-h-screen bg-background text-foreground px-6 py-16 max-w-3xl mx-auto">
@@ -31,7 +31,7 @@ const Contact = () => {
 
       <h2 className="text-2xl font-semibold mt-8 mb-3">Need help with the app?</h2>
       <p className="mb-2">
-        Email <a className="underline" href="mailto:support@pendragonx.com">support@pendragonx.com</a>{" "}
+        Email <a className="underline" href="mailto:support@bakuscribe.com">support@bakuscribe.com</a>{" "}
         for bug reports, account issues, billing questions, or anything that isn't
         working the way you expected. Including a screenshot helps us help you faster.
       </p>
@@ -39,19 +39,19 @@ const Contact = () => {
       <h2 className="text-2xl font-semibold mt-8 mb-3">Have an idea or feedback?</h2>
       <p className="mb-2">
         We'd love to hear it. Send feature requests and product feedback to{" "}
-        <a className="underline" href="mailto:hello@pendragonx.com">hello@pendragonx.com</a>.
+        <a className="underline" href="mailto:hello@bakuscribe.com">hello@bakuscribe.com</a>.
       </p>
 
       <h2 className="text-2xl font-semibold mt-8 mb-3">Press &amp; partnerships</h2>
       <p className="mb-2">
-        Writing about PendragonX or interested in partnering? Reach out to{" "}
-        <a className="underline" href="mailto:press@pendragonx.com">press@pendragonx.com</a>.
+        Writing about Baku Scribe or interested in partnering? Reach out to{" "}
+        <a className="underline" href="mailto:press@bakuscribe.com">press@bakuscribe.com</a>.
       </p>
 
       <h2 className="text-2xl font-semibold mt-8 mb-3">Found a security issue?</h2>
       <p className="mb-2">
         Please report it privately to{" "}
-        <a className="underline" href="mailto:security@pendragonx.com">security@pendragonx.com</a>{" "}
+        <a className="underline" href="mailto:security@bakuscribe.com">security@bakuscribe.com</a>{" "}
         before disclosing publicly. We treat security reports as the highest priority.
       </p>
 

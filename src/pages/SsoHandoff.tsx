@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
  * Toolbox → Web SSO handoff.
  *
  * The Chrome extension opens:
- *   https://pendragonx.com/sso#at=<access>&rt=<refresh>&to=/app/catalyst
+ *   https://bakuscribe.com/sso#at=<access>&rt=<refresh>&to=/app/catalyst
  *
  * We read the tokens from the URL hash (never in the query string so they
  * don't hit server logs / referer headers), call supabase.auth.setSession,

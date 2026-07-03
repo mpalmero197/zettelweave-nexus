@@ -12,8 +12,8 @@ interface CookiePreferences {
   timestamp: number;
 }
 
-const COOKIE_CONSENT_KEY = "pendragonx_cookie_consent";
-const SESSION_ID_KEY = "pendragonx_session_id";
+const COOKIE_CONSENT_KEY = "bakuscribe_cookie_consent";
+const SESSION_ID_KEY = "bakuscribe_session_id";
 
 const defaultPreferences: CookiePreferences = {
   necessary: true, // Always required

@@ -1,5 +1,5 @@
 /**
- * Tiny pub/sub used by every "create" flow in PendragonX (cards, notes,
+ * Tiny pub/sub used by every "create" flow in Baku Scribe (cards, notes,
  * sticky notes, scratchpads, etc.) to tell ALICE that the user just made
  * something. ALICE then quietly looks for time-bound or relational hints
  * in the content and may propose a follow-up (event, reminder, task,

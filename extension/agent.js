@@ -1,4 +1,4 @@
-// PendragonX — Autonomous browser agent runner (in-page)
+// Baku Scribe — Autonomous browser agent runner (in-page)
 // Injected by background.js when a run is approved. Loops:
 //   1. snapshot DOM → send to background
 //   2. background → alice-agent-step edge fn → returns one action
@@ -7,10 +7,10 @@
 //
 // Safety: NEVER fills password or [autocomplete*=cc-] fields.
 (() => {
-  if (window.__pendragonxAgentActive) return;
-  window.__pendragonxAgentActive = true;
+  if (window.__bakuscribeAgentActive) return;
+  window.__bakuscribeAgentActive = true;
 
-  const OVERLAY_ID = "pendragonx-agent-overlay";
+  const OVERLAY_ID = "bakuscribe-agent-overlay";
   const HUMAN_DELAY = () => 200 + Math.floor(Math.random() * 200);
 
   function overlay() {
@@ -24,7 +24,7 @@
       <span data-agent-label style="flex:1">ALICE is thinking…</span>
       <button data-agent-stop style="all:initial;cursor:pointer;background:#ef4444;color:#fff;padding:4px 10px;border-radius:8px;font:600 11px/1 'Inter',sans-serif">Stop</button>`;
     el.querySelector("[data-agent-stop]")?.addEventListener("click", () => {
-      window.__pendragonxAgentCancelled = true;
+      window.__bakuscribeAgentCancelled = true;
       label("Stopping…");
     });
     document.body.appendChild(el);
@@ -45,14 +45,14 @@
     const txt = (el.innerText || el.value || "").trim().slice(0, 40);
     if (txt && el.tagName) {
       const tag = el.tagName.toLowerCase();
-      return `${tag}::pendragonx-text="${txt}"`; // resolved by findBySelector
+      return `${tag}::bakuscribe-text="${txt}"`; // resolved by findBySelector
     }
     return null;
   }
 
   function findBySelector(sel) {
     if (!sel) return null;
-    const m = sel.match(/^([a-z0-9]+)::pendragonx-text="(.+)"$/);
+    const m = sel.match(/^([a-z0-9]+)::bakuscribe-text="(.+)"$/);
     if (m) {
       const [, tag, txt] = m;
       const els = document.querySelectorAll(tag);
@@ -148,7 +148,7 @@
     if (action.action === "fill_otp") {
       const host = location.hostname.replace(/^www\./, "");
       const resp = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_GET_OTP", host }, resolve);
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_GET_OTP", host }, resolve);
       });
       if (!resp?.ok || !resp.code) {
         return { ok: false, error: resp?.error || "No OTP available in vault" };
@@ -164,8 +164,8 @@
     let consecutiveSameUrl = 0;
     let lastUrl = "";
     for (let i = 0; i < 50; i++) {
-      if (window.__pendragonxAgentCancelled) {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_CANCEL", runId });
+      if (window.__bakuscribeAgentCancelled) {
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_CANCEL", runId });
         label("✗ Stopped");
         setTimeout(removeOverlay, 1500);
         return;
@@ -177,7 +177,7 @@
       label(`Thinking… (step ${i + 1})`);
 
       const resp = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_DECIDE", runId, snapshot: snap }, resolve);
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_DECIDE", runId, snapshot: snap }, resolve);
       });
       if (!resp?.ok || !resp.action) {
         label(`✗ ${resp?.error || "Error"}`);
@@ -191,13 +191,13 @@
       if (action.action === "stop") { label(`✗ ${action.reasoning || "Stopped"}`); setTimeout(removeOverlay, 4000); return; }
       if (action.action === "pause_for_user") {
         label(`⏸ ${action.reasoning || "Needs you"} — I'll resume when ready`);
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_PAUSED", runId, reason: action.reasoning });
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_PAUSED", runId, reason: action.reasoning });
         return; // background will re-inject when user resumes
       }
       const result = await execAction(action);
       if (!result.ok) {
         label(`✗ ${result.error}`);
-        chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_ERROR", runId, error: result.error });
+        chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_ERROR", runId, error: result.error });
         setTimeout(removeOverlay, 3000);
         return;
       }
@@ -208,12 +208,12 @@
   }
 
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "PENDRAGONX_AGENT_START" && msg.runId) loop(msg.runId);
-    if (msg?.type === "PENDRAGONX_AGENT_STOP") window.__pendragonxAgentCancelled = true;
+    if (msg?.type === "BAKUSCRIBE_AGENT_START" && msg.runId) loop(msg.runId);
+    if (msg?.type === "BAKUSCRIBE_AGENT_STOP") window.__bakuscribeAgentCancelled = true;
   });
 
   // Auto-start if background pre-seeded
-  chrome.runtime.sendMessage({ type: "PENDRAGONX_AGENT_READY" }, (resp) => {
+  chrome.runtime.sendMessage({ type: "BAKUSCRIBE_AGENT_READY" }, (resp) => {
     if (resp?.runId) loop(resp.runId);
   });
 })();

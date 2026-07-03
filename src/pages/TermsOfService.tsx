@@ -7,9 +7,9 @@ export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SEOHead 
-        title="Terms of Service - PendragonX"
-        description="Read the PendragonX Terms of Service. Understand your rights and responsibilities when using our AI-powered knowledge management platform."
-        canonicalUrl="https://pendragonx.com/terms"
+        title="Terms of Service - Baku Scribe"
+        description="Read the Baku Scribe Terms of Service. Understand your rights and responsibilities when using our AI-powered knowledge management platform."
+        canonicalUrl="https://bakuscribe.com/terms"
         ogImage={ogImages.terms}
         noIndex={false}
       />
@@ -26,7 +26,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
-              By accessing or using PendragonX (the "Service"), operated by Halcyon Systems Group ("Company," "we," "us," or "our"), you ("User," "you," or "your") acknowledge that you have read, understood, and agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not access or use the Service.
+              By accessing or using Baku Scribe (the "Service"), operated by Halcyon Systems Group ("Company," "we," "us," or "our"), you ("User," "you," or "your") acknowledge that you have read, understood, and agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not access or use the Service.
             </p>
           </section>
 

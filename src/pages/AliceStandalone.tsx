@@ -11,12 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Standalone ALICE shell — runs as its own installable app at /alice-app.
  *
- * - Auth-gated: signs in with the same PendragonX account, so RLS gives
+ * - Auth-gated: signs in with the same Baku Scribe account, so RLS gives
  *   ALICE full access to the user's cards, notes, calendar, tasks, etc.
- * - No AppLayout: pure full-viewport chat. No PendragonX nav, no toolbox.
+ * - No AppLayout: pure full-viewport chat. No Baku Scribe nav, no toolbox.
  * - Separate PWA manifest (`/alice-manifest.webmanifest`) so installing
  *   from this page creates its own home-screen icon labeled "ALICE",
- *   independent of the main PendragonX installable app.
+ *   independent of the main Baku Scribe installable app.
  * - Same chat surface as in-app ALICE → identical tool set (search
  *   knowledge, create cards/notes/tasks/events, web/image, navigate, etc.).
  * - Wake word + voice carry over (they live in client storage / mic perms).
@@ -33,7 +33,7 @@ export default function AliceStandalone() {
     if (prev) prev.setAttribute("href", "/alice-manifest.webmanifest");
 
     const prevTitle = document.title;
-    document.title = "ALICE — PendragonX Companion";
+    document.title = "ALICE — Baku Scribe Companion";
 
     document.documentElement.setAttribute("data-alice-standalone", "true");
     document.body.classList.add("alice-standalone-body");
@@ -85,7 +85,7 @@ export default function AliceStandalone() {
           <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
             <Link to="/app">
               <ExternalLink className="h-3.5 w-3.5 mr-1" />
-              PendragonX
+              Baku Scribe
             </Link>
           </Button>
           <Button

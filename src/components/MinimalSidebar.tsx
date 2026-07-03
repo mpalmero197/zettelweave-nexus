@@ -80,12 +80,12 @@ export function MinimalSidebar({
       {/* Product Hunt Featured Badge */}
       <div className="p-3 pt-4 flex justify-center border-b border-border/50">
         <a
-          href="https://www.producthunt.com/products/pendragonx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-pendragonx"
+          href="https://www.producthunt.com/products/bakuscribe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-bakuscribe"
           target="_blank"
           rel="noopener noreferrer"
         >
           <img
-            alt="PendragonX - Your second brain that actually communicates back to you. | Product Hunt"
+            alt="Baku Scribe - Your second brain that actually communicates back to you. | Product Hunt"
             width="200"
             height="43"
             src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1141673&theme=dark&t=1778248257082"

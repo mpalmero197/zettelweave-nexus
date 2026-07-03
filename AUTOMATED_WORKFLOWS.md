@@ -1,7 +1,7 @@
 # Setting Up Automated Workflows
 
 ## Overview
-PendragonX now includes automated workflows that can monitor topics, perform periodic searches, and save findings automatically to your notebooks.
+Baku Scribe now includes automated workflows that can monitor topics, perform periodic searches, and save findings automatically to your notebooks.
 
 ## Features
 - **Topic Monitoring**: Track specific topics and automatically save new findings

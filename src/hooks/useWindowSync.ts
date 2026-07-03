@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
  * Cross-window sync via BroadcastChannel.
  *
  * Any window can call `broadcast({ type: "invalidate", keys: [["cards"]] })`
- * after a mutation, and every other open PendragonX window will invalidate
+ * after a mutation, and every other open Baku Scribe window will invalidate
  * the matching React Query caches and refetch — giving live multi-window sync
  * on top of the existing Supabase realtime layer.
  */
@@ -15,7 +15,7 @@ export type WindowSyncMessage =
   | { type: "tab-change"; tab: string; windowId: string }
   | { type: "ping"; windowId: string };
 
-const CHANNEL_NAME = "pendragonx-sync";
+const CHANNEL_NAME = "bakuscribe-sync";
 
 // Stable per-tab id so we can ignore our own messages
 const WINDOW_ID =
@@ -40,7 +40,7 @@ function getChannel(): BroadcastChannel | null {
   return sharedChannel;
 }
 
-/** Broadcast a message to every other PendragonX window. */
+/** Broadcast a message to every other Baku Scribe window. */
 export function broadcast(message: WindowSyncMessage) {
   const ch = getChannel();
   if (!ch) return;

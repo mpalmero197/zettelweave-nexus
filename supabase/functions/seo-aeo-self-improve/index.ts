@@ -119,7 +119,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You classify SEO/AEO techniques into actionable changes for a React SPA called PendragonX (writer-focused second-brain at pendragonx.com).
+            content: `You classify SEO/AEO techniques into actionable changes for a React SPA called Baku Scribe (writer-focused second-brain at bakuscribe.com).
 
 For each technique, decide:
 - classification: "safe_data" if it can be applied by writing rows to a database (meta tags, JSON-LD blobs, llms.txt content, FAQ entries, sitemap entries). "code_change" if it requires editing React component code or routing. "skip" if vague, off-brand, or already standard.
