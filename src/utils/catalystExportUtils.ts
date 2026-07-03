@@ -119,7 +119,7 @@ export const exportCatalystToEPUB = async (title: string, content: string, theme
   const options = {
     title: title,
     author: 'Catalyst User',
-    publisher: 'Pendragon',
+    publisher: 'Baku Scribe',
     content: [
       {
         title: title,

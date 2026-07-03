@@ -13,7 +13,7 @@ interface SEOHeadProps {
 
 const defaultTitle = 'Baku Scribe: AI Second Brain with Knowledge Graph & Agents | vs Notion & Obsidian';
 const defaultDescription = 'Baku Scribe is the AI-powered second brain that auto-connects every idea in a living knowledge graph, lets you chat with your own notes, build agents, and visualize with Canvas/Mind Maps. Import from Notion or Obsidian instantly. End-to-end encrypted. The smarter alternative to Notion, Obsidian, and OneNote.';
-const defaultImage = 'https://storage.googleapis.com/gpt-engineer-file-uploads/Y2B2K0ExlLhjZt1L59MceqNQLdp1/social-images/social-1758934637901-PendragonLogo-01.jpg';
+const defaultImage = 'https://bakuscribe.com/icon-512x512.png';
 const baseUrl = 'https://bakuscribe.com';
 
 // Page-specific Open Graph images for better social sharing

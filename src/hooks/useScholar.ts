@@ -151,7 +151,7 @@ export function useMarkFormatComplete() {
 }
 
 export function scholarRank(points: number): string {
-  if (points >= 1000) return "Grand Pendragon";
+  if (points >= 1000) return "Grand Scribe";
   if (points >= 500) return "Loremaster";
   if (points >= 250) return "Adept";
   if (points >= 100) return "Scribe";

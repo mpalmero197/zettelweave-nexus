@@ -89,11 +89,11 @@ export const exportToWordPress = (title: string, content: string) => {
     xmlns:dc="http://purl.org/dc/elements/1.1/"
     xmlns:wp="http://wordpress.org/export/1.2/">
   <channel>
-    <title>Pendragon Export</title>
+    <title>Baku Scribe Export</title>
     <item>
       <title>${escapeXml(title)}</title>
       <pubDate>${new Date().toUTCString()}</pubDate>
-      <dc:creator>Pendragon User</dc:creator>
+      <dc:creator>Baku Scribe User</dc:creator>
       <content:encoded><![CDATA[${content}]]></content:encoded>
       <wp:post_type>post</wp:post_type>
       <wp:status>draft</wp:status>
