@@ -63,7 +63,7 @@ export function useUserConnections() {
         "width=600,height=720,menubar=no,toolbar=no,location=no,status=no",
       );
       if (!popup) {
-        toast.error("Popup blocked — please allow popups for PendragonX.");
+        toast.error("Popup blocked — please allow popups for Baku Scribe.");
         return;
       }
 

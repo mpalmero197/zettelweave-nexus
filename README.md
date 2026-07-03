@@ -1,6 +1,6 @@
-# PendragonX - Advanced Knowledge Management & Creation Platform
+# Baku Scribe - Advanced Knowledge Management & Creation Platform
 
-A comprehensive knowledge management and long-form writing platform built with React, TypeScript, Supabase, and modern web technologies. PendragonX helps you organize, connect, and explore your knowledge while providing powerful tools for creating books, theses, dissertations, and more.
+A comprehensive knowledge management and long-form writing platform built with React, TypeScript, Supabase, and modern web technologies. Baku Scribe helps you organize, connect, and explore your knowledge while providing powerful tools for creating books, theses, dissertations, and more.
 
 **Lovable Project URL**: https://lovable.dev/projects/4eb34d34-fd9d-491d-b4fe-83f99b554cfb
 

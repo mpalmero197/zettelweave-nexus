@@ -15,7 +15,7 @@ const Unsubscribe = () => {
   const [state, setState] = useState<State>("validating");
 
   useEffect(() => {
-    document.title = "Unsubscribe — PendragonX";
+    document.title = "Unsubscribe — Baku Scribe";
     if (!token) { setState("invalid"); return; }
     (async () => {
       try {

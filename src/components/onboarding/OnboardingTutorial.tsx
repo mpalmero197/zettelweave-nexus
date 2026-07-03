@@ -236,7 +236,7 @@ export function OnboardingTutorial() {
     if (!user) return;
     await supabase.from("profiles").upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
     setOpen(false);
-    toast.success("You're all set — welcome to PendragonX!");
+    toast.success("You're all set — welcome to Baku Scribe!");
   };
 
   const skip = async () => {
@@ -257,7 +257,7 @@ export function OnboardingTutorial() {
       body: (
         <div className="space-y-2.5 text-sm text-muted-foreground">
           <p>
-            PendragonX can feel like a lot at first. So here's the <span className="text-foreground font-medium">one path</span> we recommend for your first 10 minutes:
+            Baku Scribe can feel like a lot at first. So here's the <span className="text-foreground font-medium">one path</span> we recommend for your first 10 minutes:
           </p>
           <ol className="space-y-1 pl-4 list-decimal marker:text-primary marker:font-semibold">
             <li><span className="text-foreground">Set your profile</span> — so collaborators recognize you.</li>
@@ -333,7 +333,7 @@ export function OnboardingTutorial() {
       key: "wikilinks",
       title: "Step 5 — Link ideas with [[wikilinks]]",
       description:
-        "This is the superpower. Inside any Card or Note, type [[ followed by another item's title — PendragonX connects them. Linked items form your knowledge graph, surface as backlinks, and feed ALICE's answers. Two ideas + one link = a second brain.",
+        "This is the superpower. Inside any Card or Note, type [[ followed by another item's title — Baku Scribe connects them. Linked items form your knowledge graph, surface as backlinks, and feed ALICE's answers. Two ideas + one link = a second brain.",
       icon: Pencil,
       navigateTab: "hub",
       desktopTarget: '[data-onboarding="nav-hub"]',

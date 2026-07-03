@@ -26,9 +26,9 @@ export function DocumentationViewer() {
     } catch (error) {
       console.error('Error loading README:', error);
       // Full hardcoded README as fallback
-      setReadmeContent(`# PendragonX - Advanced Knowledge Management System
+      setReadmeContent(`# Baku Scribe - Advanced Knowledge Management System
 
-A comprehensive knowledge management platform built with React, TypeScript, Supabase, and modern web technologies. PendragonX helps you organize, connect, and explore your knowledge using multiple organizational systems including Dewey Decimal, Luhmann, and Folgezettel methods.
+A comprehensive knowledge management platform built with React, TypeScript, Supabase, and modern web technologies. Baku Scribe helps you organize, connect, and explore your knowledge using multiple organizational systems including Dewey Decimal, Luhmann, and Folgezettel methods.
 
 **Lovable Project URL**: https://lovable.dev/projects/4eb34d34-fd9d-491d-b4fe-83f99b554cfb
 

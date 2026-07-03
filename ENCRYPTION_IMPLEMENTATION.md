@@ -2,7 +2,7 @@
 
 ## Overview
 
-PendragonX now supports **per-item encryption** - users can choose which notes and cards to encrypt for maximum security while keeping other content searchable.
+Baku Scribe now supports **per-item encryption** - users can choose which notes and cards to encrypt for maximum security while keeping other content searchable.
 
 ## How It Works
 

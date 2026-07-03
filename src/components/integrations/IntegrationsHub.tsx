@@ -68,7 +68,7 @@ const INTEGRATIONS: Integration[] = [
   { id: "onenote",         name: "OneNote",          description: "Import OneNote sections exported as HTML.",                                 icon: "📓", category: "import-export", status: "available", color: "#7719AA", setupType: "file-import" },
 
   // Connector-based / API key (legacy paths kept)
-  { id: "todoist",  name: "Todoist",           description: "Sync tasks between PendragonX Task Manager and Todoist.",                                 icon: "✅", category: "productivity",  status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
+  { id: "todoist",  name: "Todoist",           description: "Sync tasks between Baku Scribe Task Manager and Todoist.",                                 icon: "✅", category: "productivity",  status: "available", color: "#E44332", setupType: "api-key", docsUrl: "https://todoist.com/prefs/integrations" },
   { id: "slack",    name: "Slack",             description: "Send notes and cards to Slack channels via webhook.",                                     icon: "💬", category: "communication", status: "available", color: "#4A154B", setupType: "webhook", docsUrl: "https://api.slack.com/messaging/webhooks" },
   { id: "webhooks", name: "Zapier / Webhooks", description: "Generic webhook URL — connect 5,000+ apps via Zapier, Make, n8n.",                        icon: "🔗", category: "productivity",  status: "available", color: "#FF4A00", setupType: "webhook", docsUrl: "https://zapier.com/app/zaps" },
 
@@ -169,7 +169,7 @@ export function IntegrationsHub() {
               <h1 className="text-lg font-bold text-foreground">Connectors</h1>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Connect PendragonX with the tools you already use. Import data, sync tasks, and automate workflows.
+              Connect Baku Scribe with the tools you already use. Import data, sync tasks, and automate workflows.
             </p>
           </div>
           <Button

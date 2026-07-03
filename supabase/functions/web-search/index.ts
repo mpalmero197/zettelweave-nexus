@@ -230,7 +230,7 @@ serve(async (req) => {
     if (engine === 'duckduckgo') {
       try {
         const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-        const ddgRes = await fetch(ddgUrl, { headers: { 'User-Agent': 'PendragonX/1.0' } });
+        const ddgRes = await fetch(ddgUrl, { headers: { 'User-Agent': 'Baku Scribe/1.0' } });
         if (ddgRes.ok) {
           const ddg = await ddgRes.json();
           const parts: string[] = [];

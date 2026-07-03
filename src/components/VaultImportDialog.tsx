@@ -987,7 +987,7 @@ export const VaultImportDialog = ({ onImportCards }: VaultImportDialogProps) => 
         <DialogHeader>
           <DialogTitle>Import Knowledge Vault</DialogTitle>
           <DialogDescription>
-            Import your entire Obsidian vault or Notion export into PendragonX
+            Import your entire Obsidian vault or Notion export into Baku Scribe
           </DialogDescription>
         </DialogHeader>
         

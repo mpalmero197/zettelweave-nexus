@@ -18,24 +18,24 @@ const useSEO = (title: string, description: string, canonical: string) => {
 
 const About = () => {
   useSEO(
-    "About PendragonX",
-    "PendragonX is an AI-powered second brain for writers, researchers, and lifelong learners. Learn what we build and why.",
+    "About Baku Scribe",
+    "Baku Scribe is an AI-powered second brain for writers, researchers, and lifelong learners. Learn what we build and why.",
     "https://pendragonx.com/about"
   );
   return (
     <main className="min-h-screen bg-background text-foreground px-6 py-16 max-w-3xl mx-auto">
-      <h1 className="text-4xl font-serif mb-6">About PendragonX</h1>
+      <h1 className="text-4xl font-serif mb-6">About Baku Scribe</h1>
 
       <p className="mb-4 text-lg">
-        PendragonX is your AI-powered second brain — a single place to capture every
+        Baku Scribe is your AI-powered second brain — a single place to capture every
         idea, note, and source you care about, and watch them connect themselves into
         a living knowledge graph.
       </p>
 
       <p className="mb-4">
-        We built PendragonX because the tools most of us use to think — folders,
+        We built Baku Scribe because the tools most of us use to think — folders,
         tabs, scattered docs — don't actually help us think. They just store stuff.
-        PendragonX is designed to do the opposite: surface the connections you'd
+        Baku Scribe is designed to do the opposite: surface the connections you'd
         miss, resurface the notes you forgot, and let you talk to your own knowledge
         like a collaborator.
       </p>
@@ -45,7 +45,7 @@ const About = () => {
         Writers drafting their next book. Researchers untangling a hard problem.
         Students preparing for exams. Founders keeping a hundred threads alive at
         once. If you've ever felt like your best ideas are trapped in a folder you
-        can't find, PendragonX is for you.
+        can't find, Baku Scribe is for you.
       </p>
 
       <h2 className="text-2xl font-semibold mt-10 mb-3">What we believe</h2>
@@ -58,7 +58,7 @@ const About = () => {
 
       <h2 className="text-2xl font-semibold mt-10 mb-3">Who's behind it</h2>
       <p className="mb-4">
-        PendragonX is built by Halcyon Systems Group — a small, independent,
+        Baku Scribe is built by Halcyon Systems Group — a small, independent,
         bootstrapped team. No venture capital, no ads, no data brokers.
       </p>
 

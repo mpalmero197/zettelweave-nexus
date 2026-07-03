@@ -1,6 +1,6 @@
 # Offline Mode & Intelligent Caching
 
-PendragonX now features a comprehensive offline mode that enables full functionality without an internet connection, combined with intelligent caching that learns your usage patterns.
+Baku Scribe now features a comprehensive offline mode that enables full functionality without an internet connection, combined with intelligent caching that learns your usage patterns.
 
 ## Features
 

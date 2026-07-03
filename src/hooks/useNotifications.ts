@@ -130,7 +130,7 @@ export function useNotifications() {
       // Send an immediate confirmation push notification
       try {
         await registration.showNotification('Push Notifications Enabled 🔔', {
-          body: 'You will now receive reminders and alerts from PendragonX.',
+          body: 'You will now receive reminders and alerts from Baku Scribe.',
           icon: '/icon-192x192.png',
           badge: '/icon-192x192.png',
           tag: 'push-enabled-confirmation',

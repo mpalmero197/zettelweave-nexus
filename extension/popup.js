@@ -1,4 +1,4 @@
-// PendragonX Toolbox - Chrome Extension Side Panel
+// Baku Scribe Toolbox - Chrome Extension Side Panel
 const SUPABASE_URL = 'https://sckglgjydlbztxjupbsk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNja2dsZ2p5ZGxienR4anVwYnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzYzMjUsImV4cCI6MjA3MTkxMjMyNX0.3uZ0NUIN3yJsUgsCWdTKAhWf_DdLDiDske83hBpK3Yw';
 
@@ -172,8 +172,8 @@ function setAuthMode(mode) {
   document.getElementById('auth-mode-signup').classList.toggle('active', mode === 'signup');
   document.getElementById('auth-title').textContent = mode === 'signup' ? 'Create your account' : 'Welcome back';
   document.getElementById('auth-subtitle').textContent = mode === 'signup'
-    ? 'Sign up for a free PendragonX account.'
-    : 'Sign in to your PendragonX account.';
+    ? 'Sign up for a free Baku Scribe account.'
+    : 'Sign in to your Baku Scribe account.';
   document.getElementById('auth-name').style.display = mode === 'signup' ? 'block' : 'none';
   document.getElementById('login-btn').textContent = mode === 'signup' ? 'Sign Up' : 'Sign In';
   document.getElementById('auth-password').setAttribute('autocomplete', mode === 'signup' ? 'new-password' : 'current-password');

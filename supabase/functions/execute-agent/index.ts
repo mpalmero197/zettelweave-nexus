@@ -323,7 +323,7 @@ async function runAuthorAgent(supabaseClient: any, user: any, agent: any, runId:
   await updateProgress(supabaseClient, runId, { progress: 98, stage: 'saving', detail: 'Saving document...' });
 
   const customTitle = config.synthesizer_title;
-  const docTitle = customTitle ? `${customTitle} (Created by PendragonX)` : `${topicData.topic} (Created by PendragonX)`;
+  const docTitle = customTitle ? `${customTitle} (Created by Baku Scribe)` : `${topicData.topic} (Created by Baku Scribe)`;
   const finalMarkdown = `# ${docTitle}\n\n> *${topicData.angle}*\n\n---\n\n${documentBody}\n\n---\n\n*Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}*\n`;
   const finalContent = markdownToHtml(finalMarkdown);
   const finalWordCount = finalMarkdown.split(/\s+/).length;

@@ -1,4 +1,4 @@
-// vault-bridge.js — injected into PendragonX pages so the extension can
+// vault-bridge.js — injected into Baku Scribe pages so the extension can
 // request OTP codes AND saved credentials from the user's unlocked vault.
 // All decryption happens in-page; only the resolved values cross back.
 (() => {

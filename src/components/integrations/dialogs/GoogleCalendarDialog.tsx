@@ -47,7 +47,7 @@ export function GoogleCalendarDialog({ open, onOpenChange, onConnected }: Google
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">📅 Connect Google Calendar</DialogTitle>
           <DialogDescription>
-            Sync events between PendragonX and Google Calendar using a public API key.
+            Sync events between Baku Scribe and Google Calendar using a public API key.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

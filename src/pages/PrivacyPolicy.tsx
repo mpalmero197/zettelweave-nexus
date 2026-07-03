@@ -7,8 +7,8 @@ export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SEOHead 
-        title="Privacy Policy - PendragonX"
-        description="Learn how PendragonX protects your privacy. We never sell, trade, or rent your personal information. Your data belongs to you."
+        title="Privacy Policy - Baku Scribe"
+        description="Learn how Baku Scribe protects your privacy. We never sell, trade, or rent your personal information. Your data belongs to you."
         canonicalUrl="https://pendragonx.com/privacy"
         ogImage={ogImages.privacy}
         noIndex={false}
@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Halcyon Systems Group ("Company," "we," "us," or "our") operates PendragonX (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. By using the Service, you consent to the data practices described in this Privacy Policy.
+              Halcyon Systems Group ("Company," "we," "us," or "our") operates Baku Scribe (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. By using the Service, you consent to the data practices described in this Privacy Policy.
             </p>
           </section>
 

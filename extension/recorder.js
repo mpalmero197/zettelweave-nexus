@@ -1,4 +1,4 @@
-// PendragonX Toolbox — Macro Recorder
+// Baku Scribe Toolbox — Macro Recorder
 // Injected on demand by the background service worker into the active tab
 // (and re-injected after every navigation) while a recording session is
 // active. Captures clicks, typing, and submits and forwards each step to
@@ -13,7 +13,7 @@
   window.__pendragonxRecorderInstalled = true;
 
   const BADGE_ID = "pendragonx-recorder-badge";
-  const LOG = (...a) => console.debug("[PendragonX Recorder]", ...a);
+  const LOG = (...a) => console.debug("[Baku Scribe Recorder]", ...a);
   let stepCount = 0;
   let paused = false;
 

@@ -33,7 +33,7 @@ async function getUserCoords(): Promise<{ latitude: number; longitude: number; a
     if (!__coordsToastShown && e?.code === 1 /* PERMISSION_DENIED */) {
       __coordsToastShown = true;
       toast.message("Location is off", {
-        description: "Enable location for PendragonX in your browser so ALICE can give accurate local weather.",
+        description: "Enable location for Baku Scribe in your browser so ALICE can give accurate local weather.",
       });
     }
     return null;

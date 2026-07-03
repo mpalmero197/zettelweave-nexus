@@ -21,7 +21,7 @@ export function Footer() {
           rel="noopener noreferrer"
         >
           <img
-            alt="PendragonX - Your second brain that actually communicates back to you. | Product Hunt"
+            alt="Baku Scribe - Your second brain that actually communicates back to you. | Product Hunt"
             width="200"
             height="43"
             src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1141673&theme=dark&t=1778248257082"

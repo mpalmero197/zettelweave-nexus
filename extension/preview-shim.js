@@ -1,7 +1,7 @@
 /* Preview shim: when popup.html is loaded outside a Chrome extension
    (e.g. inside an admin preview <iframe>), provide a chrome.storage.local
    API backed by sessionStorage so it cannot pollute or sign out the parent
-   PendragonX web-app session. Seeded by postMessage from the parent.
+   Baku Scribe web-app session. Seeded by postMessage from the parent.
    Moved to an external file to comply with MV3 CSP (no inline scripts). */
 (function () {
   var isExt = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;

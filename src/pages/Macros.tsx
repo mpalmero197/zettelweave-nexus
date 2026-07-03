@@ -221,7 +221,7 @@ export default function Macros() {
               toast({
                 title: "Recording mode",
                 description:
-                  "Open the PendragonX Toolbox on the page you want to teach, then click '🎓 Teach ALICE' in the Macros tab. Steps you take in that tab are saved into a new macro.",
+                  "Open the Baku Scribe Toolbox on the page you want to teach, then click '🎓 Teach ALICE' in the Macros tab. Steps you take in that tab are saved into a new macro.",
               });
             }}
           >

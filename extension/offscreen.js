@@ -1,4 +1,4 @@
-// PendragonX wake-word offscreen document.
+// Baku Scribe wake-word offscreen document.
 // Service workers can't access the Web Speech API or the microphone, so we
 // run a continuous SpeechRecognition session here and post wake events back
 // to the background script via chrome.runtime.sendMessage.

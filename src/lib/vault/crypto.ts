@@ -3,7 +3,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const RP_NAME = "PendragonX Vault";
+const RP_NAME = "Baku Scribe Vault";
 const KEY_INFO = "pendragonx-vault-v1";
 
 const enc = new TextEncoder();

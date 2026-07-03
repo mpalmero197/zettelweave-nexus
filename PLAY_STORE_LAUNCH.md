@@ -1,4 +1,4 @@
-# PendragonX — Google Play Store Launch Guide
+# Baku Scribe — Google Play Store Launch Guide
 
 This project is now wired for native Android via **Capacitor**. The web app is unchanged; a thin native shell is produced for Play.
 
@@ -11,7 +11,7 @@ Already added to `package.json`:
 **Core**
 - `@capacitor/core`, `@capacitor/cli` (dev), `@capacitor/android`
 
-**Required plugins (matched to PendragonX features + Play policies)**
+**Required plugins (matched to Baku Scribe features + Play policies)**
 - `@capacitor/app` — lifecycle + hardware back-button (Play UX requirement)
 - `@capacitor/splash-screen` — branded splash
 - `@capacitor/status-bar` — dark themed status bar
@@ -102,7 +102,7 @@ With the dev `server.url` in `capacitor.config.ts`, the app hot-reloads from the
 | Requirement | Status / Where |
 |---|---|
 | Play Developer account ($25 one-time) | Sign up at https://play.google.com/console |
-| App name | `PendragonX` |
+| App name | `Baku Scribe` |
 | Package name | `app.lovable.4eb34d34fd9d491db4fe83f99b554cfb` |
 | Privacy Policy URL | https://pendragonx.com/privacy-policy ✅ already exists |
 | Terms of Service URL | https://pendragonx.com/terms-of-service ✅ already exists |

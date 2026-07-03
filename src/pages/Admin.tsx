@@ -304,7 +304,7 @@ export default function Admin() {
               <CardHeader>
                 <CardTitle>Google Play Store Package</CardTitle>
                 <CardDescription>
-                  Everything you need to build and submit PendragonX to the Play Store — Capacitor config, AndroidManifest, signing scripts, listing copy, data safety answers, content rating, and screenshot specs.
+                  Everything you need to build and submit Baku Scribe to the Play Store — Capacitor config, AndroidManifest, signing scripts, listing copy, data safety answers, content rating, and screenshot specs.
                 </CardDescription>
               </CardHeader>
             </Card>

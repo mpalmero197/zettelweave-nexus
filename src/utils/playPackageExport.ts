@@ -1,7 +1,7 @@
 /**
- * PendragonX — Google Play Store Package Export
+ * Baku Scribe — Google Play Store Package Export
  * --------------------------------------------------------------
- * Bundles every file required to build and submit the PendragonX
+ * Bundles every file required to build and submit the Baku Scribe
  * Android app to the Google Play Store into a single .zip:
  *
  *   - capacitor.config.ts
@@ -16,7 +16,7 @@
  *   - README.md with the local commands the user must run
  *
  * The output zip is self-contained — the user unpacks it into the
- * exported PendragonX repo, runs the scripts, and uploads the
+ * exported Baku Scribe repo, runs the scripts, and uploads the
  * generated .aab to Play Console.
  */
 
@@ -229,8 +229,8 @@ try {
 
 const ANDROID_STRINGS = `<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PendragonX</string>
-    <string name="title_activity_main">PendragonX</string>
+    <string name="app_name">Baku Scribe</string>
+    <string name="title_activity_main">Baku Scribe</string>
     <string name="package_name">app.lovable.4eb34d34fd9d491db4fe83f99b554cfb</string>
     <string name="custom_url_scheme">app.lovable.4eb34d34fd9d491db4fe83f99b554cfb</string>
 </resources>
@@ -260,13 +260,13 @@ const PROGUARD = `# Capacitor
 const LISTING_COPY = `# Play Store Listing Copy
 
 ## App name (30 chars max)
-PendragonX
+Baku Scribe
 
 ## Short description (80 chars max)
 Your AI-powered knowledge OS — notes, writing, research, and intelligent linking.
 
 ## Full description (4000 chars max)
-PendragonX is an intelligent knowledge management system for writers, researchers, and lifelong learners.
+Baku Scribe is an intelligent knowledge management system for writers, researchers, and lifelong learners.
 
 KEY FEATURES
 - ZettelCards: Atomic note-taking with auto-categorization via the Dewey system
@@ -344,7 +344,7 @@ const SCREENSHOT_SPECS = `# Required Screenshots
 Google Play requires:
 - At least 2 phone screenshots (min 320px, max 3840px, 16:9 or 9:16)
 - 1 hi-res icon: 512x512 PNG (use /public/icon-512x512.png)
-- 1 feature graphic: 1024x500 JPG/PNG (create one showing the PendragonX orb + tagline)
+- 1 feature graphic: 1024x500 JPG/PNG (create one showing the Baku Scribe orb + tagline)
 
 Recommended screenshots to capture (run the app, use phone viewport 1080x1920):
 1. Dashboard with widgets
@@ -359,7 +359,7 @@ Place captured PNGs in this folder before uploading to Play Console.
 `;
 
 const KEYSTORE_SCRIPT = `#!/usr/bin/env bash
-# Generate a release signing keystore for PendragonX.
+# Generate a release signing keystore for Baku Scribe.
 # Store the resulting file and passwords in a SECURE password manager — losing them
 # means you can never publish updates to this app again.
 set -euo pipefail
@@ -436,9 +436,9 @@ if (Test-Path $aab) {
 }
 `;
 
-const README = `# PendragonX — Google Play Package
+const README = `# Baku Scribe — Google Play Package
 
-This zip contains every file required to build and submit PendragonX to the Google Play Store.
+This zip contains every file required to build and submit Baku Scribe to the Google Play Store.
 
 ## What's inside
 
@@ -475,7 +475,7 @@ bash scripts/build-release-aab.sh
 ## Play Console submission
 
 1. Create a Google Play Console account ($25 one-time fee)
-2. Create a new app: PendragonX, Productivity, English (United States)
+2. Create a new app: Baku Scribe, Productivity, English (United States)
 3. Fill in the listing using \`play-store/listing.md\`
 4. Fill in Data Safety using \`play-store/data-safety.md\`
 5. Fill in Content Rating using \`play-store/content-rating.md\`

@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'PendragonX Registration – Confirm your email',
-  invite: "PendragonX – You've been invited",
-  magiclink: 'PendragonX – Your login link',
-  recovery: 'PendragonX – Reset your password',
-  email_change: 'PendragonX – Confirm your new email',
-  reauthentication: 'PendragonX – Your verification code',
+  signup: 'Baku Scribe Registration – Confirm your email',
+  invite: "Baku Scribe – You've been invited",
+  magiclink: 'Baku Scribe – Your login link',
+  recovery: 'Baku Scribe – Reset your password',
+  email_change: 'Baku Scribe – Confirm your new email',
+  reauthentication: 'Baku Scribe – Your verification code',
 }
 
 // Template mapping
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "PendragonX"
+const SITE_NAME = "Baku Scribe"
 const SENDER_DOMAIN = "notify.pendragonx.com"
 const ROOT_DOMAIN = "pendragonx.com"
 const FROM_DOMAIN = "pendragonx.com" // Domain shown in From address (may be root or sender subdomain)

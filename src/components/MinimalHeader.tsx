@@ -77,8 +77,8 @@ export function MinimalHeader({
           </Sheet>
 
           <div className="hidden md:flex items-center gap-1.5">
-            <img src={pendragonLogo} alt="PendragonX" className="h-5 w-5 object-contain" />
-            <span className="text-sm font-semibold text-foreground">PendragonX</span>
+            <img src={pendragonLogo} alt="Baku Scribe" className="h-5 w-5 object-contain" />
+            <span className="text-sm font-semibold text-foreground">Baku Scribe</span>
             <div className="relative ml-0.5">
               <div 
                 className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}

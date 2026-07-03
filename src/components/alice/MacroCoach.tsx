@@ -111,7 +111,7 @@ export function MacroCoach() {
         })}
       </div>
       <div className="p-2 border-t border-slate-800 text-[10px] text-slate-500 text-center">
-        Install the PendragonX extension to let ALICE drive these steps automatically.
+        Install the Baku Scribe extension to let ALICE drive these steps automatically.
       </div>
     </div>
   );

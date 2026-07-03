@@ -1,7 +1,7 @@
-// PendragonX Toolbox — content script.
+// Baku Scribe Toolbox — content script.
 // Floating "Save as scratchpad" pill when a user highlights ≥ 8 chars on any
 // page. Works whether or not the side panel is open — only needs an active
-// PendragonX session held by the background service worker.
+// Baku Scribe session held by the background service worker.
 
 (() => {
   if (window.__pendragonxToolboxHighlight) return;
@@ -10,7 +10,7 @@
   const MAX_LEN = 500;
   const MIN_LEN = 8;
   const PILL_ID = "pendragonx-scratchpad-pill";
-  const LOG = (...a) => console.debug("[PendragonX Toolbox]", ...a);
+  const LOG = (...a) => console.debug("[Baku Scribe Toolbox]", ...a);
   LOG("highlight-capture loaded on", location.href);
 
   let lastSelectionText = "";
@@ -71,8 +71,8 @@
         LOG("save result", res);
         pill.style.background = res?.ok ? "#16a34a" : "#dc2626";
         pill.innerHTML = res?.ok
-          ? `<span>✓ Saved to PendragonX Scratchpad</span>`
-          : `<span>${res?.error === "sign in" ? "Sign in to PendragonX first" : "Failed: " + (res?.error || "unknown")}</span>`;
+          ? `<span>✓ Saved to Baku Scribe Scratchpad</span>`
+          : `<span>${res?.error === "sign in" ? "Sign in to Baku Scribe first" : "Failed: " + (res?.error || "unknown")}</span>`;
         setTimeout(removePill, 1900);
       } catch (err) {
         LOG("save error", err);

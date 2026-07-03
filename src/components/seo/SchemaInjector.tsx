@@ -83,7 +83,7 @@ export const buildArticleSchema = (article: {
   ...(article.url ? { mainEntityOfPage: article.url } : {}),
   publisher: {
     "@type": "Organization",
-    name: "PendragonX",
+    name: "Baku Scribe",
     logo: {
       "@type": "ImageObject",
       url: "https://pendragonx.com/icon-512x512.png",

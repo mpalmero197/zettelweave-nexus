@@ -34,9 +34,9 @@ export default function ScholarHome() {
       <header className="space-y-2">
         <div className="flex items-center gap-3">
           <GraduationCap className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-semibold tracking-tight">PendragonX Scholar</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Baku Scribe Scholar</h1>
         </div>
-        <p className="text-muted-foreground">Learn every part of PendragonX in a safe sandbox. Earn badges. Become a Grand Pendragon.</p>
+        <p className="text-muted-foreground">Learn every part of Baku Scribe in a safe sandbox. Earn badges. Become a Grand Pendragon.</p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">

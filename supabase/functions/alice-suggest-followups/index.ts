@@ -14,7 +14,7 @@ const corsHeaders = {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
 
-const SYSTEM = `You are ALICE, the writer's assistant inside PendragonX.
+const SYSTEM = `You are ALICE, the writer's assistant inside Baku Scribe.
 A user just created a new piece of content (a note, card, sticky, scratchpad, or similar).
 Read it carefully and decide if it implies any time-bound or relational follow-up that the user would want help with.
 

@@ -1,4 +1,4 @@
-// PendragonX Toolbox — Macro Runner v2
+// Baku Scribe Toolbox — Macro Runner v2
 // Walks the macro step list, resolves {{vault.*}} and {{var.*}} tokens at
 // runtime, handles ask/pause overlays, and on a hard failure calls the
 // alice-repair-macro-step edge function to fix the step using the live DOM.
@@ -107,12 +107,12 @@
     return s.replace(VAR_RE, (_m, name) => (runVars[name] != null ? String(runVars[name]) : _m));
   }
 
-  // Ask background → PendragonX tab → in-page vault for a credential.
+  // Ask background → Baku Scribe tab → in-page vault for a credential.
   // Returns { ok, fields?: {username,password,otp,email}, locked?, options?: [{id,label,host}] }
   async function requestVaultCredential(host, opts = {}) {
     return new Promise((resolve) => {
       let done = false;
-      const t = setTimeout(() => { if (!done) { done = true; resolve({ ok: false, error: "Vault timed out — open the PendragonX app and unlock the vault." }); } }, 12000);
+      const t = setTimeout(() => { if (!done) { done = true; resolve({ ok: false, error: "Vault timed out — open the Baku Scribe app and unlock the vault." }); } }, 12000);
       try {
         chrome.runtime.sendMessage(
           { type: "PENDRAGONX_VAULT_REQUEST_CREDENTIAL", host, itemTitle: opts.itemTitle || null, itemId: opts.itemId || null },
@@ -154,12 +154,12 @@
     const out = await replaceAsync(rawValue, VAULT_RE, async (_m, itemTitle, field) => {
       if (!cache) {
         let resp = await requestVaultCredential(host, { itemTitle });
-        if (resp?.locked) throw new Error("Vault is locked. Open PendragonX → Vault, unlock it, then click Continue.");
+        if (resp?.locked) throw new Error("Vault is locked. Open Baku Scribe → Vault, unlock it, then click Continue.");
         if (resp?.needsPick && Array.isArray(resp.options)) {
           const pick = await vaultPickOverlay(resp.options);
           resp = await requestVaultCredential(host, { itemId: pick.id });
         }
-        if (!resp?.ok || !resp.fields) throw new Error(resp?.error || "No vault item matches this site. Save a login in PendragonX → Vault first.");
+        if (!resp?.ok || !resp.fields) throw new Error(resp?.error || "No vault item matches this site. Save a login in Baku Scribe → Vault first.");
         cache = resp.fields;
       }
       const v = cache[field];

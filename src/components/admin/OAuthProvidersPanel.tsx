@@ -38,7 +38,7 @@ const GUIDES: Record<string, ProviderGuide> = {
     steps: [
       {
         title: "Create or pick a Google Cloud project",
-        body: "Open Google Cloud Console and create (or select) a project for PendragonX.",
+        body: "Open Google Cloud Console and create (or select) a project for Baku Scribe.",
         link: { url: "https://console.cloud.google.com/projectcreate", label: "Create project" },
       },
       {
@@ -99,7 +99,7 @@ const GUIDES: Record<string, ProviderGuide> = {
       },
       {
         title: "Add the Redirect URI",
-        body: "Under OAuth Domain & URIs → Add the Redirect URI below. Capabilities: Read content (and Write if you want PendragonX to push back).",
+        body: "Under OAuth Domain & URIs → Add the Redirect URI below. Capabilities: Read content (and Write if you want Baku Scribe to push back).",
       },
       {
         title: "Copy OAuth client ID & secret",

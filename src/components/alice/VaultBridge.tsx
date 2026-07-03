@@ -47,7 +47,7 @@ export function VaultBridge() {
         if (!vault.unlocked) {
           bc.postMessage({
             type: "credential-result", requestId: d.requestId,
-            result: { ok: false, locked: true, error: "Vault is locked. Unlock it in PendragonX → Vault." },
+            result: { ok: false, locked: true, error: "Vault is locked. Unlock it in Baku Scribe → Vault." },
           });
           return;
         }

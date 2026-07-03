@@ -17,7 +17,7 @@ const useSEO = (title: string, description: string, canonical: string) => {
 
 const EditorialPolicy = () => {
   useSEO(
-    "How we write — Editorial standards at PendragonX",
+    "How we write — Editorial standards at Baku Scribe",
     "What you can expect from anything we publish: how we research, who reviews it, and how we handle mistakes.",
     "https://pendragonx.com/editorial-policy"
   );
@@ -25,7 +25,7 @@ const EditorialPolicy = () => {
     <main className="min-h-screen bg-background text-foreground px-6 py-16 max-w-3xl mx-auto">
       <h1 className="text-4xl font-serif mb-6">How we write</h1>
       <p className="mb-6 text-lg">
-        Anything we publish on PendragonX — product pages, guides, comparisons,
+        Anything we publish on Baku Scribe — product pages, guides, comparisons,
         changelog entries — follows the same standards. Here's what you can
         expect, and what to do if you think we got something wrong.
       </p>

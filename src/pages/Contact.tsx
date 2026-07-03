@@ -17,7 +17,7 @@ const useSEO = (title: string, description: string, canonical: string) => {
 
 const Contact = () => {
   useSEO(
-    "Contact PendragonX",
+    "Contact Baku Scribe",
     "Get help, report a bug, request a feature, or reach out about press and security. We read every message.",
     "https://pendragonx.com/contact"
   );
@@ -44,7 +44,7 @@ const Contact = () => {
 
       <h2 className="text-2xl font-semibold mt-8 mb-3">Press &amp; partnerships</h2>
       <p className="mb-2">
-        Writing about PendragonX or interested in partnering? Reach out to{" "}
+        Writing about Baku Scribe or interested in partnering? Reach out to{" "}
         <a className="underline" href="mailto:press@pendragonx.com">press@pendragonx.com</a>.
       </p>
 

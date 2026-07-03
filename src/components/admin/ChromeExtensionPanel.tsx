@@ -45,7 +45,7 @@ export function ChromeExtensionPanel() {
     'Open chrome://extensions in Chrome (or any Chromium browser)',
     'Enable Developer Mode using the toggle in the top-right',
     'Click "Load unpacked" and select the unzipped folder',
-    'Pin the PendragonX Toolbox to your toolbar and sign in',
+    'Pin the Baku Scribe Toolbox to your toolbar and sign in',
   ];
 
   return (
@@ -53,7 +53,7 @@ export function ChromeExtensionPanel() {
       <AdminSectionHeader
         icon={Chrome}
         title="Chrome Extension"
-        description={version ? `Preview build v${version} · Package and distribute the PendragonX Toolbox` : 'Package and distribute the PendragonX Toolbox extension'}
+        description={version ? `Preview build v${version} · Package and distribute the Baku Scribe Toolbox` : 'Package and distribute the Baku Scribe Toolbox extension'}
         actions={
           <Button onClick={handleDownload} disabled={isDownloading} className="gap-2">
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}

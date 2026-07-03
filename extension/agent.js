@@ -1,4 +1,4 @@
-// PendragonX — Autonomous browser agent runner (in-page)
+// Baku Scribe — Autonomous browser agent runner (in-page)
 // Injected by background.js when a run is approved. Loops:
 //   1. snapshot DOM → send to background
 //   2. background → alice-agent-step edge fn → returns one action

@@ -28,7 +28,7 @@ const ComparisonPage = () => {
   };
 
   const productSchema = buildSoftwareApplicationSchema({
-    name: "PendragonX",
+    name: "Baku Scribe",
     description: spec.answerSummary,
     applicationCategory: "ProductivityApplication",
     operatingSystem: "Web, iOS, Android",
@@ -42,7 +42,7 @@ const ComparisonPage = () => {
   const otherComparisons = comparisons
     .filter((c) => c.slug !== spec.slug)
     .map((c) => ({
-      title: `PendragonX vs ${c.competitor}`,
+      title: `Baku Scribe vs ${c.competitor}`,
       href: `/vs/${c.slug}`,
       description: c.answerSummary.slice(0, 110) + "…",
     }));
@@ -53,7 +53,7 @@ const ComparisonPage = () => {
         title={spec.title}
         description={spec.metaDescription}
         canonicalUrl={canonical}
-        keywords={`PendragonX vs ${spec.competitor}, ${spec.competitor} alternative, best ${spec.competitor} alternative, AI second brain, knowledge management software, Notion alternative, Obsidian alternative`}
+        keywords={`Baku Scribe vs ${spec.competitor}, ${spec.competitor} alternative, best ${spec.competitor} alternative, AI second brain, knowledge management software, Notion alternative, Obsidian alternative`}
       />
       <SchemaInjector id="cmp-breadcrumb" schema={breadcrumb} />
       <SchemaInjector id="cmp-product" schema={productSchema} />
@@ -61,10 +61,10 @@ const ComparisonPage = () => {
       <header className="border-b border-border/60 bg-card/30 backdrop-blur">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" /> PendragonX
+            <ArrowLeft className="h-4 w-4" /> Baku Scribe
           </Link>
           <Button asChild size="sm">
-            <Link to="/auth">Try PendragonX free</Link>
+            <Link to="/auth">Try Baku Scribe free</Link>
           </Button>
         </div>
       </header>
@@ -90,8 +90,8 @@ const ComparisonPage = () => {
             Feature-by-feature comparison
           </h2>
           <ScannableTable
-            caption={`How PendragonX compares to ${spec.competitor} across the capabilities knowledge workers use daily.`}
-            headers={["Capability", "PendragonX", spec.competitor]}
+            caption={`How Baku Scribe compares to ${spec.competitor} across the capabilities knowledge workers use daily.`}
+            headers={["Capability", "Baku Scribe", spec.competitor]}
             rows={spec.tableRows.map(([cap, us, them]) => [
               <span className="font-medium">{cap}</span>,
               <span className="inline-flex items-center gap-1.5 text-foreground">
@@ -112,7 +112,7 @@ const ComparisonPage = () => {
 
         <section className="grid md:grid-cols-2 gap-6">
           <div className="rounded-xl border border-primary/40 bg-primary/5 p-5">
-            <h2 className="text-lg font-semibold mb-3">Where PendragonX wins</h2>
+            <h2 className="text-lg font-semibold mb-3">Where Baku Scribe wins</h2>
             <ul className="space-y-2 text-sm">
               {spec.strengths.pendragonx.map((s) => (
                 <li key={s} className="flex gap-2">
@@ -135,10 +135,10 @@ const ComparisonPage = () => {
           </div>
         </section>
 
-        <FAQBlock heading={`PendragonX vs ${spec.competitor}: FAQ`} items={spec.faqs} />
+        <FAQBlock heading={`Baku Scribe vs ${spec.competitor}: FAQ`} items={spec.faqs} />
 
         <section className="rounded-xl border border-primary/50 bg-gradient-to-br from-primary/10 to-transparent p-6 text-center space-y-3">
-          <h2 className="text-2xl font-semibold">Try PendragonX free — import your {spec.competitor} data in one click</h2>
+          <h2 className="text-2xl font-semibold">Try Baku Scribe free — import your {spec.competitor} data in one click</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             No credit card required. Free forever tier. 7-day Premium trial when you upgrade.
           </p>
@@ -153,7 +153,7 @@ const ComparisonPage = () => {
         </section>
 
         <TopicalCluster
-          pillarTitle="PendragonX comparisons"
+          pillarTitle="Baku Scribe comparisons"
           pillarHref="/"
           topics={otherComparisons}
         />

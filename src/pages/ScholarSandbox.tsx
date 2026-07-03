@@ -12,7 +12,7 @@ function SandboxInner() {
   const askAlice = () => {
     try {
       sessionStorage.setItem("alice:auto-prompt", JSON.stringify({
-        text: "I'm in the PendragonX Scholar sandbox. Give me a quick tour of what I can do here and suggest a fun thing to try.",
+        text: "I'm in the Baku Scribe Scholar sandbox. Give me a quick tour of what I can do here and suggest a fun thing to try.",
         autoSend: true,
       }));
     } catch { /* ignore */ }
@@ -29,7 +29,7 @@ function SandboxInner() {
         <div className="flex items-center gap-3">
           <FlaskConical className="h-5 w-5 text-primary" />
           <div>
-            <div className="font-medium">PendragonX Sandbox</div>
+            <div className="font-medium">Baku Scribe Sandbox</div>
             <div className="text-xs text-muted-foreground">A live copy of the real app. Nothing here affects your knowledge base.</div>
           </div>
         </div>

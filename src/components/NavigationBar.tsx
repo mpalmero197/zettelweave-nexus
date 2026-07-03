@@ -328,9 +328,9 @@ export function NavigationBar({
           
           {/* Logo & Brand - Desktop Only */}
           <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
-            <img src={pendragonLogo} alt="PendragonX" className="h-8 w-8 object-contain" />
+            <img src={pendragonLogo} alt="Baku Scribe" className="h-8 w-8 object-contain" />
             <div>
-              <h1 className="text-lg font-bold text-foreground">PendragonX</h1>
+              <h1 className="text-lg font-bold text-foreground">Baku Scribe</h1>
               <p className="text-xs text-muted-foreground">
                 Advanced Knowledge System
               </p>
@@ -340,9 +340,9 @@ export function NavigationBar({
           {/* Logo - Mobile Center */}
           <div className="lg:hidden flex-1 flex justify-center">
             <div className="flex items-center gap-2">
-              <img src={pendragonLogo} alt="PendragonX" className="h-6 w-6 object-contain" />
+              <img src={pendragonLogo} alt="Baku Scribe" className="h-6 w-6 object-contain" />
               <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                PendragonX
+                Baku Scribe
               </h1>
             </div>
           </div>

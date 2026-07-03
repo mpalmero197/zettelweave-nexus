@@ -4,7 +4,7 @@
 
 ### Current Security Model
 
-PendragonX uses **Row-Level Security (RLS)** policies in Supabase to ensure complete data isolation:
+Baku Scribe uses **Row-Level Security (RLS)** policies in Supabase to ensure complete data isolation:
 
 1. **Database-Level Protection**: RLS policies enforce that users can ONLY access their own data
 2. **Admin Restrictions**: Even admin accounts CANNOT read user notes, cards, or personal content
@@ -155,7 +155,7 @@ Potential security improvements:
 
 ## Scanner Findings — What Applies, What Doesn't
 
-PendragonX is a Vite/React SPA on Lovable hosting (Cloudflare edge) with Supabase backend. Generic web scanners often report false positives against SPAs.
+Baku Scribe is a Vite/React SPA on Lovable hosting (Cloudflare edge) with Supabase backend. Generic web scanners often report false positives against SPAs.
 
 ### Not applicable (false positives)
 

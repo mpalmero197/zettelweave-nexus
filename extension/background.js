@@ -1,4 +1,4 @@
-// PendragonX extension service worker.
+// Baku Scribe extension service worker.
 // - Opens the side panel on toolbar click.
 // - Periodically sends an open-tabs snapshot to the ALICE backend.
 // - Rich right-click context menu: smart-route selection by length,
@@ -26,7 +26,7 @@ const CARD_MAX       = 1500;  // 500–1500 → card; > 1500 → note
 function registerContextMenus() {
   if (!chrome.contextMenus) return;
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: "pendragonx_root", title: "PendragonX", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_root", title: "Baku Scribe", contexts: ["page", "selection", "link", "image"] });
 
     // Selection: smart save + explicit overrides + lookups
     chrome.contextMenus.create({ id: "pendragonx_save_smart", parentId: "pendragonx_root", title: "Save selection (auto-route)", contexts: ["selection"] });
@@ -62,7 +62,7 @@ function registerContextMenus() {
     // Footer
     chrome.contextMenus.create({ id: "pendragonx_sep_foot", parentId: "pendragonx_root", type: "separator", contexts: ["page", "selection", "link", "image"] });
     chrome.contextMenus.create({ id: "pendragonx_open_panel", parentId: "pendragonx_root", title: "Open Toolbox side panel", contexts: ["page", "selection", "link", "image"] });
-    chrome.contextMenus.create({ id: "pendragonx_open_app",   parentId: "pendragonx_root", title: "Open PendragonX app", contexts: ["page", "selection", "link", "image"] });
+    chrome.contextMenus.create({ id: "pendragonx_open_app",   parentId: "pendragonx_root", title: "Open Baku Scribe app", contexts: ["page", "selection", "link", "image"] });
 
     syncRecorderMenuVisibility();
   });
@@ -85,7 +85,7 @@ async function notify(tabId, message, ok = true) {
   chrome.notifications.create({
     type: "basic",
     iconUrl: "icon-128.png",
-    title: ok ? "PendragonX" : "PendragonX needs attention",
+    title: ok ? "Baku Scribe" : "Baku Scribe needs attention",
     message: String(message).slice(0, 240),
   });
 }
@@ -284,7 +284,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       const token = await getValidToken();
       const userId = await getUserId(token);
-      if (!token || !userId) { sendResponse({ ok: false, error: "Sign in to PendragonX first" }); return; }
+      if (!token || !userId) { sendResponse({ ok: false, error: "Sign in to Baku Scribe first" }); return; }
 
       // Append mode: fetch existing macro and concat steps.
       if (state.appendMacroId) {
@@ -458,12 +458,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // ── Vault credential bridge: extension → PendragonX tab → in-page vault ─
+  // ── Vault credential bridge: extension → Baku Scribe tab → in-page vault ─
   if (msg.type === "PENDRAGONX_VAULT_REQUEST_CREDENTIAL") {
     (async () => {
       try {
         const tabs = await chrome.tabs.query({ url: ["https://pendragonx.com/*", "https://*.pendragonx.com/*", "https://*.lovable.app/*"] });
-        if (!tabs.length) { sendResponse({ ok: false, error: "Open PendragonX in another tab to use the vault." }); return; }
+        if (!tabs.length) { sendResponse({ ok: false, error: "Open Baku Scribe in another tab to use the vault." }); return; }
         let lastErr = null;
         for (const t of tabs) {
           const resp = await new Promise((resolve) => {
@@ -480,7 +480,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (resp && (resp.ok || resp.locked || resp.needsPick)) { sendResponse(resp); return; }
           lastErr = resp?.error || lastErr;
         }
-        sendResponse({ ok: false, error: lastErr || "PendragonX tab did not answer. Make sure the vault is unlocked." });
+        sendResponse({ ok: false, error: lastErr || "Baku Scribe tab did not answer. Make sure the vault is unlocked." });
       } catch (e) { sendResponse({ ok: false, error: String(e?.message || e) }); }
     })();
     return true;
@@ -513,7 +513,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             if (r && r.code) { sendResponse({ ok: true, code: r.code }); return; }
           } catch (_) { /* tab not ready */ }
         }
-        sendResponse({ ok: false, error: "Vault not unlocked. Open PendragonX → /vault and unlock with your passkey." });
+        sendResponse({ ok: false, error: "Vault not unlocked. Open Baku Scribe → /vault and unlock with your passkey." });
       } catch (e) {
         sendResponse({ ok: false, error: String(e?.message || e) });
       }
@@ -523,7 +523,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "PENDRAGONX_AGENT_DECIDE") {
     (async () => {
       const token = await getValidToken();
-      if (!token) { sendResponse({ ok: false, error: "Sign in to PendragonX first" }); return; }
+      if (!token) { sendResponse({ ok: false, error: "Sign in to Baku Scribe first" }); return; }
       try {
         const r = await fetch(AGENT_STEP_URL, {
           method: "POST",
@@ -862,9 +862,9 @@ chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
 
     // Auth required for the rest
     const token = await getValidToken();
-    if (!token) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
+    if (!token) { await notify(tab?.id, "Sign in to Baku Scribe first", false); return; }
     const userId = await getUserId(token);
-    if (!userId) { await notify(tab?.id, "Sign in to PendragonX first", false); return; }
+    if (!userId) { await notify(tab?.id, "Sign in to Baku Scribe first", false); return; }
 
     if (info.menuItemId === "pendragonx_summarize_page") {
       await notify(tab?.id, "Summarizing page…", true);
@@ -1113,7 +1113,7 @@ async function stopWakeListener() {
 }
 
 async function focusPendragonAndDeliverWake(command) {
-  // Try to focus an open PendragonX tab. If none exists, open one. Then
+  // Try to focus an open Baku Scribe tab. If none exists, open one. Then
   // either open the side panel or pass the command via storage so the web
   // app's `alice-wake` handler can pick it up on load.
   try {

@@ -123,17 +123,17 @@ export default function Auth() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-background p-4" role="main">
       <SEOHead 
-        title="Sign In - PendragonX"
-        description="Sign in or create your PendragonX account. Start building your personal knowledge management system with AI-powered insights."
+        title="Sign In - Baku Scribe"
+        description="Sign in or create your Baku Scribe account. Start building your personal knowledge management system with AI-powered insights."
         canonicalUrl="https://pendragonx.com/auth"
         ogImage={ogImages.auth}
       />
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <img src={pendragonLogo} alt="PendragonX" className="h-10 w-10 object-contain" />
+            <img src={pendragonLogo} alt="Baku Scribe" className="h-10 w-10 object-contain" />
             <h1 className="text-3xl font-bold text-primary">
-              PendragonX
+              Baku Scribe
             </h1>
           </div>
           <p className="text-muted-foreground">Your personal knowledge management system</p>

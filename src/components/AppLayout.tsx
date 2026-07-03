@@ -219,11 +219,11 @@ export function AppLayout() {
                 <Link to="/app" className="flex items-center gap-2 rounded-full hover:bg-accent px-2 py-1 transition-colors">
                   <img
                     src={pendragonLogo}
-                    alt="PendragonX"
+                    alt="Baku Scribe"
                     className="h-6 w-6 object-contain"
                   />
                   <span className="text-[15px] font-medium tracking-tight text-foreground" style={{ fontFamily: "'Inter',sans-serif" }}>
-                    PendragonX
+                    Baku Scribe
                   </span>
                   <div className="relative ml-0.5">
                     <div

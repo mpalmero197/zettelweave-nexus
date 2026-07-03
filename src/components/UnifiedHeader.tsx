@@ -97,7 +97,7 @@ export function UnifiedHeader({
             </div>
             <div className="hidden sm:block">
               <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                PendragonX
+                Baku Scribe
               </h1>
               <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
                 Advanced Knowledge System

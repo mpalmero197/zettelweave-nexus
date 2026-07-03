@@ -1,4 +1,4 @@
-# PendragonX Robots.txt
+# Baku Scribe Robots.txt
 # https://pendragonx.com
 
 # Allow all major search engines

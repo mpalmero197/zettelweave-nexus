@@ -168,7 +168,7 @@ export default function Vault() {
         </div>
         <h1 className="text-2xl font-semibold">Hyper-secure vault</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          End-to-end encrypted with your device passkey. Even PendragonX
+          End-to-end encrypted with your device passkey. Even Baku Scribe
           administrators cannot read what's inside.
         </p>
         <div className="mt-8 w-full space-y-3">

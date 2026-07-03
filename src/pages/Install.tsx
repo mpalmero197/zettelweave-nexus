@@ -28,7 +28,7 @@ const Install = () => {
             <Download className="w-10 h-10 text-primary-foreground" />
           </div>
           
-          <h1 className="text-4xl font-bold">Install PendragonX</h1>
+          <h1 className="text-4xl font-bold">Install Baku Scribe</h1>
           <p className="text-muted-foreground text-lg">
             Get the full app experience with offline access and faster performance
           </p>
@@ -39,7 +39,7 @@ const Install = () => {
             <Check className="w-12 h-12 text-green-500 mx-auto mb-3" />
             <h3 className="text-xl font-semibold mb-2">Already Installed</h3>
             <p className="text-muted-foreground mb-4">
-              PendragonX is already installed on your device
+              Baku Scribe is already installed on your device
             </p>
             <Button onClick={() => navigate('/')}>
               Go to App

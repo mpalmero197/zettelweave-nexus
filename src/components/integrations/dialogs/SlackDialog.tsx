@@ -27,7 +27,7 @@ export function SlackDialog({ open, onOpenChange, onConnected }: SlackDialogProp
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: "✅ PendragonX connected successfully!" }),
+        body: JSON.stringify({ text: "✅ Baku Scribe connected successfully!" }),
       });
       localStorage.setItem("pendragon:slack-webhook", webhookUrl);
       toast.success("Slack connected! A test message was sent.");

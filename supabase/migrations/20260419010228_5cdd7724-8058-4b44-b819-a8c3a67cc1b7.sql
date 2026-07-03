@@ -66,7 +66,7 @@ CREATE POLICY "Collaborators update their invite status"
   ON public.space_collaborators FOR UPDATE
   USING (auth.uid() = collaborator_id);
 
--- 5) Space linked items (live mirrors of other PendragonX content)
+-- 5) Space linked items (live mirrors of other Baku Scribe content)
 CREATE TABLE IF NOT EXISTS public.space_linked_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   space_id uuid NOT NULL,

@@ -17,7 +17,7 @@ export default function ScholarLesson() {
   const markComplete = useMarkFormatComplete();
 
   useEffect(() => {
-    document.title = lesson ? `${lesson.title} · Scholar · PendragonX` : "Scholar · PendragonX";
+    document.title = lesson ? `${lesson.title} · Scholar · Baku Scribe` : "Scholar · Baku Scribe";
   }, [lesson]);
 
   const sandboxSurface = useMemo<"notebooks" | "notes" | "cards" | undefined>(() => {
@@ -51,7 +51,7 @@ export default function ScholarLesson() {
     Array.isArray(lesson.walkthrough_json) ? lesson.walkthrough_json as any : [];
 
   const askAlice = (autoSend: boolean) => {
-    const text = `I'm in PendragonX Scholar learning "${lesson.title}". ${lesson.summary ? `Context: ${lesson.summary}` : ""} Walk me through this feature step by step, and demo it for me in my sandbox where possible. Use plain language and stop after each step so I can try it myself.`;
+    const text = `I'm in Baku Scribe Scholar learning "${lesson.title}". ${lesson.summary ? `Context: ${lesson.summary}` : ""} Walk me through this feature step by step, and demo it for me in my sandbox where possible. Use plain language and stop after each step so I can try it myself.`;
     try {
       sessionStorage.setItem("alice:auto-prompt", JSON.stringify({ text, autoSend }));
     } catch { /* ignore */ }
@@ -131,7 +131,7 @@ export default function ScholarLesson() {
               <Card className="p-6 space-y-4">
                 <h3 className="font-semibold">Try it step by step</h3>
                 <p className="text-xs text-muted-foreground">
-                  The sandbox on the right is a live copy of PendragonX. Follow each step there — your real workspace is untouched.
+                  The sandbox on the right is a live copy of Baku Scribe. Follow each step there — your real workspace is untouched.
                 </p>
                 <ol className="space-y-3 text-sm">
                   {walkthroughSteps.map((s, i) => (

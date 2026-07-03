@@ -194,7 +194,7 @@ export function DebuggerConsole() {
         p_user_agent: navigator.userAgent,
       });
       if (error) throw error;
-      toast.success("Bug report submitted! Thank you for helping improve PendragonX.");
+      toast.success("Bug report submitted! Thank you for helping improve Baku Scribe.");
       setBugTitle("");
       setBugDescription("");
       setBugOpen(false);
@@ -445,7 +445,7 @@ export function DebuggerConsole() {
               <DialogHeader>
                 <DialogTitle>Request a Feature</DialogTitle>
                 <DialogDescription>
-                  Have an idea to improve PendragonX? Share it with us!
+                  Have an idea to improve Baku Scribe? Share it with us!
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmitFeature} className="space-y-4">
