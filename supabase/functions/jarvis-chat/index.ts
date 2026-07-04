@@ -2791,7 +2791,8 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     }
 
 
-    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP }), {
+    finalizeTrace(trace);
+    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP, trace }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
