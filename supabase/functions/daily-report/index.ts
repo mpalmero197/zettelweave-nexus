@@ -30,10 +30,13 @@ async function callAI(apiKey: string, messages: any[]) {
   return data.choices?.[0]?.message?.content || '';
 }
 
+import { isCronCaller, unauthorized } from "../_shared/auth.ts";
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+  if (!isCronCaller(req)) return unauthorized(corsHeaders);
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
