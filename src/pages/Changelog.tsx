@@ -3,7 +3,8 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import pendragonLogo from "@/assets/pendragon-logo.png";
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 import { SEOHead } from "@/components/SEOHead";
 import { useEffect, useRef, useState } from "react";
 

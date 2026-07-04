@@ -4,7 +4,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useOfflineMode } from '@/hooks/useOfflineMode';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import pendragonLogo from '@/assets/pendragon-logo.png';
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 
 export function MobileHeader() {
   const isMobile = useIsMobile();

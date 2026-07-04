@@ -9,7 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Brain, Shield, Eye, EyeOff } from "lucide-react";
 import { setSecurityHeaders } from "@/utils/security";
-import pendragonLogo from '@/assets/pendragon-logo.png';
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 import { SEOHead, ogImages } from "@/components/SEOHead";
 
 export default function Auth() {
