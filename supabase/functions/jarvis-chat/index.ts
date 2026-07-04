@@ -2549,7 +2549,7 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     } else {
       memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n(No memories yet. As you learn stable preferences, people, projects, or rules, call save_memory to remember them.)`;
     }
-    const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-3.1-pro-preview)" : "Fast (gemini-3.5-flash)"} for this turn. You have agentic page-navigation and macro-learning abilities — use the create_macro tool to record reusable navigation flows when the user asks you to learn or automate a task.`;
+    const modeBlock = `\n\nMODEL: You are running on the "${decision.tier}" tier (${decision.model}) for this turn — chosen because: ${decision.reason}. You have agentic page-navigation and macro-learning abilities — use the create_macro tool to record reusable navigation flows when the user asks you to learn or automate a task.`;
 
     // Real-time snapshot of what's on the user's screen right now. Use this
     // to ground answers to questions like "what document do I have open?"
