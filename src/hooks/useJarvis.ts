@@ -96,11 +96,22 @@ function extractPlans(parts: JarvisPart[]): JarvisPart[] {
   return final;
 }
 
+export type AliceTraceMeta = {
+  tier: "quick_answer" | "research" | "reasoning" | "agentic";
+  model: string;
+  reason: string;
+  signals: string[];
+  steps: number;
+  tools_called: string[];
+  duration_ms?: number;
+};
+
 export type JarvisMessage = {
   id: string;
   role: "user" | "assistant" | "system";
   parts: JarvisPart[];
   created_at: string;
+  trace?: AliceTraceMeta;
 };
 
 export type JarvisThread = {
