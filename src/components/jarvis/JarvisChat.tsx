@@ -20,6 +20,7 @@ import { AliceCardRenderer } from "@/components/jarvis/cards/RichCards";
 import { JarvisAttachmentMenu, type JarvisAttachment } from "@/components/jarvis/JarvisAttachmentMenu";
 import { AliceFollowupChips } from "@/components/jarvis/AliceFollowupChips";
 import { AliceMessageActions } from "@/components/jarvis/AliceMessageActions";
+import { AliceTracePanel } from "@/components/jarvis/AliceTracePanel";
 import { AliceAgendaBanner } from "@/components/jarvis/AliceAgendaBanner";
 import { GeminiStar } from "@/components/jarvis/GeminiStar";
 import { cn } from "@/lib/utils";
@@ -577,6 +578,7 @@ export function JarvisChat({ compact = false }: Props) {
                           />
                         </>
                       )}
+                      {m.role === "assistant" && m.trace && <AliceTracePanel trace={m.trace} />}
 
                     </>
                   )}

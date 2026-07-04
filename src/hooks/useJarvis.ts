@@ -96,11 +96,22 @@ function extractPlans(parts: JarvisPart[]): JarvisPart[] {
   return final;
 }
 
+export type AliceTraceMeta = {
+  tier: "quick_answer" | "research" | "reasoning" | "agentic";
+  model: string;
+  reason: string;
+  signals: string[];
+  steps: number;
+  tools_called: string[];
+  duration_ms?: number;
+};
+
 export type JarvisMessage = {
   id: string;
   role: "user" | "assistant" | "system";
   parts: JarvisPart[];
   created_at: string;
+  trace?: AliceTraceMeta;
 };
 
 export type JarvisThread = {
@@ -218,6 +229,7 @@ export function useJarvis(initialThreadId?: string | null) {
       setMessages((m) => [...m, {
         id: `tmp-asst-${Date.now()}`, role: "assistant",
         parts: extractPlans(data.parts || []), created_at: new Date().toISOString(),
+        trace: data?.trace ? (data.trace as AliceTraceMeta) : undefined,
       }]);
       if (data?.navigate_to && typeof data.navigate_to === "string") {
         window.dispatchEvent(new CustomEvent("alice-navigate", { detail: data.navigate_to }));

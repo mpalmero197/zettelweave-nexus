@@ -4,6 +4,7 @@
 // caller's auth so RLS is enforced.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { ALICE_MODELS, finalizeTrace, newTrace, routeAliceTurn } from "../_shared/alice-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,31 +12,8 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-// Upgraded models: Gemini 3.5 Flash for fast agentic/navigation/macro work,
-// Gemini 3.1 Pro Preview for deep reasoning tasks.
-const MODEL_DEFAULT = "google/gemini-3.5-flash";
-const MODEL_DEEP = "google/gemini-3.1-pro-preview";
-
-// Heuristic: pick Deep Think when the prompt is long, multi-step, analytical,
-// or the caller explicitly requests it (forceDeepThink). Pure greetings / quick
-// lookups stay on the fast model.
-function pickModel(userMessage: string, forceDeepThink: boolean): string {
-  if (forceDeepThink) return MODEL_DEEP;
-  const m = userMessage.toLowerCase();
-  if (userMessage.length > 400) return MODEL_DEEP;
-  const triggers = [
-    "compare", "analyze", "analyse", "explain why", "step by step",
-    "plan ", "outline", "synthesize", "synthesise", "evaluate",
-    "trade-off", "tradeoff", "pros and cons", "design ", "architect",
-    "debug", "diagnose", "research ", "deep dive", "reason ",
-  ];
-  if (triggers.some((t) => m.includes(t))) return MODEL_DEEP;
-  // Multi-question / multi-step prompts (multiple ? or numbered list)
-  const questionMarks = (userMessage.match(/\?/g) || []).length;
-  if (questionMarks >= 2) return MODEL_DEEP;
-  if (/\b(1\.|2\.|3\.)\s/.test(userMessage)) return MODEL_DEEP;
-  return MODEL_DEFAULT;
-}
+// Model tiers are owned by the shared ALICE router now.
+const MODEL_DEEP = ALICE_MODELS.reasoning;
 
 const SYSTEM_PROMPT_BASE = `You are ALICE — the personal AI assistant for Baku Scribe, a writer's knowledge management platform. Your name is ALICE. You are NOT Jarvis. Never refer to yourself as Jarvis, JARVIS, or any other name. If a previous message in the thread used the name "Jarvis", that was a legacy mistake — correct it silently and continue as ALICE.
 
@@ -2434,7 +2412,13 @@ Deno.serve(async (req) => {
     if (!userMessage && attachments.length === 0) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const model = pickModel(userMessage, forceDeepThink);
+    const decision = routeAliceTurn({
+      userMessage,
+      forceTier: forceDeepThink ? "reasoning" : null,
+      hasAttachments: attachments.length > 0,
+    });
+    const model = decision.model;
+    const trace = newTrace(decision);
 
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) {
@@ -2565,7 +2549,7 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     } else {
       memoryBlock = `\n\n═══ WHAT YOU REMEMBER ABOUT THIS USER ═══\n(No memories yet. As you learn stable preferences, people, projects, or rules, call save_memory to remember them.)`;
     }
-    const modeBlock = `\n\nMODEL: You are running on ${model === MODEL_DEEP ? "Deep Think (gemini-3.1-pro-preview)" : "Fast (gemini-3.5-flash)"} for this turn. You have agentic page-navigation and macro-learning abilities — use the create_macro tool to record reusable navigation flows when the user asks you to learn or automate a task.`;
+    const modeBlock = `\n\nMODEL: You are running on the "${decision.tier}" tier (${decision.model}) for this turn — chosen because: ${decision.reason}. You have agentic page-navigation and macro-learning abilities — use the create_macro tool to record reusable navigation flows when the user asks you to learn or automate a task.`;
 
     // Real-time snapshot of what's on the user's screen right now. Use this
     // to ground answers to questions like "what document do I have open?"
@@ -2711,10 +2695,13 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
           if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+          trace.tools_called.push(tc.function.name);
         }
+        trace.steps += 1;
         continue;
       }
 
+      trace.steps += 1;
       finalText = choice.content || "";
       break;
     }
@@ -2804,7 +2791,8 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
     }
 
 
-    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP }), {
+    finalizeTrace(trace);
+    return new Response(JSON.stringify({ threadId, parts: assistantParts, navigate_to: navigateTo, client_actions: clientActions, model_used: model, deep_think: model === MODEL_DEEP, trace }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
