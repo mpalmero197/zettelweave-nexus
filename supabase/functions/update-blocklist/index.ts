@@ -22,10 +22,13 @@ const BLOCKLIST_SOURCES = [
 
 const MAX_NEW_DOMAINS_PER_RUN = 500;
 
+import { isCronCaller, unauthorized } from "../_shared/auth.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  if (!isCronCaller(req)) return unauthorized(corsHeaders);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
