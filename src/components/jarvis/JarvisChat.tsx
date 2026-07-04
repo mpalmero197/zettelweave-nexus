@@ -577,6 +577,7 @@ export function JarvisChat({ compact = false }: Props) {
                           />
                         </>
                       )}
+                      {m.role === "assistant" && m.trace && <AliceTracePanel trace={m.trace} />}
 
                     </>
                   )}
