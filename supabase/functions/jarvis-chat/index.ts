@@ -2695,10 +2695,13 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
           if (result && (result as any).client_action) clientActions.push((result as any).client_action);
           assistantParts.push({ type: "tool", name: tc.function.name, args: parsed, result });
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+          trace.tools_called.push(tc.function.name);
         }
+        trace.steps += 1;
         continue;
       }
 
+      trace.steps += 1;
       finalText = choice.content || "";
       break;
     }
