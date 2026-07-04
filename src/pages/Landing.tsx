@@ -9,7 +9,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
-import pendragonLogo from "@/assets/pendragon-logo.png";
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 import { SEOHead, createFAQSchema, createHowToSchema, ogImages } from "@/components/SEOHead";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 

@@ -10,7 +10,8 @@ import {
   Wrench, Trash2, Settings, Shield, Crown, Plug, Library, GraduationCap,
   Compass, Layers
 } from "lucide-react";
-import pendragonLogo from "@/assets/pendragon-logo.png";
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 
 type Feature = {
   tab?: string;          // /app/:tab

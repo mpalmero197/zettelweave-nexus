@@ -6,7 +6,8 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { AlicePulseFeed } from "@/components/alice/AlicePulseFeed";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import pendragonLogo from "@/assets/pendragon-logo.png";
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -6,7 +6,8 @@ import { useTheme } from "next-themes";
 import { PremiumBadge } from "@/components/PremiumBadge";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import pendragonLogo from '@/assets/pendragon-logo.png';
+import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
+const pendragonLogo = bakuScribeLogoAsset.url;
 import {
   DropdownMenu,
   DropdownMenuContent,
