@@ -229,6 +229,7 @@ export function useJarvis(initialThreadId?: string | null) {
       setMessages((m) => [...m, {
         id: `tmp-asst-${Date.now()}`, role: "assistant",
         parts: extractPlans(data.parts || []), created_at: new Date().toISOString(),
+        trace: data?.trace ? (data.trace as AliceTraceMeta) : undefined,
       }]);
       if (data?.navigate_to && typeof data.navigate_to === "string") {
         window.dispatchEvent(new CustomEvent("alice-navigate", { detail: data.navigate_to }));
