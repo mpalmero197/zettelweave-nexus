@@ -28,10 +28,13 @@ const INSPIRATIONAL_QUOTES = [
 const MIN_INTERVAL_MS = 4 * 60 * 60 * 1000;
 const MAX_JITTER_MS = 2 * 60 * 60 * 1000;
 
+import { isCronCaller, unauthorized } from "../_shared/auth.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  if (!isCronCaller(req)) return unauthorized(corsHeaders);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
