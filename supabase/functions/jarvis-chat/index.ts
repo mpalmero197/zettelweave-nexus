@@ -2412,7 +2412,13 @@ Deno.serve(async (req) => {
     if (!userMessage && attachments.length === 0) {
       return new Response(JSON.stringify({ error: "message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const model = pickModel(userMessage, forceDeepThink);
+    const decision = routeAliceTurn({
+      userMessage,
+      forceTier: forceDeepThink ? "reasoning" : null,
+      hasAttachments: attachments.length > 0,
+    });
+    const model = decision.model;
+    const trace = newTrace(decision);
 
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) {
