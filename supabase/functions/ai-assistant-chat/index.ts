@@ -40,6 +40,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require authenticated user to prevent unauth AI credit drain.
+  const userId = await getAuthedUserId(req);
+  if (!userId) return unauthorized(corsHeaders);
+
   try {
     let body: any;
     try {
