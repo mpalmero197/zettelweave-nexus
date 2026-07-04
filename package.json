@@ -110,7 +110,7 @@
     "gapi-script": "^1.2.0",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
-    "jspdf": "^4.1.0",
+    "jspdf": "4.2.1",
     "jszip": "^3.10.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.462.0",
