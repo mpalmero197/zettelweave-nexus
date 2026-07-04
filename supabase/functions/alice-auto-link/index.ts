@@ -14,6 +14,8 @@ const SIM_THRESHOLD = 0.78;
 const MAX_LINKS_PER_CARD = 5;
 const MAX_CARDS_PER_RUN = 200;
 
+import { isCronCaller, getAuthedUserId, unauthorized } from "../_shared/auth.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -30,6 +32,16 @@ Deno.serve(async (req) => {
       targetUserId = body?.user_id ?? null;
       forceMode = body?.mode ?? null;
     } catch { /* empty */ }
+
+    // Authorization: cron callers may target any/all users. End users may
+    // only run against their own account — override any body-supplied id.
+    const cron = isCronCaller(req);
+    if (!cron) {
+      const callerId = await getAuthedUserId(req);
+      if (!callerId) return unauthorized(corsHeaders);
+      targetUserId = callerId;
+    }
+
 
     // Resolve mode per user (default 'auto')
     const modeByUser = new Map<string, string>();

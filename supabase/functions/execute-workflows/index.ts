@@ -6,10 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+import { isCronCaller, unauthorized } from "../_shared/auth.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  if (!isCronCaller(req)) return unauthorized(corsHeaders);
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");

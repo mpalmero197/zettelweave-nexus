@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getAuthedUserId, unauthorized } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Require authenticated user to prevent unauth AI credit drain.
+  const userId = await getAuthedUserId(req);
+  if (!userId) return unauthorized(corsHeaders);
 
   try {
     let body: any;

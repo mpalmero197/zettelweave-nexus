@@ -75,8 +75,11 @@ async function pushToUser(
   return n;
 }
 
+import { isCronCaller, unauthorized } from "../_shared/auth.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (!isCronCaller(req)) return unauthorized(corsHeaders);
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
