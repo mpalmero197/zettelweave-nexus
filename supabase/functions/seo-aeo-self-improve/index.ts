@@ -27,7 +27,7 @@ import { isCronOrAdminCaller, unauthorized } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (!isCronCaller(req)) return unauthorized(corsHeaders);
+  if (!(await isCronOrAdminCaller(req))) return unauthorized(corsHeaders);
 
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
