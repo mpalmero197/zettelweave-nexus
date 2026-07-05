@@ -22,7 +22,8 @@ interface Technique {
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 
-import { isCronCaller, unauthorized } from "../_shared/auth.ts";
+import { isCronOrAdminCaller, unauthorized } from "../_shared/auth.ts";
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
