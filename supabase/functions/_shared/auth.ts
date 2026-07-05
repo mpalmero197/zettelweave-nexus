@@ -38,3 +38,25 @@ export async function getAuthedUserId(req: Request): Promise<string | null> {
   if (error || !data?.user) return null;
   return data.user.id;
 }
+
+/**
+ * True when the caller is a cron/service-role caller OR an authenticated admin user.
+ * Use for endpoints that both cron and admin dashboard "Run now" buttons hit.
+ */
+export async function isCronOrAdminCaller(req: Request): Promise<boolean> {
+  if (isCronCaller(req)) return true;
+  const userId = await getAuthedUserId(req);
+  if (!userId) return false;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+  const { data, error } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error || !data) return false;
+  return true;
+}
+
