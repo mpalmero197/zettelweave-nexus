@@ -145,7 +145,11 @@ function scoreResult(
   return { score, trustTier, recencyTier, confidence };
 }
 
-async function fetchLiveResults(query: string, firecrawlKey: string): Promise<LiveResult[]> {
+async function fetchLiveResults(
+  query: string,
+  firecrawlKey: string,
+  intent: "recency_critical" | "evergreen" | "balanced",
+): Promise<LiveResult[]> {
   const res = await fetch("https://api.firecrawl.dev/v2/search", {
     method: "POST",
     headers: {
@@ -177,8 +181,8 @@ async function fetchLiveResults(query: string, firecrawlKey: string): Promise<Li
         source,
         position: i,
       };
-      const { score, trustTier } = scoreResult(base, query);
-      raw.push({ ...base, score, trustTier });
+      const { score, trustTier, recencyTier, confidence } = scoreResult(base, query, intent);
+      raw.push({ ...base, score, trustTier, recencyTier, confidence });
     });
   };
 
@@ -186,7 +190,6 @@ async function fetchLiveResults(query: string, firecrawlKey: string): Promise<Li
   push(data?.news, "news");
   if (Array.isArray(data) && raw.length === 0) push(data, "web");
 
-  // De-duplicate by URL, rank by blended score
   const seen = new Set<string>();
   return raw
     .filter((r) => {
