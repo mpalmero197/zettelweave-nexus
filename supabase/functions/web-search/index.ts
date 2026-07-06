@@ -16,6 +16,8 @@ interface LiveResult {
   position: number;
   score: number;
   trustTier: "high" | "medium" | "low";
+  recencyTier: "fresh" | "recent" | "evergreen" | "stale" | "unknown";
+  confidence: number; // 0..1
 }
 
 const HIGH_TRUST_PATTERNS = [
@@ -32,13 +34,35 @@ const LOW_TRUST_PATTERNS = [
   /fandom\.com/, /answers\.com/, /ehow\.com/, /buzzfeed\.com/, /tumblr\.com/,
 ];
 
+// Known AI-content farms / low-editorial aggregators — downgraded
+const CONTENT_FARM_PATTERNS = [
+  /(^|\.)aitrends247\./, /(^|\.)outlookindia\.com/, /(^|\.)techtimes\.com/,
+  /(^|\.)hackernoon\.com/,
+];
+
 function trustTierFor(url: string): "high" | "medium" | "low" {
   let host = "";
   try { host = new URL(url).hostname.toLowerCase(); } catch { return "low"; }
   const full = host + new URL(url).pathname.toLowerCase();
   if (HIGH_TRUST_PATTERNS.some((p) => p.test(host) || p.test(full))) return "high";
   if (LOW_TRUST_PATTERNS.some((p) => p.test(host))) return "low";
+  if (CONTENT_FARM_PATTERNS.some((p) => p.test(host))) return "low";
   return "medium";
+}
+
+/** Extra authority signals: HTTPS, DOI, canonical path, syndication penalty. */
+function authorityBoost(url: string, snippet: string): number {
+  let boost = 0;
+  try {
+    const u = new URL(url);
+    if (u.protocol === "https:") boost += 0.05;
+    if (/\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i.test(url) || /\bdoi\.org\//i.test(url)) boost += 0.15;
+    if (/\bdoi:\s*10\.\d{4,9}\//i.test(snippet)) boost += 0.08;
+    const segs = u.pathname.split("/").filter(Boolean);
+    if (segs.length > 0 && segs.length <= 4 && !u.search) boost += 0.03;
+    if (/\/(reprint|syndicat|republish|amp)\b/i.test(u.pathname)) boost -= 0.10;
+  } catch { /* noop */ }
+  return boost;
 }
 
 function parseDate(raw: unknown): string | null {
@@ -66,31 +90,66 @@ function inferDate(url: string, snippet: string): string | null {
   return null;
 }
 
-function scoreResult(r: Omit<LiveResult, "score" | "trustTier">, query: string): { score: number; trustTier: "high" | "medium" | "low" } {
-  const trustTier = trustTierFor(r.url);
+function recencyTierFor(publishedAt: string | null): LiveResult["recencyTier"] {
+  if (!publishedAt) return "unknown";
+  const ageDays = (Date.now() - new Date(publishedAt).getTime()) / 86400000;
+  if (ageDays <= 7) return "fresh";
+  if (ageDays <= 90) return "recent";
+  if (ageDays <= 730) return "evergreen";
+  return "stale";
+}
 
-  // Relevance: engine position + query-term overlap in title/snippet
+/** Detect whether the query needs fresh info; drives per-query recency weighting. */
+function detectRecencyIntent(query: string): "recency_critical" | "evergreen" | "balanced" {
+  const q = query.toLowerCase();
+  const recencyTriggers = /\b(today|yesterday|this week|this month|current|latest|now|price|prices|stock|score|breaking|news|update|version|release|202[4-9]|20[3-9]\d)\b/;
+  const evergreenTriggers = /\b(what is|who was|history of|definition|meaning of|how does|why does|explain|biography)\b/;
+  if (recencyTriggers.test(q)) return "recency_critical";
+  if (evergreenTriggers.test(q)) return "evergreen";
+  return "balanced";
+}
+
+function scoreResult(
+  r: Omit<LiveResult, "score" | "trustTier" | "recencyTier" | "confidence">,
+  query: string,
+  intent: "recency_critical" | "evergreen" | "balanced",
+): { score: number; trustTier: "high" | "medium" | "low"; recencyTier: LiveResult["recencyTier"]; confidence: number } {
+  const trustTier = trustTierFor(r.url);
+  const recencyTier = recencyTierFor(r.publishedAt);
+
   const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
   const haystack = `${r.title} ${r.snippet}`.toLowerCase();
   const overlap = terms.length ? terms.filter((t) => haystack.includes(t)).length / terms.length : 0.5;
   const positionScore = Math.max(0, 1 - r.position * 0.07);
   const relevance = overlap * 0.6 + positionScore * 0.4;
 
-  // Recency: exponential decay with ~180-day half-life; unknown dates get a mild penalty
-  let recency = 0.35; // unknown date default
-  if (r.publishedAt) {
-    const ageDays = (Date.now() - new Date(r.publishedAt).getTime()) / 86400000;
-    recency = Math.pow(0.5, Math.max(0, ageDays) / 180);
-  }
-
+  const tierValue: Record<LiveResult["recencyTier"], number> = {
+    fresh: 1.0, recent: 0.8, evergreen: 0.55, stale: 0.15, unknown: 0.35,
+  };
+  const recency = tierValue[recencyTier];
   const trust = trustTier === "high" ? 1 : trustTier === "medium" ? 0.6 : 0.25;
 
-  // Weighted blend: relevance 45%, recency 30%, trust 25%
-  const score = relevance * 0.45 + recency * 0.3 + trust * 0.25;
-  return { score, trustTier };
+  // Intent-driven weighting
+  let wRel = 0.45, wRec = 0.30, wTrust = 0.25;
+  if (intent === "recency_critical") { wRel = 0.35; wRec = 0.45; wTrust = 0.20; }
+  else if (intent === "evergreen") { wRel = 0.50; wRec = 0.15; wTrust = 0.35; }
+
+  const base = relevance * wRel + recency * wRec + trust * wTrust;
+  const score = Math.min(1, Math.max(0, base + authorityBoost(r.url, r.snippet)));
+
+  const recencyAlign = intent === "recency_critical"
+    ? (recencyTier === "fresh" || recencyTier === "recent" ? 1 : recencyTier === "unknown" ? 0.4 : 0.2)
+    : 0.8;
+  const confidence = Math.min(1, Math.max(0, trust * 0.5 + recencyAlign * 0.3 + overlap * 0.2));
+
+  return { score, trustTier, recencyTier, confidence };
 }
 
-async function fetchLiveResults(query: string, firecrawlKey: string): Promise<LiveResult[]> {
+async function fetchLiveResults(
+  query: string,
+  firecrawlKey: string,
+  intent: "recency_critical" | "evergreen" | "balanced",
+): Promise<LiveResult[]> {
   const res = await fetch("https://api.firecrawl.dev/v2/search", {
     method: "POST",
     headers: {
@@ -122,8 +181,8 @@ async function fetchLiveResults(query: string, firecrawlKey: string): Promise<Li
         source,
         position: i,
       };
-      const { score, trustTier } = scoreResult(base, query);
-      raw.push({ ...base, score, trustTier });
+      const { score, trustTier, recencyTier, confidence } = scoreResult(base, query, intent);
+      raw.push({ ...base, score, trustTier, recencyTier, confidence });
     });
   };
 
@@ -131,7 +190,6 @@ async function fetchLiveResults(query: string, firecrawlKey: string): Promise<Li
   push(data?.news, "news");
   if (Array.isArray(data) && raw.length === 0) push(data, "web");
 
-  // De-duplicate by URL, rank by blended score
   const seen = new Set<string>();
   return raw
     .filter((r) => {
@@ -214,12 +272,15 @@ serve(async (req) => {
       if (prof?.preferred_search_engine === 'duckduckgo') engine = 'duckduckgo';
     } catch (_) { /* ignore — default to google */ }
 
+    // Detect query intent — drives recency weighting during scoring
+    const intent = detectRecencyIntent(query);
+
     // ── 1. Fetch REAL live results (Firecrawl) and rank them ────────────────
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     let liveResults: LiveResult[] = [];
     if (FIRECRAWL_API_KEY) {
       try {
-        liveResults = await fetchLiveResults(query, FIRECRAWL_API_KEY);
+        liveResults = await fetchLiveResults(query, FIRECRAWL_API_KEY, intent);
       } catch (e) {
         console.warn("Live search failed, degrading to model-only:", e);
       }
@@ -249,13 +310,19 @@ serve(async (req) => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
 
+    // Overall answer confidence — mean of top-3 result confidences
+    const topN = liveResults.slice(0, 3);
+    const answerConfidence = topN.length
+      ? Number((topN.reduce((s, r) => s + r.confidence, 0) / topN.length).toFixed(3))
+      : 0;
+
     // Build grounding block from ranked live results
     const groundingBlock = liveResults.length
       ? liveResults.map((r, i) => {
           const age = r.publishedAt
             ? `published ${r.publishedAt.slice(0, 10)} (${Math.round((now.getTime() - new Date(r.publishedAt).getTime()) / 86400000)} days ago)`
             : "publish date unknown";
-          return `[${i + 1}] ${r.title}\nURL: ${r.url}\nTrust: ${r.trustTier} | ${age} | type: ${r.source}\nSnippet: ${r.snippet}`;
+          return `[${i + 1}] ${r.title}\nURL: ${r.url}\nTrust: ${r.trustTier} | recency: ${r.recencyTier} | ${age} | type: ${r.source} | confidence: ${r.confidence.toFixed(2)}\nSnippet: ${r.snippet}`;
         }).join("\n\n")
       : "";
 
@@ -268,16 +335,18 @@ serve(async (req) => {
       timestamp: now.toISOString(),
     });
 
-    const groundedSystemPrompt = `You are a web search synthesizer. TODAY'S DATE IS ${todayStr}. You are given REAL, LIVE search results fetched moments ago, already ranked by a blend of relevance, recency, and source trustworthiness.
+    const groundedSystemPrompt = `You are a web search synthesizer. TODAY'S DATE IS ${todayStr}. Query intent classified as: ${intent}. You are given REAL, LIVE search results fetched moments ago, already ranked by a blend of relevance, recency, source trust, and authority signals.
 
-STRICT GROUNDING RULES:
-1. Base every factual claim on the provided search results. Cite them inline as [1], [2], etc.
-2. PRIORITIZE recent, high-trust sources. When sources conflict, prefer the newer/higher-trust one and note the disagreement.
-3. If a result's publish date is old relative to the query (e.g., prices, versions, rankings, current events), explicitly flag it: "(as of <date> — may be outdated)".
-4. NEVER invent URLs, statistics, dates, or quotes. If the results don't cover something, say so plainly.
-5. If results are thin or stale, state that clearly rather than filling gaps from memory.
+STRICT CITATION DISCIPLINE — non-negotiable:
+1. EVERY factual claim (numbers, names, dates, quotes, versions, prices, events) MUST end with an inline citation marker like [1] tied to the numbered result you're relying on.
+2. If NO provided result supports a claim, DO NOT make the claim. Say "The provided sources don't cover this" instead of speculating from memory.
+3. NEVER invent URLs, statistics, DOIs, dates, quotes, or author names. Only use what's in the provided results.
+4. When sources conflict, prefer the higher-trust and more recent source, cite BOTH, and briefly note the disagreement.
+5. Flag stale evidence: if a result is tagged recency "stale" or "evergreen" and the query is time-sensitive, append "(as of <date> — may be outdated)".
+6. Prefer fresh + high-trust results. Downweight results tagged trust "low".
+7. If evidence is thin (few results, all low-trust, or all stale), say so plainly at the top of the answer.
 
-Format your answer in markdown with headers and bullet points. Then append ALL of these sections:
+Format the answer in markdown with headers and bullet points. Every non-trivial sentence carries a [n] marker. Then append ALL of these sections:
 
 ## Images
 Only list direct image URLs that actually appear in the provided results. If none, write "No image results."
@@ -289,12 +358,12 @@ Only list video URLs (YouTube/Vimeo/etc.) that appear in the provided results, f
 Only list product/retailer URLs that appear in the provided results, formatted as - [Product](URL). If none, write "No shopping results for this query."
 
 ## Sources
-List the URLs of the results you actually used, one per line, best first.
+List the URLs of the results you actually cited, one per line, best first. Only include URLs you referenced with a [n] marker above.
 
 ## Related Questions
 List 3-5 follow-up questions the user might want to explore.`;
 
-    const ungroundedSystemPrompt = `You are a web search assistant. TODAY'S DATE IS ${todayStr}. Live search is temporarily unavailable, so you must answer from general knowledge. Be explicit that results may be outdated: your training data has a cutoff, so anything time-sensitive (prices, versions, rankings, events) must be labeled "(may be outdated — live search unavailable)". NEVER present remembered information as current, and NEVER invent specific URLs, statistics, or dates.
+    const ungroundedSystemPrompt = `You are a web search assistant. TODAY'S DATE IS ${todayStr}. Live search is temporarily unavailable, so you must answer from general knowledge. Be explicit that results may be outdated: your training data has a cutoff, so anything time-sensitive (prices, versions, rankings, events) must be labeled "(may be outdated — live search unavailable)". NEVER present remembered information as current, and NEVER invent specific URLs, statistics, DOIs, or dates.
 
 Format in markdown. Then append these sections:
 
@@ -553,9 +622,13 @@ Be concise, actionable, and insightful.`
           title: r.title,
           publishedAt: r.publishedAt,
           trust: r.trustTier,
+          recency: r.recencyTier,
+          confidence: Number(r.confidence.toFixed(3)),
           score: Number(r.score.toFixed(3)),
         })),
         grounded: liveResults.length > 0,
+        intent,
+        answerConfidence,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
