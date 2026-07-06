@@ -622,9 +622,13 @@ Be concise, actionable, and insightful.`
           title: r.title,
           publishedAt: r.publishedAt,
           trust: r.trustTier,
+          recency: r.recencyTier,
+          confidence: Number(r.confidence.toFixed(3)),
           score: Number(r.score.toFixed(3)),
         })),
         grounded: liveResults.length > 0,
+        intent,
+        answerConfidence,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
