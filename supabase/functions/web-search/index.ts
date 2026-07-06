@@ -16,6 +16,8 @@ interface LiveResult {
   position: number;
   score: number;
   trustTier: "high" | "medium" | "low";
+  recencyTier: "fresh" | "recent" | "evergreen" | "stale" | "unknown";
+  confidence: number; // 0..1
 }
 
 const HIGH_TRUST_PATTERNS = [
@@ -32,13 +34,35 @@ const LOW_TRUST_PATTERNS = [
   /fandom\.com/, /answers\.com/, /ehow\.com/, /buzzfeed\.com/, /tumblr\.com/,
 ];
 
+// Known AI-content farms / low-editorial aggregators — downgraded
+const CONTENT_FARM_PATTERNS = [
+  /(^|\.)aitrends247\./, /(^|\.)outlookindia\.com/, /(^|\.)techtimes\.com/,
+  /(^|\.)hackernoon\.com/,
+];
+
 function trustTierFor(url: string): "high" | "medium" | "low" {
   let host = "";
   try { host = new URL(url).hostname.toLowerCase(); } catch { return "low"; }
   const full = host + new URL(url).pathname.toLowerCase();
   if (HIGH_TRUST_PATTERNS.some((p) => p.test(host) || p.test(full))) return "high";
   if (LOW_TRUST_PATTERNS.some((p) => p.test(host))) return "low";
+  if (CONTENT_FARM_PATTERNS.some((p) => p.test(host))) return "low";
   return "medium";
+}
+
+/** Extra authority signals: HTTPS, DOI, canonical path, syndication penalty. */
+function authorityBoost(url: string, snippet: string): number {
+  let boost = 0;
+  try {
+    const u = new URL(url);
+    if (u.protocol === "https:") boost += 0.05;
+    if (/\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i.test(url) || /\bdoi\.org\//i.test(url)) boost += 0.15;
+    if (/\bdoi:\s*10\.\d{4,9}\//i.test(snippet)) boost += 0.08;
+    const segs = u.pathname.split("/").filter(Boolean);
+    if (segs.length > 0 && segs.length <= 4 && !u.search) boost += 0.03;
+    if (/\/(reprint|syndicat|republish|amp)\b/i.test(u.pathname)) boost -= 0.10;
+  } catch { /* noop */ }
+  return boost;
 }
 
 function parseDate(raw: unknown): string | null {
@@ -66,28 +90,59 @@ function inferDate(url: string, snippet: string): string | null {
   return null;
 }
 
-function scoreResult(r: Omit<LiveResult, "score" | "trustTier">, query: string): { score: number; trustTier: "high" | "medium" | "low" } {
-  const trustTier = trustTierFor(r.url);
+function recencyTierFor(publishedAt: string | null): LiveResult["recencyTier"] {
+  if (!publishedAt) return "unknown";
+  const ageDays = (Date.now() - new Date(publishedAt).getTime()) / 86400000;
+  if (ageDays <= 7) return "fresh";
+  if (ageDays <= 90) return "recent";
+  if (ageDays <= 730) return "evergreen";
+  return "stale";
+}
 
-  // Relevance: engine position + query-term overlap in title/snippet
+/** Detect whether the query needs fresh info; drives per-query recency weighting. */
+function detectRecencyIntent(query: string): "recency_critical" | "evergreen" | "balanced" {
+  const q = query.toLowerCase();
+  const recencyTriggers = /\b(today|yesterday|this week|this month|current|latest|now|price|prices|stock|score|breaking|news|update|version|release|202[4-9]|20[3-9]\d)\b/;
+  const evergreenTriggers = /\b(what is|who was|history of|definition|meaning of|how does|why does|explain|biography)\b/;
+  if (recencyTriggers.test(q)) return "recency_critical";
+  if (evergreenTriggers.test(q)) return "evergreen";
+  return "balanced";
+}
+
+function scoreResult(
+  r: Omit<LiveResult, "score" | "trustTier" | "recencyTier" | "confidence">,
+  query: string,
+  intent: "recency_critical" | "evergreen" | "balanced",
+): { score: number; trustTier: "high" | "medium" | "low"; recencyTier: LiveResult["recencyTier"]; confidence: number } {
+  const trustTier = trustTierFor(r.url);
+  const recencyTier = recencyTierFor(r.publishedAt);
+
   const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
   const haystack = `${r.title} ${r.snippet}`.toLowerCase();
   const overlap = terms.length ? terms.filter((t) => haystack.includes(t)).length / terms.length : 0.5;
   const positionScore = Math.max(0, 1 - r.position * 0.07);
   const relevance = overlap * 0.6 + positionScore * 0.4;
 
-  // Recency: exponential decay with ~180-day half-life; unknown dates get a mild penalty
-  let recency = 0.35; // unknown date default
-  if (r.publishedAt) {
-    const ageDays = (Date.now() - new Date(r.publishedAt).getTime()) / 86400000;
-    recency = Math.pow(0.5, Math.max(0, ageDays) / 180);
-  }
-
+  const tierValue: Record<LiveResult["recencyTier"], number> = {
+    fresh: 1.0, recent: 0.8, evergreen: 0.55, stale: 0.15, unknown: 0.35,
+  };
+  const recency = tierValue[recencyTier];
   const trust = trustTier === "high" ? 1 : trustTier === "medium" ? 0.6 : 0.25;
 
-  // Weighted blend: relevance 45%, recency 30%, trust 25%
-  const score = relevance * 0.45 + recency * 0.3 + trust * 0.25;
-  return { score, trustTier };
+  // Intent-driven weighting
+  let wRel = 0.45, wRec = 0.30, wTrust = 0.25;
+  if (intent === "recency_critical") { wRel = 0.35; wRec = 0.45; wTrust = 0.20; }
+  else if (intent === "evergreen") { wRel = 0.50; wRec = 0.15; wTrust = 0.35; }
+
+  const base = relevance * wRel + recency * wRec + trust * wTrust;
+  const score = Math.min(1, Math.max(0, base + authorityBoost(r.url, r.snippet)));
+
+  const recencyAlign = intent === "recency_critical"
+    ? (recencyTier === "fresh" || recencyTier === "recent" ? 1 : recencyTier === "unknown" ? 0.4 : 0.2)
+    : 0.8;
+  const confidence = Math.min(1, Math.max(0, trust * 0.5 + recencyAlign * 0.3 + overlap * 0.2));
+
+  return { score, trustTier, recencyTier, confidence };
 }
 
 async function fetchLiveResults(query: string, firecrawlKey: string): Promise<LiveResult[]> {
