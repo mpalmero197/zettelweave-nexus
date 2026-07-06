@@ -272,12 +272,15 @@ serve(async (req) => {
       if (prof?.preferred_search_engine === 'duckduckgo') engine = 'duckduckgo';
     } catch (_) { /* ignore — default to google */ }
 
+    // Detect query intent — drives recency weighting during scoring
+    const intent = detectRecencyIntent(query);
+
     // ── 1. Fetch REAL live results (Firecrawl) and rank them ────────────────
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     let liveResults: LiveResult[] = [];
     if (FIRECRAWL_API_KEY) {
       try {
-        liveResults = await fetchLiveResults(query, FIRECRAWL_API_KEY);
+        liveResults = await fetchLiveResults(query, FIRECRAWL_API_KEY, intent);
       } catch (e) {
         console.warn("Live search failed, degrading to model-only:", e);
       }
@@ -307,13 +310,19 @@ serve(async (req) => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
 
+    // Overall answer confidence — mean of top-3 result confidences
+    const topN = liveResults.slice(0, 3);
+    const answerConfidence = topN.length
+      ? Number((topN.reduce((s, r) => s + r.confidence, 0) / topN.length).toFixed(3))
+      : 0;
+
     // Build grounding block from ranked live results
     const groundingBlock = liveResults.length
       ? liveResults.map((r, i) => {
           const age = r.publishedAt
             ? `published ${r.publishedAt.slice(0, 10)} (${Math.round((now.getTime() - new Date(r.publishedAt).getTime()) / 86400000)} days ago)`
             : "publish date unknown";
-          return `[${i + 1}] ${r.title}\nURL: ${r.url}\nTrust: ${r.trustTier} | ${age} | type: ${r.source}\nSnippet: ${r.snippet}`;
+          return `[${i + 1}] ${r.title}\nURL: ${r.url}\nTrust: ${r.trustTier} | recency: ${r.recencyTier} | ${age} | type: ${r.source} | confidence: ${r.confidence.toFixed(2)}\nSnippet: ${r.snippet}`;
         }).join("\n\n")
       : "";
 
