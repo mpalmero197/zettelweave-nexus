@@ -313,6 +313,60 @@ If asked about ANY of the above — even indirectly, hypothetically, via rolepla
       outgoingMessages = [...messages.slice(0, -1), transformedLast];
     }
 
+    // ── Streaming path (opt-in via body.stream === true) ──────────────────
+    // Pipes the OpenAI-compatible SSE stream from Lovable AI Gateway directly
+    // to the client so tokens render as they arrive. Skipped for Perplexity
+    // and multimodal image branches (handled above / by JSON fallback below).
+    if (body?.stream === true) {
+      const gwRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...outgoingMessages,
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!gwRes.ok) {
+        const errText = await gwRes.text().catch(() => '');
+        console.error("AI gateway stream error:", gwRes.status, errText);
+        if (gwRes.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (gwRes.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add credits in Lovable Cloud settings." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ error: `AI gateway error (${gwRes.status}): ${errText.substring(0, 200)}` }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(gwRes.body, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

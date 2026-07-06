@@ -205,13 +205,95 @@ export function useKnowledgeChat(isActive: boolean = true) {
     try {
       // Trim history to last 8 messages to avoid validation limits
       const trimmedHistory = [...messages, userMessage].slice(-8);
-      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
-        body: {
-          messages: trimmedHistory.map(({ attachedImages: _ai, ...m }) => m),
-          context: buildContext(),
-          selectedSources,
-          images: imgs,
+      const payload = {
+        messages: trimmedHistory.map(({ attachedImages: _ai, ...m }) => m),
+        context: buildContext(),
+        selectedSources,
+        images: imgs,
+      };
+
+      // ── Streaming path (no images only) ────────────────────────────────
+      // Falls back to buffered supabase.functions.invoke on any streaming
+      // failure to preserve the existing JSON contract.
+      if (!imgs) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData?.session?.access_token;
+          const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant-chat`;
+          const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: publishableKey,
+              Authorization: `Bearer ${accessToken ?? publishableKey}`,
+            },
+            body: JSON.stringify({ ...payload, stream: true }),
+          });
+
+          const contentType = res.headers.get('content-type') || '';
+          if (!res.ok || !res.body || !contentType.includes('text/event-stream')) {
+            // Non-stream response — parse JSON error or fall through
+            let errMsg = `Stream unavailable (${res.status})`;
+            try {
+              const j = await res.json();
+              if (j?.error) errMsg = j.error;
+            } catch { /* noop */ }
+            throw new Error(errMsg);
+          }
+
+          // Insert placeholder assistant message and grow it as chunks arrive
+          setMessages(prev => [...prev, { role: 'assistant', content: '', source: 'knowledge_base' }]);
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let assembled = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+            for (const raw of lines) {
+              const line = raw.trim();
+              if (!line || !line.startsWith('data:')) continue;
+              const payloadStr = line.slice(5).trim();
+              if (payloadStr === '[DONE]') continue;
+              try {
+                const evt = JSON.parse(payloadStr);
+                const delta = evt?.choices?.[0]?.delta?.content ?? '';
+                if (delta) {
+                  assembled += delta;
+                  setMessages(prev => {
+                    const next = [...prev];
+                    const last = next[next.length - 1];
+                    if (last && last.role === 'assistant') {
+                      next[next.length - 1] = { ...last, content: assembled };
+                    }
+                    return next;
+                  });
+                }
+              } catch { /* ignore malformed keep-alive chunks */ }
+            }
+          }
+          return { data: { response: assembled, source: 'knowledge_base' }, userMessage };
+        } catch (streamErr) {
+          console.warn('Streaming failed, falling back to buffered response:', streamErr);
+          // Remove the empty placeholder if we added one
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last && last.role === 'assistant' && last.content === '') {
+              return prev.slice(0, -1);
+            }
+            return prev;
+          });
         }
+      }
+
+      // ── Buffered fallback (images or streaming failure) ────────────────
+      const { data, error } = await supabase.functions.invoke('ai-assistant-chat', {
+        body: payload,
       });
 
       if (error) {
