@@ -232,14 +232,32 @@ export function useKnowledgeChat(isActive: boolean = true) {
           });
 
           const contentType = res.headers.get('content-type') || '';
-          if (!res.ok || !res.body || !contentType.includes('text/event-stream')) {
-            // Non-stream response — parse JSON error or fall through
+          if (!res.ok) {
             let errMsg = `Stream unavailable (${res.status})`;
             try {
               const j = await res.json();
               if (j?.error) errMsg = j.error;
             } catch { /* noop */ }
             throw new Error(errMsg);
+          }
+
+          // Server chose a non-stream JSON response (e.g. the Perplexity
+          // internet-search branch returns a buffered JSON body). Use it
+          // directly instead of falling back and re-invoking the function.
+          if (!res.body || !contentType.includes('text/event-stream')) {
+            const data: any = await res.json();
+            if (data?.error) throw new Error(data.error);
+            if (!data?.response) throw new Error('Empty response from AI assistant');
+            const assistantMessage: ChatMessage = {
+              role: 'assistant',
+              content: data.response,
+              source: data.source,
+              images: data.images || [],
+              citations: data.citations || [],
+              relatedQuestions: data.relatedQuestions || [],
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+            return { data, userMessage };
           }
 
           // Insert placeholder assistant message and grow it as chunks arrive
