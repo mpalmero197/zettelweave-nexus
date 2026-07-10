@@ -1,6 +1,9 @@
 # Baku Scribe — Improvement Pass, Phase 1
 
+**Status:** Phase 1A ✅ · Phase 1B ✅ · Phase 1C ⏳ (ai-assistant-chat + useKnowledgeChat streaming shipped; jarvis-chat streaming deferred — needs its own dedicated pass to refactor tool/plan/card protocol) · Phase 1E item 12 (prefetch on hover) ✅
+
 Scope-5 pass, shipped in phases. This plan is **Phase 1 only** — the biggest visible wins for ALICE intelligence + latency. Phases 2 and 3 are listed at the bottom so you know what's coming.
+
 
 ---
 
