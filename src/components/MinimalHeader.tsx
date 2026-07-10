@@ -15,7 +15,7 @@ import bakuScribeLogoAsset from '@/assets/baku-scribe-logo.png.asset.json';
 const pendragonLogo = bakuScribeLogoAsset.url;
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { ThemeVariantSelector } from "./ThemeVariantSelector";
-import { Link } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 
 interface MinimalHeaderProps {
   user: any;

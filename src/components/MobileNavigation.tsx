@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { usePremiumAccess } from '@/hooks/usePremiumAccess';
-import { Link } from 'react-router-dom';
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { Input } from '@/components/ui/input';
 import { MobileFocusSheet } from './focus-sidebar/MobileFocusSheet';
 import { useFocusState } from './focus-sidebar/useFocusState';
