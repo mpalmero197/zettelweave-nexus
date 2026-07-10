@@ -30,7 +30,7 @@ import {
   FolderKanban,
   Puzzle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 
 interface MinimalSidebarProps {
