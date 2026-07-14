@@ -29,6 +29,7 @@ import {
   Lock,
   FolderKanban,
   Puzzle,
+  LayoutGrid,
 } from "lucide-react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { usePremiumAccess } from "@/hooks/usePremiumAccess";
@@ -159,6 +160,13 @@ export function MinimalSidebar({
               </Button>
             </Link>
           )}
+          <Link to="/decks">
+            <Button variant="ghost" className="w-full justify-start h-9 px-3 text-sm">
+              <LayoutGrid className="h-4 w-4 mr-3" />
+              Deck Studio
+            </Button>
+          </Link>
+          
           
           <Separator className="my-2" />
           

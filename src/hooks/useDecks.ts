@@ -102,7 +102,7 @@ export function useDeckTiles(deckId: string | null) {
     if (!deckId) return null;
     const { data, error } = await supabase
       .from("alice_deck_tiles")
-      .insert({ deck_id: deckId, ...tile })
+      .insert({ deck_id: deckId, ...tile } as never)
       .select("*")
       .single();
     if (error) { toast({ title: "Add tile failed", description: error.message, variant: "destructive" }); return null; }
@@ -113,7 +113,7 @@ export function useDeckTiles(deckId: string | null) {
   const updateTile = useCallback(async (id: string, patch: Partial<DeckTile>) => {
     // Optimistic
     setTiles((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } as DeckTile : t)));
-    const { error } = await supabase.from("alice_deck_tiles").update(patch).eq("id", id);
+    const { error } = await supabase.from("alice_deck_tiles").update(patch as never).eq("id", id);
     if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); refresh(); }
   }, [refresh]);
 
