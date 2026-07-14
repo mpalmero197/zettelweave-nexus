@@ -1,102 +1,68 @@
-# Baku Scribe — Improvement Pass, Phase 1
 
-**Status:** Phase 1A ✅ · Phase 1B ✅ · Phase 1C ⏳ (ai-assistant-chat + useKnowledgeChat streaming shipped; jarvis-chat streaming deferred — needs its own dedicated pass to refactor tool/plan/card protocol) · Phase 1E item 12 (prefetch on hover) ✅
+# Macro Deck parity for ALICE — broad build plan
 
-Scope-5 pass, shipped in phases. This plan is **Phase 1 only** — the biggest visible wins for ALICE intelligence + latency. Phases 2 and 3 are listed at the bottom so you know what's coming.
+Bring the "tap-tile control surface" pattern from Macro Deck into ALICE, on top of the macro engine that already exists (`alice_macros`, abilities registry, marketplace, extension runner, triggers).
 
+Five phases, shippable individually. Each phase ends in a working slice.
 
 ---
 
-## Phase 1 — What ships now
+## Phase 1 — Deck data model + Deck Studio editor
 
-### A. ALICE: reasoning + planning core
+New page `/decks` (Deck Studio) with a visual grid editor.
 
-1. **Introduce a router layer** (`supabase/functions/_shared/alice-router.ts`)
-   - Classifies each ALICE turn into: `quick_answer` | `research` | `reasoning` | `agentic`.
-   - Picks the model: `gemini-3.1-flash-lite` for quick, `gemini-3-flash-preview` for standard, `gemini-3.1-pro-preview` for reasoning/multi-step.
-   - Emits the choice in the response payload so we can observe/tune it.
+- New tables (via migration, with GRANTs + RLS scoped to `auth.uid()`):
+  - `alice_decks` — id, user_id, name, description, cols (default 5), rows (default 3), background, theme, is_default, updated_at.
+  - `alice_deck_folders` — id, deck_id, parent_folder_id, name, icon, position.
+  - `alice_deck_tiles` — id, deck_id, folder_id, x, y, w, h, kind (`macro | folder | widget | multi | noop`), label, icon (lucide name / emoji / storage url), bg_color, fg_color, macro_id (fk `alice_macros`), widget_type, config jsonb, hotkey.
+  - `alice_deck_shares` — id, deck_id, code, expires_at, scopes (view/press).
+- Editor UI (drag-drop tile placement on a CSS-grid canvas, right rail = tile inspector, top bar = deck picker + profile switcher, keyboard nudge). Reuses design tokens (deep ink + iridescent violet).
+- "Bind to macro" picker uses existing `alice_macros`; "New macro" jumps into the current Macros builder pre-linked back.
+- Import / Export deck as JSON.
 
-2. **New `alice-plan` step in `jarvis-chat`** (thin addition, not a rewrite)
-   - Before answering complex asks, ALICE produces an internal JSON plan: `{goal, subtasks[], tools[], stop_conditions}`.
-   - Subtasks execute in parallel where independent (search + memory recall + card lookup fire concurrently instead of serially).
-   - A `self_check` pass validates the draft answer against the plan's stop conditions before returning; if a stop condition fails, one repair pass is allowed.
+## Phase 2 — Runtime: web deck + phone companion (QR pair)
 
-3. **Trace surface in the chat UI**
-   - Collapsible "How ALICE thought about this" panel under each answer showing: model tier used, plan steps, tools called, sources cited. Off by default; toggle in Settings → ALICE.
+- Runtime view at `/deck/:id` — fullscreen tap grid, big touch targets, haptic + audio feedback, works on desktop and mobile. Live-updates via Supabase realtime on `alice_deck_tiles`.
+- Phone-as-remote flow (Macro Deck's killer feature):
+  - Desktop shows a QR / 6-char pair code (edge fn `deck-pair-create` → row in `alice_deck_shares`).
+  - Phone hits `/deck/join?code=…`, redeems via `deck-pair-redeem`, joins a realtime channel `deck:{deck_id}:{session}`.
+  - Tap on phone → broadcast → desktop receives → executes tile action through the existing ALICE runner (macros, alice_chat, extension bridge).
+- Tile press dispatch is a single `runTile(tile)` helper: macro → invoke existing macro runner; alice_chat → open ALICE with prompt; hotkey → forward to extension; widget → local-only.
 
-### B. Smarter web research
+## Phase 3 — Profiles, folders, contextual auto-switch
 
-4. **Upgrade `web-search` ranking** (function already scores trust + position; extend it)
-   - Add explicit **recency tiers**: `fresh <7d`, `recent <90d`, `evergreen`, `stale >2y`. Query intent detects whether recency is required (news/prices/versions) vs. evergreen (definitions/history) and re-weights accordingly.
-   - Add **authority signals** beyond the current allowlist: DOI presence, HTTPS, canonical URL match, and downgrade for AI-content farms and syndicated reposts.
-   - Return a `confidence` value per result (0–1) and an overall `answer_confidence` on the response.
+- Profiles = named decks; a "Default profile" per user.
+- Folder tiles push a folder onto a breadcrumb stack in runtime; back tile pops.
+- Context rules table `alice_deck_context_rules` (host pattern, app id, keyword) → auto-switch active deck when the extension reports a matching active tab (reuses the existing `site` / `topic` trigger infra).
 
-5. **Force citation discipline in ALICE answers**
-   - System prompt update: every factual claim gets an inline `[n]` marker tied to a source; if ALICE cannot cite, it says so instead of speculating.
-   - Sources rendered as a numbered list with domain, date, and trust tier badge.
+## Phase 4 — Icon packs, theme packs, widget tiles
 
-### C. Latency — AI responses
+- Icon library modal: Lucide (already installed), emoji picker, plus user uploads stored in a new `deck-icons` storage bucket (private, RLS to owner). Optional "Icon packs" table so packs can be installed marketplace-style.
+- Theme packs = named color presets (bg gradient, tile radius, glow intensity) applied at deck level.
+- Widget tiles (no macro needed, render live data):
+  - `clock`, `countdown`, `pomodoro`, `counter` (tap to inc, long-press reset), `weather` (reuse existing Open-Meteo integration), `stopwatch`, `writing_streak`, `zettel_count`, `now_playing` (from recorder), `alice_status`.
 
-6. **Route by task, not by default**
-   - Short chat prompts (< ~40 tokens) → `gemini-3.1-flash-lite`.
-   - Standard writer suggestions/cards → `gemini-3-flash-preview` (unchanged).
-   - Reasoning/planning/synthesis → `gemini-3.1-pro-preview` only when the router asks for it.
+## Phase 5 — Marketplace + plugin abilities + sharing
 
-7. **Stream everything user-facing**
-   - Convert `ai-assistant-chat`, `jarvis-chat`, `ai-modify-content`, `catalyst-ai-enhance-content` to `streamText` via the AI SDK and stream through `toUIMessageStreamResponse`. Removes the "wait for full response" pause.
-
-### D. Latency — backend
-
-8. **Parallelize edge-function DB fanout**
-   - Audit `daily-report`, `platform-self-improve`, `alice-proactive-pulse`, `synthesize-master-document`: replace sequential per-user loops with `Promise.all` batches of 10.
-   - Add an in-memory LRU (per invocation) for repeated profile/preference reads inside a loop.
-
-9. **Cache web-search + embedding calls**
-   - New `search_cache` table keyed on `sha256(query_normalized)` with a 15-minute TTL; identical queries within the window skip Google/SerpAPI.
-   - Embedding cache keyed on `sha256(text)` with 7-day TTL to skip re-embedding unchanged cards/notes.
-
-### E. Latency — perceived speed
-
-10. **Optimistic UI on saves**
-    - Cards, notes, and Catalyst documents: apply local mutation immediately, reconcile on server confirm, rollback + toast on failure.
-
-11. **Kill blocking spinners in the editor**
-    - Replace full-screen spinners in Catalyst and the card editor with inline skeleton rows and a subtle top progress bar (already used elsewhere).
-
-12. **Prefetch on hover**
-    - Sidebar nav, card list, and notebook spines prefetch their route chunk + first data query on `mouseenter` (150ms debounce).
+- Extend the existing `macro_marketplace_submissions` flow with a `kind` column: `macro | deck | ability_plugin | icon_pack | theme_pack`. Install pulls a snapshot into the user's own tables (same pattern as `macro-marketplace-install`).
+- Ability plugins = JSON-defined custom step types added to `MACRO_ABILITIES` at runtime (mirrored in extension via a fetched registry file).
+- Deck share links: read-only public deck view (`/d/:code`) rendered from `alice_deck_shares` with press disabled unless the viewer is signed in and holds `press` scope.
 
 ---
 
 ## Technical details
 
-- **Router**: pure TS, no new deps. Lives in `supabase/functions/_shared/alice-router.ts`, called from `jarvis-chat` and `ai-assistant-chat`.
-- **Streaming**: adopt AI SDK (`npm:ai`, `npm:@ai-sdk/openai-compatible`) via the existing `_shared/ai-gateway.ts` pattern already used in newer functions. Replace raw `fetch` to the gateway.
-- **Caches**: two new tables (`search_cache`, `embedding_cache`) with `GRANT`s to `service_role` only, RLS enabled, cleanup cron every 6h. No user data cached — only content hashes and results.
-- **Trace panel**: new `AliceTrace.tsx` component; data flows from a new `trace` field on the streamed response.
-- **Optimistic UI**: use existing React Query mutations; add `onMutate` / `onError` rollback handlers on the 3 mutation hooks (`useCardMutations`, `useNoteMutations`, `useCatalystSaveDocument`).
-- **Prefetch**: small `usePrefetchOnHover(routePath, queryKey)` hook wrapping `queryClient.prefetchQuery` + `import()` of the route module.
+- **Stack**: existing React 18 + Vite + Tailwind + shadcn; Supabase for tables/realtime/storage; existing edge-function auth helper.
+- **Realtime**: broadcast channels for tap events (low-latency, no DB write); postgres_changes on `alice_deck_tiles` for editor sync. All subscriptions inside `useEffect` with `removeChannel` cleanup (per project rule).
+- **Security**: all new tables `ENABLE ROW LEVEL SECURITY`; policies use `auth.uid() = user_id` (or `has_role`); explicit `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated;` + `GRANT ALL ... TO service_role;` in the same migration. Pair codes are single-use, short-lived (5 min), rate-limited in the edge function.
+- **Extension**: `public/chrome-extension/runner.js` gains a `run_deck_tile` message handler so desktop deck presses can reach browser-side abilities; new `deck-bridge.js` script bridges realtime broadcasts → runner.
+- **Reuse, don't fork**: tiles delegate to the existing macro runner, abilities registry, marketplace, triggers, and vault — no parallel execution engine.
+- **Rollout**: ship Phase 1 alone (editor works with existing macros, no runtime yet). Phase 2 unlocks the phone remote. Phases 3–5 are additive.
 
-## What's explicitly OUT of Phase 1
+---
 
-- No UI redesign, no new feature surfaces beyond the trace panel toggle.
-- No changes to memory/RAG recall depth (that's Phase 2).
-- No changes to proactive nudges (Phase 2).
-- No bundle-size / route-splitting audit (Phase 3).
+## Out of scope for this pass
 
-## Phase 2 (next turn, if approved)
-- Deeper memory: episodic recall trace, "why retrieved" scoring, longer context windows for reasoning tier.
-- Proactive quality: tie every ALICE nudge to a concrete recent signal + one-click action.
-- Tool-calling refactor: convert ad-hoc tool dispatch in `jarvis-chat` to AI SDK `tool()` primitives with `stopWhen(stepCountIs(50))`.
-
-## Phase 3
-- Route-level code-splitting audit + prefetch strategy across the app.
-- Manual-chunk tuning in `vite.config.ts` (editor, pdf, canvas, chart).
-- Defer non-critical edge-function calls behind `requestIdleCallback`.
-
-## Risks
-- **Model-tier routing** can misclassify — mitigated by trace panel showing the tier and a manual override in Settings.
-- **Streaming migration** touches auth-gated functions — will preserve existing auth checks (added in the previous security pass).
-- **Caches** add two tables; cleanup cron is required to keep them bounded.
-
-Approve to start with **Phase 1, section A (router + plan step + trace panel)** first, or tell me to reorder.
+- Native desktop app (Macro Deck ships a .NET desktop client — we stay web + extension).
+- Stream Deck hardware driver.
+- Non-Chromium browser extension parity.

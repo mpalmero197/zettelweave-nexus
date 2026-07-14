@@ -504,6 +504,226 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_deck_folders: {
+        Row: {
+          created_at: string
+          deck_id: string
+          icon: string | null
+          id: string
+          name: string
+          parent_folder_id: string | null
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          deck_id: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          deck_id?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alice_deck_folders_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "alice_decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alice_deck_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "alice_deck_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alice_deck_shares: {
+        Row: {
+          code: string
+          created_at: string
+          deck_id: string
+          expires_at: string
+          id: string
+          owner_id: string
+          scopes: string[]
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          deck_id: string
+          expires_at?: string
+          id?: string
+          owner_id: string
+          scopes?: string[]
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          deck_id?: string
+          expires_at?: string
+          id?: string
+          owner_id?: string
+          scopes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alice_deck_shares_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "alice_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alice_deck_tiles: {
+        Row: {
+          bg_color: string | null
+          config: Json
+          created_at: string
+          deck_id: string
+          fg_color: string | null
+          folder_id: string | null
+          h: number
+          hotkey: string | null
+          icon: string | null
+          id: string
+          kind: string
+          label: string | null
+          macro_id: string | null
+          target_folder_id: string | null
+          updated_at: string
+          w: number
+          widget_type: string | null
+          x: number
+          y: number
+        }
+        Insert: {
+          bg_color?: string | null
+          config?: Json
+          created_at?: string
+          deck_id: string
+          fg_color?: string | null
+          folder_id?: string | null
+          h?: number
+          hotkey?: string | null
+          icon?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          macro_id?: string | null
+          target_folder_id?: string | null
+          updated_at?: string
+          w?: number
+          widget_type?: string | null
+          x?: number
+          y?: number
+        }
+        Update: {
+          bg_color?: string | null
+          config?: Json
+          created_at?: string
+          deck_id?: string
+          fg_color?: string | null
+          folder_id?: string | null
+          h?: number
+          hotkey?: string | null
+          icon?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          macro_id?: string | null
+          target_folder_id?: string | null
+          updated_at?: string
+          w?: number
+          widget_type?: string | null
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alice_deck_tiles_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "alice_decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alice_deck_tiles_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "alice_deck_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alice_deck_tiles_macro_id_fkey"
+            columns: ["macro_id"]
+            isOneToOne: false
+            referencedRelation: "alice_macros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alice_deck_tiles_target_folder_id_fkey"
+            columns: ["target_folder_id"]
+            isOneToOne: false
+            referencedRelation: "alice_deck_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alice_decks: {
+        Row: {
+          background: string | null
+          cols: number
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          rows: number
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          background?: string | null
+          cols?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          rows?: number
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          background?: string | null
+          cols?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          rows?: number
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alice_episodic_memory: {
         Row: {
           created_at: string

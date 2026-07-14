@@ -103,6 +103,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
 const AliceStandalone = lazy(() => import("./pages/AliceStandalone"));
 const Macros = lazy(() => import("./pages/Macros"));
+const Decks = lazy(() => import("./pages/Decks"));
 const ComparisonPage = lazy(() => import("./pages/vs/ComparisonPage"));
 
 // Lazy load persistent layout
@@ -187,6 +188,11 @@ const App = () => (
                   <Route path="/macros" element={
                     <Suspense fallback={<LoadingFallback message="Loading macros..." />}>
                       <Macros />
+                    </Suspense>
+                  } />
+                  <Route path="/decks" element={
+                    <Suspense fallback={<LoadingFallback message="Loading decks..." />}>
+                      <Decks />
                     </Suspense>
                   } />
                   <Route path="/install" element={
