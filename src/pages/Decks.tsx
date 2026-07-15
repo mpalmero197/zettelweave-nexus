@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Download, Upload, Sparkles, ArrowLeft, LayoutGrid } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Sparkles, ArrowLeft, LayoutGrid, Play } from "lucide-react";
 import { useDecks, useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
 
 interface MacroLite { id: string; name: string }
@@ -204,6 +204,9 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
         </div>
         <Badge variant="outline">{tiles.length} tiles</Badge>
         <div className="ml-auto flex items-center gap-2">
+          <Button asChild size="sm" variant="default">
+            <Link to={`/deck/${deck.id}`}><Play className="mr-1 h-4 w-4" />Run</Link>
+          </Button>
           <Button size="sm" variant="outline" onClick={exportJson}><Download className="mr-1 h-4 w-4" />Export</Button>
           <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
             <Upload className="mr-1 h-4 w-4" />Import
