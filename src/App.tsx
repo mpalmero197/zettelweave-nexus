@@ -104,6 +104,8 @@ const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
 const AliceStandalone = lazy(() => import("./pages/AliceStandalone"));
 const Macros = lazy(() => import("./pages/Macros"));
 const Decks = lazy(() => import("./pages/Decks"));
+const DeckRuntime = lazy(() => import("./pages/DeckRuntime"));
+const DeckJoin = lazy(() => import("./pages/DeckJoin"));
 const ComparisonPage = lazy(() => import("./pages/vs/ComparisonPage"));
 
 // Lazy load persistent layout
@@ -282,6 +284,19 @@ const App = () => (
                 <Route path="/alice-app" element={
                   <Suspense fallback={<LoadingFallback message="Waking ALICE..." />}>
                     <AliceStandalone />
+                  </Suspense>
+                } />
+                {/* Deck runtime (fullscreen, no AppLayout) */}
+                <Route path="/deck/:id" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingFallback message="Loading deck..." />}>
+                      <DeckRuntime />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/deck/join" element={
+                  <Suspense fallback={<LoadingFallback message="Pairing…" />}>
+                    <DeckJoin />
                   </Suspense>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
