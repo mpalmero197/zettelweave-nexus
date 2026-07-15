@@ -1,0 +1,159 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
+import { supabase } from "@/integrations/supabase/client";
+import { useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
+import { runTile, generatePairCode } from "@/lib/deckRuntime";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
+import { ArrowLeft, Smartphone, Maximize2, X } from "lucide-react";
+
+export default function DeckRuntime() {
+  const { id } = useParams<{ id: string }>();
+  const [deck, setDeck] = useState<Deck | null>(null);
+  const { tiles } = useDeckTiles(id ?? null);
+  const [pairing, setPairing] = useState<{ code: string; url: string } | null>(null);
+  const [pairOpen, setPairOpen] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    supabase.from("alice_decks").select("*").eq("id", id).maybeSingle().then(({ data }) => {
+      setDeck((data as Deck) ?? null);
+    });
+  }, [id]);
+
+  // Live tile updates
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`deck-runtime-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "alice_deck_tiles", filter: `deck_id=eq.${id}` }, () => {
+        // useDeckTiles doesn't auto-refresh on realtime; force reload via visibility ping
+        window.dispatchEvent(new Event("deck:tiles-refresh"));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
+
+  // Phone companion press broadcast listener
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase.channel(`deck-press-${id}`, { config: { broadcast: { self: false } } });
+    channel
+      .on("broadcast", { event: "press" }, ({ payload }) => {
+        const tile = tiles.find((t) => t.id === payload?.tileId);
+        if (tile) {
+          toast({ title: "📱 Phone press", description: tile.label ?? "" });
+          runTile(tile);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, tiles]);
+
+  const grid = useMemo(() => {
+    if (!deck) return [] as (DeckTile | null)[];
+    const cells: (DeckTile | null)[] = Array(deck.cols * deck.rows).fill(null);
+    for (const t of tiles) {
+      const idx = t.y * deck.cols + t.x;
+      if (idx >= 0 && idx < cells.length) cells[idx] = t;
+    }
+    return cells;
+  }, [tiles, deck]);
+
+  const startPair = async () => {
+    if (!id) return;
+    const code = generatePairCode();
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { error } = await supabase.from("alice_deck_shares").insert({
+      deck_id: id,
+      owner_id: u.user.id,
+      code,
+    });
+    if (error) { toast({ title: "Pair failed", description: error.message, variant: "destructive" }); return; }
+    const url = `${window.location.origin}/deck/join?code=${code}`;
+    setPairing({ code, url });
+    setPairOpen(true);
+  };
+
+  const goFullscreen = () => {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+
+  if (!deck) {
+    return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading deck…</div>;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/decks"><ArrowLeft className="mr-1 h-4 w-4" />Studio</Link>
+          </Button>
+          <h1 className="text-sm font-semibold">{deck.name}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={startPair}>
+            <Smartphone className="mr-1 h-4 w-4" />Pair phone
+          </Button>
+          <Button size="sm" variant="ghost" onClick={goFullscreen}>
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
+
+      <main className="flex flex-1 items-center justify-center p-6">
+        <div
+          className="grid w-full max-w-6xl gap-3"
+          style={{ gridTemplateColumns: `repeat(${deck.cols}, minmax(0, 1fr))` }}
+        >
+          {grid.map((tile, idx) => {
+            if (!tile) return <div key={idx} className="aspect-square rounded-lg border border-dashed border-border/30" />;
+            return (
+              <button
+                key={tile.id}
+                onClick={() => runTile(tile)}
+                className="group aspect-square rounded-lg border border-border/60 p-3 text-left transition active:scale-95 hover:border-primary/60 hover:shadow-[0_0_20px_hsl(var(--primary)/.25)]"
+                style={{ background: tile.bg_color ?? "hsl(var(--muted))", color: tile.fg_color ?? undefined }}
+              >
+                <div className="flex h-full flex-col justify-between">
+                  <div className="text-3xl leading-none">{tile.icon ?? "•"}</div>
+                  <div className="truncate text-sm font-semibold">{tile.label ?? ""}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </main>
+
+      <Dialog open={pairOpen} onOpenChange={setPairOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Smartphone className="h-4 w-4" />Pair a phone</DialogTitle>
+          </DialogHeader>
+          {pairing ? (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className="rounded-lg bg-white p-4">
+                <QRCodeSVG value={pairing.url} size={192} />
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">Or enter code</div>
+                <div className="mt-1 font-mono text-2xl tracking-widest">{pairing.code}</div>
+              </div>
+              <div className="text-center text-xs text-muted-foreground">
+                Open <span className="font-mono">{new URL(pairing.url).host}/deck/join</span> on your phone.
+                Code expires in 10 minutes.
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setPairOpen(false)}>
+                <X className="mr-1 h-4 w-4" />Close
+              </Button>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
