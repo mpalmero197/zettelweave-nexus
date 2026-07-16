@@ -504,6 +504,50 @@ export type Database = {
         }
         Relationships: []
       }
+      alice_deck_context_rules: {
+        Row: {
+          created_at: string
+          deck_id: string
+          enabled: boolean
+          id: string
+          match_type: string
+          match_value: string
+          priority: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deck_id: string
+          enabled?: boolean
+          id?: string
+          match_type?: string
+          match_value: string
+          priority?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deck_id?: string
+          enabled?: boolean
+          id?: string
+          match_type?: string
+          match_value?: string
+          priority?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alice_deck_context_rules_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "alice_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alice_deck_folders: {
         Row: {
           created_at: string
