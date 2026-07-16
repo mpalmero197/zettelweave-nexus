@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Download, Upload, Sparkles, ArrowLeft, LayoutGrid, Play } from "lucide-react";
 import { useDecks, useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
+import { useDeckContextRules, type ContextMatchType } from "@/hooks/useDeckContextRules";
+
 
 interface MacroLite { id: string; name: string }
 
@@ -280,9 +282,90 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
       ) : (
         <p className="text-sm text-muted-foreground">Select a tile to edit — or tap a + slot to add one.</p>
       )}
+
+      <ContextRulesPanel deckId={deck.id} />
     </div>
   );
 }
+
+function ContextRulesPanel({ deckId }: { deckId: string }) {
+  const { rules, create, update, remove } = useDeckContextRules(deckId);
+  const [draftType, setDraftType] = useState<ContextMatchType>("url_prefix");
+  const [draftValue, setDraftValue] = useState("");
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-4">
+      <div className="mb-2">
+        <h3 className="text-sm font-semibold">Auto-switch rules</h3>
+        <p className="text-xs text-muted-foreground">
+          Open this deck automatically when the runtime detects matching context.
+        </p>
+      </div>
+      <div className="mb-3 flex flex-wrap items-end gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Match</Label>
+          <Select value={draftType} onValueChange={(v) => setDraftType(v as ContextMatchType)}>
+            <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="url_prefix">URL prefix</SelectItem>
+              <SelectItem value="tab">App tab</SelectItem>
+              <SelectItem value="site_host">Site host</SelectItem>
+              <SelectItem value="topic">Topic</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1 min-w-[180px] space-y-1">
+          <Label className="text-xs">Value</Label>
+          <Input
+            value={draftValue}
+            onChange={(e) => setDraftValue(e.target.value)}
+            placeholder={draftType === "url_prefix" ? "/app/catalyst" : draftType === "tab" ? "catalyst" : draftType === "site_host" ? "github.com" : "writing"}
+          />
+        </div>
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!draftValue.trim()) return;
+            create({ match_type: draftType, match_value: draftValue.trim() });
+            setDraftValue("");
+          }}
+        ><Plus className="mr-1 h-4 w-4" />Add</Button>
+      </div>
+      {rules.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No rules yet.</p>
+      ) : (
+        <div className="space-y-1">
+          {rules.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 rounded-md border border-border/40 px-2 py-1.5 text-sm">
+              <Badge variant="outline" className="text-[10px]">{r.match_type}</Badge>
+              <Input
+                value={r.match_value}
+                onChange={(e) => update(r.id, { match_value: e.target.value })}
+                className="h-8 flex-1"
+              />
+              <Input
+                type="number"
+                value={r.priority}
+                onChange={(e) => update(r.id, { priority: Number(e.target.value) || 100 })}
+                className="h-8 w-20"
+                title="Priority (lower wins)"
+              />
+              <Button
+                size="sm"
+                variant={r.enabled ? "default" : "outline"}
+                onClick={() => update(r.id, { enabled: !r.enabled })}
+              >{r.enabled ? "On" : "Off"}</Button>
+              <Button size="sm" variant="ghost" onClick={() => remove(r.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function TileInspector({ tile, macros, onChange, onDelete }: {
   tile: DeckTile;
