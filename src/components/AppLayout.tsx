@@ -333,6 +333,7 @@ export function AppLayout() {
           {!isPopout && <AliceFollowupPrompt />}
           <AliceRecordingOverlay />
           {!isPopout && <AliceWakeIndicator />}
+          {!isPopout && <FloatingDeck />}
         </Suspense>
       </DeferredMount>
     </>
