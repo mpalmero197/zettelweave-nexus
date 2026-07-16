@@ -9,16 +9,18 @@ import { CosmicBackground } from "@/components/CosmicBackground";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Loader2 } from "lucide-react";
 import { DeferredMount } from "@/hooks/useDeferredMount";
+import { lazyWithReload } from "@/lib/lazyWithReload";
 
 // Always-on ALICE bridges — heavy, not needed for first paint. Lazy + deferred.
-const MacroCoach = lazy(() => import("@/components/alice/MacroCoach").then(m => ({ default: m.MacroCoach })));
-const VaultBridge = lazy(() => import("@/components/alice/VaultBridge").then(m => ({ default: m.VaultBridge })));
-const RoutineBuilder = lazy(() => import("@/components/alice/RoutineBuilder").then(m => ({ default: m.RoutineBuilder })));
+const MacroCoach = lazyWithReload(() => import("@/components/alice/MacroCoach").then(m => ({ default: m.MacroCoach })));
+const VaultBridge = lazyWithReload(() => import("@/components/alice/VaultBridge").then(m => ({ default: m.VaultBridge })));
+const RoutineBuilder = lazyWithReload(() => import("@/components/alice/RoutineBuilder").then(m => ({ default: m.RoutineBuilder })));
 
 // Lazy load heavy UI shell components not needed for initial render
-const LazyToaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
-const LazySonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
-const LazyTooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
+const LazyToaster = lazyWithReload(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const LazySonner = lazyWithReload(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const LazyTooltipProvider = lazyWithReload(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
+
 
 const DeferredShell = ({ children }: { children: React.ReactNode }) => {
   const [ready, setReady] = useState(false);
@@ -76,40 +78,41 @@ const LoadingFallback = ({ message = "Loading..." }: { message?: string }) => (
 );
 
 // Lazy load pages to reduce initial bundle size
-const Auth = lazy(() => import("./pages/Auth"));
-const Landing = lazy(() => import("./pages/Landing"));
-const Index = lazy(() => import("./pages/Index"));
-const Admin = lazy(() => import("./pages/Admin"));
-const Install = lazy(() => import("./pages/Install"));
-const Subscription = lazy(() => import("./pages/Subscription"));
-const Settings = lazy(() => import("./pages/Settings"));
+const Auth = lazyWithReload(() => import("./pages/Auth"));
+const Landing = lazyWithReload(() => import("./pages/Landing"));
+const Index = lazyWithReload(() => import("./pages/Index"));
+const Admin = lazyWithReload(() => import("./pages/Admin"));
+const Install = lazyWithReload(() => import("./pages/Install"));
+const Subscription = lazyWithReload(() => import("./pages/Subscription"));
+const Settings = lazyWithReload(() => import("./pages/Settings"));
 
-const Jarvis = lazy(() => import("./pages/Jarvis"));
-const Vault = lazy(() => import("./pages/Vault"));
-const Scholar = lazy(() => import("./pages/Scholar"));
-const ScholarLesson = lazy(() => import("./pages/ScholarLesson"));
-const ScholarSandbox = lazy(() => import("./pages/ScholarSandbox"));
-const ScholarAlice = lazy(() => import("./pages/ScholarAlice"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Changelog = lazy(() => import("./pages/Changelog"));
-const SharedWithMe = lazy(() => import("./pages/SharedWithMe"));
-const Sitemap = lazy(() => import("./pages/Sitemap"));
-const About = lazy(() => import("./pages/About"));
-const Contact = lazy(() => import("./pages/Contact"));
-const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
-const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
-const SsoHandoff = lazy(() => import("./pages/SsoHandoff"));
-const AliceStandalone = lazy(() => import("./pages/AliceStandalone"));
-const Macros = lazy(() => import("./pages/Macros"));
-const Decks = lazy(() => import("./pages/Decks"));
-const DeckRuntime = lazy(() => import("./pages/DeckRuntime"));
-const DeckJoin = lazy(() => import("./pages/DeckJoin"));
-const ComparisonPage = lazy(() => import("./pages/vs/ComparisonPage"));
+const Jarvis = lazyWithReload(() => import("./pages/Jarvis"));
+const Vault = lazyWithReload(() => import("./pages/Vault"));
+const Scholar = lazyWithReload(() => import("./pages/Scholar"));
+const ScholarLesson = lazyWithReload(() => import("./pages/ScholarLesson"));
+const ScholarSandbox = lazyWithReload(() => import("./pages/ScholarSandbox"));
+const ScholarAlice = lazyWithReload(() => import("./pages/ScholarAlice"));
+const NotFound = lazyWithReload(() => import("./pages/NotFound"));
+const TermsOfService = lazyWithReload(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazyWithReload(() => import("./pages/PrivacyPolicy"));
+const Changelog = lazyWithReload(() => import("./pages/Changelog"));
+const SharedWithMe = lazyWithReload(() => import("./pages/SharedWithMe"));
+const Sitemap = lazyWithReload(() => import("./pages/Sitemap"));
+const About = lazyWithReload(() => import("./pages/About"));
+const Contact = lazyWithReload(() => import("./pages/Contact"));
+const EditorialPolicy = lazyWithReload(() => import("./pages/EditorialPolicy"));
+const Unsubscribe = lazyWithReload(() => import("./pages/Unsubscribe"));
+const SsoHandoff = lazyWithReload(() => import("./pages/SsoHandoff"));
+const AliceStandalone = lazyWithReload(() => import("./pages/AliceStandalone"));
+const Macros = lazyWithReload(() => import("./pages/Macros"));
+const Decks = lazyWithReload(() => import("./pages/Decks"));
+const DeckRuntime = lazyWithReload(() => import("./pages/DeckRuntime"));
+const DeckJoin = lazyWithReload(() => import("./pages/DeckJoin"));
+const ComparisonPage = lazyWithReload(() => import("./pages/vs/ComparisonPage"));
 
 // Lazy load persistent layout
-const AppLayout = lazy(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
+const AppLayout = lazyWithReload(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
+
 
 const queryClient = new QueryClient();
 
