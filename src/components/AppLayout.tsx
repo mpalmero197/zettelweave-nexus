@@ -12,7 +12,7 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Wrench, Search, ExternalLink } from "lucide-react";
+import { Wrench, Search, ExternalLink, LayoutGrid } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
@@ -38,6 +38,7 @@ const AliceFollowupPrompt = lazy(() => import("./alice/AliceFollowupPrompt").the
 const AliceRecordingOverlay = lazy(() => import("./alice/AliceRecordingOverlay").then(m => ({ default: m.AliceRecordingOverlay })));
 const AliceWakeIndicator = lazy(() => import("./alice/AliceWakeIndicator").then(m => ({ default: m.AliceWakeIndicator })));
 const JarvisFAB = lazy(() => import("./jarvis/JarvisFAB").then(m => ({ default: m.JarvisFAB })));
+const FloatingDeck = lazy(() => import("./deck/FloatingDeck").then(m => ({ default: m.FloatingDeck })));
 
 export function AppLayout() {
   useWritingContextDetector();
@@ -257,6 +258,16 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
+                  onClick={() => window.dispatchEvent(new Event("deck:toggle-float"))}
+                  aria-label="Toggle floating deck"
+                  title="Floating deck"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
                   onClick={() => handlePopOut()}
                   aria-label="Open this feature in a new window"
                   title="Pop out to a new window"
@@ -322,6 +333,7 @@ export function AppLayout() {
           {!isPopout && <AliceFollowupPrompt />}
           <AliceRecordingOverlay />
           {!isPopout && <AliceWakeIndicator />}
+          {!isPopout && <FloatingDeck />}
         </Suspense>
       </DeferredMount>
     </>
