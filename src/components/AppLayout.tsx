@@ -258,6 +258,16 @@ export function AppLayout() {
                   variant="ghost"
                   size="sm"
                   className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
+                  onClick={() => window.dispatchEvent(new Event("deck:toggle-float"))}
+                  aria-label="Toggle floating deck"
+                  title="Floating deck"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 hidden md:flex rounded-full hover:bg-accent"
                   onClick={() => handlePopOut()}
                   aria-label="Open this feature in a new window"
                   title="Pop out to a new window"
