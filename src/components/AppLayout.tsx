@@ -12,7 +12,7 @@ import { ThemeVariantSelector } from "./ThemeVariantSelector";
 import { TopNavBar } from "./TopNavBar";
 import { UserMenu } from "./UserMenu";
 import { Button } from "@/components/ui/button";
-import { Wrench, Search, ExternalLink } from "lucide-react";
+import { Wrench, Search, ExternalLink, LayoutGrid } from "lucide-react";
 import { ToolboxSidebar } from "./toolbox/ToolboxSidebar";
 import { FocusMiniPill } from "./focus-sidebar/FocusMiniPill";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
@@ -38,6 +38,7 @@ const AliceFollowupPrompt = lazy(() => import("./alice/AliceFollowupPrompt").the
 const AliceRecordingOverlay = lazy(() => import("./alice/AliceRecordingOverlay").then(m => ({ default: m.AliceRecordingOverlay })));
 const AliceWakeIndicator = lazy(() => import("./alice/AliceWakeIndicator").then(m => ({ default: m.AliceWakeIndicator })));
 const JarvisFAB = lazy(() => import("./jarvis/JarvisFAB").then(m => ({ default: m.JarvisFAB })));
+const FloatingDeck = lazy(() => import("./deck/FloatingDeck").then(m => ({ default: m.FloatingDeck })));
 
 export function AppLayout() {
   useWritingContextDetector();
