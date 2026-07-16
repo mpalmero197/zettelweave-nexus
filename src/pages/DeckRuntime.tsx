@@ -1,20 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
+import { useAllUserContextRules, matchRules } from "@/hooks/useDeckContextRules";
 import { runTile, generatePairCode } from "@/lib/deckRuntime";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Smartphone, Maximize2, X } from "lucide-react";
+import { ArrowLeft, Smartphone, Maximize2, X, ChevronRight, Home, Zap } from "lucide-react";
+
 
 export default function DeckRuntime() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [deck, setDeck] = useState<Deck | null>(null);
   const { tiles } = useDeckTiles(id ?? null);
   const [pairing, setPairing] = useState<{ code: string; url: string } | null>(null);
   const [pairOpen, setPairOpen] = useState(false);
+  const [folderStack, setFolderStack] = useState<Array<{ id: string; label: string }>>([]);
+  const [autoSwitch, setAutoSwitch] = useState<boolean>(() => localStorage.getItem("deck-auto-switch") !== "false");
+  const contextRules = useAllUserContextRules();
+
 
   useEffect(() => {
     if (!id) return;
@@ -52,15 +59,57 @@ export default function DeckRuntime() {
     return () => { supabase.removeChannel(channel); };
   }, [id, tiles]);
 
+  // Filter tiles to the current folder (null = root).
+  const currentFolderId = folderStack.length ? folderStack[folderStack.length - 1].id : null;
+  const visibleTiles = useMemo(
+    () => tiles.filter((t) => (t.folder_id ?? null) === currentFolderId),
+    [tiles, currentFolderId],
+  );
+
   const grid = useMemo(() => {
     if (!deck) return [] as (DeckTile | null)[];
     const cells: (DeckTile | null)[] = Array(deck.cols * deck.rows).fill(null);
-    for (const t of tiles) {
+    for (const t of visibleTiles) {
       const idx = t.y * deck.cols + t.x;
       if (idx >= 0 && idx < cells.length) cells[idx] = t;
     }
     return cells;
-  }, [tiles, deck]);
+  }, [visibleTiles, deck]);
+
+  const onTilePress = (tile: DeckTile) => {
+    if (tile.kind === "folder" && tile.target_folder_id) {
+      setFolderStack((s) => [...s, { id: tile.target_folder_id!, label: tile.label ?? "Folder" }]);
+      return;
+    }
+    runTile(tile);
+  };
+
+  // Context auto-switch: watch location + app tab, resolve rules, navigate.
+  useEffect(() => {
+    if (!autoSwitch || !id) return;
+    localStorage.setItem("deck-auto-switch", "true");
+    const resolve = (tab: string) => {
+      const match = matchRules(contextRules, {
+        path: window.location.pathname,
+        tab,
+        host: window.location.host,
+      });
+      if (match && match.deck_id !== id) {
+        toast({ title: "Deck switched", description: "Matched a context rule." });
+        navigate(`/deck/${match.deck_id}`);
+      }
+    };
+    const onTab = (e: Event) => resolve((e as CustomEvent).detail ?? "");
+    window.addEventListener("app-tab-change", onTab);
+    // Also try once on mount using current path.
+    resolve("");
+    return () => window.removeEventListener("app-tab-change", onTab);
+  }, [autoSwitch, contextRules, id, navigate]);
+
+  useEffect(() => {
+    if (!autoSwitch) localStorage.setItem("deck-auto-switch", "false");
+  }, [autoSwitch]);
+
 
   const startPair = async () => {
     if (!id) return;
@@ -96,6 +145,14 @@ export default function DeckRuntime() {
           <h1 className="text-sm font-semibold">{deck.name}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={autoSwitch ? "default" : "outline"}
+            onClick={() => setAutoSwitch((v) => !v)}
+            title="Auto-switch deck when your context changes"
+          >
+            <Zap className="mr-1 h-4 w-4" />Auto
+          </Button>
           <Button size="sm" variant="outline" onClick={startPair}>
             <Smartphone className="mr-1 h-4 w-4" />Pair phone
           </Button>
@@ -104,6 +161,26 @@ export default function DeckRuntime() {
           </Button>
         </div>
       </header>
+
+      {/* Folder breadcrumbs */}
+      {folderStack.length > 0 && (
+        <div className="flex items-center gap-1 border-b border-border/40 px-4 py-1.5 text-xs text-muted-foreground">
+          <button className="flex items-center gap-1 hover:text-foreground" onClick={() => setFolderStack([])}>
+            <Home className="h-3 w-3" />Root
+          </button>
+          {folderStack.map((f, i) => (
+            <span key={f.id} className="flex items-center gap-1">
+              <ChevronRight className="h-3 w-3" />
+              <button
+                className="hover:text-foreground"
+                onClick={() => setFolderStack((s) => s.slice(0, i + 1))}
+              >
+                {f.label}
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       <main className="flex flex-1 items-center justify-center p-6">
         <div
@@ -115,12 +192,12 @@ export default function DeckRuntime() {
             return (
               <button
                 key={tile.id}
-                onClick={() => runTile(tile)}
+                onClick={() => onTilePress(tile)}
                 className="group aspect-square rounded-lg border border-border/60 p-3 text-left transition active:scale-95 hover:border-primary/60 hover:shadow-[0_0_20px_hsl(var(--primary)/.25)]"
                 style={{ background: tile.bg_color ?? "hsl(var(--muted))", color: tile.fg_color ?? undefined }}
               >
                 <div className="flex h-full flex-col justify-between">
-                  <div className="text-3xl leading-none">{tile.icon ?? "•"}</div>
+                  <div className="text-3xl leading-none">{tile.icon ?? (tile.kind === "folder" ? "📁" : "•")}</div>
                   <div className="truncate text-sm font-semibold">{tile.label ?? ""}</div>
                 </div>
               </button>
@@ -128,6 +205,7 @@ export default function DeckRuntime() {
           })}
         </div>
       </main>
+
 
       <Dialog open={pairOpen} onOpenChange={setPairOpen}>
         <DialogContent className="max-w-sm">

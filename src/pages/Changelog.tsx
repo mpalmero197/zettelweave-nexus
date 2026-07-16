@@ -65,7 +65,11 @@ const changelogData = [
   { date: "Apr 12, 2026", title: "Catalyst View Modes", description: "Word-like document views — web, single page, two-page spread, manuscript, reading, print, and draft modes with edge-to-edge writing" },
   { date: "Apr 25, 2026", title: "Multi-Window Support", description: "Deep-linkable /app/:tab routes, one-click pop-out buttons, and live cross-window sync via BroadcastChannel — work across multiple monitors with instant updates" },
   { date: "Apr 25, 2026", title: "Interactive Sitemap", description: "Visual breakdown of every feature with cross-tool connection map (e.g. Scratchpad → Cards, Knowledge Gaps → Learning Hub) — accessible from the footer" },
+  { date: "Jul 12, 2026", title: "Deck Studio", description: "Macro Deck-style tap-tile control decks with visual grid editor, tile inspector, JSON import/export, macros/prompts/hotkeys/URLs/widgets, and desktop + mobile shortcuts" },
+  { date: "Jul 14, 2026", title: "Deck Runtime & Phone Companion", description: "Fullscreen /deck/:id runtime with live tile sync, QR-pair a phone as a wireless remote, and press events broadcast in real time" },
+  { date: "Jul 16, 2026", title: "Deck Folders & Auto-Switch", description: "Nested folder tiles with breadcrumb navigation, plus per-deck context rules (URL prefix, app tab, site host, topic) that auto-switch the active deck as you move around the app" },
 ];
+
 
 function TimelineEntry({ entry, index }: { entry: typeof changelogData[0]; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
