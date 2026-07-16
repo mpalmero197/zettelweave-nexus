@@ -1,20 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
+import { useAllUserContextRules, matchRules } from "@/hooks/useDeckContextRules";
 import { runTile, generatePairCode } from "@/lib/deckRuntime";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Smartphone, Maximize2, X } from "lucide-react";
+import { ArrowLeft, Smartphone, Maximize2, X, ChevronRight, Home, Zap } from "lucide-react";
+
 
 export default function DeckRuntime() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [deck, setDeck] = useState<Deck | null>(null);
   const { tiles } = useDeckTiles(id ?? null);
   const [pairing, setPairing] = useState<{ code: string; url: string } | null>(null);
   const [pairOpen, setPairOpen] = useState(false);
+  const [folderStack, setFolderStack] = useState<Array<{ id: string; label: string }>>([]);
+  const [autoSwitch, setAutoSwitch] = useState<boolean>(() => localStorage.getItem("deck-auto-switch") !== "false");
+  const contextRules = useAllUserContextRules();
+
 
   useEffect(() => {
     if (!id) return;
