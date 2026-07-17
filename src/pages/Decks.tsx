@@ -285,6 +285,7 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
         <TileInspector
           tile={selected}
           macros={macros}
+          onMacrosChanged={refreshMacros}
           onChange={(patch) => updateTile(selected.id, patch)}
           onDelete={() => { deleteTile(selected.id); setSelectedId(null); }}
         />
