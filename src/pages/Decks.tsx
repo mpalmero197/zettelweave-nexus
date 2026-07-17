@@ -432,7 +432,17 @@ function TileInspector({ tile, macros, onChange, onDelete, onMacrosChanged }: {
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Kind</Label>
-          <Select value={tile.kind} onValueChange={(v) => onChange({ kind: v as DeckTile["kind"] })}>
+          <Select value={tile.kind} onValueChange={(v) => {
+            const patch: Partial<DeckTile> = { kind: v as DeckTile["kind"] };
+            // When switching to widget, auto-pick a widget_type so the tile
+            // actually renders something live (defaulting from the label if possible).
+            if (v === "widget" && !tile.widget_type) {
+              const lbl = (tile.label ?? "").toLowerCase();
+              const guess = WIDGET_TYPES.find((w) => lbl.includes(w.id) || lbl.includes(w.label.toLowerCase()));
+              patch.widget_type = guess?.id ?? "clock";
+            }
+            onChange(patch);
+          }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="noop">Nothing (placeholder)</SelectItem>
