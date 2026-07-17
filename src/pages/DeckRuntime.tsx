@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Smartphone, Maximize2, X, ChevronRight, Home, Zap } from "lucide-react";
+import { DeckTileWidget } from "@/components/deck/DeckTileWidget";
 
 
 export default function DeckRuntime() {
@@ -189,12 +190,24 @@ export default function DeckRuntime() {
         >
           {grid.map((tile, idx) => {
             if (!tile) return <div key={idx} className="aspect-square rounded-lg border border-dashed border-border/30" />;
+            const style = { background: tile.bg_color ?? "hsl(var(--muted))", color: tile.fg_color ?? undefined };
+            if (tile.kind === "widget") {
+              return (
+                <div
+                  key={tile.id}
+                  className="aspect-square overflow-hidden rounded-lg border border-border/60 p-2"
+                  style={style}
+                >
+                  <DeckTileWidget type={tile.widget_type} label={tile.label} />
+                </div>
+              );
+            }
             return (
               <button
                 key={tile.id}
                 onClick={() => onTilePress(tile)}
                 className="group aspect-square rounded-lg border border-border/60 p-3 text-left transition active:scale-95 hover:border-primary/60 hover:shadow-[0_0_20px_hsl(var(--primary)/.25)]"
-                style={{ background: tile.bg_color ?? "hsl(var(--muted))", color: tile.fg_color ?? undefined }}
+                style={style}
               >
                 <div className="flex h-full flex-col justify-between">
                   <div className="text-3xl leading-none">{tile.icon ?? (tile.kind === "folder" ? "📁" : "•")}</div>

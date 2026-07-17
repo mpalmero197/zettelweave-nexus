@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Download, Upload, Sparkles, ArrowLeft, LayoutGrid, Play } from "lucide-react";
 import { useDecks, useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
 import { useDeckContextRules, type ContextMatchType } from "@/hooks/useDeckContextRules";
+import { PREBUILT_MACROS } from "@/lib/macros/prebuilt";
+import { useAuth } from "@/hooks/useAuth";
+import { DeckTileWidget } from "@/components/deck/DeckTileWidget";
 
 
 interface MacroLite { id: string; name: string }
@@ -129,11 +132,11 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
   const [macros, setMacros] = useState<MacroLite[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    supabase.from("alice_macros").select("id, name").order("name").then(({ data }) => {
-      setMacros((data as MacroLite[]) ?? []);
-    });
+  const refreshMacros = useCallback(async () => {
+    const { data } = await supabase.from("alice_macros").select("id, name").order("name");
+    setMacros((data as MacroLite[]) ?? []);
   }, []);
+  useEffect(() => { refreshMacros(); }, [refreshMacros]);
 
   const selected = useMemo(() => tiles.find((t) => t.id === selectedId) ?? null, [tiles, selectedId]);
 
@@ -259,11 +262,17 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
                   color: tile.fg_color ?? undefined,
                 }}
               >
-                <div className="flex h-full flex-col justify-between">
-                  <div className="text-lg leading-none">{tile.icon ?? "•"}</div>
-                  <div className="truncate font-medium">{tile.label ?? "(untitled)"}</div>
-                  <div className="text-[10px] uppercase opacity-60">{tile.kind}</div>
-                </div>
+                {tile.kind === "widget" ? (
+                  <div className="h-full w-full overflow-hidden">
+                    <DeckTileWidget type={tile.widget_type} label={tile.label} />
+                  </div>
+                ) : (
+                  <div className="flex h-full flex-col justify-between">
+                    <div className="text-lg leading-none">{tile.icon ?? "•"}</div>
+                    <div className="truncate font-medium">{tile.label ?? "(untitled)"}</div>
+                    <div className="text-[10px] uppercase opacity-60">{tile.kind}</div>
+                  </div>
+                )}
               </button>
             );
           })}
@@ -276,6 +285,7 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
         <TileInspector
           tile={selected}
           macros={macros}
+          onMacrosChanged={refreshMacros}
           onChange={(patch) => updateTile(selected.id, patch)}
           onDelete={() => { deleteTile(selected.id); setSelectedId(null); }}
         />
@@ -367,12 +377,34 @@ function ContextRulesPanel({ deckId }: { deckId: string }) {
 }
 
 
-function TileInspector({ tile, macros, onChange, onDelete }: {
+function TileInspector({ tile, macros, onChange, onDelete, onMacrosChanged }: {
   tile: DeckTile;
   macros: MacroLite[];
   onChange: (patch: Partial<DeckTile>) => void;
   onDelete: () => void;
+  onMacrosChanged?: () => void | Promise<void>;
 }) {
+  const { user } = useAuth();
+  const installPrebuilt = async (slug: string) => {
+    const pb = PREBUILT_MACROS.find((m) => m.slug === slug);
+    if (!pb || !user) return;
+    // Reuse an existing install if the same prebuilt was already added.
+    const existing = macros.find((m) => m.name === pb.name);
+    if (existing) { onChange({ macro_id: existing.id, label: tile.label ?? pb.name, icon: tile.icon ?? pb.icon }); return; }
+    const { data, error } = await supabase.from("alice_macros").insert({
+      user_id: user.id,
+      name: pb.name,
+      description: pb.description,
+      start_url: pb.start_url || "",
+      target_domain: pb.target_domain,
+      tags: pb.tags,
+      steps: pb.steps,
+      source: "prebuilt",
+    } as never).select("id").single();
+    if (error || !data) return;
+    await onMacrosChanged?.();
+    onChange({ macro_id: (data as { id: string }).id, label: tile.label ?? pb.name, icon: tile.icon ?? pb.icon });
+  };
   return (
     <div className="rounded-lg border border-border/60 bg-card/40 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -415,15 +447,32 @@ function TileInspector({ tile, macros, onChange, onDelete }: {
           </Select>
         </div>
         {tile.kind === "macro" && (
-          <div className="space-y-1">
+          <div className="space-y-1 md:col-span-2">
             <Label className="text-xs">Macro</Label>
-            <Select value={tile.macro_id ?? ""} onValueChange={(v) => onChange({ macro_id: v || null })}>
+            <Select
+              value={tile.macro_id ?? ""}
+              onValueChange={(v) => {
+                if (v.startsWith("prebuilt:")) { installPrebuilt(v.slice("prebuilt:".length)); return; }
+                onChange({ macro_id: v || null });
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Pick a macro" /></SelectTrigger>
-              <SelectContent>
-                {macros.length === 0 ? (
-                  <SelectItem value="__none" disabled>No macros yet — create one in /macros</SelectItem>
-                ) : macros.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+              <SelectContent className="max-h-72">
+                {macros.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">Your macros</div>
+                    {macros.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </>
+                )}
+                <div className="mt-1 px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-t border-border/40">
+                  Prebuilt (installs on select)
+                </div>
+                {PREBUILT_MACROS.map((p) => (
+                  <SelectItem key={p.slug} value={`prebuilt:${p.slug}`}>
+                    {p.icon} {p.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
