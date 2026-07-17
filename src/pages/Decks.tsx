@@ -377,12 +377,34 @@ function ContextRulesPanel({ deckId }: { deckId: string }) {
 }
 
 
-function TileInspector({ tile, macros, onChange, onDelete }: {
+function TileInspector({ tile, macros, onChange, onDelete, onMacrosChanged }: {
   tile: DeckTile;
   macros: MacroLite[];
   onChange: (patch: Partial<DeckTile>) => void;
   onDelete: () => void;
+  onMacrosChanged?: () => void | Promise<void>;
 }) {
+  const { user } = useAuth();
+  const installPrebuilt = async (slug: string) => {
+    const pb = PREBUILT_MACROS.find((m) => m.slug === slug);
+    if (!pb || !user) return;
+    // Reuse an existing install if the same prebuilt was already added.
+    const existing = macros.find((m) => m.name === pb.name);
+    if (existing) { onChange({ macro_id: existing.id, label: tile.label ?? pb.name, icon: tile.icon ?? pb.icon }); return; }
+    const { data, error } = await supabase.from("alice_macros").insert({
+      user_id: user.id,
+      name: pb.name,
+      description: pb.description,
+      start_url: pb.start_url || "",
+      target_domain: pb.target_domain,
+      tags: pb.tags,
+      steps: pb.steps,
+      source: "prebuilt",
+    } as never).select("id").single();
+    if (error || !data) return;
+    await onMacrosChanged?.();
+    onChange({ macro_id: (data as { id: string }).id, label: tile.label ?? pb.name, icon: tile.icon ?? pb.icon });
+  };
   return (
     <div className="rounded-lg border border-border/60 bg-card/40 p-4">
       <div className="mb-3 flex items-center justify-between">
