@@ -132,11 +132,11 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
   const [macros, setMacros] = useState<MacroLite[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    supabase.from("alice_macros").select("id, name").order("name").then(({ data }) => {
-      setMacros((data as MacroLite[]) ?? []);
-    });
+  const refreshMacros = useCallback(async () => {
+    const { data } = await supabase.from("alice_macros").select("id, name").order("name");
+    setMacros((data as MacroLite[]) ?? []);
   }, []);
+  useEffect(() => { refreshMacros(); }, [refreshMacros]);
 
   const selected = useMemo(() => tiles.find((t) => t.id === selectedId) ?? null, [tiles, selectedId]);
 
