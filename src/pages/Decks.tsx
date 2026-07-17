@@ -250,16 +250,25 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
               );
             }
             const isSelected = tile.id === selectedId;
+            const isWidget = tile.kind === "widget";
+            const span = isWidget
+              ? {
+                  gridColumn: `span ${Math.max(1, tile.w)} / span ${Math.max(1, tile.w)}`,
+                  gridRow: `span ${Math.max(1, tile.h)} / span ${Math.max(1, tile.h)}`,
+                  minHeight: `${Math.max(1, tile.h) * 7}rem`,
+                }
+              : {};
             return (
               <button
                 key={tile.id}
                 onClick={() => setSelectedId(tile.id)}
-                className={`aspect-square rounded-md border p-2 text-left text-xs transition ${
+                className={`${isWidget ? "" : "aspect-square"} rounded-md border p-2 text-left text-xs transition ${
                   isSelected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/60"
                 }`}
                 style={{
                   background: tile.bg_color ?? "hsl(var(--muted))",
                   color: tile.fg_color ?? undefined,
+                  ...span,
                 }}
               >
                 {tile.kind === "widget" ? (
@@ -436,10 +445,16 @@ function TileInspector({ tile, macros, onChange, onDelete, onMacrosChanged }: {
             const patch: Partial<DeckTile> = { kind: v as DeckTile["kind"] };
             // When switching to widget, auto-pick a widget_type so the tile
             // actually renders something live (defaulting from the label if possible).
-            if (v === "widget" && !tile.widget_type) {
-              const lbl = (tile.label ?? "").toLowerCase();
-              const guess = WIDGET_TYPES.find((w) => lbl.includes(w.id) || lbl.includes(w.label.toLowerCase()));
-              patch.widget_type = guess?.id ?? "clock";
+            if (v === "widget") {
+              if (!tile.widget_type) {
+                const lbl = (tile.label ?? "").toLowerCase();
+                const guess = WIDGET_TYPES.find((w) => lbl.includes(w.id) || lbl.includes(w.label.toLowerCase()));
+                patch.widget_type = guess?.id ?? "clock";
+              }
+              // Widgets need room to breathe — default to a 2x2 footprint
+              // so the live content is fully visible without cropping.
+              if ((tile.w ?? 1) < 2) patch.w = 2;
+              if ((tile.h ?? 1) < 2) patch.h = 2;
             }
             onChange(patch);
           }}>

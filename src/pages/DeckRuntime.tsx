@@ -192,11 +192,16 @@ export default function DeckRuntime() {
             if (!tile) return <div key={idx} className="aspect-square rounded-lg border border-dashed border-border/30" />;
             const style = { background: tile.bg_color ?? "hsl(var(--muted))", color: tile.fg_color ?? undefined };
             if (tile.kind === "widget") {
+              const span = {
+                gridColumn: `span ${Math.max(1, tile.w)} / span ${Math.max(1, tile.w)}`,
+                gridRow: `span ${Math.max(1, tile.h)} / span ${Math.max(1, tile.h)}`,
+                minHeight: `${Math.max(1, tile.h) * 8}rem`,
+              };
               return (
                 <div
                   key={tile.id}
-                  className="aspect-square overflow-hidden rounded-lg border border-border/60 p-2"
-                  style={style}
+                  className="overflow-hidden rounded-lg border border-border/60 p-2"
+                  style={{ ...style, ...span }}
                 >
                   <DeckTileWidget type={tile.widget_type} label={tile.label} />
                 </div>
