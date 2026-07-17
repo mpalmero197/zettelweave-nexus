@@ -262,11 +262,17 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
                   color: tile.fg_color ?? undefined,
                 }}
               >
-                <div className="flex h-full flex-col justify-between">
-                  <div className="text-lg leading-none">{tile.icon ?? "•"}</div>
-                  <div className="truncate font-medium">{tile.label ?? "(untitled)"}</div>
-                  <div className="text-[10px] uppercase opacity-60">{tile.kind}</div>
-                </div>
+                {tile.kind === "widget" ? (
+                  <div className="h-full w-full overflow-hidden">
+                    <DeckTileWidget type={tile.widget_type} label={tile.label} />
+                  </div>
+                ) : (
+                  <div className="flex h-full flex-col justify-between">
+                    <div className="text-lg leading-none">{tile.icon ?? "•"}</div>
+                    <div className="truncate font-medium">{tile.label ?? "(untitled)"}</div>
+                    <div className="text-[10px] uppercase opacity-60">{tile.kind}</div>
+                  </div>
+                )}
               </button>
             );
           })}
