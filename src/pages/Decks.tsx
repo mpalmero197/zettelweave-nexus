@@ -249,17 +249,25 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
                 </button>
               );
             }
-            const isSelected = tile.id === selectedId;
+            const isWidget = tile.kind === "widget";
+            const span = isWidget
+              ? {
+                  gridColumn: `span ${Math.max(1, tile.w)} / span ${Math.max(1, tile.w)}`,
+                  gridRow: `span ${Math.max(1, tile.h)} / span ${Math.max(1, tile.h)}`,
+                  minHeight: `${Math.max(1, tile.h) * 7}rem`,
+                }
+              : {};
             return (
               <button
                 key={tile.id}
                 onClick={() => setSelectedId(tile.id)}
-                className={`aspect-square rounded-md border p-2 text-left text-xs transition ${
+                className={`${isWidget ? "" : "aspect-square"} rounded-md border p-2 text-left text-xs transition ${
                   isSelected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/60"
                 }`}
                 style={{
                   background: tile.bg_color ?? "hsl(var(--muted))",
                   color: tile.fg_color ?? undefined,
+                  ...span,
                 }}
               >
                 {tile.kind === "widget" ? (
