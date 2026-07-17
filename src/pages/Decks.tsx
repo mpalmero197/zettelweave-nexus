@@ -249,6 +249,7 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
                 </button>
               );
             }
+            const isSelected = tile.id === selectedId;
             const isWidget = tile.kind === "widget";
             const span = isWidget
               ? {
