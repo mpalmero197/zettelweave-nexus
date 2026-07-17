@@ -445,10 +445,16 @@ function TileInspector({ tile, macros, onChange, onDelete, onMacrosChanged }: {
             const patch: Partial<DeckTile> = { kind: v as DeckTile["kind"] };
             // When switching to widget, auto-pick a widget_type so the tile
             // actually renders something live (defaulting from the label if possible).
-            if (v === "widget" && !tile.widget_type) {
-              const lbl = (tile.label ?? "").toLowerCase();
-              const guess = WIDGET_TYPES.find((w) => lbl.includes(w.id) || lbl.includes(w.label.toLowerCase()));
-              patch.widget_type = guess?.id ?? "clock";
+            if (v === "widget") {
+              if (!tile.widget_type) {
+                const lbl = (tile.label ?? "").toLowerCase();
+                const guess = WIDGET_TYPES.find((w) => lbl.includes(w.id) || lbl.includes(w.label.toLowerCase()));
+                patch.widget_type = guess?.id ?? "clock";
+              }
+              // Widgets need room to breathe — default to a 2x2 footprint
+              // so the live content is fully visible without cropping.
+              if ((tile.w ?? 1) < 2) patch.w = 2;
+              if ((tile.h ?? 1) < 2) patch.h = 2;
             }
             onChange(patch);
           }}>
