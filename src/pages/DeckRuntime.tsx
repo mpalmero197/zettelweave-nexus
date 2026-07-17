@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Smartphone, Maximize2, X, ChevronRight, Home, Zap } from "lucide-react";
+import { DeckTileWidget } from "@/components/deck/DeckTileWidget";
 
 
 export default function DeckRuntime() {
