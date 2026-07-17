@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Download, Upload, Sparkles, ArrowLeft, LayoutGrid, Play } from "lucide-react";
 import { useDecks, useDeckTiles, type Deck, type DeckTile } from "@/hooks/useDecks";
 import { useDeckContextRules, type ContextMatchType } from "@/hooks/useDeckContextRules";
+import { PREBUILT_MACROS } from "@/lib/macros/prebuilt";
+import { useAuth } from "@/hooks/useAuth";
+import { DeckTileWidget } from "@/components/deck/DeckTileWidget";
 
 
 interface MacroLite { id: string; name: string }
