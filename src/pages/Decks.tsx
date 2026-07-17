@@ -447,15 +447,32 @@ function TileInspector({ tile, macros, onChange, onDelete, onMacrosChanged }: {
           </Select>
         </div>
         {tile.kind === "macro" && (
-          <div className="space-y-1">
+          <div className="space-y-1 md:col-span-2">
             <Label className="text-xs">Macro</Label>
-            <Select value={tile.macro_id ?? ""} onValueChange={(v) => onChange({ macro_id: v || null })}>
+            <Select
+              value={tile.macro_id ?? ""}
+              onValueChange={(v) => {
+                if (v.startsWith("prebuilt:")) { installPrebuilt(v.slice("prebuilt:".length)); return; }
+                onChange({ macro_id: v || null });
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Pick a macro" /></SelectTrigger>
-              <SelectContent>
-                {macros.length === 0 ? (
-                  <SelectItem value="__none" disabled>No macros yet — create one in /macros</SelectItem>
-                ) : macros.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+              <SelectContent className="max-h-72">
+                {macros.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">Your macros</div>
+                    {macros.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </>
+                )}
+                <div className="mt-1 px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-t border-border/40">
+                  Prebuilt (installs on select)
+                </div>
+                {PREBUILT_MACROS.map((p) => (
+                  <SelectItem key={p.slug} value={`prebuilt:${p.slug}`}>
+                    {p.icon} {p.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
