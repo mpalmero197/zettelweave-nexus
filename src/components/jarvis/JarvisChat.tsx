@@ -189,6 +189,36 @@ export function JarvisChat({ compact = false }: Props) {
     return () => window.removeEventListener("alice:doc-picker-submit", onPick);
   }, [sendMessage]);
 
+  // Deck tiles / external triggers can request ALICE to run a prompt.
+  // Also consume ?prompt=... on the URL (used as a hard-nav fallback from decks).
+  const promptHandledRef = useRef(false);
+  useEffect(() => {
+    const runPrompt = (text: string) => {
+      const t = text.trim();
+      if (!t) return;
+      sendMessage(t);
+    };
+    const onPrompt = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { prompt?: string } | undefined;
+      if (detail?.prompt) runPrompt(detail.prompt);
+    };
+    window.addEventListener("alice:prompt", onPrompt);
+
+    if (!promptHandledRef.current) {
+      try {
+        const url = new URL(window.location.href);
+        const p = url.searchParams.get("prompt");
+        if (p) {
+          promptHandledRef.current = true;
+          url.searchParams.delete("prompt");
+          window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+          setTimeout(() => runPrompt(p), 60);
+        }
+      } catch { /* ignore */ }
+    }
+    return () => window.removeEventListener("alice:prompt", onPrompt);
+  }, [sendMessage]);
+
   // Scholar handoff: if another page parked a prompt in sessionStorage,
   // pre-fill the composer and (optionally) auto-send it. Runs once per mount.
   const autoPromptHandledRef = useRef(false);
