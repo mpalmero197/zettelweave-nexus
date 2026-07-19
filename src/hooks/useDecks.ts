@@ -66,9 +66,11 @@ export function useDecks() {
   }, [refresh]);
 
   const updateDeck = useCallback(async (id: string, patch: Partial<Deck>) => {
+    // Optimistic — keep controlled inputs responsive so keystrokes aren't lost
+    // to a save-then-refetch round trip.
+    setDecks((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } as Deck : d)));
     const { error } = await supabase.from("alice_decks").update(patch).eq("id", id);
-    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
-    else await refresh();
+    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); refresh(); }
   }, [refresh]);
 
   const deleteDeck = useCallback(async (id: string) => {
