@@ -24,11 +24,14 @@ function tileDisplayLabel(t: DeckTile): string {
   }
   if (t.kind === "folder") return "Folder";
   if (t.kind === "macro") return "Run macro";
-  if (t.kind === "url" && t.url) {
-    try { return new URL(t.url).hostname.replace(/^www\./, ""); } catch { return "Open link" }
+  if (t.kind === "url") {
+    const u = (t.config?.url as string | undefined) ?? "";
+    if (u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return "Open link"; } }
+    return "Open link";
   }
-  if (t.kind === "alice_prompt") return "Ask ALICE";
-  if (t.kind === "app_route" && t.route) return t.route.replace(/^\//, "") || "Open app";
+  if (t.kind === "alice_chat") return "Ask ALICE";
+  if (t.kind === "hotkey") return t.hotkey ?? "Hotkey";
+  if (t.kind === "multi") return "Multi-action";
   return t.kind ?? "Tile";
 }
 
