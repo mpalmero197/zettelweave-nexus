@@ -123,7 +123,10 @@ export default function DeckRuntime() {
       code,
     });
     if (error) { toast({ title: "Pair failed", description: error.message, variant: "destructive" }); return; }
-    const url = `${window.location.origin}/deck/join?code=${code}`;
+    // Always use the branded public domain for pairing so the QR/host reads bakuscribe.com,
+    // even when the desktop is opened via a preview/lovable URL.
+    const pairOrigin = "https://bakuscribe.com";
+    const url = `${pairOrigin}/deck/join?code=${code}`;
     setPairing({ code, url });
     setPairOpen(true);
   };
