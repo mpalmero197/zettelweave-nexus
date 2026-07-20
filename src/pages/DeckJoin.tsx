@@ -7,7 +7,33 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Smartphone, Wifi, WifiOff, LogIn, LogOut, RefreshCw } from "lucide-react";
 import type { DeckTile, Deck } from "@/hooks/useDecks";
+import { DeckTileWidget } from "@/components/deck/DeckTileWidget";
 import bakuScribeLogoAsset from "@/assets/baku-scribe-logo.png.asset.json";
+
+// Give a tile a meaningful label based on what it actually does, so users
+// never see the placeholder "New tile" on the phone remote.
+function tileDisplayLabel(t: DeckTile): string {
+  const raw = (t.label ?? "").trim();
+  if (raw && raw.toLowerCase() !== "new tile") return raw;
+  if (t.kind === "widget") {
+    const w = (t.widget_type ?? "").toLowerCase();
+    if (w === "weather") return "Weather";
+    if (w === "clock") return "Clock";
+    if (w === "stopwatch") return "Stopwatch";
+    return "Live widget";
+  }
+  if (t.kind === "folder") return "Folder";
+  if (t.kind === "macro") return "Run macro";
+  if (t.kind === "url") {
+    const u = (t.config?.url as string | undefined) ?? "";
+    if (u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return "Open link"; } }
+    return "Open link";
+  }
+  if (t.kind === "alice_chat") return "Ask ALICE";
+  if (t.kind === "hotkey") return t.hotkey ?? "Hotkey";
+  if (t.kind === "multi") return "Multi-action";
+  return t.kind ?? "Tile";
+}
 
 const brandLogo = bakuScribeLogoAsset.url;
 
@@ -202,11 +228,13 @@ export default function DeckJoin() {
             }
             const isPressing = pressingId === tile.id;
             const isAcked = lastAckId === tile.id;
+            const label = tileDisplayLabel(tile);
+            const isWidget = tile.kind === "widget";
             return (
               <button
                 key={tile.id}
                 onClick={() => press(tile)}
-                className={`relative flex min-h-[96px] flex-col justify-between rounded-xl border p-3 text-left transition-all touch-manipulation
+                className={`relative flex min-h-[96px] flex-col justify-between overflow-hidden rounded-xl border p-3 text-left transition-all touch-manipulation
                   ${isPressing ? "scale-95" : "scale-100"}
                   ${isAcked ? "border-primary shadow-[0_0_24px_hsl(var(--primary)/.5)]" : "border-border/60"}
                   active:scale-90 hover:border-primary/60`}
@@ -215,8 +243,23 @@ export default function DeckJoin() {
                   color: tile.fg_color ?? undefined,
                 }}
               >
-                <div className="text-4xl leading-none">{tile.icon ?? "•"}</div>
-                <div className="line-clamp-2 text-sm font-semibold leading-tight">{tile.label ?? ""}</div>
+                {isWidget ? (
+                  <div className="flex h-full w-full flex-col">
+                    <div className="flex-1 overflow-hidden">
+                      <DeckTileWidget type={tile.widget_type} label={label} />
+                    </div>
+                    <div className="mt-1 truncate text-[11px] font-semibold uppercase tracking-wide opacity-70">
+                      {label}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-4xl leading-none">
+                      {tile.icon ?? (tile.kind === "folder" ? "📁" : tile.kind === "macro" ? "⚡" : tile.kind === "url" ? "🔗" : tile.kind === "alice_chat" ? "🤖" : "•")}
+                    </div>
+                    <div className="line-clamp-2 text-sm font-semibold leading-tight">{label}</div>
+                  </>
+                )}
                 {isAcked && (
                   <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
                 )}
