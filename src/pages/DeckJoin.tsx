@@ -7,7 +7,30 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Smartphone, Wifi, WifiOff, LogIn, LogOut, RefreshCw } from "lucide-react";
 import type { DeckTile, Deck } from "@/hooks/useDecks";
+import { DeckTileWidget } from "@/components/deck/DeckTileWidget";
 import bakuScribeLogoAsset from "@/assets/baku-scribe-logo.png.asset.json";
+
+// Give a tile a meaningful label based on what it actually does, so users
+// never see the placeholder "New tile" on the phone remote.
+function tileDisplayLabel(t: DeckTile): string {
+  const raw = (t.label ?? "").trim();
+  if (raw && raw.toLowerCase() !== "new tile") return raw;
+  if (t.kind === "widget") {
+    const w = (t.widget_type ?? "").toLowerCase();
+    if (w === "weather") return "Weather";
+    if (w === "clock") return "Clock";
+    if (w === "stopwatch") return "Stopwatch";
+    return "Live widget";
+  }
+  if (t.kind === "folder") return "Folder";
+  if (t.kind === "macro") return "Run macro";
+  if (t.kind === "url" && t.url) {
+    try { return new URL(t.url).hostname.replace(/^www\./, ""); } catch { return "Open link" }
+  }
+  if (t.kind === "alice_prompt") return "Ask ALICE";
+  if (t.kind === "app_route" && t.route) return t.route.replace(/^\//, "") || "Open app";
+  return t.kind ?? "Tile";
+}
 
 const brandLogo = bakuScribeLogoAsset.url;
 
