@@ -54,6 +54,8 @@ export default function DeckRuntime() {
         if (tile) {
           toast({ title: "📱 Phone press", description: tile.label ?? "" });
           runTile(tile);
+          // Ack back so the phone can flash the tile it just triggered.
+          channel.send({ type: "broadcast", event: "ack", payload: { tileId: tile.id, at: Date.now() } });
         }
       })
       .subscribe();
