@@ -229,37 +229,26 @@ export default function DeckJoin() {
             const isPressing = pressingId === tile.id;
             const isAcked = lastAckId === tile.id;
             const label = tileDisplayLabel(tile);
-            const isWidget = tile.kind === "widget";
+            const w = Math.max(1, tile.w ?? 1);
+            const h = Math.max(1, tile.h ?? 1);
             return (
               <button
                 key={tile.id}
                 onClick={() => press(tile)}
-                className={`relative flex min-h-[96px] flex-col justify-between overflow-hidden rounded-xl border p-3 text-left transition-all touch-manipulation
-                  ${isPressing ? "scale-95" : "scale-100"}
-                  ${isAcked ? "border-primary shadow-[0_0_24px_hsl(var(--primary)/.5)]" : "border-border/60"}
-                  active:scale-90 hover:border-primary/60`}
                 style={{
                   background: tile.bg_color ?? "hsl(var(--muted))",
                   color: tile.fg_color ?? undefined,
+                  gridColumn: `span ${w} / span ${w}`,
+                  gridRow: `span ${h} / span ${h}`,
                 }}
+                className={`relative flex min-h-[128px] flex-col overflow-hidden rounded-2xl border p-3 text-left transition-all touch-manipulation
+                  ${isPressing ? "scale-95" : "scale-100"}
+                  ${isAcked ? "border-primary shadow-[0_0_24px_hsl(var(--primary)/.5)]" : "border-border/60"}
+                  active:scale-95 hover:border-primary/60`}
               >
-                {isWidget ? (
-                  <div className="flex h-full w-full flex-col">
-                    <div className="flex-1 overflow-hidden">
-                      <DeckTileWidget type={tile.widget_type} label={label} />
-                    </div>
-                    <div className="mt-1 truncate text-[11px] font-semibold uppercase tracking-wide opacity-70">
-                      {label}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-4xl leading-none">
-                      {tile.icon ?? (tile.kind === "folder" ? "📁" : tile.kind === "macro" ? "⚡" : tile.kind === "url" ? "🔗" : tile.kind === "alice_chat" ? "🤖" : "•")}
-                    </div>
-                    <div className="line-clamp-2 text-sm font-semibold leading-tight">{label}</div>
-                  </>
-                )}
+                <div className="flex-1 min-h-0">
+                  <DeckTileWidget tile={tile} label={label} fallbackType={tile.widget_type} />
+                </div>
                 {isAcked && (
                   <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
                 )}

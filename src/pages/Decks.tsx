@@ -273,7 +273,7 @@ function DeckEditor({ deck, onDeckChange, onDelete }: {
               >
                 {tile.kind === "widget" ? (
                   <div className="h-full w-full overflow-hidden">
-                    <DeckTileWidget type={tile.widget_type} label={tile.label} />
+                    <DeckTileWidget tile={tile} label={tile.label} fallbackType={tile.widget_type} />
                   </div>
                 ) : (
                   <div className="flex h-full flex-col justify-between">

@@ -208,7 +208,7 @@ export default function DeckRuntime() {
                   className="overflow-hidden rounded-lg border border-border/60 p-2"
                   style={{ ...style, ...span }}
                 >
-                  <DeckTileWidget type={tile.widget_type} label={tile.label} />
+                  <DeckTileWidget tile={tile} label={tile.label} fallbackType={tile.widget_type} />
                 </div>
               );
             }
