@@ -313,7 +313,7 @@ function StreakPreview({ label }: { label: string }) {
   const [days, setDays] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const { supabase } = await import("@/integrations/supabase/client") as any;
         const { data: auth } = await supabase.auth.getUser();
@@ -333,9 +333,14 @@ function StreakPreview({ label }: { label: string }) {
         const cur = new Date();
         while (set.has(cur.toDateString())) { streak++; cur.setDate(cur.getDate() - 1); }
         if (!cancelled) setDays(streak);
-      } catch { if (!cancelled) setDays(0); }
-    })();
-    return () => { cancelled = true; };
+      } catch { if (!cancelled && days == null) setDays(0); }
+    };
+    load();
+    const interval = setInterval(load, 60_000);
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
+    return () => { cancelled = true; clearInterval(interval); window.removeEventListener("focus", onFocus); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div className="flex h-full w-full flex-col items-center justify-center">
@@ -354,7 +359,7 @@ function ZettelCountPreview({ label }: { label: string }) {
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const { supabase } = await import("@/integrations/supabase/client") as any;
         const { data: auth } = await supabase.auth.getUser();
@@ -365,10 +370,34 @@ function ZettelCountPreview({ label }: { label: string }) {
           .select("id", { count: "exact", head: true })
           .eq("user_id", uid);
         if (!cancelled) setCount(c ?? 0);
-      } catch { if (!cancelled) setCount(0); }
+      } catch { if (!cancelled && count == null) setCount(0); }
+    };
+    load();
+
+    let channel: any = null;
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client") as any;
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid || cancelled) return;
+      channel = supabase
+        .channel(`deck-zettel-count-${uid}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "cards", filter: `user_id=eq.${uid}` }, () => load())
+        .subscribe();
     })();
-    return () => { cancelled = true; };
+
+    const interval = setInterval(load, 60_000);
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      if (channel) { import("@/integrations/supabase/client").then(({ supabase }) => (supabase as any).removeChannel(channel)); }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   return (
     <div className="flex h-full w-full flex-col items-center justify-center">
       <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider opacity-70">
