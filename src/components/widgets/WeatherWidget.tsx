@@ -90,35 +90,45 @@ export function WeatherWidget() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadWeather() {
-      // Try browser geolocation first
+    let cancelled = false;
+    let coords: { lat: number; lon: number; name: string } | null = null;
+
+    async function resolveCoords() {
+      if (coords) return coords;
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
           if (!navigator.geolocation) { reject(new Error("no geo")); return; }
           navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
         });
-        const { latitude, longitude } = pos.coords;
-        const locationName = await reverseGeocode(latitude, longitude);
-        setWeather(await fetchWeather(latitude, longitude, locationName));
-        setLoading(false);
-        return;
+        const name = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        coords = { lat: pos.coords.latitude, lon: pos.coords.longitude, name };
+        return coords;
       } catch {
-        // Geolocation denied or unavailable — fall through to IP
-      }
-
-      // Fallback: IP-based location
-      try {
         const ipLoc = await getIPLocation();
-        if (!ipLoc) throw new Error("IP location failed");
-        setWeather(await fetchWeather(ipLoc.latitude, ipLoc.longitude, ipLoc.city));
-      } catch {
-        setError("Could not fetch weather");
+        if (!ipLoc) return null;
+        coords = { lat: ipLoc.latitude, lon: ipLoc.longitude, name: ipLoc.city };
+        return coords;
       }
-      setLoading(false);
     }
 
-    loadWeather();
+    async function refresh() {
+      try {
+        const c = await resolveCoords();
+        if (!c) throw new Error("no location");
+        const data = await fetchWeather(c.lat, c.lon, c.name);
+        if (!cancelled) { setWeather(data); setError(null); setLoading(false); }
+      } catch {
+        if (!cancelled) { setError((prev) => prev ?? "Could not fetch weather"); setLoading(false); }
+      }
+    }
+
+    refresh();
+    const interval = setInterval(refresh, 10 * 60 * 1000); // every 10 min
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    return () => { cancelled = true; clearInterval(interval); window.removeEventListener("focus", onFocus); };
   }, []);
+
 
   if (loading) {
     return (
