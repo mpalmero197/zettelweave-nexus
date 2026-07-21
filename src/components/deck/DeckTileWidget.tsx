@@ -47,10 +47,16 @@ export function DeckTileWidget({
     if (wt === "weather") return <FullBleed><WeatherWidget /></FullBleed>;
     if (wt === "clock") return <ClockPreview label={displayLabel} />;
     if (wt === "stopwatch") return <StopwatchPreview label={displayLabel} />;
+    if (wt === "pomodoro") return <PomodoroPreview label={displayLabel} config={tile?.config} />;
+    if (wt === "counter") return <CounterPreview label={displayLabel} tileId={tile?.id} />;
+    if (wt === "writing_streak") return <StreakPreview label={displayLabel} />;
+    if (wt === "zettel_count") return <ZettelCountPreview label={displayLabel} />;
+    if (wt === "alice_status") return <AliceStatusPreview label={displayLabel} />;
     return (
       <TileFrame icon={<Sparkles className="h-5 w-5" />} title={displayLabel || "Live widget"} subtitle={wt || "widget"} />
     );
   }
+
 
   if (kind === "alice_chat") {
     const prompt = (tile?.config?.prompt as string) || "";
