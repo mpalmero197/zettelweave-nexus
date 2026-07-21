@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WeatherWidget } from "@/components/widgets/WeatherWidget";
 import type { DeckTile } from "@/hooks/useDecks";
 import {
@@ -11,7 +11,16 @@ import {
   Zap,
   Circle,
   Compass,
+  Pause,
+  Play,
+  RotateCcw,
+  Plus,
+  Minus,
+  Flame,
+  BookOpen,
+  Bot,
 } from "lucide-react";
+
 
 /**
  * Renders a live preview INSIDE a deck tile for every tile kind — so the
