@@ -315,7 +315,7 @@ function StreakPreview({ label }: { label: string }) {
     let cancelled = false;
     (async () => {
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
+        const { supabase } = await import("@/integrations/supabase/client") as any;
         const { data: auth } = await supabase.auth.getUser();
         const uid = auth?.user?.id;
         if (!uid) { if (!cancelled) setDays(0); return; }
@@ -356,7 +356,7 @@ function ZettelCountPreview({ label }: { label: string }) {
     let cancelled = false;
     (async () => {
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
+        const { supabase } = await import("@/integrations/supabase/client") as any;
         const { data: auth } = await supabase.auth.getUser();
         const uid = auth?.user?.id;
         if (!uid) { if (!cancelled) setCount(0); return; }
