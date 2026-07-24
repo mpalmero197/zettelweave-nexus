@@ -68,27 +68,35 @@ export const useZettelCards = () => {
         description: sanitizeCardInput(newCard.description || ''),
       };
 
+      // Auto-merge only when BOTH title AND content are extremely similar AND the
+      // existing card actually has content — otherwise let the user keep their new card.
       const newContent = `${sanitizedCard.title} ${sanitizedCard.content}`;
       let duplicateCard: ZettelCard | null = null;
-      let highestSimilarity = 0;
-      
-      for (const existingCard of cards) {
-        const titleSimilarity = calculateCardSimilarity(sanitizedCard.title.toLowerCase(), existingCard.title.toLowerCase());
-        if (titleSimilarity >= 0.9) {
-          const existingContent = `${existingCard.title} ${existingCard.content}`;
-          const similarity = calculateCardSimilarity(newContent, existingContent);
-          if (similarity > highestSimilarity) {
-            highestSimilarity = similarity;
-            if (similarity >= 0.95) duplicateCard = existingCard;
+
+      if ((sanitizedCard.content || '').trim().length > 20) {
+        for (const existingCard of cards) {
+          if (!existingCard.content || existingCard.content.trim().length < 20) continue;
+          const titleSim = calculateCardSimilarity(
+            sanitizedCard.title.toLowerCase(),
+            existingCard.title.toLowerCase()
+          );
+          if (titleSim < 0.95) continue;
+          const contentSim = calculateCardSimilarity(
+            newContent,
+            `${existingCard.title} ${existingCard.content}`
+          );
+          if (contentSim >= 0.95) {
+            duplicateCard = existingCard;
+            break;
           }
         }
       }
-      
+
       if (duplicateCard) {
         const mergedTags = [...new Set([...(duplicateCard.tags || []), ...(sanitizedCard.tags || [])])].slice(0, 50);
         const mergedLinkedCards = [...new Set([...(duplicateCard.linkedCards || []), ...(sanitizedCard.linkedCards || [])])].slice(0, 100);
         const useNewContent = (sanitizedCard.content || '').length > (duplicateCard.content || '').length;
-        
+
         const { data, error } = await supabase
           .from('zettel_cards')
           .update({
@@ -123,11 +131,10 @@ export const useZettelCards = () => {
         category = categorizeContent(sanitizedCard.content, sanitizedCard.title);
       }
 
-      const linkedCardsWithHierarchy = await autoLinkHierarchicalCards( '', cardNumber, sanitizedCard.linkedCards || []);
-      const insertPayload = {
+      const linkedCardsWithHierarchy = await autoLinkHierarchicalCards('', cardNumber, sanitizedCard.linkedCards || []);
+      const basePayload = {
         user_id: user.id,
-        number: cardNumber,
-        title: sanitizedCard.title, 
+        title: sanitizedCard.title,
         description: sanitizedCard.description,
         content: sanitizedCard.content,
         category: category,
@@ -137,16 +144,36 @@ export const useZettelCards = () => {
         video_url: sanitizedCard.videoUrl
       };
 
-      let { data, error } = await supabase.from('zettel_cards').insert(insertPayload).select().single();
-
-      if (error?.code === '23505') {
-        const fallbackNumber = `${cardNumber}-${Date.now().toString(36)}`;
-        const retry = await supabase.from('zettel_cards').insert({ ...insertPayload, number: fallbackNumber }).select().single();
-        data = retry.data;
-        error = retry.error;
+      // Try up to 4 times: original number, then increasingly unique fallbacks.
+      let data: any = null;
+      let error: any = null;
+      let numberToUse = cardNumber;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const res = await supabase
+          .from('zettel_cards')
+          .insert({ ...basePayload, number: numberToUse })
+          .select()
+          .single();
+        data = res.data;
+        error = res.error;
+        if (!error) break;
+        if (error.code !== '23505') break;
+        // Collision — regenerate with a strong suffix
+        const suffix = (globalThis.crypto?.randomUUID?.() || `${Date.now()}${Math.random()}`)
+          .replace(/-/g, '')
+          .slice(0, 8);
+        numberToUse = `${cardNumber}-${suffix}`;
       }
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useZettelCards] create failed', { error, cardNumber, numberToUse });
+        if (error.code === '23505') {
+          throw new Error('Could not assign a unique card number. Please try again.');
+        }
+        throw error;
+      }
+
+      cardNumber = numberToUse;
       if (data) {
         const finalLinkedCards = await autoLinkHierarchicalCards(data.id, cardNumber, linkedCardsWithHierarchy);
         if (finalLinkedCards.length !== linkedCardsWithHierarchy.length) {
