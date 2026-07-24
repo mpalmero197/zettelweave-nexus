@@ -1,68 +1,76 @@
+## 1. Fix "duplicate error" when creating Zettel cards
 
-# Macro Deck parity for ALICE — broad build plan
+**Root cause (likely):** In `src/hooks/useZettelCards.ts`, when a new card's auto-generated `number` collides with an existing row on the `(user_id, number)` unique index, the code retries once with `${cardNumber}-${Date.now().toString(36)}`. If that single retry also collides (or the fuzzy title-similarity duplicate check merges into a locked/missing card), the raw Postgres 23505 error surfaces to the toast. The near-duplicate merge branch (title similarity ≥ 0.95) can also block genuinely new cards that happen to share a short title.
 
-Bring the "tap-tile control surface" pattern from Macro Deck into ALICE, on top of the macro engine that already exists (`alice_macros`, abilities registry, marketplace, extension runner, triggers).
+**Fix (frontend only, contained to the create-card mutation):**
+1. Replace the one-shot 23505 retry with a small loop that generates a guaranteed-unique number using `crypto.randomUUID().slice(0,8)` appended to the base number, retrying up to 3 times.
+2. Loosen the similarity-based auto-merge:
+   - Only auto-merge when title similarity ≥ 0.95 **and** content similarity ≥ 0.95 **and** the existing card is not empty.
+   - If a would-be merge target is found, still allow creation of a fresh card and surface a non-blocking toast: "Similar card exists — created anyway. [View]".
+3. Normalize error surface: on any unhandled `23505`, show a friendly toast "Number already used — please try again" instead of the raw Postgres string, and log details to console for debugging.
+4. Add a console log of the full error object inside `onError` so future regressions are easier to diagnose.
 
-Five phases, shippable individually. Each phase ends in a working slice.
+No schema, RLS, or edge function changes.
 
----
+## 2. YouTube + URL Q&A ("Watch & Ask")
 
-## Phase 1 — Deck data model + Deck Studio editor
+A new surface where the user pastes a URL (YouTube video or article) and can watch/read it inline while chatting with ALICE about its contents.
 
-New page `/decks` (Deck Studio) with a visual grid editor.
+### Sources supported
+- YouTube URLs (watch, share, shorts) → embedded `youtube-nocookie` iframe + transcript fetched via a new edge function.
+- Any other http(s) URL → article extraction via the existing `fetch-url-content` edge function.
 
-- New tables (via migration, with GRANTs + RLS scoped to `auth.uid()`):
-  - `alice_decks` — id, user_id, name, description, cols (default 5), rows (default 3), background, theme, is_default, updated_at.
-  - `alice_deck_folders` — id, deck_id, parent_folder_id, name, icon, position.
-  - `alice_deck_tiles` — id, deck_id, folder_id, x, y, w, h, kind (`macro | folder | widget | multi | noop`), label, icon (lucide name / emoji / storage url), bg_color, fg_color, macro_id (fk `alice_macros`), widget_type, config jsonb, hotkey.
-  - `alice_deck_shares` — id, deck_id, code, expires_at, scopes (view/press).
-- Editor UI (drag-drop tile placement on a CSS-grid canvas, right rail = tile inspector, top bar = deck picker + profile switcher, keyboard nudge). Reuses design tokens (deep ink + iridescent violet).
-- "Bind to macro" picker uses existing `alice_macros`; "New macro" jumps into the current Macros builder pre-linked back.
-- Import / Export deck as JSON.
+### Where it lives
+- **Dedicated page:** `/watch` — `src/pages/WatchAsk.tsx`. Two-column layout: left = player/reader, right = ALICE chat panel scoped to that URL. Added to desktop + mobile nav.
+- **Inside ALICE:** `src/components/jarvis/JarvisChat.tsx` detects a pasted URL in the composer. If it looks like a YouTube URL or the user prefixes with "watch:", it renders an inline `UrlPreviewCard` with an "Open Watch & Ask" button that deep-links to `/watch?url=…&thread=<current-thread-id>` so the conversation continues.
 
-## Phase 2 — Runtime: web deck + phone companion (QR pair)
+### New edge function: `youtube-transcript`
+- Input: `{ videoId }` (validated).
+- Auth-required (`_shared/auth.ts`).
+- Fetches `https://www.youtube.com/watch?v=<id>` server-side, extracts `ytInitialPlayerResponse.captions.playerCaptionsTracklistRenderer.captionTracks[0].baseUrl`, fetches the XML, converts to plain-text segments with timestamps.
+- Returns `{ title, channel, duration, segments: [{ start, dur, text }], fullText }`.
+- Fallback: if no captions are available, respond `{ hasTranscript: false }` and the UI shows a graceful "no captions available" state (no Whisper fallback in v1 to keep scope small).
 
-- Runtime view at `/deck/:id` — fullscreen tap grid, big touch targets, haptic + audio feedback, works on desktop and mobile. Live-updates via Supabase realtime on `alice_deck_tiles`.
-- Phone-as-remote flow (Macro Deck's killer feature):
-  - Desktop shows a QR / 6-char pair code (edge fn `deck-pair-create` → row in `alice_deck_shares`).
-  - Phone hits `/deck/join?code=…`, redeems via `deck-pair-redeem`, joins a realtime channel `deck:{deck_id}:{session}`.
-  - Tap on phone → broadcast → desktop receives → executes tile action through the existing ALICE runner (macros, alice_chat, extension bridge).
-- Tile press dispatch is a single `runTile(tile)` helper: macro → invoke existing macro runner; alice_chat → open ALICE with prompt; hotkey → forward to extension; widget → local-only.
+### Client hook: `useWatchAsk`
+- Given a URL, classifies as YouTube vs. article, fetches transcript or extracted markdown, caches in memory + `localStorage` by URL hash.
+- Provides `askQuestion(question, currentTimeSeconds?)` that calls the existing `ai-assistant-chat` edge function with a system prompt built from title + transcript window (± 2 min around `currentTimeSeconds` when provided, plus a global summary chunk) or the article body (chunked and top-k selected).
 
-## Phase 3 — Profiles, folders, contextual auto-switch
+### UI (`WatchAsk.tsx`)
+- **Header:** URL input, "Load" button, source badge (YouTube / Article).
+- **Left pane:**
+  - YouTube: `<iframe>` with `enablejsapi=1` + `postMessage` polling of currentTime. A "Jump to timestamp" chip appears next to each ALICE answer citation like `[03:41]`, click to seek.
+  - Article: sanitized markdown render with reading time + hostname.
+- **Right pane:**
+  - Chat thread with streaming answers (reuse `useKnowledgeChat`-style pattern already in the app).
+  - Quick-action chips: "Summarize", "Key takeaways", "Ask about the current moment" (YouTube only), "Save summary as Zettel card".
+  - "Save answer as Zettel card" per message.
+- **Mobile:** stacks vertically — player on top (sticky), chat below.
 
-- Profiles = named decks; a "Default profile" per user.
-- Folder tiles push a folder onto a breadcrumb stack in runtime; back tile pops.
-- Context rules table `alice_deck_context_rules` (host pattern, app id, keyword) → auto-switch active deck when the extension reports a matching active tab (reuses the existing `site` / `topic` trigger infra).
+### Routing / nav
+- Add `/watch` route in `src/App.tsx` (lazy-loaded).
+- Add "Watch & Ask" entry to desktop top-bar and mobile FAB grid.
 
-## Phase 4 — Icon packs, theme packs, widget tiles
+### Data / persistence
+- No new tables required for v1. Chat is transient per URL and saved on demand as a Zettel card (existing flow) or Note (existing flow).
+- Reuses `ai-assistant-chat` (Lovable AI Gateway, gemini-3-flash) — no new secrets.
 
-- Icon library modal: Lucide (already installed), emoji picker, plus user uploads stored in a new `deck-icons` storage bucket (private, RLS to owner). Optional "Icon packs" table so packs can be installed marketplace-style.
-- Theme packs = named color presets (bg gradient, tile radius, glow intensity) applied at deck level.
-- Widget tiles (no macro needed, render live data):
-  - `clock`, `countdown`, `pomodoro`, `counter` (tap to inc, long-press reset), `weather` (reuse existing Open-Meteo integration), `stopwatch`, `writing_streak`, `zettel_count`, `now_playing` (from recorder), `alice_status`.
+## Files touched
 
-## Phase 5 — Marketplace + plugin abilities + sharing
+**Fix (1):**
+- `src/hooks/useZettelCards.ts` — loop-based number collision retry, relaxed merge, friendlier error toast, error logging.
 
-- Extend the existing `macro_marketplace_submissions` flow with a `kind` column: `macro | deck | ability_plugin | icon_pack | theme_pack`. Install pulls a snapshot into the user's own tables (same pattern as `macro-marketplace-install`).
-- Ability plugins = JSON-defined custom step types added to `MACRO_ABILITIES` at runtime (mirrored in extension via a fetched registry file).
-- Deck share links: read-only public deck view (`/d/:code`) rendered from `alice_deck_shares` with press disabled unless the viewer is signed in and holds `press` scope.
-
----
-
-## Technical details
-
-- **Stack**: existing React 18 + Vite + Tailwind + shadcn; Supabase for tables/realtime/storage; existing edge-function auth helper.
-- **Realtime**: broadcast channels for tap events (low-latency, no DB write); postgres_changes on `alice_deck_tiles` for editor sync. All subscriptions inside `useEffect` with `removeChannel` cleanup (per project rule).
-- **Security**: all new tables `ENABLE ROW LEVEL SECURITY`; policies use `auth.uid() = user_id` (or `has_role`); explicit `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated;` + `GRANT ALL ... TO service_role;` in the same migration. Pair codes are single-use, short-lived (5 min), rate-limited in the edge function.
-- **Extension**: `public/chrome-extension/runner.js` gains a `run_deck_tile` message handler so desktop deck presses can reach browser-side abilities; new `deck-bridge.js` script bridges realtime broadcasts → runner.
-- **Reuse, don't fork**: tiles delegate to the existing macro runner, abilities registry, marketplace, triggers, and vault — no parallel execution engine.
-- **Rollout**: ship Phase 1 alone (editor works with existing macros, no runtime yet). Phase 2 unlocks the phone remote. Phases 3–5 are additive.
-
----
+**Feature (2):**
+- `supabase/functions/youtube-transcript/index.ts` (new) — CORS, auth-checked, transcript extraction.
+- `src/hooks/useWatchAsk.ts` (new).
+- `src/pages/WatchAsk.tsx` (new).
+- `src/components/watch/YouTubePlayer.tsx` (new) — postMessage bridge for currentTime + seek.
+- `src/components/watch/ArticleReader.tsx` (new).
+- `src/components/watch/WatchChatPanel.tsx` (new).
+- `src/components/jarvis/JarvisChat.tsx` — URL detection + "Open Watch & Ask" CTA.
+- `src/App.tsx` — lazy route for `/watch`.
+- Desktop + mobile nav components — add "Watch & Ask" link.
 
 ## Out of scope for this pass
-
-- Native desktop app (Macro Deck ships a .NET desktop client — we stay web + extension).
-- Stream Deck hardware driver.
-- Non-Chromium browser extension parity.
+- Whisper fallback for videos without captions.
+- Persistent chat threads per URL (can be added later if you want history).
+- Non-YouTube video embeds (Vimeo, direct MP4) — can extend the classifier later.
