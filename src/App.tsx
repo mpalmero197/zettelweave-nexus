@@ -201,6 +201,11 @@ const App = () => (
                       <Decks />
                     </Suspense>
                   } />
+                  <Route path="/watch" element={
+                    <Suspense fallback={<LoadingFallback message="Loading Watch & Ask..." />}>
+                      <WatchAsk />
+                    </Suspense>
+                  } />
                   <Route path="/install" element={
                     <Suspense fallback={<LoadingFallback message="Loading installation..." />}>
                       <Install />
