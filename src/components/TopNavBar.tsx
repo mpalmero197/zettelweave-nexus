@@ -144,6 +144,17 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
         size="sm"
         className="h-8 px-3 text-xs font-medium gap-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
       >
+        <Link to="/watch" aria-label="Watch & Ask">
+          <Youtube className="h-3.5 w-3.5" />
+          Watch
+        </Link>
+      </Button>
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="h-8 px-3 text-xs font-medium gap-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+      >
         <Link to="/decks" aria-label="Deck Studio">
           <LayoutGrid className="h-3.5 w-3.5" />
           Decks
