@@ -200,7 +200,9 @@ export const useZettelCards = () => {
       }
     },
     onError: (error: any) => {
-      toast({ title: 'Error creating card', description: error.message, variant: 'destructive' });
+      console.error('[useZettelCards] create card error', error);
+      const msg = error?.message || 'Something went wrong. Please try again.';
+      toast({ title: 'Error creating card', description: msg, variant: 'destructive' });
     }
   });
 
