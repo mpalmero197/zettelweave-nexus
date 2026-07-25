@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { Wand2, LayoutGrid } from "lucide-react";
+import { Wand2, LayoutGrid, Youtube } from "lucide-react";
 import {
   ChevronDown,
   LayoutDashboard,
