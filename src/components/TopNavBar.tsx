@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { Wand2, LayoutGrid } from "lucide-react";
+import { Wand2, LayoutGrid, Youtube } from "lucide-react";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -136,6 +136,17 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
         <Link to="/macros" aria-label="Macro Suite">
           <Wand2 className="h-3.5 w-3.5" />
           Macros
+        </Link>
+      </Button>
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="h-8 px-3 text-xs font-medium gap-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+      >
+        <Link to="/watch" aria-label="Watch & Ask">
+          <Youtube className="h-3.5 w-3.5" />
+          Watch
         </Link>
       </Button>
       <Button

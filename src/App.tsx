@@ -109,6 +109,7 @@ const Decks = lazyWithReload(() => import("./pages/Decks"));
 const DeckRuntime = lazyWithReload(() => import("./pages/DeckRuntime"));
 const DeckJoin = lazyWithReload(() => import("./pages/DeckJoin"));
 const ComparisonPage = lazyWithReload(() => import("./pages/vs/ComparisonPage"));
+const WatchAsk = lazyWithReload(() => import("./pages/WatchAsk"));
 
 // Lazy load persistent layout
 const AppLayout = lazyWithReload(() => import("./components/AppLayout").then(m => ({ default: m.AppLayout })));
@@ -198,6 +199,11 @@ const App = () => (
                   <Route path="/decks" element={
                     <Suspense fallback={<LoadingFallback message="Loading decks..." />}>
                       <Decks />
+                    </Suspense>
+                  } />
+                  <Route path="/watch" element={
+                    <Suspense fallback={<LoadingFallback message="Loading Watch & Ask..." />}>
+                      <WatchAsk />
                     </Suspense>
                   } />
                   <Route path="/install" element={
