@@ -79,18 +79,26 @@ serve(async (req) => {
       });
     }
 
-    const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; BakuScribeBot/1.0)',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
+    const ytHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+000; SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODA4LjA3X3AwGgJlbiACGgYIgLC_pwY',
+    };
+
+    let watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, { headers: ytHeaders, redirect: 'follow' });
     if (!watchRes.ok) {
       return new Response(JSON.stringify({ error: `YouTube fetch failed: ${watchRes.status}` }), {
         status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const html = await watchRes.text();
+    let html = await watchRes.text();
+
+    // If we hit a consent interstitial, retry with hl=en and stronger cookie
+    if (!html.includes('captionTracks') && (html.includes('consent.youtube.com') || html.includes('/sorry/'))) {
+      watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en&persist_hl=1`, { headers: ytHeaders });
+      if (watchRes.ok) html = await watchRes.text();
+    }
 
     // Title
     let title = '';
@@ -106,19 +114,36 @@ serve(async (req) => {
     const cm = html.match(/"ownerChannelName":"([^"]+)"/);
     if (cm) channel = decodeEntities(cm[1]);
 
-    // Extract captionTracks
-    const captionsMatch = html.match(/"captionTracks":(\[[^\]]+\])/);
-    if (!captionsMatch) {
+    // Extract captionTracks with bracket-aware scan (handles nested arrays/objects)
+    let tracks: any[] = [];
+    const key = '"captionTracks":';
+    const idx = html.indexOf(key);
+    if (idx !== -1) {
+      const startArr = html.indexOf('[', idx);
+      if (startArr !== -1) {
+        let depth = 0, end = -1, inStr = false, esc = false;
+        for (let i = startArr; i < html.length; i++) {
+          const ch = html[i];
+          if (inStr) {
+            if (esc) esc = false;
+            else if (ch === '\\') esc = true;
+            else if (ch === '"') inStr = false;
+          } else {
+            if (ch === '"') inStr = true;
+            else if (ch === '[') depth++;
+            else if (ch === ']') { depth--; if (depth === 0) { end = i; break; } }
+          }
+        }
+        if (end !== -1) {
+          const raw = html.slice(startArr, end + 1).replace(/\\u0026/g, '&');
+          try { tracks = JSON.parse(raw); } catch { tracks = []; }
+        }
+      }
+    }
+    if (!tracks.length) {
       return new Response(JSON.stringify({
         videoId, title, channel, hasTranscript: false, segments: [], fullText: '',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    let tracks: any[] = [];
-    try {
-      tracks = JSON.parse(captionsMatch[1].replace(/\\u0026/g, '&'));
-    } catch {
-      tracks = [];
     }
     if (!tracks.length) {
       return new Response(JSON.stringify({
