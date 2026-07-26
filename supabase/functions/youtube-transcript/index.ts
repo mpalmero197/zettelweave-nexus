@@ -48,6 +48,37 @@ function parseTranscriptXml(xml: string): Array<{ start: number; dur: number; te
   return segments;
 }
 
+async function getOEmbedTitle(videoId: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { headers: { 'Accept': 'application/json' } },
+    );
+    if (!res.ok) return '';
+    const data = await res.json();
+    return typeof data?.title === 'string' ? decodeEntities(data.title) : '';
+  } catch {
+    return '';
+  }
+}
+
+function transcriptUnavailableResponse(
+  videoId: string,
+  title = '',
+  channel = '',
+  reason = 'Transcript unavailable',
+) {
+  return new Response(JSON.stringify({
+    videoId,
+    title: title || 'YouTube video',
+    channel,
+    hasTranscript: false,
+    segments: [],
+    fullText: '',
+    warning: reason,
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -69,9 +100,9 @@ serve(async (req) => {
 
     let watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, { headers: ytHeaders, redirect: 'follow' });
     if (!watchRes.ok) {
-      return new Response(JSON.stringify({ error: `YouTube fetch failed: ${watchRes.status}` }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.warn(`youtube-transcript: YouTube watch fetch failed (${watchRes.status}) for ${videoId}`);
+      const fallbackTitle = await getOEmbedTitle(videoId);
+      return transcriptUnavailableResponse(videoId, fallbackTitle, '', `YouTube transcript fetch was rate-limited (${watchRes.status})`);
     }
     let html = await watchRes.text();
 
