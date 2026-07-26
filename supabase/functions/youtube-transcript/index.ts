@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,37 +48,41 @@ function parseTranscriptXml(xml: string): Array<{ start: number; dur: number; te
   return segments;
 }
 
+async function getOEmbedTitle(videoId: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { headers: { 'Accept': 'application/json' } },
+    );
+    if (!res.ok) return '';
+    const data = await res.json();
+    return typeof data?.title === 'string' ? decodeEntities(data.title) : '';
+  } catch {
+    return '';
+  }
+}
+
+function transcriptUnavailableResponse(
+  videoId: string,
+  title = '',
+  channel = '',
+  reason = 'Transcript unavailable',
+) {
+  return new Response(JSON.stringify({
+    videoId,
+    title: title || 'YouTube video',
+    channel,
+    hasTranscript: false,
+    segments: [],
+    fullText: '',
+    warning: reason,
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.warn('youtube-transcript: missing Authorization header');
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    try {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_ANON_KEY')!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) {
-        console.warn('youtube-transcript: auth failed', authErr?.message);
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } catch (authEx) {
-      console.error('youtube-transcript: auth exception', authEx);
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const { url, videoId: rawId } = await req.json();
     const videoId = extractVideoId(rawId || url || '');
     if (!videoId) {
@@ -97,9 +100,9 @@ serve(async (req) => {
 
     let watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, { headers: ytHeaders, redirect: 'follow' });
     if (!watchRes.ok) {
-      return new Response(JSON.stringify({ error: `YouTube fetch failed: ${watchRes.status}` }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.warn(`youtube-transcript: YouTube watch fetch failed (${watchRes.status}) for ${videoId}`);
+      const fallbackTitle = await getOEmbedTitle(videoId);
+      return transcriptUnavailableResponse(videoId, fallbackTitle, '', `YouTube transcript fetch was rate-limited (${watchRes.status})`);
     }
     let html = await watchRes.text();
 
