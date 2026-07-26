@@ -47,6 +47,8 @@ project_id = "sckglgjydlbztxjupbsk"
     verify_jwt = false
   [functions.find-similar-content]
     verify_jwt = true
+  [functions.youtube-transcript]
+    verify_jwt = false
   [functions.generate-embedding]
     verify_jwt = true
   [functions.generate-image]
