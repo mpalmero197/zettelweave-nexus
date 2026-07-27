@@ -67,14 +67,16 @@ function transcriptUnavailableResponse(
   title = '',
   channel = '',
   reason = 'Transcript unavailable',
+  description = '',
 ) {
   return new Response(JSON.stringify({
     videoId,
     title: title || 'YouTube video',
     channel,
+    description,
     hasTranscript: false,
     segments: [],
-    fullText: '',
+    fullText: description || '',
     warning: reason,
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
