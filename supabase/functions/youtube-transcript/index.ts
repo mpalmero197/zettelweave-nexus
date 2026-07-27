@@ -67,21 +67,23 @@ function transcriptUnavailableResponse(
   title = '',
   channel = '',
   reason = 'Transcript unavailable',
+  description = '',
 ) {
   return new Response(JSON.stringify({
     videoId,
     title: title || 'YouTube video',
     channel,
+    description,
     hasTranscript: false,
     segments: [],
-    fullText: '',
+    fullText: description || '',
     warning: reason,
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
 // Fallback: use YouTube's Innertube (mobile web client) player endpoint,
 // which is far less aggressively rate-limited than the watch HTML page.
-async function fetchViaInnertube(videoId: string): Promise<{ title: string; channel: string; tracks: any[] }> {
+async function fetchViaInnertube(videoId: string): Promise<{ title: string; channel: string; description: string; tracks: any[] }> {
   try {
     const body = {
       context: {
@@ -109,15 +111,16 @@ async function fetchViaInnertube(videoId: string): Promise<{ title: string; chan
         body: JSON.stringify(body),
       },
     );
-    if (!res.ok) return { title: '', channel: '', tracks: [] };
+    if (!res.ok) return { title: '', channel: '', description: '', tracks: [] };
     const data = await res.json();
     const title = data?.videoDetails?.title || '';
     const channel = data?.videoDetails?.author || '';
+    const description = data?.videoDetails?.shortDescription || '';
     const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    return { title, channel, tracks };
+    return { title, channel, description, tracks };
   } catch (e) {
     console.warn('innertube fallback failed', e);
-    return { title: '', channel: '', tracks: [] };
+    return { title: '', channel: '', description: '', tracks: [] };
   }
 }
 
@@ -157,6 +160,7 @@ serve(async (req) => {
 
     let title = '';
     let channel = '';
+    let description = '';
     let tracks: any[] = [];
 
     // 1) Try scraping the watch page (rich metadata + captionTracks)
@@ -176,6 +180,25 @@ serve(async (req) => {
         }
         const cm = html.match(/"ownerChannelName":"([^"]+)"/);
         if (cm) channel = decodeEntities(cm[1]);
+
+        // Description: prefer shortDescription JSON blob (multiline, unescaped),
+        // fall back to og:description / meta description tags.
+        const sd = html.match(/"shortDescription":"((?:\\.|[^"\\])*)"/);
+        if (sd) {
+          try {
+            description = JSON.parse(`"${sd[1]}"`);
+          } catch {
+            description = sd[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          }
+        }
+        if (!description) {
+          const og = html.match(/<meta property="og:description" content="([^"]+)"/);
+          if (og) description = decodeEntities(og[1]);
+        }
+        if (!description) {
+          const md = html.match(/<meta name="description" content="([^"]+)"/);
+          if (md) description = decodeEntities(md[1]);
+        }
 
         const key = '"captionTracks":';
         const idx = html.indexOf(key);
@@ -208,31 +231,32 @@ serve(async (req) => {
       console.warn('watch page scrape failed', e);
     }
 
-    // 2) Fallback to Innertube if we couldn't find captionTracks
-    if (!tracks.length) {
+    // 2) Fallback to Innertube if we couldn't find captionTracks or description
+    if (!tracks.length || !description) {
       const inner = await fetchViaInnertube(videoId);
       if (!title) title = inner.title;
       if (!channel) channel = inner.channel;
-      tracks = inner.tracks;
+      if (!description) description = inner.description;
+      if (!tracks.length) tracks = inner.tracks;
     }
 
     // 3) Last-resort: oEmbed for at least a title
     if (!title) title = await getOEmbedTitle(videoId);
 
     if (!tracks.length) {
-      return transcriptUnavailableResponse(videoId, title, channel, 'No captions available for this video');
+      return transcriptUnavailableResponse(videoId, title, channel, 'No captions available for this video', description);
     }
 
     // Prefer English, else first
     const track = tracks.find((t: any) => (t.languageCode || '').startsWith('en')) || tracks[0];
     const segments = await fetchTranscriptFromTrack(track);
     if (!segments.length) {
-      return transcriptUnavailableResponse(videoId, title, channel, 'Transcript could not be downloaded');
+      return transcriptUnavailableResponse(videoId, title, channel, 'Transcript could not be downloaded', description);
     }
     const fullText = segments.map(s => s.text).join(' ');
 
     return new Response(JSON.stringify({
-      videoId, title, channel, hasTranscript: true, segments, fullText,
+      videoId, title, channel, description, hasTranscript: true, segments, fullText,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
     console.error('youtube-transcript error', e);

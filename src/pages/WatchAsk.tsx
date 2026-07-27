@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { toast } from "sonner";
 
-type Source = { kind: "youtube"; videoId: string; title: string; channel?: string; hasTranscript: boolean; segments: Array<{ start: number; dur: number; text: string }>; fullText: string; }
+type Source = { kind: "youtube"; videoId: string; title: string; channel?: string; description?: string; hasTranscript: boolean; segments: Array<{ start: number; dur: number; text: string }>; fullText: string; }
              | { kind: "article"; url: string; title: string; hostname: string; content: string; image?: string; description?: string; }
              | null;
 
@@ -117,6 +117,7 @@ export default function WatchAsk() {
           videoId: ytId,
           title: data.title || "YouTube video",
           channel: data.channel,
+          description: data.description || "",
           hasTranscript: !!data.hasTranscript,
           segments: data.segments || [],
           fullText: data.fullText || "",
@@ -160,8 +161,10 @@ export default function WatchAsk() {
       return [
         `TITLE: ${source.title}`,
         source.channel ? `CHANNEL: ${source.channel}` : "",
+        source.description ? `DESCRIPTION:\n${source.description.slice(0, 4000)}` : "",
+        source.hasTranscript ? "" : "NOTE: No captions were available for this video. Base your answer on the title, channel, and description above, and clearly say when you are inferring rather than quoting.",
         near ? `NEAR CURRENT PLAYBACK (${fmtTime(currentTime)}):\n${near}` : "",
-        `TRANSCRIPT (start):\n${head}`,
+        source.hasTranscript ? `TRANSCRIPT (start):\n${head}` : "",
       ].filter(Boolean).join("\n\n");
     }
     return [
