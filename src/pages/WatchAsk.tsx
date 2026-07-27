@@ -161,8 +161,10 @@ export default function WatchAsk() {
       return [
         `TITLE: ${source.title}`,
         source.channel ? `CHANNEL: ${source.channel}` : "",
+        source.description ? `DESCRIPTION:\n${source.description.slice(0, 4000)}` : "",
+        source.hasTranscript ? "" : "NOTE: No captions were available for this video. Base your answer on the title, channel, and description above, and clearly say when you are inferring rather than quoting.",
         near ? `NEAR CURRENT PLAYBACK (${fmtTime(currentTime)}):\n${near}` : "",
-        `TRANSCRIPT (start):\n${head}`,
+        source.hasTranscript ? `TRANSCRIPT (start):\n${head}` : "",
       ].filter(Boolean).join("\n\n");
     }
     return [
