@@ -117,6 +117,7 @@ export default function WatchAsk() {
           videoId: ytId,
           title: data.title || "YouTube video",
           channel: data.channel,
+          description: data.description || "",
           hasTranscript: !!data.hasTranscript,
           segments: data.segments || [],
           fullText: data.fullText || "",
