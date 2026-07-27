@@ -156,7 +156,7 @@ export default function WatchAsk() {
     if (!source) return "";
     if (source.kind === "youtube") {
       const near = transcriptWindow(source.segments, currentTime, 90);
-      const head = source.fullText.slice(0, 4000);
+      const head = source.fullText.slice(0, 14000);
       return [
         `TITLE: ${source.title}`,
         source.channel ? `CHANNEL: ${source.channel}` : "",
