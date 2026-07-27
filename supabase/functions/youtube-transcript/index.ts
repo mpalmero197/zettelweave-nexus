@@ -83,7 +83,7 @@ function transcriptUnavailableResponse(
 
 // Fallback: use YouTube's Innertube (mobile web client) player endpoint,
 // which is far less aggressively rate-limited than the watch HTML page.
-async function fetchViaInnertube(videoId: string): Promise<{ title: string; channel: string; tracks: any[] }> {
+async function fetchViaInnertube(videoId: string): Promise<{ title: string; channel: string; description: string; tracks: any[] }> {
   try {
     const body = {
       context: {
@@ -111,15 +111,16 @@ async function fetchViaInnertube(videoId: string): Promise<{ title: string; chan
         body: JSON.stringify(body),
       },
     );
-    if (!res.ok) return { title: '', channel: '', tracks: [] };
+    if (!res.ok) return { title: '', channel: '', description: '', tracks: [] };
     const data = await res.json();
     const title = data?.videoDetails?.title || '';
     const channel = data?.videoDetails?.author || '';
+    const description = data?.videoDetails?.shortDescription || '';
     const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    return { title, channel, tracks };
+    return { title, channel, description, tracks };
   } catch (e) {
     console.warn('innertube fallback failed', e);
-    return { title: '', channel: '', tracks: [] };
+    return { title: '', channel: '', description: '', tracks: [] };
   }
 }
 
