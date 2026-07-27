@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { toast } from "sonner";
 
-type Source = { kind: "youtube"; videoId: string; title: string; channel?: string; hasTranscript: boolean; segments: Array<{ start: number; dur: number; text: string }>; fullText: string; }
+type Source = { kind: "youtube"; videoId: string; title: string; channel?: string; description?: string; hasTranscript: boolean; segments: Array<{ start: number; dur: number; text: string }>; fullText: string; }
              | { kind: "article"; url: string; title: string; hostname: string; content: string; image?: string; description?: string; }
              | null;
 
