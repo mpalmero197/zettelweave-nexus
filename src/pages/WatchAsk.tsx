@@ -289,10 +289,23 @@ export default function WatchAsk() {
               <div className="mt-2 text-sm font-semibold truncate">{source.title}</div>
               {source.channel && <div className="text-xs text-muted-foreground">{source.channel}</div>}
               <div className="text-xs text-muted-foreground mt-1">
-                {source.hasTranscript ? `Transcript loaded (${source.segments.length} segments)` : "No captions available — ALICE will use title only."}
+                {source.hasTranscript ? `Transcript loaded (${source.segments.length} segments)` : "No captions available — ALICE will use description + title."}
                 {" · "}Now: {fmtTime(currentTime)}
               </div>
+              {source.description && (
+                <details className="mt-2 text-xs" open={!source.hasTranscript}>
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground select-none">
+                    Description ({source.description.length.toLocaleString()} chars) — used as ALICE context
+                  </summary>
+                  <ScrollArea className="mt-1 max-h-40 rounded border border-border/50 bg-muted/30 p-2">
+                    <div className="whitespace-pre-wrap text-muted-foreground leading-relaxed">
+                      {source.description}
+                    </div>
+                  </ScrollArea>
+                </details>
+              )}
             </>
+
           )}
           {source?.kind === "article" && (
             <ScrollArea className="flex-1 pr-3">
