@@ -176,6 +176,50 @@ async function fetchViaInnertube(videoId: string): Promise<{ title: string; chan
   return { title, channel, description, tracks };
 }
 
+function extractDescriptionFromInnertubeNext(data: unknown): string {
+  const payload = JSON.stringify(data);
+  const patterns = [
+    /"attributedDescription"\s*:\s*\{"content"\s*:\s*"((?:\\.|[^"\\])*)"/,
+    /"description"\s*:\s*\{"simpleText"\s*:\s*"((?:\\.|[^"\\])*)"/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = payload.match(pattern);
+    if (!match) continue;
+    try {
+      const description = normalizeYouTubeDescription(JSON.parse(`"${match[1]}"`));
+      if (description) return description;
+    } catch {
+      const description = normalizeYouTubeDescription(match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'));
+      if (description) return description;
+    }
+  }
+  return '';
+}
+
+async function fetchViaInnertubeNext(videoId: string): Promise<string> {
+  try {
+    const res = await fetch('https://www.youtube.com/youtubei/v1/next?prettyPrint=false', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': 'https://www.youtube.com',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      body: JSON.stringify({
+        context: { client: { clientName: 'WEB', clientVersion: '2.20240101.00.00', hl: 'en', gl: 'US' } },
+        videoId,
+      }),
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    return extractDescriptionFromInnertubeNext(data);
+  } catch (e) {
+    console.warn('innertube next failed', e);
+    return '';
+  }
+}
+
 
 async function fetchTranscriptFromTrack(track: any): Promise<Array<{ start: number; dur: number; text: string }>> {
   if (!track?.baseUrl) return [];
@@ -300,7 +344,14 @@ serve(async (req) => {
       if (!tracks.length) tracks = inner.tracks;
     }
 
-    // 3) Last-resort: oEmbed for at least a title
+    // 3) If the watch/player endpoints were blocked or returned generic shell
+    // metadata, use the Innertube watch-next endpoint. It usually carries the
+    // full expandable YouTube description even when captions are absent.
+    if (!description) {
+      description = await fetchViaInnertubeNext(videoId);
+    }
+
+    // 4) Last-resort: oEmbed for at least a title
     if (!title) title = await getOEmbedTitle(videoId);
 
     if (!tracks.length) {
