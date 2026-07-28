@@ -35,6 +35,52 @@ function decodeEntities(s: string): string {
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
 }
 
+function normalizeYouTubeDescription(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const cleaned = decodeEntities(value)
+    .replace(/\\u0026/g, '&')
+    .replace(/\r\n/g, '\n')
+    .replace(/\u0000/g, '')
+    .trim();
+
+  // YouTube sometimes serves its generic homepage description from consent,
+  // bot-check, or shell pages. Never pass that to ALICE as video context.
+  const generic = 'Enjoy the videos and music you love, upload original content, and share it all with friends, family, and the world on YouTube.';
+  if (!cleaned || cleaned === generic || cleaned.includes('upload original content, and share it all with friends, family, and the world on YouTube')) {
+    return '';
+  }
+  return cleaned;
+}
+
+function extractBalancedJson(html: string, marker: string): unknown | null {
+  const markerIdx = html.indexOf(marker);
+  if (markerIdx === -1) return null;
+  const start = html.indexOf('{', markerIdx);
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = start; i < html.length; i++) {
+    const ch = html[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+    } else {
+      if (ch === '"') inStr = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          try { return JSON.parse(html.slice(start, i + 1)); } catch { return null; }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function parseTranscriptXml(xml: string): Array<{ start: number; dur: number; text: string }> {
   const segments: Array<{ start: number; dur: number; text: string }> = [];
   const re = /<text[^>]*start="([^"]+)"[^>]*dur="([^"]+)"[^>]*>([\s\S]*?)<\/text>/g;
@@ -116,9 +162,10 @@ async function fetchViaInnertube(videoId: string): Promise<{ title: string; chan
       if (!res.ok) continue;
       const data = await res.json();
       const vd = data?.videoDetails || {};
-      if (!title && vd.title) title = vd.title;
-      if (!channel && vd.author) channel = vd.author;
-      if (!description && vd.shortDescription) description = vd.shortDescription;
+      if (!title && vd.title) title = decodeEntities(vd.title);
+      if (!channel && vd.author) channel = decodeEntities(vd.author);
+      const innerDescription = normalizeYouTubeDescription(vd.shortDescription);
+      if (!description && innerDescription) description = innerDescription;
       const t = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
       if (!tracks.length && t.length) tracks = t;
       if (title && description && tracks.length) break;
@@ -178,6 +225,13 @@ serve(async (req) => {
         if (watchRes.ok) html = await watchRes.text();
       }
       if (html) {
+        const playerResponse = extractBalancedJson(html, 'ytInitialPlayerResponse') as any;
+        const playerDetails = playerResponse?.videoDetails || {};
+        if (!title && playerDetails.title) title = decodeEntities(playerDetails.title);
+        if (!channel && playerDetails.author) channel = decodeEntities(playerDetails.author);
+        const playerDescription = normalizeYouTubeDescription(playerDetails.shortDescription);
+        if (!description && playerDescription) description = playerDescription;
+
         const tm = html.match(/<meta name="title" content="([^"]+)"/);
         if (tm) title = decodeEntities(tm[1]);
         else {
@@ -192,18 +246,18 @@ serve(async (req) => {
         const sd = html.match(/"shortDescription":"((?:\\.|[^"\\])*)"/);
         if (sd) {
           try {
-            description = JSON.parse(`"${sd[1]}"`);
+            description = normalizeYouTubeDescription(JSON.parse(`"${sd[1]}"`)) || description;
           } catch {
-            description = sd[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            description = normalizeYouTubeDescription(sd[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\')) || description;
           }
         }
         if (!description) {
           const og = html.match(/<meta property="og:description" content="([^"]+)"/);
-          if (og) description = decodeEntities(og[1]);
+          if (og) description = normalizeYouTubeDescription(og[1]);
         }
         if (!description) {
           const md = html.match(/<meta name="description" content="([^"]+)"/);
-          if (md) description = decodeEntities(md[1]);
+          if (md) description = normalizeYouTubeDescription(md[1]);
         }
 
         const key = '"captionTracks":';
