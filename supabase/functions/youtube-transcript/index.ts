@@ -81,48 +81,54 @@ function transcriptUnavailableResponse(
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
-// Fallback: use YouTube's Innertube (mobile web client) player endpoint,
-// which is far less aggressively rate-limited than the watch HTML page.
+// Fallback: use YouTube's Innertube player endpoint. We try several clients
+// because Google rotates which ones require a PoToken. WEB reliably returns
+// title + description (though usually no captionTracks); ANDROID / IOS /
+// TVHTML5 sometimes return captionTracks. We merge whatever each returns.
 async function fetchViaInnertube(videoId: string): Promise<{ title: string; channel: string; description: string; tracks: any[] }> {
-  try {
-    const body = {
-      context: {
-        client: {
-          clientName: 'ANDROID',
-          clientVersion: '19.09.37',
-          androidSdkVersion: 30,
-          hl: 'en',
-          gl: 'US',
-          userAgent: 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
-        },
-      },
-      videoId,
-    };
-    const res = await fetch(
-      'https://www.youtube.com/youtubei/v1/player?key=AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
-      {
+  const clients: Array<{ name: string; body: any; headers: Record<string, string> }> = [
+    {
+      name: 'WEB',
+      body: { context: { client: { clientName: 'WEB', clientVersion: '2.20240101.00.00', hl: 'en', gl: 'US' } }, videoId },
+      headers: { 'Origin': 'https://www.youtube.com', 'User-Agent': 'Mozilla/5.0' },
+    },
+    {
+      name: 'IOS',
+      body: { context: { client: { clientName: 'IOS', clientVersion: '19.09.3', deviceMake: 'Apple', deviceModel: 'iPhone14,3', hl: 'en', gl: 'US' } }, videoId },
+      headers: { 'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)', 'X-YouTube-Client-Name': '5', 'X-YouTube-Client-Version': '19.09.3' },
+    },
+    {
+      name: 'TVHTML5',
+      body: { context: { client: { clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', clientVersion: '2.0', hl: 'en', gl: 'US' } }, videoId },
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    },
+  ];
+
+  let title = '', channel = '', description = '', tracks: any[] = [];
+
+  for (const c of clients) {
+    try {
+      const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
-          'X-YouTube-Client-Name': '3',
-          'X-YouTube-Client-Version': '19.09.37',
-        },
-        body: JSON.stringify(body),
-      },
-    );
-    if (!res.ok) return { title: '', channel: '', description: '', tracks: [] };
-    const data = await res.json();
-    const title = data?.videoDetails?.title || '';
-    const channel = data?.videoDetails?.author || '';
-    const description = data?.videoDetails?.shortDescription || '';
-    const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    return { title, channel, description, tracks };
-  } catch (e) {
-    console.warn('innertube fallback failed', e);
-    return { title: '', channel: '', description: '', tracks: [] };
+        headers: { 'Content-Type': 'application/json', ...c.headers },
+        body: JSON.stringify(c.body),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const vd = data?.videoDetails || {};
+      if (!title && vd.title) title = vd.title;
+      if (!channel && vd.author) channel = vd.author;
+      if (!description && vd.shortDescription) description = vd.shortDescription;
+      const t = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+      if (!tracks.length && t.length) tracks = t;
+      if (title && description && tracks.length) break;
+    } catch (e) {
+      console.warn(`innertube ${c.name} failed`, e);
+    }
   }
+  return { title, channel, description, tracks };
 }
+
 
 async function fetchTranscriptFromTrack(track: any): Promise<Array<{ start: number; dur: number; text: string }>> {
   if (!track?.baseUrl) return [];
