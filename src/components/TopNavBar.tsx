@@ -5,9 +5,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { Wand2, LayoutGrid, Youtube } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
+  Wand2,
+  LayoutGrid,
+  Youtube,
   ChevronDown,
   LayoutDashboard,
   FileText,
