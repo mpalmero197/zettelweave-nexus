@@ -153,27 +153,8 @@ export default function WatchAsk() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const contextText = useMemo(() => {
-    if (!source) return "";
-    if (source.kind === "youtube") {
-      const near = transcriptWindow(source.segments, currentTime, 90);
-      const head = source.fullText.slice(0, 14000);
-      return [
-        `TITLE: ${source.title}`,
-        source.channel ? `CHANNEL: ${source.channel}` : "",
-        source.description ? `DESCRIPTION:\n${source.description.slice(0, 4000)}` : "",
-        source.hasTranscript ? "" : "NOTE: No captions were available for this video. Base your answer on the title, channel, and description above, and clearly say when you are inferring rather than quoting.",
-        near ? `NEAR CURRENT PLAYBACK (${fmtTime(currentTime)}):\n${near}` : "",
-        source.hasTranscript ? `TRANSCRIPT (start):\n${head}` : "",
-      ].filter(Boolean).join("\n\n");
-    }
-    return [
-      `TITLE: ${source.title}`,
-      `URL: ${source.url}`,
-      source.description ? `DESCRIPTION: ${source.description}` : "",
-      `CONTENT:\n${source.content.slice(0, 8000)}`,
-    ].filter(Boolean).join("\n\n");
-  }, [source, currentTime]);
+
+
 
   const ask = useCallback(async (question: string, mode: "chat" | "summary" | "chapters" | "deep" | "study" | "quotes" | "factcheck" | "actions" = "chat") => {
     if (!source) return;
