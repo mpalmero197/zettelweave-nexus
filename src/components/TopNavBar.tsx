@@ -68,11 +68,14 @@ const navGroups = [
   },
   {
     label: "Create",
-    tabs: ["catalyst", "collab", "canvas"],
+    tabs: ["catalyst", "collab", "canvas", "macros", "decks", "watch"],
     items: [
       { id: "catalyst", label: "Catalyst", icon: Lightbulb },
       { id: "collab", label: "Collab", icon: Users },
       { id: "canvas", label: "Canvas Studio", icon: Palette },
+      { id: "macros", label: "Macro Suite", icon: Wand2, path: "/macros" },
+      { id: "decks", label: "Deck Studio", icon: LayoutGrid, path: "/decks" },
+      { id: "watch", label: "Watch & Ask", icon: Youtube, path: "/watch" },
     ],
   },
   {
