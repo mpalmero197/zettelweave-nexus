@@ -332,17 +332,34 @@ export default function WatchAsk() {
         {/* RIGHT: Chat */}
         <Card className="p-3 flex flex-col min-h-0">
           <div className="flex flex-wrap gap-1.5 mb-2">
-            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("Give me a concise summary with 3-5 key takeaways.")}>
-              <Sparkles className="h-3 w-3 mr-1" />Summarize
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "summary")}>
+              <Sparkles className="h-3 w-3 mr-1" />Summary
             </Button>
             {source?.kind === "youtube" && (
-              <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask(`What is being said right around ${fmtTime(currentTime)}? Explain it in plain terms.`)}>
-                About the current moment
+              <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "chapters")}>
+                Chapters
               </Button>
             )}
-            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("What are the most important quotes or claims worth saving?")}>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "deep")}>
+              Deep dive
+            </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "study")}>
+              Study notes
+            </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "quotes")}>
               Key quotes
             </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "factcheck")}>
+              Fact-check
+            </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "actions")}>
+              Actions
+            </Button>
+            {source?.kind === "youtube" && (
+              <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask(`What is being said right around ${fmtTime(currentTime)}? Explain in plain terms.`)}>
+                This moment
+              </Button>
+            )}
           </div>
 
           <ScrollArea className="flex-1 pr-2">
