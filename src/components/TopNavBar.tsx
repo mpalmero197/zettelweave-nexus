@@ -91,6 +91,7 @@ const navGroups = [
 ];
 
 export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
+  const navigate = useNavigate();
   return (
     <nav className="hidden md:flex items-center gap-0.5 ml-2" role="navigation" aria-label="Main navigation">
       {navGroups.map((group) => {
@@ -116,55 +117,26 @@ export function TopNavBar({ activeTab, onTabChange }: TopNavBarProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[170px] bg-card border-border rounded-lg shadow-hover">
-              {group.items.map(({ id, label, icon: Icon }) => (
-                <DropdownMenuItem
-                  key={id}
-                  onClick={() => onTabChange(id)}
-                  className={`gap-2.5 cursor-pointer rounded-md ${
-                    activeTab === id ? "bg-primary/10 text-primary" : ""
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </DropdownMenuItem>
-              ))}
+              {group.items.map((item) => {
+                const { id, label, icon: Icon } = item as any;
+                const path = (item as any).path as string | undefined;
+                return (
+                  <DropdownMenuItem
+                    key={id}
+                    onClick={() => (path ? navigate(path) : onTabChange(id))}
+                    className={`gap-2.5 cursor-pointer rounded-md ${
+                      activeTab === id ? "bg-primary/10 text-primary" : ""
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </DropdownMenuItem>
+                );
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
         );
       })}
-      <Button
-        asChild
-        variant="ghost"
-        size="sm"
-        className="h-8 px-3 text-xs font-medium gap-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
-      >
-        <Link to="/macros" aria-label="Macro Suite">
-          <Wand2 className="h-3.5 w-3.5" />
-          Macros
-        </Link>
-      </Button>
-      <Button
-        asChild
-        variant="ghost"
-        size="sm"
-        className="h-8 px-3 text-xs font-medium gap-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
-      >
-        <Link to="/watch" aria-label="Watch & Ask">
-          <Youtube className="h-3.5 w-3.5" />
-          Watch
-        </Link>
-      </Button>
-      <Button
-        asChild
-        variant="ghost"
-        size="sm"
-        className="h-8 px-3 text-xs font-medium gap-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
-      >
-        <Link to="/decks" aria-label="Deck Studio">
-          <LayoutGrid className="h-3.5 w-3.5" />
-          Decks
-        </Link>
-      </Button>
     </nav>
   );
 }
