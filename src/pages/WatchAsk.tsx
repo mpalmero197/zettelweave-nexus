@@ -175,24 +175,51 @@ export default function WatchAsk() {
     ].filter(Boolean).join("\n\n");
   }, [source, currentTime]);
 
-  const ask = useCallback(async (question: string) => {
-    if (!source || !question.trim()) return;
-    const nextMessages = [...messages, { role: "user" as const, content: question }];
+  const ask = useCallback(async (question: string, mode: "chat" | "summary" | "chapters" | "deep" | "study" | "quotes" | "factcheck" | "actions" = "chat") => {
+    if (!source) return;
+    if (mode === "chat" && !question.trim()) return;
+    const userLabel = mode === "chat"
+      ? question
+      : ({
+          summary: "Give me a structured summary.",
+          chapters: "Reconstruct the chapters/outline.",
+          deep: "Deep-dive analysis.",
+          study: "Turn this into study notes.",
+          quotes: "Pull the top quotes.",
+          factcheck: "Fact-check the main claims.",
+          actions: "Extract actionable takeaways.",
+        } as const)[mode];
+    const nextMessages = [...messages, { role: "user" as const, content: userLabel }];
     setMessages(nextMessages);
-    setInput("");
+    if (mode === "chat") setInput("");
     setAsking(true);
     try {
-      const system = `You are ALICE, answering questions about a ${source.kind === "youtube" ? "YouTube video" : "web page"} the user is viewing. Use ONLY the provided source excerpt. When referencing a YouTube moment, cite timestamps like [1:23]. If the answer is not in the excerpt, say so briefly.\n\nSOURCE EXCERPT:\n${contextText}`;
-      const { data, error } = await supabase.functions.invoke("ai-assistant-chat", {
+      const { data, error } = await supabase.functions.invoke("analyze-watch", {
         body: {
-          messages: [
-            { role: "system", content: system },
-            ...nextMessages,
-          ],
+          source: source.kind === "youtube"
+            ? {
+                kind: "youtube",
+                title: source.title,
+                channel: source.channel,
+                description: source.description,
+                segments: source.segments,
+              }
+            : {
+                kind: "article",
+                title: source.title,
+                url: source.url,
+                description: source.description,
+                content: source.content,
+              },
+          question: mode === "chat" ? question : "",
+          mode,
+          currentTime,
+          history: messages.slice(-8),
         },
       });
       if (error) throw error;
-      const answer = data?.response || data?.message || data?.content || "";
+      if (data?.error) throw new Error(data.error);
+      const answer = data?.response || "";
       setMessages(m => [...m, { role: "assistant", content: answer || "(no response)" }]);
     } catch (e: any) {
       console.error("ask failed", e);
@@ -201,7 +228,7 @@ export default function WatchAsk() {
     } finally {
       setAsking(false);
     }
-  }, [source, messages, contextText]);
+  }, [source, messages, currentTime]);
 
   const saveAsCard = useCallback((content: string, title: string) => {
     if (!source) return;
