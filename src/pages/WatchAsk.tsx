@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -153,46 +153,54 @@ export default function WatchAsk() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const contextText = useMemo(() => {
-    if (!source) return "";
-    if (source.kind === "youtube") {
-      const near = transcriptWindow(source.segments, currentTime, 90);
-      const head = source.fullText.slice(0, 14000);
-      return [
-        `TITLE: ${source.title}`,
-        source.channel ? `CHANNEL: ${source.channel}` : "",
-        source.description ? `DESCRIPTION:\n${source.description.slice(0, 4000)}` : "",
-        source.hasTranscript ? "" : "NOTE: No captions were available for this video. Base your answer on the title, channel, and description above, and clearly say when you are inferring rather than quoting.",
-        near ? `NEAR CURRENT PLAYBACK (${fmtTime(currentTime)}):\n${near}` : "",
-        source.hasTranscript ? `TRANSCRIPT (start):\n${head}` : "",
-      ].filter(Boolean).join("\n\n");
-    }
-    return [
-      `TITLE: ${source.title}`,
-      `URL: ${source.url}`,
-      source.description ? `DESCRIPTION: ${source.description}` : "",
-      `CONTENT:\n${source.content.slice(0, 8000)}`,
-    ].filter(Boolean).join("\n\n");
-  }, [source, currentTime]);
 
-  const ask = useCallback(async (question: string) => {
-    if (!source || !question.trim()) return;
-    const nextMessages = [...messages, { role: "user" as const, content: question }];
+
+
+  const ask = useCallback(async (question: string, mode: "chat" | "summary" | "chapters" | "deep" | "study" | "quotes" | "factcheck" | "actions" = "chat") => {
+    if (!source) return;
+    if (mode === "chat" && !question.trim()) return;
+    const userLabel = mode === "chat"
+      ? question
+      : ({
+          summary: "Give me a structured summary.",
+          chapters: "Reconstruct the chapters/outline.",
+          deep: "Deep-dive analysis.",
+          study: "Turn this into study notes.",
+          quotes: "Pull the top quotes.",
+          factcheck: "Fact-check the main claims.",
+          actions: "Extract actionable takeaways.",
+        } as const)[mode];
+    const nextMessages = [...messages, { role: "user" as const, content: userLabel }];
     setMessages(nextMessages);
-    setInput("");
+    if (mode === "chat") setInput("");
     setAsking(true);
     try {
-      const system = `You are ALICE, answering questions about a ${source.kind === "youtube" ? "YouTube video" : "web page"} the user is viewing. Use ONLY the provided source excerpt. When referencing a YouTube moment, cite timestamps like [1:23]. If the answer is not in the excerpt, say so briefly.\n\nSOURCE EXCERPT:\n${contextText}`;
-      const { data, error } = await supabase.functions.invoke("ai-assistant-chat", {
+      const { data, error } = await supabase.functions.invoke("analyze-watch", {
         body: {
-          messages: [
-            { role: "system", content: system },
-            ...nextMessages,
-          ],
+          source: source.kind === "youtube"
+            ? {
+                kind: "youtube",
+                title: source.title,
+                channel: source.channel,
+                description: source.description,
+                segments: source.segments,
+              }
+            : {
+                kind: "article",
+                title: source.title,
+                url: source.url,
+                description: source.description,
+                content: source.content,
+              },
+          question: mode === "chat" ? question : "",
+          mode,
+          currentTime,
+          history: messages.slice(-8),
         },
       });
       if (error) throw error;
-      const answer = data?.response || data?.message || data?.content || "";
+      if (data?.error) throw new Error(data.error);
+      const answer = data?.response || "";
       setMessages(m => [...m, { role: "assistant", content: answer || "(no response)" }]);
     } catch (e: any) {
       console.error("ask failed", e);
@@ -201,7 +209,7 @@ export default function WatchAsk() {
     } finally {
       setAsking(false);
     }
-  }, [source, messages, contextText]);
+  }, [source, messages, currentTime]);
 
   const saveAsCard = useCallback((content: string, title: string) => {
     if (!source) return;
@@ -324,17 +332,34 @@ export default function WatchAsk() {
         {/* RIGHT: Chat */}
         <Card className="p-3 flex flex-col min-h-0">
           <div className="flex flex-wrap gap-1.5 mb-2">
-            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("Give me a concise summary with 3-5 key takeaways.")}>
-              <Sparkles className="h-3 w-3 mr-1" />Summarize
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "summary")}>
+              <Sparkles className="h-3 w-3 mr-1" />Summary
             </Button>
             {source?.kind === "youtube" && (
-              <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask(`What is being said right around ${fmtTime(currentTime)}? Explain it in plain terms.`)}>
-                About the current moment
+              <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "chapters")}>
+                Chapters
               </Button>
             )}
-            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("What are the most important quotes or claims worth saving?")}>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "deep")}>
+              Deep dive
+            </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "study")}>
+              Study notes
+            </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "quotes")}>
               Key quotes
             </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "factcheck")}>
+              Fact-check
+            </Button>
+            <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask("", "actions")}>
+              Actions
+            </Button>
+            {source?.kind === "youtube" && (
+              <Button size="sm" variant="outline" disabled={!source || asking} onClick={() => ask(`What is being said right around ${fmtTime(currentTime)}? Explain in plain terms.`)}>
+                This moment
+              </Button>
+            )}
           </div>
 
           <ScrollArea className="flex-1 pr-2">
