@@ -68,6 +68,8 @@ Allow: /llms-full.txt
 Disallow: /app
 Disallow: /settings
 Disallow: /admin
+Allow: /for/
+Allow: /guides
 Disallow: /vault
 Disallow: /alice-app
 Disallow: /*.json$

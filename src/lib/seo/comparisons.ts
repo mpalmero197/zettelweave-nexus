@@ -285,4 +285,213 @@ export const comparisons: ComparisonSpec[] = [
       },
     ],
   },
+  {
+    slug: "apple-notes",
+    competitor: "Apple Notes",
+    title: "Baku Scribe vs Apple Notes (2026): AI Second Brain Alternative",
+    metaDescription:
+      "Baku Scribe vs Apple Notes compared: automatic linking, knowledge graph, private AI chat, cross-platform access, and pricing. A full second brain instead of a notes app.",
+    h1: "Baku Scribe vs Apple Notes: when do you outgrow Apple Notes?",
+    answerSummary:
+      "Apple Notes is excellent for quick capture inside the Apple ecosystem, but it stores notes as isolated documents with no linking, graph, or AI reasoning. Baku Scribe keeps capture just as fast while automatically connecting every note into a living knowledge graph you can chat with, on any platform including Windows, Android, and the web.",
+    verdict:
+      "Stay on Apple Notes for grocery lists and scanned receipts. Move to Baku Scribe once your notes need to talk to each other — research, writing projects, or a long-term second brain.",
+    tableRows: [
+      ["Automatic idea linking", "Yes — AI links every card", "No — isolated notes"],
+      ["Living knowledge graph", "Built in", "Not available"],
+      ["AI chat over your notes", "Included in Premium", "No"],
+      ["Cross-platform", "Web, Windows, Android, iOS, PWA", "Apple devices only"],
+      ["Backlinks and wikilinks", "Yes", "No"],
+      ["Import from Notion / Obsidian", "One-click, dedupe", "No"],
+      ["Free tier", "Free forever (50 cards)", "Free with iCloud storage limits"],
+      ["Publishing and sharing", "Share links, collaboration", "Limited note sharing"],
+    ],
+    strengths: {
+      bakuscribe: [
+        "Notes become a connected graph instead of a flat list",
+        "Private AI chat and agents grounded in your own notes",
+        "Works on every platform, not just Apple hardware",
+        "Canvas, Whiteboard, and Mind Map studios for spatial thinking",
+      ],
+      competitor: [
+        "Deep OS integration: Siri, Apple Pencil, Lock Screen capture",
+        "Free with every Apple device and instant iCloud sync",
+        "Excellent document scanning and handwriting",
+      ],
+    },
+    faqs: [
+      {
+        question: "Is there a good Apple Notes alternative with AI?",
+        answer:
+          "Baku Scribe is an AI-native Apple Notes alternative. It auto-links notes into a knowledge graph and lets you chat with your own notes privately, which Apple Notes cannot do.",
+      },
+      {
+        question: "Can I import my Apple Notes into Baku Scribe?",
+        answer:
+          "Yes. Export your notes as PDF or Markdown (or copy them into Markdown files) and drag them into Baku Scribe's Import Studio. Duplicate detection runs automatically.",
+      },
+      {
+        question: "Does Baku Scribe work on iPhone and iPad?",
+        answer:
+          "Yes. Baku Scribe installs as a Progressive Web App on iOS and iPadOS with full offline support, and also runs on Android, Windows, macOS, and the web.",
+      },
+    ],
+  },
+  {
+    slug: "logseq",
+    competitor: "Logseq",
+    title: "Baku Scribe vs Logseq (2026): Best Logseq Alternative Compared",
+    metaDescription:
+      "Baku Scribe vs Logseq compared: outliner blocks vs atomic cards, automatic linking, built-in AI, knowledge graph, sync, and pricing. The zero-setup Logseq alternative.",
+    h1: "Baku Scribe vs Logseq: outliner blocks or an AI knowledge graph?",
+    answerSummary:
+      "Logseq is a free, local-first outliner with block references and a plugin ecosystem, but it requires manual linking and configuration and has no built-in AI. Baku Scribe links your notes automatically, ships AI chat and agents out of the box, and syncs reliably across devices without plugins or file wrangling.",
+    verdict:
+      "Choose Logseq if you want local Markdown files and daily-journal outlining you configure yourself. Choose Baku Scribe if you want automatic linking, built-in AI, and reliable sync with zero setup.",
+    tableRows: [
+      ["Automatic idea linking", "Yes — AI links every card", "No — manual [[links]]"],
+      ["Built-in AI chat and agents", "Yes", "No — third-party plugins only"],
+      ["Setup and configuration", "None — works instantly", "Manual: graphs, plugins, sync"],
+      ["Living knowledge graph", "Built in", "Basic graph view"],
+      ["Reliable multi-device sync", "Yes, built in", "Paid Sync or self-managed"],
+      ["Canvas / Whiteboard / Mind Map", "All three included", "Whiteboards only"],
+      ["Free tier", "Free forever (50 cards)", "Free, open source"],
+      ["End-to-end encryption", "Optional per item", "Via Sync only"],
+    ],
+    strengths: {
+      bakuscribe: [
+        "Zero-configuration automatic linking and knowledge graph",
+        "Private AI chat and agents included, no plugins",
+        "Dependable cross-device sync and offline PWA",
+        "Import Logseq Markdown with duplicate detection",
+      ],
+      competitor: [
+        "Free and open source with local Markdown ownership",
+        "Powerful block-level references and queries",
+        "Strong plugin and theming community",
+      ],
+    },
+    faqs: [
+      {
+        question: "What is the best Logseq alternative in 2026?",
+        answer:
+          "Baku Scribe is the strongest Logseq alternative for people who want automatic linking and built-in AI instead of manual outlining and plugin configuration, while keeping Markdown import and export.",
+      },
+      {
+        question: "Can I move my Logseq graph to Baku Scribe?",
+        answer:
+          "Yes. Logseq stores plain Markdown, so you can drag your pages folder into Baku Scribe's Import Studio. Wikilinks resolve after import and duplicates are detected.",
+      },
+      {
+        question: "Does Baku Scribe support block references like Logseq?",
+        answer:
+          "Baku Scribe uses atomic Zettelkasten cards with wikilinks and contextual backlinks. It covers the same referencing use cases while adding AI-generated links you did not have to create.",
+      },
+    ],
+  },
+  {
+    slug: "mem",
+    competitor: "Mem",
+    title: "Baku Scribe vs Mem (2026): AI Note-Taking Compared",
+    metaDescription:
+      "Baku Scribe vs Mem compared: AI auto-linking, knowledge graph visualization, agents, encryption, offline mode, and pricing. A cheaper, more visual Mem alternative.",
+    h1: "Baku Scribe vs Mem: which AI notes app should you keep?",
+    answerSummary:
+      "Mem pioneered AI-organized notes but keeps everything in a chronological stream with limited visual structure and a higher price. Baku Scribe adds a living knowledge graph, Canvas and Mind Map studios, autonomous agents, optional end-to-end encryption, and full offline mode at $4.99 per month.",
+    verdict:
+      "Choose Mem if you want a minimal AI inbox for notes. Choose Baku Scribe if you want the same AI organization plus visual thinking, agents, encryption, and a lower price.",
+    tableRows: [
+      ["AI automatic linking", "Yes — embedding based", "Yes"],
+      ["Living knowledge graph", "Built in", "Not available"],
+      ["Canvas / Whiteboard / Mind Map", "All three included", "No"],
+      ["Autonomous AI agents", "Yes", "Limited"],
+      ["End-to-end encryption", "Optional per item", "No"],
+      ["Offline mode", "Full PWA", "Limited"],
+      ["Paid tier", "$4.99 / month", "$14.99+ / month"],
+      ["Import from Notion / Obsidian", "One-click, dedupe", "Partial"],
+    ],
+    strengths: {
+      bakuscribe: [
+        "Knowledge graph and spatial studios on top of AI linking",
+        "Autonomous agents that monitor and synthesize your notes",
+        "Optional zero-knowledge encryption for sensitive content",
+        "Roughly one third the price of comparable AI notes apps",
+      ],
+      competitor: [
+        "Very fast, low-friction capture inbox",
+        "Clean, minimal interface with little to learn",
+        "Strong email and calendar capture flows",
+      ],
+    },
+    faqs: [
+      {
+        question: "Is Baku Scribe a cheaper Mem alternative?",
+        answer:
+          "Yes. Baku Scribe Premium is $4.99 per month and includes AI chat, agents, the knowledge graph, and visual studios, well below typical AI note-taking subscriptions.",
+      },
+      {
+        question: "Does Baku Scribe organize notes automatically like Mem?",
+        answer:
+          "Yes. Baku Scribe categorizes new cards automatically and links them to similar cards using embeddings every 30 minutes, so structure appears without manual tagging.",
+      },
+      {
+        question: "Can I keep sensitive notes private?",
+        answer:
+          "Baku Scribe offers optional per-item end-to-end encryption with zero-knowledge keys, so encrypted content is unreadable server-side.",
+      },
+    ],
+  },
+  {
+    slug: "craft",
+    competitor: "Craft",
+    title: "Baku Scribe vs Craft (2026): Beautiful Docs vs AI Second Brain",
+    metaDescription:
+      "Baku Scribe vs Craft compared: document design vs automatic linking and knowledge graphs, AI chat, agents, cross-platform support, and pricing for 2026.",
+    h1: "Baku Scribe vs Craft: beautiful documents or a connected second brain?",
+    answerSummary:
+      "Craft is one of the best-designed document editors available, especially on Apple devices, but documents stay separate and structure is manual. Baku Scribe focuses on connection: every note is auto-linked into a living knowledge graph you can query with private AI, on every platform.",
+    verdict:
+      "Choose Craft if polished, shareable documents are the output you care about. Choose Baku Scribe if the value is in how your notes connect and what AI can find inside them.",
+    tableRows: [
+      ["Automatic idea linking", "Yes — AI links every card", "No — manual links"],
+      ["Living knowledge graph", "Built in", "Not available"],
+      ["AI chat grounded in your notes", "Included in Premium", "Generic AI assistant"],
+      ["Cross-platform", "Web, Windows, Android, iOS, PWA", "Best on Apple, limited elsewhere"],
+      ["Autonomous AI agents", "Yes", "No"],
+      ["Canvas / Whiteboard / Mind Map", "All three included", "No"],
+      ["Paid tier", "$4.99 / month", "$10+ / month"],
+      ["Import from Notion / Obsidian", "One-click, dedupe", "Manual"],
+    ],
+    strengths: {
+      bakuscribe: [
+        "Automatic linking and a knowledge graph across everything you write",
+        "Private AI chat and agents over your own content",
+        "Visual studios for spatial thinking and planning",
+        "Runs everywhere, including Windows and Android",
+      ],
+      competitor: [
+        "Exceptional typography and document polish",
+        "Delightful native Apple app experience",
+        "Great for client-facing documents and sharing",
+      ],
+    },
+    faqs: [
+      {
+        question: "Is Baku Scribe a good Craft alternative?",
+        answer:
+          "Baku Scribe is the better choice when you need connected knowledge rather than standalone documents: it auto-links notes, builds a knowledge graph, and answers questions from your own content.",
+      },
+      {
+        question: "Can I write long documents in Baku Scribe?",
+        answer:
+          "Yes. The Catalyst writing suite handles long-form drafts with chapters, images, citation tools, document themes, and export to PDF, DOCX, and Markdown.",
+      },
+      {
+        question: "Does Baku Scribe work outside the Apple ecosystem?",
+        answer:
+          "Yes. Baku Scribe is a web-first Progressive Web App that installs on Windows, Android, macOS, iOS, and ChromeOS with offline support.",
+      },
+    ],
+  },
 ];
+

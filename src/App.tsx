@@ -109,6 +109,10 @@ const Decks = lazyWithReload(() => import("./pages/Decks"));
 const DeckRuntime = lazyWithReload(() => import("./pages/DeckRuntime"));
 const DeckJoin = lazyWithReload(() => import("./pages/DeckJoin"));
 const ComparisonPage = lazyWithReload(() => import("./pages/vs/ComparisonPage"));
+const UseCasePage = lazyWithReload(() => import("./pages/uses/UseCasePage"));
+const GuidesIndex = lazyWithReload(() => import("./pages/guides/GuidesIndex"));
+const GuidePage = lazyWithReload(() => import("./pages/guides/GuidePage"));
+
 const WatchAsk = lazyWithReload(() => import("./pages/WatchAsk"));
 
 // Lazy load persistent layout
@@ -284,6 +288,22 @@ const App = () => (
                     <ComparisonPage />
                   </Suspense>
                 } />
+                <Route path="/for/:slug" element={
+                  <Suspense fallback={<LoadingFallback message="Loading..." />}>
+                    <UseCasePage />
+                  </Suspense>
+                } />
+                <Route path="/guides" element={
+                  <Suspense fallback={<LoadingFallback message="Loading guides..." />}>
+                    <GuidesIndex />
+                  </Suspense>
+                } />
+                <Route path="/guides/:slug" element={
+                  <Suspense fallback={<LoadingFallback message="Loading guide..." />}>
+                    <GuidePage />
+                  </Suspense>
+                } />
+
                 <Route path="/sso" element={
                   <Suspense fallback={<LoadingFallback message="Signing in from Toolbox..." />}>
                     <SsoHandoff />
