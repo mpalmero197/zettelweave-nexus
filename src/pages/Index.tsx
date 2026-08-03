@@ -91,7 +91,22 @@ const CanvasStudio = lazy(() => import("@/components/CanvasStudio"));
 const MeetingRecorderLazy = lazy(() => import("@/components/MeetingRecorder"));
 
 const Index = () => {
+  // Workspace is private — unique title, and never indexed.
+  useEffect(() => {
+    document.title = "Workspace — Baku Scribe";
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute("content", "noindex, nofollow");
+    return () => {
+      robots?.setAttribute("content", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
+    };
+  }, []);
   const { user, loading: authLoading, signOut } = useAuth();
+
   const { history, addToHistory, clearHistory, removeItem: removeFromHistory } = useSearchHistory();
   const { hasAccess: hasPremium, isAdmin: premiumIsAdmin } = usePremiumAccess();
   const [currentQuery, setCurrentQuery] = useState("");

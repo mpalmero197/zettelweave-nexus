@@ -22,6 +22,30 @@ Baku Scribe is an AI knowledge management platform that automatically connects i
 
 https://bakuscribe.com
 
+## Pages
+
+- [Home](/): AI second brain with a living knowledge graph.
+- [About](/about): Who builds Baku Scribe and why.
+- [Pricing](/subscription): Free tier and Premium plans.
+- [Install](/install): Install the app, PWA, and Chrome extension.
+- [Changelog](/changelog): What shipped recently.
+- [Contact](/contact): Get in touch with the team.
+- [Editorial policy](/editorial-policy): How our content is written and reviewed.
+- [Sitemap](/sitemap): Every public page in one place.
+- [Baku Scribe vs Notion](/vs/notion): Knowledge graph and AI vs Notion databases.
+- [Baku Scribe vs Obsidian](/vs/obsidian): Built-in AI vs local Markdown plus plugins.
+- [Baku Scribe vs Roam Research](/vs/roam-research): Visual thinking at a lower price.
+- [Baku Scribe vs OneNote](/vs/onenote): Automatic linking vs linear notebooks.
+- [Baku Scribe vs Evernote](/vs/evernote): Modern AI second brain vs legacy clipper.
+- [Privacy Policy](/privacy): How your data is handled.
+- [Terms of Service](/terms): Terms for using Baku Scribe.
+
+## Optional
+
+- [Full knowledge base](/llms-full.txt): Extended feature and product detail.
+
+
+
 ## Core Features
 
 - Living Knowledge Graph: Automatically links related ideas without manual tagging or folders
