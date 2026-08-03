@@ -31,6 +31,19 @@ const entries: SitemapEntry[] = [
   { path: "/vs/roam-research", changefreq: "monthly", priority: "0.85" },
   { path: "/vs/onenote", changefreq: "monthly", priority: "0.85" },
   { path: "/vs/evernote", changefreq: "monthly", priority: "0.85" },
+  { path: "/vs/apple-notes", changefreq: "monthly", priority: "0.8" },
+  { path: "/vs/logseq", changefreq: "monthly", priority: "0.8" },
+  { path: "/vs/mem", changefreq: "monthly", priority: "0.75" },
+  { path: "/vs/craft", changefreq: "monthly", priority: "0.75" },
+  // Audience landing pages
+  { path: "/for/writers", changefreq: "monthly", priority: "0.9" },
+  { path: "/for/researchers", changefreq: "monthly", priority: "0.85" },
+  { path: "/for/students", changefreq: "monthly", priority: "0.85" },
+  // Guide hub
+  { path: "/guides", changefreq: "weekly", priority: "0.8" },
+  { path: "/guides/zettelkasten-method", changefreq: "monthly", priority: "0.85" },
+  { path: "/guides/migrate-from-notion", changefreq: "monthly", priority: "0.85" },
+  { path: "/guides/build-a-knowledge-graph", changefreq: "monthly", priority: "0.85" },
 ];
 
 

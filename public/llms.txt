@@ -37,6 +37,17 @@ https://bakuscribe.com
 - [Baku Scribe vs Roam Research](/vs/roam-research): Visual thinking at a lower price.
 - [Baku Scribe vs OneNote](/vs/onenote): Automatic linking vs linear notebooks.
 - [Baku Scribe vs Evernote](/vs/evernote): Modern AI second brain vs legacy clipper.
+- [Baku Scribe vs Apple Notes](/vs/apple-notes): Connected knowledge vs isolated notes.
+- [Baku Scribe vs Logseq](/vs/logseq): Automatic linking vs manual outlining.
+- [Baku Scribe vs Mem](/vs/mem): AI notes plus knowledge graph and visual studios.
+- [Baku Scribe vs Craft](/vs/craft): Connected second brain vs polished documents.
+- [For writers](/for/writers): Research capture to finished draft in one system.
+- [For researchers](/for/researchers): Zettelkasten and literature review workflow.
+- [For students](/for/students): Study guides and mock exams from your own notes.
+- [Guides](/guides): Practical knowledge management guides.
+- [The Zettelkasten method](/guides/zettelkasten-method): Atomic notes, IDs, and dense linking.
+- [Migrating from Notion](/guides/migrate-from-notion): Export and import without losing structure.
+- [Building a knowledge graph](/guides/build-a-knowledge-graph): Entities, link types, and reading clusters.
 - [Privacy Policy](/privacy): How your data is handled.
 - [Terms of Service](/terms): Terms for using Baku Scribe.
 
