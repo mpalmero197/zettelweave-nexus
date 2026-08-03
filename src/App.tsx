@@ -288,6 +288,22 @@ const App = () => (
                     <ComparisonPage />
                   </Suspense>
                 } />
+                <Route path="/for/:slug" element={
+                  <Suspense fallback={<LoadingFallback message="Loading..." />}>
+                    <UseCasePage />
+                  </Suspense>
+                } />
+                <Route path="/guides" element={
+                  <Suspense fallback={<LoadingFallback message="Loading guides..." />}>
+                    <GuidesIndex />
+                  </Suspense>
+                } />
+                <Route path="/guides/:slug" element={
+                  <Suspense fallback={<LoadingFallback message="Loading guide..." />}>
+                    <GuidePage />
+                  </Suspense>
+                } />
+
                 <Route path="/sso" element={
                   <Suspense fallback={<LoadingFallback message="Signing in from Toolbox..." />}>
                     <SsoHandoff />
