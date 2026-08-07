@@ -11,6 +11,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { insertCardWithUniqueNumber } from '@/utils/cardNumber';
+
 import { cn } from '@/lib/utils';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -411,7 +413,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
                           onClick={async () => {
                             if (!user) return;
                             try {
-                              const { error } = await supabase.from('zettel_cards').insert({
+                              const { error } = await insertCardWithUniqueNumber({
                                 user_id: user.id,
                                 title: result.title,
                                 content: result.content,

@@ -4,6 +4,8 @@ import { useAuth } from './useAuth';
 import { useOfflineMode } from './useOfflineMode';
 import { toast } from 'sonner';
 import type { ZettelCard } from '@/types/zettel';
+import { insertCardWithUniqueNumber } from '@/utils/cardNumber';
+
 
 export const useOfflineZettelCards = () => {
   const { user } = useAuth();
@@ -74,15 +76,13 @@ export const useOfflineZettelCards = () => {
         return cardData as any;
       }
 
-      // Online: insert normally
-      const { data, error } = await supabase
-        .from('zettel_cards')
-        .insert([cardData as any])
-        .select()
-        .single();
+      // Online: insert normally (retrying on card-number collisions)
+      const { id: _tempId, created_at: _c, updated_at: _u, ...insertPayload } = cardData as any;
+      const { data, error } = await insertCardWithUniqueNumber(insertPayload);
 
       if (error) throw error;
       return data;
+
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['zettel-cards'] });

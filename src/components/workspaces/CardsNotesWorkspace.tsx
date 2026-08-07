@@ -11,6 +11,8 @@ import { FileText, StickyNote, Search, Plus, Sparkles, ChevronRight, BookOpen, X
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { insertCardWithUniqueNumber } from '@/utils/cardNumber';
+
 
 type ItemType = 'card' | 'note';
 
@@ -103,9 +105,10 @@ export function CardsNotesWorkspace() {
   // ===== Create =====
   const createCard = async () => {
     if (!user) return;
-    const { data, error } = await supabase.from('zettel_cards').insert({
+    const { data, error } = await insertCardWithUniqueNumber({
       user_id: user.id, title: '', content: '', tags: [], category: 'general', number: '000.0',
-    }).select().single();
+    });
+
     if (error) { toast.error(error.message); return; }
     await load();
     setSelectedId(data.id);
