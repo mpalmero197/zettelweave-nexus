@@ -4,6 +4,8 @@ import { useAuth } from './useAuth';
 import { useOfflineMode } from './useOfflineMode';
 import { toast } from 'sonner';
 import type { ZettelCard } from '@/types/zettel';
+import { insertCardWithUniqueNumber } from '@/utils/cardNumber';
+
 
 export const useOfflineZettelCards = () => {
   const { user } = useAuth();
