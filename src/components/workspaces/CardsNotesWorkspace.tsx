@@ -11,6 +11,8 @@ import { FileText, StickyNote, Search, Plus, Sparkles, ChevronRight, BookOpen, X
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { insertCardWithUniqueNumber } from '@/utils/cardNumber';
+
 
 type ItemType = 'card' | 'note';
 
