@@ -411,7 +411,7 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
                           onClick={async () => {
                             if (!user) return;
                             try {
-                              const { error } = await supabase.from('zettel_cards').insert({
+                              const { error } = await insertCardWithUniqueNumber({
                                 user_id: user.id,
                                 title: result.title,
                                 content: result.content,
