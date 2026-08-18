@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { speakAlice } from "@/lib/aliceTts";
 import { cn } from "@/lib/utils";
+import { insertCardWithUniqueNumber } from "@/utils/cardNumber";
+
 
 interface Props {
   text: string;
@@ -43,14 +45,14 @@ export function AliceMessageActions({ text, lastUserText, onRegenerate, compact 
     if (!user) { toast.error("Sign in to save"); return; }
     setSaving("card");
     try {
-      const { error } = await supabase.from("zettel_cards").insert({
+      const { error } = await insertCardWithUniqueNumber({
         user_id: user.id,
         title: titleFromText(text),
         content: text,
         tags: ["alice"],
         category: "general",
-        number: "000.0",
       });
+
 
       if (error) throw error;
       toast.success("Saved as card");

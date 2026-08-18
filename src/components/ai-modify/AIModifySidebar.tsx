@@ -417,8 +417,8 @@ export function AIModifySidebar({ open, onOpenChange }: AIModifySidebarProps) {
                                 user_id: user.id,
                                 title: result.title,
                                 content: result.content,
-                                number: 'NEW',
                                 category: 'Combined',
+
                                 tags: [],
                               });
                               if (error) throw error;
