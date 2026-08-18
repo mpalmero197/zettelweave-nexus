@@ -5640,6 +5640,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_deck_share: { Args: { _code: string }; Returns: Json }
       search_users: {
         Args: { _search_query: string }
         Returns: {
