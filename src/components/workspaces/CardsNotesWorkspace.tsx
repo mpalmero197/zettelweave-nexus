@@ -106,7 +106,7 @@ export function CardsNotesWorkspace() {
   const createCard = async () => {
     if (!user) return;
     const { data, error } = await insertCardWithUniqueNumber({
-      user_id: user.id, title: '', content: '', tags: [], category: 'general', number: '000.0',
+      user_id: user.id, title: '', content: '', tags: [], category: 'general',
     });
 
     if (error) { toast.error(error.message); return; }
