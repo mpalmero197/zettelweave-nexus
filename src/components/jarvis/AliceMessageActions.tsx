@@ -43,14 +43,14 @@ export function AliceMessageActions({ text, lastUserText, onRegenerate, compact 
     if (!user) { toast.error("Sign in to save"); return; }
     setSaving("card");
     try {
-      const { error } = await supabase.from("zettel_cards").insert({
+      const { error } = await insertCardWithUniqueNumber({
         user_id: user.id,
         title: titleFromText(text),
         content: text,
         tags: ["alice"],
         category: "general",
-        number: "000.0",
       });
+
 
       if (error) throw error;
       toast.success("Saved as card");

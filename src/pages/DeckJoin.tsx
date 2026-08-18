@@ -55,28 +55,31 @@ export default function DeckJoin() {
   const join = async () => {
     if (!code) return;
     setJoining(true);
-    const { data, error } = await supabase
-      .from("alice_deck_shares")
-      .select("deck_id, expires_at")
-      .eq("code", code.toUpperCase())
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("resolve_deck_share", {
+      _code: code.toUpperCase(),
+    });
     setJoining(false);
-    if (error || !data) {
+    const share = data as any;
+    if (error || !share?.deck_id) {
       toast({ title: "Invalid or expired code", variant: "destructive" });
       return;
     }
-    setDeckId(data.deck_id);
+    setDeck((share.deck as Deck) ?? null);
+    setTiles((share.tiles as DeckTile[]) ?? []);
+    setDeckId(share.deck_id as string);
   };
 
   const loadDeck = async (id: string) => {
-    const [{ data: d }, { data: t }] = await Promise.all([
-      supabase.from("alice_decks").select("*").eq("id", id).maybeSingle(),
-      supabase.from("alice_deck_tiles").select("*").eq("deck_id", id),
-    ]);
-    setDeck((d as Deck) ?? null);
-    setTiles((t as DeckTile[]) ?? []);
+    const { data } = await supabase.rpc("resolve_deck_share", {
+      _code: code.toUpperCase(),
+    });
+    const share = data as any;
+    if (share?.deck_id === id) {
+      setDeck((share.deck as Deck) ?? null);
+      setTiles((share.tiles as DeckTile[]) ?? []);
+    }
   };
+
 
   useEffect(() => {
     if (!deckId) return;
