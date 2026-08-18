@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.resolve_deck_share(text) FROM anon;
