@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { speakAlice } from "@/lib/aliceTts";
 import { cn } from "@/lib/utils";
+import { insertCardWithUniqueNumber } from "@/utils/cardNumber";
+
 
 interface Props {
   text: string;
