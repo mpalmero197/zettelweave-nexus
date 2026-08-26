@@ -150,7 +150,6 @@ async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number
 
   const targets = [
     `https://youtubetotranscript.com/transcript?v=${videoId}`,
-    `https://www.youtubetotext.net/transcript?v=${videoId}`,
     `https://notegpt.io/youtube-transcript-generator?video_id=${videoId}`,
   ];
 
@@ -163,7 +162,8 @@ async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number
           url: target,
           formats: ['markdown'],
           onlyMainContent: true,
-          waitFor: 3500,
+          waitFor: 1200,
+          proxy: 'auto',
         }),
       });
       const data = await res.json().catch(() => null);
@@ -172,8 +172,10 @@ async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number
         continue;
       }
       const markdown: string = data?.markdown ?? data?.data?.markdown ?? '';
+      console.log(`firecrawl ${target} -> ${markdown.length} chars of markdown`);
       if (!markdown) continue;
       const segments = parseTimestampedText(markdown);
+      console.log(`firecrawl ${target} -> ${segments.length} parsed segments`);
       if (segments.length >= 8) {
         console.log(`youtube-transcript: scraped ${segments.length} segments from ${target}`);
         return segments;
