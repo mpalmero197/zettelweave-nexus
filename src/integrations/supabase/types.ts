@@ -5360,6 +5360,45 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_transcripts: {
+        Row: {
+          channel: string
+          created_at: string
+          description: string
+          fetched_at: string
+          has_transcript: boolean
+          segments: Json
+          title: string
+          transcript_source: string
+          updated_at: string
+          video_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          description?: string
+          fetched_at?: string
+          has_transcript?: boolean
+          segments?: Json
+          title?: string
+          transcript_source?: string
+          updated_at?: string
+          video_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          description?: string
+          fetched_at?: string
+          has_transcript?: boolean
+          segments?: Json
+          title?: string
+          transcript_source?: string
+          updated_at?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       zettel_cards: {
         Row: {
           attachments: string[] | null
