@@ -349,17 +349,92 @@ async function fetchTranscriptFromTrack(track: any): Promise<Array<{ start: numb
   }
 }
 
+type CacheRow = {
+  video_id: string;
+  title: string;
+  channel: string;
+  description: string;
+  segments: Array<{ start: number; dur: number; text: string }>;
+  has_transcript: boolean;
+  transcript_source: string;
+  fetched_at: string;
+};
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const NEGATIVE_CACHE_MINUTES = 45;
+
+async function readCache(videoId: string): Promise<CacheRow | null> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return null;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/youtube_transcripts?video_id=eq.${encodeURIComponent(videoId)}&select=*`,
+      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const row: CacheRow | undefined = Array.isArray(rows) ? rows[0] : undefined;
+    if (!row) return null;
+    if (!row.has_transcript) {
+      const ageMin = (Date.now() - new Date(row.fetched_at).getTime()) / 60000;
+      if (ageMin > NEGATIVE_CACHE_MINUTES) return null; // retry a failed fetch later
+    }
+    return row;
+  } catch (e) {
+    console.warn('transcript cache read failed', e);
+    return null;
+  }
+}
+
+async function writeCache(row: Omit<CacheRow, 'fetched_at'>): Promise<void> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/youtube_transcripts?on_conflict=video_id`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify({ ...row, fetched_at: new Date().toISOString() }),
+    });
+  } catch (e) {
+    console.warn('transcript cache write failed', e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { url, videoId: rawId } = await req.json();
+    const { url, videoId: rawId, refresh } = await req.json();
     const videoId = extractVideoId(rawId || url || '');
     if (!videoId) {
       return new Response(JSON.stringify({ error: 'Invalid YouTube URL or video ID' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    if (!refresh) {
+      const cached = await readCache(videoId);
+      if (cached) {
+        const segs = Array.isArray(cached.segments) ? cached.segments : [];
+        return new Response(JSON.stringify({
+          videoId,
+          title: cached.title,
+          channel: cached.channel,
+          description: cached.description,
+          hasTranscript: cached.has_transcript && segs.length > 0,
+          segments: segs,
+          fullText: segs.length ? segs.map(s => s.text).join(' ') : cached.description,
+          transcriptSource: 'cache',
+          originalSource: cached.transcript_source,
+          ...(cached.has_transcript ? {} : { warning: 'No captions available for this video' }),
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
 
     const ytHeaders: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
