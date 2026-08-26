@@ -173,7 +173,7 @@ async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number
       }
       const markdown: string = data?.markdown ?? data?.data?.markdown ?? '';
       console.log(`firecrawl ${target} -> ${markdown.length} chars of markdown`);
-      if (Deno.env.get('DEBUG_SCRAPE') === '1') console.log('SAMPLE::' + markdown.slice(0, 2500));
+      console.log('SAMPLE::' + markdown.slice(0, 2000));
       if (!markdown) continue;
       const segments = parseTimestampedText(markdown);
       console.log(`firecrawl ${target} -> ${segments.length} parsed segments`);
