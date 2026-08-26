@@ -141,17 +141,22 @@ function parseTimestampedText(text: string): Array<{ start: number; dur: number;
  * datacenter IPs, so we render a public transcript page through Firecrawl
  * (residential egress) and parse the timestamps back into segments.
  */
-async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number; dur: number; text: string }>> {
+async function fetchViaFirecrawl(
+  videoId: string,
+): Promise<{ segments: Array<{ start: number; dur: number; text: string }>; plainText: string }> {
+  const empty = { segments: [], plainText: '' };
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     console.warn('youtube-transcript: FIRECRAWL_API_KEY missing, skipping scrape fallback');
-    return [];
+    return empty;
   }
 
   const targets = [
     `https://youtubetotranscript.com/transcript?v=${videoId}`,
     `https://notegpt.io/youtube-transcript-generator?video_id=${videoId}`,
   ];
+
+  let bestPlain = '';
 
   for (const target of targets) {
     try {
@@ -160,9 +165,9 @@ async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: target,
-          formats: ['markdown'],
+          formats: ['markdown', 'html'],
           onlyMainContent: true,
-          waitFor: 1200,
+          waitFor: 1500,
           proxy: 'auto',
         }),
       });
@@ -172,21 +177,66 @@ async function fetchViaFirecrawl(videoId: string): Promise<Array<{ start: number
         continue;
       }
       const markdown: string = data?.markdown ?? data?.data?.markdown ?? '';
-      console.log(`firecrawl ${target} -> ${markdown.length} chars of markdown`);
-      console.log('SAMPLE::' + markdown.slice(0, 2000));
-      if (!markdown) continue;
-      const segments = parseTimestampedText(markdown);
-      console.log(`firecrawl ${target} -> ${segments.length} parsed segments`);
-      if (segments.length >= 8) {
-        console.log(`youtube-transcript: scraped ${segments.length} segments from ${target}`);
-        return segments;
+      const html: string = data?.html ?? data?.data?.html ?? '';
+
+      // 1) Timestamped spans (youtubetotranscript renders data-start on each cue)
+      const timed: Array<{ start: number; dur: number; text: string }> = [];
+      const spanRe = /data-start=["']([\d.]+)["'][^>]*(?:data-end=["']([\d.]+)["'][^>]*)?>([\s\S]*?)<\/span>/gi;
+      let m: RegExpExecArray | null;
+      while ((m = spanRe.exec(html)) !== null) {
+        const start = parseFloat(m[1]);
+        const end = m[2] ? parseFloat(m[2]) : NaN;
+        const text = decodeEntities(m[3].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+        if (!text || Number.isNaN(start)) continue;
+        timed.push({ start, dur: Number.isNaN(end) ? 0 : Math.max(1, end - start), text });
       }
+      if (timed.length >= 8) {
+        timed.sort((a, b) => a.start - b.start);
+        for (let i = 0; i < timed.length; i++) {
+          if (!timed[i].dur) timed[i].dur = timed[i + 1] ? Math.max(1, timed[i + 1].start - timed[i].start) : 5;
+        }
+        console.log(`youtube-transcript: scraped ${timed.length} timed segments from ${target}`);
+        return { segments: timed, plainText: timed.map(s => s.text).join(' ') };
+      }
+
+      // 2) Inline "[m:ss] text" renderings
+      const parsed = parseTimestampedText(markdown);
+      if (parsed.length >= 8) {
+        console.log(`youtube-transcript: scraped ${parsed.length} segments from markdown of ${target}`);
+        return { segments: parsed, plainText: parsed.map(s => s.text).join(' ') };
+      }
+
+      // 3) Untimed transcript body — still far better than metadata only
+      const plain = extractTranscriptProse(markdown);
+      if (plain.length > bestPlain.length) bestPlain = plain;
+      console.log(`firecrawl ${target} -> untimed prose ${plain.length} chars`);
     } catch (e) {
       console.warn(`firecrawl scrape threw for ${target}`, e);
     }
   }
-  return [];
+  return { segments: [], plainText: bestPlain.length > 500 ? bestPlain : '' };
 }
+
+/** Pull the transcript prose out of a scraped transcript page's markdown. */
+function extractTranscriptProse(markdown: string): string {
+  if (!markdown) return '';
+  let body = markdown;
+  const marker = body.search(/\n#{1,3}\s*Transcript\b/i);
+  if (marker >= 0) body = body.slice(marker);
+  const lines = body.split('\n')
+    .map(l => l.trim())
+    .filter(l =>
+      l &&
+      !l.startsWith('#') &&
+      !l.startsWith('!') &&
+      !l.startsWith('|') &&
+      !/^\[/.test(l) &&
+      !/^(pin video|tap to unmute|transcript|ai summaries|copytimestamp|translate|subscribe|share|like|author|get free transcript|generating content)/i.test(l) &&
+      !/https?:\/\//.test(l),
+    );
+  return lines.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 
 /** Direct timedtext call, both json3 and legacy XML, manual + auto captions. */
 async function fetchViaTimedText(videoId: string): Promise<Array<{ start: number; dur: number; text: string }>> {
