@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -5357,6 +5357,45 @@ export type Database = {
           updated_at?: string
           user_id?: string
           workflow_type?: Database["public"]["Enums"]["workflow_type"]
+        }
+        Relationships: []
+      }
+      youtube_transcripts: {
+        Row: {
+          channel: string
+          created_at: string
+          description: string
+          fetched_at: string
+          has_transcript: boolean
+          segments: Json
+          title: string
+          transcript_source: string
+          updated_at: string
+          video_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          description?: string
+          fetched_at?: string
+          has_transcript?: boolean
+          segments?: Json
+          title?: string
+          transcript_source?: string
+          updated_at?: string
+          video_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          description?: string
+          fetched_at?: string
+          has_transcript?: boolean
+          segments?: Json
+          title?: string
+          transcript_source?: string
+          updated_at?: string
+          video_id?: string
         }
         Relationships: []
       }

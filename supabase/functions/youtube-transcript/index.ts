@@ -94,19 +94,185 @@ function parseTranscriptXml(xml: string): Array<{ start: number; dur: number; te
   return segments;
 }
 
-async function getOEmbedTitle(videoId: string): Promise<string> {
+async function getOEmbed(videoId: string): Promise<{ title: string; channel: string }> {
   try {
     const res = await fetch(
       `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
       { headers: { 'Accept': 'application/json' } },
     );
-    if (!res.ok) return '';
+    if (!res.ok) return { title: '', channel: '' };
     const data = await res.json();
-    return typeof data?.title === 'string' ? decodeEntities(data.title) : '';
+    return {
+      title: typeof data?.title === 'string' ? decodeEntities(data.title) : '',
+      channel: typeof data?.author_name === 'string' ? decodeEntities(data.author_name) : '',
+    };
   } catch {
-    return '';
+    return { title: '', channel: '' };
   }
 }
+
+/** Parse "[m:ss] text" / "m:ss text" transcript renderings into segments. */
+function parseTimestampedText(text: string): Array<{ start: number; dur: number; text: string }> {
+  const out: Array<{ start: number; dur: number; text: string }> = [];
+  const re = /\[?\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b\]?\s*([^\n]*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    const c = m[3] ? parseInt(m[3], 10) : null;
+    const start = c === null ? a * 60 + b : a * 3600 + b * 60 + c;
+    const line = (m[4] || '').replace(/\s+/g, ' ').trim();
+    if (!line || line.length < 2) continue;
+    // Skip lines that are just another timestamp or navigational chrome
+    if (/^(transcript|copy|download|share|english|auto-generated)$/i.test(line)) continue;
+    out.push({ start, dur: 0, text: line });
+  }
+  // Fill durations from the next start and drop out-of-order noise
+  const sorted = out.filter((s, i) => i === 0 || s.start >= out[i - 1].start);
+  for (let i = 0; i < sorted.length; i++) {
+    const next = sorted[i + 1];
+    sorted[i].dur = next ? Math.max(1, next.start - sorted[i].start) : 5;
+  }
+  return sorted;
+}
+
+/**
+ * Firecrawl-backed transcript scrape. YouTube blocks caption endpoints from
+ * datacenter IPs, so we render a public transcript page through Firecrawl
+ * (residential egress) and parse the timestamps back into segments.
+ */
+async function fetchViaFirecrawl(
+  videoId: string,
+): Promise<{ segments: Array<{ start: number; dur: number; text: string }>; plainText: string }> {
+  const empty = { segments: [], plainText: '' };
+  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!apiKey) {
+    console.warn('youtube-transcript: FIRECRAWL_API_KEY missing, skipping scrape fallback');
+    return empty;
+  }
+
+  const targets = [
+    `https://youtubetotranscript.com/transcript?v=${videoId}`,
+    `https://notegpt.io/youtube-transcript-generator?video_id=${videoId}`,
+  ];
+
+  let bestPlain = '';
+
+  for (const target of targets) {
+    try {
+      const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: target,
+          formats: ['markdown', 'html'],
+          onlyMainContent: true,
+          waitFor: 1500,
+          proxy: 'auto',
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        console.warn(`firecrawl scrape failed [${res.status}] ${target}`, JSON.stringify(data)?.slice(0, 200));
+        continue;
+      }
+      const markdown: string = data?.markdown ?? data?.data?.markdown ?? '';
+      const html: string = data?.html ?? data?.data?.html ?? '';
+
+      // 1) Timestamped spans (youtubetotranscript renders data-start on each cue)
+      const timed: Array<{ start: number; dur: number; text: string }> = [];
+      const spanRe = /data-start=["']([\d.]+)["'][^>]*(?:data-end=["']([\d.]+)["'][^>]*)?>([\s\S]*?)<\/span>/gi;
+      let m: RegExpExecArray | null;
+      while ((m = spanRe.exec(html)) !== null) {
+        const start = parseFloat(m[1]);
+        const end = m[2] ? parseFloat(m[2]) : NaN;
+        const text = decodeEntities(m[3].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+        if (!text || Number.isNaN(start)) continue;
+        timed.push({ start, dur: Number.isNaN(end) ? 0 : Math.max(1, end - start), text });
+      }
+      if (timed.length >= 8) {
+        timed.sort((a, b) => a.start - b.start);
+        for (let i = 0; i < timed.length; i++) {
+          if (!timed[i].dur) timed[i].dur = timed[i + 1] ? Math.max(1, timed[i + 1].start - timed[i].start) : 5;
+        }
+        console.log(`youtube-transcript: scraped ${timed.length} timed segments from ${target}`);
+        return { segments: timed, plainText: timed.map(s => s.text).join(' ') };
+      }
+
+      // 2) Inline "[m:ss] text" renderings
+      const parsed = parseTimestampedText(markdown);
+      if (parsed.length >= 8) {
+        console.log(`youtube-transcript: scraped ${parsed.length} segments from markdown of ${target}`);
+        return { segments: parsed, plainText: parsed.map(s => s.text).join(' ') };
+      }
+
+      // 3) Untimed transcript body — still far better than metadata only
+      const plain = extractTranscriptProse(markdown);
+      if (plain.length > bestPlain.length) bestPlain = plain;
+      console.log(`firecrawl ${target} -> untimed prose ${plain.length} chars`);
+    } catch (e) {
+      console.warn(`firecrawl scrape threw for ${target}`, e);
+    }
+  }
+  return { segments: [], plainText: bestPlain.length > 500 ? bestPlain : '' };
+}
+
+/** Pull the transcript prose out of a scraped transcript page's markdown. */
+function extractTranscriptProse(markdown: string): string {
+  if (!markdown) return '';
+  let body = markdown;
+  const marker = body.search(/\n#{1,3}\s*Transcript\b/i);
+  if (marker >= 0) body = body.slice(marker);
+  const lines = body.split('\n')
+    .map(l => l.trim())
+    .filter(l =>
+      l &&
+      !l.startsWith('#') &&
+      !l.startsWith('!') &&
+      !l.startsWith('|') &&
+      !/^\[/.test(l) &&
+      !/^(pin video|tap to unmute|transcript|ai summaries|copytimestamp|translate|subscribe|share|like|author|get free transcript|generating content)/i.test(l) &&
+      !/https?:\/\//.test(l),
+    );
+  return lines.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+
+/** Direct timedtext call, both json3 and legacy XML, manual + auto captions. */
+async function fetchViaTimedText(videoId: string): Promise<Array<{ start: number; dur: number; text: string }>> {
+  const urls = [
+    `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`,
+    `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&kind=asr&fmt=json3`,
+    `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en`,
+  ];
+  for (const u of urls) {
+    try {
+      const res = await fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US,en;q=0.9' } });
+      if (!res.ok) continue;
+      const body = await res.text();
+      if (!body.trim()) continue;
+      if (u.includes('json3')) {
+        const json = JSON.parse(body);
+        const segs = (json?.events || [])
+          .filter((e: any) => Array.isArray(e.segs))
+          .map((e: any) => ({
+            start: (e.tStartMs ?? 0) / 1000,
+            dur: (e.dDurationMs ?? 0) / 1000,
+            text: e.segs.map((s: any) => s.utf8 ?? '').join('').replace(/\s+/g, ' ').trim(),
+          }))
+          .filter((s: any) => s.text);
+        if (segs.length) return segs;
+      } else {
+        const segs = parseTranscriptXml(body);
+        if (segs.length) return segs;
+      }
+    } catch {
+      // try next
+    }
+  }
+  return [];
+}
+
 
 function transcriptUnavailableResponse(
   videoId: string,
@@ -236,17 +402,92 @@ async function fetchTranscriptFromTrack(track: any): Promise<Array<{ start: numb
   }
 }
 
+type CacheRow = {
+  video_id: string;
+  title: string;
+  channel: string;
+  description: string;
+  segments: Array<{ start: number; dur: number; text: string }>;
+  has_transcript: boolean;
+  transcript_source: string;
+  fetched_at: string;
+};
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const NEGATIVE_CACHE_MINUTES = 45;
+
+async function readCache(videoId: string): Promise<CacheRow | null> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return null;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/youtube_transcripts?video_id=eq.${encodeURIComponent(videoId)}&select=*`,
+      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const row: CacheRow | undefined = Array.isArray(rows) ? rows[0] : undefined;
+    if (!row) return null;
+    if (!row.has_transcript) {
+      const ageMin = (Date.now() - new Date(row.fetched_at).getTime()) / 60000;
+      if (ageMin > NEGATIVE_CACHE_MINUTES) return null; // retry a failed fetch later
+    }
+    return row;
+  } catch (e) {
+    console.warn('transcript cache read failed', e);
+    return null;
+  }
+}
+
+async function writeCache(row: Omit<CacheRow, 'fetched_at'>): Promise<void> {
+  if (!SUPABASE_URL || !SERVICE_KEY) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/youtube_transcripts?on_conflict=video_id`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify({ ...row, fetched_at: new Date().toISOString() }),
+    });
+  } catch (e) {
+    console.warn('transcript cache write failed', e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { url, videoId: rawId } = await req.json();
+    const { url, videoId: rawId, refresh } = await req.json();
     const videoId = extractVideoId(rawId || url || '');
     if (!videoId) {
       return new Response(JSON.stringify({ error: 'Invalid YouTube URL or video ID' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    if (!refresh) {
+      const cached = await readCache(videoId);
+      if (cached) {
+        const segs = Array.isArray(cached.segments) ? cached.segments : [];
+        return new Response(JSON.stringify({
+          videoId,
+          title: cached.title,
+          channel: cached.channel,
+          description: cached.description,
+          hasTranscript: cached.has_transcript && segs.length > 0,
+          segments: segs,
+          fullText: segs.length ? segs.map(s => s.text).join(' ') : cached.description,
+          transcriptSource: 'cache',
+          originalSource: cached.transcript_source,
+          ...(cached.has_transcript ? {} : { warning: 'No captions available for this video' }),
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
 
     const ytHeaders: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -351,24 +592,53 @@ serve(async (req) => {
       description = await fetchViaInnertubeNext(videoId);
     }
 
-    // 4) Last-resort: oEmbed for at least a title
-    if (!title) title = await getOEmbedTitle(videoId);
+    // 4) Metadata last-resort: oEmbed gives title + channel
+    if (!title || !channel) {
+      const oe = await getOEmbed(videoId);
+      if (!title) title = oe.title;
+      if (!channel) channel = oe.channel;
+    }
 
-    if (!tracks.length) {
+    // 5) Transcript acquisition chain
+    let segments: Array<{ start: number; dur: number; text: string }> = [];
+    let transcriptSource = 'none';
+
+    if (tracks.length) {
+      const track = tracks.find((t: any) => (t.languageCode || '').startsWith('en')) || tracks[0];
+      segments = await fetchTranscriptFromTrack(track);
+      if (segments.length) transcriptSource = 'caption_track';
+    }
+
+    if (!segments.length) {
+      segments = await fetchViaTimedText(videoId);
+      if (segments.length) transcriptSource = 'timedtext';
+    }
+
+    if (!segments.length) {
+      segments = await fetchViaFirecrawl(videoId);
+      if (segments.length) transcriptSource = 'scrape';
+    }
+
+    await writeCache({
+      video_id: videoId,
+      title: title || 'YouTube video',
+      channel,
+      description,
+      segments,
+      has_transcript: segments.length > 0,
+      transcript_source: transcriptSource,
+    });
+
+    if (!segments.length) {
       return transcriptUnavailableResponse(videoId, title, channel, 'No captions available for this video', description);
     }
 
-    // Prefer English, else first
-    const track = tracks.find((t: any) => (t.languageCode || '').startsWith('en')) || tracks[0];
-    const segments = await fetchTranscriptFromTrack(track);
-    if (!segments.length) {
-      return transcriptUnavailableResponse(videoId, title, channel, 'Transcript could not be downloaded', description);
-    }
     const fullText = segments.map(s => s.text).join(' ');
 
     return new Response(JSON.stringify({
-      videoId, title, channel, description, hasTranscript: true, segments, fullText,
+      videoId, title, channel, description, hasTranscript: true, segments, fullText, transcriptSource,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
   } catch (e) {
     console.error('youtube-transcript error', e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Failed' }), {
