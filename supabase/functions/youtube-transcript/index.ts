@@ -539,24 +539,53 @@ serve(async (req) => {
       description = await fetchViaInnertubeNext(videoId);
     }
 
-    // 4) Last-resort: oEmbed for at least a title
-    if (!title) title = await getOEmbedTitle(videoId);
+    // 4) Metadata last-resort: oEmbed gives title + channel
+    if (!title || !channel) {
+      const oe = await getOEmbed(videoId);
+      if (!title) title = oe.title;
+      if (!channel) channel = oe.channel;
+    }
 
-    if (!tracks.length) {
+    // 5) Transcript acquisition chain
+    let segments: Array<{ start: number; dur: number; text: string }> = [];
+    let transcriptSource = 'none';
+
+    if (tracks.length) {
+      const track = tracks.find((t: any) => (t.languageCode || '').startsWith('en')) || tracks[0];
+      segments = await fetchTranscriptFromTrack(track);
+      if (segments.length) transcriptSource = 'caption_track';
+    }
+
+    if (!segments.length) {
+      segments = await fetchViaTimedText(videoId);
+      if (segments.length) transcriptSource = 'timedtext';
+    }
+
+    if (!segments.length) {
+      segments = await fetchViaFirecrawl(videoId);
+      if (segments.length) transcriptSource = 'scrape';
+    }
+
+    await writeCache({
+      video_id: videoId,
+      title: title || 'YouTube video',
+      channel,
+      description,
+      segments,
+      has_transcript: segments.length > 0,
+      transcript_source: transcriptSource,
+    });
+
+    if (!segments.length) {
       return transcriptUnavailableResponse(videoId, title, channel, 'No captions available for this video', description);
     }
 
-    // Prefer English, else first
-    const track = tracks.find((t: any) => (t.languageCode || '').startsWith('en')) || tracks[0];
-    const segments = await fetchTranscriptFromTrack(track);
-    if (!segments.length) {
-      return transcriptUnavailableResponse(videoId, title, channel, 'Transcript could not be downloaded', description);
-    }
     const fullText = segments.map(s => s.text).join(' ');
 
     return new Response(JSON.stringify({
-      videoId, title, channel, description, hasTranscript: true, segments, fullText,
+      videoId, title, channel, description, hasTranscript: true, segments, fullText, transcriptSource,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
   } catch (e) {
     console.error('youtube-transcript error', e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Failed' }), {
