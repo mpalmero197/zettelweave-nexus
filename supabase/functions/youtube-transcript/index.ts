@@ -473,18 +473,23 @@ serve(async (req) => {
       const cached = await readCache(videoId);
       if (cached) {
         const segs = Array.isArray(cached.segments) ? cached.segments : [];
+        const untimed = cached.transcript_source === 'scrape_untimed';
+        const timedSegs = untimed ? [] : segs;
+        const text = untimed ? (segs[0]?.text ?? '') : segs.map((s: any) => s.text).join(' ');
         return new Response(JSON.stringify({
           videoId,
           title: cached.title,
           channel: cached.channel,
           description: cached.description,
-          hasTranscript: cached.has_transcript && segs.length > 0,
-          segments: segs,
-          fullText: segs.length ? segs.map(s => s.text).join(' ') : cached.description,
+          hasTranscript: !!cached.has_transcript && (timedSegs.length > 0 || !!text),
+          segments: timedSegs,
+          fullText: text || cached.description,
+          transcriptText: untimed ? text : undefined,
           transcriptSource: 'cache',
           originalSource: cached.transcript_source,
           ...(cached.has_transcript ? {} : { warning: 'No captions available for this video' }),
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
       }
     }
 
