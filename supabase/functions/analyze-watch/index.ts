@@ -87,8 +87,13 @@ serve(async (req) => {
 
   // Build the source excerpt — this can be very large, unlike ai-assistant-chat
   let excerpt = "";
+  let hasTimedTranscript = false;
+  let hasAnyTranscript = false;
   if (source.kind === "youtube") {
     const segs: Segment[] = Array.isArray(source.segments) ? source.segments : [];
+    const untimed = typeof source.transcriptText === "string" ? source.transcriptText.slice(0, 60000) : "";
+    hasTimedTranscript = segs.length > 0;
+    hasAnyTranscript = hasTimedTranscript || untimed.length > 200;
     const transcript = buildTranscriptBlock(segs, 60000); // ~60k chars of transcript
     const near = segs.length
       ? segs
@@ -97,15 +102,26 @@ serve(async (req) => {
           .join("\n")
           .slice(0, 4000)
       : "";
+    // Chapters listed in the description are reliable structure, even with no captions
+    const chapterLines = String(source.description ?? "")
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter((l: string) => /^\(?\d{1,2}:\d{2}(:\d{2})?\)?\s*[-–—:]?\s+\S/.test(l))
+      .slice(0, 40);
     excerpt = [
       `TITLE: ${source.title ?? ""}`,
       source.channel ? `CHANNEL: ${source.channel}` : "",
       source.description ? `DESCRIPTION:\n${String(source.description).slice(0, 8000)}` : "",
-      segs.length ? `` : "NOTE: No captions were available. Rely on title, channel, and description; state clearly when inferring.",
+      chapterLines.length ? `CHAPTERS DECLARED BY THE CREATOR:\n${chapterLines.join("\n")}` : "",
+      hasAnyTranscript ? "" : "NOTE: No captions were available. Rely on title, channel, description and declared chapters; state clearly when inferring.",
       near ? `NEAR CURRENT PLAYBACK (${fmt(currentTime)}):\n${near}` : "",
       transcript ? `TIMESTAMPED TRANSCRIPT:\n${transcript}` : "",
+      !hasTimedTranscript && untimed
+        ? `FULL TRANSCRIPT (no timestamps available — do NOT invent timestamps; cite chapter titles or short quotes instead):\n${untimed}`
+        : "",
     ].filter(Boolean).join("\n\n");
   } else if (source.kind === "article") {
+    hasAnyTranscript = true;
     excerpt = [
       `TITLE: ${source.title ?? ""}`,
       `URL: ${source.url ?? ""}`,
@@ -113,6 +129,7 @@ serve(async (req) => {
       `CONTENT:\n${String(source.content ?? "").slice(0, 60000)}`,
     ].filter(Boolean).join("\n\n");
   } else {
+
     return new Response(JSON.stringify({ error: "Unsupported source.kind" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
