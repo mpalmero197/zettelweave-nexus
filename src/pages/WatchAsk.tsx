@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useZettelCards } from "@/hooks/useZettelCards";
 import { toast } from "sonner";
 
-type Source = { kind: "youtube"; videoId: string; title: string; channel?: string; description?: string; hasTranscript: boolean; segments: Array<{ start: number; dur: number; text: string }>; fullText: string; }
+type Source = { kind: "youtube"; videoId: string; title: string; channel?: string; description?: string; hasTranscript: boolean; segments: Array<{ start: number; dur: number; text: string }>; fullText: string; transcriptText?: string; transcriptSource?: string; }
              | { kind: "article"; url: string; title: string; hostname: string; content: string; image?: string; description?: string; }
              | null;
 
@@ -121,6 +121,8 @@ export default function WatchAsk() {
           hasTranscript: !!data.hasTranscript,
           segments: data.segments || [],
           fullText: data.fullText || "",
+          transcriptText: data.transcriptText || "",
+          transcriptSource: data.originalSource || data.transcriptSource || "none",
         });
       } else {
         const { data, error } = await supabase.functions.invoke("fetch-url-content", {
@@ -184,6 +186,7 @@ export default function WatchAsk() {
                 channel: source.channel,
                 description: source.description,
                 segments: source.segments,
+                transcriptText: source.transcriptText,
               }
             : {
                 kind: "article",
@@ -297,7 +300,11 @@ export default function WatchAsk() {
               <div className="mt-2 text-sm font-semibold truncate">{source.title}</div>
               {source.channel && <div className="text-xs text-muted-foreground">{source.channel}</div>}
               <div className="text-xs text-muted-foreground mt-1">
-                {source.hasTranscript ? `Transcript loaded (${source.segments.length} segments)` : "No captions available — ALICE will use description + title."}
+                {source.segments.length
+                ? `Transcript loaded (${source.segments.length} timestamped segments${source.transcriptSource ? ` · ${source.transcriptSource}` : ""})`
+                : source.transcriptText
+                  ? `Transcript loaded without timestamps (${source.transcriptText.length.toLocaleString()} chars)`
+                  : "No captions available — ALICE will use description + title."}
                 {" · "}Now: {fmtTime(currentTime)}
               </div>
               {source.description && (
