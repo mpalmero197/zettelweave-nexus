@@ -614,9 +614,16 @@ serve(async (req) => {
       if (segments.length) transcriptSource = 'timedtext';
     }
 
+    let untimedText = '';
     if (!segments.length) {
-      segments = await fetchViaFirecrawl(videoId);
-      if (segments.length) transcriptSource = 'scrape';
+      const scraped = await fetchViaFirecrawl(videoId);
+      if (scraped.segments.length) {
+        segments = scraped.segments;
+        transcriptSource = 'scrape';
+      } else if (scraped.plainText) {
+        untimedText = scraped.plainText;
+        transcriptSource = 'scrape_untimed';
+      }
     }
 
     await writeCache({
@@ -624,20 +631,26 @@ serve(async (req) => {
       title: title || 'YouTube video',
       channel,
       description,
-      segments,
-      has_transcript: segments.length > 0,
+      segments: segments.length ? segments : (untimedText ? [{ start: 0, dur: 0, text: untimedText }] : []),
+      has_transcript: segments.length > 0 || !!untimedText,
       transcript_source: transcriptSource,
     });
 
-    if (!segments.length) {
+    if (!segments.length && !untimedText) {
       return transcriptUnavailableResponse(videoId, title, channel, 'No captions available for this video', description);
     }
 
-    const fullText = segments.map(s => s.text).join(' ');
+    const fullText = segments.length ? segments.map(s => s.text).join(' ') : untimedText;
 
     return new Response(JSON.stringify({
-      videoId, title, channel, description, hasTranscript: true, segments, fullText, transcriptSource,
+      videoId, title, channel, description,
+      hasTranscript: true,
+      segments,
+      fullText,
+      transcriptText: untimedText || undefined,
+      transcriptSource,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 
   } catch (e) {
     console.error('youtube-transcript error', e);
