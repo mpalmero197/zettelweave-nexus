@@ -136,10 +136,15 @@ serve(async (req) => {
   }
 
   const isYT = source.kind === "youtube";
-  const timestampRule = isYT
-    ? `- Cite specific moments with timestamps in [M:SS] or [H:MM:SS] format taken verbatim from the transcript above. Every non-trivial claim should carry at least one timestamp.
+  const timestampRule = !isYT
+    ? `- Quote short phrases from the article to ground claims; do not fabricate quotes.`
+    : hasTimedTranscript
+      ? `- Cite specific moments with timestamps in [M:SS] or [H:MM:SS] format taken verbatim from the transcript above. Every non-trivial claim should carry at least one timestamp.
 - If the transcript is sampled ([…middle…] / […later…] markers), be transparent about which section a claim comes from.`
-    : `- Quote short phrases from the article to ground claims; do not fabricate quotes.`;
+      : hasAnyTranscript
+        ? `- The transcript has NO timestamps. Never invent one. Ground each claim with a short verbatim quote from the transcript, or with a chapter title the creator declared.`
+        : `- There is no transcript at all. Say so in the first line, work only from title/description/chapters, and label every inference as an inference. Never invent timestamps or quotes.`;
+
 
   const modePrompt = (() => {
     switch (mode) {
